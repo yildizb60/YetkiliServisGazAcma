@@ -1368,37 +1368,19 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
 
-            var servis = await _context.Ys_Firmalar
-                .Include(x => x.Sirket)
-                .Include(x => x.FirmaKategoriler!)
-                    .ThenInclude(x => x.Kategori)
-                .FirstOrDefaultAsync(x => x.Id == id && !x.SilindiMi);
-            if (servis == null) return Redirect("/AdminPanel/yetkiliservisler");
+            var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
+            var detay = await _adminYetkiliServisApiClient.DetayAsync(kullanici, id, aktifSirketId)
+                ?? await _adminYetkiliServisListeService.GetirAsync(id, aktifSirketId);
 
-            var sertifikalar = await _context.Ys_Sertifikalar
-                .Where(x => !x.SilindiMi && x.FirmaId == id)
-                .OrderByDescending(x => x.OlusturmaTarihi)
-                .Take(8)
-                .ToListAsync();
-
-            var subeler = await _context.Ys_Subeler
-                .Where(x => !x.SilindiMi && x.FirmaId == id)
-                .OrderBy(x => x.SubeAdi)
-                .ToListAsync();
-
-            var devreye = await _context.Ys_DevreyeAlmalar
-                .Include(x => x.Marka)
-                .Where(x => !x.SilindiMi && x.FirmaId == id)
-                .OrderByDescending(x => x.OlusturmaTarihi)
-                .Take(10)
-                .ToListAsync();
+            if (detay.Servis == null)
+                return Redirect("/AdminPanel/yetkiliservisler");
 
             ViewBag.Kullanici = kullanici;
             ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
-            ViewBag.Servis = servis;
-            ViewBag.Sertifikalar = sertifikalar;
-            ViewBag.Subeler = subeler;
-            ViewBag.Devreye = devreye;
+            ViewBag.Servis = detay.Servis;
+            ViewBag.Sertifikalar = detay.Sertifikalar;
+            ViewBag.Subeler = detay.Subeler;
+            ViewBag.Devreye = detay.Devreye;
             return View("~/Views/AdminPanel/YetkiliServisDetay.cshtml");
         }
 

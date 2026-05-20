@@ -81,6 +81,48 @@ namespace YetkiliServisGazAcma.Business.Services
             };
         }
 
+        public async Task<AdminYetkiliServisDetaySonuc> GetirAsync(int id, int? sirketId = null)
+        {
+            var servisQuery = _context.Ys_Firmalar
+                .Include(x => x.Sirket)
+                .Include(x => x.FirmaKategoriler!)
+                    .ThenInclude(x => x.Kategori)
+                .Where(x => x.Id == id && !x.SilindiMi);
+
+            if (sirketId.HasValue)
+                servisQuery = servisQuery.Where(x => x.SirketId == sirketId.Value);
+
+            var servis = await servisQuery.FirstOrDefaultAsync();
+            if (servis == null)
+                return new AdminYetkiliServisDetaySonuc();
+
+            var sertifikalar = await _context.Ys_Sertifikalar
+                .Where(x => !x.SilindiMi && x.FirmaId == id)
+                .OrderByDescending(x => x.OlusturmaTarihi)
+                .Take(8)
+                .ToListAsync();
+
+            var subeler = await _context.Ys_Subeler
+                .Where(x => !x.SilindiMi && x.FirmaId == id)
+                .OrderBy(x => x.SubeAdi)
+                .ToListAsync();
+
+            var devreye = await _context.Ys_DevreyeAlmalar
+                .Include(x => x.Marka)
+                .Where(x => !x.SilindiMi && x.FirmaId == id)
+                .OrderByDescending(x => x.OlusturmaTarihi)
+                .Take(10)
+                .ToListAsync();
+
+            return new AdminYetkiliServisDetaySonuc
+            {
+                Servis = servis,
+                Sertifikalar = sertifikalar,
+                Subeler = subeler,
+                Devreye = devreye
+            };
+        }
+
         private static bool Eslesir(string? kaynak, string aranan)
         {
             if (string.IsNullOrWhiteSpace(kaynak))
@@ -105,5 +147,13 @@ namespace YetkiliServisGazAcma.Business.Services
     {
         public List<Ys_Firma> Servisler { get; set; } = new();
         public Dictionary<int, int> DevreyeSayilari { get; set; } = new();
+    }
+
+    public class AdminYetkiliServisDetaySonuc
+    {
+        public Ys_Firma? Servis { get; set; }
+        public List<Ys_Sertifika> Sertifikalar { get; set; } = new();
+        public List<Ys_Sube> Subeler { get; set; } = new();
+        public List<Ys_DevreyeAlma> Devreye { get; set; } = new();
     }
 }

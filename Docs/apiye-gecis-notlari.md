@@ -317,6 +317,40 @@ API kapaliysa: MVC -> AdminYetkiliServisListeService -> DB
 
 Bu adimda controller icindeki arama, il, aktif/pasif durum ve devreye alma sayisina gore siralama mantigi servis/API katmanina alinmis oldu.
 
+## AdminPanel yetkili servis detayi
+
+AdminPanel'deki yetkili servis detay ekrani da API oncelikli hale getirildi.
+
+Endpoint:
+
+```text
+POST /api/admin-panel/yetkili-servisler/getir
+```
+
+Body:
+
+```json
+{
+  "id": 11,
+  "sirketId": 1
+}
+```
+
+Akis:
+
+```text
+AdminPanelController.YetkiliServisDetay -> AdminYetkiliServisApiClient -> POST /api/admin-panel/yetkili-servisler/getir -> AdminYetkiliServisListeService.GetirAsync -> veritabani
+```
+
+Bu endpoint admin detay ekraninin ihtiyaci olan firma bilgisi, hizmet turleri, son sertifikalar, subeler ve son devreye alma kayitlarini tek cevapta dondurur.
+
+Emniyetli gecis icin fallback vardir:
+
+```text
+API calisiyorsa: MVC -> API -> DB
+API kapaliysa: MVC -> AdminYetkiliServisListeService.GetirAsync -> DB
+```
+
 ## Kayit ekrani referans veri ayrimi
 
 Yetkili servis kayit ekranindaki marka ve urun kategori listeleri de API oncelikli hale getirildi.

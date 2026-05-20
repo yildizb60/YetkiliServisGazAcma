@@ -187,12 +187,84 @@ namespace YetkiliServisGazAcma.API.Controllers
                     VergiNo = x.VergiNo,
                     Telefon = x.Telefon,
                     Email = x.Email,
+                    Adres = x.Adres,
                     FaaliyetIli = x.FaaliyetIli,
                     AktifMi = x.AktifMi,
                     SirketId = x.SirketId,
                     SirketAdi = x.Sirket?.SirketAdi
                 }).ToList(),
                 DevreyeSayilari = sonuc.DevreyeSayilari
+            });
+        }
+
+        [HttpPost("yetkili-servisler/getir")]
+        public async Task<IActionResult> YetkiliServisGetir([FromBody] AdminYetkiliServisGetirFiltreDto? dto)
+        {
+            if (dto == null || dto.Id <= 0)
+                return BadRequest(new { basarili = false, mesaj = "Yetkili servis id zorunludur" });
+
+            var kapsam = await KapsamSirketIdAsync(dto.SirketId);
+            if (kapsam.gecersiz)
+                return Forbid();
+
+            var sonuc = await _yetkiliServisListeService.GetirAsync(dto.Id, kapsam.sirketId);
+            if (sonuc.Servis == null)
+                return NotFound(new { basarili = false, mesaj = "Yetkili servis bulunamadi" });
+
+            return Ok(new AdminYetkiliServisDetayDto
+            {
+                Servis = new AdminYetkiliServisDto
+                {
+                    Id = sonuc.Servis.Id,
+                    FirmaAdi = sonuc.Servis.FirmaAdi,
+                    YetkiliKisi = sonuc.Servis.YetkiliKisi,
+                    VergiNo = sonuc.Servis.VergiNo,
+                    Telefon = sonuc.Servis.Telefon,
+                    Email = sonuc.Servis.Email,
+                    Adres = sonuc.Servis.Adres,
+                    FaaliyetIli = sonuc.Servis.FaaliyetIli,
+                    AktifMi = sonuc.Servis.AktifMi,
+                    SirketId = sonuc.Servis.SirketId,
+                    SirketAdi = sonuc.Servis.Sirket?.SirketAdi,
+                    Kategoriler = sonuc.Servis.FirmaKategoriler?
+                        .Where(x => !x.SilindiMi && x.Kategori != null)
+                        .Select(x => new AdminYetkiliServisKategoriDto
+                        {
+                            Id = x.Kategori!.Id,
+                            Ad = x.Kategori.Ad,
+                            IconUrl = x.Kategori.IconUrl
+                        })
+                        .GroupBy(x => x.Id)
+                        .Select(x => x.First())
+                        .ToList() ?? new List<AdminYetkiliServisKategoriDto>()
+                },
+                Sertifikalar = sonuc.Sertifikalar.Select(x => new AdminYetkiliServisSertifikaDto
+                {
+                    Id = x.Id,
+                    FirmaId = x.FirmaId,
+                    Durum = x.Durum,
+                    OlusturmaTarihi = x.OlusturmaTarihi,
+                    SertifikaBaslangicTarihi = x.SertifikaBaslangicTarihi,
+                    SertifikaBitisTarihi = x.SertifikaBitisTarihi
+                }).ToList(),
+                Subeler = sonuc.Subeler.Select(x => new AdminYetkiliServisSubeDto
+                {
+                    Id = x.Id,
+                    FirmaId = x.FirmaId,
+                    SubeAdi = x.SubeAdi,
+                    Il = x.Il,
+                    Ilce = x.Ilce,
+                    Telefon = x.Telefon
+                }).ToList(),
+                Devreye = sonuc.Devreye.Select(x => new AdminYetkiliServisDevreyeDto
+                {
+                    Id = x.Id,
+                    FirmaId = x.FirmaId,
+                    TesistatNo = x.TesistatNo,
+                    Durum = x.Durum,
+                    OlusturmaTarihi = x.OlusturmaTarihi,
+                    MarkaAdi = x.Marka?.MarkaAdi
+                }).ToList()
             });
         }
 
@@ -297,10 +369,24 @@ namespace YetkiliServisGazAcma.API.Controllers
         public string? DevreyeSiralama { get; set; }
     }
 
+    public class AdminYetkiliServisGetirFiltreDto
+    {
+        public int Id { get; set; }
+        public int? SirketId { get; set; }
+    }
+
     public class AdminYetkiliServisListeDto
     {
         public List<AdminYetkiliServisDto> Servisler { get; set; } = new();
         public Dictionary<int, int> DevreyeSayilari { get; set; } = new();
+    }
+
+    public class AdminYetkiliServisDetayDto
+    {
+        public AdminYetkiliServisDto? Servis { get; set; }
+        public List<AdminYetkiliServisSertifikaDto> Sertifikalar { get; set; } = new();
+        public List<AdminYetkiliServisSubeDto> Subeler { get; set; } = new();
+        public List<AdminYetkiliServisDevreyeDto> Devreye { get; set; } = new();
     }
 
     public class AdminYetkiliServisDto
@@ -311,10 +397,49 @@ namespace YetkiliServisGazAcma.API.Controllers
         public string? VergiNo { get; set; }
         public string? Telefon { get; set; }
         public string? Email { get; set; }
+        public string? Adres { get; set; }
         public string? FaaliyetIli { get; set; }
         public bool AktifMi { get; set; }
         public int SirketId { get; set; }
         public string? SirketAdi { get; set; }
+        public List<AdminYetkiliServisKategoriDto> Kategoriler { get; set; } = new();
+    }
+
+    public class AdminYetkiliServisKategoriDto
+    {
+        public int Id { get; set; }
+        public string? Ad { get; set; }
+        public string? IconUrl { get; set; }
+    }
+
+    public class AdminYetkiliServisSertifikaDto
+    {
+        public int Id { get; set; }
+        public int FirmaId { get; set; }
+        public int Durum { get; set; }
+        public DateTime OlusturmaTarihi { get; set; }
+        public DateTime? SertifikaBaslangicTarihi { get; set; }
+        public DateTime SertifikaBitisTarihi { get; set; }
+    }
+
+    public class AdminYetkiliServisSubeDto
+    {
+        public int Id { get; set; }
+        public int FirmaId { get; set; }
+        public string? SubeAdi { get; set; }
+        public string? Il { get; set; }
+        public string? Ilce { get; set; }
+        public string? Telefon { get; set; }
+    }
+
+    public class AdminYetkiliServisDevreyeDto
+    {
+        public int Id { get; set; }
+        public int FirmaId { get; set; }
+        public string? TesistatNo { get; set; }
+        public int Durum { get; set; }
+        public DateTime OlusturmaTarihi { get; set; }
+        public string? MarkaAdi { get; set; }
     }
 
     public class AdminKullaniciListeDto
