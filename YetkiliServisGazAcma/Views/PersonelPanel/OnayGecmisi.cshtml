@@ -1,0 +1,71 @@
+@model List<YetkiliServisGazAcma.Entities.Ys_Sertifika>
+@{    ViewData["Title"] = "Onay Gecmisi";    ViewData["PanelTitle"] = ViewData["Title"];
+    ViewData["PanelSubtitle"] = "Personel Paneli";
+    ViewData["ActiveMenu"] = "OnayGecmisi";
+    Layout = "~/Views/Shared/_PanelLayout.cshtml";    var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;    var bas = ViewBag.Bas as DateTime?;    var bit = ViewBag.Bit as DateTime?;    var q = ViewBag.Q as string ?? "";    var durum = ViewBag.Durum as string ?? "";    bool ySertifika = ViewBag.YetkiSertifika != false;    bool yRapor = ViewBag.YetkiRapor != false;    bool ySirket = ViewBag.YetkiSirket != false;    bool yMarka = ViewBag.YetkiMarka != false;    bool ySirketYonet = ViewBag.YetkiSirketYonet != false;    bool yMarkaYonet = ViewBag.YetkiMarkaYonet != false;    bool yServis = ViewBag.YetkiServis != false;}
+
+@section Styles {
+    <style>
+.content { padding: 28px 32px; }        .sayfa-aciklama { margin: 6px 0 16px; color: #777; font-size: 13px; }        .filter { background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 16px 20px; margin-bottom: 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }        .filter input, .filter select { padding: 10px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 13px; background: #fafafa; }        .filter button { padding: 9px 16px; border-radius: 8px; border: none; background: #1B9FD4; color: #fff; font-weight: bold; cursor: pointer; }        .section { background: #fff; border-radius: 12px; border: 1px solid #eee; overflow: hidden; }        .tablo-head { padding: 10px 20px; background: #f8f8f6; font-size: 11px; color: #888; font-weight: bold; display: grid; grid-template-columns: 1.4fr 1fr 1fr 0.8fr 1.2fr; }        .tablo-row { padding: 12px 20px; border-top: 1px solid #f0f0ee; font-size: 13px; color: #333; display: grid; grid-template-columns: 1.4fr 1fr 1fr 0.8fr 1.2fr; }        .badge { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 11px; font-weight: bold; }        .b-green { background: #E1F5EE; color: #085041; }        .b-red { background: #FCEBEB; color: #501313; }        .empty { padding: 30px; text-align: center; color: #bbb; font-size: 13px; }        .small { color: #888; font-size: 11px; }            .notif-wrap { position: relative; }
+        .notif { position: relative; width: 32px; height: 32px; border-radius: 50%; background: #f0f4f8; border: none; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #4CAF7D; cursor: pointer; }
+        .notif-badge { position: absolute; top: -4px; right: -4px; background: #e24b4a; color: #fff; font-size: 9px; font-weight: bold; padding: 2px 5px; border-radius: 10px; }
+        .notif-panel { position: absolute; right: 0; top: 38px; width: 280px; background: #fff; border: 1px solid #e7e7e7; border-radius: 10px; box-shadow: 0 10px 24px rgba(0,0,0,0.08); padding: 10px; display: none; z-index: 50; }
+        .notif-panel.open { display: block; }
+        .notif-title { font-size: 12px; font-weight: bold; color: #555; padding: 6px 8px 8px; border-bottom: 1px solid #f0f0f0; margin-bottom: 6px; }
+        .notif-item { display: flex; gap: 10px; padding: 8px; border-radius: 8px; transition: background .12s; }
+        .notif-item:hover { background: #f7fafc; }
+        .notif-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; background: #4CAF7D; flex-shrink: 0; }
+        .notif-text { font-size: 13px; color: #333; line-height: 1.35; }
+        .notif-meta { font-size: 11px; color: #888; margin-top: 2px; }
+        .notif-empty { padding: 10px 8px; font-size: 12px; color: #999; }            .notif-panel { display: none; position: absolute; right: 0; top: 38px; width: 280px; background: #fff; border: 1px solid #e7e7e7; border-radius: 10px; box-shadow: 0 10px 24px rgba(0,0,0,0.08); padding: 10px; z-index: 50; }
+        .notif-panel.open { display: block; }            
+        .notif-panel.open { display: block !important; }
+    </style>
+}
+
+<div class="sayfa-aciklama">Bu sayfa, personelin onaylad&#305;&#287;&#305; veya reddetti&#287;i yetki belgesi ba&#351;vurular&#305;n&#305; g&ouml;sterir.</div>            <form class="filter" method="get" action="/personel-panel/onay-gecmisi">                <input type="text" name="q" placeholder="Firma / &#350;irket ara..." value="@q" />                <select name="durum">                    <option value="">T&#252;m&#252;</option>                    @if (durum == "1")                    {                        <option value="1" selected>Onayland&#305;</option>                    }                    else                    {                        <option value="1">Onayland&#305;</option>                    }                    @if (durum == "2")                    {                        <option value="2" selected>Reddedildi</option>                    }                    else                    {                        <option value="2">Reddedildi</option>                    }                </select>                <input type="date" name="bas" value="@(bas.HasValue ? bas.Value.ToString("yyyy-MM-dd") : "")" />                <input type="date" name="bit" value="@(bit.HasValue ? bit.Value.ToString("yyyy-MM-dd") : "")" />                <button type="submit">Filtrele</button>            </form>            <div class="section">                <div class="tablo-head">                    <div>Firma</div><div>&#350;irket</div><div>Onaylayan</div><div>Durum</div><div>Tarih / Gerek&#231;e</div>                </div>                @if (Model == null || Model.Count == 0)                {                    <div class="empty">Kay&#305;t bulunamad&#305;.</div>                }                else                {                    foreach (var s in Model)                    {                        <div class="tablo-row">                            <div>@s.Firma?.FirmaAdi</div>                            <div>@s.Firma?.Sirket?.SirketAdi</div>                            <div>@(string.IsNullOrWhiteSpace(s.OnaylayanKullanici) ? "-" : s.OnaylayanKullanici)</div>                            <div>                                <span class="badge @(s.Durum==1 ? "b-green" : "b-red")">                                    @Html.Raw(s.Durum==1 ? "Onayland&#305;" : "Reddedildi")                                </span>                            </div>                            <div>                                @(s.OnayTarihi?.ToString("dd.MM.yyyy") ?? "-")                                @if (!string.IsNullOrWhiteSpace(s.RedGerekce))                                {                                    <div class="small">Gerek&#231;e: @s.RedGerekce</div>                                }                            </div>                        </div>                    }                }            </div>
+
+@section Scripts {
+<script>
+    (function () {
+        var btns = document.querySelectorAll('.notif');
+        btns.forEach(function(btn){
+            var panel = btn.parentElement.querySelector('.notif-panel');
+            if (!panel) return;
+            btn.addEventListener('click', function(e){
+                e.stopPropagation();
+                panel.style.display = (panel.style.display === "block" ? "none" : "block");
+            });
+            panel.addEventListener('click', function(e){ e.stopPropagation(); });
+        });
+        document.addEventListener('click', function(){
+            document.querySelectorAll('.notif-panel').forEach(function(p){ p.style.display = "none"; });
+        });
+    })();
+</script>
+<script>\n    (function () {\n        var btns = document.querySelectorAll(".notif");\n        btns.forEach(function(btn){\n            var panel = btn.parentElement.querySelector(".notif-panel");\n            if (!panel) return;\n            btn.addEventListener("click", function(e){\n                e.stopPropagation();\n                panel.classList.toggle("open");\n            });\n            panel.addEventListener("click", function(e){ e.stopPropagation(); });\n        });\n        document.addEventListener("click", function(){\n            document.querySelectorAll(".notif-panel").forEach(function(p){ p.classList.remove("open"); });\n        });\n    })();\n</script>
+<script>
+(function () {
+    // PERSONEL_YETKI_MENU
+    var yetki = {
+        sertifika: @((ViewBag.YetkiSertifika == true).ToString().ToLower()),
+        rapor: @((ViewBag.YetkiRapor == true).ToString().ToLower())
+    };
+
+    function hide(selector, allowed) {
+        if (allowed) return;
+        var list = document.querySelectorAll(selector);
+        list.forEach(function (el) { el.style.display = 'none'; });
+    }
+
+    hide('a[href="/personel-panel/onay-bekleyenler"]', yetki.sertifika);
+    hide('a[href="/personel-panel/onay-gecmisi"]', yetki.sertifika);
+    hide('a[href="/personel-panel/raporlar"]', yetki.rapor);
+
+    var raporSection = Array.from(document.querySelectorAll('.nav-section')).find(function (x) {
+        return (x.textContent || '').toLowerCase().indexOf('rapor') >= 0;
+    });
+    if (!yetki.rapor && raporSection) raporSection.style.display = 'none';
+})();
+</script>
+}

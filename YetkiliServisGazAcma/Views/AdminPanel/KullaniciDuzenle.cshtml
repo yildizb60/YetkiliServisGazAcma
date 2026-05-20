@@ -1,0 +1,121 @@
+@{
+    ViewData["Title"] = "Kullanıcı Düzenle";
+    ViewData["PanelTitle"] = ViewData["Title"];
+    ViewData["PanelSubtitle"] = "Admin Paneli";
+    ViewData["ActiveMenu"] = "Kullanicilar";
+    Layout = "~/Views/Shared/_PanelLayout.cshtml";
+    var Kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
+    var hedef = ViewBag.Hedef as YetkiliServisGazAcma.Entities.AppKullanici;
+    var sirketler = ViewBag.Sirketler as List<YetkiliServisGazAcma.Entities.Dag_Sirket> ?? new();
+    var firmalar = ViewBag.Firmalar as List<YetkiliServisGazAcma.Entities.Ys_Firma> ?? new();
+    var returnUrl = ViewBag.ReturnUrl as string ?? "/AdminPanel/kullanicilar";
+    string adSoyad = Kullanici?.AdSoyad ?? "Süper Admin";
+    string basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "A";
+}
+
+@section Styles {
+    <style>
+.content { padding: 28px 32px; }
+.back-link { display: inline-flex; align-items: center; gap: 8px; color: #1B9FD4; font-weight: 700; text-decoration: none; margin-bottom: 14px; }
+.page-title { font-size: 22px; font-weight: 800; margin: 4px 0 10px; }
+.card { background: #fff; border-radius: 12px; border: 1px solid #e6eef4; box-shadow: 0 10px 24px rgba(20,40,60,0.08); padding: 16px; max-width: none; width: 100%; }
+.card-title { font-size: 14px; font-weight: 800; color: #4CAF7D; margin-bottom: 10px; display:flex; align-items:center; gap:8px; }
+.info-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.info-item { background: #f7fafc; border: 1px solid #edf3f8; border-radius: 10px; padding: 10px 12px; }
+.info-label { font-size: 11px; color: #6f7b86; margin-bottom: 4px; font-weight: 700; }
+.info-help { font-size: 11px; color: #8b97a3; margin-top: 6px; }
+.info-input { width: 100%; padding: 10px 12px; border: 1.5px solid #e0e0e0; border-radius: 8px; font-size: 13px; color: #333; outline: none; background: #fff; }
+.info-input:focus { border-color: #4CAF7D; }
+.actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+.btn { padding: 10px 16px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 13px; background: #1B9FD4; color: #fff; }
+.btn-secondary { background: #fff; color: #555; border: 1.5px solid #ddd; text-decoration: none; padding: 10px 16px; border-radius: 8px; font-size: 13px; }
+.alert { padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; font-size: 12px; font-weight: bold; }
+.alert-danger { background: #FCEBEB; color: #501313; border: 1px solid #eccaca; }
+    </style>
+}
+
+<a class="back-link" href="@returnUrl">&#8592; Kullanıcılara Dön</a>
+<div class="page-title">Kullanıcı Düzenle</div>
+<div class="card">
+    <div class="card-title">&#128100; Kullanıcı Bilgileri</div>
+    <div class="card-body">
+        @if (ViewBag.Hata != null) { <div class="alert alert-danger">@ViewBag.Hata</div> }
+        <form method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="returnUrl" value="@returnUrl" />
+            <div class="info-grid">
+                <div class="info-item"><div class="info-label">Ad Soyad</div><input class="info-input" name="adSoyad" value="@(hedef?.AdSoyad ?? "")" required /></div>
+                <div class="info-item"><div class="info-label">E-Posta</div><input class="info-input" type="email" name="email" value="@(hedef?.Email ?? "")" required /></div>
+                <div class="info-item"><div class="info-label">Telefon</div><input class="info-input" name="telefon" value="@(hedef?.PhoneNumber ?? "")" /></div>
+                @if (hedef?.KullaniciTipi == 3 || hedef?.KullaniciTipi == 2)
+                {
+                    <div class="info-item">
+                        <div class="info-label">@(hedef?.KullaniciTipi == 3 ? "Admin Şirketi" : "Şirket")</div>
+                        <select class="info-input" name="sirketId" required>
+                            <option value="">Seçiniz</option>
+                            @foreach (var s in sirketler)
+                            {
+                                if (hedef?.SirketId == s.Id)
+                                {
+                                    <option value="@s.Id" selected="selected">@s.SirketAdi</option>
+                                }
+                                else
+                                {
+                                    <option value="@s.Id">@s.SirketAdi</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                }
+                else if (hedef?.KullaniciTipi == 1)
+                {
+                    <div class="info-item">
+                        <div class="info-label">Firma</div>
+                        <select class="info-input" name="firmaId" required>
+                            <option value="">Seçiniz</option>
+                            @foreach (var f in firmalar)
+                            {
+                                var label = f.Sirket != null ? $"{f.FirmaAdi} ({f.Sirket.SirketAdi})" : f.FirmaAdi;
+                                if (hedef?.FirmaId == f.Id)
+                                {
+                                    <option value="@f.Id" selected="selected">@label</option>
+                                }
+                                else
+                                {
+                                    <option value="@f.Id">@label</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                }
+                <div class="info-item"><div class="info-label">Durum</div>
+                    <select class="info-input" name="aktifMi">
+                        @if (hedef?.AktifMi == true)
+                        {
+                            <option value="true" selected="selected">Aktif</option>
+                            <option value="false">Pasif</option>
+                        }
+                        else
+                        {
+                            <option value="true">Aktif</option>
+                            <option value="false" selected="selected">Pasif</option>
+                        }
+                    </select>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Yeni Şifre</div>
+                    <input class="info-input" type="password" name="yeniSifre" autocomplete="new-password" placeholder="Boş bırakırsanız değişmez" />
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Yeni Şifre Tekrar</div>
+                    <input class="info-input" type="password" name="yeniSifreTekrar" autocomplete="new-password" placeholder="Yeni şifreyi tekrar girin" />
+                    <div class="info-help">Şifre en az 6 karakter olmalı ve en az 1 rakam içermelidir.</div>
+                </div>
+            </div>
+            <div class="actions">
+                <button type="submit" class="btn">Kaydet</button>
+                <a class="btn-secondary" href="@returnUrl">Vazge&#231;</a>
+            </div>
+        </form>
+    </div>
+</div>

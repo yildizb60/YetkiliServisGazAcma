@@ -1,0 +1,279 @@
+@{
+    ViewData["Title"] = "Profil Yönetimi";
+    ViewData["PanelTitle"] = "Profilim";
+    ViewData["PanelSubtitle"] = "Admin Paneli";
+    ViewData["ActiveMenu"] = "Profil";
+    Layout = "~/Views/Shared/_PanelLayout.cshtml";
+
+    var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
+    var adSoyad = kullanici?.AdSoyad ?? "Sistem Yöneticisi";
+    var email = kullanici?.Email ?? "-";
+    var tel = kullanici?.PhoneNumber ?? "-";
+    var basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "A";
+}
+
+@section Styles {
+    <style>
+        .hero {
+            background: linear-gradient(135deg, #1a1a2e 0%, #1B9FD4 100%);
+            border-radius: 14px;
+            padding: 28px 32px;
+            margin-bottom: 22px;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .hero-avatar {
+            width: 72px;
+            height: 72px;
+            background: rgba(255, 255, 255, .15);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            color: #fff;
+            font-weight: 800;
+            border: 2px solid rgba(255, 255, 255, .3);
+        }
+
+        .hero-ad {
+            color: #fff;
+            font-size: 22px;
+            font-weight: 800;
+        }
+
+        .hero-alt {
+            color: rgba(255, 255, 255, .76);
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        .iki-kolon {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+            margin-bottom: 18px;
+        }
+
+        .kart {
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid #eee;
+            overflow: hidden;
+        }
+
+        .kart-baslik {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 16px 22px;
+            border-bottom: 2px solid #f0f0ee;
+            background: linear-gradient(to right, #f8f8f6, #fff);
+        }
+
+        .kart-baslik-ikon {
+            width: 36px;
+            height: 36px;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 17px;
+        }
+
+        .ikon-mavi { background: #E6F1FB; }
+        .ikon-yesil { background: #E1F5EE; }
+        .ikon-turuncu { background: #FEF0E0; }
+        .kart-baslik-yazi { font-size: 14px; font-weight: 800; color: #333; }
+        .kart-icerik { padding: 20px 22px; }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        .form-alan {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-alan.tam {
+            grid-column: span 2;
+        }
+
+        .form-alan label {
+            font-size: 12px;
+            color: #555;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+
+        .form-alan input {
+            padding: 10px 13px;
+            border: 1.5px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            color: #333;
+            background: #fafafa;
+        }
+
+        .form-buton {
+            margin-top: 14px;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .btn-kaydet {
+            padding: 11px 24px;
+            background: #4CAF7D;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .btn-sifre {
+            background: #e24b4a;
+        }
+
+        .bilgi-satir {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 11px 0;
+            border-bottom: 1px solid #f4f4f4;
+        }
+
+        .bilgi-satir:last-child {
+            border-bottom: none;
+        }
+
+        .bilgi-satir-label {
+            font-size: 12px;
+            color: #999;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+
+        .bilgi-satir-deger {
+            font-size: 14px;
+            color: #333;
+            font-weight: 500;
+            text-align: right;
+            max-width: 66%;
+        }
+
+        .mesaj-basarili,
+        .mesaj-hata {
+            padding: 13px 18px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            border-left: 4px solid;
+        }
+
+        .mesaj-basarili {
+            background: #E1F5EE;
+            color: #085041;
+            border-left-color: #4CAF7D;
+        }
+
+        .mesaj-hata {
+            background: #FCEBEB;
+            color: #501313;
+            border-left-color: #e24b4a;
+        }
+
+        @@media (max-width: 980px) {
+            .iki-kolon,
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .form-alan.tam {
+                grid-column: span 1;
+            }
+        }
+    </style>
+}
+
+@if (TempData["Basarili"] != null)
+{
+    <div class="mesaj-basarili">@TempData["Basarili"]</div>
+}
+@if (TempData["SifreBasarili"] != null)
+{
+    <div class="mesaj-basarili">@TempData["SifreBasarili"]</div>
+}
+@if (TempData["SifreHata"] != null)
+{
+    <div class="mesaj-hata">@TempData["SifreHata"]</div>
+}
+
+<div class="hero">
+    <div class="hero-avatar">@basHarf</div>
+    <div>
+        <div class="hero-ad">@adSoyad</div>
+        <div class="hero-alt">@email &nbsp;•&nbsp; Profil Yönetimi</div>
+    </div>
+</div>
+
+<div class="iki-kolon">
+    <div class="kart">
+        <div class="kart-baslik">
+            <div class="kart-baslik-ikon ikon-yesil">👤</div>
+            <div class="kart-baslik-yazi">Kullanıcı Bilgilerini Güncelle</div>
+        </div>
+        <div class="kart-icerik">
+            <form method="post" action="/AdminPanel/profil-guncelle">
+                @Html.AntiForgeryToken()
+                <div class="form-grid">
+                    <div class="form-alan tam"><label>Ad Soyad</label><input type="text" name="adSoyad" value="@adSoyad" required /></div>
+                    <div class="form-alan tam"><label>E-posta</label><input type="email" name="email" value="@email" required /></div>
+                    <div class="form-alan tam"><label>Telefon</label><input type="text" name="telefon" value="@tel" /></div>
+                </div>
+                <div class="form-buton"><button type="submit" class="btn-kaydet">Kaydet</button></div>
+            </form>
+        </div>
+    </div>
+
+    <div class="kart">
+        <div class="kart-baslik">
+            <div class="kart-baslik-ikon ikon-turuncu">🔒</div>
+            <div class="kart-baslik-yazi">Şifre Değiştir</div>
+        </div>
+        <div class="kart-icerik">
+            <form method="post" action="/AdminPanel/sifre-degistir">
+                @Html.AntiForgeryToken()
+                <div class="form-grid">
+                    <div class="form-alan tam"><label>Mevcut Şifre</label><input type="password" name="mevcutSifre" required /></div>
+                    <div class="form-alan"><label>Yeni Şifre</label><input type="password" name="yeniSifre" required /></div>
+                    <div class="form-alan"><label>Yeni Şifre Tekrar</label><input type="password" name="yeniSifreTekrar" required /></div>
+                </div>
+                <div class="form-buton"><button type="submit" class="btn-kaydet btn-sifre">Şifreyi Güncelle</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="kart">
+    <div class="kart-baslik">
+        <div class="kart-baslik-ikon ikon-mavi">🛡️</div>
+        <div class="kart-baslik-yazi">Hesap Bilgileri</div>
+    </div>
+    <div class="kart-icerik">
+        <div class="bilgi-satir"><div class="bilgi-satir-label">Kullanıcı Adı</div><div class="bilgi-satir-deger">@kullanici?.UserName</div></div>
+        <div class="bilgi-satir"><div class="bilgi-satir-label">Rol</div><div class="bilgi-satir-deger">@(ViewBag.GenelSistemAdminMi == true ? "Genel Sistem Admini" : "Kullanıcı")</div></div>
+        <div class="bilgi-satir"><div class="bilgi-satir-label">Hesap Durumu</div><div class="bilgi-satir-deger">@(kullanici?.AktifMi == true ? "Aktif" : "Pasif")</div></div>
+        <div class="bilgi-satir"><div class="bilgi-satir-label">E-posta Onayı</div><div class="bilgi-satir-deger">@(kullanici?.EmailConfirmed == true ? "Onaylandı" : "Onaylanmadı")</div></div>
+    </div>
+</div>

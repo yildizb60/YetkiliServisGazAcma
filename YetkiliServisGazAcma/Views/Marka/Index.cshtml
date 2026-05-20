@@ -1,0 +1,123 @@
+@model List<YetkiliServisGazAcma.Entities.Ys_Marka>
+@{
+    ViewData["Title"] = "Markalar";
+    ViewData["PanelTitle"] = ViewData["Title"];
+    ViewData["PanelSubtitle"] = "Admin Paneli";
+    ViewData["ActiveMenu"] = "Markalar";
+    Layout = "~/Views/Shared/_PanelLayout.cshtml";
+    var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
+    string adSoyad = kullanici?.AdSoyad ?? "Sistem YÃƒ¶neticisi";
+    string basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "A";
+    int onayBekleyen = ViewBag.OnayBekleyen is int v ? v : 0;
+    int sureBitecek = ViewBag.SuresiBitecek is int s ? s : 0;
+    var seciliQ = ViewBag.SeciliQ as string ?? "";
+    var seciliDurum = ViewBag.SeciliDurum as string ?? "tumu";
+}
+
+@section Styles {
+    <style>
+.content { padding: 24px 28px; }
+        .filter-bar { background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 16px 20px; margin-bottom: 14px; display: grid; grid-template-columns: 2fr 1fr auto; gap: 10px; align-items: end; }
+        .filter-group { display: flex; flex-direction: column; gap: 6px; }
+        .filter-group label { font-size: 11px; color: #777; font-weight: bold; text-transform: uppercase; letter-spacing: .04em; }
+        .filter-group input, .filter-group select { padding: 9px 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px; }
+        .btn-filter { padding: 9px 14px; border-radius: 8px; font-size: 12px; font-weight: bold; border: none; cursor: pointer; background: #1B9FD4; color: #fff; }
+        .section { background: #fff; border-radius: 12px; border: 1px solid #eee; overflow: hidden; }
+        .section-head { padding: 14px 20px; border-bottom: 2px solid #f0f0ee; display: flex; justify-content: space-between; align-items: center; }
+        .section-title { font-size: 14px; font-weight: bold; color: #333; }
+        .btn-add { padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: bold; background: #1B9FD4; color: #fff; text-decoration: none; }
+        .mesaj { background: #EAF3DE; color: #27500A; padding: 10px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; }
+        .mesaj.hata { background: #FCEBEB; color: #7A1B1B; }
+        .tablo { background: #fff; border-radius: 10px; border: 1px solid #eee; overflow: hidden; }
+        .tablo-head { display: grid; grid-template-columns: 2fr 2fr 1fr 1fr; padding: 12px 20px; background: #f8f8f6; font-size: 11px; color: #888; font-weight: bold; }
+        .tablo-row { display: grid; grid-template-columns: 2fr 2fr 1fr 1fr; padding: 13px 20px; border-top: 1px solid #f0f0ee; font-size: 13px; color: #333; align-items: center; }
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 11px; font-weight: bold; }
+        .b-green { background: #EAF3DE; color: #27500A; }
+        .b-red { background: #FCEBEB; color: #501313; }
+        .aksiyon { display: flex; gap: 8px; }
+        .btn-edit { padding: 5px 12px; background: #E6F1FB; color: #0C447C; border: none; border-radius: 6px; font-size: 12px; cursor: pointer; text-decoration: none; }
+        .btn-del { padding: 5px 12px; background: #FCEBEB; color: #501313; border: none; border-radius: 6px; font-size: 12px; cursor: pointer; text-decoration: none; }
+        .empty { padding: 40px; text-align: center; color: #bbb; font-size: 13px; }
+    </style>
+}
+
+@if (TempData["Mesaj"] != null)
+{
+    <div class="mesaj">@TempData["Mesaj"]</div>
+}
+@if (TempData["Hata"] != null)
+{
+    <div class="mesaj hata">@TempData["Hata"]</div>
+}
+<form class="filter-bar" method="get" action="/Marka">
+    <div class="filter-group">
+        <label>Arama</label>
+        <input type="text" name="q" value="@seciliQ" placeholder="Marka ad&#305;, a&#231;&#305;klama..." />
+    </div>
+    <div class="filter-group">
+        <label>Durum</label>
+        <select name="durum">
+            @if (seciliDurum == "tumu")
+            {
+                <option value="tumu" selected>T&#252;m&#252;</option>
+            }
+            else
+            {
+                <option value="tumu">T&#252;m&#252;</option>
+            }
+            @if (seciliDurum == "aktif")
+            {
+                <option value="aktif" selected>Aktif</option>
+            }
+            else
+            {
+                <option value="aktif">Aktif</option>
+            }
+            @if (seciliDurum == "pasif")
+            {
+                <option value="pasif" selected>Pasif</option>
+            }
+            else
+            {
+                <option value="pasif">Pasif</option>
+            }
+        </select>
+    </div>
+    <button class="btn-filter" type="submit">Filtrele</button>
+</form>
+
+<div class="section">
+    <div class="section-head">
+        <div class="section-title">Marka Listesi</div>
+        <a class="btn-add" href="/Marka/Ekle">+ Yeni Marka Ekle</a>
+    </div>
+    <div class="tablo">
+        <div class="tablo-head">
+            <div>Marka Ad&#305;</div>
+            <div>A&#231;&#305;klama</div>
+            <div>Durum</div>
+            <div>&#304;&#351;lemler</div>
+        </div>
+        @if (!Model.Any())
+        {
+            <div class="empty">Hen&#252;z marka eklenmemi&#351;.</div>
+        }
+        @foreach (var m in Model)
+        {
+            <div class="tablo-row">
+                <div>@m.MarkaAdi</div>
+                <div>@m.Aciklama</div>
+                <div>
+                    <span class="badge @(m.AktifMi ? "b-green" : "b-red")">
+                        @(m.AktifMi ? "Aktif" : "Pasif")
+                    </span>
+                </div>
+                <div class="aksiyon">
+                    <a class="btn-edit" href="/Marka/Duzenle/@m.Id">D&#252;zenle</a>
+                    <a class="btn-del" href="/Marka/Sil/@m.Id"
+                       onclick="return confirm('Silmek istedi?"inize emin misiniz?')">Sil</a>
+                </div>
+            </div>
+        }
+    </div>
+</div>

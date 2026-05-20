@@ -1,0 +1,345 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: "Segoe UI", "Segoe UI Emoji", "Segoe UI Symbol", "Apple Color Emoji", "Noto Color Emoji", Arial, sans-serif;
+    background: #f0f4f8;
+    color: #333;
+}
+
+.layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+.sidebar {
+    width: 230px;
+    background: #1a1a2e;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+}
+
+.logo {
+    padding: 22px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo-circle,
+.panel-company-logo {
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+}
+
+.logo-circle {
+    background: #1B9FD4;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.logo-dot {
+    width: 16px;
+    height: 16px;
+    background: #4CAF7D;
+    border-radius: 50%;
+}
+
+.panel-company-logo {
+    object-fit: contain;
+    border-radius: 14px;
+    background: #fff;
+    padding: 5px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.logo-text {
+    color: #fff;
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.logo-sub {
+    color: rgba(255, 255, 255, 0.48);
+    font-size: 11px;
+    margin-top: 2px;
+}
+
+.logo-company {
+    color: rgba(255, 255, 255, 0.68);
+    font-size: 10px;
+    margin-top: 4px;
+    font-weight: 700;
+    letter-spacing: .03em;
+    line-height: 1.2;
+}
+
+.nav {
+    padding: 16px 0;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.nav-section {
+    color: rgba(255, 255, 255, 0.32);
+    font-size: 10px;
+    padding: 14px 20px 5px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 20px;
+    color: rgba(255, 255, 255, 0.68);
+    font-size: 14px;
+    text-decoration: none;
+    transition: background .15s, color .15s;
+}
+
+.nav-ico {
+    width: 18px;
+    text-align: center;
+    font-size: 15px;
+    line-height: 1;
+    font-family: "Segoe UI Emoji", "Segoe UI Symbol", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+}
+
+.nav-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+}
+
+.nav-item.active {
+    background: #1B9FD4;
+    color: #fff;
+}
+
+.nav-badge {
+    background: #e24b4a;
+    color: #fff;
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 8px;
+    margin-left: auto;
+}
+
+.cikis-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.68);
+    padding: 9px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    margin: 16px 20px;
+    display: block;
+    text-align: center;
+    text-decoration: none;
+}
+
+.main {
+    margin-left: 230px;
+    flex: 1;
+    min-width: 0;
+}
+
+.topbar {
+    background: #fff;
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 2px solid #1B9FD4;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.topbar-left {
+    font-size: 17px;
+    font-weight: 800;
+    color: #1a1a1a;
+}
+
+.topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.avatar {
+    width: 38px;
+    height: 38px;
+    background: #1B9FD4;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.user-name {
+    font-size: 14px;
+    color: #333;
+    font-weight: 800;
+}
+
+.user-role {
+    font-size: 11px;
+    color: #1B9FD4;
+}
+
+.user-company {
+    font-size: 10px;
+    color: #6b7c8e;
+    margin-top: 2px;
+    font-weight: 700;
+}
+
+.content {
+    padding: 28px 32px;
+}
+
+.section {
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #eee;
+    overflow: hidden;
+    margin-bottom: 16px;
+}
+
+.section-head {
+    padding: 14px 20px;
+    border-bottom: 2px solid #f0f0ee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.section-title {
+    font-size: 14px;
+    font-weight: 800;
+    color: #333;
+}
+
+.empty {
+    padding: 30px;
+    text-align: center;
+    color: #bbb;
+    font-size: 13px;
+}
+
+.badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.b-yellow {
+    background: #FAEEDA;
+    color: #633806;
+}
+
+.b-green {
+    background: #E1F5EE;
+    color: #085041;
+}
+
+.b-red {
+    background: #FCEBEB;
+    color: #501313;
+}
+
+.btn-link,
+.btn-sm {
+    border-radius: 6px;
+    font-size: 12px;
+    text-decoration: none;
+    font-weight: 700;
+}
+
+.btn-link {
+    padding: 6px 10px;
+    background: #f0f4f8;
+    border: 1px solid #ddd;
+    color: #555;
+    text-align: center;
+}
+
+.btn-link:hover {
+    border-color: #1B9FD4;
+    color: #1B9FD4;
+}
+
+.btn-sm {
+    padding: 6px 14px;
+    background: #1B9FD4;
+    color: #fff;
+}
+
+.tablo-head,
+.tablo-row {
+    display: grid;
+    align-items: center;
+}
+
+.tablo-head {
+    padding: 10px 20px;
+    background: #f8f8f6;
+    font-size: 11px;
+    color: #888;
+    font-weight: 800;
+}
+
+.tablo-row {
+    padding: 12px 20px;
+    border-top: 1px solid #f0f0ee;
+    font-size: 13px;
+    color: #333;
+    transition: background .1s;
+}
+
+.tablo-row:hover {
+    background: #fafafa;
+}
+
+@media (max-width: 900px) {
+    .layout {
+        display: block;
+    }
+
+    .sidebar {
+        position: static;
+        width: 100%;
+        height: auto;
+    }
+
+    .main {
+        margin-left: 0;
+    }
+
+    .topbar {
+        padding: 14px 16px;
+    }
+
+    .content {
+        padding: 18px 16px;
+    }
+}

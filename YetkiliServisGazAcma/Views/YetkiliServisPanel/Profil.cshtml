@@ -1,0 +1,289 @@
+@{
+    var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
+    ViewData["Title"] = "Firma Profilim";
+    ViewData["PanelTitle"] = ViewData["Title"];
+    ViewData["PanelSubtitle"] = "Yetkili Servis";
+    ViewData["ActiveMenu"] = "Profil";
+    Layout = "~/Views/Shared/_PanelLayout.cshtml";
+var firma = ViewBag.Firma as YetkiliServisGazAcma.Entities.Ys_Firma;
+    var markalar = firma?.FirmaMarkalar?.Where(x => !x.SilindiMi).ToList()
+        ?? new List<YetkiliServisGazAcma.Entities.Ys_FirmaMarka>();
+    var sertifikalar = firma?.Sertifikalar?.Where(x => !x.SilindiMi).OrderByDescending(x => x.OlusturmaTarihi).ToList()
+        ?? new List<YetkiliServisGazAcma.Entities.Ys_Sertifika>();
+    var gecerli = sertifikalar.FirstOrDefault(x => x.Durum == 1 && x.SertifikaBitisTarihi > DateTime.Now);
+    var onayli = sertifikalar.FirstOrDefault(x => x.Durum == 1);
+    var sertifika = gecerli ?? onayli ?? sertifikalar.FirstOrDefault();
+    string adSoyad = kullanici?.AdSoyad ?? firma?.YetkiliKisi ?? "Yetkili Servis";
+    string basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "Y";
+}
+
+@section Styles {
+    <style>
+.content { padding: 28px 32px; }
+        /* Hero */
+        .hero { background: linear-gradient(135deg, #1a1a2e 0%, #1B9FD4 100%); border-radius: 14px; padding: 28px 32px; margin-bottom: 24px; display: flex; align-items: center; gap: 24px; }
+        .hero-avatar { width: 72px; height: 72px; background: rgba(255,255,255,0.15); border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 32px; color: #fff; font-weight: bold; border: 2px solid rgba(255,255,255,0.3); }
+        .hero-bilgi { flex: 1; }
+        .hero-ad { color: #fff; font-size: 22px; font-weight: bold; }
+        .hero-alt { color: rgba(255,255,255,0.7); font-size: 13px; margin-top: 4px; }
+        .hero-badges { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+        .hero-badge { padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+        .badge-yesil { background: #4CAF7D; color: #fff; }
+        .badge-mavi  { background: rgba(255,255,255,0.2); color: #fff; }
+        .badge-sari  { background: #f0a500; color: #fff; }
+        .badge-kirmizi { background: #e24b4a; color: #fff; }
+        /* Grid */
+        .iki-kolon { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+        .bir-kolon { margin-bottom: 18px; }
+        .kart { background: #fff; border-radius: 12px; border: 1px solid #eee; overflow: hidden; }
+        .kart-baslik { display: flex; align-items: center; gap: 10px; padding: 16px 22px; border-bottom: 2px solid #f0f0ee; background: linear-gradient(to right, #f8f8f6, #fff); }
+        .kart-baslik-ikon { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 17px; }
+        .ikon-mavi   { background: #E6F1FB; }
+        .ikon-yesil  { background: #E1F5EE; }
+        .ikon-turuncu { background: #FEF0E0; }
+        .ikon-mor    { background: #F0EBFF; }
+        .ikon-kirmizi { background: #FCEBEB; }
+        .kart-baslik-yazi { font-size: 14px; font-weight: bold; color: #333; }
+        .kart-icerik { padding: 20px 22px; }
+        /* Form */
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .form-alan { display: flex; flex-direction: column; gap: 6px; }
+        .form-alan.tam { grid-column: span 2; }
+        .form-alan label { font-size: 12px; color: #555; font-weight: bold; letter-spacing: .01em; }
+        .form-alan input { padding: 10px 13px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; color: #333; background: #fafafa; }
+        .form-alan input:focus { border-color: #4CAF7D; background: #fff; }
+        .form-alan input[readonly] { background: #f4f4f4; color: #888; cursor: not-allowed; }
+        .form-buton { margin-top: 16px; display: flex; justify-content: flex-end; }
+        .btn-kKaydet { padding: 11px 28px; background: #4CAF7D; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; }
+        .btn-kKaydet:hover { background: #3d9e6e; }
+        /* Mesajlar */
+        .mesaj-basarili { background: #E1F5EE; color: #085041; padding: 13px 18px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; border-left: 4px solid #4CAF7D; }
+        .mesaj-hata { background: #FCEBEB; color: #501313; padding: 13px 18px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; border-left: 4px solid #e24b4a; }
+        /* Bilgi satirlari */
+        .bilgi-satir { display: flex; justify-content: space-between; align-items: center; padding: 11px 0; border-bottom: 1px solid #f4f4f4; }
+        .bilgi-satir:last-child { border-bottom: none; }
+        .bilgi-satir-label { font-size: 12px; color: #999; font-weight: bold; text-transform: uppercase; letter-spacing: .04em; }
+        .bilgi-satir-deger { font-size: 14px; color: #333; font-weight: 500; }
+        /* Marka kartlari */
+        .marka-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .marka-kart { border: 1.5px solid #e0f0e8; border-radius: 10px; padding: 14px; text-align: center; background: #f4faf7; }
+        .marka-adi { font-size: 13px; font-weight: bold; color: #333; margin-top: 6px; }
+        .marka-bitis { font-size: 11px; color: #888; margin-top: 3px; }
+        /* Sertifika durumu */
+        .sertifika-kutu { display: flex; align-items: center; gap: 16px; padding: 16px; background: #f4faf7; border-radius: 10px; border: 1.5px solid #e0f0e8; }
+        .sertifika-icon { font-size: 32px; }
+        .sertifika-bilgi-ad { font-size: 14px; font-weight: bold; color: #333; }
+        .sertifika-bilgi-alt { font-size: 12px; color: #888; margin-top: 3px; }
+        .sertifika-badge { margin-left: auto; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+        /* Şifre güç göstergesi */
+        .sifre-guc { height: 4px; border-radius: 2px; margin-top: 6px; transition: all .3s; background: #eee; }
+        .sifre-guc-yazi { font-size: 11px; margin-top: 4px; }
+    </style>
+}
+
+@if (TempData["Basarili"] != null)
+            {
+                <div class="mesaj-basarili">✅ @TempData["Basarili"]</div>
+            }
+            @if (TempData["Hata"] != null)
+            {
+                <div class="mesaj-hata">❌ @TempData["Hata"]</div>
+            }
+            <!-- Hero -->
+            <div class="hero">
+                <div class="hero-avatar">
+                    @(firma?.FirmaAdi?.Substring(0, 1).ToUpper() ?? "F")
+                </div>
+                <div class="hero-bilgi">
+                    <div class="hero-ad">@(firma?.FirmaAdi ?? "")</div>
+                    <div class="hero-alt">
+                        VKN: @(firma?.VergiNo ?? "")
+                        &nbsp;&nbsp; @(firma?.Sirket?.SirketAdi ?? "")
+                        &nbsp;&nbsp; @(firma?.FaaliyetIli ?? "")
+                    </div>
+                    <div class="hero-badges">
+                        @if (gecerli != null)
+                        {
+                            <span class="hero-badge badge-yesil">✅ Yetki Belgesi Geçerli</span>
+                        }
+                        else if (sertifika != null && sertifika.Durum == 0)
+                        {
+                            <span class="hero-badge badge-sari">Yetki Belgesi Onay Bekliyor</span>
+                        }
+                        else
+                        {
+                            <span class="hero-badge badge-kirmizi">❌ Geçerli Yetki Belgesi Yok</span>
+                        }
+                        <span class="hero-badge badge-mavi">@(markalar?.Count ?? 0) Marka Yetkisi
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="iki-kolon">
+                <!-- Firma Bilgileri -->
+                <div class="kart">
+                    <div class="kart-baslik">
+                        <div class="kart-baslik-ikon ikon-mavi">🏢</div>
+                        <div class="kart-baslik-yazi">Firma Bilgileri</div>
+                    </div>
+                    <div class="kart-icerik">
+                        <div class="bilgi-satir">
+                            <div class="bilgi-satir-label">Firma Adı</div>
+                            <div class="bilgi-satir-deger">@(firma?.FirmaAdi ?? "")</div>
+                        </div>
+                        <div class="bilgi-satir">
+                            <div class="bilgi-satir-label">VKN</div>
+                            <div class="bilgi-satir-deger">@(firma?.VergiNo ?? "")</div>
+                        </div>
+                        <div class="bilgi-satir">
+                            <div class="bilgi-satir-label">TC Kimlik No</div>
+                            <div class="bilgi-satir-deger">@(firma?.TcKimlikNo ?? "")</div>
+                        </div>
+                        <div class="bilgi-satir">
+                            <div class="bilgi-satir-label">Faaliyet İli</div>
+                            <div class="bilgi-satir-deger">@(firma?.FaaliyetIli ?? "")</div>
+                        </div>
+                        <div class="bilgi-satir">
+                            <div class="bilgi-satir-label">Firma Kodu</div>
+                            <div class="bilgi-satir-deger">@(firma?.Sirket?.SirketAdi ?? "")</div>
+                        </div>
+                        <div class="bilgi-satir">
+                            <div class="bilgi-satir-label">Kayıt Tarihi</div>
+                            <div class="bilgi-satir-deger">@(firma?.OlusturmaTarihi.ToString("dd.MM.yyyy") ?? "")</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Kullanici Bilgileri -->
+                <div class="kart">
+                    <div class="kart-baslik">
+                        <div class="kart-baslik-ikon ikon-yesil">👤</div>
+                        <div class="kart-baslik-yazi">Kullanıcı Bilgilerini Güncelle</div>
+                    </div>
+                    <div class="kart-icerik">
+                        <form method="post" action="/ys-panel/profil-guncelle">
+                            @Html.AntiForgeryToken()
+                            <div class="form-grid">
+                                <div class="form-alan tam">
+                                    <label>Ad Soyad</label>
+                                    <input type="text" name="adSoyad" value="@kullanici?.AdSoyad" placeholder="Ad Soyad" />
+                                </div>
+                                <div class="form-alan tam">
+                                    <label>E-posta</label>
+                                    <input type="email" name="email" value="@kullanici?.Email" placeholder="E-posta" />
+                                </div>
+                                <div class="form-alan tam">
+                                    <label>Telefon</label>
+                                    <input type="text" name="telefon" value="@kullanici?.PhoneNumber" placeholder="05XX XXX XX XX" />
+                                </div>
+                                <div class="form-alan tam">
+                                    <label>Kullanıcı Adı (VKN)</label>
+                                    <input type="text" value="@kullanici?.UserName" readonly />
+                                </div>
+                            </div>
+                            <div class="form-buton">
+                                <button type="submit" class="btn-kKaydet">Kaydet</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+                        <!-- Yetki Belgesi Durumu -->
+            <div class="kart bir-kolon">
+                <div class="kart-baslik">
+                    <div class="kart-baslik-ikon ikon-turuncu">⏳</div>
+                    <div class="kart-baslik-yazi">Yetki Belgesi Durumu</div>
+                </div>
+                <div class="kart-icerik">
+                    @if (sertifikalar.Count > 0)
+                    {
+                        var s = sertifika!;
+                        var kalanGun = (s.SertifikaBitisTarihi.Date - DateTime.Now.Date).Days;
+                        var badgeText = s.Durum == 1 && s.SertifikaBitisTarihi > DateTime.Now
+                            ? "Geçerli - " + Math.Max(kalanGun, 0) + " gün kaldı"
+                            : s.Durum == 0 ? "Onay Bekliyor"
+                            : "Geçersiz";
+                        <div class="sertifika-kutu" style="margin-bottom:10px;">
+                            <div class="sertifika-icon">
+                                @(s.Durum == 1 ? "✅" : s.Durum == 0 ? "⏳" : "❌")
+                            </div>
+                            <div>
+                                <div class="sertifika-bilgi-ad">
+                                    @(s.Durum == 1 ? "Onaylı Yetki Belgesi" : s.Durum == 0 ? "Onay Bekliyor" : "Reddedildi")
+                                </div>
+                                <div class="sertifika-bilgi-alt">
+                                    Yükleme: @s.OlusturmaTarihi.ToString("dd.MM.yyyy")
+                                    &nbsp;&nbsp;
+                                    Bitiş: @s.SertifikaBitisTarihi.ToString("dd.MM.yyyy")
+                                </div>
+                            </div>
+                            <div class="sertifika-badge"
+                                 style="padding:6px 16px; border-radius:20px; font-size:12px; font-weight:bold;
+                                        background:@(s.Durum==1 && s.SertifikaBitisTarihi > DateTime.Now ? "#E1F5EE" : s.Durum==0 ? "#FAEEDA" : "#FCEBEB");
+                                        color:@(s.Durum==1 && s.SertifikaBitisTarihi > DateTime.Now ? "#085041" : s.Durum==0 ? "#633806" : "#501313");">
+                                @badgeText
+                            </div>
+                        </div>
+                        @if (s.Durum == 1 && s.SertifikaBitisTarihi <= DateTime.Now.AddDays(30))
+                        {
+                            var kalan = (s.SertifikaBitisTarihi.Date - DateTime.Now.Date).Days;
+                            if (kalan >= 0)
+                            {
+                                <div class="mesaj-hata" style="margin-top:10px; border-left-color:#f0a500;">
+                                    ⏳ Yetki belgesi bitişine @kalan gün kaldı. Lütfen yenileyin.
+                                </div>
+                            }
+                        }
+                    }
+                    else
+                    {
+                        <div style="text-align:center; padding:20px; color:#bbb;">
+                            Henüz yetki belgesi yüklenmemiş.
+                            <a href="/ys-yetki-belgesi" style="color:#1B9FD4; font-weight:bold; margin-left:8px;">Yetki Belgesi Yükle</a>
+                        </div>
+                    }
+                </div>
+            </div>
+            <!-- Şifre Değiştir -->
+            <div class="kart bir-kolon">
+                <div class="kart-baslik">
+                    <div class="kart-baslik-ikon ikon-kirmizi">🔒</div>
+                    <div class="kart-baslik-yazi">Şifre Değiştir</div>
+                </div>
+                <div class="kart-icerik">
+                    @if (TempData["SifreBasarili"] != null)
+                    {
+                        <div class="mesaj-basarili" style="margin-bottom:16px;">✅ @TempData["SifreBasarili"]</div>
+                    }
+                    @if (TempData["SifreHata"] != null)
+                    {
+                        <div class="mesaj-hata" style="margin-bottom:16px;">❌ @TempData["SifreHata"]</div>
+                    }
+                    <form method="post" action="/ys-panel/sifre-degistir">
+                        @Html.AntiForgeryToken()
+                        <div class="form-grid">
+                            <div class="form-alan tam">
+                                <label>Mevcut Şifre</label>
+                                <input type="password" name="mevcutSifre" placeholder="Mevcut şifrenizi giriniz" />
+                            </div>
+                            <div class="form-alan">
+                                <label>Yeni Şifre</label>
+                                <input type="password" name="yeniSifre" id="yeniSifre"
+                                       placeholder="En az 6 karakter" oninput="sifreGuc(this.value)" />
+                                <div class="sifre-guc" id="sifreGucBar"></div>
+                                <div class="sifre-guc-yazi" id="sifreGucYazi"></div>
+                            </div>
+                            <div class="form-alan">
+                                <label>Yeni Şifre Tekrar</label>
+                                <input type="password" name="yeniSifreTekrar"
+                                       placeholder="Yeni şifrenizi tekrarlayın" oninput="sifreTekrarKontrol(this.value)" />
+                                <div class="sifre-guc-yazi" id="sifreTekrarYazi"></div>
+                            </div>
+                        </div>
+                        <div class="form-buton">
+                            <button type="submit" class="btn-kKaydet" style="background:#e24b4a;">
+                                🔒 Şifreyi Değiştir
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>

@@ -1,0 +1,98 @@
+@{
+    ViewData["Title"] = "\u015Eube D\u00FCzenle";
+    ViewData["PanelTitle"] = ViewData["Title"];
+    ViewData["PanelSubtitle"] = "Admin Paneli";
+    ViewData["ActiveMenu"] = "Subeler";
+    Layout = "~/Views/Shared/_PanelLayout.cshtml";
+    var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
+    var sube = ViewBag.Sube as YetkiliServisGazAcma.Entities.Ys_Sube;
+    var firmalar = ViewBag.Firmalar as List<YetkiliServisGazAcma.Entities.Ys_Firma> ?? new List<YetkiliServisGazAcma.Entities.Ys_Firma>();
+    int onayBekleyen = ViewBag.OnayBekleyen is int v ? v : 0;
+    string adSoyad = kullanici?.AdSoyad ?? "S\u00FCper Admin";
+    string basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "A";
+}
+
+@section Styles {
+    <style>
+.content { padding: 28px 32px; }
+.back-link { display: inline-flex; align-items: center; gap: 8px; color: #1B9FD4; font-weight: 700; text-decoration: none; margin-bottom: 14px; }
+.page-title { font-size: 22px; font-weight: 800; margin: 4px 0 10px; }
+.card { background: #fff; border-radius: 12px; border: 1px solid #e6eef4; box-shadow: 0 10px 24px rgba(20,40,60,0.08); padding: 16px; max-width: none; width: 100%; }
+.card-title { font-size: 14px; font-weight: 800; color: #4CAF7D; margin-bottom: 10px; display:flex; align-items:center; gap:8px; }
+.info-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.info-item { background: #f7fafc; border: 1px solid #edf3f8; border-radius: 10px; padding: 10px 12px; }
+.info-label { font-size: 11px; color: #6f7b86; margin-bottom: 4px; font-weight: 700; }
+.info-input { width: 100%; padding: 10px 12px; border: 1.5px solid #e0e0e0; border-radius: 8px; font-size: 13px; color: #333; outline: none; background: #fff; }
+.info-input:focus { border-color: #4CAF7D; }
+.info-item.tam { grid-column: span 2; }
+.actions { display: flex; gap: 10px; margin-top: 16px; }
+.btn-kaydet { padding: 10px 24px; background: #1B9FD4; color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; }
+.btn-iptal { padding: 10px 24px; background: #fff; color: #555; border: 1.5px solid #ddd; border-radius: 8px; font-size: 13px; cursor: pointer; text-decoration: none; }
+    </style>
+}
+
+<a class="back-link" href="/AdminPanel/subeler">&#8592; &#350;ubelere D&#246;n</a>
+<div class="page-title">&#350;ube D&#252;zenle</div>
+<div class="card">
+    <div class="card-title">&#127970; &#350;ube Bilgileri</div>
+    <form method="post" action="/AdminPanel/subeler/duzenle/@sube?.Id">
+        @Html.AntiForgeryToken()
+        <div class="info-grid">
+            <div class="info-item">
+                <div class="info-label">Firma *</div>
+                <select class="info-input" name="firmaId" required>
+                    @foreach (var f in firmalar)
+                    {
+                        if (sube?.FirmaId == f.Id)
+                        {
+                            <option value="@f.Id" selected="selected">@f.FirmaAdi</option>
+                        }
+                        else
+                        {
+                            <option value="@f.Id">@f.FirmaAdi</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="info-item">
+                <div class="info-label">&#350;ube Ad&#305; *</div>
+                <input class="info-input" type="text" name="subeAdi" value="@sube?.SubeAdi" required />
+            </div>
+            <div class="info-item">
+                <div class="info-label">&#304;l</div>
+                <input class="info-input" type="text" name="il" value="@sube?.Il" />
+            </div>
+            <div class="info-item">
+                <div class="info-label">&#304;l&#231;e</div>
+                <input class="info-input" type="text" name="ilce" value="@sube?.Ilce" />
+            </div>
+            <div class="info-item">
+                <div class="info-label">Telefon</div>
+                <input class="info-input" type="text" name="telefon" value="@sube?.Telefon" />
+            </div>
+            <div class="info-item tam">
+                <div class="info-label">Adres</div>
+                <input class="info-input" type="text" name="adres" value="@sube?.Adres" />
+            </div>
+            <div class="info-item">
+                <div class="info-label">Durum</div>
+                <select class="info-input" name="aktifMi">
+                    @if (sube?.AktifMi == true)
+                    {
+                        <option value="true" selected="selected">Aktif</option>
+                        <option value="false">Pasif</option>
+                    }
+                    else
+                    {
+                        <option value="true">Aktif</option>
+                        <option value="false" selected="selected">Pasif</option>
+                    }
+                </select>
+            </div>
+        </div>
+        <div class="actions">
+            <button type="submit" class="btn-kaydet">Kaydet</button>
+            <a class="btn-iptal" href="/AdminPanel/subeler">&#304;ptal</a>
+        </div>
+    </form>
+</div>

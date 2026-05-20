@@ -1,0 +1,199 @@
+@{
+    ViewData["Title"] = "Onay Bekleyen Yetkili Servisler";
+    ViewData["PanelTitle"] = "Onay Bekleyen Yetkili Servisler";
+    ViewData["PanelSubtitle"] = "Admin Paneli";
+    ViewData["ActiveMenu"] = "OnayBekleyenler";
+    Layout = "~/Views/Shared/_PanelLayout.cshtml";
+
+    var bekleyenler = ViewBag.Bekleyenler as List<YetkiliServisGazAcma.Entities.Ys_Sertifika>
+        ?? new List<YetkiliServisGazAcma.Entities.Ys_Sertifika>();
+}
+
+@section Styles {
+    <style>
+        .bos {
+            text-align: center;
+            padding: 60px;
+            color: #bbb;
+            font-size: 14px;
+        }
+
+        .sert-kart {
+            background: #fff;
+            border-radius: 10px;
+            border: 1px solid #eee;
+            padding: 20px;
+            margin-bottom: 12px;
+        }
+
+        .sert-ust {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+
+        .firma-adi {
+            font-size: 15px;
+            font-weight: 800;
+            color: #333;
+        }
+
+        .firma-alt {
+            font-size: 12px;
+            color: #888;
+            margin-top: 3px;
+        }
+
+        .sert-detay {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+            padding: 12px;
+            background: #f8f8f6;
+            border-radius: 8px;
+        }
+
+        .detay-alan {
+            font-size: 12px;
+        }
+
+        .detay-label {
+            color: #888;
+            margin-bottom: 3px;
+        }
+
+        .detay-deger {
+            color: #333;
+            font-weight: 800;
+        }
+
+        .aksiyonlar {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .btn-onayla {
+            padding: 8px 20px;
+            background: #4CAF7D;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .btn-incele {
+            padding: 8px 16px;
+            background: #E6F1FB;
+            color: #0C447C;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            text-decoration: none;
+        }
+
+        .red-form {
+            display: flex;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .red-input {
+            flex: 1;
+            padding: 8px 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 13px;
+            outline: none;
+        }
+
+        .btn-reddet {
+            padding: 8px 16px;
+            background: #FCEBEB;
+            color: #501313;
+            border: 1px solid #F09595;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        @@media (max-width: 1100px) {
+            .sert-detay {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .aksiyonlar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+}
+
+<div class="section">
+    <div class="section-head">
+        <div class="section-title">Onay Bekleyen Yetki Belgeleri</div>
+    </div>
+    @if (bekleyenler.Count == 0)
+    {
+        <div class="bos">Onay bekleyen yetki belgesi yok.</div>
+    }
+    else
+    {
+        foreach (var s in bekleyenler)
+        {
+            var kalan = (s.SertifikaBitisTarihi.Date - DateTime.Now.Date).Days;
+            <div class="sert-kart">
+                <div class="sert-ust">
+                    <div>
+                        <div class="firma-adi">@s.Firma?.FirmaAdi</div>
+                        <div class="firma-alt">@s.Firma?.Sirket?.SirketAdi @s.Firma?.Telefon</div>
+                    </div>
+                    <span class="badge b-yellow">Onay Bekliyor</span>
+                </div>
+                <div class="sert-detay">
+                    <div class="detay-alan">
+                        <div class="detay-label">Yükleme Tarihi</div>
+                        <div class="detay-deger">@s.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</div>
+                    </div>
+                    <div class="detay-alan">
+                        <div class="detay-label">Yetki Belgesi Başlangıç</div>
+                        <div class="detay-deger">@s.SertifikaBaslangicTarihi?.ToString("dd.MM.yyyy")</div>
+                    </div>
+                    <div class="detay-alan">
+                        <div class="detay-label">Yetki Belgesi Bitiş</div>
+                        <div class="detay-deger">@s.SertifikaBitisTarihi.ToString("dd.MM.yyyy")</div>
+                    </div>
+                    <div class="detay-alan">
+                        <div class="detay-label">Kalan Gün</div>
+                        <div class="detay-deger">@kalan gün kaldı</div>
+                    </div>
+                    <div class="detay-alan">
+                        <div class="detay-label">VKN</div>
+                        <div class="detay-deger">@s.Firma?.VergiNo</div>
+                    </div>
+                </div>
+                <div class="aksiyonlar">
+                    <a class="btn-incele" target="_blank" href="@s.DosyaYolu">Yetki Belgesini İncele</a>
+                    <form method="post" action="/ys-yetki-belgesi/onayla">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@s.Id" />
+                        <button type="submit" class="btn-onayla">Onayla</button>
+                    </form>
+                    <form class="red-form" method="post" action="/ys-yetki-belgesi/reddet">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@s.Id" />
+                        <input class="red-input" type="text" name="gerekce" placeholder="Red gerekçesi..." />
+                        <button type="submit" class="btn-reddet">Reddet</button>
+                    </form>
+                </div>
+            </div>
+        }
+    }
+</div>

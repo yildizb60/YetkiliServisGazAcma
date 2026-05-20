@@ -1,0 +1,703 @@
+﻿@model YetkiliServisGazAcma.Entities.Ys_Firma
+@{
+    ViewData["Title"] = "Yetkili Servis Kaydı";
+    Layout = "~/Views/Shared/_PublicLayout.cshtml";
+    var sehirler = ViewBag.Sehirler as List<string> ?? new();
+    var tumKategoriler = ViewBag.Kategoriler as List<YetkiliServisGazAcma.Entities.UrunKategori> ?? new();
+
+    string NormalizeKategori(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return "";
+        var lower = value.Trim().ToLower(new System.Globalization.CultureInfo("tr-TR"))
+            .Normalize(System.Text.NormalizationForm.FormD);
+        var chars = lower
+            .Where(ch => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(ch) != System.Globalization.UnicodeCategory.NonSpacingMark && char.IsLetterOrDigit(ch))
+            .ToArray();
+        return new string(chars)
+            .Replace("ı", "i")
+            .Replace("ş", "s")
+            .Replace("ğ", "g")
+            .Replace("ü", "u")
+            .Replace("ö", "o")
+            .Replace("ç", "c");
+    }
+
+    bool KullanilanKategoriMi(string? value)
+    {
+        var key = NormalizeKategori(value);
+
+        return key == "kombi"
+            || key.Contains("merkezikazan")
+            || key.Contains("sofben")
+            || key.Contains("sohben");
+    }
+
+    var kategoriler = tumKategoriler
+        .Where(x => KullanilanKategoriMi(x.Ad))
+        .GroupBy(x => NormalizeKategori(x.Ad))
+        .Select(g => g
+            .OrderByDescending(x => x.AktifMi)
+            .ThenBy(x => string.IsNullOrWhiteSpace(x.IconUrl) ? 1 : 0)
+            .ThenBy(x => x.SiraNo)
+            .ThenBy(x => x.Ad)
+            .First())
+        .OrderBy(x => x.SiraNo)
+        .ThenBy(x => x.Ad)
+        .ToList();
+}
+@section Styles {
+    <style>
+        :root {
+            --navy: #1a1a2e;
+            --blue: #1B9FD4;
+            --green: #53a92c;
+            --bg: #f2f5fb;
+            --text: #1f2f3d;
+            --muted: #6f8194;
+            --border: #dfe7f2;
+            --surface: #ffffff;
+            --shadow: 0 14px 34px rgba(14, 35, 60, 0.10);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: "Manrope","Segoe UI","Segoe UI Emoji","Segoe UI Symbol","Apple Color Emoji","Noto Color Emoji",sans-serif;
+            background:
+                radial-gradient(740px 320px at -8% -10%, rgba(27,159,212,.12), transparent 65%),
+                radial-gradient(680px 320px at 108% 0%, rgba(83,169,44,.10), transparent 62%),
+                linear-gradient(180deg, #eef3f8 0%, #f8fbff 100%);
+            color: var(--text);
+            letter-spacing: .01em;
+            line-height: 1.55;
+        }
+
+        .topbar {
+            width: 100%;
+            margin: 0;
+            background: linear-gradient(135deg, #08283c 0%, #134b68 48%, #1B9FD4 100%);
+            color: #fff;
+            padding: 18px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 14px;
+            border-bottom: 3px solid rgba(83,169,44,.82);
+            box-shadow: 0 14px 32px rgba(6, 35, 55, 0.24);
+        }
+        .topbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            min-width: 0;
+        }
+        .topbar-logo {
+            width: 54px; height: 54px;
+            display: flex; align-items: center; justify-content: center;
+            flex: 0 0 auto;
+            border-radius: 14px;
+            overflow: visible;
+            background: transparent;
+            box-shadow: none;
+        }
+        .topbar-symbol {
+            width: 54px;
+            height: 54px;
+            border-radius: 16px;
+            display: grid;
+            place-items: center;
+            background: rgba(255,255,255,.14);
+            border: 1px solid rgba(255,255,255,.28);
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,.10), 0 10px 18px rgba(0,0,0,.16);
+        }
+        .topbar-symbol span {
+            width: 28px;
+            height: 28px;
+            border-radius: 9px;
+            border: 3px solid rgba(255,255,255,.92);
+            border-top-color: #53a92c;
+            transform: rotate(45deg);
+            position: relative;
+        }
+        .topbar-symbol span::after {
+            content: "";
+            position: absolute;
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: #53a92c;
+            left: 6px;
+            top: 6px;
+            box-shadow: 0 0 0 4px rgba(83,169,44,.22);
+        }
+        .topbar-title { font-size: 20px; font-weight: 800; letter-spacing: .02em; }
+        .topbar-sub { font-size: 14px; color: rgba(255,255,255,.78); font-weight: 700; }
+        .topbar-nav {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .topbar-nav a {
+            border: 1px solid rgba(255,255,255,.26);
+            border-radius: 999px;
+            color: #fff;
+            background: rgba(255,255,255,.10);
+            padding: 9px 13px;
+            font-size: 13px;
+            font-weight: 800;
+            text-decoration: none;
+            backdrop-filter: blur(8px);
+        }
+        .topbar-nav a.primary {
+            background: #53a92c;
+            border-color: #53a92c;
+            color: #fff;
+        }
+
+        .breadcrumb {
+            width: calc(100% - 48px);
+            margin: 16px 24px 0;
+            background: var(--surface);
+            padding: 12px 18px;
+            font-size: 14px;
+            color: var(--muted);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 6px 18px rgba(13, 30, 56, .06);
+        }
+        .breadcrumb a { color: var(--blue); text-decoration: none; font-weight: 700; }
+
+        .tabs {
+            width: calc(100% - 48px);
+            margin: 10px 24px 0;
+            background: var(--surface);
+            padding: 0 12px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            display: flex;
+            gap: 6px;
+            box-shadow: 0 6px 18px rgba(13, 30, 56, .06);
+        }
+        .tab {
+            padding: 13px 16px;
+            font-size: 15px;
+            font-weight: 700;
+            color: #73869b;
+            border-bottom: 3px solid transparent;
+            text-decoration: none;
+        }
+        .tab.active { color: var(--green); border-color: var(--green); }
+
+        .content {
+            width: calc(100% - 48px);
+            margin: 12px 24px 0;
+            padding: 18px 18px 20px;
+            border-radius: 26px;
+            border: 1px solid rgba(223,231,242,.92);
+            background:
+                linear-gradient(135deg, rgba(255,255,255,.92), rgba(246,250,255,.88)),
+                repeating-linear-gradient(135deg, rgba(27,159,212,.035) 0 1px, transparent 1px 16px);
+            box-shadow: 0 22px 60px rgba(14,35,60,.10);
+        }
+
+        .form-hero {
+            background:
+                linear-gradient(120deg, rgba(5,45,74,.94), rgba(27,159,212,.72) 58%, rgba(83,169,44,.62)),
+                url("/images/hero/yetkili-servis-hero-ai.png") center 44%/cover no-repeat;
+            border: 1px solid rgba(255,255,255,.45);
+            border-radius: 24px;
+            padding: 30px;
+            box-shadow: 0 18px 44px rgba(14,35,60,.16);
+            margin-bottom: 16px;
+            color: #fff;
+            overflow: hidden;
+            position: relative;
+        }
+        .form-hero::after {
+            content: "";
+            position: absolute;
+            right: -60px;
+            top: -70px;
+            width: 260px;
+            height: 260px;
+            border-radius: 50%;
+            border: 34px solid rgba(255,255,255,.16);
+        }
+        .form-hero-title {
+            position: relative;
+            z-index: 1;
+            font-size: 28px;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 5px;
+        }
+        .form-hero-sub {
+            position: relative;
+            z-index: 1;
+            font-size: 15px;
+            color: rgba(255,255,255,.88);
+            line-height: 1.55;
+            max-width: 720px;
+        }
+
+        .form-section {
+            background: var(--surface);
+            border-radius: 18px;
+            border: 1px solid var(--border);
+            padding: 24px;
+            margin-bottom: 18px;
+            box-shadow: var(--shadow);
+        }
+        .section-title {
+            font-size: 17px;
+            font-weight: 800;
+            color: #20456a;
+            margin-bottom: 14px;
+            padding-bottom: 11px;
+            border-bottom: 1px solid #e8eef7;
+            position: relative;
+        }
+        .section-title::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            bottom: -1px;
+            width: 68px;
+            height: 3px;
+            border-radius: 20px;
+            background: linear-gradient(90deg, var(--blue), var(--green));
+        }
+
+        .three-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 24px;
+        }
+        .col-divider {
+            border-left: 1px dashed #dde6f2;
+            padding-left: 24px;
+        }
+
+        .alan { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+        label { font-size: 14px; color: #425669; font-weight: 800; }
+        label .req { color: #d74f4f; }
+
+        input, select, textarea {
+            padding: 12px 13px;
+            border: 1.5px solid #d8e2ef;
+            border-radius: 10px;
+            font-size: 15px;
+            color: #203244;
+            outline: none;
+            width: 100%;
+            background: #fdfefe;
+            transition: all .18s ease;
+        }
+        input::placeholder, textarea::placeholder { color: #8ea1b6; }
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--blue);
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(27,159,212,.13);
+        }
+        .info-text { font-size: 13px; color: #7f93a8; margin-top: 2px; }
+
+        .info-box {
+            padding: 12px 13px;
+            border-radius: 10px;
+            font-size: 14px;
+            margin-bottom: 10px;
+            border: 1px solid transparent;
+            line-height: 1.5;
+        }
+        .info-blue { background: #e9f6ff; color: #124a7e; border-color: #cde8fa; }
+        .info-green { background: #ebf8ee; color: #0f5a36; border-color: #cdecd6; }
+        .info-yellow { background: #fff5dd; color: #744d10; border-color: #f3e2b0; }
+        .info-red { background: #fdeeee; color: #651c1c; border-color: #f6c8c8; }
+
+        .marka-search {
+            padding: 12px 12px;
+            border: 1.5px solid #dbe4ef;
+            border-radius: 10px 10px 0 0;
+            border-bottom: none;
+            font-size: 15px;
+            width: 100%;
+            outline: none;
+            background: #fff;
+        }
+        .marka-list {
+            border: 1.5px solid #dbe4ef;
+            border-radius: 0 0 10px 10px;
+            max-height: 170px;
+            overflow-y: auto;
+            background: #fff;
+        }
+        .marka-item-all {
+            padding: 10px 12px;
+            background: #f3f8fd;
+            border-bottom: 1px solid #e5edf6;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 800;
+            color: #2a4158;
+        }
+        .marka-item-all input,
+        .marka-item input[type=checkbox],
+        .kategori-item input { width: auto; accent-color: var(--green); }
+        .marka-item {
+            padding: 10px 12px;
+            border-bottom: 1px solid #f2f5f9;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 15px;
+            color: #33495f;
+        }
+        .marka-item:last-child { border-bottom: none; }
+        .marka-item:hover { background: #f8fbff; }
+        .marka-item label { font-weight: 600; cursor: pointer; font-size: 15px; }
+
+        .kategori-box {
+            border: 1px solid #dce8f1;
+            border-radius: 18px;
+            padding: 14px;
+            background:
+                linear-gradient(135deg, #ffffff, #f7fbff),
+                repeating-linear-gradient(135deg, rgba(27,159,212,.04) 0 1px, transparent 1px 14px);
+        }
+        .kategori-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .kategori-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 15px;
+            color: #2e445a;
+            padding: 12px 14px;
+            border: 1px solid #e1ebf4;
+            border-radius: 14px;
+            background: #fff;
+            min-height: 58px;
+            box-shadow: 0 8px 18px rgba(14,35,60,.055);
+            cursor: pointer;
+            transition: all .16s ease;
+        }
+        .kategori-item:hover { border-color: #b8dff0; transform: translateY(-1px); }
+        .kategori-item input { margin: 0; }
+        .kategori-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 10px;
+            background: #f4fbf7;
+            border: 1px solid #d6efe3;
+            display: grid;
+            place-items: center;
+            flex: 0 0 auto;
+        }
+        .kategori-icon img { width: 22px; height: 22px; object-fit: contain; display: block; }
+        .kategori-name { font-weight: 800; }
+
+        .hata {
+            background: #fdeef0;
+            color: #701f2d;
+            border: 1px solid #f6ccd3;
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 14px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .bottom-bar {
+            width: calc(100% - 48px);
+            margin: 4px 24px 20px;
+            background: var(--surface);
+            padding: 14px 18px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            box-shadow: 0 10px 22px rgba(14,35,60,.08);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            position: sticky;
+            bottom: 12px;
+            z-index: 10;
+        }
+        .btn-iptal {
+            padding: 10px 20px;
+            background: #fff;
+            color: #ca4e4e;
+            border: 1px solid #e4b3b3;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all .15s ease;
+        }
+        .btn-iptal:hover { background: #fff5f5; }
+        .btn-kaydet {
+            padding: 10px 26px;
+            background: linear-gradient(135deg, var(--green), #468f25);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(83,169,44,.28);
+            transition: all .16s ease;
+        }
+        .btn-kaydet:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(83,169,44,.36); }
+
+        @@media (max-width: 1180px) {
+            .content { padding: 0 14px 20px; }
+            .three-col { grid-template-columns: 1fr 1fr; }
+            .col-divider { border-left: 0; padding-left: 0; }
+            .three-col > div:last-child { grid-column: span 2; border-top: 1px dashed #dde6f2; padding-top: 12px; }
+            .kategori-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @@media (max-width: 760px) {
+            .topbar { padding: 14px 16px; align-items: flex-start; }
+            .topbar-brand { align-items: flex-start; }
+            .topbar-logo, .topbar-symbol { width: 50px; height: 50px; }
+            .topbar-nav { width: 100%; }
+            .topbar-nav a { flex: 1 1 auto; text-align: center; }
+            .topbar-title { font-size: 17px; }
+            .breadcrumb, .tabs, .content, .bottom-bar { width: calc(100% - 24px); margin-left: auto; margin-right: auto; }
+            .content { padding: 14px; border-radius: 20px; }
+            .form-hero { padding: 22px; }
+            .form-hero-title { font-size: 23px; }
+            .form-section { padding: 16px; }
+            .three-col { grid-template-columns: 1fr; }
+            .three-col > div:last-child { grid-column: span 1; }
+            .kategori-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+}
+
+<div class="topbar">
+    <div class="topbar-brand">
+        <div class="topbar-symbol" aria-hidden="true"><span></span></div>
+        <div>
+            <div class="topbar-title">Yetkili Servis Gaz Açma Sistemi</div>
+            <div class="topbar-sub">Yetkili servis başvuru ekranı</div>
+        </div>
+    </div>
+    <div class="topbar-nav">
+        <a href="/">Ana Sayfa</a>
+        <a href="/yetkili-servisler">Yetkili Servisler</a>
+        <a class="primary" href="/giris">Panele Giriş</a>
+    </div>
+</div>
+
+<div class="breadcrumb">
+    <a href="/giris">Ana Sayfa</a>
+    <span>&#8250;</span>
+    <span>Yetkili Servis Kaydı</span>
+</div>
+
+<div class="tabs">
+    <a class="tab active" href="#">Kayıt Ekranı</a>
+    <a class="tab" href="/giris">Giriş Yap</a>
+</div>
+
+<form method="post" action="/kayit/yetkili-servis">
+    @Html.AntiForgeryToken()
+    <div class="content">
+        <div class="form-hero">
+            <div class="form-hero-title">Yetkili Servis Kayıt Formu</div>
+            <div class="form-hero-sub">Kurumsal bilgilerinizle hızlı kayıt oluşturun. Onay sonrası servis süreçlerinizi panel üzerinden yönetebilirsiniz.</div>
+        </div>
+
+        @if (ViewBag.Hata != null)
+        {
+            <div class="hata">&#128203; @ViewBag.Hata</div>
+        }
+
+        <div class="form-section">
+            <div class="section-title">Firma Bilgileri</div>
+            <div class="three-col">
+
+                <div>
+                    <div class="alan">
+                        <label>VKN (Vergi Kimlik No) <span class="req">*</span></label>
+                        <input type="text" name="VergiNo" maxlength="10"
+                               placeholder="10 haneli VKN" required
+                               value="@Model?.VergiNo" />
+                    </div>
+                    <div class="alan">
+                        <label>Vergi Dairesi <span class="req">*</span></label>
+                        <input type="text" name="VergiDairesi"
+                               placeholder="Vergi dairesi" required
+                               value="@Model?.VergiDairesi" />
+                    </div>
+                    <div class="alan">
+                        <label>Firma Adı <span class="req">*</span></label>
+                        <input type="text" name="FirmaAdi"
+                               placeholder="Firma ünvanı" required
+                               value="@Model?.FirmaAdi" />
+                    </div>
+                    <div class="alan">
+                        <label>Yetkili Kişi <span class="req">*</span></label>
+                        <input type="text" name="YetkiliKisi"
+                               placeholder="Ad Soyad" required
+                               value="@Model?.YetkiliKisi" />
+                    </div>
+                    <div class="alan">
+                        <label>TC Kimlik No <span class="req">*</span></label>
+                        <input type="text" name="TcKimlikNo" maxlength="11"
+                               placeholder="11 haneli TC" required
+                               value="@Model?.TcKimlikNo" />
+                    </div>
+                </div>
+
+                <div class="col-divider">
+                    <div class="alan">
+                        <label>Telefon <span class="req">*</span></label>
+                        <input type="text" name="Telefon"
+                               placeholder="05XX XXX XX XX" required
+                               value="@Model?.Telefon" />
+                    </div>
+                    <div class="alan">
+                        <label>Email <span class="req">*</span></label>
+                        <input type="email" name="Email"
+                               placeholder="ornek@firma.com" required
+                               value="@Model?.Email" />
+                    </div>
+                    <div class="alan">
+                        <label>Şehir <span class="req">*</span></label>
+                        <select name="FaaliyetIli" id="FaaliyetIli" required>
+                            <option value="">-- Seçiniz --</option>
+                            @foreach (var sehir in sehirler)
+                            {
+                                if (string.Equals(Model?.FaaliyetIli, sehir, StringComparison.CurrentCultureIgnoreCase))
+                                {
+                                    <option value="@sehir" selected="selected">@sehir</option>
+                                }
+                                else
+                                {
+                                    <option value="@sehir">@sehir</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="alan">
+                        <label>Adres <span class="req">*</span></label>
+                        <input type="text" name="Adres"
+                               placeholder="Firma adresi" required
+                               value="@Model?.Adres" />
+                    </div>
+                </div>
+
+                <div class="col-divider">
+                    <div class="section-title">Giriş Bilgileri</div>
+                    <div class="alan">
+                        <label>Şifre <span class="req">*</span></label>
+                        <input type="password" name="sifre"
+                               placeholder="En az 6 karakter" required />
+                        <div class="info-text">En az 6 karakter, 1 rakam içermelidir</div>
+                    </div>
+                    <div class="alan">
+                        <label>Şifre Tekrar <span class="req">*</span></label>
+                        <input type="password" name="sifreTekrar"
+                               placeholder="Şifrenizi tekrar girin" required />
+                    </div>
+
+                    <div class="info-box info-blue" style="margin-top:16px;">
+                        &#128274; Giriş yaparken <strong>VKN numaranız</strong> kullanıcı adınız olacaktır.
+                    </div>
+                    <div class="info-box info-green">
+                        &#9989; Kaydınız tamamlandıktan sonra panele giriş yapabilirsiniz.
+                    </div>
+                    <div class="info-box info-yellow">
+                        &#128203; Giriş yaptıktan sonra yetki belgenizi ve varsa şube bilgilerinizi de yükleyiniz.
+                    </div>
+                    <div class="info-box info-red">
+                        &#9888; Yetki belgeniz onaylanmadan cihaz devreye alamazsınız.
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="form-section">
+            <div class="section-title">Markalar</div>
+            <div style="color:#6e8094;font-size:14px;margin-bottom:10px;">Markalarınızı seçiniz</div>
+            <input type="text" class="marka-search"
+                   id="markaArama" placeholder="Marka arayın..."
+                   oninput="markaFiltrele(this.value)" />
+            <div class="marka-list">
+                <div class="marka-item-all">
+                    <input type="checkbox" id="tumMarkalar"
+                           onchange="TumunuSec(this)" />
+                    <label for="tumMarkalar">Tümünü Seç</label>
+                </div>
+                @foreach (var m in ViewBag.Markalar)
+                {
+                    <div class="marka-item">
+                        <input type="checkbox" name="markaidleri"
+                               value="@m.Id" id="marka_@m.Id"
+                               class="marka-cb" onchange="tumKontrol()" />
+                        <label for="marka_@m.Id">@m.MarkaAdi</label>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="form-section">
+            <div class="section-title">Hizmet Türleri</div>
+            <div class="kategori-box">
+                <div class="kategori-grid">
+                    @foreach (var k in kategoriler)
+                    {
+                        <label class="kategori-item">
+                            <input type="checkbox" name="kategoriidleri" value="@k.Id" />
+                            @if (!string.IsNullOrWhiteSpace(k.IconUrl))
+                            {
+                                <span class="kategori-icon"><img src="@k.IconUrl" alt="@k.Ad" /></span>
+                            }
+                            <span class="kategori-name">@k.Ad</span>
+                        </label>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-bar">
+        <a class="btn-iptal" href="/giris">İptal</a>
+        <button type="submit" class="btn-kaydet">Kaydı Tamamla</button>
+    </div>
+</form>
+
+<script>
+function markaFiltrele(q) {
+        const query = (q || '').toLowerCase();
+        document.querySelectorAll('.marka-item').forEach(item => {
+            const text = item.textContent.toLowerCase();
+            item.style.display = text.includes(query) ? 'flex' : 'none';
+        });
+    }
+
+    function TumunuSec(el) {
+        const checked = el.checked;
+        document.querySelectorAll('.marka-cb').forEach(cb => {
+            cb.checked = checked;
+        });
+    }
+
+    function tumKontrol() {
+        const hepsi = Array.from(document.querySelectorAll('.marka-cb'));
+        const secili = hepsi.filter(cb => cb.checked);
+        const tum = document.getElementById('tumMarkalar');
+        if (tum) {
+            tum.checked = hepsi.length > 0 && secili.length === hepsi.length;
+        }
+    }
+</script>
+

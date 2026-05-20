@@ -1,0 +1,216 @@
+@{
+    ViewData["Title"] = "Personel Paneli";
+    ViewData["PanelTitle"] = ViewData["Title"];
+    ViewData["PanelSubtitle"] = "Personel Paneli";
+    ViewData["ActiveMenu"] = "Dashboard";
+    Layout = "~/Views/Shared/_PanelLayout.cshtml";
+    var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
+    var sonBekleyenler = ViewBag.SonBekleyenler as List<YetkiliServisGazAcma.Entities.Ys_Sertifika>;
+    var sonislemler = ViewBag.SonIslemler as List<YetkiliServisGazAcma.Entities.Ys_DevreyeAlma>;
+    var yetkilerim = ViewBag.Yetkilerim as List<string> ?? new List<string>();
+}
+
+@section Styles {
+    <style>
+:root {
+            --primary: #3bb7e8;
+            --primary-dark: #1a8fba;
+            --success: #4caf7d;
+            --bg: #f4f6f8;
+            --nav: #0f172a;
+            --text: #1b2430;
+            --muted: #6b7b8d;
+            --card: #ffffff;
+            --border: #e6e9ee;
+            --accent: #e6f7ff;
+        }
+.content { padding: 28px 32px 56px; }
+        .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 16px; }
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; display: flex; align-items: center; gap: 12px; box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06); text-decoration: none; color: inherit; }
+        .card-icon { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: var(--accent); color: var(--primary); font-size: 18px; }
+        .card-value { font-size: 20px; font-weight: 800; color: #122536; }
+        .card-label { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+        .yetki-box { background: var(--card); border-radius: 12px; border: 1px solid var(--border); padding: 14px 16px; margin: 14px 0; }
+        .yetki-title { font-weight: 800; font-size: 13px; margin-bottom: 10px; }
+        .yetki-list { display: flex; flex-wrap: wrap; gap: 8px; }
+        .yetki-badge { background: #eef6ff; color: #1B9FD4; border: 1px solid #d7e8fb; padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+
+        .quick-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 14px 0; }
+        .quick-btn { background: #fff; border: 1px solid #e6e9ee; border-radius: 12px; padding: 14px; text-decoration: none; color: #333; transition: all .15s; box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06); }
+        .quick-btn:hover { border-color: var(--primary); box-shadow: 0 12px 24px rgba(20,40,60,.10); transform: translateY(-2px); }
+        .quick-title { font-size: 13px; font-weight: 800; }
+        .quick-sub { font-size: 11px; color: #7f8b96; margin-top: 3px; }
+
+        .iki-kolon { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px; }
+        .section { background: #fff; border-radius: 12px; border: 1px solid #e6e9ee; overflow: hidden; }
+        .section-head { padding: 14px 20px; border-bottom: 1px solid #edf2f7; display: flex; justify-content: space-between; align-items: center; }
+        .section-title { font-size: 14px; font-weight: 800; color: #333; display: flex; align-items: center; gap: 8px; }
+        .btn-sm { padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 700; background: var(--primary); color: #fff; text-decoration: none; }
+
+        .tablo-head, .tablo-row { padding: 10px 20px; display: grid; align-items: center; }
+        .tablo-head { background: #f8fafc; font-size: 11px; color: #718096; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; }
+        .tablo-row { border-top: 1px solid #f0f3f7; font-size: 13px; color: #333; }
+        .tablo-head.dort, .tablo-row.dort { grid-template-columns: 2fr 1fr 1fr 1fr; }
+        .tablo-head.bes, .tablo-row.bes { grid-template-columns: 1.4fr 1.2fr 1fr 1fr .8fr; }
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 11px; font-weight: bold; }
+        .b-yellow { background: #FAEEDA; color: #633806; }
+        .b-green { background: #E1F5EE; color: #085041; }
+        .empty { padding: 30px; text-align: center; color: #9ca3af; font-size: 13px; }
+
+        @@media (max-width: 900px) {
+            .sidebar { position: static; width: 100%; height: auto; }
+            .main { margin-left: 0; }
+            .topbar { padding: 14px 16px; }
+            .content { padding: 16px; }
+            .iki-kolon { grid-template-columns: 1fr; }
+        }
+    </style>
+}
+
+<div class="cards">
+    <a class="card" href="/personel-panel/onay-bekleyenler">
+        <div class="card-icon">📄</div>
+        <div><div class="card-value">@ViewBag.OnayBekleyen</div><div class="card-label">Onay Bekleyen Yetki Belgesi</div></div>
+    </a>
+    <a class="card" href="/personel-panel/devreyealmalar">
+        <div class="card-icon">🔧</div>
+        <div><div class="card-value">@ViewBag.BuAy</div><div class="card-label">Bu Ay Devreye Alınan</div></div>
+    </a>
+    <a class="card" href="/personel-panel/yetkiliservisler">
+        <div class="card-icon">🏢</div>
+        <div><div class="card-value">@ViewBag.ToplamFirma</div><div class="card-label">Kayıtlı Yetkili Servis</div></div>
+    </a>
+    <a class="card" href="/personel-panel/onay-bekleyenler">
+        <div class="card-icon">⚠</div>
+        <div><div class="card-value">@ViewBag.SuresiBitecek</div><div class="card-label">30 Gün İçinde Bitecek</div></div>
+    </a>
+</div>
+
+<div class="yetki-box">
+    <div class="yetki-title">Yetkilerim</div>
+    <div class="yetki-list">
+        @if (yetkilerim.Count == 0)
+        {
+            <span class="yetki-badge">Yetki tanımlı değil</span>
+        }
+        else
+        {
+            foreach (var y in yetkilerim)
+            {
+                <span class="yetki-badge">@y</span>
+            }
+        }
+    </div>
+</div>
+
+<div class="quick-row">
+    <a class="quick-btn" href="/personel-panel/onay-bekleyenler"><div class="quick-title">✅ Yetki Belgesi Onay</div><div class="quick-sub">Bekleyenleri hızlıca değerlendir</div></a>
+    <a class="quick-btn" href="/personel-panel/onay-gecmisi"><div class="quick-title">📝 Onay Geçmişi</div><div class="quick-sub">Kim, ne zaman onayladı</div></a>
+    <a class="quick-btn" href="/personel-panel/raporlar"><div class="quick-title">📊 Performans Raporu</div><div class="quick-sub">Servis işlem istatistikleri</div></a>
+    <a class="quick-btn" href="/personel-panel/devreyealmalar"><div class="quick-title">📋 Devreye Almalar</div><div class="quick-sub">Şirketine ait işlemler</div></a>
+    <a class="quick-btn" href="/personel-panel/markalar"><div class="quick-title">🏷 Markalar</div><div class="quick-sub">Marka listesini görüntüle</div></a>
+    <a class="quick-btn" href="/personel-panel/yetkiliservisler"><div class="quick-title">🛠 Yetkili Servisler</div><div class="quick-sub">Firma ve servis detayları</div></a>
+    <a class="quick-btn" href="/personel-panel/profil"><div class="quick-title">👤 Profilim</div><div class="quick-sub">Hesap bilgilerini güncelle</div></a>
+</div>
+
+<div class="iki-kolon">
+    <div class="section">
+        <div class="section-head">
+            <div class="section-title">📄 Onay Bekleyen Yetki Belgesilar</div>
+            <a class="btn-sm" href="/personel-panel/onay-bekleyenler">Tümünü Gör</a>
+        </div>
+        <div class="tablo-head dort"><div>Firma</div><div>Şirket</div><div>Tarih</div><div>İşlem</div></div>
+        @if (sonBekleyenler == null || !sonBekleyenler.Any())
+        {
+            <div class="empty">Onay bekleyen yetki belgesi yok.</div>
+        }
+        else
+        {
+            foreach (var s in sonBekleyenler)
+            {
+                <div class="tablo-row dort">
+                    <div>@s.Firma?.FirmaAdi</div>
+                    <div>@s.Firma?.Sirket?.SirketAdi</div>
+                    <div>@s.OlusturmaTarihi.ToString("dd.MM.yyyy")</div>
+                    <div><a class="btn-sm" href="/personel-panel/onay-bekleyenler">İncele</a></div>
+                </div>
+            }
+        }
+    </div>
+
+    <div class="section">
+        <div class="section-head">
+            <div class="section-title">🔧 Son Devreye Almalar</div>
+            <a class="btn-sm" href="/personel-panel/devreyealmalar">Tümünü Gör</a>
+        </div>
+        <div class="tablo-head bes"><div>Tesisat No</div><div>Servis</div><div>Marka</div><div>Tarih</div><div>Durum</div></div>
+        @if (sonislemler == null || !sonislemler.Any())
+        {
+            <div class="empty">Henüz işlem yok.</div>
+        }
+        else
+        {
+            foreach (var d in sonislemler)
+            {
+                <div class="tablo-row bes">
+                    <div><strong>@d.TesistatNo</strong></div>
+                    <div>@d.Firma?.FirmaAdi</div>
+                    <div>@d.Marka?.MarkaAdi</div>
+                    <div>@d.OlusturmaTarihi.ToString("dd.MM.yyyy")</div>
+                    <div><span class="badge @(d.Durum==1 ? "b-green" : "b-yellow")">@(d.Durum==1 ? "Tamam" : "Bekliyor")</span></div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    var btn = document.getElementById('notifBtn');
+    var panel = document.getElementById('notifPanel');
+    if (btn && panel) {
+        btn.addEventListener('click', function (e) { e.stopPropagation(); panel.classList.toggle('open'); });
+        panel.addEventListener('click', function (e) { e.stopPropagation(); });
+        document.addEventListener('click', function () { panel.classList.remove('open'); });
+    }
+
+    var yetki = {
+        sertifika: @((ViewBag.YetkiSertifika == true).ToString().ToLower()),
+        rapor: @((ViewBag.YetkiRapor == true).ToString().ToLower())
+    };
+
+    function hide(selector, allowed) {
+        if (allowed) return;
+        document.querySelectorAll(selector).forEach(function (el) { el.style.display = 'none'; });
+    }
+
+    hide('a[href="/personel-panel/onay-bekleyenler"]', yetki.sertifika);
+    hide('a[href="/personel-panel/onay-gecmisi"]', yetki.sertifika);
+    hide('a[href="/personel-panel/raporlar"]', yetki.rapor);
+
+    var raporSection = Array.from(document.querySelectorAll('.nav-section')).find(function (x) {
+        return (x.textContent || '').toLowerCase().indexOf('rapor') >= 0;
+    });
+    if (!yetki.rapor && raporSection) raporSection.style.display = 'none';
+
+    if (!yetki.sertifika) {
+        document.querySelectorAll('.card, .quick-btn, .section').forEach(function (el) {
+            var t = (el.textContent || '').toLowerCase();
+            if (t.indexOf('onay') >= 0 || t.indexOf('yetki belgesi') >= 0 || t.indexOf('süresi') >= 0) {
+                el.style.display = 'none';
+            }
+        });
+    }
+
+    if (!yetki.rapor) {
+        document.querySelectorAll('.quick-btn').forEach(function (el) {
+            if ((el.getAttribute('href') || '').indexOf('/personel-panel/raporlar') >= 0) {
+                el.style.display = 'none';
+            }
+        });
+    }
+})();
+</script>
+}

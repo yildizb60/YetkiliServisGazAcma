@@ -1,0 +1,254 @@
+@{
+    ViewData["Title"] = "Yetkiler";
+    ViewData["PanelTitle"] = "Yetki Yönetimi";
+    ViewData["PanelSubtitle"] = "Admin Paneli";
+    ViewData["ActiveMenu"] = "Yetkiler";
+    Layout = "~/Views/Shared/_PanelLayout.cshtml";
+
+    var personeller = ViewBag.Personeller as List<YetkiliServisGazAcma.Entities.AppKullanici>;
+    var yetkiIsimler = ViewBag.YetkiIsimler as Dictionary<string, string> ?? new();
+    var yetkiMap = ViewBag.YetkiMap as Dictionary<string, List<string>> ?? new();
+    var yetkiSirketAdlariMap = ViewBag.YetkiSirketAdlariMap as Dictionary<string, List<string>> ?? new();
+}
+
+@section Styles {
+    <style>
+        .tablo-head,
+        .tablo-row {
+            grid-template-columns: 1.2fr 1.4fr 1.2fr 1.6fr .8fr;
+        }
+
+        .yetki-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .yetki-badge {
+            background: #E6F1FB;
+            color: #0C447C;
+            padding: 5px 12px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .legend-wrap {
+            padding: 12px 20px 18px;
+        }
+
+        .matrix-card {
+            background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+            border-radius: 14px;
+            border: 1px solid #dbe7f3;
+            margin-bottom: 16px;
+            overflow: hidden;
+            box-shadow: 0 14px 28px rgba(20, 52, 88, .07);
+        }
+
+        .matrix-head {
+            padding: 12px 16px;
+            border-bottom: 1px solid #e8f0f8;
+            font-size: 15px;
+            font-weight: 800;
+            color: #103a60;
+            background: linear-gradient(135deg, rgba(27, 159, 212, .14), rgba(76, 175, 125, .10));
+        }
+
+        .matrix-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 6px 0 10px;
+        }
+
+        .matrix-table th {
+            text-align: left;
+            padding: 9px 16px;
+            font-size: 10px;
+            color: #5f7388;
+            background: #f6fbff;
+            border-bottom: 1px solid #e2ecf6;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+
+        .matrix-table td {
+            padding: 9px 16px;
+            border-bottom: 1px solid #edf3fa;
+            font-size: 12px;
+            color: #2e3c49;
+            vertical-align: top;
+        }
+
+        .matrix-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .matrix-table tbody tr:hover {
+            background: #f8fcff;
+        }
+
+        .role-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 5px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            border: 1px solid #d5e7f7;
+            background: #eef7ff;
+            color: #14558f;
+        }
+
+        .ok {
+            color: #0b6e4f;
+            font-weight: 700;
+        }
+
+        .no {
+            color: #8b2f2f;
+            font-weight: 700;
+        }
+
+        @@media (max-width: 960px) {
+            .tablo-head,
+            .tablo-row {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+        }
+    </style>
+}
+
+<div class="matrix-card">
+    <div class="matrix-head">Rol - Yetki Matrisi</div>
+    <table class="matrix-table">
+        <thead>
+            <tr>
+                <th>Rol</th>
+                <th>Menü Görünürlüğü</th>
+                <th>Sayfa Erişimi</th>
+                <th>Yönetim İşlemleri</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><span class="role-badge">Süper Admin</span></td>
+                <td class="ok">Tüm menüler görünür</td>
+                <td class="ok">Tüm sayfalar</td>
+                <td class="ok">Ekle / Düzenle / Sil / Onay + Kullanıcı yönetimi</td>
+            </tr>
+            <tr>
+                <td><span class="role-badge">Şirket Admini</span></td>
+                <td class="ok">Kendi şirketinin yönetim menüleri</td>
+                <td class="ok">Kendi şirket verileri</td>
+                <td class="ok">Personel, servis ve yetki yönetimi</td>
+            </tr>
+            <tr>
+                <td><span class="role-badge">Personel (Tam Yetki)</span></td>
+                <td class="ok">Yetki verilen şirket kapsamındaki tüm menüler</td>
+                <td class="ok">Yetkili olduğu şirket sayfaları</td>
+                <td class="ok">Ekle / Düzenle / Sil / Onay</td>
+            </tr>
+            <tr>
+                <td><span class="role-badge">Personel (Yetki Belgesi Onay)</span></td>
+                <td class="ok">Yetki Belgesi Onay + Onay Geçmişi</td>
+                <td class="ok">Onay ekranlarına erişim</td>
+                <td class="ok">Onay / Red işlemleri yapılır</td>
+            </tr>
+            <tr>
+                <td><span class="role-badge">Personel (Rapor Gör)</span></td>
+                <td class="ok">Raporlar menüsü görünür</td>
+                <td class="ok">Rapor ekranı erişilebilir</td>
+                <td class="no">Yönetim işlemi yok, sadece görüntüleme</td>
+            </tr>
+            <tr>
+                <td><span class="role-badge">Personel (Marka Yönet)</span></td>
+                <td class="ok">Markalar menüsü görünür</td>
+                <td class="ok">Marka sayfalarına erişim</td>
+                <td class="ok">Ekle / Düzenle / Sil</td>
+            </tr>
+            <tr>
+                <td><span class="role-badge">Personel (Yetkisiz)</span></td>
+                <td class="ok">Ana Sayfa + Profilim daima görünür</td>
+                <td class="ok">Marka / Şirket / Yetkili Servis listeleri görüntülenir</td>
+                <td class="no">Ekle / Düzenle / Sil / Onay kapalı</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="section">
+    <div class="section-head">
+        <div class="section-title">Personel Yetkileri</div>
+    </div>
+    <div class="legend-wrap">
+        <div class="legend">
+            <span class="yetki-badge">&#9989; Yetki Belgesi Onay</span>
+            <span class="yetki-badge">&#128202; Rapor Gör</span>
+            <span class="yetki-badge">&#128100; Kullanıcı Yönet</span>
+            <span class="yetki-badge">&#127991; Marka Yönet</span>
+            <span class="yetki-badge">&#128274; Tam Yetki</span>
+        </div>
+    </div>
+    <div class="tablo-head">
+        <div>Ad Soyad</div><div>E-Posta</div><div>Şirket</div><div>Mevcut Yetkiler</div><div>İşlem</div>
+    </div>
+    @if (personeller == null || personeller.Count == 0)
+    {
+        <div class="empty">Personel kaydı yok</div>
+    }
+    else
+    {
+        foreach (var p in personeller)
+        {
+            var yetkiler = yetkiMap.ContainsKey(p.Id) ? yetkiMap[p.Id] : new List<string>();
+            var sirketAdlari = yetkiSirketAdlariMap.ContainsKey(p.Id) ? yetkiSirketAdlariMap[p.Id] : new List<string>();
+
+            <div class="tablo-row">
+                <div>@(p.AdSoyad ?? "-")</div>
+                <div>@(p.Email ?? "-")</div>
+                <div>
+                    @if (sirketAdlari.Count == 0)
+                    {
+                        <span style="color:#bbb;">-</span>
+                    }
+                    else
+                    {
+                        <div class="yetki-list">
+                            @foreach (var sirketAdi in sirketAdlari)
+                            {
+                                <span class="yetki-badge">@sirketAdi</span>
+                            }
+                        </div>
+                    }
+                </div>
+                <div>
+                    @if (yetkiler.Count == 0)
+                    {
+                        <span style="color:#bbb;">-</span>
+                    }
+                    else
+                    {
+                        <div class="yetki-list">
+                            @foreach (var y in yetkiler)
+                            {
+                                <span class="yetki-badge">@(yetkiIsimler.ContainsKey(y) ? yetkiIsimler[y] : y)</span>
+                            }
+                        </div>
+                    }
+                </div>
+                <div>
+                    <a class="btn-link" href="/AdminPanel/yetkiler/Düzenle/@p.Id">Yetki Düzenle</a>
+                </div>
+            </div>
+        }
+    }
+</div>

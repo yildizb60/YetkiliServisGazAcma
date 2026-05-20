@@ -1,0 +1,486 @@
+﻿@{
+    ViewData["Title"] = "Cihaz Devreye Al";
+    Layout = null;
+    var markalar = ViewBag.Markalar as List<YetkiliServisGazAcma.Entities.Ys_Marka>;
+    var firma = ViewBag.Firma as YetkiliServisGazAcma.Entities.Ys_Firma;
+    string adSoyad = firma?.YetkiliKisi ?? "Yetkili Servis";
+    string basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "Y";
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <title>Cihaz Devreye Al</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: "Segoe UI", "Segoe UI Emoji", "Segoe UI Symbol", "Apple Color Emoji", "Noto Color Emoji", Arial, sans-serif; background: #f0f4f8; }
+        .layout { display: flex; min-height: 100vh; }
+        .sidebar { width: 230px; background: #1a1a2e; position: fixed; top: 0; left: 0; height: 100vh; display: flex; flex-direction: column; }
+        .logo { padding: 22px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 12px; }
+        .logo-circle { width: 40px; height: 40px; background: #1B9FD4; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .logo-dot { width: 16px; height: 16px; background: #4CAF7D; border-radius: 50%; }
+        .logo-text { color: #fff; font-size: 15px; font-weight: bold; }
+        .logo-sub { color: rgba(255,255,255,0.4); font-size: 11px; margin-top: 2px; }
+        .nav { padding: 16px 0; flex: 1; }
+        .nav-section { color: rgba(255,255,255,0.3); font-size: 10px; padding: 14px 20px 5px; text-transform: uppercase; letter-spacing: .08em; }
+        .nav-item { display: flex; align-items: center; gap: 10px; padding: 11px 20px; color: rgba(255,255,255,0.65); font-size: 14px; text-decoration: none; transition: background .15s; }
+        .nav-item:hover { background: rgba(255,255,255,0.06); color: #fff; }
+        .nav-item.active { background: #3bb7e8; color: #fff; }
+        .cikis-btn { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.6); padding: 9px 16px; border-radius: 6px; font-size: 13px; margin: 16px 20px; display: block; text-align: center; text-decoration: none; }
+        .main { margin-left: 230px; flex: 1; }
+        .topbar { background: #fff; padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #1B9FD4; }
+        .topbar-left { font-size: 17px; font-weight: bold; color: #1a1a1a; }
+        .topbar-right { display: flex; align-items: center; gap: 12px; }
+        .notif-wrap { position: relative; }
+        .notif { position: relative; width: 32px; height: 32px; border-radius: 50%; background: #f0f4f8; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #1B9FD4; border: none; cursor: pointer; }
+        .notif-badge { position: absolute; top: -4px; right: -4px; background: #e24b4a; color: #fff; font-size: 9px; font-weight: bold; padding: 2px 5px; border-radius: 10px; }
+        .notif-panel { position: absolute; right: 0; top: 38px; width: 320px; background: #fff; border: 1px solid #e7e7e7; border-radius: 10px; box-shadow: 0 10px 24px rgba(0,0,0,0.08); padding: 10px; display: none; z-index: 50; }
+        .notif-panel.open { display: block; }
+        .notif-title { font-size: 12px; font-weight: bold; color: #555; padding: 6px 8px 8px; border-bottom: 1px solid #f0f0f0; margin-bottom: 6px; }
+        .notif-item { display: flex; gap: 10px; padding: 8px; border-radius: 8px; }
+        .notif-item:hover { background: #f7fafc; }
+        .notif-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; background: #1B9FD4; flex-shrink: 0; }
+        .notif-text { font-size: 13px; color: #333; line-height: 1.35; }
+        .notif-empty { padding: 10px 8px; font-size: 12px; color: #999; }
+        .avatar { width: 36px; height: 36px; border-radius: 50%; background: #1B9FD4; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        .user-name { font-size: 14px; color: #333; font-weight: bold; }
+        .user-role { font-size: 11px; color: #1B9FD4; }
+        .content { padding: 28px 32px; }
+
+        /* Adım göstergesi */
+        .adimlar { display: flex; align-items: center; margin-bottom: 24px; }
+        .adim { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #bbb; }
+        .adim.aktif { color: #1B9FD4; font-weight: bold; }
+        .adim.tamamlandi { color: #4CAF7D; }
+        .adim-no { width: 28px; height: 28px; border-radius: 50%; background: #eee; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: #bbb; }
+        .adim.aktif .adim-no { background: #1B9FD4; color: #fff; }
+        .adim.tamamlandi .adim-no { background: #4CAF7D; color: #fff; }
+        .adim-cizgi { flex: 1; height: 2px; background: #eee; margin: 0 12px; }
+        .adim-cizgi.tamamlandi { background: #4CAF7D; }
+
+        /* Kartlar */
+        .kart { background: #fff; border-radius: 10px; border: 1px solid #eee; padding: 24px; margin-bottom: 16px; }
+        .kart-baslik { font-size: 14px; font-weight: bold; color: #333; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid #f0f0ee; display: flex; align-items: center; gap: 8px; }
+
+        /* Tesisat sorgulama */
+        .sorgula-row { display: flex; gap: 12px; align-items: flex-end; }
+        .sorgula-input { flex: 1; }
+        label { font-size: 12px; color: #444; font-weight: bold; display: block; margin-bottom: 6px; }
+        input, select { padding: 10px 12px; border: 1.5px solid #e0e0e0; border-radius: 8px; font-size: 14px; color: #333; outline: none; width: 100%; }
+        input:focus, select:focus { border-color: #1B9FD4; }
+        .btn-sorgula { padding: 10px 24px; background: #1B9FD4; color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; white-space: nowrap; }
+        .btn-sorgula:hover { background: #0d7faa; }
+
+        /* Müşteri bilgileri */
+        .musteri-bilgi { display: none; }
+        .musteri-bilgi.goster { display: block; }
+        .bilgi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+        .bilgi-alan { background: #f8f8f6; border-radius: 8px; padding: 12px; }
+        .bilgi-label { font-size: 11px; color: #888; margin-bottom: 3px; }
+        .bilgi-deger { font-size: 13px; font-weight: bold; color: #333; }
+        .uygunluk-badge { display: inline-block; padding: 4px 12px; border-radius: 10px; font-size: 12px; font-weight: bold; background: #E1F5EE; color: #085041; }
+
+        /* Marka seçimi */
+        .marka-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .marka-kart { border: 2px solid #eee; border-radius: 8px; padding: 14px; text-align: center; cursor: pointer; transition: all .15s; }
+        .marka-kart:hover { border-color: #1B9FD4; }
+        .marka-kart.secili { border-color: #1B9FD4; background: #E6F1FB; }
+        .marka-kart.yetkisiz { border-color: #F09595; background: #FCEBEB; cursor: not-allowed; opacity: .6; }
+        .marka-adi { font-size: 13px; font-weight: bold; color: #333; margin-top: 4px; }
+
+        /* Form alanlari */
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .alan { display: flex; flex-direction: column; gap: 5px; }
+        .alan.tam { grid-column: span 2; }
+
+        /* Bildirim */
+        .mesaj-hata { background: #FCEBEB; color: #501313; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; border: 1px solid #F09595; }
+        .mesaj-basarili { background: #E1F5EE; color: #085041; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; }
+        .marka-uyari { background: #FCEBEB; color: #501313; padding: 10px 14px; border-radius: 8px; font-size: 13px; display: none; margin-top: 10px; }
+        .marka-uyari.goster { display: block; }
+
+        /* Butonlar */
+        .butonlar { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+        .btn-kKaydet { padding: 11px 28px; background: #4CAF7D; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; }
+        .btn-kKaydet:hover { background: #3d9e6e; }
+        .btn-kKaydet:disabled { background: #ccc; cursor: not-allowed; }
+        .btn-iiptal { padding: 11px 20px; background: #fff; color: #e24b4a; border: 1px solid #e24b4a; border-radius: 8px; font-size: 13px; text-decoration: none; }
+
+        /* Loading */
+        .loading { display: none; text-align: center; padding: 20px; color: #888; font-size: 13px; }
+        .loading.goster { display: block; }
+    </style>
+</head>
+<body>
+<div class="layout">
+    <div class="sidebar">
+        <div class="logo">
+            @if (!string.IsNullOrWhiteSpace(ViewBag.PanelLogoUrl as string)) { <img class="panel-company-logo" src="@(ViewBag.PanelLogoUrl as string)" alt="@(ViewBag.PanelSirketAdi as string ?? "Şirket")" style="width:44px;height:44px;object-fit:contain;border-radius:14px;background:#fff;padding:5px;box-shadow:0 8px 20px rgba(0,0,0,.12);" /> } else { <div class="logo-circle"><div class="logo-dot"></div></div> }
+            <div>
+                <div class="logo-text">Gaz A&#231;ma</div>
+                <div class="logo-sub">Yetkili Servis</div><div class="logo-company" style="color:rgba(255,255,255,.68);font-size:10px;margin-top:4px;font-weight:700;letter-spacing:.03em;line-height:1.2;">@(ViewBag.PanelSirketAdi as string ?? "Genel Yönetim")</div>
+            </div>
+        </div>
+        <div class="nav">
+            <div class="nav-section">Firma</div>
+            <a class="nav-item" href="/ys-panel">&#127968; Ana Sayfa</a>
+            <div class="nav-section">Firma</div>
+            <a class="nav-item active" href="/ys-devreyeal">&#128295; Cihaz Devreye Al</a>
+            <a class="nav-item" href="/ys-devreyeal/gecmis">&#128221; &#304;&#351;lem Ge&#231;mi&#351;im</a>
+            <a class="nav-item" href="/ys-panel/raporlar">&#128202; Raporlar&#305;m</a>
+            <div class="nav-section">Firma</div>
+            <a class="nav-item" href="/ys-yetki-belgesi">&#128196; Yetki Belgem</a>
+            <a class="nav-item" href="/ys-panel/markalar">&#128203; Markalar&#305;m</a>
+            <a class="nav-item" href="/ys-panel/subeler">&#127970; &#350;ube / Servis Noktalar&#305;</a>
+            <a class="nav-item" href="/ys-panel/profil">&#128100; Profilim</a>
+        </div>
+        <a class="cikis-btn" href="/cikis">&#199;&#305;k&#305;&#351; Yap</a>
+    </div>
+
+    <div class="main">
+        <div class="topbar">
+            <div class="topbar-left">&#128295; Cihaz Devreye Al</div>
+            <div class="topbar-right">
+                @await Html.PartialAsync("_NotificationPanel")
+                <div>
+                    <div class="user-name">@adSoyad</div>
+                    <div class="user-role">Yetkili Servis</div><div class="user-company" style="font-size:10px;color:#6b7c8e;margin-top:2px;font-weight:700;">@(ViewBag.PanelSirketAdi as string ?? "Genel Yönetim")</div>
+                </div>
+                <div class="avatar">@basHarf</div>
+            </div>
+        </div>
+        <div class="content">
+
+            @if (TempData["Hata"] != null)
+            {
+                <div class="mesaj-hata">&#10060; @TempData["Hata"]</div>
+            }
+
+            <!-- Adım Göstergesi -->
+            <div class="adimlar">
+                <div class="adim aktif" id="adim1">
+                    <div class="adim-no">1</div>
+                    <span>Tesisat Sorgula</span>
+                </div>
+                <div class="adim-cizgi" id="cizgi1"></div>
+                <div class="adim" id="adim2">
+                    <div class="adim-no">2</div>
+                    <span>Marka Se&#231;</span>
+                </div>
+                <div class="adim-cizgi" id="cizgi2"></div>
+                <div class="adim" id="adim3">
+                    <div class="adim-no">3</div>
+                    <span>Form Doldur</span>
+                </div>
+                <div class="adim-cizgi" id="cizgi3"></div>
+                <div class="adim" id="adim4">
+                    <div class="adim-no">4</div>
+                    <span>Tamamla</span>
+                </div>
+            </div>
+
+            <!-- Adım 1: Tesisat Sorgulama -->
+            <div class="kart">
+                <div class="kart-baslik">Ad&#305;m 1  Tesisat Sorgulama</div>
+                <div class="sorgula-row">
+                    <div class="sorgula-input">
+                        <label>Tesisat Numaras&#305;</label>
+                        <input type="text" id="tesistatNo" placeholder="Tesisat numaras&#305;n&#305; giriniz" />
+                    </div>
+                    <button type="button" class="btn-sorgula" onclick="tesistatSorgula()">
+                        Sorgula
+                    </button>
+                </div>
+                <div class="loading" id="sorgulaLoading">&#9203; Sorgulan&#305;yor...</div>
+            </div>
+
+            <!-- Müşteri Bilgileri (Sorgulama sonrası açılır) -->
+            <div class="kart musteri-bilgi" id="musteriBilgiKart">
+                <div class="kart-baslik">M&#252;&#351;teri & Tesisat Bilgileri</div>
+                <div class="bilgi-grid">
+                    <div class="bilgi-alan">
+                        <div class="bilgi-label">M&#252;&#351;teri Ad&#305;</div>
+                        <div class="bilgi-deger" id="b-musteriAdi"></div>
+                    </div>
+                    <div class="bilgi-alan">
+                        <div class="bilgi-label">TC Kimlik No</div>
+                        <div class="bilgi-deger" id="b-musteriTcNo"></div>
+                    </div>
+                    <div class="bilgi-alan">
+                        <div class="bilgi-label">Telefon</div>
+                        <div class="bilgi-deger" id="b-musteriTelefon"></div>
+                    </div>
+                    <div class="bilgi-alan">
+                        <div class="bilgi-label">Abone No</div>
+                        <div class="bilgi-deger" id="b-aboneNo"></div>
+                    </div>
+                    <div class="bilgi-alan">
+                        <div class="bilgi-label">Uygunluk Belge No</div>
+                        <div class="bilgi-deger" id="b-uygunlukBelgeNo"></div>
+                    </div>
+                    <div class="bilgi-alan">
+                        <div class="bilgi-label">Uygunluk Tarihi</div>
+                        <div class="bilgi-deger" id="b-uygunlukTarihi"></div>
+                    </div>
+                    <div class="bilgi-alan" style="grid-column:span 2">
+                        <div class="bilgi-label">Adres</div>
+                        <div class="bilgi-deger" id="b-adres"></div>
+                    </div>
+                    <div class="bilgi-alan">
+                        <div class="bilgi-label">Tesisat Durumu</div>
+                        <div class="bilgi-deger">
+                            <span class="uygunluk-badge" id="b-durum"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Marka Seçimi -->
+            <div class="kart musteri-bilgi" id="markaKart">
+                <div class="kart-baslik">Ad&#305;m 2  Marka Se&#231;imi</div>
+                <div class="marka-grid">
+    @if (markalar != null)
+    {
+        @foreach(var m in markalar)
+        {
+            <div class="marka-kart" onclick="markaSec(@m.Id, '@m.MarkaAdi', this)">
+                <div style="font-size:28px;">*</div>
+                <div class="marka-adi">@m.MarkaAdi</div>
+            </div>
+        }
+    }
+</div>
+                <div class="marka-uyari" id="markaUyari">&#10060; Bu marka i&#231;in yetkiniz bulunmamaktad&#305;r!</div>
+            </div>
+
+            <!-- Devreye Alma Formu -->
+            <div class="kart musteri-bilgi" id="formKart">
+                <div class="kart-baslik">Ad&#305;m 3  Cihaz Bilgileri</div>
+                <form method="post" action="/ys-devreyeal/kaydet" id="devreyeAlmaForm">
+                    @Html.AntiForgeryToken()
+
+                    <!-- Gizli alanlar -->
+                    <input type="hidden" name="TesistatNo" id="f-tesistatNo" />
+                    <input type="hidden" name="AboneNo" id="f-aboneNo" />
+                    <input type="hidden" name="UygunlukBelgeNo" id="f-uygunlukBelgeNo" />
+                    <input type="hidden" name="UygunlukTarihi" id="f-uygunlukTarihi" />
+                    <input type="hidden" name="MusteriAdi" id="f-musteriAdi" />
+                    <input type="hidden" name="MusteriTcNo" id="f-musteriTcNo" />
+                    <input type="hidden" name="MusteriTelefon" id="f-musteriTelefon" />
+                    <input type="hidden" name="Adres" id="f-adres" />
+                    <input type="hidden" name="MarkaId" id="f-markaid" />
+                    <input type="hidden" name="CihazMarka" id="f-cihazMarka" />
+
+                    <div class="form-grid">
+                        <div class="alan">
+                            <label>Cihaz Tipi *</label>
+                            <select name="CihazTipi" required>
+                                <option value="">-- Se&#231;iniz --</option>
+                                <option value="Kombi">Kombi</option>
+                                <option value="&#350;ofben">&#350;ofben</option>
+                                <option value="Ocak">Ocak</option>
+                                <option value="Firin">Firin</option>
+                                <option value="Kazan">Kazan</option>
+                                <option value="Diger">Di&#287;er</option>
+                            </select>
+                        </div>
+                        <div class="alan">
+                            <label>Cihaz Modeli *</label>
+                            <input type="text" name="CihazModeli" placeholder="Cihaz modeli" required />
+                        </div>
+                        <div class="alan">
+                            <label>Seri No *</label>
+                            <input type="text" name="SeriNo" placeholder="Seri numarasi" required />
+                        </div>
+                        <div class="alan">
+                            <label>Kapasite (kcal/h)</label>
+                            <input type="text" name="CihazKapasite" placeholder="&#214;rn: 24000" />
+                        </div>
+                        <div class="alan">
+                            <label>Teknisyen Ad&#305; Soyad&#305; *</label>
+                            <input type="text" name="TeknisyenAdi" placeholder="Ad Soyad" required />
+                        </div>
+                        <div class="alan">
+                            <label>Teknisyen Yetki Belgesi No *</label>
+                            <input type="text" name="TeknisyenSertifikaNo" placeholder="Yetki Belgesi No" required />
+                        </div>
+                        <div class="alan tam">
+                            <label>Notlar</label>
+                            <input type="text" name="Notlar" placeholder="Ek notlar..." />
+                        </div>
+                    </div>
+
+                    <div class="butonlar">
+                        <a class="btn-iiptal" href="/ys-panel">&#10006; &#304;ptal</a>
+                        <button type="submit" class="btn-kKaydet" id="btnKKaydet">
+                            &#9989; Devreye Almay&#305; Tamamla
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
+<script>
+    let seciliMarkaId = 0;
+    let seciliMarkaAdi = "";
+
+    function setAdim(aktif) {
+        for (let i = 1; i <= 4; i++) {
+            const adim = document.getElementById("adim" + i);
+            if (!adim) continue;
+            adim.classList.remove("aktif");
+            adim.classList.remove("tamamlandi");
+            if (i < aktif) adim.classList.add("tamamlandi");
+            if (i === aktif) adim.classList.add("aktif");
+        }
+
+        for (let i = 1; i <= 3; i++) {
+            const cizgi = document.getElementById("cizgi" + i);
+            if (!cizgi) continue;
+            if (i < aktif) cizgi.classList.add("tamamlandi");
+            else cizgi.classList.remove("tamamlandi");
+        }
+    }
+
+    function temizleSonrakiAdimlar() {
+        document.getElementById("musteriBilgiKart")?.classList.remove("goster");
+        document.getElementById("markaKart")?.classList.remove("goster");
+        document.getElementById("formKart")?.classList.remove("goster");
+        document.getElementById("markaUyari")?.classList.remove("goster");
+        seciliMarkaId = 0;
+        seciliMarkaAdi = "";
+        document.querySelectorAll(".marka-kart").forEach(x => x.classList.remove("secili"));
+        setAdim(1);
+    }
+
+    async function tesistatSorgula() {
+        const tesisatNoInput = document.getElementById("tesistatNo");
+        const loading = document.getElementById("sorgulaLoading");
+        const tesisatNo = (tesisatNoInput?.value || "").trim();
+
+        if (!tesisatNo) {
+            alert("Lütfen tesisat numarası giriniz.");
+            return;
+        }
+
+        temizleSonrakiAdimlar();
+        if (loading) loading.classList.add("goster");
+
+        try {
+            const response = await fetch("/ys-devreyeal/tesisat-sorgula", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ tesistatNo: tesisatNo })
+            });
+
+            if (!response.ok) {
+                alert("Sorgu sırasında bir hata oluştu.");
+                return;
+            }
+
+            const data = await response.json();
+            if (!data.basarili) {
+                alert(data.mesaj || "Tesisat sorgulaması başarısız.");
+                return;
+            }
+
+            document.getElementById("b-musteriAdi").textContent = data.musteriAdi || "-";
+            document.getElementById("b-musteriTcNo").textContent = data.musteriTcNo || "-";
+            document.getElementById("b-musteriTelefon").textContent = data.musteriTelefon || "-";
+            document.getElementById("b-aboneNo").textContent = data.aboneNo || "-";
+            document.getElementById("b-uygunlukBelgeNo").textContent = data.uygunlukBelgeNo || "-";
+            document.getElementById("b-uygunlukTarihi").textContent = data.uygunlukTarihi || "-";
+            document.getElementById("b-adres").textContent = data.adres || "-";
+            document.getElementById("b-durum").textContent = data.durum || "-";
+
+            document.getElementById("f-tesistatNo").value = data.tesistatNo || "";
+            document.getElementById("f-aboneNo").value = data.aboneNo || "";
+            document.getElementById("f-uygunlukBelgeNo").value = data.uygunlukBelgeNo || "";
+            document.getElementById("f-uygunlukTarihi").value = data.uygunlukTarihi || "";
+            document.getElementById("f-musteriAdi").value = data.musteriAdi || "";
+            document.getElementById("f-musteriTcNo").value = data.musteriTcNo || "";
+            document.getElementById("f-musteriTelefon").value = data.musteriTelefon || "";
+            document.getElementById("f-adres").value = data.adres || "";
+
+            document.getElementById("musteriBilgiKart")?.classList.add("goster");
+            document.getElementById("markaKart")?.classList.add("goster");
+            setAdim(2);
+        } catch (e) {
+            alert("Bağlantı hatası oluştu. Lütfen tekrar deneyiniz.");
+        } finally {
+            if (loading) loading.classList.remove("goster");
+        }
+    }
+
+    async function markaSec(markaId, markaAdi, el) {
+        const tesistatNo = (document.getElementById("f-tesistatNo")?.value || "").trim();
+        if (!tesistatNo) {
+            alert("Önce tesisat sorgulaması yapınız.");
+            return;
+        }
+
+        document.getElementById("markaUyari")?.classList.remove("goster");
+
+        try {
+            const response = await fetch("/ys-devreyeal/marka-kontrol", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ markaId: markaId })
+            });
+
+            if (!response.ok) {
+                alert("Marka kontrolü sırasında hata oluştu.");
+                return;
+            }
+
+            const data = await response.json();
+            if (!data.yetkili) {
+                const uyari = document.getElementById("markaUyari");
+                if (uyari) {
+                    uyari.textContent = data.mesaj || "Bu marka için yetkiniz bulunmamaktadır.";
+                    uyari.classList.add("goster");
+                }
+                return;
+            }
+
+            document.querySelectorAll(".marka-kart").forEach(x => x.classList.remove("secili"));
+            if (el) el.classList.add("secili");
+
+            seciliMarkaId = markaId;
+            seciliMarkaAdi = markaAdi;
+            document.getElementById("f-markaid").value = String(markaId);
+            document.getElementById("f-cihazMarka").value = markaAdi;
+
+            document.getElementById("formKart")?.classList.add("goster");
+            setAdim(3);
+        } catch (e) {
+            alert("Bağlantı hatası oluştu. Lütfen tekrar deneyiniz.");
+        }
+    }
+
+    document.getElementById("devreyeAlmaForm")?.addEventListener("submit", function (e) {
+        if (!document.getElementById("f-tesistatNo").value) {
+            e.preventDefault();
+            alert("Önce tesisat sorgulaması yapınız.");
+            return;
+        }
+        if (!document.getElementById("f-markaid").value) {
+            e.preventDefault();
+            alert("Lütfen marka seçiniz.");
+            return;
+        }
+        setAdim(4);
+    });
+</script>
+
+</body>
+</html>
+
+
+
+
+
+
+

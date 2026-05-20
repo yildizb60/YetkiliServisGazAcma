@@ -1,0 +1,491 @@
+﻿@model List<YetkiliServisGazAcma.Entities.Ys_Firma>
+@{
+    ViewData["Title"] = "Yetkili Servisler";
+    Layout = null;
+    var markalar = ViewBag.Markalar as List<YetkiliServisGazAcma.Entities.Ys_Marka> ?? new();
+    var iller = ViewBag.Iller as List<string> ?? new();
+    var seciliIl = ViewBag.SeciliIl as string ?? "";
+    var ilceler = ViewBag.Ilceler as List<string> ?? new();
+    var seciliIlce = ViewBag.SeciliIlce as string ?? "";
+    int? seciliMarkaId = ViewBag.SeciliMarkaId as int?;
+    int? seciliKategoriId = ViewBag.SeciliKategoriId as int?;
+    var q = ViewBag.Q as string ?? "";
+    var kategoriler = ViewBag.Kategoriler as List<YetkiliServisGazAcma.Entities.UrunKategori> ?? new();
+    var tr = new System.Globalization.CultureInfo("tr-TR");
+
+    string NormalizeKey(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return "";
+        var lower = value.Trim().ToLower(tr).Normalize(System.Text.NormalizationForm.FormD);
+        var chars = lower
+            .Where(ch => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(ch) != System.Globalization.UnicodeCategory.NonSpacingMark && char.IsLetterOrDigit(ch))
+            .ToArray();
+        return new string(chars)
+            .Replace("ı", "i")
+            .Replace("ş", "s")
+            .Replace("ğ", "g")
+            .Replace("ü", "u")
+            .Replace("ö", "o")
+            .Replace("ç", "c");
+    }
+
+    bool KullanilanKategoriMi(string? value)
+    {
+        var key = NormalizeKey(value);
+
+        return key == "kombi"
+            || key.Contains("merkezikazan")
+            || key.Contains("sofben")
+            || key.Contains("sohben");
+    }
+
+    string TelLink(string? tel)
+    {
+        if (string.IsNullOrWhiteSpace(tel)) return "";
+        return new string(tel.Where(ch => char.IsDigit(ch) || ch == '+').ToArray());
+    }
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Yetkili Servisler</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --c-primary: #3bb7e8;
+            --c-primary-dark: #2a8fb2;
+            --c-accent: #4caf7d;
+            --c-ink: #0e1a24;
+            --c-muted: #5a6b78;
+            --c-bg: #f4f7fa;
+            --c-card: #ffffff;
+            --c-border: #e4edf4;
+            --c-shadow: 0 16px 44px rgba(10, 27, 43, 0.11);
+        }
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: "Manrope", Arial, sans-serif; color: var(--c-ink); background: #fff; }
+        a { color: inherit; text-decoration: none; }
+        .container { max-width: 1320px; margin: 0 auto; padding: 0 22px; }
+
+        .site-header {
+            position: relative; top: 0; z-index: 30;
+            background: #fff; box-shadow: 0 12px 28px rgba(0,0,0,0.12);
+            border-radius: 22px; margin: 18px auto -70px;
+            max-width: 1480px; border: 1px solid #e6eef4;
+        }
+        .site-header-top { display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--c-border); padding:12px 0; }
+        .site-header-top-buttons { display:flex; gap:24px; font-size:14px; font-weight:800; text-transform:uppercase; margin-left:-8px; }
+        .site-header-top-buttons a { padding:8px 6px; }
+        .site-header-top-buttons a.active { color: #0e1a24; }
+        .site-header-top-action { display:flex; align-items:center; gap:12px; }
+        .header-search { display:flex; align-items:center; gap:8px; }
+        .site-search-btn { width:34px; height:34px; border-radius:8px; border:1px solid #d6e3ee; background:#fff; cursor:pointer; display:grid; place-items:center; }
+        .header-search-input { width:0; opacity:0; padding:0; border:0; height:32px; transition: all .2s ease; pointer-events:none; }
+        .header-search.active .header-search-input { width:180px; opacity:1; padding:6px 10px; border:1px solid #d6e3ee; border-radius:8px; pointer-events:auto; }
+        .site-header-social { display:flex; gap:10px; }
+        .sm-btn { width:36px; height:36px; border-radius:10px; border:1px solid #d6efe3; background:#f7fbf9; display:grid; place-items:center; cursor:pointer; transition: all .2s ease; box-shadow: 0 6px 12px rgba(0,0,0,0.08); }
+        .sm-btn:hover { background:#eef9f2; }
+        .site-header-lang { font-weight:800; font-size:12px; margin-left:8px; }
+        .icon { display:inline-block; width:18px; height:18px; background-repeat:no-repeat; background-position:center; background-size:contain; }
+        .icon-search { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234CAF7D' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='7'/><line x1='21' y1='21' x2='16.65' y2='16.65'/></svg>"); }
+        .icon-facebook { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234CAF7D'><path d='M13 3h4v4h-4c-1.1 0-2 .9-2 2v2h6v4h-6v6h-4v-6H5v-4h4V9c0-3.3 2.7-6 6-6z'/></svg>"); }
+        .icon-instagram { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234CAF7D'><path d='M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4zm5 5.5A3.5 3.5 0 1 0 15.5 12 3.5 3.5 0 0 0 12 8.5zm6-2.75a1 1 0 1 0 1 1 1 1 0 0 0-1-1z'/></svg>"); }
+        .icon-youtube { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234CAF7D'><path d='M21.8 8.001a2.75 2.75 0 0 0-1.94-1.95C18.1 5.5 12 5.5 12 5.5s-6.1 0-7.86.55A2.75 2.75 0 0 0 2.2 8c-.55 1.76-.55 4-.55 4s0 2.24.55 4a2.75 2.75 0 0 0 1.94 1.95C5.9 18.5 12 18.5 12 18.5s6.1 0 7.86-.55A2.75 2.75 0 0 0 21.8 16c.55-1.76.55-4 .55-4s0-2.24-.55-4zM10 15.5v-7l6 3.5-6 3.5z'/></svg>"); }
+        .icon-linkedin { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234CAF7D'><path d='M6 9H3v12h3zM4.5 3.5A1.5 1.5 0 1 0 6 5a1.5 1.5 0 0 0-1.5-1.5zM21 13.5c0-2.5-1.3-4-3.5-4a3 3 0 0 0-2.5 1.4V9h-3v12h3v-6.5c0-1.4.8-2.2 1.9-2.2 1.1 0 1.7.8 1.7 2.2V21h3z'/></svg>"); }
+        .site-header-content { display:flex; align-items:center; justify-content:space-between; padding:26px 0; min-height:98px; }
+        .site-header-brand { font-weight:800; color: #0e1a24; font-size:22px; margin-left:-8px; }
+        .site-header-cta a { padding:12px 26px; border-radius:999px; border:2px solid var(--c-ink); font-weight:800; color: #0e1a24; font-size:14px; margin-right:22px; }
+
+        .banner { position: relative; margin-top: 12px; color: #fff; background: url("/images/hero/yetkili-servis-hero-ai.png") center 42%/cover no-repeat; min-height: 460px; display: flex; align-items: center; }
+        .banner::before { content: ""; position: absolute; inset: 0; background: linear-gradient(120deg, rgba(0,2,3,.92) 0%, rgba(0,23,35,.70) 42%, rgba(0,44,65,.28) 100%); }
+        .banner-inner { position: relative; width: 100%; padding: 64px 0 46px; }
+        .site-breadcrumbs { display: flex; align-items: center; gap: 8px; font-size: 12px; letter-spacing: .4px; text-transform: uppercase; opacity: .9; }
+        .site-breadcrumbs .sep { opacity: .7; }
+        .banner-title { text-align: center; margin: 54px 0 8px; font-size: 34px; font-weight: 800; }
+        .banner-sub { text-align: center; font-size: 16px; opacity: .95; max-width: 720px; margin: 0 auto; line-height: 1.6; }
+        .banner-arrow { text-align: center; font-size: 28px; margin-top: 16px; }
+
+        .search-section { background: #f4f7fa; padding: 0 0 54px; }
+        .search-card { position: relative; z-index: 5; max-width: 1320px; margin: -64px auto 0; background: #fff; border: 1px solid var(--c-border); border-radius: 22px; box-shadow: var(--c-shadow); padding: 24px; }
+        .search-title-row { display:flex; align-items:flex-start; justify-content:space-between; gap:18px; margin-bottom:18px; }
+        .search-title { font-size: 20px; font-weight: 800; color: var(--c-ink); }
+        .search-desc { color: var(--c-muted); font-size: 13px; margin-top: 5px; line-height: 1.5; }
+        .result-count { white-space: nowrap; border: 1px solid #d6efe3; background: #f7fbf9; color: #247047; border-radius: 999px; padding: 8px 13px; font-size: 12px; font-weight: 800; }
+        .filter-grid { display:grid; grid-template-columns: 1fr 1fr 1.2fr 1fr auto; gap: 12px; align-items:end; }
+        .field { display:flex; flex-direction:column; gap:7px; }
+        .field label { color:#526b7d; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing:.04em; }
+        .field input, .field select { width:100%; border:1px solid #dce8f1; border-radius: 12px; background:#fbfdff; padding: 12px 13px; font: inherit; font-size: 13px; color: var(--c-ink); outline: none; }
+        .field input:focus, .field select:focus { border-color: var(--c-primary); box-shadow: 0 0 0 4px rgba(59,183,232,.12); background:#fff; }
+        .btn-search { height: 44px; border: none; border-radius: 12px; background: var(--c-accent); color: #fff; padding: 0 20px; font-weight: 800; font-size: 13px; cursor:pointer; }
+        .btn-search:hover { background:#429969; }
+        .btn-clear { height:44px; border:1px solid #dce8f1; border-radius:12px; display:inline-flex; align-items:center; justify-content:center; padding:0 14px; background:#fff; color:#647789; font-size:13px; font-weight:800; }
+        .action-row { display:flex; gap:8px; align-items:end; }
+        .category-row { display:flex; gap:10px; flex-wrap:wrap; margin-top:18px; padding-top:18px; border-top:1px solid var(--c-border); }
+        .category-chip { display:inline-flex; align-items:center; gap:9px; border:1px solid #dce8f1; border-radius:999px; background:#fff; color:#263d4c; padding:9px 13px; font-size:13px; font-weight:800; }
+        .category-chip.active { border-color:#90d0ac; background:#f3fbf6; color:#236b43; }
+        .category-chip img { width:22px; height:22px; object-fit:contain; }
+
+        .list-wrap { max-width: 1320px; margin: 26px auto 0; }
+        .list-head { display:flex; justify-content:space-between; align-items:flex-end; gap:18px; margin-bottom:14px; }
+        .list-title { font-size: 22px; font-weight: 800; color: var(--c-ink); }
+        .list-note { color: var(--c-muted); font-size: 13px; margin-top: 4px; }
+        .service-list { display:grid; gap:14px; }
+        .service-card { background:#fff; border:1px solid var(--c-border); border-radius:18px; box-shadow:0 10px 30px rgba(10,27,43,.07); display:grid; grid-template-columns: 1.25fr .82fr 1.05fr; overflow:hidden; }
+        .service-main { padding:18px 20px; border-right:1px solid var(--c-border); display:flex; flex-direction:column; gap:10px; }
+        .service-company { font-size: 18px; font-weight: 800; color:var(--c-ink); line-height:1.25; }
+        .service-meta { color:var(--c-muted); font-size:13px; display:flex; gap:8px; flex-wrap:wrap; }
+        .service-address { border:1px solid #e4edf4; background:#f8fbfd; border-radius:12px; padding:10px 12px; color:#425866; font-size:13px; line-height:1.5; }
+        .service-address strong { display:block; color:#728494; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:.04em; margin-bottom:4px; }
+        .service-detail { padding:18px 20px; display:grid; gap:8px; align-content:center; background:linear-gradient(180deg,#fff,#fbfdff); }
+        .info-line { display:grid; grid-template-columns: 76px 1fr; gap:8px; font-size:13px; line-height:1.35; }
+        .info-line label { color:#7b8c99; font-weight:800; text-transform:uppercase; letter-spacing:.03em; font-size:11px; }
+        .service-side { padding:16px; background:#fbfdff; border-left:1px solid var(--c-border); display:flex; flex-direction:column; justify-content:flex-start; gap:10px; }
+        .side-block { background:#fff; border:1px solid #e5eef5; border-radius:14px; padding:11px; }
+        .side-title { color:#526b7d; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:.05em; margin-bottom:9px; }
+        .badge-row { display:flex; flex-wrap:wrap; gap:7px; }
+        .badge { display:inline-flex; align-items:center; gap:7px; border-radius:999px; padding:6px 10px; font-size:12px; font-weight:800; border:1px solid #dce8f1; background:#fff; color:#335165; }
+        .badge.service { border-color:#cfe9db; background:#f4fbf7; color:#247047; }
+        .badge.muted { color:#718493; background:#f7fafc; }
+        .badge img { width:18px; height:18px; object-fit:contain; }
+        .call-btn { display:flex; align-items:center; justify-content:center; min-height:40px; border-radius:12px; background:#0e1a24; color:#fff; font-weight:800; font-size:13px; }
+        .passive-btn { display:flex; align-items:center; justify-content:center; min-height:40px; border-radius:12px; background:#edf3f7; color:#748594; font-weight:800; font-size:13px; }
+        .empty { background:#fff; border:1px dashed #bfd0dc; border-radius:18px; padding:34px 20px; text-align:center; color:var(--c-muted); }
+        .empty strong { display:block; color:var(--c-ink); font-size:18px; margin-bottom:6px; }
+        .emergency-strip {
+            margin-top: 34px;
+            background: #052d4a;
+            color: rgba(255,255,255,0.85);
+            padding: 14px 18px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 13px;
+            letter-spacing: .02em;
+        }
+        .emergency-strip strong { color: #fff; }
+        footer { background:#ffffff; padding:48px 18px 0; border-top:3px solid #3bb7e8; margin-top:0; }
+        #footer .innerContainer { max-width:1100px; margin:0 auto; }
+        #footer .columns { display:grid; grid-template-columns:1.2fr 1fr 1.2fr; gap:40px; padding-bottom:36px; }
+        #footer .mainHeading { font-weight:800; margin-bottom:14px; font-size:14px; color:#1a3d2b; position:relative; padding-bottom:10px; }
+        #footer .mainHeading::after { content:""; position:absolute; left:0; bottom:0; width:32px; height:2px; background:#1a3d2b; border-radius:2px; }
+        #footer .columnContent { font-size:13px; color:#3a5a48; line-height:1.75; }
+        #footer .columnContent p { margin:0; }
+        #footer .columnContent div { margin-bottom:4px; }
+        #footer .footer-logo { margin-top:16px; }
+        #footer .footer-logo img { width:100%; max-width:200px; opacity:.75; }
+        #footer ul.menu { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:8px; }
+        #footer ul.menu a { color:#3a5a48; transition:color .15s; font-size:13px; }
+        #footer ul.menu a:hover { color:#2aa66f; }
+        #footerBottom { background:#eaf6fb; padding:14px 0; border-top:1px solid #d5eaf5; }
+        #footerBottom .innerContainer { max-width:1100px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; font-size:12px; color:#3a5a48; padding:0 18px; font-weight:600; }
+        @@media (max-width: 1100px) {
+            .filter-grid { grid-template-columns: repeat(2, 1fr); }
+            .action-row { grid-column: 1 / -1; }
+            .service-card { grid-template-columns: 1fr; }
+            .service-main, .service-side { border:0; }
+            .service-main { border-bottom:1px solid var(--c-border); }
+            .service-side { border-top:1px solid var(--c-border); }
+        }
+        @@media (max-width: 760px) {
+            .site-header { margin: 10px 10px -50px; border-radius: 16px; }
+            .site-header-top, .site-header-content { flex-direction:column; gap:10px; align-items:flex-start; }
+            .site-header-top-buttons { gap:12px; flex-wrap:wrap; }
+            .site-header-cta a { margin-right:0; }
+            .banner { min-height: 390px; }
+            .banner-title { margin-top:42px; font-size:28px; }
+            .search-card { margin-left:12px; margin-right:12px; padding:18px; }
+            .search-title-row, .list-head { flex-direction:column; align-items:flex-start; }
+            .filter-grid { grid-template-columns: 1fr; }
+            .action-row { flex-direction:column; align-items:stretch; }
+            .btn-search, .btn-clear { width:100%; }
+            .info-line { grid-template-columns:1fr; gap:3px; }
+            #footer .columns { grid-template-columns:1fr; }
+            #footerBottom .innerContainer { flex-direction:column; gap:8px; }
+        }
+    </style>
+</head>
+<body>
+    <header class="site-header">
+        <div class="container">
+            <div class="site-header-top">
+                <div class="site-header-top-buttons">
+                    <a href="/">ANA SAYFA</a>
+                    <a class="active" href="/yetkili-servisler">YETKİLİ SERVİSLER</a>
+                    <a href="/kayit/yetkili-servis">SERVİS BAŞVURUSU</a>
+                </div>
+                <div class="site-header-top-action">
+                    <div class="header-search" id="headerSearch">
+                        <button class="site-search-btn" type="button" onclick="document.getElementById('headerSearch').classList.toggle('active')"><span class="icon icon-search"></span></button>
+                        <input class="header-search-input" type="text" placeholder="Servis ara" />
+                    </div>
+                    <div class="site-header-social">
+                        <span class="sm-btn"><span class="icon icon-facebook"></span></span>
+                        <span class="sm-btn"><span class="icon icon-instagram"></span></span>
+                        <span class="sm-btn"><span class="icon icon-youtube"></span></span>
+                        <span class="sm-btn"><span class="icon icon-linkedin"></span></span>
+                    </div>
+                    <div class="site-header-lang"><span>TR</span></div>
+                </div>
+            </div>
+            <div class="site-header-content">
+                <div class="site-header-brand">Yetkili Servis Gaz Açma Sistemi</div>
+                <div class="site-header-cta"><a href="/kayit/yetkili-servis"><span>YETKİLİ SERVİS BAŞVURUSU</span></a></div>
+            </div>
+        </div>
+    </header>
+
+    <section class="banner">
+        <div class="container banner-inner">
+            <div class="site-breadcrumbs">
+                <a href="/">Ana Sayfa</a>
+                <span class="sep">/</span>
+                <span>Yetkili Servisler</span>
+            </div>
+            <div class="banner-title">YETKİLİ SERVİSLER</div>
+            <div class="banner-sub">Bölgenizde hizmet veren onaylı yetkili servisleri; il, ilçe, marka ve hizmet türüne göre hızlıca bulun.</div>
+            <div class="banner-arrow">⌄</div>
+        </div>
+    </section>
+
+    <main class="search-section">
+        <section class="search-card">
+            <div class="search-title-row">
+                <div>
+                    <div class="search-title">Servis Arama</div>
+                    <div class="search-desc">Resmi listede yalnızca kullanılan hizmet türleri gösterilir: merkezi kazan, kombi ve şofben.</div>
+                </div>
+                <div class="result-count">@Model.Count kayıt listeleniyor</div>
+            </div>
+            <form method="get" action="/yetkili-servisler">
+                <div class="filter-grid">
+                    <div class="field">
+                        <label>İl</label>
+                        <select name="il">
+                            <option value="">Tüm iller</option>
+                            @foreach (var il in iller)
+                            {
+                                if (il == seciliIl) { <option value="@il" selected>@il</option> }
+                                else { <option value="@il">@il</option> }
+                            }
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>İlçe</label>
+                        <select name="ilce">
+                            <option value="">Tüm ilçeler</option>
+                            @foreach (var ilce in ilceler)
+                            {
+                                if (ilce == seciliIlce) { <option value="@ilce" selected>@ilce</option> }
+                                else { <option value="@ilce">@ilce</option> }
+                            }
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>Servis veya yetkili kişi</label>
+                        <input type="text" name="q" value="@q" placeholder="Servis adı, yetkili kişi" />
+                    </div>
+                    <div class="field">
+                        <label>Marka</label>
+                        <select name="markaId">
+                            <option value="">Tüm markalar</option>
+                            @foreach (var marka in markalar)
+                            {
+                                if (seciliMarkaId == marka.Id) { <option value="@marka.Id" selected>@marka.MarkaAdi</option> }
+                                else { <option value="@marka.Id">@marka.MarkaAdi</option> }
+                            }
+                        </select>
+                    </div>
+                    <div class="action-row">
+                        @if (seciliKategoriId.HasValue)
+                        {
+                            <input type="hidden" name="kategoriId" value="@seciliKategoriId.Value" />
+                        }
+                        <button class="btn-search" type="submit">Ara</button>
+                        <a class="btn-clear" href="/yetkili-servisler">Temizle</a>
+                    </div>
+                </div>
+            </form>
+            <div class="category-row">
+                @foreach (var k in kategoriler)
+                {
+                    var aktifKat = seciliKategoriId.HasValue && seciliKategoriId.Value == k.Id;
+                    if (k.Id > 0)
+                    {
+                        <a class="category-chip @(aktifKat ? "active" : "")" href="/yetkili-servisler?kategoriId=@k.Id&il=@seciliIl&ilce=@seciliIlce&q=@q&markaId=@seciliMarkaId">
+                            @if (!string.IsNullOrWhiteSpace(k.IconUrl))
+                            {
+                                <img src="@k.IconUrl" alt="@k.Ad" />
+                            }
+                            @k.Ad
+                        </a>
+                    }
+                }
+            </div>
+        </section>
+
+        <section class="list-wrap">
+            <div class="list-head">
+                <div>
+                    <div class="list-title">Servis Listesi</div>
+                    <div class="list-note">Listelenen servisler aktif yetkili servis kayıtları üzerinden alınır.</div>
+                </div>
+            </div>
+
+            @if (!Model.Any())
+            {
+                <div class="empty">
+                    <strong>Uygun servis bulunamadı.</strong>
+                    Filtreleri temizleyerek veya farklı il/ilçe seçerek tekrar deneyebilirsiniz.
+                </div>
+            }
+            else
+            {
+                <div class="service-list">
+                    @foreach (var f in Model)
+                    {
+                        var markaListesi = f.FirmaMarkalar?
+                            .Where(x => !x.SilindiMi)
+                            .Select(x => x.Marka?.MarkaAdi)
+                            .Where(x => !string.IsNullOrWhiteSpace(x))
+                            .Select(x => x!)
+                            .Distinct()
+                            .Take(6)
+                            .ToList() ?? new List<string>();
+
+                        var kategoriListesi = f.FirmaKategoriler?
+                            .Where(x => !x.SilindiMi && x.Kategori != null && KullanilanKategoriMi(x.Kategori.Ad))
+                            .Select(x => x.Kategori!)
+                            .GroupBy(x => x.Id)
+                            .Select(g => g.First())
+                            .ToList() ?? new List<YetkiliServisGazAcma.Entities.UrunKategori>();
+
+                        var ilce = f.Subeler?.FirstOrDefault(x => !x.SilindiMi && x.AktifMi && !string.IsNullOrWhiteSpace(x.Ilce))?.Ilce;
+                        var telefonLink = TelLink(f.Telefon);
+
+                        <article class="service-card">
+                            <div class="service-main">
+                                <div class="service-company">@f.FirmaAdi</div>
+                                <div class="service-meta">
+                                    <span>@(f.FaaliyetIli ?? "İl bilgisi yok")</span>
+                                    @if (!string.IsNullOrWhiteSpace(ilce)) { <span>/ @ilce</span> }
+                                </div>
+                                <div class="service-address">
+                                    <strong>Adres</strong>
+                                    <div>@(f.Adres ?? "-")</div>
+                                </div>
+                            </div>
+                            <div class="service-detail">
+                                <div class="info-line"><label>Telefon</label><div>@(f.Telefon ?? "-")</div></div>
+                                <div class="info-line"><label>Yetkili</label><div>@(f.YetkiliKisi ?? "-")</div></div>
+                                <div class="info-line"><label>Bölge</label><div>@(f.FaaliyetIli ?? "-")@(!string.IsNullOrWhiteSpace(ilce) ? $" / {ilce}" : "")</div></div>
+                                <div class="info-line"><label>Firma</label><div>@(f.Sirket?.SirketAdi ?? "-")</div></div>
+                            </div>
+                            <div class="service-side">
+                                <div class="side-block">
+                                    <div class="side-title">Hizmet Türleri</div>
+                                    <div class="badge-row">
+                                        @if (kategoriListesi.Any())
+                                        {
+                                            foreach (var kategori in kategoriListesi)
+                                            {
+                                                <span class="badge service">
+                                                    @if (!string.IsNullOrWhiteSpace(kategori.IconUrl))
+                                                    {
+                                                        <img src="@kategori.IconUrl" alt="@kategori.Ad" />
+                                                    }
+                                                    @kategori.Ad
+                                                </span>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="badge service muted">Hizmet türü bilgisi yok</span>
+                                        }
+                                    </div>
+                                </div>
+                                @if (markaListesi.Any())
+                                {
+                                    <div class="side-block">
+                                        <div class="side-title">Yetkili Markalar</div>
+                                        <div class="badge-row">
+                                            @foreach (var marka in markaListesi)
+                                            {
+                                                <span class="badge">@marka</span>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="side-block">
+                                        <div class="side-title">Yetkili Markalar</div>
+                                        <div class="badge-row"><span class="badge">Marka bilgisi yok</span></div>
+                                    </div>
+                                }
+                                <div>
+                                    @if (!string.IsNullOrWhiteSpace(telefonLink))
+                                    {
+                                        <a class="call-btn" href="tel:@telefonLink">Servisi Ara</a>
+                                    }
+                                    else
+                                    {
+                                        <span class="passive-btn">Telefon Bilgisi Yok</span>
+                                    }
+                                </div>
+                            </div>
+                        </article>
+                    }
+                </div>
+            }
+        </section>
+        <div class="emergency-strip">
+            <strong>Doğalgaz Acil İhbar:</strong> 187 &nbsp;|&nbsp;
+            <strong>Tel:</strong> 444 0 187 &nbsp;|&nbsp;
+            <strong>WhatsApp:</strong> 0552 187 0 187 &nbsp;|&nbsp;
+            <strong>Bip:</strong> 0538 882 91 91
+        </div>
+        <footer>
+            <div id="footer">
+                <div class="innerContainer">
+                    <div class="columns">
+                        <div class="about column">
+                            <div class="mainHeading">Neler Yapıyoruz?</div>
+                            <div class="columnContent">
+                                <p>Amacımız, müşterilerimize en iyi hizmeti sunarak doğalgaz tüketiminde maksimum verimliliği sağlamaktır. Gaz açma süreçleri hakkında daha fazla bilgi almak için bizimle iletişime geçin.</p>
+                                <div class="footer-logo"><img src="/images/ahlatciteknoloji.png" alt="Ahlatçı Teknoloji"></div>
+                            </div>
+                        </div>
+                        <div class="menu column">
+                            <div class="mainHeading">Kullanım &amp; Gizlilik</div>
+                            <div class="columnContent">
+                                <ul class="menu">
+                                    <li><a href="#">Kullanım Koşulları</a></li>
+                                    <li><a href="#">Gizlilik Politikası</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="contact column">
+                            <div class="mainHeading">İletişim Bilgilerimiz</div>
+                            <div class="columnContent">
+                                <div>Tel: 444 0 187</div>
+                                <div>WhatsApp: 0552 187 0 187</div>
+                                <div>Bip: 0538 882 91 91</div>
+                                <div>Doğalgaz Acil İhbar: 187</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="footerBottom">
+                <div class="innerContainer">
+                    <div>Çorum Elektrik ve Doğal Gaz Ticaret A.Ş. &nbsp;|&nbsp; © 2026</div>
+                </div>
+            </div>
+        </footer>
+
+    </main>
+</body>
+</html>

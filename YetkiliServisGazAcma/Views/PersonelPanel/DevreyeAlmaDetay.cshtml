@@ -1,0 +1,117 @@
+@model YetkiliServisGazAcma.Entities.Ys_DevreyeAlma
+@{
+    ViewData["Title"] = "Devreye Alma Detay";
+    ViewData["PanelTitle"] = ViewData["Title"];
+    ViewData["PanelSubtitle"] = "Personel Paneli";
+    ViewData["ActiveMenu"] = "DevreyeAlmalar";
+    Layout = "~/Views/Shared/_PanelLayout.cshtml";
+    var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
+    bool ySertifika = ViewBag.YetkiSertifika != false;
+    bool yRapor = ViewBag.YetkiRapor != false;
+    bool ySirket = ViewBag.YetkiSirket != false;
+    bool yMarka = ViewBag.YetkiMarka != false;    bool ySirketYonet = ViewBag.YetkiSirketYonet != false;    bool yMarkaYonet = ViewBag.YetkiMarkaYonet != false;
+    bool yServis = ViewBag.YetkiServis != false;
+}
+
+@section Styles {
+    <style>
+.content { padding: 28px 32px; }
+        .back-link { display: inline-flex; align-items: center; gap: 8px; color: #1B9FD4; font-weight: 700; text-decoration: none; margin-bottom: 14px; }
+        .page-title { font-size: 22px; font-weight: 800; margin: 4px 0 10px; }
+        .hero { background: #fff; border: 1px solid #e6eef4; border-radius: 12px; padding: 16px 18px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 24px rgba(20,40,60,0.08); }
+        .hero-title { font-weight: 800; font-size: 16px; }
+        .hero-sub { font-size: 12px; color: #6f7b86; margin-top: 4px; }
+        .badge { display: inline-block; padding: 4px 12px; border-radius: 10px; font-size: 12px; font-weight: bold; }
+        .b-green  { background: #E1F5EE; color: #085041; }
+        .b-yellow { background: #FAEEDA; color: #633806; }
+        .b-red    { background: #FCEBEB; color: #501313; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 16px; }
+        .card { background: #fff; border-radius: 12px; border: 1px solid #e6eef4; box-shadow: 0 10px 24px rgba(20,40,60,0.08); padding: 16px; }
+        .card-title { font-size: 14px; font-weight: 800; color: #4CAF7D; margin-bottom: 10px; display:flex; align-items:center; gap:8px; }
+        .info-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .info-item { background: #f7fafc; border: 1px solid #edf3f8; border-radius: 10px; padding: 10px 12px; }
+        .info-label { font-size: 11px; color: #6f7b86; margin-bottom: 4px; }
+        .info-value { font-weight: 700; font-size: 13px; color: #1a2c3b; }
+        .actions { display: flex; gap: 10px; margin-top: 16px; }
+        .btn-pdf { padding: 8px 14px; background: #1B9FD4; border-radius: 7px; color: #fff; text-decoration: none; font-weight: bold; }
+        .btn-pdf:hover { background: #0d7faa; }
+        .notif-wrap { position: relative; }
+        .notif { position: relative; width: 32px; height: 32px; border-radius: 50%; background: #f0f4f8; border: none; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #4CAF7D; cursor: pointer; }
+        .notif-badge { position: absolute; top: -4px; right: -4px; background: #e24b4a; color: #fff; font-size: 9px; font-weight: bold; padding: 2px 5px; border-radius: 10px; }
+        .notif-panel { position:absolute; right:0; top:38px; width:260px; background:#fff; border:1px solid #e6eef4; border-radius:10px; box-shadow:0 10px 24px rgba(20,40,60,0.12); padding:10px; display:none; z-index: 50; }
+        .notif-panel.open { display:block; }
+        .notif-item { font-size:12px; color:#55636f; padding:6px 4px; border-bottom:1px solid #f0f3f7; }
+        .notif-item:last-child { border-bottom:0; }
+        @@media (max-width: 1100px) { .grid { grid-template-columns: 1fr; } }
+        @@media (max-width: 720px) {
+            .sidebar { position: static; width: 100%; height: auto; }
+            .main { margin-left: 0; }
+            .info-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+}
+
+<a class="back-link" href="/personel-panel/devreyealmalar">&#11013; Devreye Almalara Dön</a>
+<div class="page-title">Tesisat No: @Model.TesistatNo</div>
+
+<div class="hero">
+    <div>
+        <div class="hero-title">@Model.MusteriAdi</div>
+        <div class="hero-sub">Firma: @(Model.Firma?.FirmaAdi ?? "-") • Marka: @(Model.Marka?.MarkaAdi ?? "-")</div>
+    </div>
+    <span class="badge @(Model.Durum==1?"b-green":Model.Durum==2?"b-red":"b-yellow")">@(Model.Durum==1?"✅ Tamamlandı":Model.Durum==2?"❌ İptal":"⏳ Bekliyor")</span>
+</div>
+
+<div class="grid">
+    <div class="card">
+        <div class="card-title">&#128100; Müşteri Bilgileri</div>
+        <div class="info-grid">
+            <div class="info-item"><div class="info-label">Müşteri</div><div class="info-value">@Model.MusteriAdi</div></div>
+            <div class="info-item"><div class="info-label">Telefon</div><div class="info-value">@Model.MusteriTelefon</div></div>
+            <div class="info-item"><div class="info-label">TC</div><div class="info-value">@Model.MusteriTcNo</div></div>
+            <div class="info-item"><div class="info-label">Adres</div><div class="info-value">@Model.Adres</div></div>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-title">&#128295; Cihaz Bilgileri</div>
+        <div class="info-grid">
+            <div class="info-item"><div class="info-label">Tip</div><div class="info-value">@Model.CihazTipi</div></div>
+            <div class="info-item"><div class="info-label">Model</div><div class="info-value">@Model.CihazModeli</div></div>
+            <div class="info-item"><div class="info-label">Seri No</div><div class="info-value">@Model.SeriNo</div></div>
+            <div class="info-item"><div class="info-label">Kapasite</div><div class="info-value">@Model.CihazKapasite</div></div>
+        </div>
+    </div>
+</div>
+
+<div class="actions">
+    <a class="btn-pdf" href="/personel-panel/devreyealma-pdf/@Model.Id" target="_blank">PDF İndir</a>
+    <a class="btn-pdf" href="/personel-panel/devreyealma-excel/@Model.Id" target="_blank">Excel İndir</a>
+</div>
+
+@section Scripts {
+<script>\n    (function () {\n        var btns = document.querySelectorAll(".notif");\n        btns.forEach(function(btn){\n            var panel = btn.parentElement.querySelector(".notif-panel");\n            if (!panel) return;\n            btn.addEventListener("click", function(e){\n                e.stopPropagation();\n                panel.classList.toggle("open");\n            });\n            panel.addEventListener("click", function(e){ e.stopPropagation(); });\n        });\n        document.addEventListener("click", function(){\n            document.querySelectorAll(".notif-panel").forEach(function(p){ p.classList.remove("open"); });\n        });\n    })();\n</script>
+<script>
+(function () {
+    // PERSONEL_YETKI_MENU
+    var yetki = {
+        sertifika: @((ViewBag.YetkiSertifika == true).ToString().ToLower()),
+        rapor: @((ViewBag.YetkiRapor == true).ToString().ToLower())
+    };
+
+    function hide(selector, allowed) {
+        if (allowed) return;
+        var list = document.querySelectorAll(selector);
+        list.forEach(function (el) { el.style.display = 'none'; });
+    }
+
+    hide('a[href="/personel-panel/onay-bekleyenler"]', yetki.sertifika);
+    hide('a[href="/personel-panel/onay-gecmisi"]', yetki.sertifika);
+    hide('a[href="/personel-panel/raporlar"]', yetki.rapor);
+
+    var raporSection = Array.from(document.querySelectorAll('.nav-section')).find(function (x) {
+        return (x.textContent || '').toLowerCase().indexOf('rapor') >= 0;
+    });
+    if (!yetki.rapor && raporSection) raporSection.style.display = 'none';
+})();
+</script>
+}

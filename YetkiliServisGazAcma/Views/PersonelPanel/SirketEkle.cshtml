@@ -1,0 +1,99 @@
+@{
+    ViewData["Title"] = "&#350;irket Ekle";
+    ViewData["PanelTitle"] = ViewData["Title"];
+    ViewData["PanelSubtitle"] = "Personel Paneli";
+    ViewData["ActiveMenu"] = "Sirketler";
+    Layout = "~/Views/Shared/_PanelLayout.cshtml";
+    var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
+    string adSoyad = kullanici?.AdSoyad ?? "Personel";
+    string basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "P";
+    bool ySertifika = ViewBag.YetkiSertifika != false;
+    bool yRapor = ViewBag.YetkiRapor != false;
+    bool ySirket = ViewBag.YetkiSirket != false;
+    bool yMarka = ViewBag.YetkiMarka != false;
+    bool yServis = ViewBag.YetkiServis != false;
+}
+
+@section Styles {
+    <style>
+.content { padding: 28px 32px; }
+        .card { background: #fff; border-radius: 12px; border: 1px solid #e6eef4; box-shadow: 0 10px 24px rgba(20,40,60,0.08); padding: 16px; }
+        .card-title { font-size: 14px; font-weight: 800; color: #4CAF7D; margin-bottom: 12px; }
+        .grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+        .field { background: #f7fafc; border: 1px solid #edf3f8; border-radius: 10px; padding: 10px 12px; }
+        .label { font-size: 11px; color: #6f7b86; margin-bottom: 4px; font-weight: 700; }
+        .input { width: 100%; padding: 9px 11px; border: 1.5px solid #e0e0e0; border-radius: 8px; font-size: 13px; color: #333; background: #fff; }
+        .input:focus { border-color: #4CAF7D; outline: none; }
+        .actions { display: flex; gap: 10px; margin-top: 14px; }
+        .btn { padding: 10px 22px; border-radius: 8px; font-size: 13px; font-weight: bold; border: none; cursor: pointer; }
+        .btn-primary { background: #1B9FD4; color: #fff; }
+        .btn-secondary { background: #fff; color: #555; border: 1.5px solid #ddd; text-decoration: none; }
+    </style>
+}
+
+<div class="card">
+    <div class="card-title">&#350;irket Bilgileri</div>
+    <form method="post" action="/personel-panel/sirketler/ekle">
+        @Html.AntiForgeryToken()
+        <div class="grid">
+            <div class="field">
+                <div class="label">&#350;irket Ad&#305;</div>
+                <input class="input" name="SirketAdi" required />
+            </div>
+            <div class="field">
+                <div class="label">&#304;l</div>
+                <input class="input" name="Il" />
+            </div>
+            <div class="field">
+                <div class="label">Telefon</div>
+                <input class="input" name="Telefon" />
+            </div>
+            <div class="field">
+                <div class="label">E-Posta</div>
+                <input class="input" name="Email" type="email" />
+            </div>
+            <div class="field" style="grid-column: span 2;">
+                <div class="label">Adres</div>
+                <input class="input" name="Adres" />
+            </div>
+            <div class="field">
+                <div class="label">Durum</div>
+                <select class="input" name="AktifMi">
+                    <option value="true">Aktif</option>
+                    <option value="false">Pasif</option>
+                </select>
+            </div>
+        </div>
+        <div class="actions">
+            <button class="btn btn-primary" type="submit">Kaydet</button>
+            <a class="btn btn-secondary" href="/personel-panel/sirketler">Vazge&#231;</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    // PERSONEL_YETKI_MENU
+    var yetki = {
+        sertifika: @((ViewBag.YetkiSertifika == true).ToString().ToLower()),
+        rapor: @((ViewBag.YetkiRapor == true).ToString().ToLower())
+    };
+
+    function hide(selector, allowed) {
+        if (allowed) return;
+        var list = document.querySelectorAll(selector);
+        list.forEach(function (el) { el.style.display = 'none'; });
+    }
+
+    hide('a[href="/personel-panel/onay-bekleyenler"]', yetki.sertifika);
+    hide('a[href="/personel-panel/onay-gecmisi"]', yetki.sertifika);
+    hide('a[href="/personel-panel/raporlar"]', yetki.rapor);
+
+    var raporSection = Array.from(document.querySelectorAll('.nav-section')).find(function (x) {
+        return (x.textContent || '').toLowerCase().indexOf('rapor') >= 0;
+    });
+    if (!yetki.rapor && raporSection) raporSection.style.display = 'none';
+})();
+</script>
+}

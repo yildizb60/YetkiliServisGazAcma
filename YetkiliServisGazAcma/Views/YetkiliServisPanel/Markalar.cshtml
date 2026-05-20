@@ -1,0 +1,196 @@
+@{
+    var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
+ViewData["Title"] = "Marka Yetkilerim";
+    ViewData["PanelTitle"] = ViewData["Title"];
+    ViewData["PanelSubtitle"] = "Yetkili Servis";
+    ViewData["ActiveMenu"] = "Markalar";
+    Layout = "~/Views/Shared/_PanelLayout.cshtml";
+    var firma = ViewBag.Firma as YetkiliServisGazAcma.Entities.Ys_Firma;
+    var tumMarkalar = ViewBag.TumMarkalar as List<YetkiliServisGazAcma.Entities.Ys_Marka>
+        ?? new List<YetkiliServisGazAcma.Entities.Ys_Marka>();
+    var seciliIds = ViewBag.SeciliMarkaIds as List<int> ?? new List<int>();
+    var firmaMarkalar = ViewBag.FirmaMarkalar as List<YetkiliServisGazAcma.Entities.Ys_FirmaMarka>
+        ?? new List<YetkiliServisGazAcma.Entities.Ys_FirmaMarka>();
+    string adSoyad = kullanici?.AdSoyad ?? firma?.YetkiliKisi ?? "Yetkili Servis";
+    string basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "Y";
+}
+
+@section Styles {
+    <style>
+.content { padding: 28px 32px; }
+        .kart { background: #fff; border-radius: 12px; border: 1px solid #eee; overflow: hidden; margin-bottom: 16px; }
+        .kart-baslik { display: flex; align-items: center; gap: 10px; padding: 16px 22px; border-bottom: 2px solid #f0f0ee; background: linear-gradient(to right, #f8f8f6, #fff); }
+        .kart-baslik-ikon { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 17px; background: #F0EBFF; }
+        .kart-baslik-yazi { font-size: 14px; font-weight: bold; color: #333; }
+        .kart-icerik { padding: 20px 22px; }
+        .mesaj-basarili { background: #E1F5EE; color: #085041; padding: 13px 18px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; border-left: 4px solid #4CAF7D; }
+        .mesaj-hata { background: #FCEBEB; color: #501313; padding: 13px 18px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; border-left: 4px solid #e24b4a; }
+        .marka-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .marka-kart { border: 1.5px solid #e0f0e8; border-radius: 10px; padding: 12px; text-align: center; background: #f4faf7; cursor: pointer; }
+        .marka-kart input { margin-bottom: 8px; }
+        .marka-adi { font-size: 13px; font-weight: bold; color: #333; }
+        .form-buton { margin-top: 16px; display: flex; justify-content: flex-end; }
+        .btn-kKaydet { padding: 11px 28px; background: #4CAF7D; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; }
+        .btn-kKaydet:hover { background: #3d9e6e; }
+        .form-row { display: grid; grid-template-columns: 1.6fr 2fr auto; gap: 10px; align-items: end; }
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        .form-group label { font-size: 11px; color: #777; font-weight: bold; text-transform: uppercase; letter-spacing: .04em; }
+        .form-group input, .form-group textarea { padding: 10px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; color: #333; background: #fafafa; }
+        .form-group textarea { resize: vertical; min-height: 38px; }
+        .inline-input { width: 100%; padding: 8px 10px; border: 1px solid #e3e8ef; border-radius: 8px; background: #f9fbfd; font-size: 13px; color: #333; }
+        .inline-input:focus { outline: none; border-color: #4CAF7D; background: #fff; }
+        .row-edit { background: #fff; transition: box-shadow .15s, border-color .15s; }
+        .row-edit.editing { box-shadow: inset 0 0 0 2px rgba(76,175,125,0.25); background: #f8fffb; }
+        .row-edit .inline-input[readonly] { background: #f4f6f8; color: #666; border-color: #edf1f4; }
+        .btn-edit { padding: 6px 10px; border-radius: 6px; font-size: 12px; border: 1px solid #1B9FD4; background: #eef7ff; color: #1B9FD4; cursor: pointer; }
+        .btn-edit:hover { background: #e2f1ff; }
+        .btn-mini { padding: 8px 12px; border-radius: 6px; font-size: 12px; text-decoration: none; border: 1px solid #ddd; background: #f9f9f9; color: #333; cursor: pointer; }
+        .btn-mini:hover { border-color: #4CAF7D; color: #085041; }
+        .btn-danger { border-color: #e24b4a; color: #e24b4a; background: #fff; }
+        .btn-danger:hover { background: #FCEBEB; }
+        .table { width: 100%; border-collapse: collapse; border: 1px solid #eef1f4; border-radius: 10px; overflow: hidden; }
+        .table th, .table td { padding: 10px 8px; border-bottom: 1px solid #f0f0ee; text-align: left; font-size: 13px; }
+        .table thead { background: #f9fbfd; }
+        .table th { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: .04em; }
+        @@media (max-width: 1100px) { .marka-grid { grid-template-columns: repeat(3, 1fr); } }
+        @@media (max-width: 800px) {
+            .sidebar { position: static; width: 100%; height: auto; }
+            .main { margin-left: 0; }
+            .marka-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+}
+
+@if (TempData["Basarili"] != null)
+{
+    <div class="mesaj-basarili">&#9989; @TempData["Basarili"]</div>
+}
+@if (TempData["Hata"] != null)
+{
+    <div class="mesaj-hata">&#10060; @TempData["Hata"]</div>
+}
+<div class="kart">
+    <div class="kart-baslik">
+        <div class="kart-baslik-ikon">&#10133;</div>
+        <div class="kart-baslik-yazi">Yeni Marka Ekle</div>
+    </div>
+    <div class="kart-icerik">
+        <form method="post" action="/ys-panel/marka-ekle">
+            @Html.AntiForgeryToken()
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Marka Ad&#305;</label>
+                    <input type="text" name="markaAdi" placeholder="&#214;r: Baymak" required />
+                </div>
+                <div class="form-group">
+                    <label>A&#231;&#305;klama</label>
+                    <textarea name="aciklama" placeholder="K&#305;sa a&#231;&#305;klama"></textarea>
+                </div>
+                <button class="btn-kKaydet" type="submit">Marka Ekle</button>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="kart">
+    <div class="kart-baslik">
+        <div class="kart-baslik-ikon">M</div>
+        <div class="kart-baslik-yazi">Yetkili Markalar</div>
+    </div>
+    <div class="kart-icerik">
+        <form method="post" action="/ys-panel/marka-guncelle">
+            @Html.AntiForgeryToken()
+            <div class="marka-grid">
+                @foreach (var m in tumMarkalar)
+                {
+                    var secili = seciliIds.Contains(m.Id);
+                    <label class="marka-kart">
+                        <input type="checkbox" name="markaIds" value="@m.Id" @(secili ? "checked" : "") />
+                        <div class="marka-adi">@m.MarkaAdi</div>
+                    </label>
+                }
+            </div>
+            <div class="form-buton">
+                <button type="submit" class="btn-kKaydet">Markalar&#305; G&#252;ncelle</button>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="kart">
+    <div class="kart-baslik">
+        <div class="kart-baslik-ikon">&#9998;</div>
+        <div class="kart-baslik-yazi">Marka D&#252;zenle / Sil</div>
+    </div>
+    <div class="kart-icerik">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Marka</th>
+                    <th>A&#231;&#305;klama</th>
+                    <th style="width:200px;">&#304;&#351;lem</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (firmaMarkalar.Count == 0)
+            {
+                <tr><td colspan="3">Marka kayd&#305; yok.</td></tr>
+            }
+            else
+            {
+                foreach (var fm in firmaMarkalar)
+                {
+                    var formId = $"marka-edit-{fm.MarkaId}";
+                    <tr class="row-edit" data-row="@formId">
+                        <td>
+                            <input class="inline-input" type="text" name="markaAdi" form="@formId" value="@(fm.Marka?.MarkaAdi ?? "-")" readonly />
+                        </td>
+                        <td>
+                            <input class="inline-input" type="text" name="aciklama" form="@formId" value="@(fm.Marka?.Aciklama ?? "")" readonly />
+                        </td>
+                        <td>
+                            <form id="@formId" method="post" action="/ys-panel/marka-duzenle" style="display:inline;">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@fm.MarkaId" />
+                                <button type="button" class="btn-edit" onclick="toggleRowEdit('@formId')">Düzenle</button>
+                                <button type="submit" class="btn-mini" style="display:none;" data-save="@formId">Güncelle</button>
+                            </form>
+                            <form method="post" action="/ys-panel/marka-sil" style="display:inline;" onsubmit="return confirm('Bu marka yetkisini kaldırmak istediğinize emin misiniz?');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@fm.MarkaId" />
+                                <button type="submit" class="btn-mini btn-danger">Sil</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function toggleRowEdit(formId) {
+        const form = document.getElementById(formId);
+        if (!form) return;
+
+        const row = document.querySelector(`tr[data-row="${formId}"]`);
+        const inputs = row ? row.querySelectorAll(`input.inline-input[form="${formId}"]`) : [];
+        const saveBtn = form.querySelector(`[data-save="${formId}"]`);
+        const editBtn = form.querySelector(".btn-edit");
+
+        const editing = row && row.classList.contains("editing");
+        if (!editing) {
+            row?.classList.add("editing");
+            inputs.forEach(x => x.removeAttribute("readonly"));
+            if (saveBtn) saveBtn.style.display = "inline-block";
+            if (editBtn) editBtn.textContent = "Vazgeç";
+            return;
+        }
+
+        row?.classList.remove("editing");
+        inputs.forEach(x => x.setAttribute("readonly", "readonly"));
+        if (saveBtn) saveBtn.style.display = "none";
+        if (editBtn) editBtn.textContent = "Düzenle";
+    }
+</script>
+}

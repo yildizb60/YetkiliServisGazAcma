@@ -1,0 +1,225 @@
+@{
+    ViewData["Title"] = "Genel Raporlar";
+    ViewData["PanelTitle"] = ViewData["Title"];
+    ViewData["PanelSubtitle"] = "Personel Paneli";
+    ViewData["ActiveMenu"] = "Raporlar";
+    Layout = "~/Views/Shared/_PanelLayout.cshtml";
+    var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
+    var sonIslemler = ViewBag.SonIslemler as List<YetkiliServisGazAcma.Entities.Ys_DevreyeAlma>;
+    var sertifikaIslemler = ViewBag.SertifikaIslemler as List<YetkiliServisGazAcma.Entities.Ys_Sertifika>;
+    var listeTipi = ViewBag.ListeTipi as string ?? "devreye";
+    var raporTipi = ViewBag.RaporTipi as string ?? "devreye";
+    DateTime basTarih = ViewBag.BasTarih ?? DateTime.Now.Date.AddDays(-30);
+    DateTime bitTarih = ViewBag.BitTarih ?? DateTime.Now.Date;
+    bool ySertifika = ViewBag.YetkiSertifika != false;
+    bool yRapor = ViewBag.YetkiRapor != false;
+}
+
+@section Styles {
+    <style>
+.content { padding: 28px 32px; display: grid; gap: 14px; }
+        .hero { background: linear-gradient(135deg, rgba(27,159,212,0.2), rgba(76,175,125,0.2)); border: 1px solid #dbe7f2; border-radius: 14px; padding: 16px; }
+        .hero-title { font-size: 15px; font-weight: 700; margin-bottom: 10px; }
+        .filter-bar { background: #fff; border: 1px solid #e8eff6; border-radius: 10px; padding: 12px; display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end; }
+        .filter-group { display: flex; flex-direction: column; gap: 6px; }
+        .filter-group label { font-size: 11px; color: #777; font-weight: 700; text-transform: uppercase; }
+        .filter-group input { padding: 9px 10px; border: 1px solid #d9e4ef; border-radius: 8px; font-size: 13px; background: #f8fbff; }
+        .btn-filter { padding: 9px 14px; border-radius: 8px; font-size: 12px; font-weight: bold; border: none; cursor: pointer; background: #1B9FD4; color: #fff; }
+
+        .report-select { background: #fff; border: 1px solid #e8eff6; border-radius: 10px; padding: 10px 12px; display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+        .report-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; background: #f6f9fc; border: 1px solid #e6eef8; padding: 7px 12px; border-radius: 999px; cursor: pointer; }
+        .report-pill.active { background: #e7f6ef; border-color: #bfe6d3; color: #1b6d4a; font-weight: 700; }
+
+        .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .card { background: #fff; border-radius: 12px; border: 1px solid #e8eff6; padding: 14px; }
+        .card-title { font-size: 11px; color: #6b7785; text-transform: uppercase; }
+        .card-value { font-size: 22px; font-weight: 800; margin-top: 4px; }
+
+        .charts { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 10px; }
+        .chart-card { background: #fff; border-radius: 12px; border: 1px solid #e8eff6; padding: 12px; }
+        .chart-title { font-size: 12px; font-weight: 700; margin-bottom: 8px; }
+        .chart-wrap { position: relative; height: 220px; }
+        .chart-wrap canvas { width: 100% !important; height: 100% !important; }
+        .chart-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #9aa6b2; font-size: 12px; }
+        .chart-wrap.has-data .chart-empty { display: none; }
+
+        .section { background: #fff; border-radius: 12px; border: 1px solid #e8eff6; overflow: hidden; }
+        .section-head { padding: 14px 20px; border-bottom: 1px solid #eef3f8; display: flex; justify-content: space-between; align-items: center; }
+        .section-title { font-size: 14px; font-weight: 700; }
+        .tablo-head { padding: 10px 20px; background: #f8f8f6; font-size: 11px; color: #888; font-weight: 700; display: grid; }
+        .tablo-row { padding: 12px 20px; border-top: 1px solid #f0f0ee; font-size: 13px; color: #333; display: grid; align-items: center; }
+        .tablo-devreye { grid-template-columns: 1.3fr 1.3fr 1fr 1fr; }
+        .tablo-sertifika { grid-template-columns: 1.6fr 1fr 1fr 0.8fr; }
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 11px; font-weight: bold; }
+        .b-yellow { background: #FAEEDA; color: #633806; }
+        .b-green { background: #E1F5EE; color: #085041; }
+        .b-red { background: #FCEBEB; color: #501313; }
+        .empty { padding: 24px; text-align: center; color: #999; font-size: 13px; }
+
+        @@media (max-width: 1200px) {
+            .cards { grid-template-columns: repeat(2, 1fr); }
+            .charts { grid-template-columns: 1fr; }
+            .filter-bar { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+}
+
+<div class="hero">
+    <div class="hero-title">Rapor Filtreleri</div>
+    <form class="filter-bar" method="get" action="/personel-panel/raporlar">
+        <div class="filter-group">
+            <label>Başlangıç</label>
+            <input type="date" name="bas" value="@(basTarih.ToString("yyyy-MM-dd"))" />
+        </div>
+        <div class="filter-group">
+            <label>Bitiş</label>
+            <input type="date" name="bit" value="@(bitTarih.ToString("yyyy-MM-dd"))" />
+        </div>
+        <input type="hidden" name="tip" value="@raporTipi" />
+        <button class="btn-filter" type="submit">Raporla</button>
+    </form>
+    <form class="report-select" method="get" action="/personel-panel/raporlar">
+        <input type="hidden" name="bas" value="@(basTarih.ToString("yyyy-MM-dd"))" />
+        <input type="hidden" name="bit" value="@(bitTarih.ToString("yyyy-MM-dd"))" />
+        <label class="report-pill @(raporTipi == "devreye" ? "active" : "")"><input type="radio" name="tip" value="devreye" @(raporTipi == "devreye" ? "checked" : "") /> Devreye Alma</label>
+        <label class="report-pill @(raporTipi == "onayli" ? "active" : "")"><input type="radio" name="tip" value="onayli" @(raporTipi == "onayli" ? "checked" : "") /> Yetki Belgesi Onaylı</label>
+        <label class="report-pill @(raporTipi == "bekleyen" ? "active" : "")"><input type="radio" name="tip" value="bekleyen" @(raporTipi == "bekleyen" ? "checked" : "") /> Yetki Belgesi Bekleyen</label>
+        <label class="report-pill @(raporTipi == "reddedilen" ? "active" : "")"><input type="radio" name="tip" value="reddedilen" @(raporTipi == "reddedilen" ? "checked" : "") /> Yetki Belgesi Reddedilen</label>
+        <button class="btn-filter" type="submit">Filtrele</button>
+    </form>
+</div>
+
+<div class="cards">
+    <div class="card"><div class="card-title">Toplam İşlem</div><div class="card-value">@ViewBag.RaporToplam</div></div>
+    <div class="card"><div class="card-title">Tamamlanan</div><div class="card-value">@ViewBag.RaporTamam</div></div>
+    <div class="card"><div class="card-title">Bekleyen</div><div class="card-value">@ViewBag.RaporBekleyen</div></div>
+    <div class="card"><div class="card-title">İptal</div><div class="card-value">@ViewBag.RaporIptal</div></div>
+</div>
+
+<div class="charts">
+    <div class="chart-card">
+        <div class="chart-title">Aylık İşlem</div>
+        <div class="chart-wrap" id="wrapAylik"><div class="chart-empty">Veri bulunamadı</div><canvas id="aylikChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+        <div class="chart-title">Durum Dağılımı</div>
+        <div class="chart-wrap" id="wrapDurum"><div class="chart-empty">Veri bulunamadı</div><canvas id="durumChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+        <div class="chart-title">Marka Dağılımı</div>
+        <div class="chart-wrap" id="wrapMarka"><div class="chart-empty">Veri bulunamadı</div><canvas id="markaChart"></canvas></div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-head">
+        <div class="section-title">@((listeTipi == "devreye") ? "Son Devreye Almalar" : "Yetki Belgesi İşlemleri")</div>
+    </div>
+    @if (listeTipi == "devreye")
+    {
+        <div class="tablo-head tablo-devreye"><div>Tesisat No</div><div>Servis</div><div>Marka</div><div>Tarih</div></div>
+        if (sonIslemler == null || sonIslemler.Count == 0)
+        {
+            <div class="empty">Bu aralıkta kayıt yok</div>
+        }
+        else
+        {
+            foreach (var d in sonIslemler)
+            {
+                <div class="tablo-row tablo-devreye"><div>@d.TesistatNo</div><div>@d.Firma?.FirmaAdi</div><div>@d.Marka?.MarkaAdi</div><div>@d.OlusturmaTarihi.ToString("dd.MM.yyyy")</div></div>
+            }
+        }
+    }
+    else
+    {
+        <div class="tablo-head tablo-sertifika"><div>Firma</div><div>Şirket</div><div>Tarih</div><div>Durum</div></div>
+        if (sertifikaIslemler == null || sertifikaIslemler.Count == 0)
+        {
+            <div class="empty">Bu aralıkta yetki belgesi kaydı yok</div>
+        }
+        else
+        {
+            foreach (var s in sertifikaIslemler)
+            {
+                <div class="tablo-row tablo-sertifika">
+                    <div>@s.Firma?.FirmaAdi</div>
+                    <div>@s.Firma?.Sirket?.SirketAdi</div>
+                    <div>@s.OlusturmaTarihi.ToString("dd.MM.yyyy")</div>
+                    <div>
+                        @if (s.Durum == 1) { <span class="badge b-green">Onaylandı</span> }
+                        else if (s.Durum == 0) { <span class="badge b-yellow">Bekliyor</span> }
+                        else { <span class="badge b-red">Reddedildi</span> }
+                    </div>
+                </div>
+            }
+        }
+    }
+</div>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+    const dataEl = document.getElementById('raporData');
+    if (!dataEl || typeof Chart === 'undefined') return;
+    const aylikLabels = JSON.parse(dataEl.dataset.aylar || '[]');
+    const aylikData = JSON.parse(dataEl.dataset.aylik || '[]');
+    const markaLabels = JSON.parse(dataEl.dataset.marka || '[]');
+    const markaData = JSON.parse(dataEl.dataset.markaSayi || '[]');
+    const durumData = [@ViewBag.RaporTamam, @ViewBag.RaporBekleyen, @ViewBag.RaporIptal];
+
+    function hasData(arr){ return Array.isArray(arr) && arr.some(x => Number(x) > 0); }
+
+    if (hasData(aylikData)) {
+        document.getElementById('wrapAylik').classList.add('has-data');
+        new Chart(document.getElementById('aylikChart'), {
+            type: 'bar',
+            data: { labels: aylikLabels, datasets: [{ data: aylikData, backgroundColor: '#1B9FD4', borderRadius: 6 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+        });
+    }
+
+    if (hasData(durumData)) {
+        document.getElementById('wrapDurum').classList.add('has-data');
+        new Chart(document.getElementById('durumChart'), {
+            type: 'doughnut',
+            data: { labels: ['Tamam', 'Bekleyen', 'İptal'], datasets: [{ data: durumData, backgroundColor: ['#4CAF7D', '#F9D65C', '#E57373'] }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+        });
+    }
+
+    if (hasData(markaData)) {
+        document.getElementById('wrapMarka').classList.add('has-data');
+        new Chart(document.getElementById('markaChart'), {
+            type: 'bar',
+            data: { labels: markaLabels, datasets: [{ data: markaData, backgroundColor: '#4CAF7D', borderRadius: 6 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+        });
+    }
+})();
+</script>
+<script>
+(function () {
+    // PERSONEL_YETKI_MENU
+    var yetki = {
+        sertifika: @((ViewBag.YetkiSertifika == true).ToString().ToLower()),
+        rapor: @((ViewBag.YetkiRapor == true).ToString().ToLower())
+    };
+
+    function hide(selector, allowed) {
+        if (allowed) return;
+        var list = document.querySelectorAll(selector);
+        list.forEach(function (el) { el.style.display = 'none'; });
+    }
+
+    hide('a[href="/personel-panel/onay-bekleyenler"]', yetki.sertifika);
+    hide('a[href="/personel-panel/onay-gecmisi"]', yetki.sertifika);
+    hide('a[href="/personel-panel/raporlar"]', yetki.rapor);
+
+    var raporSection = Array.from(document.querySelectorAll('.nav-section')).find(function (x) {
+        return (x.textContent || '').toLowerCase().indexOf('rapor') >= 0;
+    });
+    if (!yetki.rapor && raporSection) raporSection.style.display = 'none';
+})();
+</script>
+}

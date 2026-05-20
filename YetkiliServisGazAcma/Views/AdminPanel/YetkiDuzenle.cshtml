@@ -1,0 +1,195 @@
+@{
+    ViewData["Title"] = "Yetki Düzenle";
+    ViewData["PanelTitle"] = ViewData["Title"];
+    ViewData["PanelSubtitle"] = "Admin Paneli";
+    ViewData["ActiveMenu"] = "Yetkiler";
+    Layout = "~/Views/Shared/_PanelLayout.cshtml";
+    var Kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
+    var personel = ViewBag.Personel as YetkiliServisGazAcma.Entities.AppKullanici;
+    var mevcutYetkiler = ViewBag.MevcutYetkiler as List<string> ?? new List<string>();
+    var sirketler = ViewBag.Sirketler as List<YetkiliServisGazAcma.Entities.Dag_Sirket> ?? new List<YetkiliServisGazAcma.Entities.Dag_Sirket>();
+    var seciliSirketIds = ViewBag.SeciliSirketIds as List<int> ?? new List<int>();
+    var yetkiSirketMap = ViewBag.YetkiSirketMap as Dictionary<int, List<string>> ?? new Dictionary<int, List<string>>();
+    var tumYetkiler = new Dictionary<string, string>
+    {
+        ["CERTIFIKA_ONAY"] = "Yetki Belgesi Onay",
+        ["RAPOR_GOR"] = "Rapor Gör",
+        ["KULLANICI_YONET"] = "Yetkili Servis Yönet",
+        ["MARKA_YONET"] = "Marka Yönet",
+        ["TAM_YETKI"] = "Tam Yetki"
+    };
+    string adSoyad = Kullanici?.AdSoyad ?? "Yönetici";
+    string basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "A";
+}
+
+@section Styles {
+    <style>
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid #eee;
+            overflow: hidden;
+        }
+
+        .card-head {
+            padding: 14px 20px;
+            border-bottom: 2px solid #f0f0ee;
+            font-size: 13px;
+            font-weight: 800;
+            color: #333;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        .company-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 8px;
+            margin: 8px 0 18px;
+        }
+
+        .company-card {
+            border: 1px solid #e1edf7;
+            border-radius: 12px;
+            background: #fbfdff;
+            overflow: hidden;
+        }
+
+        .company-card-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 12px;
+            background: #f3f9ff;
+            border-bottom: 1px solid #e1edf7;
+            font-size: 13px;
+            font-weight: 800;
+            color: #183b56;
+        }
+
+        .permission-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 8px;
+            padding: 12px;
+        }
+
+        .permission-check {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            background: #fff;
+            border: 1px solid #e7eef5;
+            border-radius: 9px;
+            padding: 9px 10px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #334155;
+        }
+
+        .permission-check input:disabled + span {
+            color: #a8b3bf;
+        }
+
+        .section-label {
+            font-size: 11px;
+            font-weight: 800;
+            color: #6f7b86;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            margin: 12px 0 6px;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 800;
+            cursor: pointer;
+            font-size: 13px;
+            background: #1B9FD4;
+            color: #fff;
+        }
+
+        .btn-secondary {
+            background: #f0f4f8;
+            color: #333;
+            border: 1px solid #ddd;
+            text-decoration: none;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .info {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 12px;
+        }
+
+    </style>
+}
+
+<div class="card">
+    <div class="card-head">@(personel?.AdSoyad ?? "Personel")</div>
+    <div class="card-body">
+        <div class="info">E-Posta: @(personel?.Email ?? "-")</div>
+        <form method="post">
+            @Html.AntiForgeryToken()
+            <div class="section-label">Şirket Bazlı Yetkiler</div>
+            <div class="company-list">
+                @foreach (var sirket in sirketler)
+                {
+                    var sirketYetkileri = yetkiSirketMap.ContainsKey(sirket.Id) ? yetkiSirketMap[sirket.Id] : new List<string>();
+                    var sirketSecili = seciliSirketIds.Contains(sirket.Id) || sirketYetkileri.Count > 0;
+                    <div class="company-card">
+                        <label class="company-card-head">
+                            <input type="checkbox" class="company-toggle" name="sirketIds" value="@sirket.Id" @(sirketSecili ? "checked" : "") />
+                            <span>@sirket.SirketAdi</span>
+                        </label>
+                        <div class="permission-grid">
+                            @foreach (var yetki in tumYetkiler)
+                            {
+                                var yetkiSecili = sirketYetkileri.Contains(yetki.Key);
+                                <label class="permission-check">
+                                    <input type="checkbox" class="permission-option" name="yetkiler_@sirket.Id" value="@yetki.Key" @(yetkiSecili ? "checked" : "") />
+                                    <span>@yetki.Value</span>
+                                </label>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+            <div class="btn-row">
+                <button type="submit" class="btn">Kaydet</button>
+                <a class="btn btn-secondary" href="/AdminPanel/yetkiler">Vazgeç</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    (function () {
+        document.querySelectorAll(".company-card").forEach(function (card) {
+            var toggle = card.querySelector(".company-toggle");
+            var options = card.querySelectorAll(".permission-option");
+            function sync() {
+                options.forEach(function (opt) {
+                    opt.disabled = !toggle.checked;
+                    if (!toggle.checked) opt.checked = false;
+                });
+            }
+            if (toggle) {
+                toggle.addEventListener("change", sync);
+                sync();
+            }
+        });
+    })();
+</script>
+}

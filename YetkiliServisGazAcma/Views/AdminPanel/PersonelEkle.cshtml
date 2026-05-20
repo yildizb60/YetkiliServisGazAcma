@@ -1,0 +1,75 @@
+@{
+    ViewData["Title"] = "Yeni Personel";
+    ViewData["PanelTitle"] = ViewData["Title"];
+    ViewData["PanelSubtitle"] = "Admin Paneli";
+    ViewData["ActiveMenu"] = "Personeller";
+    Layout = "~/Views/Shared/_PanelLayout.cshtml";
+    var Kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
+    var Sirketler = ViewBag.Sirketler as List<YetkiliServisGazAcma.Entities.Dag_Sirket> ?? new List<YetkiliServisGazAcma.Entities.Dag_Sirket>();
+    int onayBekleyen = ViewBag.OnayBekleyen is int v ? v : 0;
+    string adSoyad = Kullanici?.AdSoyad ?? "SÃƒ¼per Admin";
+    string formAdSoyad = ViewBag.FormAdSoyad ?? "";
+    string formEmail = ViewBag.FormEmail ?? "";
+    string formTelefon = ViewBag.FormTelefon ?? "";
+    int FormSirketId = ViewBag.FormSirketId is int vv ? vv : 0;
+    string basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "A";
+}
+
+@section Styles {
+    <style>
+.content { padding: 28px 32px; }
+.back-link { display: inline-flex; align-items: center; gap: 8px; color: #1B9FD4; font-weight: 700; text-decoration: none; margin-bottom: 14px; }
+.page-title { font-size: 22px; font-weight: 800; margin: 4px 0 10px; }
+.card { background: #fff; border-radius: 12px; border: 1px solid #e6eef4; box-shadow: 0 10px 24px rgba(20,40,60,0.08); padding: 16px; max-width: none; width: 100%; }
+.card-title { font-size: 14px; font-weight: 800; color: #4CAF7D; margin-bottom: 10px; display:flex; align-items:center; gap:8px; }
+.info-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.info-item { background: #f7fafc; border: 1px solid #edf3f8; border-radius: 10px; padding: 10px 12px; }
+.info-label { font-size: 11px; color: #6f7b86; margin-bottom: 4px; font-weight: 700; }
+.info-input { width: 100%; padding: 10px 12px; border: 1.5px solid #e0e0e0; border-radius: 8px; font-size: 13px; color: #333; outline: none; background: #fff; }
+.info-input:focus { border-color: #4CAF7D; }
+.info-item.tam { grid-column: span 2; }
+.actions { display: flex; gap: 10px; margin-top: 16px; }
+.btn-kaydet { padding: 10px 24px; background: #1B9FD4; color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; }
+.btn-iptal { padding: 10px 24px; background: #fff; color: #555; border: 1.5px solid #ddd; border-radius: 8px; font-size: 13px; cursor: pointer; text-decoration: none; }
+.alert { padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; font-size: 12px; font-weight: bold; }
+.alert-danger { background: #FCEBEB; color: #501313; border: 1px solid #eccaca; }
+.help { font-size: 11px; color: #888; margin-bottom: 10px; }
+    </style>
+}
+
+<a class="back-link" href="/AdminPanel/personeller">&#8592; Personellere D&#246;n</a>
+<div class="page-title">Yeni Personel</div>
+<div class="card">
+    <div class="card-title">&#128101; Personel Bilgileri</div>
+    @if (ViewBag.Hata != null) { <div class="alert alert-danger">@ViewBag.Hata</div> }
+    <div class="help">&#350;ifre en az 6 karakter, en az 1 k&#252;&#231;&#252;k harf ve 1 rakam i&#231;ermelidir.</div>
+    <form method="post" action="/AdminPanel/personeller/ekle">
+        @Html.AntiForgeryToken()
+        <div class="info-grid">
+            <div class="info-item"><div class="info-label">Ad Soyad *</div><input class="info-input" name="adSoyad" value="@formAdSoyad" required /></div>
+            <div class="info-item"><div class="info-label">E-Posta *</div><input class="info-input" type="email" name="email" value="@formEmail" required /></div>
+            <div class="info-item"><div class="info-label">Telefon</div><input class="info-input" name="telefon" value="@formTelefon" /></div>
+            <div class="info-item"><div class="info-label">&#350;irket *</div>
+                <select class="info-input" name="SirketId" required>
+                    <option value="">Se&#231;iniz</option>
+                    @foreach (var s in Sirketler)
+                    {
+                        if (FormSirketId == s.Id)
+                        {
+                            <option value="@s.Id" selected="selected">@s.SirketAdi</option>
+                        }
+                        else
+                        {
+                            <option value="@s.Id">@s.SirketAdi</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="info-item"><div class="info-label">&#350;ifre *</div><input class="info-input" type="password" name="sifre" required /></div>
+        </div>
+        <div class="actions">
+            <button type="submit" class="btn-kaydet">Kaydet</button>
+            <a class="btn-iptal" href="/AdminPanel/personeller">Vazge&#231;</a>
+        </div>
+    </form>
+</div>

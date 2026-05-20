@@ -1,0 +1,566 @@
+@{
+    ViewData["Title"] = "Raporlar";
+    ViewData["PanelTitle"] = "Raporlar";
+    ViewData["PanelSubtitle"] = "Admin Paneli";
+    ViewData["ActiveMenu"] = "Raporlar";
+    Layout = "~/Views/Shared/_PanelLayout.cshtml";
+
+    var sonIslemler = ViewBag.SonIslemler as List<YetkiliServisGazAcma.Entities.Ys_DevreyeAlma>;
+    var sertifikaIslemler = ViewBag.SertifikaIslemler as List<YetkiliServisGazAcma.Entities.Ys_Sertifika>;
+    var sirketler = ViewBag.Sirketler as List<YetkiliServisGazAcma.Entities.Dag_Sirket>;
+    var listeTipi = ViewBag.ListeTipi as string ?? "devreye";
+    var raporTipi = ViewBag.RaporTipi as string ?? "devreye";
+    int? seciliSirketId = ViewBag.SeciliSirketId as int?;
+    DateTime basTarih = ViewBag.BasTarih;
+    DateTime bitTarih = ViewBag.BitTarih;
+}
+
+@section Styles {
+    <style>
+        body {
+            background: #eef3f8;
+            color: #1b2733;
+        }
+
+        .content {
+            display: grid;
+            gap: 16px;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, rgba(27, 159, 212, .2), rgba(76, 175, 125, .2));
+            border: 1px solid #dbe7f2;
+            border-radius: 16px;
+            padding: 18px 20px;
+            display: grid;
+            gap: 12px;
+        }
+
+        .hero-title {
+            font-size: 16px;
+            font-weight: 800;
+            color: #1a1a1a;
+        }
+
+        .filter-bar {
+            background: #fff;
+            border: 1px solid #e8eff6;
+            border-radius: 12px;
+            padding: 14px 16px;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr auto;
+            gap: 10px;
+            align-items: end;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .filter-group label {
+            font-size: 11px;
+            color: #777;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+
+        .filter-group input,
+        .filter-group select {
+            padding: 9px 10px;
+            border: 1px solid #d9e4ef;
+            border-radius: 8px;
+            font-size: 13px;
+            background: #f8fbff;
+        }
+
+        .btn-filter {
+            padding: 9px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 800;
+            border: none;
+            cursor: pointer;
+            background: #1B9FD4;
+            color: #fff;
+        }
+
+        .report-select {
+            background: #fff;
+            border: 1px solid #e8eff6;
+            border-radius: 12px;
+            padding: 12px 14px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .report-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            background: #f6f9fc;
+            border: 1px solid #e6eef8;
+            padding: 7px 12px;
+            border-radius: 999px;
+            cursor: pointer;
+        }
+
+        .report-pill input {
+            transform: translateY(1px);
+        }
+
+        .report-pill.active {
+            background: #e7f6ef;
+            border-color: #bfe6d3;
+            color: #1b6d4a;
+            font-weight: 800;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 14px;
+            padding: 16px;
+            border: 1px solid #e8eff6;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::after {
+            content: "";
+            position: absolute;
+            inset: -60% auto auto -60%;
+            width: 140px;
+            height: 140px;
+            background: radial-gradient(circle, rgba(76, 175, 125, .18), transparent 60%);
+        }
+
+        .card-title {
+            font-size: 11px;
+            color: #6b7785;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+
+        .card-value {
+            font-size: 22px;
+            font-weight: 800;
+            margin-top: 6px;
+        }
+
+        .charts {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr 1fr;
+            gap: 12px;
+        }
+
+        .chart-card {
+            background: #fff;
+            border-radius: 14px;
+            border: 1px solid #e8eff6;
+            padding: 14px;
+        }
+
+        .chart-title {
+            font-size: 12px;
+            font-weight: 800;
+            color: #334155;
+            margin-bottom: 8px;
+        }
+
+        .chart-wrap {
+            position: relative;
+            height: 220px;
+        }
+
+        .chart-wrap canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        .chart-empty {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #9aa6b2;
+            font-size: 12px;
+        }
+
+        .chart-wrap.has-data .chart-empty {
+            display: none;
+        }
+
+        .section {
+            border-color: #e8eff6;
+        }
+
+        .section-head {
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .section-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: stretch;
+        }
+
+        .section-actions form {
+            margin: 0;
+            display: flex;
+        }
+
+        .btn-pdf {
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 800;
+            border: 1px solid #1B9FD4;
+            color: #1B9FD4;
+            background: #eef7ff;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 36px;
+            line-height: 1;
+        }
+
+        .btn-pdf:hover {
+            background: #e2f1ff;
+        }
+
+        .tablo-devreye {
+            grid-template-columns: .4fr 1.2fr 1.2fr 1fr 1fr;
+        }
+
+        .tablo-sertifika {
+            grid-template-columns: 1.6fr 1fr 1fr .8fr;
+        }
+
+        @@media (max-width: 1200px) {
+            .filter-bar {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .charts {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @@media (max-width: 720px) {
+            .cards,
+            .filter-bar {
+                grid-template-columns: 1fr;
+            }
+
+            .tablo-head,
+            .tablo-row {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+        }
+    </style>
+}
+
+<div class="hero">
+    <div class="hero-title">Rapor Filtreleri</div>
+    <form class="filter-bar" method="get" action="/AdminPanel/raporlar">
+        <div class="filter-group">
+            <label>Başlangıç</label>
+            <input type="date" name="bas" value="@basTarih.ToString("yyyy-MM-dd")" />
+        </div>
+        <div class="filter-group">
+            <label>Bitiş</label>
+            <input type="date" name="bit" value="@bitTarih.ToString("yyyy-MM-dd")" />
+        </div>
+        <div class="filter-group">
+            <label>Firma Kodu</label>
+            <select name="sirketId">
+                <option value="">Tümü</option>
+                @if (sirketler != null)
+                {
+                    foreach (var s in sirketler)
+                    {
+                        <option value="@s.Id" selected="@(seciliSirketId.HasValue && seciliSirketId.Value == s.Id ? "selected" : null)">@s.SirketAdi</option>
+                    }
+                }
+            </select>
+        </div>
+        <input type="hidden" name="tip" value="@raporTipi" />
+        <button class="btn-filter" type="submit">Raporla</button>
+    </form>
+    <form class="report-select" method="get" action="/AdminPanel/raporlar">
+        <input type="hidden" name="bas" value="@basTarih.ToString("yyyy-MM-dd")" />
+        <input type="hidden" name="bit" value="@bitTarih.ToString("yyyy-MM-dd")" />
+        <input type="hidden" name="sirketId" value="@(seciliSirketId?.ToString() ?? "")" />
+        <label class="report-pill @(raporTipi == "devreye" ? "active" : "")">
+            <input type="radio" name="tip" value="devreye" checked="@(raporTipi == "devreye" ? "checked" : null)" /> Devreye Alma
+        </label>
+        <label class="report-pill @(raporTipi == "onayli" ? "active" : "")">
+            <input type="radio" name="tip" value="onayli" checked="@(raporTipi == "onayli" ? "checked" : null)" /> Yetki Belgesi Onaylı
+        </label>
+        <label class="report-pill @(raporTipi == "bekleyen" ? "active" : "")">
+            <input type="radio" name="tip" value="bekleyen" checked="@(raporTipi == "bekleyen" ? "checked" : null)" /> Yetki Belgesi Bekleyen
+        </label>
+        <label class="report-pill @(raporTipi == "reddedilen" ? "active" : "")">
+            <input type="radio" name="tip" value="reddedilen" checked="@(raporTipi == "reddedilen" ? "checked" : null)" /> Yetki Belgesi Reddedilen
+        </label>
+        <button class="btn-filter" type="submit">Filtrele</button>
+    </form>
+</div>
+
+<div class="cards">
+    <div class="card">
+        <div class="card-title">Devreye Alma</div>
+        <div class="card-value">@ViewBag.DevreyeSayisi</div>
+    </div>
+    <div class="card">
+        <div class="card-title">Yetki Belgesi Onaylı</div>
+        <div class="card-value">@ViewBag.SertifikaOnayli</div>
+    </div>
+    <div class="card">
+        <div class="card-title">Yetki Belgesi Bekleyen</div>
+        <div class="card-value">@ViewBag.SertifikaBekleyen</div>
+    </div>
+    <div class="card">
+        <div class="card-title">Yetki Belgesi Reddedilen</div>
+        <div class="card-value">@ViewBag.SertifikaReddedilen</div>
+    </div>
+</div>
+
+<div class="charts">
+    <div class="chart-card">
+        <div class="chart-title">Son 6 Ay İşlem Trendi</div>
+        <div class="chart-wrap" id="wrapAylik">
+            <div class="chart-empty">Veri bulunamadı</div>
+            <canvas id="aylikChart"></canvas>
+        </div>
+    </div>
+    <div class="chart-card">
+        <div class="chart-title">Yetki Belgesi Durum Dağılımı</div>
+        <div class="chart-wrap" id="wrapDurum">
+            <div class="chart-empty">Veri bulunamadı</div>
+            <canvas id="durumChart"></canvas>
+        </div>
+    </div>
+    <div class="chart-card">
+        <div class="chart-title">Şirkete Göre İşlem Dağılımı</div>
+        <div class="chart-wrap" id="wrapSirket">
+            <div class="chart-empty">Veri bulunamadı</div>
+            <canvas id="sirketChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-head">
+        <div class="section-title">@((listeTipi == "devreye") ? "Son Devreye Almalar" : "Yetki Belgesi İşlemleri")</div>
+        @if (listeTipi == "devreye")
+        {
+            <div class="section-actions">
+                <form id="pdfForm" method="get" action="/AdminPanel/raporlar/pdf">
+                    <input type="hidden" name="bas" value="@basTarih.ToString("yyyy-MM-dd")" />
+                    <input type="hidden" name="bit" value="@bitTarih.ToString("yyyy-MM-dd")" />
+                    <button class="btn-pdf" type="submit">Seçili Detaylı PDF İndir</button>
+                </form>
+                <button class="btn-pdf" type="button" onclick="indirSeciliRaporExcel()">Seçili Detaylı Excel İndir</button>
+                <a class="btn-pdf" href="/AdminPanel/devreyealmalar">Detay Ekranına Git</a>
+                <a class="btn-pdf" href="/AdminPanel/raporlar/excel?bas=@basTarih.ToString("yyyy-MM-dd")&bit=@bitTarih.ToString("yyyy-MM-dd")">Seçili Tarih Excel İndir</a>
+                <a class="btn-pdf" href="/AdminPanel/raporlar/pdf-toplu">Toplu PDF İndir</a>
+                <a class="btn-pdf" href="/AdminPanel/raporlar/excel-toplu">Toplu Excel İndir</a>
+            </div>
+        }
+    </div>
+
+    @if (listeTipi == "devreye")
+    {
+        <div class="tablo-head tablo-devreye">
+            <div>Seç</div><div>Tesisat No</div><div>Servis</div><div>Marka</div><div>Tarih</div>
+        </div>
+        if (sonIslemler == null || sonIslemler.Count == 0)
+        {
+            <div class="empty">Bu aralıkta işlem yok</div>
+        }
+        else
+        {
+            foreach (var d in sonIslemler)
+            {
+                <div class="tablo-row tablo-devreye">
+                    <div><input type="checkbox" name="ids" value="@d.Id" form="pdfForm" /></div>
+                    <div><strong>@d.TesistatNo</strong></div>
+                    <div style="font-size:12px;color:#888">@d.Firma?.FirmaAdi</div>
+                    <div>@d.Marka?.MarkaAdi</div>
+                    <div>@d.OlusturmaTarihi.ToString("dd.MM.yyyy")</div>
+                </div>
+            }
+        }
+    }
+    else
+    {
+        <div class="tablo-head tablo-sertifika">
+            <div>Firma</div><div>Şirket</div><div>Tarih</div><div>Durum</div>
+        </div>
+        if (sertifikaIslemler == null || sertifikaIslemler.Count == 0)
+        {
+            <div class="empty">Bu aralıkta yetki belgesi kaydı yok</div>
+        }
+        else
+        {
+            foreach (var s in sertifikaIslemler)
+            {
+                <div class="tablo-row tablo-sertifika">
+                    <div>@s.Firma?.FirmaAdi</div>
+                    <div style="font-size:12px;color:#888">@s.Firma?.Sirket?.SirketAdi</div>
+                    <div>@s.OlusturmaTarihi.ToString("dd.MM.yyyy")</div>
+                    <div>
+                        @if (s.Durum == 1)
+                        {
+                            <span class="badge b-green">Onaylandı</span>
+                        }
+                        else if (s.Durum == 0)
+                        {
+                            <span class="badge b-yellow">Bekliyor</span>
+                        }
+                        else
+                        {
+                            <span class="badge b-red">Reddedildi</span>
+                        }
+                    </div>
+                </div>
+            }
+        }
+    }
+</div>
+
+<div id="raporChartData"
+     data-aylik-labels='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.ChartAylikLabels ?? new List<string>(), new System.Text.Json.JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping }))'
+     data-aylik-data='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.ChartAylikData ?? new List<int>(), new System.Text.Json.JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping }))'
+     data-durum-data='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.ChartDurumData ?? new List<int>(), new System.Text.Json.JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping }))'
+     data-sirket-labels='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.ChartSirketLabels ?? new List<string>(), new System.Text.Json.JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping }))'
+     data-sirket-data='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.ChartSirketData ?? new List<int>(), new System.Text.Json.JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping }))'
+     style="display:none"></div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script>
+        (function () {
+            const root = document.getElementById("raporChartData");
+            if (!root) return;
+
+            const parseArray = (raw) => {
+                if (!raw) return [];
+                try {
+                    const data = JSON.parse(raw);
+                    return Array.isArray(data) ? data : [];
+                } catch {
+                    return [];
+                }
+            };
+
+            const aylikLabels = parseArray(root.dataset.aylikLabels);
+            const aylikData = parseArray(root.dataset.aylikData).map(Number);
+            const durumData = parseArray(root.dataset.durumData).map(Number);
+            const sirketLabels = parseArray(root.dataset.sirketLabels);
+            const sirketData = parseArray(root.dataset.sirketData).map(Number);
+
+            const hasAnyPositive = (arr) => arr.some(x => Number(x) > 0);
+            const markHasData = (wrapId) => {
+                const wrap = document.getElementById(wrapId);
+                if (wrap) wrap.classList.add("has-data");
+            };
+
+            if (typeof Chart === "undefined") return;
+
+            if (aylikLabels.length > 0 && hasAnyPositive(aylikData)) {
+                markHasData("wrapAylik");
+                new Chart(document.getElementById("aylikChart"), {
+                    type: "line",
+                    data: {
+                        labels: aylikLabels,
+                        datasets: [{
+                            label: "İşlem",
+                            data: aylikData,
+                            borderColor: "#1B9FD4",
+                            backgroundColor: "rgba(27, 159, 212, 0.18)",
+                            fill: true,
+                            borderWidth: 2,
+                            tension: 0.35,
+                            pointRadius: 3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+                    }
+                });
+            }
+
+            if (durumData.length === 3 && hasAnyPositive(durumData)) {
+                markHasData("wrapDurum");
+                new Chart(document.getElementById("durumChart"), {
+                    type: "doughnut",
+                    data: {
+                        labels: ["Onaylı", "Bekleyen", "Reddedilen"],
+                        datasets: [{
+                            data: durumData,
+                            backgroundColor: ["#4CAF7D", "#1B9FD4", "#E24B4A"],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: "bottom" } }
+                    }
+                });
+            }
+
+            if (sirketLabels.length > 0 && hasAnyPositive(sirketData)) {
+                markHasData("wrapSirket");
+                new Chart(document.getElementById("sirketChart"), {
+                    type: "bar",
+                    data: {
+                        labels: sirketLabels,
+                        datasets: [{
+                            label: "İşlem",
+                            data: sirketData,
+                            backgroundColor: "#1B9FD4"
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+                    }
+                });
+            }
+        })();
+
+        function indirSeciliRaporExcel() {
+            const ids = Array.from(document.querySelectorAll('input[name="ids"][form="pdfForm"]:checked')).map(x => x.value);
+            if (ids.length === 0) {
+                alert('Lütfen en az bir işlem seçin.');
+                return;
+            }
+            const query = ids.map(id => 'ids=' + encodeURIComponent(id)).join('&');
+            window.open('/AdminPanel/raporlar/excel?' + query, '_blank');
+        }
+    </script>
+}

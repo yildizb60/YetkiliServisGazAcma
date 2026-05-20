@@ -1,0 +1,251 @@
+@{
+    ViewData["Title"] = "Kullanıcılar";
+    ViewData["PanelTitle"] = "Kullanıcılar";
+    ViewData["PanelSubtitle"] = "Admin Paneli";
+    ViewData["ActiveMenu"] = "Kullanicilar";
+    Layout = "~/Views/Shared/_PanelLayout.cshtml";
+
+    var kullanicilar = ViewBag.Kullanicilar as List<YetkiliServisGazAcma.Entities.AppKullanici>;
+    var seciliQ = ViewBag.SeciliQ as string;
+    var seciliTip = ViewBag.SeciliTip as string;
+    var seciliDurum = ViewBag.SeciliDurum as string;
+}
+
+@section Styles {
+    <style>
+        .filter-bar {
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 14px;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1.2fr 1fr auto;
+            gap: 10px;
+            align-items: end;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .filter-group label {
+            font-size: 11px;
+            color: #777;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+
+        .filter-group input,
+        .filter-group select {
+            padding: 9px 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-filter {
+            padding: 9px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 800;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-apply {
+            background: #1B9FD4;
+            color: #fff;
+        }
+
+        .btn-clear {
+            background: #fff;
+            color: #1B9FD4;
+            border: 1px solid #1B9FD4;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .btn-add {
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 800;
+            background: #1B9FD4;
+            color: #fff;
+            text-decoration: none;
+        }
+
+        .alert {
+            padding: 10px 14px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .alert-success {
+            background: #E1F5EE;
+            color: #085041;
+            border: 1px solid #c3e6db;
+        }
+
+        .alert-danger {
+            background: #FCEBEB;
+            color: #501313;
+            border: 1px solid #eccaca;
+        }
+
+        .tablo-head,
+        .tablo-row {
+            grid-template-columns: 1.2fr 1.1fr .9fr .9fr .6fr 1.5fr;
+        }
+
+        .action-cell {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .action-cell form {
+            margin: 0 !important;
+            display: inline-block;
+        }
+
+        .action-cell .btn-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 30px;
+            min-width: 88px;
+            line-height: 1;
+            white-space: nowrap;
+        }
+
+        @@media (max-width: 1100px) {
+            .filter-bar {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .tablo-head,
+            .tablo-row {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+        }
+
+        @@media (max-width: 720px) {
+            .filter-bar {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+}
+
+<form class="filter-bar" method="get" action="/AdminPanel/kullanicilar">
+    <div class="filter-group">
+        <label>Arama</label>
+        <input type="text" name="q" value="@seciliQ" placeholder="Ad soyad, e-posta, telefon" />
+    </div>
+    <div class="filter-group">
+        <label>Tip</label>
+        <select name="tip">
+            <option value="" selected="@(string.IsNullOrEmpty(seciliTip) ? "selected" : null)">Tüm</option>
+            <option value="SuperAdmin" selected="@(seciliTip == "SuperAdmin" ? "selected" : null)">Süper Admin</option>
+            <option value="Personel" selected="@(seciliTip == "Personel" ? "selected" : null)">Personel</option>
+            <option value="Servis" selected="@(seciliTip == "Servis" ? "selected" : null)">Yetkili Servis</option>
+        </select>
+    </div>
+    <div class="filter-group">
+        <label>Durum</label>
+        <select name="durum">
+            <option value="" selected="@(string.IsNullOrEmpty(seciliDurum) ? "selected" : null)">Tüm</option>
+            <option value="Aktif" selected="@(seciliDurum == "Aktif" ? "selected" : null)">Aktif</option>
+            <option value="Pasif" selected="@(seciliDurum == "Pasif" ? "selected" : null)">Pasif</option>
+        </select>
+    </div>
+    <div class="filter-group">
+        <label>Şirket/Firma</label>
+        <input type="text" name="bagli" value="@ViewBag.SeciliBagli" placeholder="Şirket veya firma" />
+    </div>
+    <div class="filter-actions">
+        <button class="btn-filter btn-apply" type="submit">Filtrele</button>
+        <a class="btn-filter btn-clear" href="/AdminPanel/kullanicilar">Temizle</a>
+    </div>
+</form>
+
+@if (TempData["Basarili"] != null)
+{
+    <div class="alert alert-success">@TempData["Basarili"]</div>
+}
+@if (TempData["Hata"] != null)
+{
+    <div class="alert alert-danger">@TempData["Hata"]</div>
+}
+
+<div class="section">
+    <div class="section-head">
+        <div class="section-title">Tüm Kullanıcılar</div>
+        <a class="btn-add" href="/AdminPanel/Kullanicilar/ekle">+ Yeni Kullanıcı</a>
+    </div>
+    <div class="tablo-head">
+        <div>Ad Soyad</div><div>E-Posta</div><div>Tip</div><div>Şirket/Firma</div><div>Durum</div><div>İşlem</div>
+    </div>
+    @if (kullanicilar == null || kullanicilar.Count == 0)
+    {
+        <div class="empty">Kullanıcı kaydı yok</div>
+    }
+    else
+    {
+        foreach (var k in kullanicilar)
+        {
+            var tip = k.KullaniciTipi == 1
+                ? "Yetkili Servis"
+                : k.KullaniciTipi == 2
+                    ? "Personel"
+                    : k.KullaniciTipi == 3
+                        ? "Şirket Admini"
+                        : "Süper Admin";
+            var bagli = k.KullaniciTipi == 1 ? k.Firma?.FirmaAdi : k.Sirket?.SirketAdi;
+
+            <div class="tablo-row">
+                <div>@(k.AdSoyad ?? "-")</div>
+                <div>@(k.Email ?? "-")</div>
+                <div>@tip</div>
+                <div>@(bagli ?? "-")</div>
+                <div>
+                    @if (k.AktifMi)
+                    {
+                        <span class="badge b-green">Aktif</span>
+                    }
+                    else
+                    {
+                        <span class="badge b-red">Pasif</span>
+                    }
+                </div>
+                <div class="action-cell">
+                    <a class="btn-link" href="/AdminPanel/Kullanicilar/Duzenle/@k.Id">Düzenle</a>
+                    <form method="post" action="/AdminPanel/Kullanicilar/durum/@k.Id">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="aktif" value='@(k.AktifMi ? "false" : "true")' />
+                        <button type="submit" class="btn-link">@(k.AktifMi ? "Pasifleştir" : "Aktifleştir")</button>
+                    </form>
+                    <form method="post" action="/AdminPanel/kullanicilar/sil/@k.Id" onsubmit="return confirm('Kullanıcı silmek istediğinize emin misiniz?');">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn-link" style="color:#b91c1c;border-color:#f1b4b4;min-width:52px;">Sil</button>
+                    </form>
+                </div>
+            </div>
+        }
+    }
+</div>

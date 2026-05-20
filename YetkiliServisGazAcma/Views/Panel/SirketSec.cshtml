@@ -1,0 +1,84 @@
+@{
+    Layout = null;
+    ViewData["Title"] = "Şirket Seç";
+    var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
+    var sirketler = ViewBag.Sirketler as List<YetkiliServisGazAcma.Entities.Dag_Sirket>
+        ?? new List<YetkiliServisGazAcma.Entities.Dag_Sirket>();
+    int? aktifSirketId = ViewBag.AktifSirketId as int?;
+    var genelSistemAdminMi = ViewBag.GenelSistemAdminMi as bool? ?? false;
+    string returnUrl = ViewBag.ReturnUrl as string ?? "/personel-panel";
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <title>@ViewData["Title"]</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { min-height: 100vh; font-family: "Segoe UI", Arial, sans-serif; background: #f0f4f8; color: #1f2d3d; display: flex; align-items: center; justify-content: center; padding: 28px; }
+        .card { width: min(520px, 100%); background: #fff; border: 1px solid #e2edf6; border-radius: 14px; box-shadow: 0 18px 50px rgba(16,42,67,.09); overflow: hidden; }
+        .head { padding: 22px 24px; border-bottom: 2px solid #1B9FD4; }
+        .eyebrow { font-size: 11px; font-weight: 800; color: #1B9FD4; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 7px; }
+        h1 { font-size: 22px; line-height: 1.2; }
+        .body { padding: 22px 24px; }
+        .sub { color: #688098; font-size: 13px; line-height: 1.6; margin-bottom: 18px; }
+        .alert { background: #fff5f5; color: #7f1d1d; border: 1px solid #fecaca; border-radius: 10px; padding: 10px 12px; font-size: 13px; margin-bottom: 14px; }
+        label { display: block; font-size: 12px; font-weight: 800; color: #65798c; margin-bottom: 7px; text-transform: uppercase; letter-spacing: .04em; }
+        select { width: 100%; padding: 12px 13px; border: 1px solid #d7e4ef; border-radius: 10px; color: #1f2d3d; font-size: 14px; background: #f8fbff; }
+        .actions { display: flex; gap: 10px; margin-top: 18px; }
+        .btn { border: none; border-radius: 10px; padding: 11px 16px; font-weight: 800; cursor: pointer; text-decoration: none; font-size: 13px; }
+        .primary { background: #1B9FD4; color: #fff; }
+        .secondary { background: #f1f5f9; color: #334155; border: 1px solid #d8e1ea; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="head">
+            <div class="eyebrow">Aktif şirket</div>
+            <h1>İşlem yapacağınız şirketi seçin</h1>
+        </div>
+        <div class="body">
+            <div class="sub">
+                @(kullanici?.AdSoyad ?? "Kullanıcı") hesabınız birden fazla şirkete bağlıysa paneldeki kayıtlar bu seçime göre filtrelenir.
+            </div>
+            @if (TempData["Hata"] != null)
+            {
+                <div class="alert">@TempData["Hata"]</div>
+            }
+            <form method="post" action="/panel/sirket-sec">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="returnUrl" value="@returnUrl" />
+                <label>Şirket</label>
+                <select name="sirketId">
+                    @if (genelSistemAdminMi)
+                    {
+                        if (!aktifSirketId.HasValue)
+                        {
+                            <option value="0" selected="selected">Tüm Şirketler</option>
+                        }
+                        else
+                        {
+                            <option value="0">Tüm Şirketler</option>
+                        }
+                    }
+                    @foreach (var sirket in sirketler)
+                    {
+                        if (aktifSirketId == sirket.Id)
+                        {
+                            <option value="@sirket.Id" selected="selected">@sirket.SirketAdi</option>
+                        }
+                        else
+                        {
+                            <option value="@sirket.Id">@sirket.SirketAdi</option>
+                        }
+                    }
+                </select>
+                <div class="actions">
+                    <button class="btn primary" type="submit">Devam Et</button>
+                    <a class="btn secondary" href="@returnUrl">Vazgeç</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

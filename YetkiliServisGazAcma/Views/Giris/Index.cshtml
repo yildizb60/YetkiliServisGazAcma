@@ -1,0 +1,717 @@
+﻿@{
+    ViewData["Title"] = "Giriş";
+    Layout = "~/Views/Shared/_AuthLayout.cshtml";
+    bool smsBekleniyor = ViewBag.SmsBekleniyor as bool? ?? false;
+    bool sifreUnuttum = ViewBag.SifreUnuttum as bool? ?? false;
+    bool sifreSifirlaKodBekleniyor = ViewBag.SifreSifirlaKodBekleniyor as bool? ?? false;
+    var bilgi = ViewBag.Bilgi ?? TempData["Bilgi"];
+}
+@section Styles {
+    <style>
+        :root {
+            --green: rgb(82, 174, 210);
+            --green-dark: #468fb2;
+            --green-soft: #edf6fb;
+            --ink: #102a43;
+            --muted: #64809b;
+            --border: #d9e8f4;
+            --brand: #5a9b3b;
+            --brand-dark: #497e30;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; }
+        body { font-family: 'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif; background: #f6faf7; color: var(--ink); }
+
+        .page { display: flex; height: 100vh; overflow: hidden; }
+
+        
+        .left {
+            width: 52%;
+            position: relative;
+            overflow: hidden;
+
+            background: linear-gradient(135deg, #1a1a2e 0%, #1B9FD4 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 52px 56px;
+        }
+
+        /* Sağ üst büyük dekoratif çember */
+        .left::after {
+            content: '';
+            position: absolute;
+            width: 480px; height: 480px;
+            border-radius: 50%;
+            border: 60px solid rgba(255,255,255,0.16);
+            right: -140px; top: -140px;
+            pointer-events: none;
+        }
+
+        /* Sol alt ikinci çember */
+        .left::before {
+            content: '';
+            position: absolute;
+            width: 320px; height: 320px;
+            border-radius: 50%;
+            border: 40px solid rgba(255,255,255,0.12);
+            left: -100px; bottom: -80px;
+            pointer-events: none;
+        }
+
+        /* ── Üst logo ── */
+        .left-top { position: relative; z-index: 1; }
+
+        .brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255,255,255,0.92);
+            padding: 9px 18px 9px 12px;
+            border-radius: 40px;
+            box-shadow: 0 2px 12px rgba(82,174,210,0.16);
+        }
+
+        .brand-dot {
+            width: 10px; height: 10px;
+            background: #1b6ea8;
+            border-radius: 50%;
+            box-shadow: 0 0 0 3px rgba(255,255,255,0.55);
+        }
+
+        .brand-name {
+            font-size: 14px;
+            font-weight: 800;
+            color: #153b5b;
+            letter-spacing: .01em;
+        }
+
+        .brand-sep { width: 1px; height: 14px; background: #cde6f5; }
+
+        .brand-sub {
+            font-size: 11px;
+            color: #5f7d97;
+            letter-spacing: .03em;
+            font-weight: 600;
+        }
+
+        /* ── Orta içerik ── */
+        .left-middle {
+            position: relative;
+            z-index: 1;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 36px;
+        }
+
+        .hero-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #e7fff2;
+            letter-spacing: .10em;
+            text-transform: uppercase;
+            margin-bottom: 14px;
+        }
+
+        .hero-eyebrow span {
+            display: block;
+            width: 28px; height: 1.5px;
+            background: #dff7ec;
+            border-radius: 2px;
+        }
+
+        .hero-title {
+            font-size: 44px;
+            font-weight: 800;
+            color: #ffffff;
+            line-height: 1.10;
+            letter-spacing: -.025em;
+            margin-bottom: 16px;
+        }
+
+        .hero-title em {
+            font-style: italic;
+            color: #d6ffe9;
+        }
+
+        .hero-desc {
+            font-size: 14px;
+            color: #e6fff1;
+            line-height: 1.75;
+            max-width: 380px;
+        }
+
+        /* Özellik listesi */
+        .features { display: flex; flex-direction: column; gap: 12px; }
+
+        .feat {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 15px 18px;
+            background: rgba(255,255,255,0.14);
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 12px;
+            backdrop-filter: blur(4px);
+            transition: background .18s, transform .18s;
+        }
+
+        .feat:hover {
+            background: rgba(255,255,255,0.22);
+            transform: translateX(4px);
+        }
+
+        .feat-num {
+            font-size: 11px;
+            font-weight: 800;
+            color: #e9fff4;
+            letter-spacing: .06em;
+            min-width: 22px;
+        }
+
+        .feat-vr {
+            width: 1px; height: 26px;
+            background: rgba(255,255,255,0.35);
+        }
+
+        .feat-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .feat-sub {
+            font-size: 11px;
+            color: rgba(255,255,255,0.78);
+            margin-top: 2px;
+        }
+
+        /* ── Alt istatistikler ── */
+        .left-bottom { position: relative; z-index: 1; }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            padding-top: 24px;
+            border-top: 1px solid rgba(59,183,232,0.26);
+            margin-bottom: 20px;
+        }
+
+        .stat-val {
+            font-size: 24px;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: -.02em;
+        }
+
+        .stat-lbl {
+            font-size: 10px;
+            color: rgba(255,255,255,0.75);
+            margin-top: 3px;
+            letter-spacing: .05em;
+            text-transform: uppercase;
+        }
+
+        .left-footer { font-size: 11px; color: rgba(255,255,255,0.7); }
+
+        /* ══════════════════════════════════════
+           SAĞ — beyaz, formun evi
+        ══════════════════════════════════════ */
+        .right {
+            flex: 1;
+            background: linear-gradient(180deg, #ffffff 0%, #f3f9ff 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 32px;
+            overflow-y: auto;
+            border-left: 1px solid #dce8f5;
+        }
+
+        .card {
+            width: 100%;
+            max-width: 400px;
+            background: #fff;
+            border: 1px solid #e5eef7;
+            border-radius: 18px;
+            padding: 28px;
+            box-shadow: 0 18px 50px rgba(16,42,67,0.09);
+            position: relative;
+            animation: floatIn .5s ease both;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            left: 22px;
+            right: 22px;
+            top: 0;
+            height: 3px;
+            border-radius: 0 0 10px 10px;
+            background: #53a92c;
+        }
+
+        @@keyframes floatIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Küçük sistem adı üstte */
+        .card-sys {
+            font-size: 11px;
+            font-weight: 700;
+            color: #a0b8a8;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            margin-bottom: 28px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-sys::before {
+            content: '';
+            display: block;
+            width: 6px; height: 6px;
+            background: var(--green);
+            border-radius: 50%;
+            animation: blink 2.4s ease-in-out infinite;
+        }
+
+        @@keyframes blink {
+            0%,100%{opacity:1;transform:scale(1)}
+            50%{opacity:.4;transform:scale(1.5)}
+        }
+
+        .card-title {
+            font-size: 30px;
+            font-weight: 800;
+            color: #0f1f14;
+            margin-bottom: 6px;
+            letter-spacing: -.025em;
+        }
+
+        .card-sub {
+            font-size: 13px;
+            color: #7a9288;
+            margin-bottom: 32px;
+            line-height: 1.65;
+        }
+
+        /* Form */
+        .field { margin-bottom: 18px; }
+
+        .field label {
+            display: block;
+            font-size: 12px;
+            font-weight: 700;
+            color: #244b6d;
+            margin-bottom: 7px;
+            letter-spacing: .02em;
+        }
+
+        .field input {
+            width: 100%;
+            padding: 13px 16px;
+            background: #f7fbff;
+            border: 1.5px solid #cee0f1;
+            border-radius: 10px;
+            font-size: 14px;
+            color: #0f1f14;
+            font-family: inherit;
+            outline: none;
+            transition: border-color .15s, box-shadow .15s, background .15s;
+        }
+
+        .field input::placeholder { color: #97aec5; }
+
+        .field input:focus {
+            border-color: var(--green);
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(82,174,210,0.16);
+        }
+
+        .hata {
+            background: #fff5f5;
+            color: #7f1d1d;
+            padding: 11px 15px;
+            border-radius: 10px;
+            margin-bottom: 18px;
+            font-size: 12px;
+            border: 1px solid #fecaca;
+        }
+
+        .bilgi {
+            background: #eff6ff;
+            color: #1e4f73;
+            padding: 11px 15px;
+            border-radius: 10px;
+            margin-bottom: 18px;
+            font-size: 12px;
+            border: 1px solid #cfe4f6;
+            line-height: 1.45;
+            font-weight: 700;
+        }
+
+        .inline-link {
+            display: block;
+            text-align: center;
+            color: #468fb2;
+            font-size: 12px;
+            font-weight: 700;
+            text-decoration: none;
+            margin: -2px 0 14px;
+        }
+
+        .otp-input {
+            letter-spacing: .14em;
+            text-align: center;
+            font-size: 18px !important;
+            font-weight: 800;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            background: #53a92c;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            letter-spacing: .02em;
+            transition: background .15s, transform .12s, box-shadow .15s;
+            margin-bottom: 14px;
+            box-shadow: 0 4px 14px rgba(83,169,44,0.30);
+        }
+
+        .btn-submit:hover {
+            background: #468f25;
+            transform: translateY(-1px);
+            box-shadow: 0 7px 20px rgba(83,169,44,0.36);
+        }
+
+        .btn-submit:active { transform: translateY(0); }
+
+        .divider {
+            display: flex; align-items: center; gap: 12px;
+            margin: 4px 0 14px;
+        }
+
+        .divider-line { flex: 1; height: 1px; background: #e4ede7; }
+        .divider-text { font-size: 11px; color: #aabfb0; letter-spacing: .06em; text-transform: uppercase; }
+
+        .btn-register {
+            width: 100%;
+            padding: 13px;
+            background: #fff;
+            color: var(--green);
+            border: 1.5px solid #a8ddbf;
+            border-radius: 10px;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            text-decoration: none;
+            display: block;
+            text-align: center;
+            transition: background .15s, border-color .15s;
+            margin-bottom: 24px;
+        }
+
+        .btn-register:hover { background: #f1f8ff; border-color: #53a92c; }
+
+        /* Giriş yöntemleri */
+        .methods {
+            background: #f5f9ff;
+            border: 1px solid #d9e8f4;
+            border-radius: 14px;
+            overflow: hidden;
+            padding: 6px 6px 8px;
+        }
+
+        .methods-head {
+            padding: 9px 16px;
+            border-bottom: 1px solid #d9e8f4;
+            font-size: 10px;
+            font-weight: 800;
+            color: #88a8c3;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+        }
+
+        .method-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 11px 14px;
+            margin: 8px 8px 0;
+            background: #fff;
+            border: 1px solid #e4edf7;
+            border-radius: 10px;
+            transition: background .12s;
+        }
+
+        .method-row:last-child { margin-bottom: 4px; }
+        .method-row:hover { background: #f4f9ff; }
+
+        .method-icon {
+            width: 32px; height: 32px;
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; flex-shrink: 0;
+        }
+
+        .mi-blue   { background: #eff6ff; }
+        .mi-green  { background: #f0fdf4; }
+        .mi-violet { background: #f5f3ff; }
+
+        .method-title { font-weight: 700; color: #1a3f61; font-size: 12px; }
+        .method-desc  { color: #84a0ba; font-size: 11px; margin-top: 1px; }
+
+        .method-tag {
+            margin-left: auto;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 3px 9px;
+            border-radius: 20px;
+            background: #e4eef8;
+            color: var(--green);
+            flex-shrink: 0;
+        }
+
+        @@media (max-width: 860px) {
+            .left { display: none; }
+            .right { width: 100%; }
+        }
+    </style>
+}
+<div class="page">
+
+    <!-- ═══ SOL PANEL ═══ -->
+    <div class="left">
+        <div class="left-top">
+            <div class="brand">
+                <div class="brand-dot"></div>
+                <span class="brand-name">Çorumgaz</span>
+                <div class="brand-sep"></div>
+                <span class="brand-sub">YETKİLİ SERVİS GAZ AÇMA </span>
+            </div>
+        </div>
+
+        <div class="left-middle">
+            <div>
+                <div class="hero-eyebrow"><span></span>Dijital Platform</div>
+                <div class="hero-title">
+                    Gaz Açma<br>
+                    <em>Hızlı,</em> Güvenli<br>
+                    ve Şeffaf
+                </div>
+                <div class="hero-desc">
+                    Doğalgaz cihazı devreye alma, yetkili servis atama
+                    ve yetki belgesi süreçlerini tek platformdan yönetin.
+                </div>
+            </div>
+
+            <div class="features">
+                <div class="feat">
+                    <span class="feat-num">01</span>
+                    <div class="feat-vr"></div>
+                    <div>
+                        <div class="feat-title">Cihaz Devreye Alma</div>
+                        <div class="feat-sub">Tesisat sorgula, form doldur, PDF al</div>
+                    </div>
+                </div>
+                <div class="feat">
+                    <span class="feat-num">02</span>
+                    <div class="feat-vr"></div>
+                    <div>
+                        <div class="feat-title">Yetki Belgesi Yönetimi</div>
+                        <div class="feat-sub">Yükle, takip et, süre uyarısı al</div>
+                    </div>
+                </div>
+                <div class="feat">
+                    <span class="feat-num">03</span>
+                    <div class="feat-vr"></div>
+                    <div>
+                        <div class="feat-title">Anlık Raporlama</div>
+                        <div class="feat-sub">Filtreli sorgular, Excel export</div>
+                    </div>
+                </div>
+                <div class="feat">
+                    <span class="feat-num">04</span>
+                    <div class="feat-vr"></div>
+                    <div>
+                        <div class="feat-title">Çoklu Şirket Desteği</div>
+                        <div class="feat-sub">Tüm iller tek sistemde yönetim</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="left-bottom">
+            <div class="stats">
+                <div>
+                    <div class="stat-val">7/24</div>
+                    <div class="stat-lbl">Kesintisiz</div>
+                </div>
+                <div>
+                    <div class="stat-val">%100</div>
+                    <div class="stat-lbl">Dijital</div>
+                </div>
+                <div>
+                    <div class="stat-val">EPDK</div>
+                    <div class="stat-lbl">Uyumlu</div>
+                </div>
+            </div>
+            <div class="left-footer">© 2026 Ahlatcı Teknoloji ve Yazılım A.Ş. </div>
+        </div>
+    </div>
+
+    <!-- ═══ SAĞ PANEL ═══ -->
+    <div class="right">
+        <div class="card">
+
+            <div class="card-sys">Yetkili Servis Gaz Açma Sistemi</div>
+
+            <div class="card-title">Hoş Geldiniz</div>
+            <div class="card-sub">
+                VKN veya e-posta adresinizle giriş yapın.<br>
+                Sistem tipinizi otomatik algılar.
+            </div>
+
+            @if (ViewBag.Hata != null)
+            {
+                <div class="hata">@ViewBag.Hata</div>
+            }
+            @if (bilgi != null)
+            {
+                <div class="bilgi">@bilgi</div>
+            }
+
+            @if (smsBekleniyor)
+            {
+                <form method="post" action="/giris/sms-dogrula">
+                    @Html.AntiForgeryToken()
+                    <div class="field">
+                        <label>SMS Doğrulama Kodu</label>
+                        <input class="otp-input" type="text" name="kod"
+                               placeholder="6 haneli kod"
+                               inputmode="numeric"
+                               autocomplete="one-time-code"
+                               maxlength="8" required />
+                    </div>
+                    <button type="submit" class="btn-submit">Girişi Tamamla →</button>
+                </form>
+                <a class="inline-link" href="/giris?temizle=true">Baştan giriş yap</a>
+            }
+            else if (sifreSifirlaKodBekleniyor)
+            {
+                <form method="post" action="/giris/sifre-yenile">
+                    @Html.AntiForgeryToken()
+                    <div class="field">
+                        <label>SMS Doğrulama Kodu</label>
+                        <input class="otp-input" type="text" name="kod"
+                               placeholder="6 haneli kod"
+                               inputmode="numeric"
+                               autocomplete="one-time-code"
+                               maxlength="8" required />
+                    </div>
+                    <div class="field">
+                        <label>Yeni Şifre</label>
+                        <input type="password" name="yeniSifre" placeholder="Yeni şifreniz" autocomplete="new-password" required />
+                    </div>
+                    <div class="field">
+                        <label>Yeni Şifre Tekrar</label>
+                        <input type="password" name="yeniSifreTekrar" placeholder="Yeni şifreniz tekrar" autocomplete="new-password" required />
+                    </div>
+                    <button type="submit" class="btn-submit">Şifreyi Değiştir →</button>
+                </form>
+                <a class="inline-link" href="/giris?temizle=true">Giriş ekranına dön</a>
+            }
+            else if (sifreUnuttum)
+            {
+                <form method="post" action="/giris/sifre-unuttum">
+                    @Html.AntiForgeryToken()
+                    <div class="field">
+                        <label>VKN veya E-posta</label>
+                        <input type="text" name="kullaniciAdi"
+                               placeholder="VKN veya e-posta adresiniz"
+                               autocomplete="username" required />
+                    </div>
+                    <button type="submit" class="btn-submit">SMS Kodu Gönder →</button>
+                </form>
+                <a class="inline-link" href="/giris">Giriş ekranına dön</a>
+            }
+            else
+            {
+                <form method="post" action="/giris">
+                    @Html.AntiForgeryToken()
+                    <div class="field">
+                        <label>VKN veya E-posta</label>
+                        <input type="text" name="kullaniciAdi"
+                               placeholder="VKN veya e-posta adresiniz"
+                               autocomplete="username" />
+                    </div>
+                    <div class="field">
+                        <label>Şifre</label>
+                        <input type="password" name="sifre"
+                               placeholder="Şifreniz"
+                               autocomplete="current-password" />
+                    </div>
+                    <button type="submit" class="btn-submit">Giriş Yap →</button>
+                </form>
+                <a class="inline-link" href="/giris/sifre-unuttum">Şifremi unuttum</a>
+            }
+
+            <div class="divider">
+                <div class="divider-line"></div>
+                <div class="divider-text">yeni kayıt</div>
+                <div class="divider-line"></div>
+            </div>
+
+            <a class="btn-register" href="/kayit/yetkili-servis">
+                + Yetkili Servis Kaydı
+            </a>
+
+            <div class="methods">
+                <div class="methods-head">Giriş Yöntemi</div>
+                <div class="method-row">
+                    <div class="method-icon mi-blue">🔧</div>
+                    <div>
+                        <div class="method-title">Yetkili Servis</div>
+                        <div class="method-desc">VKN ile giriş yapın</div>
+                    </div>
+                    <span class="method-tag">VKN</span>
+                </div>
+                <div class="method-row">
+                    <div class="method-icon mi-green">💼</div>
+                    <div>
+                        <div class="method-title">Şirket Personeli</div>
+                        <div class="method-desc">E-posta ile giriş yapın</div>
+                    </div>
+                    <span class="method-tag">E-posta</span>
+                </div>
+                <div class="method-row">
+                    <div class="method-icon mi-violet">👤</div>
+                    <div>
+                        <div class="method-title">Sistem Yöneticisi</div>
+                        <div class="method-desc">E-posta ile giriş yapın</div>
+                    </div>
+                    <span class="method-tag">E-posta</span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+

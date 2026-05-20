@@ -1,0 +1,182 @@
+@{
+    ViewData["Title"] = "Yetkili Servis Ekle";
+    ViewData["PanelTitle"] = ViewData["Title"];
+    ViewData["PanelSubtitle"] = "Admin Paneli";
+    ViewData["ActiveMenu"] = "YetkiliServisler";
+    Layout = "~/Views/Shared/_PanelLayout.cshtml";
+    var Kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
+    var sehirler = ViewBag.Sehirler as List<string> ?? new();
+    var kategoriler = ViewBag.Kategoriler as List<YetkiliServisGazAcma.Entities.UrunKategori> ?? new();
+    var markalar = ViewBag.Markalar as List<YetkiliServisGazAcma.Entities.Ys_Marka> ?? new();
+    string adSoyad = Kullanici?.AdSoyad ?? "S\u00FCper Admin";
+    string basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "A";
+    int onayBekleyen = ViewBag.OnayBekleyen is int v ? v : 0;
+}
+
+@section Styles {
+    <style>
+.content { padding: 24px 28px; }
+.back-link { display: inline-flex; align-items: center; gap: 8px; color: #1B9FD4; font-weight: 700; text-decoration: none; margin-bottom: 14px; }
+.hero { background: linear-gradient(135deg, #1a1a2e 0%, #1B9FD4 100%); border-radius: 14px; padding: 24px 26px; display: flex; align-items: center; justify-content: space-between; gap: 16px; box-shadow: 0 12px 24px rgba(15,23,42,.12); margin-bottom: 14px; }
+.hero-left { display: flex; align-items: center; gap: 16px; }
+.hero-icon { width: 56px; height: 56px; border-radius: 14px; background: rgba(255,255,255,0.18); display: flex; align-items: center; justify-content: center; font-size: 26px; }
+.hero h1 { font-size: 21px; margin-bottom: 4px; color: #fff; }
+.hero p { color: rgba(255,255,255,.82); font-size: 13px; line-height: 1.5; }
+.hero-badge { padding: 7px 13px; border-radius: 999px; background: #4CAF7D; color: #fff; font-size: 12px; font-weight: 800; white-space: nowrap; }
+.card { background: #fff; border-radius: 18px; border: 1px solid #e1eaf2; box-shadow: 0 14px 32px rgba(20,40,60,0.09); padding: 18px; max-width: none; width: 100%; }
+.card-title { font-size: 15px; font-weight: 900; color: #14344b; margin-bottom: 14px; display:flex; align-items:center; gap:8px; }
+.info-grid { display:grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 12px; align-items: stretch; }
+.info-item { grid-column: span 4; background: linear-gradient(180deg, #fbfdff, #f6faff); border: 1px solid #e4edf5; border-radius: 14px; padding: 12px 13px; transition: border-color .15s, box-shadow .15s, transform .15s; }
+.info-item:hover { border-color: #bde1ef; box-shadow: 0 10px 20px rgba(20,40,60,.06); transform: translateY(-1px); }
+.info-label { font-size: 11px; color: #6f7b86; margin-bottom: 4px; font-weight: 700; }
+.info-input { width: 100%; padding: 9px 11px; border: 1.5px solid #e0e0e0; border-radius: 8px; font-size: 13px; color: #333; outline: none; background: #fff; }
+.info-input:focus { border-color: #4CAF7D; }
+.info-item.tam { grid-column: span 8; }
+.actions { display: flex; gap: 10px; margin-top: 16px; }
+.btn-kaydet { padding: 10px 24px; background: #1B9FD4; color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; }
+.btn-iptal { padding: 10px 24px; background: #fff; color: #555; border: 1.5px solid #ddd; border-radius: 8px; font-size: 13px; cursor: pointer; text-decoration: none; }
+
+.kategori-box { grid-column: span 8; padding: 14px; border: 1px solid #dce8f1; border-radius: 16px; background: linear-gradient(135deg, #ffffff, #f7fbff); }
+.kategori-title { font-size: 14px; font-weight: 900; margin-bottom: 12px; color: #14344b; }
+.kategori-sub { font-size: 12px; color: #6f7b86; margin: -8px 0 12px; }
+.kategori-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.kategori-chip { display: inline-flex; align-items: center; gap: 10px; padding: 13px 14px; border: 1px solid #e2eaf2; border-radius: 14px; background: #fff; font-size: 13px; color: #1f2937; cursor: pointer; box-shadow: 0 8px 18px rgba(20,40,60,.055); }
+.kategori-chip input { margin: 0; }
+.kategori-chip:hover { border-color: #4CAF7D; background: #eefaf3; transform: translateY(-1px); }
+.kategori-icon { width: 28px; height: 28px; border-radius: 10px; background: #f4fbf7; border: 1px solid #d6efe3; display: grid; place-items: center; flex: 0 0 auto; }
+.kategori-icon img { width: 21px; height: 21px; object-fit: contain; display: block; }
+.kategori-name { font-weight: 800; }
+
+.marka-box { grid-column: span 4; padding: 14px; border: 1px solid #dce8f1; border-radius: 16px; background: linear-gradient(180deg, #fff, #fbfdff); min-height: 260px; }
+.marka-title { font-size: 13px; font-weight: 900; margin-bottom: 10px; color: #14344b; }
+.marka-search { width: 100%; padding: 9px 11px; border: 1.5px solid #e0e0e0; border-radius: 8px 8px 0 0; font-size: 13px; background: #fff; }
+.marka-list { border: 1.5px solid #e0e0e0; border-top: 0; border-radius: 0 0 8px 8px; max-height: 180px; overflow-y: auto; background: #fff; }
+.marka-item-all { padding: 8px 10px; background: #f7fafc; border-bottom: 1px solid #edf3f8; display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; }
+.marka-item { padding: 8px 10px; border-bottom: 1px solid #f5f5f5; display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+.marka-item:last-child { border-bottom: none; }
+.marka-item input { margin: 0; }
+.marka-hint { font-size: 11px; color: #6f7b86; margin-top: 6px; }
+
+@@media (max-width: 1100px) {
+    .info-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .info-item { grid-column: span 1; }
+    .info-item.tam { grid-column: span 2; }
+    .marka-box { grid-column: span 2; }
+    .kategori-box { grid-column: span 2; }
+    .kategori-list { grid-template-columns: repeat(2, minmax(160px, 1fr)); }
+}
+@@media (max-width: 720px) {
+    .sidebar { position: static; width: 100%; height: auto; }
+    .main { margin-left: 0; }
+    .info-grid { grid-template-columns: 1fr; }
+    .info-item.tam { grid-column: span 1; }
+    .hero { flex-direction: column; align-items: flex-start; }
+    .marka-box { grid-column: span 1; }
+    .kategori-box { grid-column: span 1; }
+    .kategori-list { grid-template-columns: 1fr; }
+}
+    </style>
+}
+
+<a class="back-link" href="/AdminPanel/yetkiliservisler">&#8592; Yetkili Servislere D&#246;n</a>
+<div class="hero">
+    <div class="hero-left">
+        <div class="hero-icon">&#128295;</div>
+        <div>
+            <h1>Yetkili Servis Ekle</h1>
+            <p>Servis bilgilerini, yetkili markaları ve kullanılan hizmet türlerini tek ekrandan tanımlayın.</p>
+        </div>
+    </div>
+    <span class="hero-badge">Yeni Servis Kaydı</span>
+</div>
+<div class="card">
+    <div class="card-title">&#127970; Firma Bilgileri</div>
+    @if (TempData["Hata"] != null) { <div style="margin-bottom:10px; color:#8a1b1b; font-weight:700;">@TempData["Hata"]</div> }
+    <form method="post" action="/AdminPanel/yetkiliservisler/ekle">
+        @Html.AntiForgeryToken()
+        <div class="info-grid">
+            <div class="info-item"><div class="info-label">Firma Ad&#305;</div><input class="info-input" type="text" name="firmaAdi" /></div>
+            <div class="info-item"><div class="info-label">Yetkili Ki&#351;i</div><input class="info-input" type="text" name="yetkiliKisi" /></div>
+            <div class="info-item"><div class="info-label">Telefon</div><input class="info-input" type="text" name="telefon" /></div>
+            <div class="info-item"><div class="info-label">E-Posta</div><input class="info-input" type="email" name="email" /></div>
+            <div class="info-item">
+                <div class="info-label">&#350;ehir</div>
+                <select class="info-input" name="faaliyetIli" required>
+                    <option value="">-- Se&#231;iniz --</option>
+                    @foreach (var sehir in sehirler)
+                    {
+                        <option value="@sehir">@sehir</option>
+                    }
+                </select>
+            </div>
+            <div class="info-item"><div class="info-label">Vergi No</div><input class="info-input" type="text" name="vergiNo" /></div>
+            <div class="info-item"><div class="info-label">Vergi Dairesi</div><input class="info-input" type="text" name="vergiDairesi" /></div>
+            <div class="info-item tam"><div class="info-label">Adres</div><input class="info-input" type="text" name="adres" /></div>
+
+            <div class="marka-box">
+                <div class="marka-title">Marka Se&#231;imi</div>
+                <input class="marka-search" id="markaSearch" type="text" placeholder="Marka ara..." />
+                <div class="marka-list" id="markaList">
+                    <label class="marka-item-all"><input type="checkbox" id="markaSelectAll" /> T&#252;m&#252;n&#252; Se&#231;</label>
+                    @foreach (var m in markalar)
+                    {
+                        <label class="marka-item" data-name="@m.MarkaAdi">
+                            <input type="checkbox" name="markaIds" value="@m.Id" /> @m.MarkaAdi
+                        </label>
+                    }
+                </div>
+                <div class="marka-hint">Birden fazla marka se&#231;ebilirsiniz.</div>
+            </div>
+
+            <div class="kategori-box">
+                <div class="kategori-title">Kullanılan Hizmet Türleri</div>
+                <div class="kategori-sub">Bu projede yalnızca kombi, merkezi kazan ve şofben hizmetleri kullanılmaktadır.</div>
+                <div class="kategori-list">
+                    @foreach (var k in kategoriler)
+                    {
+                        <label class="kategori-chip">
+                            <input type="checkbox" name="kategoriIds" value="@k.Id" />
+                            @if (!string.IsNullOrWhiteSpace(k.IconUrl))
+                            {
+                                <span class="kategori-icon"><img src="@k.IconUrl" alt="@k.Ad" /></span>
+                            }
+                            <span class="kategori-name">@k.Ad</span>
+                        </label>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button type="submit" class="btn-kaydet">Kaydet</button>
+            <a class="btn-iptal" href="/AdminPanel/yetkiliservisler">Vazge&#231;</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+<script>
+    (function () {
+        var search = document.getElementById("markaSearch");
+        var list = document.getElementById("markaList");
+        var selectAll = document.getElementById("markaSelectAll");
+        if (search && list) {
+            search.addEventListener("input", function () {
+                var q = search.value.toLowerCase();
+                var items = list.querySelectorAll(".marka-item");
+                items.forEach(function (item) {
+                    var name = (item.getAttribute("data-name") || "").toLowerCase();
+                    item.style.display = name.indexOf(q) >= 0 ? "flex" : "none";
+                });
+            });
+        }
+        if (selectAll && list) {
+            selectAll.addEventListener("change", function () {
+                var checked = selectAll.checked;
+                var boxes = list.querySelectorAll(".marka-item input[type='checkbox']");
+                boxes.forEach(function (b) { b.checked = checked; });
+            });
+        }
+    })();
+</script>
+}

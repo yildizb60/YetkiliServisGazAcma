@@ -1,0 +1,178 @@
+@{
+    var path = Context?.Request?.Path.ToString() ?? "";
+    var activeMenu = (ViewData["ActiveMenu"] ?? ViewBag.ActiveMenu)?.ToString() ?? "";
+    var isPersonelPanel = path.StartsWith("/personel-panel", StringComparison.OrdinalIgnoreCase);
+    var isYetkiliServisPanel =
+        path.StartsWith("/ys-panel", StringComparison.OrdinalIgnoreCase) ||
+        path.StartsWith("/ys-devreyeal", StringComparison.OrdinalIgnoreCase) ||
+        path.StartsWith("/ys-yetki-belgesi", StringComparison.OrdinalIgnoreCase);
+
+    var panelAltBaslik = (ViewData["PanelSubtitle"] ?? ViewBag.PanelSubtitle)?.ToString();
+    if (string.IsNullOrWhiteSpace(panelAltBaslik))
+    {
+        panelAltBaslik = isYetkiliServisPanel
+            ? "Yetkili Servis"
+            : isPersonelPanel
+                ? "Personel Paneli"
+                : "Admin Paneli";
+    }
+
+    string Active(string key, params string[] prefixes)
+    {
+        if (string.Equals(activeMenu, key, StringComparison.OrdinalIgnoreCase))
+            return " active";
+
+        return prefixes.Any(prefix => path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            ? " active"
+            : "";
+    }
+
+    string ActiveExact(string key, params string[] exactPaths)
+    {
+        if (string.Equals(activeMenu, key, StringComparison.OrdinalIgnoreCase))
+            return " active";
+
+        return exactPaths.Any(exact => string.Equals(path, exact, StringComparison.OrdinalIgnoreCase))
+            ? " active"
+            : "";
+    }
+}
+<aside class="sidebar">
+    <div class="logo">
+        @if (!string.IsNullOrWhiteSpace(ViewBag.PanelLogoUrl as string))
+        {
+            <img class="panel-company-logo" src="@(ViewBag.PanelLogoUrl as string)" alt="@(ViewBag.PanelSirketAdi as string ?? "Sirket")" />
+        }
+        else
+        {
+            <div class="logo-circle"><div class="logo-dot"></div></div>
+        }
+        <div>
+            <div class="logo-text">Gaz A&#231;ma</div>
+            <div class="logo-sub">@panelAltBaslik</div>
+            <div class="logo-company">@(ViewBag.PanelSirketAdi as string ?? "Genel Yonetim")</div>
+        </div>
+    </div>
+
+    <nav class="nav">
+        @if (isYetkiliServisPanel)
+        {
+            <div class="nav-section">Firma</div>
+            <a class="@("nav-item" + ActiveExact("Dashboard", "/ys-panel"))" href="/ys-panel">
+                <span class="nav-ico">&#127968;</span> Ana Sayfa
+            </a>
+
+            <div class="nav-section">Islemler</div>
+            <a class="@("nav-item" + ActiveExact("DevreyeAl", "/ys-devreyeal"))" href="/ys-devreyeal">
+                <span class="nav-ico">&#128295;</span> Cihaz Devreye Al
+            </a>
+            <a class="@("nav-item" + Active("DevreyeGecmis", "/ys-devreyeal/gecmis", "/ys-devreyeal/detay"))" href="/ys-devreyeal/gecmis">
+                <span class="nav-ico">&#128221;</span> Islem Gecmisim
+            </a>
+            <a class="@("nav-item" + Active("Raporlar", "/ys-panel/raporlar"))" href="/ys-panel/raporlar">
+                <span class="nav-ico">&#128202;</span> Raporlarim
+            </a>
+
+            <div class="nav-section">Firma</div>
+            <a class="@("nav-item" + Active("YetkiBelgesi", "/ys-yetki-belgesi"))" href="/ys-yetki-belgesi">
+                <span class="nav-ico">&#128196;</span> Yetki Belgem
+            </a>
+            <a class="@("nav-item" + Active("Markalar", "/ys-panel/markalar"))" href="/ys-panel/markalar">
+                <span class="nav-ico">&#127991;</span> Markalarim
+            </a>
+            <a class="@("nav-item" + Active("Subeler", "/ys-panel/subeler"))" href="/ys-panel/subeler">
+                <span class="nav-ico">&#127970;</span> Sube / Servis Noktalari
+            </a>
+            <a class="@("nav-item" + Active("Profil", "/ys-panel/profil"))" href="/ys-panel/profil">
+                <span class="nav-ico">&#128100;</span> Profilim
+            </a>
+        }
+        else if (isPersonelPanel)
+        {
+            <div class="nav-section">Panel</div>
+            <a class="@("nav-item" + ActiveExact("Dashboard", "/personel-panel"))" href="/personel-panel">
+                <span class="nav-ico">&#127968;</span> Ana Sayfa
+            </a>
+
+            <div class="nav-section">Islemler</div>
+            <a class="@("nav-item" + Active("OnayBekleyenler", "/personel-panel/onay-bekleyenler"))" href="/personel-panel/onay-bekleyenler">
+                <span class="nav-ico">&#9989;</span> Yetki Belgesi Onay
+                @if (ViewBag.OnayBekleyen > 0)
+                {
+                    <span class="nav-badge">@ViewBag.OnayBekleyen</span>
+                }
+            </a>
+            <a class="@("nav-item" + Active("DevreyeAlmalar", "/personel-panel/devreyealmalar"))" href="/personel-panel/devreyealmalar">
+                <span class="nav-ico">&#128295;</span> Devreye Almalar
+            </a>
+            <a class="@("nav-item" + Active("Markalar", "/personel-panel/markalar"))" href="/personel-panel/markalar">
+                <span class="nav-ico">&#127991;</span> Markalar
+            </a>
+            <a class="@("nav-item" + Active("YetkiliServisler", "/personel-panel/yetkiliservisler"))" href="/personel-panel/yetkiliservisler">
+                <span class="nav-ico">&#128295;</span> Yetkili Servisler
+            </a>
+            <div class="nav-section">Raporlar</div>
+            <a class="@("nav-item" + Active("Raporlar", "/personel-panel/raporlar"))" href="/personel-panel/raporlar">
+                <span class="nav-ico">&#128202;</span> Genel Raporlar
+            </a>
+            <a class="@("nav-item" + Active("OnayGecmisi", "/personel-panel/onay-gecmisi"))" href="/personel-panel/onay-gecmisi">
+                <span class="nav-ico">&#128221;</span> Onay Gecmisi
+            </a>
+
+            <div class="nav-section">Sistem</div>
+            <a class="@("nav-item" + Active("Profil", "/personel-panel/profil"))" href="/personel-panel/profil">
+                <span class="nav-ico">&#128100;</span> Profilim
+            </a>
+        }
+        else
+        {
+            <div class="nav-section">Genel</div>
+            <a class="@("nav-item" + ActiveExact("Dashboard", "/AdminPanel", "/AdminPanel/index"))" href="/AdminPanel">
+                <span class="nav-ico">&#127968;</span> Dashboard
+            </a>
+
+            <div class="nav-section">Yonetim</div>
+            <a class="@("nav-item" + Active("Markalar", "/Marka"))" href="/Marka">
+                <span class="nav-ico">&#127991;</span> Markalar
+            </a>
+            <a class="@("nav-item" + Active("OnayBekleyenler", "/AdminPanel/onay-bekleyenler"))" href="/AdminPanel/onay-bekleyenler">
+                <span class="nav-ico">&#9989;</span> Yetki Belgesi Onay
+                @if (ViewBag.OnayBekleyen > 0)
+                {
+                    <span class="nav-badge">@ViewBag.OnayBekleyen</span>
+                }
+            </a>
+            <a class="@("nav-item" + Active("SertifikaUyarilari", "/AdminPanel/yetki-belgesi-uyarilari"))" href="/AdminPanel/yetki-belgesi-uyarilari">
+                <span class="nav-ico">&#9888;</span> Bitis Uyarilari
+            </a>
+            <a class="@("nav-item" + Active("DevreyeAlmalar", "/AdminPanel/devreyealmalar"))" href="/AdminPanel/devreyealmalar">
+                <span class="nav-ico">&#128295;</span> Devreye Almalar
+            </a>
+            <a class="@("nav-item" + Active("Raporlar", "/AdminPanel/raporlar"))" href="/AdminPanel/raporlar">
+                <span class="nav-ico">&#128202;</span> Raporlar
+            </a>
+            <a class="@("nav-item" + Active("YetkiliServisler", "/AdminPanel/yetkiliservisler"))" href="/AdminPanel/yetkiliservisler">
+                <span class="nav-ico">&#128295;</span> Yetkili Servisler
+            </a>
+            <a class="@("nav-item" + Active("Subeler", "/AdminPanel/subeler"))" href="/AdminPanel/subeler">
+                <span class="nav-ico">&#127970;</span> Sube / Servis Noktalari
+            </a>
+            <a class="@("nav-item" + Active("Personeller", "/AdminPanel/personeller"))" href="/AdminPanel/personeller">
+                <span class="nav-ico">&#128101;</span> Personeller
+            </a>
+            <a class="@("nav-item" + Active("Kullanicilar", "/AdminPanel/kullanicilar"))" href="/AdminPanel/kullanicilar">
+                <span class="nav-ico">&#128100;</span> Kullanicilar
+            </a>
+            <a class="@("nav-item" + Active("Yetkiler", "/AdminPanel/yetkiler"))" href="/AdminPanel/yetkiler">
+                <span class="nav-ico">&#128274;</span> Yetkiler
+            </a>
+
+            <div class="nav-section">Sistem</div>
+            <a class="@("nav-item" + Active("Profil", "/AdminPanel/profil"))" href="/AdminPanel/profil">
+                <span class="nav-ico">&#128100;</span> Profilim
+            </a>
+        }
+    </nav>
+
+    <a class="cikis-btn" href="/cikis">&#128682; Cikis Yap</a>
+</aside>

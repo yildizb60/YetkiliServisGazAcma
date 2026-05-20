@@ -1,0 +1,25 @@
+@{
+    var title = ViewData["Title"]?.ToString() ?? "Panel";
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@title - Yetkili Servis Gaz Açma</title>
+    <link rel="stylesheet" href="~/css/panel-layout.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body data-onay="@(ViewBag.OnayBekleyen ?? 0)" data-sure="@(ViewBag.SuresiBitecek ?? 0)">
+    <div class="layout">
+        @await Html.PartialAsync("_PanelSidebar")
+        <main class="main">
+            @await Html.PartialAsync("_PanelTopbar")
+            <div class="content">
+                @RenderBody()
+            </div>
+        </main>
+    </div>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

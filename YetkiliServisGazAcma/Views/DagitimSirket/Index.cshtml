@@ -1,0 +1,120 @@
+@model List<YetkiliServisGazAcma.Entities.Dag_Sirket>
+@{
+    ViewData["Title"] = "Da\u011f\u0131t\u0131m \u015eirketleri";
+    ViewData["PanelTitle"] = ViewData["Title"];
+    ViewData["PanelSubtitle"] = "Admin Paneli";
+    ViewData["ActiveMenu"] = "DagitimSirketler";
+    Layout = "~/Views/Shared/_PanelLayout.cshtml";
+    var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
+    string adSoyad = kullanici?.AdSoyad ?? "Sistem YÃƒ¶neticisi";
+    string basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "A";
+    int onayBekleyen = ViewBag.OnayBekleyen is int v ? v : 0;
+    int sureBitecek = ViewBag.SuresiBitecek is int sure ? sure : 0;
+    var seciliQ = ViewBag.SeciliQ as string ?? "";
+    var seciliDurum = ViewBag.SeciliDurum as string ?? "tumu";
+}
+
+@section Styles {
+    <style>
+.content { padding: 24px 28px; }
+        .filter-bar { background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 16px 20px; margin-bottom: 14px; display: grid; grid-template-columns: 2fr 1fr auto; gap: 10px; align-items: end; }
+        .filter-group { display: flex; flex-direction: column; gap: 6px; }
+        .filter-group label { font-size: 11px; color: #777; font-weight: bold; text-transform: uppercase; letter-spacing: .04em; }
+        .filter-group input, .filter-group select { padding: 9px 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px; }
+        .btn-filter { padding: 9px 14px; border-radius: 8px; font-size: 12px; font-weight: bold; border: none; cursor: pointer; background: #1B9FD4; color: #fff; }
+        .section { background: #fff; border-radius: 12px; border: 1px solid #eee; overflow: hidden; }
+        .section-head { padding: 14px 20px; border-bottom: 2px solid #f0f0ee; display: flex; justify-content: space-between; align-items: center; }
+        .section-title { font-size: 14px; font-weight: bold; color: #333; }
+        .btn-add { padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: bold; background: #1B9FD4; color: #fff; text-decoration: none; }
+        .mesaj { background: #EAF3DE; color: #27500A; padding: 10px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; }
+        .tablo { background: #fff; border-radius: 10px; border: 1px solid #eee; overflow: hidden; }
+        .tablo-head { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr; padding: 12px 20px; background: #f8f8f6; font-size: 11px; color: #888; font-weight: bold; }
+        .tablo-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr; padding: 13px 20px; border-top: 1px solid #f0f0ee; font-size: 13px; color: #333; align-items: center; }
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 11px; font-weight: bold; }
+        .b-green { background: #EAF3DE; color: #27500A; }
+        .b-red { background: #FCEBEB; color: #501313; }
+        .aksiyon { display: flex; gap: 8px; }
+        .btn-edit { padding: 5px 12px; background: #E6F1FB; color: #0C447C; border: none; border-radius: 6px; font-size: 12px; cursor: pointer; text-decoration: none; }
+        .btn-del { padding: 5px 12px; background: #FCEBEB; color: #501313; border: none; border-radius: 6px; font-size: 12px; cursor: pointer; text-decoration: none; }
+        .empty { padding: 40px; text-align: center; color: #bbb; font-size: 13px; }
+    </style>
+}
+
+@if (TempData["Mesaj"] != null)
+{
+    <div class="mesaj">@TempData["Mesaj"]</div>
+}
+<form class="filter-bar" method="get" action="/DagitimSirket">
+    <div class="filter-group">
+        <label>Arama</label>
+        <input type="text" name="q" value="@seciliQ" placeholder="&#350;irket ad&#305;, il, telefon..." />
+    </div>
+    <div class="filter-group">
+        <label>Durum</label>
+        <select name="durum">
+            @if (seciliDurum == "tumu")
+            {
+                <option value="tumu" selected>T&#252;m&#252;</option>
+            }
+            else
+            {
+                <option value="tumu">T&#252;m&#252;</option>
+            }
+            @if (seciliDurum == "aktif")
+            {
+                <option value="aktif" selected>Aktif</option>
+            }
+            else
+            {
+                <option value="aktif">Aktif</option>
+            }
+            @if (seciliDurum == "pasif")
+            {
+                <option value="pasif" selected>Pasif</option>
+            }
+            else
+            {
+                <option value="pasif">Pasif</option>
+            }
+        </select>
+    </div>
+    <button class="btn-filter" type="submit">Filtrele</button>
+</form>
+
+<div class="section">
+    <div class="section-head">
+        <div class="section-title">&#350;irket Listesi</div>
+        <a class="btn-add" href="/DagitimSirket/Ekle">+ Yeni &#350;irket Ekle</a>
+    </div>
+    <div class="tablo">
+        <div class="tablo-head">
+            <div>&#350;irket Ad&#305;</div>
+            <div>&#304;l</div>
+            <div>Telefon</div>
+            <div>Durum</div>
+            <div>&#304;&#351;lemler</div>
+        </div>
+        @if (!Model.Any())
+        {
+            <div class="empty">Hen&#252;z &#351;irket eklenmemi&#351;.</div>
+        }
+        @foreach (var s in Model)
+        {
+            <div class="tablo-row">
+                <div>@s.SirketAdi</div>
+                <div>@s.Il</div>
+                <div>@s.Telefon</div>
+                <div>
+                    <span class="badge @(s.AktifMi ? "b-green" : "b-red")">
+                        @(s.AktifMi ? "Aktif" : "Pasif")
+                    </span>
+                </div>
+                <div class="aksiyon">
+                    <a class="btn-edit" href="/DagitimSirket/Duzenle/@s.Id">D&#252;zenle</a>
+                    <a class="btn-del" href="/DagitimSirket/Sil/@s.Id"
+                       onclick="return confirm('Silmek istedi?"inize emin misiniz?')">Sil</a>
+                </div>
+            </div>
+        }
+    </div>
+</div>

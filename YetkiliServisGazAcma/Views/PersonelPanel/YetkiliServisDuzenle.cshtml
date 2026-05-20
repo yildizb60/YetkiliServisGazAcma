@@ -1,0 +1,165 @@
+@{
+    ViewData["Title"] = "Yetkili Servis Düzenle";
+    ViewData["PanelTitle"] = ViewData["Title"];
+    ViewData["PanelSubtitle"] = "Personel Paneli";
+    ViewData["ActiveMenu"] = "YetkiliServisler";
+    Layout = "~/Views/Shared/_PanelLayout.cshtml";
+    var Kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
+    var servis = Model as YetkiliServisGazAcma.Entities.Ys_Firma ?? ViewBag.Servis as YetkiliServisGazAcma.Entities.Ys_Firma;
+    var sehirler = ViewBag.Sehirler as List<string> ?? new();
+    var kategoriler = ViewBag.Kategoriler as List<YetkiliServisGazAcma.Entities.UrunKategori> ?? new();
+    var seciliKategoriler = ViewBag.SeciliKategoriler as List<int> ?? new();
+    string adSoyad = Kullanici?.AdSoyad ?? "Personel";
+    string basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "A";
+    int onayBekleyen = ViewBag.OnayBekleyen is int v ? v : 0;
+}
+
+@section Styles {
+    <style>
+.content { padding: 28px 32px; }
+        .back-link { display: inline-flex; align-items: center; gap: 8px; color: #1B9FD4; font-weight: 700; text-decoration: none; margin-bottom: 14px; }
+        .page-title { font-size: 22px; font-weight: 800; margin: 4px 0 10px; }
+        .card { background: #fff; border-radius: 12px; border: 1px solid #e6eef4; box-shadow: 0 10px 24px rgba(20,40,60,0.08); padding: 16px; max-width: none; width: 100%; }
+        .card-title { font-size: 14px; font-weight: 800; color: #4CAF7D; margin-bottom: 10px; display:flex; align-items:center; gap:8px; }
+        .info-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .info-item { background: #f7fafc; border: 1px solid #edf3f8; border-radius: 10px; padding: 10px 12px; }
+        .info-label { font-size: 11px; color: #6f7b86; margin-bottom: 4px; font-weight: 700; }
+        .info-input { width: 100%; padding: 10px 12px; border: 1.5px solid #e0e0e0; border-radius: 8px; font-size: 13px; color: #333; outline: none; background: #fff; }
+        .info-input:focus { border-color: #4CAF7D; }
+        .info-item.tam { grid-column: span 2; }
+        .actions { display: flex; gap: 10px; margin-top: 16px; }
+        .btn-kaydet { padding: 10px 24px; background: #1B9FD4; color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; }
+        .btn-iptal { padding: 10px 24px; background: #fff; color: #555; border: 1.5px solid #ddd; border-radius: 8px; font-size: 13px; cursor: pointer; text-decoration: none; }
+        .kategori-box { grid-column: 1 / -1; padding: 14px; border: 1px dashed #d8dde6; border-radius: 8px; background: #fff; }
+        .kategori-title { font-size: 13px; font-weight: bold; margin-bottom: 10px; }
+        .kategori-list { display: grid; grid-template-columns: repeat(4, minmax(160px, 1fr)); gap: 10px 14px; }
+        .kategori-item { display: grid; grid-template-columns: 18px 1fr; align-items: center; gap: 8px; font-size: 13px; line-height: 1.2; }
+        .kategori-item input { margin: 0; }
+        .status-row { display: flex; gap: 16px; align-items: center; grid-column: 1 / -1; }
+        .status-pill { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid #ddd; border-radius: 999px; font-size: 13px; cursor: pointer; background: #fff; }
+        .status-pill input { margin: 0; }
+
+        @@media (max-width: 1100px) {
+            .info-grid { grid-template-columns: 1fr; }
+            .kategori-list { grid-template-columns: repeat(2, minmax(160px, 1fr)); }
+        }
+        @@media (max-width: 720px) {
+            .sidebar { position: static; width: 100%; height: auto; }
+            .main { margin-left: 0; }
+            .kategori-list { grid-template-columns: 1fr; }
+        }
+    </style>
+}
+
+<a class="back-link" href="/personel-panel/yetkiliservisler">&#8592; Yetkili Servislere Dön</a>
+<div class="page-title">Yetkili Servis Düzenle</div>
+<div class="card">
+    <div class="card-title">&#128204; Firma Bilgileri</div>
+    <form method="post" action="/personel-panel/yetkiliservisler/duzenle/@servis?.Id">
+        @Html.AntiForgeryToken()
+        <div class="info-grid">
+            <div class="info-item">
+                <div class="info-label">Firma Adı</div>
+                <input class="info-input" type="text" name="firmaAdi" value="@servis?.FirmaAdi" required />
+            </div>
+            <div class="info-item">
+                <div class="info-label">Yetkili Kişi</div>
+                <input class="info-input" type="text" name="yetkiliKisi" value="@servis?.YetkiliKisi" />
+            </div>
+            <div class="info-item">
+                <div class="info-label">Telefon</div>
+                <input class="info-input" type="text" name="telefon" value="@servis?.Telefon" />
+            </div>
+            <div class="info-item">
+                <div class="info-label">E-Posta</div>
+                <input class="info-input" type="email" name="email" value="@servis?.Email" />
+            </div>
+            <div class="info-item">
+                <div class="info-label">Şehir</div>
+                <select class="info-input" name="faaliyetIli" required>
+                    <option value="">-- Seçiniz --</option>
+                    @foreach (var sehir in sehirler)
+                    {
+                        if (string.Equals(servis?.FaaliyetIli, sehir, StringComparison.CurrentCultureIgnoreCase))
+                        {
+                            <option value="@sehir" selected="selected">@sehir</option>
+                        }
+                        else
+                        {
+                            <option value="@sehir">@sehir</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Vergi No</div>
+                <input class="info-input" type="text" name="vergiNo" value="@servis?.VergiNo" />
+            </div>
+            <div class="info-item">
+                <div class="info-label">Vergi Dairesi</div>
+                <input class="info-input" type="text" name="vergiDairesi" value="@servis?.VergiDairesi" />
+            </div>
+            <div class="info-item tam">
+                <div class="info-label">Adres</div>
+                <textarea class="info-input" name="adres">@servis?.Adres</textarea>
+            </div>
+            <div class="kategori-box">
+                <div class="kategori-title">Devreye Alma Ürünleri</div>
+                <div class="kategori-list">
+                    @foreach (var k in kategoriler)
+                    {
+                        var isChecked = seciliKategoriler.Contains(k.Id);
+                        <label class="kategori-item">
+                            <input type="checkbox" name="kategoriids" value="@k.Id" @(isChecked ? "checked" : "") />
+                            @k.Ad
+                        </label>
+                    }
+                </div>
+            </div>
+            <div class="form-group" style="grid-column: 1 / -1;">
+                <label>Durum</label>
+                <div class="status-row">
+                    <label class="status-pill">
+                        <input type="radio" name="aktifMi" value="true" @(servis?.AktifMi == true ? "checked" : "") />
+                        Aktif
+                    </label>
+                    <label class="status-pill">
+                        <input type="radio" name="aktifMi" value="false" @(servis?.AktifMi == false ? "checked" : "") />
+                        Pasif
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="actions">
+            <button type="submit" class="btn-kaydet">Kaydet</button>
+            <a class="btn-iptal" href="/personel-panel/yetkiliservisler">Vazgeç</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    // PERSONEL_YETKI_MENU
+    var yetki = {
+        sertifika: @((ViewBag.YetkiSertifika == true).ToString().ToLower()),
+        rapor: @((ViewBag.YetkiRapor == true).ToString().ToLower())
+    };
+
+    function hide(selector, allowed) {
+        if (allowed) return;
+        var list = document.querySelectorAll(selector);
+        list.forEach(function (el) { el.style.display = 'none'; });
+    }
+
+    hide('a[href="/personel-panel/onay-bekleyenler"]', yetki.sertifika);
+    hide('a[href="/personel-panel/onay-gecmisi"]', yetki.sertifika);
+    hide('a[href="/personel-panel/raporlar"]', yetki.rapor);
+
+    var raporSection = Array.from(document.querySelectorAll('.nav-section')).find(function (x) {
+        return (x.textContent || '').toLowerCase().indexOf('rapor') >= 0;
+    });
+    if (!yetki.rapor && raporSection) raporSection.style.display = 'none';
+})();
+</script>
+}

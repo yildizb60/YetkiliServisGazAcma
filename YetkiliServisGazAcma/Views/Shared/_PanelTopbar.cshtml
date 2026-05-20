@@ -1,0 +1,28 @@
+@using YetkiliServisGazAcma.Entities
+@{
+    var kullanici = ViewBag.Kullanici as AppKullanici;
+    var adSoyad = kullanici?.AdSoyad ?? "Sistem Kullanıcısı";
+    var basHarf = !string.IsNullOrWhiteSpace(adSoyad) ? adSoyad.Trim().Substring(0, 1).ToUpper() : "K";
+    var baslik = (ViewData["PanelTitle"] ?? ViewData["Title"])?.ToString() ?? "Panel";
+
+    var rol = kullanici?.KullaniciTipi switch
+    {
+        1 => "Yetkili Servis",
+        2 => "Personel",
+        3 => (ViewBag.GenelSistemAdminMi as bool? ?? false) ? "Genel Sistem Admini" : "Şirket Admini",
+        4 => "Genel Sistem Admini",
+        _ => "Kullanıcı"
+    };
+}
+<header class="topbar">
+    <div class="topbar-left">@baslik</div>
+    <div class="topbar-right">
+        @await Html.PartialAsync("_NotificationPanel")
+        <div>
+            <div class="user-name">@adSoyad</div>
+            <div class="user-role">@rol</div>
+            <div class="user-company">@(ViewBag.PanelSirketAdi as string ?? "Genel Yönetim")</div>
+        </div>
+        <div class="avatar">@basHarf</div>
+    </div>
+</header>

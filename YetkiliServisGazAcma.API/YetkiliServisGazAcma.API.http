@@ -1,0 +1,6 @@
+@YetkiliServisGazAcma.API_HostAddress = http://localhost:5057
+
+GET {{YetkiliServisGazAcma.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

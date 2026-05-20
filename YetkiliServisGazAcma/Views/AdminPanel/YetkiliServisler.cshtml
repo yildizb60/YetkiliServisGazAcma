@@ -1,0 +1,271 @@
+@{
+    ViewData["Title"] = "Yetkili Servisler";
+    ViewData["PanelTitle"] = "Yetkili Servisler";
+    ViewData["PanelSubtitle"] = "Admin Paneli";
+    ViewData["ActiveMenu"] = "YetkiliServisler";
+    Layout = "~/Views/Shared/_PanelLayout.cshtml";
+
+    var servisler = ViewBag.YetkiliServisler as List<YetkiliServisGazAcma.Entities.Ys_Firma>;
+    var sehirler = ViewBag.Sehirler as List<string> ?? new();
+    var devreyeSayilari = ViewBag.DevreyeSayilari as Dictionary<int, int> ?? new();
+    var seciliQ = ViewBag.SeciliQ as string;
+    var seciliIl = ViewBag.SeciliIl as string;
+    var seciliDurum = ViewBag.SeciliDurum is int d ? d : (int?)null;
+    var seciliDevreyeSiralama = ViewBag.SeciliDevreyeSiralama as string ?? "";
+}
+
+@section Styles {
+    <style>
+        .content {
+            display: grid;
+            gap: 16px;
+        }
+
+        .filter-bar {
+            background: #fff;
+            border: 1px solid #e8eff6;
+            border-radius: 14px;
+            padding: 16px 18px;
+            display: grid;
+            grid-template-columns: 2fr 1.2fr 1fr 1fr auto;
+            gap: 12px;
+            align-items: end;
+            box-shadow: 0 8px 22px rgba(12, 40, 70, .06);
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .filter-group label {
+            font-size: 11px;
+            color: #777;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+
+        .filter-group input,
+        .filter-group select {
+            padding: 10px 12px;
+            border: 1px solid #d9e4ef;
+            border-radius: 10px;
+            font-size: 13px;
+            background: #f8fbff;
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-filter {
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 800;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-apply {
+            background: linear-gradient(135deg, #1B9FD4, #4CAF7D);
+            color: #fff;
+            box-shadow: 0 10px 18px rgba(27, 159, 212, .18);
+        }
+
+        .btn-clear {
+            background: #fff;
+            color: #1B9FD4;
+            border: 1px solid #cfe2f3;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .section {
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+            border-radius: 16px;
+            border: 1px solid #e4edf7;
+            box-shadow: 0 12px 26px rgba(20, 40, 60, .08);
+        }
+
+        .tablo-head,
+        .tablo-row {
+            grid-template-columns: 1.4fr 1fr 1fr 1fr .8fr 1.9fr;
+        }
+
+        .btn-edit,
+        .btn-del,
+        .btn-disabled,
+        .link-public {
+            border-radius: 6px;
+            font-size: 12px;
+            text-decoration: none;
+        }
+
+        .btn-edit {
+            padding: 5px 12px;
+            background: #E6F1FB;
+            color: #0C447C;
+        }
+
+        .btn-del {
+            padding: 5px 12px;
+            background: #FCEBEB;
+            color: #501313;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-disabled {
+            padding: 5px 12px;
+            background: #f1f5f9;
+            color: #8391a1;
+            border: none;
+            cursor: not-allowed;
+        }
+
+        .link-public {
+            color: #1B9FD4;
+            font-weight: 800;
+            background: transparent;
+            padding: 6px 8px;
+        }
+
+        .alert {
+            padding: 12px 14px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 800;
+            border: 1px solid transparent;
+        }
+
+        .alert-success {
+            background: #e9f8ef;
+            color: #126337;
+            border-color: #c7ebd4;
+        }
+
+        .alert-danger {
+            background: #fdecec;
+            color: #8a1f1f;
+            border-color: #f4c5c5;
+        }
+
+        @@media (max-width: 1200px) {
+            .filter-bar {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .tablo-head,
+            .tablo-row {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+        }
+    </style>
+}
+
+@if (TempData["Basarili"] != null)
+{
+    <div class="alert alert-success">@TempData["Basarili"]</div>
+}
+@if (TempData["Hata"] != null)
+{
+    <div class="alert alert-danger">@TempData["Hata"]</div>
+}
+
+<form class="filter-bar" method="get" action="/AdminPanel/yetkiliservisler">
+    <div class="filter-group">
+        <label>Arama</label>
+        <input type="text" name="q" value="@seciliQ" placeholder="Firma, yetkili kişi, vergi no, telefon..." />
+    </div>
+    <div class="filter-group">
+        <label>Şehir</label>
+        <select name="il">
+            <option value="">Tümü</option>
+            @foreach (var sehir in sehirler)
+            {
+                <option value="@sehir" selected="@(seciliIl == sehir ? "selected" : null)">@sehir</option>
+            }
+        </select>
+    </div>
+    <div class="filter-group">
+        <label>Devreye Alma</label>
+        <select name="devreyeSiralama">
+            <option value="">Varsayılan</option>
+            <option value="azalan" selected="@(seciliDevreyeSiralama == "azalan" ? "selected" : null)">En çoktan aza</option>
+            <option value="artan" selected="@(seciliDevreyeSiralama == "artan" ? "selected" : null)">En azdan çoğa</option>
+        </select>
+    </div>
+    <div class="filter-group">
+        <label>Durum</label>
+        <select name="durum">
+            <option value="" selected="@(seciliDurum == null ? "selected" : null)">Tümü</option>
+            <option value="1" selected="@(seciliDurum == 1 ? "selected" : null)">Aktif</option>
+            <option value="0" selected="@(seciliDurum == 0 ? "selected" : null)">Pasif</option>
+        </select>
+    </div>
+    <div class="filter-actions">
+        <button class="btn-filter btn-apply" type="submit">Filtrele</button>
+        <a class="btn-filter btn-clear" href="/AdminPanel/yetkiliservisler">Temizle</a>
+    </div>
+</form>
+
+<div class="section">
+    <div class="section-head">
+        <div class="section-title">Yetkili Servis Listesi</div>
+        <div style="display:flex;gap:10px;align-items:center;">
+            <a class="btn-sm" href="/AdminPanel/yetkiliservisler/ekle">+ Yetkili Servis Ekle</a>
+            <a class="link-public" href="/yetkili-servisler" target="_blank">Yetkili Servis Sayfasını Aç</a>
+        </div>
+    </div>
+    <div class="tablo-head">
+        <div>Firma</div><div>Şehir</div><div>Vergi No</div><div>Devreye Alma Sayısı</div><div>Durum</div><div>İşlem</div>
+    </div>
+    @if (servisler == null || servisler.Count == 0)
+    {
+        <div class="empty">Yetkili servis kaydı yok</div>
+    }
+    else
+    {
+        foreach (var s in servisler)
+        {
+            var devreyeSayisi = devreyeSayilari.TryGetValue(s.Id, out var sayi) ? sayi : 0;
+            <div class="tablo-row">
+                <div>@(s.FirmaAdi ?? "-")</div>
+                <div>@(s.FaaliyetIli ?? "-")</div>
+                <div>@(s.VergiNo ?? "-")</div>
+                <div>@devreyeSayisi</div>
+                <div>
+                    @if (s.AktifMi)
+                    {
+                        <span class="badge b-green">Aktif</span>
+                    }
+                    else
+                    {
+                        <span class="badge b-red">Pasif</span>
+                    }
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <a class="btn-edit" href="/AdminPanel/yetkiliservisler/detay/@s.Id">Detay</a>
+                    <a class="btn-edit" href="/AdminPanel/yetkiliservisler/duzenle/@s.Id">Düzenle</a>
+                    @if (devreyeSayisi > 0)
+                    {
+                        <button type="button" class="btn-disabled" title="Bu servisin devreye alma işlemi olduğu için silinemez.">Silinemez</button>
+                    }
+                    else
+                    {
+                        <form method="post" action="/AdminPanel/yetkiliservisler/sil/@s.Id" onsubmit="return confirm('Bu yetkili servisi silmek istiyor musunuz?');">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn-del">Sil</button>
+                        </form>
+                    }
+                </div>
+            </div>
+        }
+    }
+</div>

@@ -1,0 +1,196 @@
+@{
+    ViewData["Title"] = "Yetkili Servis Ekle";
+    ViewData["PanelTitle"] = ViewData["Title"];
+    ViewData["PanelSubtitle"] = "Personel Paneli";
+    ViewData["ActiveMenu"] = "YetkiliServisler";
+    Layout = "~/Views/Shared/_PanelLayout.cshtml";
+    var Kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
+    var sehirler = ViewBag.Sehirler as List<string> ?? new();
+    var kategoriler = ViewBag.Kategoriler as List<YetkiliServisGazAcma.Entities.UrunKategori> ?? new();
+    var markalar = ViewBag.Markalar as List<YetkiliServisGazAcma.Entities.Ys_Marka> ?? new();
+    string adSoyad = Kullanici?.AdSoyad ?? "Personel";
+    string basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "A";
+    int onayBekleyen = ViewBag.OnayBekleyen is int v ? v : 0;
+}
+
+@section Styles {
+    <style>
+.content { padding: 24px 28px; }
+        .back-link { display: inline-flex; align-items: center; gap: 8px; color: #1B9FD4; font-weight: 700; text-decoration: none; margin-bottom: 14px; }
+        .page-title { font-size: 21px; font-weight: 800; margin: 4px 0 10px; }
+        .card { background: #fff; border-radius: 12px; border: 1px solid #e6eef4; box-shadow: 0 10px 24px rgba(20,40,60,0.08); padding: 14px; max-width: none; width: 100%; }
+        .card-title { font-size: 14px; font-weight: 800; color: #4CAF7D; margin-bottom: 10px; display:flex; align-items:center; gap:8px; }
+        .info-grid { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: stretch; }
+        .info-item { background: #f7fafc; border: 1px solid #edf3f8; border-radius: 10px; padding: 10px 12px; }
+        .info-label { font-size: 11px; color: #6f7b86; margin-bottom: 4px; font-weight: 700; }
+        .info-input { width: 100%; padding: 9px 11px; border: 1.5px solid #e0e0e0; border-radius: 8px; font-size: 13px; color: #333; outline: none; background: #fff; }
+        .info-input:focus { border-color: #4CAF7D; }
+        .info-item.tam { grid-column: span 3; }
+        .actions { display: flex; gap: 10px; margin-top: 16px; }
+        .btn-kaydet { padding: 10px 24px; background: #1B9FD4; color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; }
+        .btn-iptal { padding: 10px 24px; background: #fff; color: #555; border: 1.5px solid #ddd; border-radius: 8px; font-size: 13px; cursor: pointer; text-decoration: none; }
+        .kategori-box { grid-column: span 2; padding: 12px; border: 1px dashed #d8dde6; border-radius: 10px; background: #fff; }
+        .kategori-title { font-size: 14px; font-weight: 800; margin-bottom: 18px; color: #1a2c3b; }
+        .kategori-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; }
+        .kategori-chip { display: inline-flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid #e2e8f0; border-radius: 10px; background: #f8fafc; font-size: 13px; color: #1f2937; cursor: pointer; }
+        .kategori-chip input { margin: 0; }
+        .kategori-chip:hover { border-color: #4CAF7D; background: #eefaf3; }
+        .kategori-item input { margin: 0; }
+
+        .marka-box { grid-column: span 1; padding: 12px; border: 1px dashed #d8dde6; border-radius: 8px; background: #fff; min-height: 260px; }
+        .marka-title { font-size: 13px; font-weight: 800; margin-bottom: 10px; color: #1a2c3b; }
+        .marka-search { width: 100%; padding: 9px 11px; border: 1.5px solid #e0e0e0; border-radius: 8px 8px 0 0; font-size: 13px; background: #fff; }
+        .marka-list { border: 1.5px solid #e0e0e0; border-top: 0; border-radius: 0 0 8px 8px; max-height: 180px; overflow-y: auto; background: #fff; }
+        .marka-item-all { padding: 8px 10px; background: #f7fafc; border-bottom: 1px solid #edf3f8; display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; }
+        .marka-item { padding: 8px 10px; border-bottom: 1px solid #f5f5f5; display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+        .marka-item:last-child { border-bottom: none; }
+        .marka-item input { margin: 0; }
+        .marka-hint { font-size: 11px; color: #6f7b86; margin-top: 6px; }
+
+        @@media (max-width: 1100px) {
+            .info-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .info-item.tam { grid-column: span 2; }
+            .marka-box { grid-column: span 2; }
+            .kategori-box { grid-column: span 2; }
+            .kategori-list { grid-template-columns: repeat(2, minmax(160px, 1fr)); }
+        }
+        @@media (max-width: 720px) {
+            .sidebar { position: static; width: 100%; height: auto; }
+            .main { margin-left: 0; }
+            .info-grid { grid-template-columns: 1fr; }
+            .info-item.tam { grid-column: span 1; }
+            .marka-box { grid-column: span 1; }
+            .kategori-box { grid-column: span 1; }
+            .kategori-list { grid-template-columns: 1fr; }
+        }
+    </style>
+}
+
+<a class="back-link" href="/personel-panel/yetkiliservisler">&#8592; Yetkili Servislere Dön</a>
+<div class="page-title">Yetkili Servis Ekle</div>
+<div class="card">
+    <div class="card-title">&#127970; Firma Bilgileri</div>
+    <form method="post" action="/personel-panel/yetkiliservisler/ekle">
+        @Html.AntiForgeryToken()
+        <div class="info-grid">
+            <div class="info-item">
+                <div class="info-label">Firma Adı</div>
+                <input class="info-input" type="text" name="firmaAdi" required />
+            </div>
+            <div class="info-item">
+                <div class="info-label">Yetkili Kişi</div>
+                <input class="info-input" type="text" name="yetkiliKisi" />
+            </div>
+            <div class="info-item">
+                <div class="info-label">Telefon</div>
+                <input class="info-input" type="text" name="telefon" />
+            </div>
+            <div class="info-item">
+                <div class="info-label">E-Posta</div>
+                <input class="info-input" type="email" name="email" />
+            </div>
+            <div class="info-item">
+                <div class="info-label">Şehir</div>
+                <select class="info-input" name="faaliyetIli" required>
+                    <option value="">-- Seçiniz --</option>
+                    @foreach (var sehir in sehirler)
+                    {
+                        <option value="@sehir">@sehir</option>
+                    }
+                </select>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Vergi No</div>
+                <input class="info-input" type="text" name="vergiNo" />
+            </div>
+            <div class="info-item">
+                <div class="info-label">Vergi Dairesi</div>
+                <input class="info-input" type="text" name="vergiDairesi" />
+            </div>
+            <div class="info-item tam">
+                <div class="info-label">Adres</div>
+                <textarea class="info-input" name="adres"></textarea>
+            </div>
+            <div class="marka-box">
+                <div class="marka-title">Marka Seçimi</div>
+                <input type="text" class="marka-search" id="markaArama" placeholder="Marka ara..." oninput="markaFiltrele(this.value)" />
+                <div class="marka-list">
+                    <div class="marka-item-all">
+                        <input type="checkbox" id="tumMarkalar" onchange="TumunuSec(this)" />
+                        <label for="tumMarkalar">Tümünü Seç</label>
+                    </div>
+                    @foreach (var m in markalar)
+                    {
+                        <div class="marka-item">
+                            <input type="checkbox" name="markaIds" value="@m.Id" id="marka_@m.Id" class="marka-cb" onchange="tumKontrol()" />
+                            <label for="marka_@m.Id">@m.MarkaAdi</label>
+                        </div>
+                    }
+                </div>
+                <div class="marka-hint">Birden fazla marka seçebilirsiniz.</div>
+            </div>
+            <div class="kategori-box">
+                <div class="kategori-title">Isıtma, Soğutma ve Sıhhi Tesisat Ürünleri</div>
+                <div class="kategori-list">
+                    @foreach (var k in kategoriler)
+                    {
+                        <label class="kategori-chip">
+                            <input type="checkbox" name="kategoriIds" value="@k.Id" />
+                            @k.Ad
+                        </label>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="actions">
+            <button type="submit" class="btn-kaydet">Kaydet</button>
+            <a class="btn-iptal" href="/personel-panel/yetkiliservisler">Vazge</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+<script>
+    function markaFiltrele(q) {
+        const query = (q || '').toLowerCase();
+        document.querySelectorAll('.marka-item').forEach(item => {
+            const text = item.textContent.toLowerCase();
+            item.style.display = text.includes(query) ? 'flex' : 'none';
+        });
+    }
+    function TumunuSec(el) {
+        const checked = el.checked;
+        document.querySelectorAll('.marka-cb').forEach(cb => { cb.checked = checked; });
+    }
+    function tumKontrol() {
+        const hepsi = Array.from(document.querySelectorAll('.marka-cb'));
+        const secili = hepsi.filter(cb => cb.checked);
+        const tum = document.getElementById('tumMarkalar');
+        if (tum) { tum.checked = hepsi.length > 0 && secili.length === hepsi.length; }
+    }
+</script>
+<script>
+(function () {
+    // PERSONEL_YETKI_MENU
+    var yetki = {
+        sertifika: @((ViewBag.YetkiSertifika == true).ToString().ToLower()),
+        rapor: @((ViewBag.YetkiRapor == true).ToString().ToLower())
+    };
+
+    function hide(selector, allowed) {
+        if (allowed) return;
+        var list = document.querySelectorAll(selector);
+        list.forEach(function (el) { el.style.display = 'none'; });
+    }
+
+    hide('a[href="/personel-panel/onay-bekleyenler"]', yetki.sertifika);
+    hide('a[href="/personel-panel/onay-gecmisi"]', yetki.sertifika);
+    hide('a[href="/personel-panel/raporlar"]', yetki.rapor);
+
+    var raporSection = Array.from(document.querySelectorAll('.nav-section')).find(function (x) {
+        return (x.textContent || '').toLowerCase().indexOf('rapor') >= 0;
+    });
+    if (!yetki.rapor && raporSection) raporSection.style.display = 'none';
+})();
+</script>
+}

@@ -1,0 +1,68 @@
+@model YetkiliServisGazAcma.Entities.Dag_Sirket
+@{
+    ViewData["Title"] = "\u015Eirket D\u00FCzenle";
+    ViewData["PanelTitle"] = ViewData["Title"];
+    ViewData["PanelSubtitle"] = "Admin Paneli";
+    ViewData["ActiveMenu"] = "DagitimSirketler";
+    Layout = "~/Views/Shared/_PanelLayout.cshtml";
+    var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
+    int onayBekleyen = ViewBag.OnayBekleyen is int v ? v : 0;
+    string adSoyad = kullanici?.AdSoyad ?? "Sistem Y\u00F6neticisi";
+    string basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "A";
+}
+
+@section Styles {
+    <style>
+.content { padding: 28px 32px; }
+        .back-link { display: inline-flex; align-items: center; gap: 8px; color: #1B9FD4; font-weight: 700; text-decoration: none; margin-bottom: 14px; }
+        .page-title { font-size: 22px; font-weight: 800; margin: 4px 0 10px; }
+        .card { background: #fff; border-radius: 12px; border: 1px solid #e6eef4; box-shadow: 0 10px 24px rgba(20,40,60,0.08); padding: 16px; max-width: none; width: 100%; }
+        .card-title { font-size: 14px; font-weight: 800; color: #4CAF7D; margin-bottom: 10px; display:flex; align-items:center; gap:8px; }
+        .info-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .info-item { background: #f7fafc; border: 1px solid #edf3f8; border-radius: 10px; padding: 10px 12px; }
+        .info-label { font-size: 11px; color: #6f7b86; margin-bottom: 4px; font-weight: 700; }
+        .info-input { width: 100%; padding: 10px 12px; border: 1.5px solid #e0e0e0; border-radius: 8px; font-size: 13px; color: #333; outline: none; background: #fff; }
+        .info-input:focus { border-color: #4CAF7D; }
+        .actions { display: flex; gap: 10px; margin-top: 16px; }
+        .btn { padding: 10px 16px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 13px; background: #1B9FD4; color: #fff; }
+        .btn-secondary { background: #fff; color: #555; border: 1.5px solid #ddd; text-decoration: none; padding: 10px 16px; border-radius: 8px; font-size: 13px; }
+        .alert { padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; font-size: 12px; font-weight: bold; }
+        .alert-danger { background: #FCEBEB; color: #501313; border: 1px solid #eccaca; }
+    </style>
+}
+
+<a class="back-link" href="/DagitimSirket">&#8592; &#350;irketlere D&#246;n</a>
+<div class="page-title">&#350;irket D&#252;zenle</div>
+<div class="card">
+    <div class="card-title">&#127970; &#350;irket Bilgileri</div>
+    @if (ViewBag.Hata != null) { <div class="alert alert-danger">@ViewBag.Hata</div> }
+    <form method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="Id" value="@Model.Id" />
+        <div class="info-grid">
+            <div class="info-item"><div class="info-label">&#350;irket Ad&#305; *</div><input class="info-input" name="SirketAdi" value="@(Model?.SirketAdi ?? "")" required /></div>
+            <div class="info-item"><div class="info-label">&#304;l *</div><input class="info-input" name="Il" value="@(Model?.Il ?? "")" required /></div>
+            <div class="info-item"><div class="info-label">Telefon</div><input class="info-input" name="Telefon" value="@(Model?.Telefon ?? "")" /></div>
+            <div class="info-item"><div class="info-label">Email</div><input class="info-input" name="Email" value="@(Model?.Email ?? "")" /></div>
+            <div class="info-item" style="grid-column: span 2;"><div class="info-label">Adres</div><input class="info-input" name="Adres" value="@(Model?.Adres ?? "")" /></div>
+            <div class="info-item"><div class="info-label">Durum</div>
+                <select class="info-input" name="AktifMi">
+                    @if (Model?.AktifMi == true)
+                    {
+                        <option value="true" selected="selected">Aktif</option>
+                        <option value="false">Pasif</option>
+                    }
+                    else
+                    {
+                        <option value="true">Aktif</option>
+                        <option value="false" selected="selected">Pasif</option>
+                    }
+                </select>
+            </div>
+        </div>
+        <div class="actions">
+            <button class="btn" type="submit">Kaydet</button>
+            <a class="btn-secondary" href="/DagitimSirket">&#304;ptal</a>
+        </div>
+    </form>
+</div>

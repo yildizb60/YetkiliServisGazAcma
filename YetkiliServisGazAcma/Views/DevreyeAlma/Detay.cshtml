@@ -1,0 +1,353 @@
+﻿@model YetkiliServisGazAcma.Entities.Ys_DevreyeAlma
+@{
+    ViewData["Title"] = "Devreye Alma Detayı";
+    Layout = null;
+    var firma = ViewBag.Firma as YetkiliServisGazAcma.Entities.Ys_Firma;
+    string adSoyad = firma?.YetkiliKisi ?? "Yetkili Servis";
+    string basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "Y";
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <title>Devreye Alma Detayı</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: "Segoe UI", "Segoe UI Emoji", "Segoe UI Symbol", "Apple Color Emoji", "Noto Color Emoji", Arial, sans-serif; background: #f0f4f8; }
+        .layout { display: flex; min-height: 100vh; }
+        .sidebar { width: 230px; background: #1a1a2e; position: fixed; top: 0; left: 0; height: 100vh; display: flex; flex-direction: column; }
+        .logo { padding: 22px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 12px; }
+        .logo-circle { width: 40px; height: 40px; background: #1B9FD4; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .logo-dot { width: 16px; height: 16px; background: #4CAF7D; border-radius: 50%; }
+        .logo-text { color: #fff; font-size: 15px; font-weight: bold; }
+        .logo-sub { color: rgba(255,255,255,0.4); font-size: 11px; margin-top: 2px; }
+        .nav { padding: 16px 0; flex: 1; }
+        .nav-section { color: rgba(255,255,255,0.3); font-size: 10px; padding: 14px 20px 5px; text-transform: uppercase; letter-spacing: .08em; }
+        .nav-item { display: flex; align-items: center; gap: 10px; padding: 11px 20px; color: rgba(255,255,255,0.65); font-size: 14px; text-decoration: none; transition: background .15s; }
+        .nav-item:hover { background: rgba(255,255,255,0.06); color: #fff; }
+        .nav-item.active { background: #3bb7e8; color: #fff; }
+        .cikis-btn { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.6); padding: 9px 16px; border-radius: 6px; font-size: 13px; margin: 16px 20px; display: block; text-align: center; text-decoration: none; }
+        .main { margin-left: 230px; flex: 1; }
+        .topbar { background: #fff; padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #4CAF7D; }
+        .topbar-left { font-size: 17px; font-weight: bold; color: #1a1a1a; display: flex; align-items: center; gap: 10px; }
+        .topbar-left a { color: #888; text-decoration: none; font-size: 14px; font-weight: normal; }
+        .topbar-left a:hover { color: #1B9FD4; }
+        .topbar-right { display: flex; gap: 10px; align-items: center; }
+        .notif-wrap { position: relative; }
+        .notif { position: relative; width: 32px; height: 32px; border-radius: 50%; background: #f0f4f8; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #1B9FD4; border: none; cursor: pointer; }
+        .notif-badge { position: absolute; top: -4px; right: -4px; background: #e24b4a; color: #fff; font-size: 9px; font-weight: bold; padding: 2px 5px; border-radius: 10px; }
+        .notif-panel { position: absolute; right: 0; top: 38px; width: 320px; background: #fff; border: 1px solid #e7e7e7; border-radius: 10px; box-shadow: 0 10px 24px rgba(0,0,0,0.08); padding: 10px; display: none; z-index: 50; }
+        .notif-panel.open { display: block; }
+        .notif-title { font-size: 12px; font-weight: bold; color: #555; padding: 6px 8px 8px; border-bottom: 1px solid #f0f0f0; margin-bottom: 6px; }
+        .notif-item { display: flex; gap: 10px; padding: 8px; border-radius: 8px; }
+        .notif-item:hover { background: #f7fafc; }
+        .notif-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; background: #1B9FD4; flex-shrink: 0; }
+        .notif-text { font-size: 13px; color: #333; line-height: 1.35; }
+        .notif-empty { padding: 10px 8px; font-size: 12px; color: #999; }
+        .avatar { width: 32px; height: 32px; border-radius: 50%; background: #1B9FD4; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        .user-name { font-size: 13px; color: #333; font-weight: bold; }
+        .user-role { font-size: 11px; color: #1B9FD4; }
+        .btn-pdf { padding: 9px 20px; background: #1B9FD4; color: #fff; border: none; border-radius: 7px; font-size: 14px; font-weight: bold; text-decoration: none; display: flex; align-items: center; gap: 6px; }
+        .btn-pdf:hover { background: #0d7faa; }
+        .btn-geri { padding: 9px 18px; background: #fff; color: #555; border: 1.5px solid #ddd; border-radius: 7px; font-size: 14px; text-decoration: none; }
+        .btn-geri:hover { border-color: #4CAF7D; color: #4CAF7D; }
+        .content { padding: 28px 32px; }
+        .content-actions { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 14px; }
+
+        .hero { background: linear-gradient(135deg, #1a1a2e 0%, #1B9FD4 100%); border-radius: 14px; padding: 28px 32px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; }
+        .hero-left { display: flex; align-items: center; gap: 20px; }
+        .hero-icon { width: 64px; height: 64px; background: rgba(255,255,255,0.15); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 32px; }
+        .hero-baslik { color: #fff; font-size: 20px; font-weight: bold; }
+        .hero-alt { color: rgba(255,255,255,0.7); font-size: 13px; margin-top: 4px; }
+        .hero-badge { background: #4CAF7D; color: #fff; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: bold; }
+        .hero-badge.bekliyor { background: #f0a500; }
+
+        .kategori-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+        .kategori-row.uc { grid-template-columns: 1fr 1fr 1fr; }
+        .kart { background: #fff; border-radius: 12px; border: 1px solid #eee; overflow: hidden; }
+        .kart-baslik { display: flex; align-items: center; gap: 10px; padding: 14px 20px; border-bottom: 1px solid #f0f0ee; }
+        .kart-baslik-ikon { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+        .ikon-mavi { background: #E6F1FB; }
+        .ikon-yesil { background: #E1F5EE; }
+        .ikon-turuncu { background: #FEF0E0; }
+        .ikon-mor { background: #F0EBFF; }
+        .kart-baslik-yazi { font-size: 13px; font-weight: bold; color: #333; }
+        .kart-icerik { padding: 16px 20px; }
+        .bilgi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .bilgi-label { font-size: 11px; color: #999; margin-bottom: 3px; font-weight: bold; text-transform: uppercase; letter-spacing: .04em; }
+        .bilgi-deger { font-size: 14px; color: #222; font-weight: 500; }
+
+        .chip-wrap { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 20px; }
+        .chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+        .chip-wrap .chip-row { margin-top: 0; margin-bottom: 0; }
+        .chip-actions { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .chip-action { flex-shrink: 0; white-space: nowrap; }
+        .chip { display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: bold; border: 1.5px solid; }
+        .chip-mavi { background: #E6F1FB; color: #1565C0; border-color: #BBDEFB; }
+        .chip-yesil { background: #E1F5EE; color: #085041; border-color: #A5D6A7; }
+        .chip-turuncu { background: #FEF0E0; color: #8B4513; border-color: #FFCC80; }
+        .chip-mor { background: #F0EBFF; color: #4A148C; border-color: #CE93D8; }
+
+        .notlar-kutu { background: #f8f8f6; border-radius: 8px; padding: 14px 16px; font-size: 14px; color: #444; line-height: 1.6; border-left: 3px solid #4CAF7D; }
+        .imza-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 16px; }
+        .imza-kart { background: #fff; border-radius: 12px; border: 2px dashed #ddd; padding: 20px; text-align: center; }
+        .imza-bosluk { height: 60px; border-bottom: 1.5px solid #ccc; margin-bottom: 8px; }
+        .imza-label { font-size: 12px; color: #888; }
+    </style>
+</head>
+<body>
+<div class="layout">
+    <div class="sidebar">
+        <div class="logo">
+            @if (!string.IsNullOrWhiteSpace(ViewBag.PanelLogoUrl as string)) { <img class="panel-company-logo" src="@(ViewBag.PanelLogoUrl as string)" alt="@(ViewBag.PanelSirketAdi as string ?? "Şirket")" style="width:44px;height:44px;object-fit:contain;border-radius:14px;background:#fff;padding:5px;box-shadow:0 8px 20px rgba(0,0,0,.12);" /> } else { <div class="logo-circle"><div class="logo-dot"></div></div> }
+            <div>
+                <div class="logo-text">Gaz Açma</div>
+                <div class="logo-sub">Yetkili Servis</div><div class="logo-company" style="color:rgba(255,255,255,.68);font-size:10px;margin-top:4px;font-weight:700;letter-spacing:.03em;line-height:1.2;">@(ViewBag.PanelSirketAdi as string ?? "Genel Yönetim")</div>
+            </div>
+        </div>
+        <div class="nav">
+            <div class="nav-section">Firma</div>
+            <a class="nav-item" href="/ys-panel">&#127968; Ana Sayfa</a>
+            <div class="nav-section">Firma</div>
+            <a class="nav-item" href="/ys-devreyeal">&#128295; Cihaz Devreye Al</a>
+            <a class="nav-item active" href="/ys-devreyeal/gecmis">&#128221; İşlem Geçmişim</a>
+            <a class="nav-item" href="/ys-panel/raporlar">&#128202; Raporlarım</a>
+            <div class="nav-section">Firma</div>
+            <a class="nav-item" href="/ys-yetki-belgesi">&#128196; Yetki Belgem</a>
+            <a class="nav-item" href="/ys-panel/markalar">&#128203; Markalarım</a>
+            <a class="nav-item" href="/ys-panel/subeler">&#127970; Şube / Servis Noktaları</a>
+            <a class="nav-item" href="/ys-panel/profil">&#128100; Profilim</a>
+        </div>
+        <a class="cikis-btn" href="/cikis">Çıkış Yap</a>
+    </div>
+
+    <div class="main">
+        <div class="topbar">
+            <div class="topbar-left">
+                <a href="/ys-devreyeal/gecmis">Geçmiş</a>
+                <span style="color:#ddd">/</span>
+                Devreye Alma #@Model.Id
+            </div>
+            <div class="topbar-right">
+                @await Html.PartialAsync("_NotificationPanel")
+                <div>
+                    <div class="user-name">@adSoyad</div>
+                    <div class="user-role">Yetkili Servis</div><div class="user-company" style="font-size:10px;color:#6b7c8e;margin-top:2px;font-weight:700;">@(ViewBag.PanelSirketAdi as string ?? "Genel Yönetim")</div>
+                </div>
+                <div class="avatar">@basHarf</div>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="hero">
+                <div class="hero-left">
+                    <div class="hero-icon"></div>
+                    <div>
+                        <div class="hero-baslik">@(Model.CihazMarka ?? "") @(Model.CihazModeli ?? "")</div>
+                        <div class="hero-alt">
+                            Tesisat No: <strong style="color:#fff">@Model.TesistatNo</strong>
+                            &nbsp;&nbsp; @Model.DevreyeAlmaTarihi.ToString("dd MMMM yyyy", new System.Globalization.CultureInfo("tr-TR"))
+                            &nbsp;&nbsp; @(Model.Marka?.MarkaAdi ?? "")
+                        </div>
+                    </div>
+                </div>
+                <div class="hero-badge @(Model.Durum == 0 ? "bekliyor" : "")">
+                    @(Model.Durum == 1 ? "✔ Tamamlandı" : Model.Durum == 2 ? "✖ İptal" : "⏳ Bekliyor")
+                </div>
+            </div>
+
+            <div class="chip-wrap" style="margin-top:4px;">
+                <div class="chip-row">
+                    <div class="chip chip-mavi">@(Model.CihazTipi ?? "")</div>
+                    <div class="chip chip-yesil">Tesisat: @(Model.TesistatNo ?? "")</div>
+                    <div class="chip chip-turuncu">Marka: @(Model.CihazMarka ?? "")</div>
+                    <div class="chip chip-mor">Kapasite: @(Model.CihazKapasite ?? "")</div>
+                    <div class="chip chip-mavi">Seri: @(Model.SeriNo ?? "")</div>
+                </div>
+                <div class="chip-actions">
+                    <a class="btn-pdf chip-action" href="/ys-devreyeal/pdf/@Model.Id" target="_blank">PDF indir</a>
+                    <a class="btn-pdf chip-action" href="/ys-devreyeal/excel/@Model.Id" target="_blank">Excel indir</a>
+                </div>
+            </div>
+
+            <div class="kategori-row">
+                <div class="kart">
+                    <div class="kart-baslik">
+                        <div class="kart-baslik-ikon ikon-mavi">&#129470;</div>
+                        <div class="kart-baslik-yazi">Tesisat Bilgileri</div>
+                    </div>
+                    <div class="kart-icerik">
+                        <div class="bilgi-grid">
+                            <div>
+                                <div class="bilgi-label">Tesisat No</div>
+                                <div class="bilgi-deger">@(Model.TesistatNo ?? "")</div>
+                            </div>
+                            <div>
+                                <div class="bilgi-label">Abone No</div>
+                                <div class="bilgi-deger">@(Model.AboneNo ?? "")</div>
+                            </div>
+                            <div>
+                                <div class="bilgi-label">Uygunluk Belge No</div>
+                                <div class="bilgi-deger">@(Model.UygunlukBelgeNo ?? "")</div>
+                            </div>
+                            <div>
+                                <div class="bilgi-label">Uygunluk Tarihi</div>
+                                <div class="bilgi-deger">@(Model.UygunlukTarihi?.ToString("dd.MM.yyyy") ?? "")</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kart">
+                    <div class="kart-baslik">
+                        <div class="kart-baslik-ikon ikon-yesil">&#128100;</div>
+                        <div class="kart-baslik-yazi">Müşteri Bilgileri</div>
+                    </div>
+                    <div class="kart-icerik">
+                        <div class="bilgi-grid">
+                            <div>
+                                <div class="bilgi-label">Müşteri Adı</div>
+                                <div class="bilgi-deger">@(Model.MusteriAdi ?? "")</div>
+                            </div>
+                            <div>
+                                <div class="bilgi-label">TC Kimlik No</div>
+                                <div class="bilgi-deger">@(Model.MusteriTcNo ?? "")</div>
+                            </div>
+                            <div>
+                                <div class="bilgi-label">Telefon</div>
+                                <div class="bilgi-deger">@(Model.MusteriTelefon ?? "")</div>
+                            </div>
+                            <div style="grid-column:span 2">
+                                <div class="bilgi-label">Adres</div>
+                                <div class="bilgi-deger">@(Model.Adres ?? "")</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="kategori-row uc">
+                <div class="kart">
+                    <div class="kart-baslik">
+                        <div class="kart-baslik-ikon ikon-turuncu">&#128295;</div>
+                        <div class="kart-baslik-yazi">Cihaz Bilgileri</div>
+                    </div>
+                    <div class="kart-icerik">
+                        <div class="bilgi-grid">
+                            <div>
+                                <div class="bilgi-label">Cihaz Tipi</div>
+                                <div class="bilgi-deger">@(Model.CihazTipi ?? "")</div>
+                            </div>
+                            <div>
+                                <div class="bilgi-label">Marka</div>
+                                <div class="bilgi-deger">@(Model.CihazMarka ?? "")</div>
+                            </div>
+                            <div>
+                                <div class="bilgi-label">Model</div>
+                                <div class="bilgi-deger">@(Model.CihazModeli ?? "")</div>
+                            </div>
+                            <div>
+                                <div class="bilgi-label">Seri No</div>
+                                <div class="bilgi-deger">@(Model.SeriNo ?? "")</div>
+                            </div>
+                            <div style="grid-column:span 2">
+                                <div class="bilgi-label">Kapasite</div>
+                                <div class="bilgi-deger">@(Model.CihazKapasite ?? "")</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kart">
+                    <div class="kart-baslik">
+                        <div class="kart-baslik-ikon ikon-mor">&#129528;</div>
+                        <div class="kart-baslik-yazi">Teknisyen Bilgileri</div>
+                    </div>
+                    <div class="kart-icerik">
+                        <div class="bilgi-grid">
+                            <div style="grid-column:span 2">
+                                <div class="bilgi-label">Teknisyen Adı</div>
+                                <div class="bilgi-deger">@(Model.TeknisyenAdi ?? "")</div>
+                            </div>
+                            <div style="grid-column:span 2">
+                                <div class="bilgi-label">Yetki Belgesi No</div>
+                                <div class="bilgi-deger">@(Model.TeknisyenSertifikaNo ?? "")</div>
+                            </div>
+                            <div style="grid-column:span 2">
+                                <div class="bilgi-label">Devreye Alma Tarihi</div>
+                                <div class="bilgi-deger">@Model.DevreyeAlmaTarihi.ToString("dd MMMM yyyy", new System.Globalization.CultureInfo("tr-TR"))</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kart">
+                    <div class="kart-baslik">
+                        <div class="kart-baslik-ikon ikon-yesil">&#127970;</div>
+                        <div class="kart-baslik-yazi">Yetkili Servis</div>
+                    </div>
+                    <div class="kart-icerik">
+                        <div class="bilgi-grid">
+                            <div style="grid-column:span 2">
+                                <div class="bilgi-label">Firma Adı</div>
+                                <div class="bilgi-deger">@(Model.Firma?.FirmaAdi ?? "")</div>
+                            </div>
+                            <div style="grid-column:span 2">
+                                <div class="bilgi-label">Yetkili Marka</div>
+                                <div class="bilgi-deger">@(Model.Marka?.MarkaAdi ?? "")</div>
+                            </div>
+                            <div style="grid-column:span 2">
+                                <div class="bilgi-label">Kayıt Tarihi</div>
+                                <div class="bilgi-deger">@Model.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(Model.Notlar))
+            {
+                <div class="kart" style="margin-bottom:16px;">
+                    <div class="kart-baslik">
+                        <div class="kart-baslik-ikon ikon-mavi">&#128221;</div>
+                        <div class="kart-baslik-yazi">Notlar</div>
+                    </div>
+                    <div class="kart-icerik">
+                        <div class="notlar-kutu">@Model.Notlar</div>
+                    </div>
+                </div>
+            }
+
+            <div class="kart">
+                <div class="kart-baslik">
+                    <div class="kart-baslik-ikon ikon-yesil">&#9997;</div>
+                    <div class="kart-baslik-yazi">İmza Alanları</div>
+                </div>
+                <div class="kart-icerik">
+                    <div class="imza-row">
+                        <div class="imza-kart">
+                            <div class="imza-bosluk"></div>
+                            <div class="imza-label">Teknisyen İmzası<br><small>@(Model.TeknisyenAdi ?? "")</small></div>
+                        </div>
+                        <div class="imza-kart">
+                            <div class="imza-bosluk"></div>
+                            <div class="imza-label">Müşteri İmzası<br><small>@(Model.MusteriAdi ?? "")</small></div>
+                        </div>
+                        <div class="imza-kart">
+                            <div class="imza-bosluk"></div>
+                            <div class="imza-label">Yetkili Servis Kaşe/İmza<br><small>@(Model.Firma?.FirmaAdi ?? "")</small></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
+
+
+
+

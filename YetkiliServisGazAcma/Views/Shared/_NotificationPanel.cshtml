@@ -1,0 +1,126 @@
+﻿@{
+    var path = Context?.Request?.Path.ToString().ToLowerInvariant() ?? "";
+    var panelTipi =
+        path.Contains("/adminpanel") || path.Contains("/dagitimsirket") || path.Contains("/marka")
+            ? "admin"
+            : path.Contains("/personel-panel")
+                ? "personel"
+                : "ys";
+
+    var onayBekleyen = ViewBag.OnayBekleyen as int? ?? 0;
+    var suresiBitecek = ViewBag.SuresiBitecek as int? ?? 0;
+    var bildirimSayisi = ViewBag.BildirimSayisi as int?;
+    var bildirimler = ViewBag.Bildirimler as IEnumerable<string>;
+    var aktifSirketler = (ViewBag.AktifSirketler as IEnumerable<YetkiliServisGazAcma.Entities.Dag_Sirket>)?.ToList()
+        ?? new List<YetkiliServisGazAcma.Entities.Dag_Sirket>();
+    int? aktifSirketId = ViewBag.AktifSirketId as int?;
+    var genelSistemAdminMi = ViewBag.GenelSistemAdminMi as bool? ?? false;
+    var sirketSeciciGoster = Context?.User?.Identity?.IsAuthenticated == true
+        && (aktifSirketler.Count > 1 || genelSistemAdminMi);
+    var returnUrl = (Context?.Request?.Path.ToString() ?? "/")
+        + (Context?.Request?.QueryString.ToString() ?? "");
+
+    var satirlar = new List<(string Text, string Meta, string Color)>();
+
+    if (bildirimler != null)
+    {
+        foreach (var b in bildirimler.Where(x => !string.IsNullOrWhiteSpace(x)))
+        {
+            satirlar.Add((b!, panelTipi == "ys" ? "Yetkili Servis" : panelTipi == "personel" ? "Personel" : "Sistem", "#3bb7e8"));
+        }
+    }
+
+    if (!satirlar.Any())
+    {
+        if (onayBekleyen > 0)
+        {
+            satirlar.Add(($"{onayBekleyen} adet yetki belgesi onay bekliyor.", "Yetki Belgesi Onay", "#3bb7e8"));
+        }
+        if (suresiBitecek > 0)
+        {
+            satirlar.Add(($"{suresiBitecek} adet yetki belgesi 30 gün içinde bitiyor.", "Bitiş Uyarısı", "#e24b4a"));
+        }
+    }
+
+    var toplam = bildirimSayisi ?? satirlar.Count;
+}
+<style>
+    .ntf-wrap { position: relative; }
+    .ntf-btn { position: relative; width: 32px; height: 32px; border-radius: 50%; background: #f0f4f8; display: inline-flex; align-items: center; justify-content: center; font-size: 16px; color: #1B9FD4; border: none; cursor: pointer; }
+    .ntf-badge { position: absolute; top: -4px; right: -4px; background: #e24b4a; color: #fff; font-size: 9px; font-weight: bold; padding: 2px 5px; border-radius: 10px; }
+    .ntf-panel { position: absolute; right: 0; top: 38px; width: 320px; background: #fff; border: 1px solid #e7e7e7; border-radius: 10px; box-shadow: 0 10px 24px rgba(0,0,0,0.08); padding: 10px; display: none; z-index: 50; }
+    .ntf-panel.open { display: block; }
+    .ntf-title { font-size: 12px; font-weight: bold; color: #555; padding: 6px 8px 8px; border-bottom: 1px solid #f0f0f0; margin-bottom: 6px; }
+    .ntf-item { display: flex; gap: 10px; padding: 8px; border-radius: 8px; }
+    .ntf-item:hover { background: #f7fafc; }
+    .ntf-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; }
+    .ntf-text { font-size: 13px; color: #333; line-height: 1.35; }
+    .ntf-meta { font-size: 11px; color: #888; margin-top: 2px; }
+    .ntf-empty { padding: 10px 8px; font-size: 12px; color: #999; }
+    .company-switcher { display: inline-flex; align-items: center; gap: 7px; background: #f7fbff; border: 1px solid #dbe9f7; border-radius: 10px; padding: 5px 8px; }
+    .company-switcher span { font-size: 13px; color: #1B9FD4; line-height: 1; }
+    .company-switcher select { border: none; background: transparent; color: #244b6d; font-size: 12px; font-weight: 700; outline: none; max-width: 190px; cursor: pointer; }
+</style>
+@if (sirketSeciciGoster)
+{
+    <form class="company-switcher" method="post" action="/panel/sirket-sec" title="İşlem yapılacak şirket">
+        @Html.AntiForgeryToken()
+        <span>&#127970;</span>
+        <input type="hidden" name="returnUrl" value="@returnUrl" />
+        <select name="sirketId" onchange="this.form.submit()">
+            @if (genelSistemAdminMi)
+            {
+                if (!aktifSirketId.HasValue)
+                {
+                    <option value="0" selected="selected">Tüm Şirketler</option>
+                }
+                else
+                {
+                    <option value="0">Tüm Şirketler</option>
+                }
+            }
+            @foreach (var sirket in aktifSirketler)
+            {
+                if (aktifSirketId == sirket.Id)
+                {
+                    <option value="@sirket.Id" selected="selected">@sirket.SirketAdi</option>
+                }
+                else
+                {
+                    <option value="@sirket.Id">@sirket.SirketAdi</option>
+                }
+            }
+        </select>
+    </form>
+}
+<div class="ntf-wrap js-notif-wrap">
+    <button class="ntf-btn js-notif-btn" type="button" aria-label="Bildirimler">
+        &#128276;
+        @if (toplam > 0)
+        {
+            <span class="ntf-badge">@toplam</span>
+        }
+    </button>
+    <div class="ntf-panel js-notif-panel">
+        <div class="ntf-title">Bildirimler</div>
+        @if (!satirlar.Any())
+        {
+            <div class="ntf-empty">Yeni bildirim yok.</div>
+        }
+        else
+        {
+            foreach (var s in satirlar)
+            {
+                <div class="ntf-item">
+                    <span class="ntf-dot" style="background:@s.Color;"></span>
+                    <div>
+                        <div class="ntf-text">@s.Text</div>
+                        <div class="ntf-meta">@s.Meta</div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>
+<script src="/js/notification-panel.js"></script>
+

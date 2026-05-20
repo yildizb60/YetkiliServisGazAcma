@@ -1,0 +1,202 @@
+@model YetkiliServisGazAcma.Entities.Ys_Firma
+@{
+    ViewData["Title"] = "Yetkili Servis Detayı";
+    ViewData["PanelTitle"] = ViewData["Title"];
+    ViewData["PanelSubtitle"] = "Personel Paneli";
+    ViewData["ActiveMenu"] = "YetkiliServisler";
+    Layout = "~/Views/Shared/_PanelLayout.cshtml";
+    var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
+    bool ySertifika = ViewBag.YetkiSertifika != false;
+    bool yRapor = ViewBag.YetkiRapor != false;
+    bool ySirket = ViewBag.YetkiSirket != false;
+    bool yMarka = ViewBag.YetkiMarka != false;    bool ySirketYonet = ViewBag.YetkiSirketYonet != false;    bool yMarkaYonet = ViewBag.YetkiMarkaYonet != false;
+    bool yServis = ViewBag.YetkiServis != false;
+    var subeler = Model.Subeler?.Where(x => !x.SilindiMi).ToList() ?? new List<YetkiliServisGazAcma.Entities.Ys_Sube>();
+    var markalar = Model.FirmaMarkalar?.Where(x => !x.SilindiMi && x.Marka != null).Select(x => x.Marka!).Distinct().ToList() ?? new List<YetkiliServisGazAcma.Entities.Ys_Marka>();
+    string NormalizeKategori(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return "";
+        var lower = value.Trim().ToLower(new System.Globalization.CultureInfo("tr-TR"))
+            .Normalize(System.Text.NormalizationForm.FormD);
+        var chars = lower
+            .Where(ch => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(ch) != System.Globalization.UnicodeCategory.NonSpacingMark && char.IsLetterOrDigit(ch))
+            .ToArray();
+        return new string(chars)
+            .Replace("ı", "i")
+            .Replace("ş", "s")
+            .Replace("ğ", "g")
+            .Replace("ü", "u")
+            .Replace("ö", "o")
+            .Replace("ç", "c");
+    }
+
+    bool KullanilanKategoriMi(string? value)
+    {
+        var key = NormalizeKategori(value);
+        return key == "kombi"
+            || key.Contains("merkezikazan")
+            || key.Contains("sofben")
+            || key.Contains("sohben");
+    }
+
+    var kategoriler = Model.FirmaKategoriler?
+        .Where(x => !x.SilindiMi && x.Kategori != null && KullanilanKategoriMi(x.Kategori.Ad))
+        .Select(x => x.Kategori!)
+        .ToList() ?? new List<YetkiliServisGazAcma.Entities.UrunKategori>();
+}
+@functions {
+    private string KategoriIkon(string? ad)
+    {
+        var isim = (ad ?? "").ToLowerInvariant();
+        if (isim.Contains("kombi")) return "\U0001F525"; // ??
+        if (isim.Contains("armat")) return "\U0001F6B0"; // ??
+        if (isim.Contains("vitr")) return "\U0001F6BD"; // ??
+        if (isim.Contains("isi") || isim.Contains("isi") || isim.Contains("pompa")) return "\U0001F321"; // ??
+        if (isim.Contains("sofben") || isim.Contains("sofben")) return "\U0001F6BF"; // ??
+        if (isim.Contains("klima")) return "\u2744"; // ?
+        if (isim.Contains("rezervuar")) return "\U0001F9F0"; // ??
+        if (isim.Contains("kazan")) return "\U0001F3ED"; // ??
+        return "\U0001F6E0"; // ??
+    }
+}
+
+@section Styles {
+    <style>
+.content { padding: 28px 32px; }
+        .back-link { display: inline-flex; align-items: center; gap: 8px; color: #1B9FD4; font-weight: 700; text-decoration: none; margin-bottom: 14px; }
+        .page-title { font-size: 22px; font-weight: 800; margin: 4px 0 10px; }
+        .grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 18px; }
+        .card { background: #fff; border-radius: 12px; border: 1px solid #e6eef4; box-shadow: 0 10px 24px rgba(20,40,60,0.08); padding: 16px; }
+        .card-title { font-size: 14px; font-weight: 800; color: #4CAF7D; margin-bottom: 10px; display:flex; align-items:center; gap:8px; }
+        .info-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .info-item { background: #f7fafc; border: 1px solid #edf3f8; border-radius: 10px; padding: 10px 12px; }
+        .info-label { font-size: 11px; color: #6f7b86; margin-bottom: 4px; }
+        .info-value { font-weight: 700; font-size: 13px; color: #1a2c3b; }
+        .chip-row { display:flex; flex-wrap:wrap; gap:10px; }
+        .chip { background:#e8f7ef; color:#1f5b3b; border:1px solid #cdebdc; padding:6px 10px; border-radius:999px; font-size:12px; font-weight:700; }
+        .cat-grid { display:grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+        .cat-card { background:#f7fafc; border:1px solid #edf3f8; border-radius: 12px; padding: 12px; display:flex; align-items:center; gap:10px; }
+        .cat-ico { width:36px; height:36px; border-radius:10px; background:#e7f5ee; display:grid; place-items:center; font-size:18px; overflow: hidden; }
+        .cat-ico img { width: 22px; height: 22px; object-fit: contain; }
+        .cat-name { font-size: 13px; font-weight: 700; color: #1a2c3b; }
+        .sube-list { display:grid; gap:10px; }
+        .sube { border:1px solid #edf3f8; border-radius:10px; padding:10px 12px; background:#f8fbfd; }
+        .sube-title { font-weight:700; font-size:13px; margin-bottom:4px; }
+        .sube-meta { font-size:12px; color:#6f7b86; }
+        .notif-wrap { position: relative; }
+        .notif-btn { background:#fff; border:1px solid #e2edf3; border-radius:999px; padding:6px 10px; display:flex; align-items:center; gap:6px; cursor:pointer; font-weight:700; }
+        .notif-badge { background:#e24b4a; color:#fff; border-radius:999px; font-size:10px; padding:2px 6px; }
+        .notif-panel { position:absolute; right:0; top:44px; width:260px; background:#fff; border:1px solid #e6eef4; border-radius:10px; box-shadow:0 10px 24px rgba(20,40,60,0.12); padding:10px; display:none; }
+        .notif-panel.open { display:block; }
+        .notif-item { font-size:12px; color:#55636f; padding:6px 4px; border-bottom:1px solid #f0f3f7; }
+        .notif-item:last-child { border-bottom:0; }
+        @@media (max-width: 1100px) {
+            .grid { grid-template-columns: 1fr; }
+            .cat-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @@media (max-width: 720px) {
+            .sidebar { position: static; width: 100%; height: auto; }
+            .main { margin-left: 0; }
+            .info-grid { grid-template-columns: 1fr; }
+            .cat-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+}
+
+<a class="back-link" href="/personel-panel/yetkiliservisler">← Yetkili Servislere Dön</a>
+<div class="page-title">@Model.FirmaAdi</div>
+
+<div class="grid">
+    <div class="card">
+        <div class="card-title">&#128203; Firma Bilgileri</div>
+        <div class="info-grid">
+            <div class="info-item"><div class="info-label">Firma</div><div class="info-value">@Model.FirmaAdi</div></div>
+            <div class="info-item"><div class="info-label">Firma Kodu</div><div class="info-value">@Model.Sirket?.SirketAdi</div></div>
+            <div class="info-item"><div class="info-label">Vergi No</div><div class="info-value">@Model.VergiNo</div></div>
+            <div class="info-item"><div class="info-label">Telefon</div><div class="info-value">@Model.Telefon</div></div>
+            <div class="info-item"><div class="info-label">Yetkili Kişi</div><div class="info-value">@Model.YetkiliKisi</div></div>
+            <div class="info-item"><div class="info-label">Faaliyet İli</div><div class="info-value">@Model.FaaliyetIli</div></div>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-title">&#127991; Markalar</div>
+        <div class="chip-row">
+            @if (markalar.Count == 0) { <span class="chip">Marka yok</span> }
+            else { foreach (var m in markalar) { <span class="chip">@m.MarkaAdi</span> } }
+        </div>
+    </div>
+</div>
+
+<div class="grid" style="margin-top:18px;">
+    <div class="card">
+        <div class="card-title">&#127970; Şubeler</div>
+        <div class="sube-list">
+            @if (subeler.Count == 0) { <div class="sube">Şube kaydı bulunamadı.</div> }
+            else {
+                foreach (var s in subeler)
+                {
+                    <div class="sube">
+                        <div class="sube-title">@s.SubeAdi</div>
+                        <div class="sube-meta">@s.Il / @s.Ilce • @s.Telefon</div>
+                        <div class="sube-meta">@s.Adres</div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-title">&#128230; Kategoriler</div>
+        <div class="cat-grid">
+            @if (kategoriler.Count == 0) { <div class="cat-card"><div class="cat-ico">&#128230;</div><div class="cat-name">Kategori yok</div></div> }
+            else {
+                foreach (var k in kategoriler)
+                {
+                    var ad = k.Ad ?? "";
+                    var ikon = KategoriIkon(ad);
+                    var iconUrl = k.IconUrl;
+                    <div class="cat-card">
+                        <div class="cat-ico">
+                            @if (!string.IsNullOrWhiteSpace(iconUrl))
+                            {
+                                <img src="@iconUrl" alt="@ad" />
+                            }
+                            else
+                            {
+                                @ikon
+                            }
+                        </div>
+                        <div class="cat-name">@ad</div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>\n    (function () {\n        var btns = document.querySelectorAll(".notif");\n        btns.forEach(function(btn){\n            var panel = btn.parentElement.querySelector(".notif-panel");\n            if (!panel) return;\n            btn.addEventListener("click", function(e){\n                e.stopPropagation();\n                panel.classList.toggle("open");\n            });\n            panel.addEventListener("click", function(e){ e.stopPropagation(); });\n        });\n        document.addEventListener("click", function(){\n            document.querySelectorAll(".notif-panel").forEach(function(p){ p.classList.remove("open"); });\n        });\n    })();\n</script>
+<script>
+(function () {
+    // PERSONEL_YETKI_MENU
+    var yetki = {
+        sertifika: @((ViewBag.YetkiSertifika == true).ToString().ToLower()),
+        rapor: @((ViewBag.YetkiRapor == true).ToString().ToLower())
+    };
+
+    function hide(selector, allowed) {
+        if (allowed) return;
+        var list = document.querySelectorAll(selector);
+        list.forEach(function (el) { el.style.display = 'none'; });
+    }
+
+    hide('a[href="/personel-panel/onay-bekleyenler"]', yetki.sertifika);
+    hide('a[href="/personel-panel/onay-gecmisi"]', yetki.sertifika);
+    hide('a[href="/personel-panel/raporlar"]', yetki.rapor);
+
+    var raporSection = Array.from(document.querySelectorAll('.nav-section')).find(function (x) {
+        return (x.textContent || '').toLowerCase().indexOf('rapor') >= 0;
+    });
+    if (!yetki.rapor && raporSection) raporSection.style.display = 'none';
+})();
+</script>
+}

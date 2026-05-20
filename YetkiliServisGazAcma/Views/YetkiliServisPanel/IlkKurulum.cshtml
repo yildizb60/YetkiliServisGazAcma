@@ -1,0 +1,205 @@
+@{
+    var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
+    ViewData["Title"] = "İlk Kurulum";
+    ViewData["PanelTitle"] = ViewData["Title"];
+    ViewData["PanelSubtitle"] = "Yetkili Servis";
+    ViewData["ActiveMenu"] = "Dashboard";
+    Layout = "~/Views/Shared/_PanelLayout.cshtml";
+    var firma = ViewBag.Firma as YetkiliServisGazAcma.Entities.Ys_Firma;
+    var tumMarkalar = ViewBag.TumMarkalar as List<YetkiliServisGazAcma.Entities.Ys_Marka>
+        ?? new List<YetkiliServisGazAcma.Entities.Ys_Marka>();
+    var tumKategoriler = ViewBag.TumKategoriler as List<YetkiliServisGazAcma.Entities.UrunKategori>
+        ?? new List<YetkiliServisGazAcma.Entities.UrunKategori>();
+    var seciliMarkaIds = ViewBag.SeciliMarkaIds as List<int> ?? new List<int>();
+    var seciliKategoriIds = ViewBag.SeciliKategoriIds as List<int> ?? new List<int>();
+    var aktifSubeSayisi = ViewBag.AktifSubeSayisi as int? ?? 0;
+    var sertifikaVar = ViewBag.SertifikaVar as bool? ?? false;
+    var onayliSertifikaVar = ViewBag.OnayliSertifikaVar as bool? ?? false;
+    var eksikler = ViewBag.IlkKurulumEksikler as List<string> ?? new List<string>();
+    string adSoyad = kullanici?.AdSoyad ?? firma?.YetkiliKisi ?? "Yetkili Servis";
+    string basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "Y";
+}
+
+@section Styles {
+    <style>
+.content { padding: 28px 32px; }
+        .mesaj-basarili { background: #E1F5EE; color: #085041; padding: 13px 18px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; border-left: 4px solid #4CAF7D; }
+        .mesaj-hata { background: #FCEBEB; color: #501313; padding: 13px 18px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; border-left: 4px solid #e24b4a; }
+        .uyari { background: linear-gradient(120deg, #fff5f5, #fff9ec); border: 1px solid #f6c7c7; border-left: 6px solid #d94444; border-radius: 12px; padding: 16px 18px; margin-bottom: 16px; }
+        .uyari-baslik { font-size: 16px; font-weight: 800; color: #7a1111; margin-bottom: 6px; }
+        .uyari-icerik { font-size: 13px; color: #6d2d2d; margin-bottom: 8px; }
+        .uyari-list { margin-left: 18px; color: #6d2d2d; font-size: 13px; }
+        .kart { background: #fff; border-radius: 12px; border: 1px solid #eee; overflow: hidden; margin-bottom: 16px; }
+        .kart-baslik { display: flex; align-items: center; gap: 10px; padding: 16px 22px; border-bottom: 2px solid #f0f0ee; background: linear-gradient(to right, #f8f8f6, #fff); }
+        .kart-baslik-ikon { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 17px; background: #F0EBFF; }
+        .kart-baslik-yazi { font-size: 14px; font-weight: bold; color: #333; }
+        .kart-icerik { padding: 20px 22px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .secim-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .secim-kart { border: 1.5px solid #e0f0e8; border-radius: 10px; padding: 12px; text-align: center; background: #f4faf7; cursor: pointer; min-height: 70px; display: flex; align-items: center; justify-content: center; }
+        .secim-kart input { margin-right: 8px; }
+        .secim-kart span { font-size: 13px; font-weight: 700; color: #333; }
+        .alan { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+        .alan label { font-size: 11px; color: #777; font-weight: bold; text-transform: uppercase; letter-spacing: .04em; }
+        .alan input, .alan textarea { padding: 10px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; color: #333; background: #fafafa; }
+        .alan textarea { min-height: 70px; resize: vertical; }
+        .alan input:focus, .alan textarea:focus { border-color: #4CAF7D; background: #fff; }
+        .alt-bilgi { margin-top: 8px; font-size: 12px; color: #666; }
+        .durum-kart { border: 1px solid #e8ebef; border-radius: 10px; padding: 14px; background: #fbfcfe; }
+        .durum-badge { display: inline-block; padding: 5px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+        .durum-ok { background: #e7fbef; color: #10663c; }
+        .durum-warn { background: #fff3db; color: #7a4a00; }
+        .durum-danger { background: #ffe8e8; color: #8a2121; }
+        .btn-link { display: inline-block; margin-top: 10px; text-decoration: none; background: #1B9FD4; color: #fff; padding: 8px 12px; border-radius: 8px; font-size: 13px; font-weight: 700; }
+        .form-buton { margin-top: 16px; display: flex; justify-content: flex-end; gap: 10px; }
+        .btn-kaydet { padding: 11px 28px; background: #4CAF7D; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; }
+        .btn-kaydet:hover { background: #3d9e6e; }
+        .btn-iptal { padding: 11px 20px; background: #fff; color: #e24b4a; border: 1px solid #e24b4a; border-radius: 8px; font-size: 13px; text-decoration: none; }
+        @@media (max-width: 1100px) { .secim-grid { grid-template-columns: repeat(3, 1fr); } }
+        @@media (max-width: 800px) {
+            .sidebar { position: static; width: 100%; height: auto; }
+            .main { margin-left: 0; }
+            .secim-grid { grid-template-columns: repeat(2, 1fr); }
+            .grid-2 { grid-template-columns: 1fr; }
+        }
+    </style>
+}
+
+@if (TempData["Basarili"] != null)
+{
+    <div class="mesaj-basarili">&#9989; @TempData["Basarili"]</div>
+}
+@if (TempData["Hata"] != null)
+{
+    <div class="mesaj-hata">&#10060; @TempData["Hata"]</div>
+}
+
+<div class="uyari">
+    <div class="uyari-baslik">İşlem Kilidi Aktif</div>
+    <div class="uyari-icerik">Bu hesap admin tarafından açıldığı için aşağıdaki adımlar tamamlanmadan panel işlemleri açılamaz.</div>
+    @if (eksikler.Count > 0)
+    {
+        <ul class="uyari-list">
+            @foreach (var e in eksikler)
+            {
+                <li>@e</li>
+            }
+        </ul>
+    }
+</div>
+
+<form method="post" action="/ys-panel/ilk-kurulum">
+    @Html.AntiForgeryToken()
+
+    <div class="kart">
+        <div class="kart-baslik">
+            <div class="kart-baslik-ikon">&#128203;</div>
+            <div class="kart-baslik-yazi">Marka Seçimi (zorunlu)</div>
+        </div>
+        <div class="kart-icerik">
+            <div class="secim-grid">
+                @foreach (var m in tumMarkalar)
+                {
+                    <label class="secim-kart">
+                        <span>
+                            <input type="checkbox" name="markaIds" value="@m.Id" @(seciliMarkaIds.Contains(m.Id) ? "checked" : "") />
+                            @m.MarkaAdi
+                        </span>
+                    </label>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="kart">
+        <div class="kart-baslik">
+            <div class="kart-baslik-ikon">&#128736;</div>
+            <div class="kart-baslik-yazi">Kategori Seçimi (zorunlu)</div>
+        </div>
+        <div class="kart-icerik">
+            <div class="secim-grid">
+                @foreach (var k in tumKategoriler)
+                {
+                    <label class="secim-kart">
+                        <span>
+                            <input type="checkbox" name="kategoriIds" value="@k.Id" @(seciliKategoriIds.Contains(k.Id) ? "checked" : "") />
+                            @k.Ad
+                        </span>
+                    </label>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="kart">
+        <div class="kart-baslik">
+            <div class="kart-baslik-ikon">&#127970;</div>
+            <div class="kart-baslik-yazi">Şube Tanımı @(aktifSubeSayisi > 0 ? "(mevcut)" : "(zorunlu)")</div>
+        </div>
+        <div class="kart-icerik">
+            @if (aktifSubeSayisi > 0)
+            {
+                <div class="alt-bilgi">Bu firmaya ait aktif şube zaten mevcut. İsterseniz yeni şube de ekleyebilirsiniz.</div>
+            }
+            else
+            {
+                <div class="alt-bilgi">En az bir aktif şube kaydı zorunludur.</div>
+            }
+
+            <div class="grid-2" style="margin-top:10px;">
+                <div class="alan">
+                    <label>Şube Adı</label>
+                    <input type="text" name="subeAdi" placeholder="Örn: Merkez Şube" />
+                </div>
+                <div class="alan">
+                    <label>Telefon</label>
+                    <input type="text" name="telefon" placeholder="0XXX XXX XX XX" />
+                </div>
+                <div class="alan">
+                    <label>İl</label>
+                    <input type="text" name="il" placeholder="Örn: Çorum" />
+                </div>
+                <div class="alan">
+                    <label>İlçe</label>
+                    <input type="text" name="ilce" placeholder="Örn: Merkez" />
+                </div>
+            </div>
+            <div class="alan" style="margin-top:8px;">
+                <label>Adres</label>
+                <textarea name="adres" placeholder="Şube adres bilgisi"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <div class="kart">
+        <div class="kart-baslik">
+            <div class="kart-baslik-ikon">&#128196;</div>
+            <div class="kart-baslik-yazi">Yetki Belgesi Yükleme (zorunlu)</div>
+        </div>
+        <div class="kart-icerik">
+            <div class="durum-kart">
+                @if (!sertifikaVar)
+                {
+                    <span class="durum-badge durum-danger">Henüz yetki belgesi yüklenmedi</span>
+                    <div class="alt-bilgi">İlk kurulumun tamamlanması için en az bir yetki belgesi yüklenmelidir.</div>
+                }
+                else if (onayliSertifikaVar)
+                {
+                    <span class="durum-badge durum-ok">Yetki belgesi yüklendi ve onaylı</span>
+                    <div class="alt-bilgi">Devreye alma adımı için yetki belgesi durumu uygun.</div>
+                }
+                else
+                {
+                    <span class="durum-badge durum-warn">Yetki belgesi yüklendi (onay bekliyor/reddedildi)</span>
+                    <div class="alt-bilgi">İlk kurulum adımı tamamlanır, devreye alma için onaylı yetki belgesi gerekir.</div>
+                }
+                <a class="btn-link" href="/ys-yetki-belgesi">Yetki Belgesi Ekranına Git</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-buton">
+        <a class="btn-iptal" href="/ys-panel">Panele Dön</a>
+        <button type="submit" class="btn-kaydet">İlk Kurulumu Tamamla</button>
+    </div>
+</form>

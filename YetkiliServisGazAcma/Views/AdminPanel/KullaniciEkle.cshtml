@@ -1,0 +1,293 @@
+@{
+    ViewData["Title"] = "Yeni Kullan&#305;c&#305;";
+    ViewData["PanelTitle"] = ViewData["Title"];
+    ViewData["PanelSubtitle"] = "Admin Paneli";
+    ViewData["ActiveMenu"] = "Kullanicilar";
+    Layout = "~/Views/Shared/_PanelLayout.cshtml";
+    var Kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
+    string adSoyad = Kullanici?.AdSoyad ?? "Yönetici";
+    string formAdSoyad = ViewBag.FormAdSoyad ?? "";
+    string formEmail = ViewBag.FormEmail ?? "";
+    string formTelefon = ViewBag.FormTelefon ?? "";
+    string formRol = ViewBag.FormRol ?? "SirketAdmin";
+    int FormSirketId = ViewBag.FormSirketId is int s ? s : 0;
+    int formFirmaId = ViewBag.FormFirmaId is int f ? f : 0;
+    var sirketler = ViewBag.Sirketler as List<YetkiliServisGazAcma.Entities.Dag_Sirket>;
+    var firmalar = ViewBag.Firmalar as List<YetkiliServisGazAcma.Entities.Ys_Firma>;
+    string basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "A";
+}
+
+@section Styles {
+    <style>
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid #eee;
+            overflow: hidden;
+            max-width: none;
+        }
+
+        .card-head {
+            padding: 14px 20px;
+            border-bottom: 2px solid #f0f0ee;
+            font-size: 13px;
+            font-weight: 800;
+            color: #333;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 11px;
+            font-weight: 800;
+            color: #777;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px 13px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            background: #fcfcfc;
+            color: #333;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 800;
+            cursor: pointer;
+            font-size: 13px;
+            background: #1B9FD4;
+            color: #fff;
+        }
+
+        .btn-secondary {
+            background: #f0f4f8;
+            color: #333;
+            border: 1px solid #ddd;
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .alert {
+            padding: 10px 14px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .alert-danger {
+            background: #FCEBEB;
+            color: #501313;
+            border: 1px solid #eccaca;
+        }
+
+        .help {
+            font-size: 11px;
+            color: #888;
+            margin-bottom: 10px;
+        }
+
+        .role-help {
+            font-size: 12px;
+            color: #4b5f73;
+            background: #f2f8ff;
+            border: 1px solid #dbe9f7;
+            border-radius: 8px;
+            padding: 8px 10px;
+            margin-bottom: 12px;
+        }
+
+    </style>
+}
+
+<div class="card">
+    <div class="card-head">Kullan&#305;c&#305; Olu&#351;tur</div>
+    <div class="card-body">
+        @if (ViewBag.Hata != null) { <div class="alert alert-danger">@ViewBag.Hata</div> }
+        <div class="help">&#350;ifre en az 6 karakter, en az 1 k&#252;&#231;&#252;k harf ve 1 rakam i&#231;ermelidir.</div>
+        <div id="roleHelp" class="role-help"></div>
+        <form method="post" action="/AdminPanel/Kullanicilar/ekle">
+            @Html.AntiForgeryToken()
+            <div class="grid">
+                <div class="form-group">
+                    <label>Rol</label>
+                    <select class="form-control" name="rol" id="rolSelect">
+                        @if (formRol == "GenelSistemAdmin")
+                        {
+                            <option value="GenelSistemAdmin" selected="selected">Genel Sistem Admini</option>
+                            <option value="SirketAdmin">Şirket Admini</option>
+                            <option value="Personel">Personel</option>
+                            <option value="YetkiliServis">Yetkili Servis</option>
+                        }
+                        else if (formRol == "SirketAdmin" || formRol == "SuperAdmin")
+                        {
+                            <option value="GenelSistemAdmin">Genel Sistem Admini</option>
+                            <option value="SirketAdmin" selected="selected">Şirket Admini</option>
+                            <option value="Personel">Personel</option>
+                            <option value="YetkiliServis">Yetkili Servis</option>
+                        }
+                        else if (formRol == "Personel")
+                        {
+                            <option value="GenelSistemAdmin">Genel Sistem Admini</option>
+                            <option value="SirketAdmin">Şirket Admini</option>
+                            <option value="Personel" selected="selected">Personel</option>
+                            <option value="YetkiliServis">Yetkili Servis</option>
+                        }
+                        else
+                        {
+                            <option value="GenelSistemAdmin">Genel Sistem Admini</option>
+                            <option value="SirketAdmin">Şirket Admini</option>
+                            <option value="Personel">Personel</option>
+                            <option value="YetkiliServis" selected="selected">Yetkili Servis</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Ad Soyad</label>
+                    <input class="form-control" name="adSoyad" value="@formAdSoyad" required />
+                </div>
+                <div class="form-group">
+                    <label>E-Posta</label>
+                    <input class="form-control" type="email" name="email" value="@formEmail" required />
+                </div>
+                <div class="form-group">
+                    <label>Telefon</label>
+                    <input class="form-control" name="telefon" value="@formTelefon" />
+                </div>
+                <div class="form-group" id="sirketGroup">
+                    <label id="sirketLabel">&#350;irket</label>
+                    <select class="form-control" id="sirketIdSelect" name="SirketId">
+                        <option value="">Se&#231;iniz</option>
+                        @if (sirketler != null)
+                        {
+                            foreach (var s in sirketler)
+                            {
+                                if (FormSirketId == s.Id)
+                                {
+                                    <option value="@s.Id" selected="selected">@s.SirketAdi</option>
+                                }
+                                else
+                                {
+                                    <option value="@s.Id">@s.SirketAdi</option>
+                                }
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="form-group" id="firmaGroup">
+                    <label>Yetkili Servis Firması</label>
+                    <select class="form-control" id="firmaIdSelect" name="firmaId">
+                        <option value="">Se&#231;iniz</option>
+                        @if (firmalar != null)
+                        {
+                            foreach (var f in firmalar)
+                            {
+                                var label = f.Sirket != null ? $"{f.FirmaAdi} ({f.Sirket.SirketAdi})" : f.FirmaAdi;
+                                if (formFirmaId == f.Id)
+                                {
+                                    <option value="@f.Id" selected="selected">@label</option>
+                                }
+                                else
+                                {
+                                    <option value="@f.Id">@label</option>
+                                }
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>&#350;ifre</label>
+                    <input class="form-control" type="password" name="sifre" required />
+                </div>
+            </div>
+            <div class="btn-row">
+                <button type="submit" class="btn">Kaydet</button>
+                <a class="btn-secondary" href="/AdminPanel/Kullanicilar">Vazge&#231;</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+        (function () {
+            var rolSelect = document.getElementById("rolSelect");
+            var sirketGroup = document.getElementById("sirketGroup");
+            var firmaGroup = document.getElementById("firmaGroup");
+            var sirketLabel = document.getElementById("sirketLabel");
+            var sirketIdSelect = document.getElementById("sirketIdSelect");
+            var firmaIdSelect = document.getElementById("firmaIdSelect");
+            var roleHelp = document.getElementById("roleHelp");
+
+            if (!rolSelect || !sirketGroup || !firmaGroup || !sirketLabel || !sirketIdSelect || !firmaIdSelect || !roleHelp) {
+                return;
+            }
+
+            function uygulaRolDavranisi() {
+                var rol = (rolSelect.value || "").trim();
+                var genelAdminMi = rol === "GenelSistemAdmin";
+                var adminMi = rol === "SirketAdmin" || rol === "SuperAdmin";
+                var personelMi = rol === "Personel";
+                var servisMi = rol === "YetkiliServis";
+                var sirketGerekliMi = adminMi || personelMi || servisMi;
+
+                sirketGroup.style.display = sirketGerekliMi ? "block" : "none";
+                firmaGroup.style.display = "none";
+
+                sirketIdSelect.disabled = !sirketGerekliMi;
+                firmaIdSelect.disabled = true;
+
+                if (!sirketGerekliMi) sirketIdSelect.value = "";
+                firmaIdSelect.value = "";
+
+                if (servisMi) {
+                    sirketLabel.textContent = "Bağlı Firma Kodu (Yetkili Servis)";
+                    roleHelp.textContent = "Yetkili Servis rolünde sadece bağlı dağıtım şirketi seçilir. Kaydettiğinde Yetkili Servis kaydı otomatik oluşur ve listeye düşer.";
+                } else if (personelMi) {
+                    sirketLabel.textContent = "Şirket (Personel)";
+                    roleHelp.textContent = "Personel ana şirketine bağlanır; ek şirket yetkileri Yetkiler ekranından şirket bazlı verilir.";
+                } else if (adminMi) {
+                    sirketLabel.textContent = "Şirket (Admin)";
+                    roleHelp.textContent = "Şirket Admini kendi dağıtım şirketine bağlanır. Böylece her şirketin panel yöneticisi ayrı tutulur.";
+                } else if (genelAdminMi) {
+                    sirketLabel.textContent = "Şirket";
+                    roleHelp.textContent = "Genel Sistem Admini şirketten bağımsızdır ve tüm sistemi yönetir.";
+                } else {
+                    roleHelp.textContent = "";
+                }
+            }
+
+            rolSelect.addEventListener("change", uygulaRolDavranisi);
+            uygulaRolDavranisi();
+        })();
+    </script>
+}

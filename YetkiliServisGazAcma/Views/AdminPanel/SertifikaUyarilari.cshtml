@@ -1,0 +1,140 @@
+@{
+    ViewData["Title"] = "Yetki Belgesi Bitiş Uyarıları";
+    ViewData["PanelTitle"] = "Yetki Belgesi Bitiş Uyarıları";
+    ViewData["PanelSubtitle"] = "Admin Paneli";
+    ViewData["ActiveMenu"] = "SertifikaUyarilari";
+    Layout = "~/Views/Shared/_PanelLayout.cshtml";
+
+    var yaklasan = ViewBag.Yaklasan as List<YetkiliServisGazAcma.Entities.Ys_Sertifika>;
+    var gecmis = ViewBag.Gecmis as List<YetkiliServisGazAcma.Entities.Ys_Sertifika>;
+}
+
+@section Styles {
+    <style>
+        .content {
+            display: grid;
+            gap: 16px;
+        }
+
+        .section.warn {
+            border-left: 4px solid #f2a100;
+        }
+
+        .section.danger {
+            border-left: 4px solid #e24b4a;
+        }
+
+        .section-sub {
+            font-size: 12px;
+            color: #7a8794;
+            margin-top: 4px;
+        }
+
+        .pill {
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: .02em;
+        }
+
+        .warn-pill {
+            background: #fff3d8;
+            color: #7a4a00;
+        }
+
+        .danger-pill {
+            background: #fde5e5;
+            color: #7a1b1b;
+        }
+
+        .tablo-head,
+        .tablo-row {
+            grid-template-columns: 1.6fr 1fr 1fr .8fr;
+        }
+
+        .tablo-row.urgent {
+            background: #fff7e8;
+        }
+
+        .tablo-row.critical {
+            background: #ffe9e9;
+        }
+
+        .tablo-row.expired {
+            background: #fff1f1;
+        }
+
+        .b-orange {
+            background: #FAEEDA;
+            color: #633806;
+        }
+
+        @@media (max-width: 760px) {
+            .tablo-head,
+            .tablo-row {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+        }
+    </style>
+}
+
+<div class="section warn">
+    <div class="section-head">
+        <div>
+            <div class="section-title">30 Gün içinde Bitenler</div>
+            <div class="section-sub">Yakın tarihte bitecek yetki belgeleri</div>
+        </div>
+        <div class="pill warn-pill">Dikkat</div>
+    </div>
+    <div class="tablo-head">
+        <div>Firma</div><div>Şirket</div><div>Bitiş</div><div>Kalan</div>
+    </div>
+    @if (yaklasan == null || yaklasan.Count == 0)
+    {
+        <div class="empty">Yakın tarihte biten yetki belgesi yok</div>
+    }
+    else
+    {
+        foreach (var s in yaklasan)
+        {
+            var kalanGun = (s.SertifikaBitisTarihi.Date - DateTime.Now.Date).Days;
+            <div class="tablo-row @(kalanGun <= 3 ? "critical" : kalanGun <= 7 ? "urgent" : "")">
+                <div>@s.Firma?.FirmaAdi</div>
+                <div style="font-size:12px;color:#888">@s.Firma?.Sirket?.SirketAdi</div>
+                <div>@s.SertifikaBitisTarihi.ToString("dd.MM.yyyy")</div>
+                <div><span class="badge b-orange">@kalanGun gün</span></div>
+            </div>
+        }
+    }
+</div>
+
+<div class="section danger">
+    <div class="section-head">
+        <div>
+            <div class="section-title">Süresi Dolanlar</div>
+            <div class="section-sub">Yetki belgesi geçmiş kayıtlar</div>
+        </div>
+        <div class="pill danger-pill">Kritik</div>
+    </div>
+    <div class="tablo-head">
+        <div>Firma</div><div>Şirket</div><div>Bitiş</div><div>Durum</div>
+    </div>
+    @if (gecmis == null || gecmis.Count == 0)
+    {
+        <div class="empty">Süresi dolan yetki belgesi yok</div>
+    }
+    else
+    {
+        foreach (var s in gecmis)
+        {
+            <div class="tablo-row expired">
+                <div>@s.Firma?.FirmaAdi</div>
+                <div style="font-size:12px;color:#888">@s.Firma?.Sirket?.SirketAdi</div>
+                <div>@s.SertifikaBitisTarihi.ToString("dd.MM.yyyy")</div>
+                <div><span class="badge b-red">Süresi Doldu</span></div>
+            </div>
+        }
+    }
+</div>
