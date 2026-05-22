@@ -48,6 +48,26 @@ Markalar:
 - `POST /api/marka/guncelle`
 - `POST /api/marka/sil`
 
+Urun kategorileri:
+
+- `POST /api/urun-kategorileri/liste`
+
+Varsayilan davranis sadece sistemde kullanilan hizmet turlerini dondurur:
+
+```text
+Kombi
+Sofbenler
+Merkezi Kazan
+```
+
+Tum aktif kategoriler gerekiyorsa body icinde `tumunuGetir: true` gonderilir:
+
+```json
+{
+  "tumunuGetir": true
+}
+```
+
 Yetkili servisler:
 
 - `POST /api/yetkili-servisler/liste`

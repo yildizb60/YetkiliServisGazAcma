@@ -49,5 +49,8 @@ tree.txt
 # Uploaded documents
 YetkiliServisGazAcma/wwwroot/sertifikalar/
 
+# Separate local project, not part of Yetkili Servis Gaz Acma
+SustainabilitySurveyProject/
+
 # Sensitive files (auto-detected)
 YetkiliServisGazAcma.zip (large file: 56MB)
