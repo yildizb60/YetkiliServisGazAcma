@@ -50,7 +50,7 @@ namespace YetkiliServisGazAcma.Business.Services
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
             {
-                _logger.LogWarning(ex, "Urun kategori API liste cagrisina ulasilamadi. MVC eski sorgu yoluyla devam edecek.");
+                _logger.LogWarning(ex, "Urun kategori API liste cagrisina ulasilamadi.");
                 return null;
             }
         }

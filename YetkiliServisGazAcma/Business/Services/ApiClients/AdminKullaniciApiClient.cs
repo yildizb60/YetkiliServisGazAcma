@@ -64,7 +64,7 @@ namespace YetkiliServisGazAcma.Business.Services
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
             {
-                _logger.LogWarning(ex, "Admin kullanici liste API cagrisina ulasilamadi. MVC eski servis yoluyla devam edecek.");
+                _logger.LogWarning(ex, "Admin kullanici liste API cagrisina ulasilamadi.");
                 return null;
             }
         }

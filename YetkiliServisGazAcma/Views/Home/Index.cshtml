@@ -1,22 +1,14 @@
-﻿@using System.Globalization
+@using System.Globalization
 @{
     ViewData["Title"] = "Ana Sayfa";
-    Layout = null;
+    Layout = "_PublicLayout";
     var tr = new CultureInfo("tr-TR");
     var servisCount = (long)(ViewBag.ServisCount ?? 0L);
     var devreyeCount = (long)(ViewBag.DevreyeCount ?? 0L);
     var sertifikaCount = (long)(ViewBag.SertifikaCount ?? 0L);
     var zamaninda = (double)(ViewBag.ZamanindaOran ?? 0d);
 }
-<!DOCTYPE html>
-<html lang="tr">
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Yetkili Servis Gaz Açma Sistemi</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+@section Styles {
     <style>
         :root {
             --c-primary: #3bb7e8;
@@ -561,9 +553,8 @@
         @@media (max-width: 640px) {
             .process-row { grid-template-columns: 1fr; }
         }
-    </style>
-</head>
-<body>
+        </style>
+}
 
     
     <header class="site-header">
@@ -805,11 +796,3 @@
             });
         });
     </script>
-</body>
-</html>
-
-
-
-
-
-

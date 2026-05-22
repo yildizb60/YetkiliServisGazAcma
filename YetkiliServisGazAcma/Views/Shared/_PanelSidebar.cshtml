@@ -1,11 +1,14 @@
 @{
     var path = Context?.Request?.Path.ToString() ?? "";
     var activeMenu = (ViewData["ActiveMenu"] ?? ViewBag.ActiveMenu)?.ToString() ?? "";
-    var isPersonelPanel = path.StartsWith("/personel-panel", StringComparison.OrdinalIgnoreCase);
-    var isYetkiliServisPanel =
-        path.StartsWith("/ys-panel", StringComparison.OrdinalIgnoreCase) ||
-        path.StartsWith("/ys-devreyeal", StringComparison.OrdinalIgnoreCase) ||
-        path.StartsWith("/ys-yetki-belgesi", StringComparison.OrdinalIgnoreCase);
+    var panelArea = (ViewData["PanelArea"] ?? ViewBag.PanelArea)?.ToString() ?? "";
+    var isPersonelPanel = string.Equals(panelArea, "Personel", StringComparison.OrdinalIgnoreCase)
+        || (string.IsNullOrWhiteSpace(panelArea) && path.StartsWith("/personel-panel", StringComparison.OrdinalIgnoreCase));
+    var isYetkiliServisPanel = string.Equals(panelArea, "YetkiliServis", StringComparison.OrdinalIgnoreCase)
+        || (string.IsNullOrWhiteSpace(panelArea) && (
+            path.StartsWith("/ys-panel", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("/ys-devreyeal", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("/ys-yetki-belgesi", StringComparison.OrdinalIgnoreCase)));
 
     var panelAltBaslik = (ViewData["PanelSubtitle"] ?? ViewBag.PanelSubtitle)?.ToString();
     if (string.IsNullOrWhiteSpace(panelAltBaslik))

@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
@@ -9,26 +8,20 @@ namespace YetkiliServisGazAcma.Controllers
     [ApiExplorerSettings(IgnoreApi = true)]
     public class KayitController : Controller
     {
-        private readonly YetkiliServisService _ysService;
         private readonly YetkiliServisApiClient _yetkiliServisApiClient;
         private readonly MarkaApiClient _markaApiClient;
         private readonly UrunKategoriApiClient _urunKategoriApiClient;
-        private readonly AppDbContext _context;
         private readonly SehirFirmaKoduService _sehirFirmaKoduService;
 
         public KayitController(
-            YetkiliServisService ysService,
             YetkiliServisApiClient yetkiliServisApiClient,
             MarkaApiClient markaApiClient,
             UrunKategoriApiClient urunKategoriApiClient,
-            AppDbContext context,
             SehirFirmaKoduService sehirFirmaKoduService)
         {
-            _ysService = ysService;
             _yetkiliServisApiClient = yetkiliServisApiClient;
             _markaApiClient = markaApiClient;
             _urunKategoriApiClient = urunKategoriApiClient;
-            _context = context;
             _sehirFirmaKoduService = sehirFirmaKoduService;
         }
 
@@ -37,21 +30,20 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.Sehirler = _sehirFirmaKoduService.Sehirler();
 
             var markalar = await _markaApiClient.TumunuGetirAsync();
-            ViewBag.Markalar = markalar?
-                .Where(x => x.AktifMi)
-                .OrderBy(x => x.MarkaAdi)
-                .ToList()
-                ?? await _context.Ys_Markalar
-                    .Where(x => !x.SilindiMi && x.AktifMi)
+            ViewBag.Markalar = markalar == null
+                ? new List<Ys_Marka>()
+                : markalar
+                    .Where(x => x.AktifMi)
                     .OrderBy(x => x.MarkaAdi)
-                    .ToListAsync();
+                    .ToList();
 
             ViewBag.Kategoriler = await _urunKategoriApiClient.ListeAsync()
-                ?? await _context.UrunKategoriler
-                    .Where(x => !x.SilindiMi)
-                    .OrderBy(x => x.SiraNo)
-                    .ThenBy(x => x.Ad)
-                    .ToListAsync();
+                ?? new List<UrunKategori>();
+
+            if (markalar == null || !((List<UrunKategori>)ViewBag.Kategoriler).Any())
+            {
+                ViewBag.ApiUyari = "Başvuru listeleri API üzerinden alınamadı. Lütfen API uygulamasının çalıştığını kontrol edin.";
+            }
         }
 
         [HttpGet]
@@ -99,15 +91,9 @@ namespace YetkiliServisGazAcma.Controllers
 
             if (apiSonuc == null)
             {
-                firma.SirketId = await _sehirFirmaKoduService.SirketIdBulVeyaOlustur(
-                    firma.FaaliyetIli,
-                    firma.Email ?? firma.VergiNo ?? "kayit");
-
-                var servisSonuc = await _ysService.Kayit(
-                    firma, sifre, markaIdleri ?? new List<int>(), kategoriIdleri ?? new List<int>());
-
-                basarili = servisSonuc.basarili;
-                mesaj = servisSonuc.mesaj;
+                ViewBag.Hata = "Kayıt işlemi API üzerinden gönderilemedi. Lütfen API uygulamasının çalıştığını kontrol edin.";
+                await BasvuruListeleriniYukle();
+                return View(firma);
             }
 
             if (basarili != true)

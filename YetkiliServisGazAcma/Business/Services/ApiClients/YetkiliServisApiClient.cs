@@ -42,7 +42,7 @@ namespace YetkiliServisGazAcma.Business.Services
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
             {
-                _logger.LogWarning(ex, "Yetkili servis API liste cagrisina ulasilamadi. MVC eski sorgu yoluyla devam edecek.");
+                _logger.LogWarning(ex, "Yetkili servis API liste cagrisina ulasilamadi.");
                 return null;
             }
         }
@@ -70,7 +70,7 @@ namespace YetkiliServisGazAcma.Business.Services
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
             {
-                _logger.LogWarning(ex, "Yetkili servis API kayit cagrisina ulasilamadi. MVC eski servis yoluyla devam edecek.");
+                _logger.LogWarning(ex, "Yetkili servis API kayit cagrisina ulasilamadi.");
                 return null;
             }
         }

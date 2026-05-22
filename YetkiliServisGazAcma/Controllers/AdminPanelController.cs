@@ -27,7 +27,6 @@ namespace YetkiliServisGazAcma.Controllers
         private readonly AdminDashboardService _adminDashboardService;
         private readonly AdminDashboardApiClient _adminDashboardApiClient;
         private readonly AdminKullaniciApiClient _adminKullaniciApiClient;
-        private readonly AdminYetkiliServisListeService _adminYetkiliServisListeService;
         private readonly AdminYetkiliServisApiClient _adminYetkiliServisApiClient;
 
         public AdminPanelController(
@@ -38,7 +37,6 @@ namespace YetkiliServisGazAcma.Controllers
             AdminDashboardService adminDashboardService,
             AdminDashboardApiClient adminDashboardApiClient,
             AdminKullaniciApiClient adminKullaniciApiClient,
-            AdminYetkiliServisListeService adminYetkiliServisListeService,
             AdminYetkiliServisApiClient adminYetkiliServisApiClient)
         {
             _userManager = userManager;
@@ -48,7 +46,6 @@ namespace YetkiliServisGazAcma.Controllers
             _adminDashboardService = adminDashboardService;
             _adminDashboardApiClient = adminDashboardApiClient;
             _adminKullaniciApiClient = adminKullaniciApiClient;
-            _adminYetkiliServisListeService = adminYetkiliServisListeService;
             _adminYetkiliServisApiClient = adminYetkiliServisApiClient;
         }
 
@@ -325,8 +322,9 @@ namespace YetkiliServisGazAcma.Controllers
 
             if (dashboard == null)
             {
-                dashboard = await _adminDashboardService.GetirAsync(sirketId);
-                ViewBag.AdminDashboardVeriKaynagi = "MVC";
+                TempData["Hata"] = "Admin dashboard verisi API üzerinden alınamadı. Lütfen API uygulamasının çalıştığını kontrol edin.";
+                dashboard = new AdminDashboardOzet();
+                ViewBag.AdminDashboardVeriKaynagi = "API erişilemedi";
             }
 
             ViewBag.ToplamDevreyeAlma = dashboard.ToplamDevreyeAlma;
@@ -543,66 +541,8 @@ namespace YetkiliServisGazAcma.Controllers
 
             if (kullanicilar == null)
             {
-                var genelSistemAdmin = await _aktifSirketService.GenelSistemAdminMi(kullanici);
-
-                var kullaniciQuery = _context.Users
-                    .Include(x => x.Sirket)
-                    .Include(x => x.Firma)
-                    .AsQueryable();
-
-                if (!genelSistemAdmin || aktifSirketId.HasValue)
-                {
-                    kullaniciQuery = kullaniciQuery.Where(x =>
-                        x.Id == kullanici.Id ||
-                        ((x.KullaniciTipi == 2 || x.KullaniciTipi == 3) && aktifSirketId.HasValue && x.SirketId == aktifSirketId.Value) ||
-                        (x.KullaniciTipi == 1 && x.Firma != null && aktifSirketId.HasValue && x.Firma.SirketId == aktifSirketId.Value));
-                }
-
-                kullanicilar = await kullaniciQuery
-                    .OrderBy(x => x.AdSoyad)
-                    .ToListAsync();
-
-                if (!string.IsNullOrWhiteSpace(q))
-                {
-                    var aranacak = q.Trim();
-                    kullanicilar = kullanicilar
-                        .Where(x =>
-                            (!string.IsNullOrWhiteSpace(x.AdSoyad) && x.AdSoyad.StartsWith(aranacak, StringComparison.CurrentCultureIgnoreCase)) ||
-                            (!string.IsNullOrWhiteSpace(x.Email) && x.Email.StartsWith(aranacak, StringComparison.CurrentCultureIgnoreCase)) ||
-                            (!string.IsNullOrWhiteSpace(x.PhoneNumber) && x.PhoneNumber.StartsWith(aranacak, StringComparison.CurrentCultureIgnoreCase)))
-                        .ToList();
-                }
-
-                if (!string.IsNullOrWhiteSpace(tip))
-                {
-                    kullanicilar = tip switch
-                    {
-                        "GenelSistemAdmin" => kullanicilar.Where(x => x.KullaniciTipi == 4).ToList(),
-                        "SirketAdmin" => kullanicilar.Where(x => x.KullaniciTipi == 3).ToList(),
-                        "SuperAdmin" => kullanicilar.Where(x => x.KullaniciTipi == 4).ToList(),
-                        "Personel" => kullanicilar.Where(x => x.KullaniciTipi == 2).ToList(),
-                        "Servis" => kullanicilar.Where(x => x.KullaniciTipi == 1).ToList(),
-                        _ => kullanicilar
-                    };
-                }
-
-                if (!string.IsNullOrWhiteSpace(durum))
-                {
-                    var aktifMi = durum.Equals("Aktif", StringComparison.OrdinalIgnoreCase);
-                    kullanicilar = kullanicilar.Where(x => x.AktifMi == aktifMi).ToList();
-                }
-
-                if (!string.IsNullOrWhiteSpace(bagli))
-                {
-                    var aranacak = bagli.Trim();
-                    kullanicilar = kullanicilar
-                        .Where(x =>
-                            (x.KullaniciTipi == 1 && x.Firma != null && !string.IsNullOrWhiteSpace(x.Firma.FirmaAdi) &&
-                             x.Firma.FirmaAdi.StartsWith(aranacak, StringComparison.CurrentCultureIgnoreCase)) ||
-                            ((x.KullaniciTipi == 2 || x.KullaniciTipi == 3) && x.Sirket != null && !string.IsNullOrWhiteSpace(x.Sirket.SirketAdi) &&
-                             x.Sirket.SirketAdi.StartsWith(aranacak, StringComparison.CurrentCultureIgnoreCase)))
-                        .ToList();
-                }
+                TempData["Hata"] = "Kullanıcı listesi API üzerinden alınamadı. Lütfen API uygulamasının çalıştığını kontrol edin.";
+                kullanicilar = new List<AppKullanici>();
             }
 
             // Yetkili servis kullanıcılarında boş kalan alanları, bağlı firma bilgisinden gösterim amaçlı tamamla
@@ -1323,15 +1263,13 @@ namespace YetkiliServisGazAcma.Controllers
                     q,
                     il,
                     durum,
-                    devreyeSiralama)
-                ?? await _adminYetkiliServisListeService.ListeleAsync(new AdminYetkiliServisListeFiltre
-                {
-                    SirketId = aktifSirketId,
-                    Q = q,
-                    Il = il,
-                    Durum = durum,
-                    DevreyeSiralama = devreyeSiralama
-                });
+                    devreyeSiralama);
+
+            if (listeSonuc == null)
+            {
+                TempData["Hata"] = "Yetkili servis listesi API üzerinden alınamadı. Lütfen API uygulamasının çalıştığını kontrol edin.";
+                listeSonuc = new AdminYetkiliServisListeSonuc();
+            }
 
             ViewBag.Kullanici = kullanici;
             ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
@@ -1369,11 +1307,13 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null) return Redirect("/giris");
 
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            var detay = await _adminYetkiliServisApiClient.DetayAsync(kullanici, id, aktifSirketId)
-                ?? await _adminYetkiliServisListeService.GetirAsync(id, aktifSirketId);
+            var detay = await _adminYetkiliServisApiClient.DetayAsync(kullanici, id, aktifSirketId);
 
-            if (detay.Servis == null)
+            if (detay?.Servis == null)
+            {
+                TempData["Hata"] = "Yetkili servis detayı API üzerinden alınamadı. Lütfen API uygulamasının çalıştığını kontrol edin.";
                 return Redirect("/AdminPanel/yetkiliservisler");
+            }
 
             ViewBag.Kullanici = kullanici;
             ViewBag.OnayBekleyen = await GetOnayBekleyenCount();

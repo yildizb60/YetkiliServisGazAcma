@@ -1,7 +1,9 @@
-﻿@model List<YetkiliServisGazAcma.Entities.Ys_DevreyeAlma>
+@model List<YetkiliServisGazAcma.Entities.Ys_DevreyeAlma>
 @{
     ViewData["Title"] = "İşlem Geçmişim";
-    Layout = null;
+    Layout = "_PanelLayout";
+    ViewData["ActiveMenu"] = "DevreyeGecmis";
+    ViewData["PanelArea"] = "YetkiliServis";
     var firma = ViewBag.Firma as YetkiliServisGazAcma.Entities.Ys_Firma;
     var markaList = ViewBag.MarkaList as List<string> ?? new List<string>();
     string seciliMarka = ViewBag.SeciliMarka as string ?? "";
@@ -12,49 +14,11 @@
     string adSoyad = firma?.YetkiliKisi ?? "Yetkili Servis";
     string basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "Y";
 }
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8" />
-    <title>İşlem Geçmişim</title>
+@section Styles {
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: "Segoe UI", "Segoe UI Emoji", "Segoe UI Symbol", "Apple Color Emoji", "Noto Color Emoji", Arial, sans-serif; background: #f0f4f8; }
-        .layout { display: flex; min-height: 100vh; }
-        .sidebar { width: 230px; background: #1a1a2e; position: fixed; top: 0; left: 0; height: 100vh; display: flex; flex-direction: column; }
-        .logo { padding: 22px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 12px; }
-        .logo-circle { width: 40px; height: 40px; background: #1B9FD4; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-        .logo-dot { width: 16px; height: 16px; background: #4CAF7D; border-radius: 50%; }
-        .logo-text { color: #fff; font-size: 15px; font-weight: bold; }
-        .logo-sub { color: rgba(255,255,255,0.4); font-size: 11px; margin-top: 2px; }
-        .nav { padding: 16px 0; flex: 1; }
-        .nav-section { color: rgba(255,255,255,0.3); font-size: 10px; padding: 14px 20px 5px; text-transform: uppercase; letter-spacing: .08em; }
-        .nav-item { display: flex; align-items: center; gap: 10px; padding: 11px 20px; color: rgba(255,255,255,0.65); font-size: 14px; text-decoration: none; transition: background .15s; }
-        .nav-item:hover { background: rgba(255,255,255,0.06); color: #fff; }
-        .nav-item.active { background: #3bb7e8; color: #fff; }
-        .cikis-btn { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.6); padding: 9px 16px; border-radius: 6px; font-size: 13px; margin: 16px 20px; display: block; text-align: center; text-decoration: none; }
-        .main { margin-left: 230px; flex: 1; }
-        .topbar { background: #fff; padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #4CAF7D; }
-        .topbar-left { font-size: 17px; font-weight: bold; color: #1a1a1a; }
-        .topbar-right { display: flex; align-items: center; gap: 12px; }
-        .avatar { width: 36px; height: 36px; border-radius: 50%; background: #1B9FD4; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; }
-        .user-name { font-size: 14px; color: #333; font-weight: bold; }
-        .user-role { font-size: 11px; color: #1B9FD4; }
-        .notif-wrap { position: relative; }
-        .notif { position: relative; width: 32px; height: 32px; border-radius: 50%; background: #f0f4f8; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #1B9FD4; border: none; cursor: pointer; }
-        .notif-badge { position: absolute; top: -4px; right: -4px; background: #e24b4a; color: #fff; font-size: 9px; font-weight: bold; padding: 2px 5px; border-radius: 10px; }
-        .notif-panel { position: absolute; right: 0; top: 38px; width: 320px; background: #fff; border: 1px solid #e7e7e7; border-radius: 10px; box-shadow: 0 10px 24px rgba(0,0,0,0.08); padding: 10px; display: none; z-index: 50; }
-        .notif-panel.open { display: block; }
-        .notif-title { font-size: 12px; font-weight: bold; color: #555; padding: 6px 8px 8px; border-bottom: 1px solid #f0f0f0; margin-bottom: 6px; }
-        .notif-item { display: flex; gap: 10px; padding: 8px; border-radius: 8px; }
-        .notif-item:hover { background: #f7fafc; }
-        .notif-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; background: #1B9FD4; flex-shrink: 0; }
-        .notif-text { font-size: 13px; color: #333; line-height: 1.35; }
-        .notif-empty { padding: 10px 8px; font-size: 12px; color: #999; }
-        .btn-yeni { padding: 9px 20px; background: #4CAF7D; color: #fff; border: none; border-radius: 7px; font-size: 14px; font-weight: bold; text-decoration: none; }
+.btn-yeni { padding: 9px 20px; background: #4CAF7D; color: #fff; border: none; border-radius: 7px; font-size: 14px; font-weight: bold; text-decoration: none; }
         .btn-yeni:hover { background: #3d9e6e; }
-        .content { padding: 28px 32px; }
-        .mesaj-basarili { background: #E1F5EE; color: #085041; padding: 14px 18px; border-radius: 8px; margin-bottom: 18px; font-size: 14px; border-left: 4px solid #4CAF7D; }
+.mesaj-basarili { background: #E1F5EE; color: #085041; padding: 14px 18px; border-radius: 8px; margin-bottom: 18px; font-size: 14px; border-left: 4px solid #4CAF7D; }
 
         /* istatistik kartlari */
         .istat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
@@ -88,48 +52,9 @@
         .detay-btn { padding: 5px 12px; background: #f0f4f8; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; color: #555; text-decoration: none; cursor: pointer; }
         .detay-btn:hover { background: #e0f0e8; border-color: #4CAF7D; color: #085041; }
     </style>
-</head>
-<body>
-<div class="layout">
-    <div class="sidebar">
-        <div class="logo">
-            @if (!string.IsNullOrWhiteSpace(ViewBag.PanelLogoUrl as string)) { <img class="panel-company-logo" src="@(ViewBag.PanelLogoUrl as string)" alt="@(ViewBag.PanelSirketAdi as string ?? "Şirket")" style="width:44px;height:44px;object-fit:contain;border-radius:14px;background:#fff;padding:5px;box-shadow:0 8px 20px rgba(0,0,0,.12);" /> } else { <div class="logo-circle"><div class="logo-dot"></div></div> }
-            <div>
-                <div class="logo-text">Gaz Açma</div>
-                <div class="logo-sub">Yetkili Servis</div><div class="logo-company" style="color:rgba(255,255,255,.68);font-size:10px;margin-top:4px;font-weight:700;letter-spacing:.03em;line-height:1.2;">@(ViewBag.PanelSirketAdi as string ?? "Genel Yönetim")</div>
-            </div>
-        </div>
-        <div class="nav">
-            <div class="nav-section">Firma</div>
-            <a class="nav-item" href="/ys-panel">&#127968; Ana Sayfa</a>
-            <div class="nav-section">Firma</div>
-            <a class="nav-item" href="/ys-devreyeal">&#128295; Cihaz Devreye Al</a>
-            <a class="nav-item active" href="/ys-devreyeal/gecmis">&#128221; İşlem Geçmişim</a>
-            <a class="nav-item" href="/ys-panel/raporlar">&#128202; Raporlarım</a>
-            <div class="nav-section">Firma</div>
-            <a class="nav-item" href="/ys-yetki-belgesi">&#128196; Yetki Belgem</a>
-            <a class="nav-item" href="/ys-panel/markalar">&#128203; Markalarım</a>
-            <a class="nav-item" href="/ys-panel/subeler">&#127970; Şube / Servis Noktaları</a>
-            <a class="nav-item" href="/ys-panel/profil">&#128100; Profilim</a>
-        </div>
-        <a class="cikis-btn" href="/cikis">Çıkış Yap</a>
-    </div>
+}
 
-    <div class="main">
-        <div class="topbar">
-            <div class="topbar-left">&#128221; İşlem Geçmişim</div>
-            <div class="topbar-right">
-                @await Html.PartialAsync("_NotificationPanel")
-                <div>
-                    <div class="user-name">@adSoyad</div>
-                    <div class="user-role">Yetkili Servis</div><div class="user-company" style="font-size:10px;color:#6b7c8e;margin-top:2px;font-weight:700;">@(ViewBag.PanelSirketAdi as string ?? "Genel Yönetim")</div>
-                </div>
-                <div class="avatar">@basHarf</div>
-            </div>
-        </div>
-        <div class="content">
-
-            @if (TempData["Basarili"] != null)
+@if (TempData["Basarili"] != null)
             {
                 <div class="mesaj-basarili">&#9989; @TempData["Basarili"]</div>
             }
@@ -264,34 +189,3 @@
                     }
                 }
             </div>
-
-        </div>
-    </div>
-</div>
-
-
-</body>
-</html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

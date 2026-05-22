@@ -1,7 +1,7 @@
-﻿@model List<YetkiliServisGazAcma.Entities.Ys_Firma>
+@model List<YetkiliServisGazAcma.Entities.Ys_Firma>
 @{
     ViewData["Title"] = "Yetkili Servisler";
-    Layout = null;
+    Layout = "_PublicLayout";
     var markalar = ViewBag.Markalar as List<YetkiliServisGazAcma.Entities.Ys_Marka> ?? new();
     var iller = ViewBag.Iller as List<string> ?? new();
     var seciliIl = ViewBag.SeciliIl as string ?? "";
@@ -45,15 +45,7 @@
         return new string(tel.Where(ch => char.IsDigit(ch) || ch == '+').ToArray());
     }
 }
-<!DOCTYPE html>
-<html lang="tr">
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Yetkili Servisler</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+@section Styles {
     <style>
         :root {
             --c-primary: #3bb7e8;
@@ -205,9 +197,8 @@
             #footer .columns { grid-template-columns:1fr; }
             #footerBottom .innerContainer { flex-direction:column; gap:8px; }
         }
-    </style>
-</head>
-<body>
+        </style>
+}
     <header class="site-header">
         <div class="container">
             <div class="site-header-top">
@@ -487,5 +478,3 @@
         </footer>
 
     </main>
-</body>
-</html>
