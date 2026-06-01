@@ -4,10 +4,15 @@ using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
 using YetkiliServisGazAcma.Infrastructure;
 using YetkiliServisGazAcma.Business.Services;
+using YetkiliServisGazAcma.Business.Services.Online;
 using Microsoft.Extensions.Options;
 using QuestPDF.Infrastructure;
 QuestPDF.Settings.License = LicenseType.Community;
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddDistributedMemoryCache();
@@ -37,6 +42,12 @@ builder.Services.AddScoped<SehirFirmaKoduService>();
 builder.Services.AddScoped<AktifSirketService>();
 builder.Services.AddScoped<PanelKimlikService>();
 builder.Services.AddScoped<PanelKimlikActionFilter>();
+builder.Services.Configure<OnlineServiceOptions>(builder.Configuration.GetSection("OnlineService"));
+builder.Services.AddHttpClient<OnlineCihazBilgileriClient>((serviceProvider, client) =>
+{
+    var options = serviceProvider.GetRequiredService<IOptions<OnlineServiceOptions>>().Value;
+    client.Timeout = TimeSpan.FromSeconds(Math.Max(1, options.TimeoutSeconds));
+});
 builder.Services.AddScoped<ApiJwtTokenService>();
 builder.Services.Configure<ApiIntegrationOptions>(builder.Configuration.GetSection("ApiIntegration"));
 builder.Services.AddHttpClient<AdminDashboardApiClient>((serviceProvider, client) =>
@@ -52,6 +63,24 @@ builder.Services.AddHttpClient<AdminKullaniciApiClient>((serviceProvider, client
     client.Timeout = TimeSpan.FromSeconds(Math.Max(1, options.TimeoutSeconds));
 });
 builder.Services.AddHttpClient<AdminYetkiliServisApiClient>((serviceProvider, client) =>
+{
+    var options = serviceProvider.GetRequiredService<IOptions<ApiIntegrationOptions>>().Value;
+    client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/");
+    client.Timeout = TimeSpan.FromSeconds(Math.Max(1, options.TimeoutSeconds));
+});
+builder.Services.AddHttpClient<AdminYetkiBelgesiOnayApiClient>((serviceProvider, client) =>
+{
+    var options = serviceProvider.GetRequiredService<IOptions<ApiIntegrationOptions>>().Value;
+    client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/");
+    client.Timeout = TimeSpan.FromSeconds(Math.Max(1, options.TimeoutSeconds));
+});
+builder.Services.AddHttpClient<AdminSubeApiClient>((serviceProvider, client) =>
+{
+    var options = serviceProvider.GetRequiredService<IOptions<ApiIntegrationOptions>>().Value;
+    client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/");
+    client.Timeout = TimeSpan.FromSeconds(Math.Max(1, options.TimeoutSeconds));
+});
+builder.Services.AddHttpClient<AdminRaporApiClient>((serviceProvider, client) =>
 {
     var options = serviceProvider.GetRequiredService<IOptions<ApiIntegrationOptions>>().Value;
     client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/");

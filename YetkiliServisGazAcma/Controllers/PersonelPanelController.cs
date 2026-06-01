@@ -209,6 +209,21 @@ namespace YetkiliServisGazAcma.Controllers
                 .Where(x => !x.SilindiMi && (sirketId == null || x.SirketId == sirketId))
                 .CountAsync();
 
+            ViewBag.ToplamDevreyeAlma = await _context.Ys_DevreyeAlmalar.Include(x => x.Firma)
+                .Where(x => !x.SilindiMi
+                    && x.Firma != null
+                    && !x.Firma.SilindiMi
+                    && (sirketId == null || x.Firma.SirketId == sirketId))
+                .CountAsync();
+
+            ViewBag.ToplamMarka = await _context.Ys_Markalar
+                .Where(x => !x.SilindiMi)
+                .CountAsync();
+
+            ViewBag.ToplamSirket = await _context.Set<Dag_Sirket>()
+                .Where(x => !x.SilindiMi)
+                .CountAsync();
+
             ViewBag.BuAy = await _context.Ys_DevreyeAlmalar.Include(x => x.Firma)
                 .Where(x => !x.SilindiMi && x.OlusturmaTarihi.Month == DateTime.Now.Month && x.OlusturmaTarihi.Year == DateTime.Now.Year
                     && x.Firma != null
@@ -420,8 +435,32 @@ namespace YetkiliServisGazAcma.Controllers
                 .OrderByDescending(x => x.OlusturmaTarihi)
                 .ToListAsync();
 
+            var onaylananlar = await _context.Ys_Sertifikalar
+                .Include(x => x.Firma).ThenInclude(x => x!.Sirket)
+                .Where(x => !x.SilindiMi
+                    && x.Durum == 1
+                    && x.Firma != null
+                    && !x.Firma.SilindiMi
+                    && (sirketId == null || x.Firma.SirketId == sirketId))
+                .OrderByDescending(x => x.OnayTarihi ?? x.OlusturmaTarihi)
+                .Take(100)
+                .ToListAsync();
+
+            var reddedilenler = await _context.Ys_Sertifikalar
+                .Include(x => x.Firma).ThenInclude(x => x!.Sirket)
+                .Where(x => !x.SilindiMi
+                    && x.Durum == 2
+                    && x.Firma != null
+                    && !x.Firma.SilindiMi
+                    && (sirketId == null || x.Firma.SirketId == sirketId))
+                .OrderByDescending(x => x.OnayTarihi ?? x.OlusturmaTarihi)
+                .Take(100)
+                .ToListAsync();
+
             ViewBag.OnayBekleyen = bekleyenler.Count;
             ViewBag.Kullanici = kullanici;
+            ViewBag.Onaylananlar = onaylananlar;
+            ViewBag.Reddedilenler = reddedilenler;
             await SetPersonelYetkiViewBags(kullanici);
             await SetPersonelNotifViewBags(kullanici);
             return View("~/Views/PersonelPanel/OnayBekleyenler.cshtml", bekleyenler);

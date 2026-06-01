@@ -90,6 +90,29 @@ namespace YetkiliServisGazAcma.Controllers
             return kullanici;
         }
 
+        private async Task<(DateTime Bas, DateTime Bit)> GetRaporTarihAraligi(int firmaId, DateTime? bas, DateTime? bit)
+        {
+            if (!bas.HasValue && !bit.HasValue)
+            {
+                var mevcutAralik = await _context.Ys_DevreyeAlmalar
+                    .Where(x => x.FirmaId == firmaId && !x.SilindiMi)
+                    .GroupBy(_ => 1)
+                    .Select(g => new
+                    {
+                        Bas = g.Min(x => x.DevreyeAlmaTarihi),
+                        Bit = g.Max(x => x.DevreyeAlmaTarihi)
+                    })
+                    .FirstOrDefaultAsync();
+
+                if (mevcutAralik != null)
+                    return (mevcutAralik.Bas.Date, mevcutAralik.Bit.Date);
+            }
+
+            var bitTarih = bit?.Date ?? DateTime.Now.Date;
+            var basTarih = bas?.Date ?? bitTarih.AddDays(-30);
+            return (basTarih, bitTarih);
+        }
+
         private async Task<(bool zorunluMu, bool tamamlandiMi, List<string> eksikler)> GetIlkKurulumDurumu(AppKullanici kullanici)
         {
             var firma = await _context.Ys_Firmalar
@@ -370,7 +393,7 @@ namespace YetkiliServisGazAcma.Controllers
 
             if (kayitliSertifikaSayisi == 0)
             {
-                TempData["Hata"] = "Marka, kategori ve şube kaydedildi. İlk kurulumun tamamlanması için lütfen yetki belgenizı yükleyin.";
+                TempData["Hata"] = "Marka, kategori ve şube kaydedildi. İlk kurulumun tamamlanması için lütfen yetki belgenizi yükleyin.";
                 return Redirect("/ys-yetki-belgesi");
             }
 
@@ -388,6 +411,8 @@ namespace YetkiliServisGazAcma.Controllers
             var firma = await _context.Ys_Firmalar
                 .Include(x => x.Sirket)
                 .Include(x => x.FirmaMarkalar!).ThenInclude(x => x.Marka)
+                .Include(x => x.FirmaKategoriler)
+                .Include(x => x.Subeler)
                 .Include(x => x.Sertifikalar)
                 .FirstOrDefaultAsync(x => x.Id == kullanici.FirmaId);
 
@@ -814,16 +839,17 @@ namespace YetkiliServisGazAcma.Controllers
 
             var firmaId = kullanici.FirmaId ?? 0;
             var firma = await _context.Ys_Firmalar.FirstOrDefaultAsync(x => x.Id == firmaId);
-            var basTarih = bas?.Date ?? DateTime.Now.Date.AddDays(-30);
-            var bitTarih = bit?.Date ?? DateTime.Now.Date;
+            var tarihAraligi = await GetRaporTarihAraligi(firmaId, bas, bit);
+            var basTarih = tarihAraligi.Bas;
+            var bitTarih = tarihAraligi.Bit;
             var bitSonrasi = bitTarih.AddDays(1);
 
             var devreyeTemelQuery = _context.Ys_DevreyeAlmalar
                 .Include(x => x.Marka)
                 .Where(x => x.FirmaId == firmaId
                     && !x.SilindiMi
-                    && x.OlusturmaTarihi >= basTarih
-                    && x.OlusturmaTarihi < bitSonrasi);
+                    && x.DevreyeAlmaTarihi >= basTarih
+                    && x.DevreyeAlmaTarihi < bitSonrasi);
 
             var sertifikaTemelQuery = _context.Ys_Sertifikalar
                 .Where(x => x.FirmaId == firmaId
@@ -840,18 +866,21 @@ namespace YetkiliServisGazAcma.Controllers
             var sertifikaReddedilen = await sertifikaTemelQuery.Where(x => x.Durum == 2).CountAsync();
 
             var sonIslemler = await devreyeTemelQuery
-                .OrderByDescending(x => x.OlusturmaTarihi)
+                .OrderByDescending(x => x.DevreyeAlmaTarihi)
                 .Take(10)
                 .ToListAsync();
 
-            var aylikBaslangic = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1).AddMonths(-5);
-            var aylikEtiketler = Enumerable.Range(0, 6)
+            var aylikBaslangic = new DateTime(basTarih.Year, basTarih.Month, 1);
+            var aylikBitis = new DateTime(bitTarih.Year, bitTarih.Month, 1);
+            var aySayisi = ((aylikBitis.Year - aylikBaslangic.Year) * 12) + aylikBitis.Month - aylikBaslangic.Month + 1;
+            if (aySayisi < 1) aySayisi = 1;
+
+            var aylikEtiketler = Enumerable.Range(0, aySayisi)
                 .Select(i => aylikBaslangic.AddMonths(i))
                 .ToList();
 
             var aylikHam = await devreyeTemelQuery
-                .Where(x => x.OlusturmaTarihi >= aylikBaslangic)
-                .GroupBy(x => new { x.OlusturmaTarihi.Year, x.OlusturmaTarihi.Month })
+                .GroupBy(x => new { x.DevreyeAlmaTarihi.Year, x.DevreyeAlmaTarihi.Month })
                 .Select(g => new { g.Key.Year, g.Key.Month, Count = g.Count() })
                 .ToListAsync();
 
@@ -905,22 +934,23 @@ namespace YetkiliServisGazAcma.Controllers
                 sonIslemler = await _context.Ys_DevreyeAlmalar
                     .Include(x => x.Marka)
                     .Where(x => x.FirmaId == firmaId && !x.SilindiMi && ids.Contains(x.Id))
-                    .OrderByDescending(x => x.OlusturmaTarihi)
+                    .OrderByDescending(x => x.DevreyeAlmaTarihi)
                     .ToListAsync();
 
-                basTarih = sonIslemler.Count > 0 ? sonIslemler.Min(x => x.OlusturmaTarihi).Date : DateTime.Now.Date;
-                bitTarih = sonIslemler.Count > 0 ? sonIslemler.Max(x => x.OlusturmaTarihi).Date : DateTime.Now.Date;
+                basTarih = sonIslemler.Count > 0 ? sonIslemler.Min(x => x.DevreyeAlmaTarihi).Date : DateTime.Now.Date;
+                bitTarih = sonIslemler.Count > 0 ? sonIslemler.Max(x => x.DevreyeAlmaTarihi).Date : DateTime.Now.Date;
             }
             else
             {
-                basTarih = bas?.Date ?? DateTime.Now.Date.AddDays(-30);
-                bitTarih = bit?.Date ?? DateTime.Now.Date;
+                var tarihAraligi = await GetRaporTarihAraligi(firmaId, bas, bit);
+                basTarih = tarihAraligi.Bas;
+                bitTarih = tarihAraligi.Bit;
                 var bitSonrasi = bitTarih.AddDays(1);
 
                 sonIslemler = await _context.Ys_DevreyeAlmalar
                     .Include(x => x.Marka)
-                    .Where(x => x.FirmaId == firmaId && !x.SilindiMi && x.OlusturmaTarihi >= basTarih && x.OlusturmaTarihi < bitSonrasi)
-                    .OrderByDescending(x => x.OlusturmaTarihi)
+                    .Where(x => x.FirmaId == firmaId && !x.SilindiMi && x.DevreyeAlmaTarihi >= basTarih && x.DevreyeAlmaTarihi < bitSonrasi)
+                    .OrderByDescending(x => x.DevreyeAlmaTarihi)
                     .Take(10)
                     .ToListAsync();
             }
@@ -1007,7 +1037,7 @@ namespace YetkiliServisGazAcma.Controllers
                                 table.Cell().Padding(6).Text(d.TesistatNo ?? "-").FontSize(10);
                                 table.Cell().Padding(6).Text(d.MusteriAdi ?? "-").FontSize(10);
                                 table.Cell().Padding(6).Text(d.Marka?.MarkaAdi ?? "-").FontSize(10);
-                                table.Cell().Padding(6).Text(d.OlusturmaTarihi.ToString("dd.MM.yyyy")).FontSize(10);
+                                table.Cell().Padding(6).Text(d.DevreyeAlmaTarihi.ToString("dd.MM.yyyy")).FontSize(10);
                             }
                         });
                     });
@@ -1049,24 +1079,25 @@ namespace YetkiliServisGazAcma.Controllers
                     .Include(x => x.Firma)
                         .ThenInclude(x => x!.Sirket)
                     .Where(x => x.FirmaId == firmaId && !x.SilindiMi && ids.Contains(x.Id))
-                    .OrderByDescending(x => x.OlusturmaTarihi)
+                    .OrderByDescending(x => x.DevreyeAlmaTarihi)
                     .ToListAsync();
 
-                basTarih = islemler.Count > 0 ? islemler.Min(x => x.OlusturmaTarihi).Date : DateTime.Now.Date;
-                bitTarih = islemler.Count > 0 ? islemler.Max(x => x.OlusturmaTarihi).Date : DateTime.Now.Date;
+                basTarih = islemler.Count > 0 ? islemler.Min(x => x.DevreyeAlmaTarihi).Date : DateTime.Now.Date;
+                bitTarih = islemler.Count > 0 ? islemler.Max(x => x.DevreyeAlmaTarihi).Date : DateTime.Now.Date;
             }
             else
             {
-                basTarih = bas?.Date ?? DateTime.Now.Date.AddDays(-30);
-                bitTarih = bit?.Date ?? DateTime.Now.Date;
+                var tarihAraligi = await GetRaporTarihAraligi(firmaId, bas, bit);
+                basTarih = tarihAraligi.Bas;
+                bitTarih = tarihAraligi.Bit;
                 var bitSonrasi = bitTarih.AddDays(1);
 
                 islemler = await _context.Ys_DevreyeAlmalar
                     .Include(x => x.Marka)
                     .Include(x => x.Firma)
                         .ThenInclude(x => x!.Sirket)
-                    .Where(x => x.FirmaId == firmaId && !x.SilindiMi && x.OlusturmaTarihi >= basTarih && x.OlusturmaTarihi < bitSonrasi)
-                    .OrderByDescending(x => x.OlusturmaTarihi)
+                    .Where(x => x.FirmaId == firmaId && !x.SilindiMi && x.DevreyeAlmaTarihi >= basTarih && x.DevreyeAlmaTarihi < bitSonrasi)
+                    .OrderByDescending(x => x.DevreyeAlmaTarihi)
                     .ToListAsync();
             }
 

@@ -1,4 +1,4 @@
-﻿@{
+@{
     var path = Context?.Request?.Path.ToString().ToLowerInvariant() ?? "";
     var panelTipi =
         path.Contains("/adminpanel") || path.Contains("/dagitimsirket") || path.Contains("/marka")
@@ -20,107 +20,152 @@
     var returnUrl = (Context?.Request?.Path.ToString() ?? "/")
         + (Context?.Request?.QueryString.ToString() ?? "");
 
-    var satirlar = new List<(string Text, string Meta, string Color)>();
+    var onayPath = panelTipi == "personel" ? "/personel-panel/onay-bekleyenler" : "/AdminPanel/onay-bekleyenler";
+    var surePath = panelTipi == "ys" ? "/ys-yetki-belgesi" : "/AdminPanel/yetki-belgesi-uyarilari";
+    var satirlar = new List<(string Title, string Text, string Time, string Icon, string Tone, string Path, int Type)>();
 
     if (bildirimler != null)
     {
         foreach (var b in bildirimler.Where(x => !string.IsNullOrWhiteSpace(x)))
         {
-            satirlar.Add((b!, panelTipi == "ys" ? "Yetkili Servis" : panelTipi == "personel" ? "Personel" : "Sistem", "#3bb7e8"));
+            satirlar.Add(("Sistem Bildirimi", b!, "Şimdi", "bi-chat-right", "df-notif-icon-primary", panelTipi == "ys" ? "/ys-panel" : onayPath, 3));
         }
     }
 
-    if (!satirlar.Any())
+    if (onayBekleyen > 0)
     {
-        if (onayBekleyen > 0)
-        {
-            satirlar.Add(($"{onayBekleyen} adet yetki belgesi onay bekliyor.", "Yetki Belgesi Onay", "#3bb7e8"));
-        }
-        if (suresiBitecek > 0)
-        {
-            satirlar.Add(($"{suresiBitecek} adet yetki belgesi 30 gün içinde bitiyor.", "Bitiş Uyarısı", "#e24b4a"));
-        }
+        satirlar.Add(("Yetki Belgesi Onayı", $"{onayBekleyen} adet yetki belgesi onay bekliyor.", "Bekleyen işlem", "bi-journal-text", "df-notif-icon-warning", onayPath, 1));
+    }
+
+    if (suresiBitecek > 0)
+    {
+        satirlar.Add(("Süre Uyarısı", $"{suresiBitecek} adet yetki belgesi 30 gün içinde bitiyor.", "Yaklaşan bitiş", "bi-clock", "df-notif-icon-danger", surePath, 2));
     }
 
     var toplam = bildirimSayisi ?? satirlar.Count;
+    var toplamYazi = toplam > 99 ? "99+" : toplam.ToString();
 }
-<style>
-    .ntf-wrap { position: relative; }
-    .ntf-btn { position: relative; width: 32px; height: 32px; border-radius: 50%; background: #f0f4f8; display: inline-flex; align-items: center; justify-content: center; font-size: 16px; color: #1B9FD4; border: none; cursor: pointer; }
-    .ntf-badge { position: absolute; top: -4px; right: -4px; background: #e24b4a; color: #fff; font-size: 9px; font-weight: bold; padding: 2px 5px; border-radius: 10px; }
-    .ntf-panel { position: absolute; right: 0; top: 38px; width: 320px; background: #fff; border: 1px solid #e7e7e7; border-radius: 10px; box-shadow: 0 10px 24px rgba(0,0,0,0.08); padding: 10px; display: none; z-index: 50; }
-    .ntf-panel.open { display: block; }
-    .ntf-title { font-size: 12px; font-weight: bold; color: #555; padding: 6px 8px 8px; border-bottom: 1px solid #f0f0f0; margin-bottom: 6px; }
-    .ntf-item { display: flex; gap: 10px; padding: 8px; border-radius: 8px; }
-    .ntf-item:hover { background: #f7fafc; }
-    .ntf-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; }
-    .ntf-text { font-size: 13px; color: #333; line-height: 1.35; }
-    .ntf-meta { font-size: 11px; color: #888; margin-top: 2px; }
-    .ntf-empty { padding: 10px 8px; font-size: 12px; color: #999; }
-    .company-switcher { display: inline-flex; align-items: center; gap: 7px; background: #f7fbff; border: 1px solid #dbe9f7; border-radius: 10px; padding: 5px 8px; }
-    .company-switcher span { font-size: 13px; color: #1B9FD4; line-height: 1; }
-    .company-switcher select { border: none; background: transparent; color: #244b6d; font-size: 12px; font-weight: 700; outline: none; max-width: 190px; cursor: pointer; }
-</style>
 @if (sirketSeciciGoster)
 {
-    <form class="company-switcher" method="post" action="/panel/sirket-sec" title="İşlem yapılacak şirket">
-        @Html.AntiForgeryToken()
-        <span>&#127970;</span>
-        <input type="hidden" name="returnUrl" value="@returnUrl" />
-        <select name="sirketId" onchange="this.form.submit()">
-            @if (genelSistemAdminMi)
-            {
-                if (!aktifSirketId.HasValue)
+    <div class="df-dropdown">
+        <button class="df-nb-btn" id="companyBtn" type="button" data-dropdown-toggle="" title="Şirket değiştir">
+            <i class="bi bi-building-gear"></i>
+        </button>
+
+        <div class="df-dropdown-menu df-nb-dropdown-wide" id="companyMenu">
+            <div class="df-dropdown-header">Şirket Seç</div>
+            <div class="df-nb-account-list">
+                @if (genelSistemAdminMi)
                 {
-                    <option value="0" selected="selected">Tüm Şirketler</option>
+                    var tumAktif = !aktifSirketId.HasValue;
+                    <form method="post" action="/panel/sirket-sec" class="df-company-form">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="sirketId" value="0" />
+                        <input type="hidden" name="returnUrl" value="@returnUrl" />
+                        <button type="submit" class="df-nb-account-item @(tumAktif ? "active" : "")">
+                            <div class="df-nb-account-avatar df-avatar-primary"><span>TŞ</span></div>
+                            <div class="df-nb-account-info">
+                                <div class="df-nb-account-name">Tüm Şirketler</div>
+                                <div class="df-nb-account-sub">Genel yönetim görünümü</div>
+                            </div>
+                            @if (tumAktif)
+                            {
+                                <i class="bi bi-check-circle-fill df-nb-account-check"></i>
+                            }
+                        </button>
+                    </form>
                 }
-                else
+
+                @foreach (var sirket in aktifSirketler)
                 {
-                    <option value="0">Tüm Şirketler</option>
+                    var aktif = aktifSirketId == sirket.Id;
+                    var ad = sirket.SirketAdi ?? "Şirket";
+                    var parcalar = ad.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    var harfler = string.Concat(parcalar.Take(2).Select(x => x.Substring(0, 1))).ToUpper(new System.Globalization.CultureInfo("tr-TR"));
+                    if (string.IsNullOrWhiteSpace(harfler)) harfler = "Ş";
+
+                    <form method="post" action="/panel/sirket-sec" class="df-company-form">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="sirketId" value="@sirket.Id" />
+                        <input type="hidden" name="returnUrl" value="@returnUrl" />
+                        <button type="submit" class="df-nb-account-item @(aktif ? "active" : "")">
+                            <div class="df-nb-account-avatar df-avatar-primary"><span>@harfler</span></div>
+                            <div class="df-nb-account-info">
+                                <div class="df-nb-account-name">@ad</div>
+                                <div class="df-nb-account-sub">@(aktif ? "Aktif şirket" : "")</div>
+                            </div>
+                            @if (aktif)
+                            {
+                                <i class="bi bi-check-circle-fill df-nb-account-check"></i>
+                            }
+                        </button>
+                    </form>
                 }
-            }
-            @foreach (var sirket in aktifSirketler)
-            {
-                if (aktifSirketId == sirket.Id)
-                {
-                    <option value="@sirket.Id" selected="selected">@sirket.SirketAdi</option>
-                }
-                else
-                {
-                    <option value="@sirket.Id">@sirket.SirketAdi</option>
-                }
-            }
-        </select>
-    </form>
+            </div>
+        </div>
+    </div>
 }
-<div class="ntf-wrap js-notif-wrap">
-    <button class="ntf-btn js-notif-btn" type="button" aria-label="Bildirimler">
-        &#128276;
+
+<div class="df-dropdown">
+    <button class="df-nb-btn" id="notifBtn" type="button" data-dropdown-toggle="" aria-label="Bildirimler">
+        <i class="bi bi-bell"></i>
         @if (toplam > 0)
         {
-            <span class="ntf-badge">@toplam</span>
+            <span class="df-nb-badge red-bildirim-count" data-count="@toplam">@toplamYazi</span>
         }
     </button>
-    <div class="ntf-panel js-notif-panel">
-        <div class="ntf-title">Bildirimler</div>
-        @if (!satirlar.Any())
-        {
-            <div class="ntf-empty">Yeni bildirim yok.</div>
-        }
-        else
-        {
-            foreach (var s in satirlar)
+
+    <div class="df-dropdown-menu df-nb-dropdown-wide" id="notifMenu" style="min-width:360px">
+        <div class="df-notif-header">
+            <span class="df-notif-title">
+                Bildirimler
+                @if (toplam > 0)
+                {
+                    <span class="df-badge df-badge-primary df-badge-sm noti-quantity">
+                        <span class="bildirim-count">@toplamYazi</span> okunmamış
+                    </span>
+                }
+            </span>
+
+            @if (toplam > 0)
             {
-                <div class="ntf-item">
-                    <span class="ntf-dot" style="background:@s.Color;"></span>
-                    <div>
-                        <div class="ntf-text">@s.Text</div>
-                        <div class="ntf-meta">@s.Meta</div>
-                    </div>
+                <button type="button" class="df-notif-mark-all btn-bildirim-all">Tümünü okundu yap</button>
+            }
+        </div>
+
+        <div class="df-notif-filter" id="filterContainer">
+            <button type="button" class="df-btn df-btn-sm active df-btn-primary" data-filter="all">Tümü</button>
+            <button type="button" class="df-btn df-btn-sm df-btn-secondary" data-filter="1">Onay</button>
+            <button type="button" class="df-btn df-btn-sm df-btn-secondary" data-filter="2">Süre</button>
+            <button type="button" class="df-btn df-btn-sm df-btn-secondary" data-filter="3">Sistem</button>
+        </div>
+
+        <div class="df-notif-list notification-body">
+            @if (!satirlar.Any())
+            {
+                <div class="df-empty df-empty-compact">
+                    <div class="df-empty-title">Yeni bildirim yok.</div>
+                    <p class="df-empty-text">Bekleyen işlem oluştuğunda burada görünecek.</p>
                 </div>
             }
-        }
+            else
+            {
+                foreach (var item in satirlar)
+                {
+                    <div class="df-notif-item notification-item" data-type="@item.Type">
+                        <div class="df-notif-icon @item.Tone">
+                            <i class="bi @item.Icon"></i>
+                        </div>
+                        <a class="df-notif-body js-notif-redirect" href="@item.Path">
+                            <div class="df-notif-text">@item.Title</div>
+                            <div class="df-notif-time"><i class="bi bi-chat-right"></i> @item.Text</div>
+                            <div class="df-notif-time fw-normal"><i class="bi bi-clock"></i> @item.Time</div>
+                        </a>
+                    </div>
+                }
+            }
+        </div>
+
+        <div class="df-notif-footer"></div>
     </div>
 </div>
-<script src="/js/notification-panel.js"></script>
-

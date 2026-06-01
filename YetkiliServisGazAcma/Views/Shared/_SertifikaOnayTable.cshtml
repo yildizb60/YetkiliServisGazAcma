@@ -1,0 +1,110 @@
+@using YetkiliServisGazAcma.Entities
+@model Tuple<List<Ys_Sertifika>, string, string>
+@{
+    var kayitlar = Model.Item1 ?? new List<Ys_Sertifika>();
+    var durum = Model.Item2;
+    var panel = Model.Item3;
+    var bekleyen = durum == "bekleyen";
+    var onayUrl = panel == "personel" ? "/personel-panel/onayla" : "/ys-yetki-belgesi/onayla";
+    var redUrl = panel == "personel" ? "/personel-panel/reddet" : "/ys-yetki-belgesi/reddet";
+    var bosMetin = durum switch
+    {
+        "onaylanan" => "Onaylanan yetki belgesi bulunmuyor.",
+        "reddedilen" => "Reddedilen yetki belgesi bulunmuyor.",
+        _ => "Onay bekleyen yetki belgesi bulunmuyor."
+    };
+}
+<div class="df-table-wrap">
+    <table class="df-table">
+        <thead>
+            <tr>
+                <th>Firma</th>
+                <th>Şirket</th>
+                <th>Yükleme</th>
+                <th>Başlangıç</th>
+                <th>Bitiş</th>
+                <th>Durum</th>
+                <th>Belge</th>
+                <th>@(bekleyen ? "İşlem" : "Sonuç")</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (!kayitlar.Any())
+            {
+                <tr>
+                    <td colspan="8">
+                        <div class="df-empty">
+                            <div class="df-empty-title">@bosMetin</div>
+                            <p class="df-empty-text">Kayıt oluştuğunda bu listede görünecek.</p>
+                        </div>
+                    </td>
+                </tr>
+            }
+            else
+            {
+                foreach (var s in kayitlar)
+                {
+                    var baslangic = s.SertifikaBaslangicTarihi ?? s.OlusturmaTarihi;
+                    var kalanGun = (s.SertifikaBitisTarihi.Date - DateTime.Now.Date).Days;
+                    var kalanYazi = kalanGun < 0 ? $"{Math.Abs(kalanGun)} gün geçti" : $"{kalanGun} gün kaldı";
+                    var durumClass = s.Durum == 1 ? "df-pill-success" : s.Durum == 2 ? "df-pill-danger" : "df-pill-warning";
+                    var durumYazi = s.Durum == 1 ? "Onaylandı" : s.Durum == 2 ? "Reddedildi" : "Onay bekliyor";
+
+                    <tr>
+                        <td>
+                            <div class="df-cell-main">@s.Firma?.FirmaAdi</div>
+                            <div class="df-cell-sub">@s.Firma?.VergiNo</div>
+                        </td>
+                        <td>@s.Firma?.Sirket?.SirketAdi</td>
+                        <td>@s.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</td>
+                        <td>@baslangic.ToString("dd.MM.yyyy")</td>
+                        <td>
+                            <div class="df-cell-main">@s.SertifikaBitisTarihi.ToString("dd.MM.yyyy")</div>
+                            <div class="df-cell-sub">@kalanYazi</div>
+                        </td>
+                        <td><span class="df-pill @durumClass">@durumYazi</span></td>
+                        <td>
+                            @if (!string.IsNullOrWhiteSpace(s.DosyaYolu))
+                            {
+                                <a class="df-btn df-btn-secondary df-btn-sm" href="@s.DosyaYolu" target="_blank">İncele</a>
+                            }
+                            else
+                            {
+                                <span class="df-cell-sub">Dosya yok</span>
+                            }
+                        </td>
+                        <td>
+                            @if (bekleyen)
+                            {
+                                <div class="df-actions">
+                                    <form method="post" action="@onayUrl">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@s.Id" />
+                                        <button type="submit" class="df-btn df-btn-success df-btn-sm">Onayla</button>
+                                    </form>
+                                    <form method="post" action="@redUrl" class="df-actions">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@s.Id" />
+                                        <input class="df-control df-red-input" type="text" name="gerekce" placeholder="Red gerekçesi" />
+                                        <button type="submit" class="df-btn df-btn-danger df-btn-sm">Reddet</button>
+                                    </form>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="df-cell-main">@(s.OnaylayanKullanici ?? "Sistem")</div>
+                                <div class="df-cell-sub">
+                                    @(s.OnayTarihi.HasValue ? s.OnayTarihi.Value.ToString("dd.MM.yyyy HH:mm") : "-")
+                                </div>
+                                @if (s.Durum == 2 && !string.IsNullOrWhiteSpace(s.RedGerekce))
+                                {
+                                    <div class="df-cell-sub">@s.RedGerekce</div>
+                                }
+                            }
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</div>

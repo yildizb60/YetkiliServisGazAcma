@@ -1,115 +1,74 @@
 @model List<YetkiliServisGazAcma.Entities.Ys_Sertifika>
+@using YetkiliServisGazAcma.Entities
 @{
-    ViewData["Title"] = "Yetki Belgesi Onay";
-    Layout = "_PanelLayout";
+    ViewData["Title"] = "Yetki Belgesi Onayları";
+    ViewData["PanelTitle"] = "Yetki Belgesi Onayları";
+    ViewData["PanelSubtitle"] = "Yetki Belgesi";
     ViewData["ActiveMenu"] = "OnayBekleyenler";
-    ViewData["PanelArea"] = "Admin";
-    int onayBekleyen = ViewBag.OnayBekleyen is int v ? v : 0;
-}
-@section Styles {
-    <style>
-.mesaj-basarili { background: #E1F5EE; color: #085041; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; }
-        .mesaj-hata { background: #FCEBEB; color: #501313; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; }
-        .sert-kart { background: #fff; border-radius: 10px; border: 1px solid #eee; padding: 20px; margin-bottom: 12px; }
-        .sert-ust { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
-        .firma-adi { font-size: 15px; font-weight: bold; color: #333; }
-        .firma-alt { font-size: 12px; color: #888; margin-top: 3px; }
-        .badge { display: inline-block; padding: 4px 12px; border-radius: 10px; font-size: 12px; font-weight: bold; }
-        .b-yellow { background: #FAEEDA; color: #633806; }
-        .sert-detay { display: grid; grid-template-columns: repeat(5,1fr); gap: 12px; margin-bottom: 16px; padding: 12px; background: #f8f8f6; border-radius: 8px; }
-        .detay-alan { font-size: 12px; }
-        .detay-label { color: #888; margin-bottom: 3px; }
-        .detay-deger { color: #333; font-weight: bold; }
-        .aksiyonlar { display: flex; gap: 10px; align-items: center; }
-        .btn-onayla { padding: 8px 20px; background: #4CAF7D; color: #fff; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; }
-        .btn-incele { padding: 8px 16px; background: #E6F1FB; color: #0C447C; border: none; border-radius: 6px; font-size: 12px; text-decoration: none; }
-        .red-form { display: flex; gap: 8px; flex: 1; }
-        .red-input { flex: 1; padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; outline: none; }
-        .btn-reddet { padding: 8px 16px; background: #FCEBEB; color: #501313; border: 1px solid #F09595; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; }
-        .bos { text-align: center; padding: 60px; color: #bbb; font-size: 14px; }
-    </style>
+    Layout = "~/Views/Shared/_PanelLayout.cshtml";
+
+    var bekleyenler = Model ?? new List<Ys_Sertifika>();
+    var onaylananlar = ViewBag.Onaylananlar as List<Ys_Sertifika> ?? new List<Ys_Sertifika>();
+    var reddedilenler = ViewBag.Reddedilenler as List<Ys_Sertifika> ?? new List<Ys_Sertifika>();
 }
 
 @if (TempData["Basarili"] != null)
-            {
-                <div class="mesaj-basarili">✅ @TempData["Basarili"]</div>
-            }
-            @if (TempData["Hata"] != null)
-            {
-                <div class="mesaj-hata">❌ @TempData["Hata"]</div>
-            }
+{
+    <div class="df-alert df-alert-success">@TempData["Basarili"]</div>
+}
+@if (TempData["Hata"] != null)
+{
+    <div class="df-alert df-alert-danger">@TempData["Hata"]</div>
+}
 
-            @if (!Model.Any())
-            {
-                <div class="bos"> Onay bekleyen yetki belgesi bulunmuyor</div>
-            }
-            else
-            {
-                @foreach (var s in Model)
-                {
-                    var baslangic = s.SertifikaBaslangicTarihi ?? s.OlusturmaTarihi;
-                    var kalanGun = (s.SertifikaBitisTarihi.Date - DateTime.Now.Date).Days;
-                    var kalanYazi = kalanGun < 0 ? $"{Math.Abs(kalanGun)} gün geçti" : $"{kalanGun} gün kaldı";
-                    <div class="sert-kart">
-                        <div class="sert-ust">
-                            <div>
-                                <div class="firma-adi">@s.Firma?.FirmaAdi</div>
-                                <div class="firma-alt">
-                                    @s.Firma?.Sirket?.SirketAdi  @s.Firma?.Telefon
-                                </div>
-                            </div>
-                            <span class="badge b-yellow">? Onay Bekliyor</span>
-                        </div>
+<div class="section-label">
+    <i class="bi bi-journal-text"></i>
+    Yetki belgesi değerlendirme
+</div>
 
-                        <div class="sert-detay">
-                            <div class="detay-alan">
-                                <div class="detay-label">Yükleme Tarihi</div>
-                                <div class="detay-deger">
-                                    @s.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")
-                                </div>
-                            </div>
-                            <div class="detay-alan">
-                                <div class="detay-label">Yetki Belgesi Başlangıç</div>
-                                <div class="detay-deger">
-                                    @baslangic.ToString("dd.MM.yyyy")
-                                </div>
-                            </div>
-                            <div class="detay-alan">
-                                <div class="detay-label">Yetki Belgesi Bitiş</div>
-                                <div class="detay-deger">
-                                    @s.SertifikaBitisTarihi.ToString("dd.MM.yyyy")
-                                </div>
-                            </div>
-                            <div class="detay-alan">
-                                <div class="detay-label">Kalan Gün</div>
-                                <div class="detay-deger">@kalanYazi</div>
-                            </div>
-                            <div class="detay-alan">
-                                <div class="detay-label">VKN</div>
-                                <div class="detay-deger">@s.Firma?.VergiNo</div>
-                            </div>
-                        </div>
+<div class="df-page-panel approval-panels">
+    <div class="df-panel-head">
+        <div>
+            <div class="df-panel-title">Yetki Belgesi Onay Listesi</div>
+            <div class="df-panel-subtitle">Onayda bekleyenler, onaylananlar ve reddedilenler</div>
+        </div>
+        <div class="df-status-tabs" data-approval-tabs>
+            <button type="button" class="df-tab active" data-target="bekleyen">Onayda Bekleyenler (@bekleyenler.Count)</button>
+            <button type="button" class="df-tab" data-target="onaylanan">Onaylananlar (@onaylananlar.Count)</button>
+            <button type="button" class="df-tab" data-target="reddedilen">Reddedilenler (@reddedilenler.Count)</button>
+        </div>
+    </div>
 
-                        <div class="aksiyonlar">
-                            <a class="btn-incele" href="@s.DosyaYolu"
-                               target="_blank"> Yetki Belgesini İncele</a>
+    <div data-panel="bekleyen" class="active">
+        @await Html.PartialAsync("~/Views/Shared/_SertifikaOnayTable.cshtml", new Tuple<List<Ys_Sertifika>, string, string>(bekleyenler, "bekleyen", "admin"))
+    </div>
+    <div data-panel="onaylanan">
+        @await Html.PartialAsync("~/Views/Shared/_SertifikaOnayTable.cshtml", new Tuple<List<Ys_Sertifika>, string, string>(onaylananlar, "onaylanan", "admin"))
+    </div>
+    <div data-panel="reddedilen">
+        @await Html.PartialAsync("~/Views/Shared/_SertifikaOnayTable.cshtml", new Tuple<List<Ys_Sertifika>, string, string>(reddedilenler, "reddedilen", "admin"))
+    </div>
+</div>
 
-                            <form method="post" action="/ys-yetki-belgesi/onayla">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" value="@s.Id" />
-                                <button type="submit" class="btn-onayla">✅ Onayla</button>
-                            </form>
+@section Scripts {
+<script>
+(function () {
+    var tabs = document.querySelector('[data-approval-tabs]');
+    if (!tabs) return;
 
-                            <form method="post" action="/ys-yetki-belgesi/reddet"
-                                  class="red-form">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" value="@s.Id" />
-                                <input type="text" name="gerekce"
-                                       class="red-input"
-                                       placeholder="Red gerekçesi..." />
-                                <button type="submit" class="btn-reddet">❌ Reddet</button>
-                            </form>
-                        </div>
-                    </div>
-                }
-            }
+    tabs.addEventListener('click', function (event) {
+        var btn = event.target.closest('[data-target]');
+        if (!btn) return;
+        var target = btn.getAttribute('data-target');
+
+        tabs.querySelectorAll('[data-target]').forEach(function (item) {
+            item.classList.toggle('active', item === btn);
+        });
+
+        document.querySelectorAll('.approval-panels [data-panel]').forEach(function (panel) {
+            panel.classList.toggle('active', panel.getAttribute('data-panel') === target);
+        });
+    });
+})();
+</script>
+}

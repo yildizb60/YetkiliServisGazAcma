@@ -5,136 +5,174 @@
     ViewData["ActiveMenu"] = "SertifikaUyarilari";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
-    var yaklasan = ViewBag.Yaklasan as List<YetkiliServisGazAcma.Entities.Ys_Sertifika>;
-    var gecmis = ViewBag.Gecmis as List<YetkiliServisGazAcma.Entities.Ys_Sertifika>;
+    var yaklasan = ViewBag.Yaklasan as List<YetkiliServisGazAcma.Entities.Ys_Sertifika> ?? new();
+    var gecmis = ViewBag.Gecmis as List<YetkiliServisGazAcma.Entities.Ys_Sertifika> ?? new();
 }
 
 @section Styles {
     <style>
-        .content {
+        .warning-stack {
             display: grid;
             gap: 16px;
         }
 
-        .section.warn {
-            border-left: 4px solid #f2a100;
+        .warning-summary {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
         }
 
-        .section.danger {
-            border-left: 4px solid #e24b4a;
+        .warning-kpi {
+            background: var(--df-surface);
+            border: 1px solid var(--df-border);
+            border-radius: var(--df-radius);
+            box-shadow: var(--df-shadow-soft);
+            padding: 16px;
         }
 
-        .section-sub {
+        .warning-kpi-label {
+            color: var(--df-muted);
             font-size: 12px;
-            color: #7a8794;
-            margin-top: 4px;
+            font-weight: 700;
         }
 
-        .pill {
-            padding: 4px 10px;
-            border-radius: 999px;
-            font-size: 11px;
+        .warning-kpi-value {
+            color: var(--df-text-soft);
+            font-size: 28px;
             font-weight: 800;
-            letter-spacing: .02em;
+            margin-top: 5px;
         }
 
-        .warn-pill {
-            background: #fff3d8;
-            color: #7a4a00;
+        .warning-panel-accent {
+            border-left: 4px solid var(--df-warning);
         }
 
-        .danger-pill {
-            background: #fde5e5;
-            color: #7a1b1b;
+        .danger-panel-accent {
+            border-left: 4px solid var(--df-danger);
         }
 
-        .tablo-head,
-        .tablo-row {
-            grid-template-columns: 1.6fr 1fr 1fr .8fr;
+        .warning-row-soon td {
+            background: var(--df-warning-soft);
         }
 
-        .tablo-row.urgent {
-            background: #fff7e8;
+        .warning-row-expired td {
+            background: var(--df-danger-soft);
         }
 
-        .tablo-row.critical {
-            background: #ffe9e9;
-        }
-
-        .tablo-row.expired {
-            background: #fff1f1;
-        }
-
-        .b-orange {
-            background: #FAEEDA;
-            color: #633806;
-        }
-
-        @@media (max-width: 760px) {
-            .tablo-head,
-            .tablo-row {
+        @@media (max-width: 860px) {
+            .warning-summary {
                 grid-template-columns: 1fr;
-                gap: 8px;
             }
         }
     </style>
 }
 
-<div class="section warn">
-    <div class="section-head">
-        <div>
-            <div class="section-title">30 Gün içinde Bitenler</div>
-            <div class="section-sub">Yakın tarihte bitecek yetki belgeleri</div>
+<div class="warning-stack">
+    <div class="warning-summary">
+        <div class="warning-kpi">
+            <div class="warning-kpi-label">30 g&#252;n i&#231;inde bitecek</div>
+            <div class="warning-kpi-value">@yaklasan.Count</div>
         </div>
-        <div class="pill warn-pill">Dikkat</div>
+        <div class="warning-kpi">
+            <div class="warning-kpi-label">S&#252;resi dolan</div>
+            <div class="warning-kpi-value">@gecmis.Count</div>
+        </div>
     </div>
-    <div class="tablo-head">
-        <div>Firma</div><div>Şirket</div><div>Bitiş</div><div>Kalan</div>
-    </div>
-    @if (yaklasan == null || yaklasan.Count == 0)
-    {
-        <div class="empty">Yakın tarihte biten yetki belgesi yok</div>
-    }
-    else
-    {
-        foreach (var s in yaklasan)
-        {
-            var kalanGun = (s.SertifikaBitisTarihi.Date - DateTime.Now.Date).Days;
-            <div class="tablo-row @(kalanGun <= 3 ? "critical" : kalanGun <= 7 ? "urgent" : "")">
-                <div>@s.Firma?.FirmaAdi</div>
-                <div style="font-size:12px;color:#888">@s.Firma?.Sirket?.SirketAdi</div>
-                <div>@s.SertifikaBitisTarihi.ToString("dd.MM.yyyy")</div>
-                <div><span class="badge b-orange">@kalanGun gün</span></div>
-            </div>
-        }
-    }
-</div>
 
-<div class="section danger">
-    <div class="section-head">
-        <div>
-            <div class="section-title">Süresi Dolanlar</div>
-            <div class="section-sub">Yetki belgesi geçmiş kayıtlar</div>
+    <section class="df-page-panel warning-panel-accent">
+        <div class="df-panel-head">
+            <div>
+                <h2 class="df-panel-title">30 G&#252;n &#304;&#231;inde Bitenler</h2>
+                <div class="df-panel-subtitle">Yak&#305;n tarihte bitecek yetki belgeleri</div>
+            </div>
+            <span class="badge b-yellow">Dikkat</span>
         </div>
-        <div class="pill danger-pill">Kritik</div>
-    </div>
-    <div class="tablo-head">
-        <div>Firma</div><div>Şirket</div><div>Bitiş</div><div>Durum</div>
-    </div>
-    @if (gecmis == null || gecmis.Count == 0)
-    {
-        <div class="empty">Süresi dolan yetki belgesi yok</div>
-    }
-    else
-    {
-        foreach (var s in gecmis)
+
+        @if (yaklasan.Count == 0)
         {
-            <div class="tablo-row expired">
-                <div>@s.Firma?.FirmaAdi</div>
-                <div style="font-size:12px;color:#888">@s.Firma?.Sirket?.SirketAdi</div>
-                <div>@s.SertifikaBitisTarihi.ToString("dd.MM.yyyy")</div>
-                <div><span class="badge b-red">Süresi Doldu</span></div>
+            <div class="df-empty">
+                <div class="df-empty-title">Yak&#305;n tarihte biten belge yok</div>
+                <div class="df-empty-text">S&#252;resi yakla&#351;an yetki belgeleri burada listelenecek.</div>
             </div>
         }
-    }
+        else
+        {
+            <div class="df-table-wrap">
+                <table class="df-table">
+                    <thead>
+                        <tr>
+                            <th>Firma</th>
+                            <th>&#350;irket</th>
+                            <th>Biti&#351;</th>
+                            <th>Kalan</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var s in yaklasan)
+                        {
+                            var kalanGun = (s.SertifikaBitisTarihi.Date - DateTime.Now.Date).Days;
+                            <tr class="@(kalanGun <= 7 ? "warning-row-soon" : "")">
+                                <td>
+                                    <div class="df-cell-main">@(s.Firma?.FirmaAdi ?? "-")</div>
+                                </td>
+                                <td>
+                                    <div class="df-cell-sub">@(s.Firma?.Sirket?.SirketAdi ?? "-")</div>
+                                </td>
+                                <td>@s.SertifikaBitisTarihi.ToString("dd.MM.yyyy")</td>
+                                <td><span class="badge b-yellow">@kalanGun g&#252;n</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+
+    <section class="df-page-panel danger-panel-accent">
+        <div class="df-panel-head">
+            <div>
+                <h2 class="df-panel-title">S&#252;resi Dolanlar</h2>
+                <div class="df-panel-subtitle">Yetki belgesi ge&#231;erlili&#287;i bitmi&#351; kay&#305;tlar</div>
+            </div>
+            <span class="badge b-red">Kritik</span>
+        </div>
+
+        @if (gecmis.Count == 0)
+        {
+            <div class="df-empty">
+                <div class="df-empty-title">S&#252;resi dolan belge yok</div>
+                <div class="df-empty-text">Ge&#231;erlili&#287;i biten belgeler burada listelenecek.</div>
+            </div>
+        }
+        else
+        {
+            <div class="df-table-wrap">
+                <table class="df-table">
+                    <thead>
+                        <tr>
+                            <th>Firma</th>
+                            <th>&#350;irket</th>
+                            <th>Biti&#351;</th>
+                            <th>Durum</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var s in gecmis)
+                        {
+                            <tr class="warning-row-expired">
+                                <td>
+                                    <div class="df-cell-main">@(s.Firma?.FirmaAdi ?? "-")</div>
+                                </td>
+                                <td>
+                                    <div class="df-cell-sub">@(s.Firma?.Sirket?.SirketAdi ?? "-")</div>
+                                </td>
+                                <td>@s.SertifikaBitisTarihi.ToString("dd.MM.yyyy")</td>
+                                <td><span class="badge b-red">S&#252;resi Doldu</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
 </div>

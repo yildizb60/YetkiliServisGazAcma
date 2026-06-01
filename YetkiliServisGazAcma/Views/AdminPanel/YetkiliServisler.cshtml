@@ -18,19 +18,19 @@
     <style>
         .content {
             display: grid;
-            gap: 16px;
+            gap: 14px;
         }
 
         .filter-bar {
-            background: #fff;
-            border: 1px solid #e8eff6;
-            border-radius: 14px;
-            padding: 16px 18px;
+            background: var(--df-surface);
+            border: 1px solid var(--df-border);
+            border-radius: var(--df-radius);
+            padding: 14px 16px;
             display: grid;
             grid-template-columns: 2fr 1.2fr 1fr 1fr auto;
             gap: 12px;
             align-items: end;
-            box-shadow: 0 8px 22px rgba(12, 40, 70, .06);
+            box-shadow: 0 12px 26px rgba(15, 23, 42, .06);
         }
 
         .filter-group {
@@ -41,19 +41,21 @@
 
         .filter-group label {
             font-size: 11px;
-            color: #777;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: .04em;
+            color: var(--df-muted);
+            font-weight: 700;
+            letter-spacing: 0;
         }
 
         .filter-group input,
         .filter-group select {
-            padding: 10px 12px;
-            border: 1px solid #d9e4ef;
-            border-radius: 10px;
+            min-height: 36px;
+            padding: 8px 10px;
+            border: 1px solid var(--df-border);
+            border-radius: var(--df-radius);
             font-size: 13px;
-            background: #f8fbff;
+            background: #fff;
+            color: var(--df-text);
+            font: inherit;
         }
 
         .filter-actions {
@@ -62,34 +64,34 @@
         }
 
         .btn-filter {
-            padding: 10px 16px;
-            border-radius: 10px;
+            min-height: 36px;
+            padding: 8px 12px;
+            border-radius: var(--df-radius);
             font-size: 12px;
-            font-weight: 800;
+            font-weight: 700;
             border: none;
             cursor: pointer;
         }
 
         .btn-apply {
-            background: linear-gradient(135deg, #1B9FD4, #4CAF7D);
+            background: var(--df-primary-500);
             color: #fff;
-            box-shadow: 0 10px 18px rgba(27, 159, 212, .18);
         }
 
         .btn-clear {
-            background: #fff;
-            color: #1B9FD4;
-            border: 1px solid #cfe2f3;
+            background: var(--df-surface-2);
+            color: var(--df-neutral-700);
+            border: 1px solid var(--df-border);
             text-decoration: none;
             display: inline-flex;
             align-items: center;
         }
 
         .section {
-            background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-            border-radius: 16px;
-            border: 1px solid #e4edf7;
-            box-shadow: 0 12px 26px rgba(20, 40, 60, .08);
+            background: var(--df-surface);
+            border-radius: var(--df-radius);
+            border: 1px solid var(--df-border);
+            box-shadow: 0 12px 26px rgba(15, 23, 42, .06);
         }
 
         .tablo-head,
@@ -108,14 +110,14 @@
 
         .btn-edit {
             padding: 5px 12px;
-            background: #E6F1FB;
-            color: #0C447C;
+            background: var(--df-primary-50);
+            color: var(--df-primary-600);
         }
 
         .btn-del {
             padding: 5px 12px;
-            background: #FCEBEB;
-            color: #501313;
+            background: var(--df-danger-50);
+            color: var(--df-danger-500);
             border: none;
             cursor: pointer;
         }
@@ -129,8 +131,8 @@
         }
 
         .link-public {
-            color: #1B9FD4;
-            font-weight: 800;
+            color: var(--df-primary-600);
+            font-weight: 700;
             background: transparent;
             padding: 6px 8px;
         }

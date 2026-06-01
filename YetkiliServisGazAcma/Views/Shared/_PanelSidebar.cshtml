@@ -44,7 +44,7 @@
     <div class="logo">
         @if (!string.IsNullOrWhiteSpace(ViewBag.PanelLogoUrl as string))
         {
-            <img class="panel-company-logo" src="@(ViewBag.PanelLogoUrl as string)" alt="@(ViewBag.PanelSirketAdi as string ?? "Sirket")" />
+            <img class="panel-company-logo" src="@(ViewBag.PanelLogoUrl as string)" alt="@(ViewBag.PanelSirketAdi as string ?? "Şirket")" />
         }
         else
         {
@@ -53,7 +53,7 @@
         <div>
             <div class="logo-text">Gaz A&#231;ma</div>
             <div class="logo-sub">@panelAltBaslik</div>
-            <div class="logo-company">@(ViewBag.PanelSirketAdi as string ?? "Genel Yonetim")</div>
+            <div class="logo-company">@(ViewBag.PanelSirketAdi as string ?? "Genel Yönetim")</div>
         </div>
     </div>
 
@@ -65,15 +65,15 @@
                 <span class="nav-ico">&#127968;</span> Ana Sayfa
             </a>
 
-            <div class="nav-section">Islemler</div>
+            <div class="nav-section">İşlemler</div>
             <a class="@("nav-item" + ActiveExact("DevreyeAl", "/ys-devreyeal"))" href="/ys-devreyeal">
                 <span class="nav-ico">&#128295;</span> Cihaz Devreye Al
             </a>
             <a class="@("nav-item" + Active("DevreyeGecmis", "/ys-devreyeal/gecmis", "/ys-devreyeal/detay"))" href="/ys-devreyeal/gecmis">
-                <span class="nav-ico">&#128221;</span> Islem Gecmisim
+                <span class="nav-ico">&#128221;</span> İşlem Geçmişim
             </a>
             <a class="@("nav-item" + Active("Raporlar", "/ys-panel/raporlar"))" href="/ys-panel/raporlar">
-                <span class="nav-ico">&#128202;</span> Raporlarim
+                <span class="nav-ico">&#128202;</span> Raporlarım
             </a>
 
             <div class="nav-section">Firma</div>
@@ -81,10 +81,10 @@
                 <span class="nav-ico">&#128196;</span> Yetki Belgem
             </a>
             <a class="@("nav-item" + Active("Markalar", "/ys-panel/markalar"))" href="/ys-panel/markalar">
-                <span class="nav-ico">&#127991;</span> Markalarim
+                <span class="nav-ico">&#127991;</span> Markalarım
             </a>
             <a class="@("nav-item" + Active("Subeler", "/ys-panel/subeler"))" href="/ys-panel/subeler">
-                <span class="nav-ico">&#127970;</span> Sube / Servis Noktalari
+                <span class="nav-ico">&#127970;</span> Şube / Servis Noktaları
             </a>
             <a class="@("nav-item" + Active("Profil", "/ys-panel/profil"))" href="/ys-panel/profil">
                 <span class="nav-ico">&#128100;</span> Profilim
@@ -97,7 +97,7 @@
                 <span class="nav-ico">&#127968;</span> Ana Sayfa
             </a>
 
-            <div class="nav-section">Islemler</div>
+            <div class="nav-section">İşlemler</div>
             <a class="@("nav-item" + Active("OnayBekleyenler", "/personel-panel/onay-bekleyenler"))" href="/personel-panel/onay-bekleyenler">
                 <span class="nav-ico">&#9989;</span> Yetki Belgesi Onay
                 @if (ViewBag.OnayBekleyen > 0)
@@ -119,7 +119,7 @@
                 <span class="nav-ico">&#128202;</span> Genel Raporlar
             </a>
             <a class="@("nav-item" + Active("OnayGecmisi", "/personel-panel/onay-gecmisi"))" href="/personel-panel/onay-gecmisi">
-                <span class="nav-ico">&#128221;</span> Onay Gecmisi
+                <span class="nav-ico">&#128221;</span> Onay Geçmişi
             </a>
 
             <div class="nav-section">Sistem</div>
@@ -134,7 +134,7 @@
                 <span class="nav-ico">&#127968;</span> Dashboard
             </a>
 
-            <div class="nav-section">Yonetim</div>
+            <div class="nav-section">Yönetim</div>
             <a class="@("nav-item" + Active("Markalar", "/Marka"))" href="/Marka">
                 <span class="nav-ico">&#127991;</span> Markalar
             </a>
@@ -146,7 +146,7 @@
                 }
             </a>
             <a class="@("nav-item" + Active("SertifikaUyarilari", "/AdminPanel/yetki-belgesi-uyarilari"))" href="/AdminPanel/yetki-belgesi-uyarilari">
-                <span class="nav-ico">&#9888;</span> Bitis Uyarilari
+                <span class="nav-ico">&#9888;</span> Bitiş Uyarıları
             </a>
             <a class="@("nav-item" + Active("DevreyeAlmalar", "/AdminPanel/devreyealmalar"))" href="/AdminPanel/devreyealmalar">
                 <span class="nav-ico">&#128295;</span> Devreye Almalar
@@ -158,13 +158,13 @@
                 <span class="nav-ico">&#128295;</span> Yetkili Servisler
             </a>
             <a class="@("nav-item" + Active("Subeler", "/AdminPanel/subeler"))" href="/AdminPanel/subeler">
-                <span class="nav-ico">&#127970;</span> Sube / Servis Noktalari
+                <span class="nav-ico">&#127970;</span> Şube / Servis Noktaları
             </a>
             <a class="@("nav-item" + Active("Personeller", "/AdminPanel/personeller"))" href="/AdminPanel/personeller">
                 <span class="nav-ico">&#128101;</span> Personeller
             </a>
             <a class="@("nav-item" + Active("Kullanicilar", "/AdminPanel/kullanicilar"))" href="/AdminPanel/kullanicilar">
-                <span class="nav-ico">&#128100;</span> Kullanicilar
+                <span class="nav-ico">&#128100;</span> Kullanıcılar
             </a>
             <a class="@("nav-item" + Active("Yetkiler", "/AdminPanel/yetkiler"))" href="/AdminPanel/yetkiler">
                 <span class="nav-ico">&#128274;</span> Yetkiler
@@ -177,5 +177,5 @@
         }
     </nav>
 
-    <a class="cikis-btn" href="/cikis">&#128682; Cikis Yap</a>
+    <a class="cikis-btn" href="/cikis">&#128682; Çıkış Yap</a>
 </aside>

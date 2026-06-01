@@ -2,7 +2,10 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
+using System.Text;
 using YetkiliServisGazAcma.Business.Services;
+using YetkiliServisGazAcma.Business.Services.Online;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
 
@@ -15,13 +18,59 @@ namespace YetkiliServisGazAcma.Controllers
     {
         private readonly AppDbContext _context;
         private readonly UserManager<AppKullanici> _userManager;
+        private readonly OnlineCihazBilgileriClient _onlineCihazBilgileriClient;
+        private readonly SehirFirmaKoduService _sehirFirmaKoduService;
 
         public DevreyeAlmaController(
             AppDbContext context,
-            UserManager<AppKullanici> userManager)
+            UserManager<AppKullanici> userManager,
+            OnlineCihazBilgileriClient onlineCihazBilgileriClient,
+            SehirFirmaKoduService sehirFirmaKoduService)
         {
             _context = context;
             _userManager = userManager;
+            _onlineCihazBilgileriClient = onlineCihazBilgileriClient;
+            _sehirFirmaKoduService = sehirFirmaKoduService;
+        }
+
+        private string? OnlineFirmaKodu(Ys_Firma? firma)
+        {
+            return _sehirFirmaKoduService.FirmaKodu(firma?.FaaliyetIli)
+                ?? _sehirFirmaKoduService.FirmaKodu(firma?.Sirket?.Il)
+                ?? FirmaKoduFromSirketAdi(firma?.Sirket?.SirketAdi);
+        }
+
+        private static string? FirmaKoduFromSirketAdi(string? sirketAdi)
+        {
+            if (string.IsNullOrWhiteSpace(sirketAdi))
+                return null;
+
+            var normalized = NormalizeFirmaText(sirketAdi);
+            if (normalized.Contains("CORUM") || normalized.Contains("CORUMGAZ"))
+                return "CORUMGAZ";
+            if (normalized.Contains("KARGAZ") || normalized.Contains("KASTAMONU") || normalized.Contains("KARABUK"))
+                return "KARGAZ";
+            if (normalized.Contains("SURMELI") || normalized.Contains("SURMELIGAZ") || normalized.Contains("YOZGAT"))
+                return "SURMELIGAZ";
+            if (normalized.Contains("YALOVA"))
+                return "MARMARAGAZ_YALOVA";
+            if (normalized.Contains("CORLU") || normalized.Contains("TEKIRDAG"))
+                return "MARMARAGAZ_CORLU";
+
+            return normalized;
+        }
+
+        private static string NormalizeFirmaText(string value)
+        {
+            var normalized = value.Normalize(NormalizationForm.FormD);
+            var chars = normalized
+                .Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark)
+                .Select(c => char.IsLetterOrDigit(c) ? char.ToUpperInvariant(c) : '_')
+                .ToArray();
+
+            return new string(chars)
+                .Normalize(NormalizationForm.FormC)
+                .Trim('_');
         }
 
         private async Task SetBildirimler(AppKullanici kullanici)
@@ -170,28 +219,63 @@ namespace YetkiliServisGazAcma.Controllers
             if (kurulum.zorunluMu && !kurulum.tamamlandiMi)
                 return Json(new { basarili = false, mesaj = "İlk kurulum tamamlanmadan işlem yapılamaz. Lütfen önce şube, marka ve kategori seçimini tamamlayın." });
 
-            if (string.IsNullOrEmpty(dto.TesistatNo))
+            if (string.IsNullOrWhiteSpace(dto.TesistatNo))
                 return Json(new { basarili = false, mesaj = "Tesisat no boş olamaz." });
 
-            await Task.Delay(300);
+            if (string.IsNullOrWhiteSpace(dto.SozlesmeNo))
+                return Json(new { basarili = false, mesaj = "Sözleşme no boş olamaz." });
 
-            // ↓↓↓ MÜDÜRÜN API'Sİ GELİNCE SADECE BURASI DEĞİŞECEK ↓↓↓
-            var sonuc = new
+            if (!long.TryParse(dto.TesistatNo.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var tesisatNo))
+                return Json(new { basarili = false, mesaj = "Tesisat no sayısal olmalıdır." });
+
+            if (!long.TryParse(dto.SozlesmeNo.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var sozlesmeNo))
+                return Json(new { basarili = false, mesaj = "Sözleşme no sayısal olmalıdır." });
+
+            var firma = await _context.Ys_Firmalar
+                .Include(x => x.Sirket)
+                .FirstOrDefaultAsync(x => x.Id == kullanici.FirmaId && !x.SilindiMi);
+
+            var firmaKodu = OnlineFirmaKodu(firma);
+
+            var servisSonuc = await _onlineCihazBilgileriClient.YSCihazBilgileriGetirAsync(
+                firmaKodu,
+                tesisatNo,
+                sozlesmeNo,
+                HttpContext.RequestAborted);
+
+            if (!servisSonuc.Basarili)
+            {
+                return Json(new
+                {
+                    basarili = false,
+                    mesaj = servisSonuc.HataMesaji ?? "Cihaz bilgileri alınamadı."
+                });
+            }
+
+            var ilkCihaz = servisSonuc.Cihazlar.FirstOrDefault();
+            return Json(new
             {
                 basarili = true,
-                tesistatNo = dto.TesistatNo,
-                aboneNo = "AB-" + dto.TesistatNo,
-                musteriAdi = "Test Müşteri",
-                musteriTcNo = "12345678901",
-                musteriTelefon = "05001234567",
-                adres = "Test Mah. Test Sok. No:1 Çorum",
-                uygunlukBelgeNo = "UYG-2026-" + dto.TesistatNo,
-                uygunlukTarihi = DateTime.Now.AddDays(-10).ToString("dd.MM.yyyy"),
-                durum = "Uygun"
-            };
-            // ↑↑↑ MÜDÜRÜN API'Sİ GELİNCE SADECE BURASI DEĞİŞECEK ↑↑↑
-
-            return Json(sonuc);
+                tesistatNo = (servisSonuc.TesisatNo ?? tesisatNo).ToString(CultureInfo.InvariantCulture),
+                sozlesmeNo = (servisSonuc.SozlesmeNo ?? sozlesmeNo).ToString(CultureInfo.InvariantCulture),
+                aboneNo = servisSonuc.CariKod?.ToString(CultureInfo.InvariantCulture) ?? "",
+                sayacNo = servisSonuc.SayacNo?.ToString(CultureInfo.InvariantCulture) ?? "",
+                musteriAdi = servisSonuc.CariAd ?? "",
+                musteriTcNo = "",
+                musteriTelefon = "",
+                adres = servisSonuc.Adres ?? "",
+                uygunlukBelgeNo = ilkCihaz?.ProjeNo ?? "",
+                uygunlukTarihi = "",
+                durum = servisSonuc.Cihazlar.Count > 0 ? "Cihaz bilgisi bulundu" : "Tesisat bulundu",
+                cihazlar = servisSonuc.Cihazlar.Select(c => new
+                {
+                    cihazMarka = c.CihazMarka ?? "",
+                    cihazTipi = c.CihazTipi ?? "",
+                    cihazTipKodu = c.CihazTipKodu ?? "",
+                    cihazKapasite = c.CihazKapasite?.ToString(CultureInfo.InvariantCulture) ?? "",
+                    projeNo = c.ProjeNo ?? ""
+                }).ToList()
+            });
         }
 
         [HttpPost]
@@ -406,6 +490,7 @@ namespace YetkiliServisGazAcma.Controllers
     public class TesistatSorguDto
     {
         public string? TesistatNo { get; set; }
+        public string? SozlesmeNo { get; set; }
     }
 
     public class MarkaKontrolDto

@@ -11,6 +11,10 @@ using YetkiliServisGazAcma.Business.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
+
 builder.Services.AddControllers();
 
 // Veritabanı

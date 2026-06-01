@@ -42,6 +42,8 @@
         .bilgi-label { font-size: 11px; color: #888; margin-bottom: 3px; }
         .bilgi-deger { font-size: 13px; font-weight: bold; color: #333; }
         .uygunluk-badge { display: inline-block; padding: 4px 12px; border-radius: 10px; font-size: 12px; font-weight: bold; background: #E1F5EE; color: #085041; }
+        .cihaz-listesi { display: grid; gap: 8px; }
+        .cihaz-listesi .cihaz-satir { padding: 8px 10px; border: 1px solid #edf3f8; border-radius: 8px; background: #fff; }
 
         /* Marka seçimi */
         .marka-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
@@ -111,6 +113,10 @@
                         <label>Tesisat Numaras&#305;</label>
                         <input type="text" id="tesistatNo" placeholder="Tesisat numaras&#305;n&#305; giriniz" />
                     </div>
+                    <div class="sorgula-input">
+                        <label>S&#246;zle&#351;me Numaras&#305;</label>
+                        <input type="text" id="sozlesmeNo" placeholder="S&#246;zle&#351;me numaras&#305;n&#305; giriniz" />
+                    </div>
                     <button type="button" class="btn-sorgula" onclick="tesistatSorgula()">
                         Sorgula
                     </button>
@@ -135,8 +141,16 @@
                         <div class="bilgi-deger" id="b-musteriTelefon"></div>
                     </div>
                     <div class="bilgi-alan">
-                        <div class="bilgi-label">Abone No</div>
+                        <div class="bilgi-label">Cari / Abone No</div>
                         <div class="bilgi-deger" id="b-aboneNo"></div>
+                    </div>
+                    <div class="bilgi-alan">
+                        <div class="bilgi-label">S&#246;zle&#351;me No</div>
+                        <div class="bilgi-deger" id="b-sozlesmeNo"></div>
+                    </div>
+                    <div class="bilgi-alan">
+                        <div class="bilgi-label">Saya&#231; No</div>
+                        <div class="bilgi-deger" id="b-sayacNo"></div>
                     </div>
                     <div class="bilgi-alan">
                         <div class="bilgi-label">Uygunluk Belge No</div>
@@ -155,6 +169,10 @@
                         <div class="bilgi-deger">
                             <span class="uygunluk-badge" id="b-durum"></span>
                         </div>
+                    </div>
+                    <div class="bilgi-alan" style="grid-column:span 3">
+                        <div class="bilgi-label">Servisten Gelen Cihazlar</div>
+                        <div class="bilgi-deger cihaz-listesi" id="b-cihazlar"></div>
                     </div>
                 </div>
             </div>
@@ -278,11 +296,18 @@
 
     async function tesistatSorgula() {
         const tesisatNoInput = document.getElementById("tesistatNo");
+        const sozlesmeNoInput = document.getElementById("sozlesmeNo");
         const loading = document.getElementById("sorgulaLoading");
         const tesisatNo = (tesisatNoInput?.value || "").trim();
+        const sozlesmeNo = (sozlesmeNoInput?.value || "").trim();
 
         if (!tesisatNo) {
             alert("Lütfen tesisat numarası giriniz.");
+            return;
+        }
+
+        if (!sozlesmeNo) {
+            alert("Lütfen sözleşme numarası giriniz.");
             return;
         }
 
@@ -293,7 +318,7 @@
             const response = await fetch("/ys-devreyeal/tesisat-sorgula", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ tesistatNo: tesisatNo })
+                body: JSON.stringify({ tesistatNo: tesisatNo, sozlesmeNo: sozlesmeNo })
             });
 
             if (!response.ok) {
@@ -311,19 +336,56 @@
             document.getElementById("b-musteriTcNo").textContent = data.musteriTcNo || "-";
             document.getElementById("b-musteriTelefon").textContent = data.musteriTelefon || "-";
             document.getElementById("b-aboneNo").textContent = data.aboneNo || "-";
+            document.getElementById("b-sozlesmeNo").textContent = data.sozlesmeNo || sozlesmeNo || "-";
+            document.getElementById("b-sayacNo").textContent = data.sayacNo || "-";
             document.getElementById("b-uygunlukBelgeNo").textContent = data.uygunlukBelgeNo || "-";
             document.getElementById("b-uygunlukTarihi").textContent = data.uygunlukTarihi || "-";
             document.getElementById("b-adres").textContent = data.adres || "-";
             document.getElementById("b-durum").textContent = data.durum || "-";
 
+            const cihazlar = Array.isArray(data.cihazlar) ? data.cihazlar : [];
+            const cihazListesi = document.getElementById("b-cihazlar");
+            if (cihazListesi) {
+                cihazListesi.innerHTML = "";
+                if (cihazlar.length === 0) {
+                    cihazListesi.textContent = "Cihaz bilgisi bulunamadı.";
+                } else {
+                    cihazlar.forEach(function (cihaz) {
+                        const marka = cihaz.cihazMarka || "-";
+                        const tip = cihaz.cihazTipi || "-";
+                        const kapasite = cihaz.cihazKapasite || "-";
+                        const proje = cihaz.projeNo || "-";
+                        const satir = document.createElement("div");
+                        satir.className = "cihaz-satir";
+                        satir.textContent = marka + " / " + tip + " / " + kapasite + " kcal - Proje: " + proje;
+                        cihazListesi.appendChild(satir);
+                    });
+                }
+            }
+
             document.getElementById("f-tesistatNo").value = data.tesistatNo || "";
-            document.getElementById("f-aboneNo").value = data.aboneNo || "";
+            document.getElementById("f-aboneNo").value = data.aboneNo || data.sozlesmeNo || "";
             document.getElementById("f-uygunlukBelgeNo").value = data.uygunlukBelgeNo || "";
             document.getElementById("f-uygunlukTarihi").value = data.uygunlukTarihi || "";
             document.getElementById("f-musteriAdi").value = data.musteriAdi || "";
             document.getElementById("f-musteriTcNo").value = data.musteriTcNo || "";
             document.getElementById("f-musteriTelefon").value = data.musteriTelefon || "";
             document.getElementById("f-adres").value = data.adres || "";
+
+            const ilkCihaz = cihazlar.length > 0 ? cihazlar[0] : null;
+            if (ilkCihaz) {
+                const cihazTipi = ilkCihaz.cihazTipi || "";
+                const tipSelect = document.querySelector('select[name="CihazTipi"]');
+                if (tipSelect && cihazTipi) {
+                    const secenek = Array.from(tipSelect.options).find(function (option) {
+                        return option.value.toLocaleLowerCase("tr-TR") === cihazTipi.toLocaleLowerCase("tr-TR");
+                    });
+                    if (secenek) tipSelect.value = secenek.value;
+                }
+
+                const kapasiteInput = document.querySelector('input[name="CihazKapasite"]');
+                if (kapasiteInput && ilkCihaz.cihazKapasite) kapasiteInput.value = ilkCihaz.cihazKapasite;
+            }
 
             document.getElementById("musteriBilgiKart")?.classList.add("goster");
             document.getElementById("markaKart")?.classList.add("goster");

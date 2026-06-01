@@ -1,12 +1,131 @@
-@{    ViewData["Title"] = "Personeller";    ViewData["PanelTitle"] = ViewData["Title"];
+@using YetkiliServisGazAcma.Entities
+@{
+    ViewData["Title"] = "Personeller";
+    ViewData["PanelTitle"] = ViewData["Title"];
     ViewData["PanelSubtitle"] = "Admin Paneli";
     ViewData["ActiveMenu"] = "Personeller";
-    Layout = "~/Views/Shared/_PanelLayout.cshtml";    var Kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;    var personeller = ViewBag.Personeller as List<YetkiliServisGazAcma.Entities.AppKullanici>;    string adSoyad = Kullanici?.AdSoyad ?? "Süper Admin";    string basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "A";}
+    Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
-@section Styles {
-    <style>
-.content { padding: 28px 32px; }        .filter-bar { background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 16px 20px; margin-bottom: 14px; display: grid; grid-template-columns: 2fr 1.4fr 1fr auto; gap: 10px; align-items: end; }        .filter-group { display: flex; flex-direction: column; gap: 6px; }        .filter-group label { font-size: 11px; color: #777; font-weight: bold; text-transform: uppercase; letter-spacing: .04em; }        .filter-group input, .filter-group select { padding: 9px 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px; }        .filter-actions { display: flex; gap: 8px; }        .btn-filter { padding: 9px 14px; border-radius: 8px; font-size: 12px; font-weight: bold; border: none; cursor: pointer; }        .btn-apply { background: #1B9FD4; color: #fff; }        .btn-clear { background: #fff; color: #1B9FD4; border: 1px solid #1B9FD4; text-decoration: none; display: inline-flex; align-items: center; }        .section { background: #fff; border-radius: 12px; border: 1px solid #eee; overflow: hidden; }        .section-head { padding: 14px 20px; border-bottom: 2px solid #f0f0ee; display: flex; justify-content: space-between; align-items: center; }        .section-title { font-size: 14px; font-weight: bold; color: #333; }        .btn-add { padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: bold; background: #1B9FD4; color: #fff; text-decoration: none; }        .alert { padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; font-size: 12px; font-weight: bold; }        .alert-success { background: #E1F5EE; color: #085041; border: 1px solid #c3e6db; }        .alert-danger { background: #FCEBEB; color: #501313; border: 1px solid #eccaca; }        .tablo-head { padding: 10px 20px; background: #f8f8f6; font-size: 11px; color: #888; font-weight: bold; display: grid; grid-template-columns: 1.2fr 1.2fr 1.2fr 0.7fr 1.5fr; }        .tablo-row { padding: 12px 20px; border-top: 1px solid #f0f0ee; font-size: 13px; color: #333; display: grid; grid-template-columns: 1.2fr 1.2fr 1.2fr 0.7fr 1.5fr; align-items: center; }        .empty { padding: 30px; text-align: center; color: #bbb; font-size: 13px; }        .btn-link { padding: 6px 10px; background: #f0f4f8; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; text-decoration: none; color: #555; text-align: center; cursor: pointer; display: inline-block; }        .btn-link:hover { border-color: #1B9FD4; color: #1B9FD4; }        .badge { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 11px; font-weight: bold; }        .b-green  { background: #E1F5EE; color: #085041; }        .b-red    { background: #FCEBEB; color: #501313; }
-    </style>
+    var personeller = ViewBag.Personeller as List<AppKullanici> ?? new List<AppKullanici>();
+    var seciliQ = ViewBag.SeciliQ as string ?? "";
+    var seciliSirket = ViewBag.SeciliSirket as string ?? "";
+    var seciliDurum = ViewBag.SeciliDurum as string ?? "";
+    var aktifSayisi = personeller.Count(x => x.AktifMi);
+    var pasifSayisi = personeller.Count - aktifSayisi;
 }
 
-@{                var seciliQ = ViewBag.SeciliQ as string;                var seciliSirket = ViewBag.SeciliSirket as string;                var seciliDurum = ViewBag.SeciliDurum as string;            }            <form class="filter-bar" method="get" action="/AdminPanel/personeller">                <div class="filter-group">                    <label>Arama</label>                    <input type="text" name="q" value="@seciliQ" placeholder="Ad soyad, e-posta, telefon" />                </div>                <div class="filter-group">                    <label>Şirket</label>                    <input type="text" name="sirket" value="@seciliSirket" placeholder="Şirket ad" />                </div>                <div class="filter-group">                    <label>Durum</label>                    <select name="durum">                        @if (string.IsNullOrEmpty(seciliDurum))                        {                            <option value="" selected="selected">Tüm</option>                        }                        else                        {                            <option value="">Tüm</option>                        }                        @if (seciliDurum == "Aktif")                        {                            <option value="Aktif" selected="selected">Aktif</option>                        }                        else                        {                            <option value="Aktif">Aktif</option>                        }                        @if (seciliDurum == "Pasif")                        {                            <option value="Pasif" selected="selected">Pasif</option>                        }                        else                        {                            <option value="Pasif">Pasif</option>                        }                    </select>                </div>                <div class="filter-actions">                    <button class="btn-filter btn-apply" type="submit">Filtrele</button>                    <a class="btn-filter btn-clear" href="/AdminPanel/personeller">Temizle</a>                </div>            </form>            @if (TempData["Basarili"] != null) { <div class="alert alert-success">@TempData["Basarili"]</div> }            @if (TempData["Hata"] != null) { <div class="alert alert-danger">@TempData["Hata"]</div> }            <div class="section">                <div class="section-head">                    <div class="section-title">Personel Listesi</div>                    <a class="btn-add" href="/AdminPanel/personeller/ekle">+ Yeni Personel</a>                </div>                <div class="tablo-head">                    <div>Ad Soyad</div><div>E-Posta</div><div>Şirket</div><div>Durum</div><div>İşlemler</div>                </div>                @if (personeller == null || personeller.Count == 0)                {                    <div class="empty">Personel kaydı yok</div>                }                else                {                    @foreach(var p in personeller)                    {                        <div class="tablo-row">                            <div>@(p.AdSoyad ?? "-")</div>                            <div>@(p.Email ?? "-")</div>                            <div>@(p.Sirket?.SirketAdi ?? "-")</div>                            <div>                                @if (p.AktifMi)                                { <span class="badge b-green">Aktif</span> }                                else                                { <span class="badge b-red">Pasif</span> }                            </div>                            <div><div style="display:flex; gap:6px; flex-wrap:wrap;">                                <a class="btn-link" href="/AdminPanel/kullanicilar/duzenle/@p.Id?returnUrl=/AdminPanel/personeller">Düzenle</a>                                <form method="post" action="/AdminPanel/personeller/durum/@p.Id" style="display:inline;">@Html.AntiForgeryToken()<input type="hidden" name="aktif" value='@(p.AktifMi ? "false" : "true")' /><button type="submit" class="btn-link">@((p.AktifMi) ? "Pasifleştir" : "Aktifleştir")</button></form>                                <form method="post" action="/AdminPanel/personeller/sil/@p.Id" style="display:inline;" onsubmit="return confirm(\"Personel silinsin mi?\");">@Html.AntiForgeryToken()<button type="submit" class="btn-link" style="color:#b91c1c;border-color:#f1b4b4;">Sil</button></form>                            </div></div>                        </div>                    }                }            </div>
+@if (TempData["Basarili"] != null)
+{
+    <div class="df-alert df-alert-success">@TempData["Basarili"]</div>
+}
+@if (TempData["Hata"] != null)
+{
+    <div class="df-alert df-alert-danger">@TempData["Hata"]</div>
+}
+
+<div class="section-label">
+    Personel y&ouml;netimi
+</div>
+
+<div class="df-page-panel">
+    <div class="df-panel-head">
+        <div>
+            <div class="df-panel-title">Personel Listesi</div>
+            <div class="df-panel-subtitle">@personeller.Count kay&#305;t listeleniyor</div>
+        </div>
+        <div class="df-status-tabs">
+            <span class="df-tab active">T&uuml;m&uuml; (@personeller.Count)</span>
+            <span class="df-tab">Aktif (@aktifSayisi)</span>
+            <span class="df-tab">Pasif (@pasifSayisi)</span>
+        </div>
+    </div>
+
+    <div class="df-toolbar">
+        <form class="df-form-row" method="get" action="/AdminPanel/personeller">
+            <div class="df-field">
+                <label>Arama</label>
+                <input class="df-control" type="search" name="q" value="@seciliQ" placeholder="Ad soyad, e-posta, telefon" />
+            </div>
+            <div class="df-field">
+                <label>&#350;irket</label>
+                <input class="df-control" type="text" name="sirket" value="@seciliSirket" placeholder="&#350;irket ad&#305;" />
+            </div>
+            <div class="df-field">
+                <label>Durum</label>
+                <select class="df-control" name="durum">
+                    <option value="" selected="@(string.IsNullOrEmpty(seciliDurum))">T&uuml;m&uuml;</option>
+                    <option value="Aktif" selected="@(seciliDurum == "Aktif")">Aktif</option>
+                    <option value="Pasif" selected="@(seciliDurum == "Pasif")">Pasif</option>
+                </select>
+            </div>
+            <button class="df-btn df-btn-primary df-btn-sm" type="submit">Filtrele</button>
+            <a class="df-btn df-btn-secondary df-btn-sm" href="/AdminPanel/personeller">Temizle</a>
+            <a class="df-btn df-btn-success df-btn-sm" href="/AdminPanel/personeller/ekle">Yeni Personel</a>
+        </form>
+    </div>
+
+    <div class="df-table-wrap">
+        <table class="df-table">
+            <thead>
+                <tr>
+                    <th>Ad Soyad</th>
+                    <th>E-Posta</th>
+                    <th>&#350;irket</th>
+                    <th>Durum</th>
+                    <th>&#304;&#351;lem</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!personeller.Any())
+                {
+                    <tr>
+                        <td colspan="5">
+                            <div class="df-empty">
+                                <div class="df-empty-title">Personel kayd&#305; yok.</div>
+                                <p class="df-empty-text">Filtreleri de&#287;i&#351;tirerek tekrar deneyebilir veya yeni personel ekleyebilirsiniz.</p>
+                            </div>
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var p in personeller)
+                    {
+                        <tr>
+                            <td>
+                                <div class="df-cell-main">@(p.AdSoyad ?? "-")</div>
+                                <div class="df-cell-sub">@(p.PhoneNumber ?? "-")</div>
+                            </td>
+                            <td>@(p.Email ?? "-")</td>
+                            <td>
+                                <div class="df-cell-main">@(p.Sirket?.SirketAdi ?? "-")</div>
+                                <div class="df-cell-sub">@(p.Sirket?.Il ?? "")</div>
+                            </td>
+                            <td>
+                                <span class="df-pill @(p.AktifMi ? "df-pill-success" : "df-pill-muted")">
+                                    @(p.AktifMi ? "Aktif" : "Pasif")
+                                </span>
+                            </td>
+                            <td>
+                                <div class="df-actions">
+                                    <a class="df-btn df-btn-secondary df-btn-sm" href="/AdminPanel/kullanicilar/duzenle/@p.Id?returnUrl=/AdminPanel/personeller">D&uuml;zenle</a>
+                                    <form method="post" action="/AdminPanel/personeller/durum/@p.Id">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="aktif" value="@(p.AktifMi ? "false" : "true")" />
+                                        <button type="submit" class="df-btn df-btn-ghost df-btn-sm">
+                                            @Html.Raw(p.AktifMi ? "Pasifle&#351;tir" : "Aktifle&#351;tir")
+                                        </button>
+                                    </form>
+                                    <form method="post" action="/AdminPanel/personeller/sil/@p.Id" onsubmit="return confirm('Personel silinsin mi?');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="df-btn df-btn-danger df-btn-sm">Sil</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -186,6 +186,27 @@ namespace YetkiliServisGazAcma.Controllers
                 .CountAsync();
 
             var sertifikalar = await _service.OnayBekleyenler(sirketId);
+            ViewBag.Kullanici = kullanici;
+            ViewBag.Onaylananlar = await _context.Ys_Sertifikalar
+                .Include(x => x.Firma).ThenInclude(x => x!.Sirket)
+                .Where(x => !x.SilindiMi
+                    && x.Durum == 1
+                    && x.Firma != null
+                    && !x.Firma.SilindiMi
+                    && (sirketId == null || x.Firma.SirketId == sirketId))
+                .OrderByDescending(x => x.OnayTarihi ?? x.OlusturmaTarihi)
+                .Take(100)
+                .ToListAsync();
+            ViewBag.Reddedilenler = await _context.Ys_Sertifikalar
+                .Include(x => x.Firma).ThenInclude(x => x!.Sirket)
+                .Where(x => !x.SilindiMi
+                    && x.Durum == 2
+                    && x.Firma != null
+                    && !x.Firma.SilindiMi
+                    && (sirketId == null || x.Firma.SirketId == sirketId))
+                .OrderByDescending(x => x.OnayTarihi ?? x.OlusturmaTarihi)
+                .Take(100)
+                .ToListAsync();
             return View("~/Views/Sertifika/OnayBekleyenler.cshtml", sertifikalar);
         }
 

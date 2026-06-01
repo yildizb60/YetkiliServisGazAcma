@@ -1,0 +1,625 @@
+:root {
+    --df-bg: #f8f9fc;
+    --df-surface: #ffffff;
+    --df-surface-2: #f0f2f8;
+    --df-border: #e3e7f0;
+    --df-border-strong: #cdd4e4;
+    --df-text: #1e2d4a;
+    --df-text-soft: #3d4f6e;
+    --df-muted: #566280;
+    --df-muted-2: #7d8eab;
+    --df-primary: #2e4ec8;
+    --df-primary-soft: #eef1fb;
+    --df-success: #1dbb7a;
+    --df-success-soft: #edfaf4;
+    --df-warning: #dc8e0d;
+    --df-warning-soft: #fff9ec;
+    --df-danger: #d42828;
+    --df-danger-soft: #fff1f1;
+    --df-radius: 8px;
+    --df-shadow-soft: 0 12px 26px rgba(13, 34, 112, .06);
+    --df-font-body: "Poppins", "Segoe UI", "Segoe UI Emoji", "Segoe UI Symbol", "Apple Color Emoji", "Noto Color Emoji", Arial, sans-serif;
+}
+
+html,
+body,
+.layout,
+.main,
+.content {
+    font-family: var(--df-font-body) !important;
+}
+
+body,
+.main,
+.content {
+    background: var(--df-bg) !important;
+    color: var(--df-text) !important;
+}
+
+button,
+input,
+select,
+textarea,
+.btn,
+.df-btn,
+.btn-sm,
+.btn-filter,
+.btn-filtre,
+.btn-kaydet,
+.btn-kKaydet,
+.btn-iptal,
+.btn-ekle,
+.btn-add,
+.btn-mini,
+.btn-rapor,
+.detay-btn,
+.pdf-btn,
+.action-badge {
+    font-family: var(--df-font-body) !important;
+    letter-spacing: 0 !important;
+}
+
+.topbar-left,
+.user-name,
+.df-nb-profile-name,
+.df-nb-profile-card-name,
+.section-title,
+.uyari-baslik,
+.kart-baslik-yazi,
+.card-title,
+.hero-title,
+.hero-ad,
+.filter-baslik,
+.filtre-baslik,
+.detail-title,
+.info-value,
+.bilgi-deger,
+.field-value,
+.istat-sayi,
+.card-value,
+.chart-title,
+.df-atile-name,
+.df-empty-title,
+.stats-card-header h2,
+.kpi-n,
+.dash-list-title {
+    color: var(--df-text-soft) !important;
+    font-weight: 700 !important;
+}
+
+.df-atile-name,
+.section-title,
+.kart-baslik-yazi,
+.filter-baslik,
+.filtre-baslik {
+    font-size: 13px !important;
+}
+
+.user-role,
+.user-company,
+.df-nb-profile-company,
+.df-nb-profile-card-company,
+.df-nb-profile-card-role,
+.hero-alt,
+.hero-bilgi,
+.section-sayi,
+.istat-label,
+.card-title,
+.chart-empty,
+.empty,
+.small,
+.yardim-metin,
+.aciklama,
+.sayfa-aciklama,
+.info-label,
+.bilgi-label,
+.bilgi-satir-label,
+.df-empty-text,
+.kpi-lbl,
+.dash-list-sub {
+    color: var(--df-muted) !important;
+}
+
+.section,
+.kart,
+.card,
+.chart-card,
+.filtre-kart,
+.filter,
+.filter-bar,
+.report-select,
+.df-card,
+.approval-reference-shell,
+.durum-kart,
+.secim-kart,
+.marka-kart,
+.list-card,
+.detail-card,
+.form-card,
+.stats-card {
+    background: var(--df-surface) !important;
+    border: 1px solid var(--df-border) !important;
+    border-radius: var(--df-radius) !important;
+    box-shadow: var(--df-shadow-soft) !important;
+}
+
+.section-head,
+.kart-baslik,
+.tablo-head,
+.filter-baslik,
+.filtre-baslik,
+.modal-header {
+    background: var(--df-surface-2) !important;
+    border-color: var(--df-border) !important;
+}
+
+.section-head,
+.kart-baslik {
+    border-bottom-width: 1px !important;
+}
+
+.filter,
+.filter-bar,
+.filtre-kart,
+.form-grid,
+.grid-2,
+.secim-grid,
+.marka-grid {
+    gap: 12px !important;
+}
+
+.filter input,
+.filter select,
+.filter-group input,
+.filter-group select,
+.filtre-alan input,
+.filtre-alan select,
+.form-control,
+.info-input,
+.input,
+.alan input,
+.alan select,
+.alan textarea,
+.form-alan input,
+.form-alan select,
+.form-alan textarea,
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="date"],
+input[type="number"],
+select,
+textarea {
+    background: #ffffff !important;
+    border: 1px solid var(--df-border) !important;
+    border-radius: var(--df-radius) !important;
+    color: var(--df-text-soft) !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.filter input:focus,
+.filter select:focus,
+.filter-group input:focus,
+.filter-group select:focus,
+.filtre-alan input:focus,
+.filtre-alan select:focus,
+.form-control:focus,
+.info-input:focus,
+.input:focus,
+.alan input:focus,
+.alan select:focus,
+.alan textarea:focus,
+.form-alan input:focus,
+.form-alan select:focus,
+.form-alan textarea:focus,
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: var(--df-primary) !important;
+    box-shadow: 0 0 0 3px rgba(46, 78, 200, .10) !important;
+}
+
+.filter-group label,
+.filtre-alan label,
+.form-group label,
+.form-alan label,
+.alan label,
+.label,
+.info-label,
+.bilgi-label,
+.card-title,
+.tablo-head,
+th {
+    color: var(--df-muted) !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+}
+
+.tablo-head,
+table thead,
+.table thead {
+    background: var(--df-surface-2) !important;
+    color: var(--df-muted) !important;
+}
+
+.tablo-row,
+table tbody tr,
+.table tbody tr {
+    color: var(--df-text-soft) !important;
+    border-color: var(--df-border) !important;
+}
+
+.tablo-row:hover,
+table tbody tr:hover,
+.table tbody tr:hover {
+    background: var(--df-bg) !important;
+}
+
+.badge,
+.section-sayi,
+.yetki-badge,
+.filtre-aktif,
+.durum-badge,
+.hero-badge,
+.sertifika-badge {
+    border-radius: 999px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0 !important;
+}
+
+.b-green,
+.badge-yesil,
+.durum-ok,
+.badge.bg-success,
+.alert-success,
+.mesaj-basarili {
+    background: var(--df-success-soft) !important;
+    color: #0d7a4d !important;
+    border-color: #d1f5e4 !important;
+}
+
+.b-yellow,
+.badge-sari,
+.durum-warn,
+.badge.bg-warning {
+    background: var(--df-warning-soft) !important;
+    color: #b07008 !important;
+    border-color: #fff0c8 !important;
+}
+
+.b-red,
+.badge-kirmizi,
+.durum-danger,
+.badge.bg-danger,
+.alert-danger,
+.mesaj-hata {
+    background: var(--df-danger-soft) !important;
+    color: #ab1c1c !important;
+    border-color: #ffd9d9 !important;
+}
+
+.b-blue,
+.badge-mavi,
+.yetki-badge,
+.badge.bg-info {
+    background: var(--df-primary-soft) !important;
+    color: var(--df-primary) !important;
+    border-color: #d5dbf5 !important;
+}
+
+.btn-sm,
+.btn-filter,
+.btn-apply,
+.btn-filtre,
+.btn-primary,
+.btn-kaydet,
+.btn-kKaydet,
+.btn-add,
+.df-btn-primary,
+.pdf-btn:hover {
+    background: var(--df-primary) !important;
+    border: 1px solid var(--df-primary) !important;
+    color: #fff !important;
+    box-shadow: 0 8px 16px rgba(46, 78, 200, .14) !important;
+}
+
+.df-btn-success,
+.btn-ekle {
+    background: var(--df-success) !important;
+    border: 1px solid var(--df-success) !important;
+    color: #fff !important;
+    box-shadow: 0 8px 16px rgba(29, 187, 122, .14) !important;
+}
+
+.btn-secondary,
+.btn-clear,
+.btn-temizle,
+.btn-iptal,
+.btn-link,
+.detay-btn,
+.pdf-btn,
+.link-public,
+.btn-disabled {
+    background: #fff !important;
+    border: 1px solid var(--df-border) !important;
+    color: var(--df-text-soft) !important;
+    box-shadow: none !important;
+}
+
+.btn-del,
+.action-badge.danger,
+.btn-sifre,
+.btn-danger {
+    background: var(--df-danger-soft) !important;
+    border: 1px solid #ffd9d9 !important;
+    color: var(--df-danger) !important;
+    box-shadow: none !important;
+}
+
+.btn-edit,
+.action-badge,
+.link-public {
+    background: var(--df-primary-soft) !important;
+    border: 1px solid #d5dbf5 !important;
+    color: var(--df-primary) !important;
+    box-shadow: none !important;
+}
+
+.btn-sm,
+.btn-filter,
+.btn-filtre,
+.btn-primary,
+.btn-secondary,
+.btn-kaydet,
+.btn-kKaydet,
+.btn-iptal,
+.btn-ekle,
+.btn-add,
+.btn-mini,
+.btn-rapor,
+.btn-edit,
+.btn-del,
+.btn-danger,
+.detay-btn,
+.pdf-btn,
+.action-badge,
+.df-btn {
+    border-radius: var(--df-radius) !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    text-decoration: none !important;
+}
+
+.btn-mini,
+.btn-rapor {
+    background: var(--df-primary-soft) !important;
+    border: 1px solid #d5dbf5 !important;
+    color: var(--df-primary) !important;
+    box-shadow: none !important;
+}
+
+.df-actions .df-btn-secondary,
+.df-actions .btn-link,
+.df-actions .detay-btn {
+    background: var(--df-primary-soft) !important;
+    border-color: #d5dbf5 !important;
+    color: var(--df-primary) !important;
+}
+
+.df-actions .df-btn-ghost {
+    background: var(--df-warning-soft) !important;
+    border-color: #fff0c8 !important;
+    color: var(--df-warning) !important;
+}
+
+.df-actions .df-btn-danger,
+.df-actions .btn-danger,
+.df-actions .btn-del {
+    background: var(--df-danger-soft) !important;
+    border-color: #ffd9d9 !important;
+    color: var(--df-danger) !important;
+}
+
+.df-field-wide {
+    flex: 1 1 100%;
+    min-width: min(100%, 360px);
+}
+
+.df-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.stat,
+.detail-card .row,
+.bilgi-alan,
+.info-item {
+    background: var(--df-bg) !important;
+    border-color: var(--df-border) !important;
+}
+
+.stat-value,
+.v,
+.bilgi-deger,
+.bilgi-satir-deger,
+.info-value {
+    color: var(--df-text-soft) !important;
+    font-weight: 700 !important;
+}
+
+.stat-label,
+.k,
+.bilgi-label,
+.bilgi-satir-label,
+.info-label {
+    color: var(--df-muted) !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+}
+
+.istat-kart {
+    background: var(--df-surface) !important;
+    border: 1px solid var(--df-border) !important;
+    border-radius: var(--df-radius) !important;
+    box-shadow: var(--df-shadow-soft) !important;
+}
+
+.istat-icon,
+.kart-baslik-ikon,
+.hero-avatar,
+.df-empty-icon,
+.kpi-icon {
+    border-radius: var(--df-radius) !important;
+}
+
+.istat-icon.yesil,
+.ikon-yesil {
+    background: var(--df-success-soft) !important;
+    color: var(--df-success) !important;
+}
+
+.istat-icon.mavi,
+.ikon-mavi {
+    background: var(--df-primary-soft) !important;
+    color: var(--df-primary) !important;
+}
+
+.istat-icon.sari,
+.ikon-turuncu {
+    background: var(--df-warning-soft) !important;
+    color: var(--df-warning) !important;
+}
+
+.istat-icon.mor {
+    background: #f2edff !important;
+    color: #7056d8 !important;
+}
+
+.df-avatar-primary,
+.df-nb-account-avatar.df-avatar-primary {
+    background: var(--df-surface-2) !important;
+    border: 1px solid var(--df-border) !important;
+    color: var(--df-text-soft) !important;
+}
+
+.df-nb-account-item.active .df-nb-account-avatar.df-avatar-primary,
+.df-nb-profile-btn:hover .df-avatar-primary {
+    background: var(--df-primary-soft) !important;
+    color: var(--df-primary) !important;
+}
+
+.df-nb-account-item.active {
+    background: var(--df-primary-soft) !important;
+    border-color: #d5dbf5 !important;
+}
+
+.df-nb-account-name {
+    color: var(--df-text-soft) !important;
+}
+
+.df-nb-account-sub {
+    color: var(--df-muted-2) !important;
+}
+
+.df-dashboard .df-approval-grid {
+    grid-template-columns: repeat(5, minmax(180px, 1fr)) !important;
+}
+
+.df-dashboard .df-atile {
+    min-height: 218px;
+}
+
+.df-dashboard .df-atile-name,
+.df-dashboard .df-empty-title {
+    color: var(--df-text-soft) !important;
+}
+
+.hero,
+.profile-hero {
+    background: var(--df-surface) !important;
+    border-radius: var(--df-radius) !important;
+    border: 1px solid var(--df-border) !important;
+    box-shadow: var(--df-shadow-soft) !important;
+    color: var(--df-text-soft) !important;
+}
+
+.hero-title,
+.hero-ad,
+.hero h1,
+.profile-hero h1 {
+    color: var(--df-text-soft) !important;
+    font-weight: 700 !important;
+    letter-spacing: 0 !important;
+}
+
+.hero-alt,
+.hero-bilgi,
+.profile-hero p {
+    color: var(--df-muted) !important;
+}
+
+.hero-avatar {
+    background: var(--df-primary-soft) !important;
+    border: 1px solid #d5dbf5 !important;
+    color: var(--df-primary) !important;
+}
+
+.secim-kart,
+.marka-kart {
+    background: var(--df-bg) !important;
+    border-color: var(--df-border) !important;
+    color: var(--df-text-soft) !important;
+}
+
+.secim-kart span,
+.marka-kart,
+.durum-kart,
+.tablo-row > *,
+td {
+    color: var(--df-text-soft) !important;
+}
+
+.secim-kart:hover,
+.marka-kart:hover,
+.btn-mini:hover,
+.btn-rapor:hover {
+    border-color: #d5dbf5 !important;
+    background: var(--df-primary-soft) !important;
+    color: var(--df-primary) !important;
+}
+
+.alert,
+.mesaj-basarili,
+.mesaj-hata,
+.uyari {
+    border-radius: var(--df-radius) !important;
+    font-weight: 600 !important;
+}
+
+@media (max-width: 1280px) {
+    .df-dashboard .df-approval-grid {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
+    }
+}
+
+@media (max-width: 900px) {
+    .filter,
+    .filter-bar,
+    .filtre-grid,
+    .filter-actions,
+    .filtre-butonlar {
+        align-items: stretch !important;
+    }
+}

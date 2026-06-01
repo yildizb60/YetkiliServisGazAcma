@@ -29,7 +29,7 @@ namespace YetkiliServisGazAcma.Business.Services
                     Csv(i.TeknisyenAdi),
                     Csv(i.TeknisyenSertifikaNo),
                     Csv(DurumText(i.Durum)),
-                    Csv(i.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")),
+                    Csv(i.DevreyeAlmaTarihi.ToString("dd.MM.yyyy HH:mm")),
                     Csv(i.Notlar)
                 }));
             }

@@ -15,7 +15,7 @@ namespace YetkiliServisGazAcma.Business.Services
             _env = env;
         }
 
-        // Firmaya ait sertifikaları getir
+        // Firmaya ait yetki belgelerini getir
         public async Task<List<Ys_Sertifika>> FirmaninSertifikalari(int firmaId)
         {
             return await _context.Ys_Sertifikalar
@@ -24,7 +24,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 .ToListAsync();
         }
 
-        // Onay bekleyen tüm sertifikalar (ÇEDAŞ personeli için)
+        // Onay bekleyen tüm yetki belgeleri (ÇEDAŞ personeli için)
         public async Task<List<Ys_Sertifika>> OnayBekleyenler(int? sirketId = null)
         {
             var sorgu = _context.Ys_Sertifikalar
@@ -40,7 +40,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 .ToListAsync();
         }
 
-        // Sertifika yükle
+        // Yetki belgesi yükle
         public async Task<(bool basarili, string mesaj)> Yukle(
             int firmaId,
             IFormFile dosya,
@@ -75,7 +75,7 @@ namespace YetkiliServisGazAcma.Business.Services
             using (var stream = new FileStream(dosyaYolu, FileMode.Create))
                 await dosya.CopyToAsync(stream);
 
-            // Önceki sertifikaları silmiyoruz, geçmişte görünmeleri için saklıyoruz.
+            // Önceki yetki belgelerini silmiyoruz, geçmişte görünmeleri için saklıyoruz.
 
             // Yeni yetki belgesi kaydı
             var sertifika = new Ys_Sertifika
@@ -96,7 +96,7 @@ namespace YetkiliServisGazAcma.Business.Services
             return (true, "Yetki belgeniz başarıyla yüklendi. Onay bekleniyor.");
         }
 
-        // Sertifika onayla (ÇEDAŞ personeli)
+        // Yetki belgesi onayla (ÇEDAŞ personeli)
         public async Task<bool> Onayla(int sertifikaId, string? kullanici)
         {
             var sertifika = await _context.Ys_Sertifikalar
@@ -114,7 +114,7 @@ namespace YetkiliServisGazAcma.Business.Services
             return true;
         }
 
-        // Sertifika reddet (ÇEDAŞ personeli)
+        // Yetki belgesi reddet (ÇEDAŞ personeli)
         public async Task<bool> Reddet(int sertifikaId, string? gerekce, string? kullanici)
         {
             var sertifika = await _context.Ys_Sertifikalar

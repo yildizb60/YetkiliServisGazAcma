@@ -1,265 +1,448 @@
 @{
     var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
-ViewData["Title"] = "Yetkili Servis Paneli";
-    ViewData["PanelTitle"] = ViewData["Title"];
+    ViewData["Title"] = "Yetkili Servis Paneli";
+    ViewData["PanelTitle"] = "Genel Bakış";
     ViewData["PanelSubtitle"] = "Yetkili Servis";
     ViewData["ActiveMenu"] = "Dashboard";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
+
     var firma = ViewBag.Firma as YetkiliServisGazAcma.Entities.Ys_Firma;
     var sonIslemler = ViewBag.SonIslemler as List<YetkiliServisGazAcma.Entities.Ys_DevreyeAlma>
         ?? new List<YetkiliServisGazAcma.Entities.Ys_DevreyeAlma>();
     var buAy = ViewBag.BuAy as int? ?? 0;
     var toplam = ViewBag.Toplam as int? ?? 0;
     var bugun = DateTime.Now.Date;
-    var onayliSertifikalar = firma?.Sertifikalar?
-        .Where(x => x.Durum == 1 && !x.SilindiMi)
-        .OrderBy(x => x.SertifikaBitisTarihi)
+    var tumBelgeler = firma?.Sertifikalar?
+        .Where(x => !x.SilindiMi)
+        .OrderByDescending(x => x.OlusturmaTarihi)
         .ToList() ?? new List<YetkiliServisGazAcma.Entities.Ys_Sertifika>();
-    var gecerliSertifikalar = onayliSertifikalar
+    var onayliBelgeler = tumBelgeler
+        .Where(x => x.Durum == 1)
+        .OrderBy(x => x.SertifikaBitisTarihi)
+        .ToList();
+    var gecerliBelgeler = onayliBelgeler
         .Where(x => (!x.SertifikaBaslangicTarihi.HasValue || x.SertifikaBaslangicTarihi.Value.Date <= bugun)
             && x.SertifikaBitisTarihi.Date >= bugun)
         .OrderBy(x => x.SertifikaBitisTarihi)
         .ToList();
-    var enYakin = gecerliSertifikalar.FirstOrDefault() ?? onayliSertifikalar.FirstOrDefault();
-    var enYakinKalan = enYakin != null
-        ? (enYakin.SertifikaBitisTarihi.Date - bugun).Days
-        : (int?)null;
-    string adSoyad = kullanici?.AdSoyad ?? firma?.YetkiliKisi ?? "Yetkili Servis";
-    string basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "Y";
+    var bekleyenBelge = tumBelgeler.Count(x => x.Durum == 0);
+    var reddedilenBelge = tumBelgeler.Count(x => x.Durum == 2);
     var markaSayisi = firma?.FirmaMarkalar?.Count(x => !x.SilindiMi) ?? 0;
+    var kategoriSayisi = firma?.FirmaKategoriler?.Count(x => !x.SilindiMi) ?? 0;
+    var subeSayisi = firma?.Subeler?.Count(x => !x.SilindiMi) ?? 0;
+    var tamamlananSon = sonIslemler.Count(x => x.Durum == 1);
+    var bekleyenSon = sonIslemler.Count(x => x.Durum != 1);
     var ilkKurulumZorunlu = ViewBag.IlkKurulumZorunlu as bool? ?? false;
     var ilkKurulumTamamlandi = ViewBag.IlkKurulumTamamlandi as bool? ?? true;
     var ilkKurulumEksikler = ViewBag.IlkKurulumEksikler as List<string> ?? new List<string>();
     var kurulumKilitli = ilkKurulumZorunlu && !ilkKurulumTamamlandi;
-}
+    var bildirimler = ViewBag.Bildirimler as List<string> ?? new List<string>();
+    var adSoyad = kullanici?.AdSoyad ?? firma?.YetkiliKisi ?? "Yetkili Servis";
+    var basHarf = !string.IsNullOrWhiteSpace(adSoyad)
+        ? adSoyad.Trim().Substring(0, 1).ToUpper(new System.Globalization.CultureInfo("tr-TR"))
+        : "Y";
 
-@section Styles {
-    <style>
-:root {
-            --primary: #3bb7e8;
-            --primary-dark: #1e8db8;
-            --success: #4caf7d;
-            --bg: #eef2f5;
-            --nav: #0f172a;
-            --text: #1b2430;
-            --muted: #607080;
-            --card: #ffffff;
-            --border: #d3dde6;
-            --accent: #ecf2f6;
-        }
-.content { padding: 28px 32px 56px; }
-        .hero { background: linear-gradient(125deg, #ffffff 0%, #f4fbff 48%, #eef7f2 100%); border: 1px solid var(--border); border-radius: 18px; padding: 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08); position: relative; overflow: hidden; }
-        .hero::before { content:""; position:absolute; left:-28px; bottom:-44px; width:170px; height:170px; border-radius:50%; background: radial-gradient(circle, rgba(59,183,232,0.2), transparent 68%); }
-        .hero::after { content:""; position:absolute; right:-36px; top:-30px; width:150px; height:150px; border-radius:50%; background: radial-gradient(circle, rgba(76,175,125,0.18), transparent 65%); }
-        .hero-title { font-size: 21px; font-weight: 800; color: #0f2b3c; position: relative; z-index: 1; }
-        .hero-sub { color: var(--muted); margin-top: 6px; font-size: 13px; position: relative; z-index: 1; }
-        .hero-badge { display: inline-flex; align-items: center; gap: 8px; padding: 8px 13px; border-radius: 999px; background: #eaf8ff; border: 1px solid #b8e8fb; color: #0d79a0; font-size: 12px; font-weight: 700; position: relative; z-index: 1; }
-        .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 18px; }
-        .stat { background: linear-gradient(180deg, #ffffff 0%, #f6f9fb 100%); border: 1.5px solid #d3dde6; border-radius: 14px; padding: 16px; display: flex; align-items: center; gap: 12px; box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08); transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; position: relative; overflow: hidden; }
-        .stat::before { content: ""; position: absolute; left: 0; top: 0; width: 4px; height: 100%; background: linear-gradient(180deg, var(--primary), var(--success)); }
-        .stat:hover { transform: translateY(-4px); box-shadow: 0 16px 30px rgba(15, 23, 42, 0.14); border-color: #b7c9d8; }
-        .stat-icon { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: var(--accent); color: var(--primary); font-size: 18px; }
-        .stat-val { font-size: 20px; font-weight: 800; color: #122536; }
-        .stat-lbl { font-size: 12px; color: var(--muted); margin-top: 2px; }
-        .grid-2 { display: grid; grid-template-columns: 1.2fr 1fr; gap: 16px; margin-top: 18px; }
-        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 18px; }
-        .card { background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%); border: 1.5px solid #d3dde6; border-radius: 14px; overflow: hidden; box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08); transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
-        .card:hover { transform: translateY(-3px); box-shadow: 0 18px 32px rgba(15, 23, 42, 0.12); border-color: #b7c9d8; }
-        .card-head { padding: 14px 18px; font-size: 14px; font-weight: 800; color: #172635; border-bottom: 1px solid #e0e8ef; display: flex; align-items: center; gap: 8px; background: linear-gradient(90deg, #f3f7fa, #ffffff); }
-        .card-body { padding: 16px 18px; }
-        .pill { display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; background: var(--accent); color: var(--primary-dark); }
-        .warn { background: #fff4e5; color: #9b6a00; }
-        .success { background: #e6fff4; color: #1e7e57; }
-        .danger { background: #ffecec; color: #b42318; }
-        .muted { background: #f3f6f9; color: #566070; }
-        .table { width: 100%; border-collapse: collapse; }
-        .table th, .table td { padding: 10px 8px; border-bottom: 1px solid #f0f0f0; text-align: left; font-size: 13px; }
-        .table thead { background: #f9fbfd; }
-        .table th { font-size: 11px; color: #7a8796; text-transform: uppercase; letter-spacing: .04em; }
-        .status { padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; background: var(--accent); color: var(--primary-dark); display: inline-block; }
-        .status-ok { background: #e6fff4; color: #1e7e57; }
-        .quick-card { background: linear-gradient(180deg, #ffffff 0%, #f6f9fb 100%); border: 1.5px solid #d3dde6; border-radius: 14px; padding: 16px; display: flex; align-items: center; gap: 12px; box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08); text-decoration: none; color: inherit; transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
-        .quick-card:hover { transform: translateY(-4px); box-shadow: 0 18px 30px rgba(15, 23, 42, 0.14); border-color: #b7c9d8; }
-        .quick-icon { width: 44px; height: 44px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: var(--accent); color: var(--primary); font-size: 18px; }
-        .quick-title { font-weight: 800; font-size: 14px; color: #122536; }
-        .quick-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
-        .cert-list { display: flex; flex-direction: column; gap: 8px; }
-        .cert-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: #fafbfd; }
-        .cert-title { font-size: 13px; font-weight: 700; color: #1b2430; }
-        .cert-dates { font-size: 12px; color: var(--muted); }
-        .setup-alert { background: linear-gradient(120deg, #fff5f5, #fff9ec); border: 1px solid #f6c7c7; border-left: 6px solid #d94444; border-radius: 14px; padding: 18px 20px; margin-bottom: 16px; box-shadow: 0 8px 24px rgba(217,68,68,0.08); }
-        .setup-title { font-size: 16px; font-weight: 800; color: #7a1111; margin-bottom: 8px; }
-        .setup-sub { font-size: 13px; color: #7b3a3a; margin-bottom: 10px; }
-        .setup-list { margin: 0 0 12px 18px; color: #6f2f2f; font-size: 13px; }
-        .setup-btn { display: inline-block; text-decoration: none; background: #d94444; color: #fff; padding: 9px 14px; border-radius: 8px; font-size: 13px; font-weight: 700; }
-        @@media (max-width: 1100px) {
-            .stats { grid-template-columns: repeat(2, 1fr); }
-            .grid-2 { grid-template-columns: 1fr; }
-            .grid-3 { grid-template-columns: 1fr; }
-        }
-        @@media (max-width: 800px) {
-            .sidebar { position: static; width: 100%; height: auto; }
-            .main { margin-left: 0; }
-        }
-    </style>
-}
+    var ay = DateTime.Now;
+    var ayIlkGun = new DateTime(ay.Year, ay.Month, 1);
+    var ayGunSayisi = DateTime.DaysInMonth(ay.Year, ay.Month);
+    var ilkGunOffset = ((int)ayIlkGun.DayOfWeek + 6) % 7;
+    var oncekiAy = ayIlkGun.AddMonths(-1);
+    var oncekiAyGunSayisi = DateTime.DaysInMonth(oncekiAy.Year, oncekiAy.Month);
+    var takvimHucre = 42;
 
-@if (kurulumKilitli)
-{
-    <div class="setup-alert">
-        <div class="setup-title">İlk Kurulum Tamamlanmadan İşlem Yapılamaz</div>
-        <div class="setup-sub">Bu hesap admin tarafından açıldığı için ilk girişte aşağıdaki adımların tamamı zorunludur:</div>
-        <ul class="setup-list">
-            <li>Şube kaydı</li>
-            <li>Marka seçimi</li>
-            <li>Kategori seçimi</li>
-            <li>Yetki belgesi yükleme</li>
-        </ul>
-        @if (ilkKurulumEksikler.Count > 0)
+    var kartlar = new List<DashboardTile>();
+
+    if (ilkKurulumZorunlu)
+    {
+        kartlar.Add(new DashboardTile
         {
-            <div class="setup-sub">Eksik adımlar: @string.Join(", ", ilkKurulumEksikler)</div>
-        }
-        <a class="setup-btn" href="/ys-panel/ilk-kurulum">İlk Kurulumu Tamamla</a>
-    </div>
+            Title = "İlk Kurulum",
+            Url = "/ys-panel/ilk-kurulum",
+            Icon = "bi bi-clipboard-check",
+            Done = ilkKurulumTamamlandi ? 1 : 0,
+            Total = 1,
+            Subtitle = "Tamamlanma",
+            Stat1Label = "Toplam",
+            Stat1Value = "1",
+            Stat2Label = "Eksik",
+            Stat2Value = ilkKurulumEksikler.Count.ToString(),
+            Stat2Class = ilkKurulumEksikler.Count > 0 ? "df-badge-pulse" : "df-tile-stat-val",
+            Stat3Label = "Durum",
+            Stat3Value = ilkKurulumTamamlandi ? "Tamam" : "Eksik",
+            Stat3Class = ilkKurulumTamamlandi ? "df-tile-stat-val" : "df-badge-pulse",
+            Featured = kurulumKilitli
+        });
+    }
+
+    kartlar.Add(new DashboardTile
+    {
+        Title = "Yetki Belgem",
+        Url = "/ys-yetki-belgesi",
+        Icon = "bi bi-file-earmark-text",
+        Done = gecerliBelgeler.Count,
+        Total = Math.Max(tumBelgeler.Count, 1),
+        Subtitle = "Geçerli / Toplam",
+        Stat1Label = "Toplam",
+        Stat1Value = tumBelgeler.Count.ToString(),
+        Stat2Label = "Bekleyen",
+        Stat2Value = bekleyenBelge.ToString(),
+        Stat2Class = bekleyenBelge > 0 ? "df-badge-pulse" : "df-tile-stat-val",
+        Stat3Label = "Geçerli",
+        Stat3Value = gecerliBelgeler.Count.ToString(),
+        Featured = !ilkKurulumZorunlu
+    });
+
+    kartlar.Add(new DashboardTile
+    {
+        Title = kurulumKilitli ? "Kurulumu Tamamla" : "Cihaz Devreye Al",
+        Url = kurulumKilitli ? "/ys-panel/ilk-kurulum" : "/ys-devreyeal",
+        Icon = "bi bi-bag-check",
+        Done = buAy,
+        Total = Math.Max(toplam, buAy),
+        Subtitle = "Bu Ay / Toplam",
+        Stat1Label = "Toplam",
+        Stat1Value = toplam.ToString(),
+        Stat2Label = "Bu Ay",
+        Stat2Value = buAy.ToString(),
+        Stat3Label = "Durum",
+        Stat3Value = kurulumKilitli ? "Kilitli" : "Aktif",
+        Stat3Class = kurulumKilitli ? "df-badge-pulse" : "df-tile-stat-val"
+    });
+
+    kartlar.Add(new DashboardTile
+    {
+        Title = "İşlem Geçmişim",
+        Url = "/ys-devreyeal/gecmis",
+        Icon = "bi bi-clock",
+        Done = tamamlananSon,
+        Total = Math.Max(sonIslemler.Count, tamamlananSon),
+        Subtitle = "Tamamlanan / Son Kayıt",
+        Stat1Label = "Son Kayıt",
+        Stat1Value = sonIslemler.Count.ToString(),
+        Stat2Label = "Bekleyen",
+        Stat2Value = bekleyenSon.ToString(),
+        Stat2Class = bekleyenSon > 0 ? "df-badge-pulse" : "df-tile-stat-val",
+        Stat3Label = "Tamamlanan",
+        Stat3Value = tamamlananSon.ToString()
+    });
+
+    kartlar.Add(new DashboardTile
+    {
+        Title = "Marka Yetkilerim",
+        Url = "/ys-panel/markalar",
+        Icon = "bi bi-building-check",
+        Done = markaSayisi,
+        Total = markaSayisi,
+        Subtitle = "Tanımlı / Toplam",
+        Stat1Label = "Toplam",
+        Stat1Value = markaSayisi.ToString(),
+        Stat2Label = "Kategori",
+        Stat2Value = kategoriSayisi.ToString(),
+        Stat3Label = "Durum",
+        Stat3Value = markaSayisi > 0 ? "Aktif" : "Eksik",
+        Stat3Class = markaSayisi > 0 ? "df-tile-stat-val" : "df-badge-pulse"
+    });
+
+    kartlar.Add(new DashboardTile
+    {
+        Title = "Şubelerim",
+        Url = "/ys-panel/subeler",
+        Icon = "bi bi-building-gear",
+        Done = subeSayisi,
+        Total = subeSayisi,
+        Subtitle = "Tanımlı / Toplam",
+        Stat1Label = "Toplam",
+        Stat1Value = subeSayisi.ToString(),
+        Stat2Label = "Eksik",
+        Stat2Value = subeSayisi > 0 ? "0" : "1",
+        Stat2Class = subeSayisi > 0 ? "df-tile-stat-val" : "df-badge-pulse",
+        Stat3Label = "Durum",
+        Stat3Value = subeSayisi > 0 ? "Aktif" : "Eksik",
+        Stat3Class = subeSayisi > 0 ? "df-tile-stat-val" : "df-badge-pulse"
+    });
+
+    if (toplam > 0 || buAy > 0 || gecerliBelgeler.Count > 0)
+    {
+        kartlar.Add(new DashboardTile
+        {
+            Title = "Raporlarım",
+            Url = "/ys-panel/raporlar",
+            Icon = "bi bi-bar-chart-line",
+            Done = toplam,
+            Total = toplam,
+            Subtitle = "Kayıt / Toplam",
+            Stat1Label = "Toplam",
+            Stat1Value = toplam.ToString(),
+            Stat2Label = "Bu Ay",
+            Stat2Value = buAy.ToString(),
+            Stat3Label = "Belge",
+            Stat3Value = gecerliBelgeler.Count.ToString()
+        });
+    }
 }
-<div class="hero">
-    <div>
-        <div class="hero-title">Hoş Geldiniz, @adSoyad</div>
-        <div class="hero-sub">@firma?.FirmaAdi — @firma?.Sirket?.SirketAdi</div>
-    </div>
-    <div class="hero-badge">📌 Güncel Firma Durumu</div>
-</div>
-<div class="stats">
-    <div class="stat">
-        <div class="stat-icon">&#128203;</div>
-        <div>
-            <div class="stat-val">@markaSayisi</div>
-            <div class="stat-lbl">Yetkili Marka</div>
+
+@functions {
+    private sealed class DashboardTile
+    {
+        public string Title { get; set; } = "";
+        public string Url { get; set; } = "";
+        public string Icon { get; set; } = "";
+        public int Done { get; set; }
+        public int Total { get; set; }
+        public string Subtitle { get; set; } = "";
+        public string Stat1Label { get; set; } = "";
+        public string Stat1Value { get; set; } = "";
+        public string Stat1Class { get; set; } = "df-tile-stat-val";
+        public string Stat2Label { get; set; } = "";
+        public string Stat2Value { get; set; } = "";
+        public string Stat2Class { get; set; } = "df-tile-stat-val";
+        public string Stat3Label { get; set; } = "";
+        public string Stat3Value { get; set; } = "";
+        public string Stat3Class { get; set; } = "df-tile-stat-val";
+        public bool Featured { get; set; }
+    }
+
+    private static int RingPct(int done, int total)
+    {
+        if (total <= 0) return 0;
+        return Math.Clamp((int)Math.Round(done * 100.0 / total), 0, 100);
+    }
+
+    private static string RingOffset(int done, int total)
+    {
+        const double length = 175.9;
+        var pct = RingPct(done, total);
+        return (length - (length * pct / 100.0)).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+    }
+}
+
+<div class="df-dashboard">
+    @if (kurulumKilitli)
+    {
+        <div class="df-alert df-alert-danger">
+            İlk kurulum tamamlanmadan işlem yapılamaz. Eksik adımlar: @(ilkKurulumEksikler.Count > 0 ? string.Join(", ", ilkKurulumEksikler) : "Kurulum bilgileri").
+            <a class="df-btn df-btn-danger df-btn-sm" href="/ys-panel/ilk-kurulum" style="margin-left:10px">Tamamla</a>
         </div>
+    }
+
+    <div class="section-label">
+        <i class="bi bi-lightning-charge-fill"></i>
+        Bekleyen İşlemlerim
     </div>
-    <div class="stat">
-        <div class="stat-icon">&#128295;</div>
-        <div>
-            <div class="stat-val">@buAy</div>
-            <div class="stat-lbl">Bu Ay Devreye Alınan</div>
-        </div>
+
+    <div class="df-approval-grid" id="approval-grid">
+        @foreach (var kart in kartlar)
+        {
+            <a class="df-atile @(kart.Featured ? "is-featured" : "")" href="@kart.Url">
+                <div class="df-atile-top">
+                    <div class="df-atile-icon"><i class="@kart.Icon"></i></div>
+                    <div>
+                        <div class="df-atile-name">@kart.Title</div>
+                        <span class="df-atile-link">Sayfaya git <i class="bi bi-arrow-right"></i></span>
+                    </div>
+                </div>
+                <div class="df-ring-wrap">
+                    <div class="df-ring-container">
+                        <svg class="df-ring-svg" width="72" height="72" viewBox="0 0 72 72">
+                            <circle class="df-ring-bg" cx="36" cy="36" r="28"></circle>
+                            <circle class="df-ring-fill" cx="36" cy="36" r="28" stroke-dasharray="175.9" stroke-dashoffset="@RingOffset(kart.Done, kart.Total)"></circle>
+                        </svg>
+                        <div class="df-ring-center"><span class="df-ring-pct">@RingPct(kart.Done, kart.Total)%</span></div>
+                    </div>
+                    <div class="df-ring-meta"><span class="df-ring-sub">@kart.Subtitle</span></div>
+                </div>
+                <div class="df-tile-stats">
+                    <div class="df-tile-stat"><span class="df-tile-stat-lbl">@kart.Stat1Label</span><span class="@kart.Stat1Class">@kart.Stat1Value</span></div>
+                    <div class="df-tile-stat"><span class="df-tile-stat-lbl">@kart.Stat2Label</span><span class="@kart.Stat2Class">@kart.Stat2Value</span></div>
+                    <div class="df-tile-stat"><span class="df-tile-stat-lbl">@kart.Stat3Label</span><span class="@kart.Stat3Class">@kart.Stat3Value</span></div>
+                </div>
+            </a>
+        }
     </div>
-    <div class="stat">
-        <div class="stat-icon">&#128202;</div>
-        <div>
-            <div class="stat-val">@toplam</div>
-            <div class="stat-lbl">Toplam İşlem</div>
-        </div>
+
+    <div class="section-label">
+        <i class="bi bi-bar-chart-line-fill"></i>
+        İstatistikler & Takvim
     </div>
-    <div class="stat">
-        <div class="stat-icon">&#128196;</div>
-        <div>
-            <div class="stat-val">@(gecerliSertifikalar.Any() ? "Geçerli" : ((onayliSertifikalar.Any()) ? "Süresi Doldu" : "Yok"))</div>
-            <div class="stat-lbl">Yetki Belgesi Durumu</div>
-        </div>
-    </div>
-</div>
-<div class="grid-2">
-    <div class="card">
-        <div class="card-head">⚡ Hızlı Özet</div>
-        <div class="card-body">
-            <div class="pill success">Yetkili Marka: @markaSayisi</div>
-            <div style="height:10px;"></div>
-            <div class="pill">Onaylı Yetki Belgesi Sayısı: @onayliSertifikalar.Count</div>
-            @if (enYakin != null)
-            {
-                <div style="height:8px;"></div>
-                if ((enYakinKalan ?? 0) < 0)
-                {
-                    <div class="pill danger">En yakın yetki belgesi süresi doldu</div>
-                }
-                else
-                {
-                    <div class="pill warn">En yakın bitiş: @string.Format("{0:dd.MM.yyyy}", enYakin.SertifikaBitisTarihi) (@(enYakinKalan ?? 0) gün)</div>
-                }
-            }
-            <div style="height:16px;"></div>
-            <div class="hero-sub">Bildirimleri sağ üst bildirim ikonundan takip edebilirsiniz.</div>
-        </div>
-    </div>
-    <div class="card">
-        <div class="card-head">📄 Onaylı Yetki Belgesilar</div>
-        <div class="card-body">
-            @if (onayliSertifikalar.Count == 0)
-            {
-                <div class="pill muted">Onaylı yetki belgesi bulunamadı.</div>
-            }
-            else
-            {
-                <div class="cert-list">
-                    @foreach (var s in onayliSertifikalar)
-                    {
-                        <div class="cert-row">
+
+    <div class="stats-grid">
+        <div class="stats-card">
+            <div class="stats-card-header">
+                <h2><i class="bi bi-bar-chart-line"></i> Firma İstatistikleri</h2>
+                <div class="df-tab-pills mb-0">
+                    <button class="df-tab-pill-item active" type="button" data-panel-target="panel-islem">İşlemler</button>
+                    <button class="df-tab-pill-item" type="button" data-panel-target="panel-belge">Belgeler</button>
+                </div>
+            </div>
+
+            <div class="panel active" id="panel-islem">
+                <div class="stats-body split">
+                    <div class="user-pane">
+                        <div class="user-row">
+                            <div class="user-ava">@basHarf</div>
                             <div>
-                                <div class="cert-title">Yetki Belgesi</div>
-                                <div class="cert-dates">@string.Format("{0:dd.MM.yyyy}", s.SertifikaBaslangicTarihi ?? s.OlusturmaTarihi) - @string.Format("{0:dd.MM.yyyy}", s.SertifikaBitisTarihi)</div>
+                                <div class="user-lbl">Kullanıcı</div>
+                                <div class="user-name">@adSoyad</div>
                             </div>
-                            <span class="pill success">Onaylı</span>
+                        </div>
+                        <div class="kpi-grid">
+                            <div class="kpi-tile"><div class="kpi-icon"><i class="bi bi-plus-lg"></i></div><div class="kpi-n">@toplam</div><div class="kpi-lbl">Toplam İşlem</div></div>
+                            <div class="kpi-tile"><div class="kpi-icon ic-green"><i class="bi bi-send-check"></i></div><div class="kpi-n">@buAy</div><div class="kpi-lbl">Bu Ay</div></div>
+                            <div class="kpi-tile"><div class="kpi-icon ic-warn"><i class="bi bi-hourglass-split"></i></div><div class="kpi-n">@bekleyenSon</div><div class="kpi-lbl">Bekleyen</div></div>
+                            <div class="kpi-tile"><div class="kpi-icon ic-teal"><i class="bi bi-check-circle"></i></div><div class="kpi-n">@tamamlananSon</div><div class="kpi-lbl">Tamamlanan</div></div>
+                        </div>
+                    </div>
+                    <div class="chart-pane">
+                        @if (!sonIslemler.Any())
+                        {
+                            <div class="df-empty">
+                                <div class="df-empty-icon"><i class="bi bi-bag-check"></i></div>
+                                <div class="df-empty-title">Veri Bulunamadı.</div>
+                                <p class="df-empty-text">Devreye alma işlemi oluştuğunda burada görüntülenecektir.</p>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="dash-list">
+                                @foreach (var islem in sonIslemler.Take(4))
+                                {
+                                    var durumYazi = islem.Durum == 1 ? "Tamamlandı" : islem.Durum == 2 ? "İptal" : "Bekliyor";
+                                    <div class="dash-list-item">
+                                        <div class="dash-list-title">@(islem.MusteriAdi ?? islem.TesistatNo ?? "-")</div>
+                                        <div class="dash-list-sub">@durumYazi - @(islem.Marka?.MarkaAdi ?? islem.CihazMarka ?? "-")</div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel" id="panel-belge">
+                <div class="stats-body split">
+                    <div class="user-pane">
+                        <div class="user-row">
+                            <div class="user-ava">@basHarf</div>
+                            <div>
+                                <div class="user-lbl">Firma</div>
+                                <div class="user-name">@(firma?.FirmaAdi ?? "Yetkili Servis")</div>
+                            </div>
+                        </div>
+                        <div class="kpi-grid">
+                            <div class="kpi-tile"><div class="kpi-icon"><i class="bi bi-file-earmark-text"></i></div><div class="kpi-n">@tumBelgeler.Count</div><div class="kpi-lbl">Toplam Belge</div></div>
+                            <div class="kpi-tile"><div class="kpi-icon ic-green"><i class="bi bi-check-circle"></i></div><div class="kpi-n">@gecerliBelgeler.Count</div><div class="kpi-lbl">Geçerli</div></div>
+                            <div class="kpi-tile"><div class="kpi-icon ic-warn"><i class="bi bi-hourglass-split"></i></div><div class="kpi-n">@bekleyenBelge</div><div class="kpi-lbl">Bekleyen</div></div>
+                            <div class="kpi-tile"><div class="kpi-icon ic-purple"><i class="bi bi-x-circle"></i></div><div class="kpi-n">@reddedilenBelge</div><div class="kpi-lbl">Reddedilen</div></div>
+                        </div>
+                    </div>
+                    <div class="chart-pane">
+                        @if (!tumBelgeler.Any())
+                        {
+                            <div class="df-empty">
+                                <div class="df-empty-icon"><i class="bi bi-file-earmark-text"></i></div>
+                                <div class="df-empty-title">Veri Bulunamadı.</div>
+                                <p class="df-empty-text">Yetki belgesi yüklendiğinde burada görüntülenecektir.</p>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="dash-list">
+                                @foreach (var belge in tumBelgeler.Take(4))
+                                {
+                                    var durumYazi = belge.Durum == 1 ? "Onaylandı" : belge.Durum == 2 ? "Reddedildi" : "Bekliyor";
+                                    <div class="dash-list-item">
+                                        <div class="dash-list-title">@durumYazi</div>
+                                        <div class="dash-list-sub">@belge.OlusturmaTarihi.ToString("dd.MM.yyyy") - @belge.SertifikaBitisTarihi.ToString("dd.MM.yyyy")</div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-card calendar-card">
+            <div class="stats-card-header">
+                <h2><i class="bi bi-calendar-check"></i> Takvim & Duyurular</h2>
+            </div>
+            <div class="stats-body split">
+                <div class="user-pane">
+                    <div class="mini-calendar">
+                        <div class="mini-calendar-head">
+                            <span>@ay.ToString("MMMM", new System.Globalization.CultureInfo("tr-TR"))</span>
+                            <span>@ay.Year</span>
+                        </div>
+                        <div class="mini-calendar-grid">
+                            @foreach (var gun in new[] { "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz" })
+                            {
+                                <div class="mini-calendar-cell weekday">@gun</div>
+                            }
+                            @for (var i = 0; i < takvimHucre; i++)
+                            {
+                                var gunNo = i - ilkGunOffset + 1;
+                                if (gunNo < 1)
+                                {
+                                    <div class="mini-calendar-cell muted">@(oncekiAyGunSayisi + gunNo)</div>
+                                }
+                                else if (gunNo > ayGunSayisi)
+                                {
+                                    <div class="mini-calendar-cell muted">@(gunNo - ayGunSayisi)</div>
+                                }
+                                else
+                                {
+                                    var hucreTarih = new DateTime(ay.Year, ay.Month, gunNo);
+                                    <div class="mini-calendar-cell @(hucreTarih.Date == bugun ? "today" : "")">@gunNo</div>
+                                }
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="chart-pane">
+                    @if (!bildirimler.Any())
+                    {
+                        <div class="df-empty">
+                            <div class="df-empty-icon"><i class="bi bi-bell"></i></div>
+                            <div class="df-empty-title">Duyuru bulunmamaktadır.</div>
+                            <p class="df-empty-text">Güncel bir duyuru yayınlandığında burada görüntülenecektir.</p>
                         </div>
                     }
+                    else
+                    {
+                        <div class="dash-list">
+                            @foreach (var bildirim in bildirimler.Take(4))
+                            {
+                                <div class="dash-list-item">
+                                    <div class="dash-list-title">@bildirim</div>
+                                    <div class="dash-list-sub">Sistem bildirimi</div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    <div class="dashboard-mascot">
+                        <div class="dashboard-mascot-bubble"><strong>AURA-X</strong><br />Tekrar hoş geldin!</div>
+                        <div class="dashboard-mascot-face">• •</div>
+                    </div>
                 </div>
-            }
+            </div>
         </div>
     </div>
 </div>
-<div class="card" style="margin-top:16px;">
-    <div class="card-head">🧾 Son İşlemler</div>
-    <div class="card-body">
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Müşteri</th>
-                    <th>Marka</th>
-                    <th>Tarih</th>
-                    <th>Durum</th>
-                </tr>
-            </thead>
-            <tbody>
-            @if (sonIslemler.Count == 0)
-            {
-                <tr><td colspan="4">Kayıt bulunamadı.</td></tr>
-            }
-            else
-            {
-                foreach (var i in sonIslemler)
-                {
-                    <tr>
-                        <td>@(i.MusteriAdi ?? "-")</td>
-                        <td>@(i.Marka?.MarkaAdi ?? i.CihazMarka ?? "-")</td>
-                        <td>@string.Format("{0:dd.MM.yyyy}", i.OlusturmaTarihi)</td>
-                        <td><span class="status @(i.Durum == 1 ? "status-ok" : "")">@(i.Durum == 1 ? "Tamamlandı" : "Bekliyor")</span></td>
-                    </tr>
-                }
-            }
-            </tbody>
-        </table>
-    </div>
-</div>
-<div class="grid-3">
-    <a class="quick-card" href="@(kurulumKilitli ? "/ys-panel/ilk-kurulum" : "/ys-devreyeal")">
-        <div class="quick-icon">&#128295;</div>
-        <div>
-            <div class="quick-title">@(kurulumKilitli ? "İlk Kurulum" : "Cihaz Devreye Al")</div>
-            <div class="quick-sub">@(kurulumKilitli ? "Önce zorunlu alanları tamamlayın" : "Yeni işlem başlat")</div>
-        </div>
-    </a>
-    <a class="quick-card" href="/ys-yetki-belgesi">
-        <div class="quick-icon">&#128196;</div>
-        <div>
-            <div class="quick-title">Yetki Belgem</div>
-            <div class="quick-sub">Yükle ve takip et</div>
-        </div>
-    </a>
-    <a class="quick-card" href="/ys-panel/raporlar">
-        <div class="quick-icon">&#128202;</div>
-        <div>
-            <div class="quick-title">Raporlarım</div>
-            <div class="quick-sub">Filtreli rapor al</div>
-        </div>
-    </a>
-</div>
+
+@section Scripts {
+<script>
+(function () {
+    document.querySelectorAll('.df-dashboard [data-panel-target]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            var card = button.closest('.stats-card');
+            if (!card) return;
+            card.querySelectorAll('[data-panel-target]').forEach(function (item) { item.classList.remove('active'); });
+            card.querySelectorAll('.panel').forEach(function (panel) { panel.classList.remove('active'); });
+            button.classList.add('active');
+            var panel = card.querySelector('#' + button.getAttribute('data-panel-target'));
+            if (panel) panel.classList.add('active');
+        });
+    });
+})();
+</script>
+}

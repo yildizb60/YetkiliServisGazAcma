@@ -11,6 +11,7 @@ ViewData["Title"] = "Raporlarım";
     var firma = ViewBag.Firma as YetkiliServisGazAcma.Entities.Ys_Firma;
     string adSoyad = kullanici?.AdSoyad ?? firma?.YetkiliKisi ?? "Yetkili Servis";
     string basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "Y";
+    var jsonOptions = new System.Text.Json.JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 }
 
 @section Styles {
@@ -32,6 +33,12 @@ ViewData["Title"] = "Raporlarım";
         .chart-wrap canvas { width: 100% !important; height: 100% !important; }
         .chart-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #9aa6b2; font-size: 12px; }
         .chart-wrap.has-data .chart-empty { display: none; }
+        .chart-fallback { display: none; position: absolute; inset: 10px; overflow: auto; }
+        .chart-wrap.has-data:not(.chart-rendered) canvas { display: none; }
+        .chart-wrap.has-data:not(.chart-rendered) .chart-fallback { display: grid; align-content: center; gap: 8px; }
+        .chart-fallback-row { display: grid; grid-template-columns: minmax(70px, 1fr) minmax(120px, 2fr) 34px; gap: 8px; align-items: center; font-size: 12px; color: #3d4f6e; }
+        .chart-fallback-bar { height: 8px; border-radius: 999px; background: #eef1fb; overflow: hidden; }
+        .chart-fallback-fill { display: block; height: 100%; border-radius: inherit; background: #2e4ec8; }
         .section { background: #fff; border-radius: 12px; border: 1px solid #eee; overflow: hidden; }
         .section-head { padding: 14px 20px; border-bottom: 2px solid #f0f0ee; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
         .section-title { font-size: 14px; font-weight: bold; color: #333; }
@@ -83,7 +90,7 @@ ViewData["Title"] = "Raporlarım";
 </div>
 <div class="charts">
     <div class="chart-card">
-        <div class="chart-title">Son 6 Ay İşlem Trendi</div>
+        <div class="chart-title">Aylık İşlem Trendi</div>
         <div class="chart-wrap" id="wrapAylik">
             <div class="chart-empty">Veri bulunamadı</div>
             <canvas id="aylikChart"></canvas>
@@ -136,11 +143,19 @@ ViewData["Title"] = "Raporlarım";
                 <div><strong>@d.TesistatNo</strong></div>
                 <div>@d.MusteriAdi</div>
                 <div>@d.Marka?.MarkaAdi</div>
-                <div>@d.OlusturmaTarihi.ToString("dd.MM.yyyy")</div>
+                <div>@d.DevreyeAlmaTarihi.ToString("dd.MM.yyyy")</div>
             </div>
         }
     }
 </div>
+
+<div id="raporChartData"
+     data-aylik-labels='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.ChartAylikLabels ?? new List<string>(), jsonOptions))'
+     data-aylik-data='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.ChartAylikData ?? new List<int>(), jsonOptions))'
+     data-durum-data='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.ChartDurumData ?? new List<int>(), jsonOptions))'
+     data-marka-labels='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.ChartMarkaLabels ?? new List<string>(), jsonOptions))'
+     data-marka-data='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.ChartMarkaData ?? new List<int>(), jsonOptions))'
+     hidden></div>
 
 @section Scripts {
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -170,11 +185,60 @@ ViewData["Title"] = "Raporlarım";
             const wrap = document.getElementById(wrapId);
             if (wrap) wrap.classList.add("has-data");
         };
+        const markRendered = (wrapId) => {
+            const wrap = document.getElementById(wrapId);
+            if (wrap) wrap.classList.add("chart-rendered");
+        };
+        const renderFallback = (wrapId, labels, data) => {
+            const wrap = document.getElementById(wrapId);
+            if (!wrap) return;
+            const max = Math.max(...data, 1);
+            const holder = document.createElement("div");
+            holder.className = "chart-fallback";
+            labels.forEach((label, index) => {
+                const value = Number(data[index]) || 0;
+                const percent = Math.max(4, Math.round((value / max) * 100));
+                const row = document.createElement("div");
+                row.className = "chart-fallback-row";
+                const labelEl = document.createElement("span");
+                labelEl.textContent = label;
+                const bar = document.createElement("span");
+                bar.className = "chart-fallback-bar";
+                const fill = document.createElement("span");
+                fill.className = "chart-fallback-fill";
+                fill.style.width = `${percent}%`;
+                bar.appendChild(fill);
+                const valueEl = document.createElement("strong");
+                valueEl.textContent = value;
+                row.append(labelEl, bar, valueEl);
+                holder.appendChild(row);
+            });
+            wrap.appendChild(holder);
+        };
+
+        const aylikHasData = aylikLabels.length > 0 && hasAnyPositive(aylikData);
+        const durumHasData = durumData.length === 3 && hasAnyPositive(durumData);
+        const markaHasData = markaLabels.length > 0 && hasAnyPositive(markaData);
+
+        if (aylikHasData) {
+            markHasData("wrapAylik");
+            renderFallback("wrapAylik", aylikLabels, aylikData);
+        }
+
+        if (durumHasData) {
+            markHasData("wrapDurum");
+            renderFallback("wrapDurum", ["Onaylı", "Bekleyen", "Reddedilen"], durumData);
+        }
+
+        if (markaHasData) {
+            markHasData("wrapMarka");
+            renderFallback("wrapMarka", markaLabels, markaData);
+        }
 
         if (typeof Chart === "undefined") return;
 
-        if (aylikLabels.length > 0 && hasAnyPositive(aylikData)) {
-            markHasData("wrapAylik");
+        if (aylikHasData) {
+            markRendered("wrapAylik");
             new Chart(document.getElementById("aylikChart"), {
                 type: "line",
                 data: {
@@ -199,8 +263,8 @@ ViewData["Title"] = "Raporlarım";
             });
         }
 
-        if (durumData.length === 3 && hasAnyPositive(durumData)) {
-            markHasData("wrapDurum");
+        if (durumHasData) {
+            markRendered("wrapDurum");
             new Chart(document.getElementById("durumChart"), {
                 type: "doughnut",
                 data: {
@@ -219,8 +283,8 @@ ViewData["Title"] = "Raporlarım";
             });
         }
 
-        if (markaLabels.length > 0 && hasAnyPositive(markaData)) {
-            markHasData("wrapMarka");
+        if (markaHasData) {
+            markRendered("wrapMarka");
             new Chart(document.getElementById("markaChart"), {
                 type: "bar",
                 data: {

@@ -2,8 +2,17 @@
 @{
     var kullanici = ViewBag.Kullanici as AppKullanici;
     var adSoyad = kullanici?.AdSoyad ?? "Sistem Kullanıcısı";
-    var basHarf = !string.IsNullOrWhiteSpace(adSoyad) ? adSoyad.Trim().Substring(0, 1).ToUpper() : "K";
+    var basHarf = !string.IsNullOrWhiteSpace(adSoyad) ? adSoyad.Trim().Substring(0, 1).ToUpper(new System.Globalization.CultureInfo("tr-TR")) : "K";
     var baslik = (ViewData["PanelTitle"] ?? ViewData["Title"])?.ToString() ?? "Panel";
+    var altBaslik = ViewData["PanelSubtitle"]?.ToString();
+    var sirketAdi = ViewBag.PanelSirketAdi as string ?? "Genel Yönetim";
+    var path = Context?.Request?.Path.ToString().ToLowerInvariant() ?? "";
+    var panelUrl = path.Contains("/personel-panel")
+        ? "/personel-panel"
+        : path.Contains("/ys-panel")
+            ? "/ys-panel"
+            : "/AdminPanel";
+    var profilUrl = panelUrl + "/profil";
 
     var rol = kullanici?.KullaniciTipi switch
     {
@@ -14,15 +23,62 @@
         _ => "Kullanıcı"
     };
 }
-<header class="topbar">
-    <div class="topbar-left">@baslik</div>
-    <div class="topbar-right">
+<header class="df-navbar">
+    <div class="df-nb-left">
+        <button class="df-nb-btn mob-burger" type="button" aria-label="Menü">
+            <i class="bi bi-list"></i>
+        </button>
+        <nav class="df-breadcrumb" id="site-form-path" aria-label="Sayfa yolu">
+            <a href="@panelUrl"><i class="bi bi-house"></i> @(altBaslik ?? "Panel")</a>
+            <span>/</span>
+            <span>@baslik</span>
+        </nav>
+    </div>
+
+    <div class="df-nb-right">
+        <button class="df-nb-btn" type="button" title="Ayarlar" aria-label="Ayarlar">
+            <i class="bi bi-gear"></i>
+        </button>
+
         @await Html.PartialAsync("_NotificationPanel")
-        <div>
-            <div class="user-name">@adSoyad</div>
-            <div class="user-role">@rol</div>
-            <div class="user-company">@(ViewBag.PanelSirketAdi as string ?? "Genel Yönetim")</div>
+
+        <div class="df-nb-sep"></div>
+
+        <div class="df-dropdown">
+            <button class="df-nb-profile-btn" id="profileBtn" type="button" data-dropdown-toggle="">
+                <div class="df-avatar-wrap">
+                    <div class="df-avatar df-avatar-primary df-avatar-sm">@basHarf</div>
+                    <span class="df-avatar-status online"></span>
+                </div>
+                <div class="df-nb-profile-info">
+                    <div class="df-nb-profile-name">@adSoyad</div>
+                    <div class="df-nb-profile-company">@sirketAdi</div>
+                </div>
+                <i class="bi bi-chevron-down df-nb-profile-chevron"></i>
+            </button>
+
+            <div class="df-dropdown-menu df-nb-dropdown right" id="profileMenu">
+                <div class="df-nb-profile-card">
+                    <div class="df-avatar df-avatar-primary df-avatar-sm">@basHarf</div>
+                    <div class="df-nb-profile-card-info">
+                        <div class="df-nb-profile-card-name">@adSoyad</div>
+                        <div class="df-nb-profile-card-company">@sirketAdi</div>
+                        <span class="df-nb-profile-card-role">@rol</span>
+                    </div>
+                </div>
+
+                <div class="df-dropdown-divider"></div>
+                <a href="@profilUrl" class="df-dropdown-item">
+                    <i class="bi bi-person"></i>
+                    Profil ve Ayarlar
+                </a>
+
+                <div class="df-dropdown-divider"></div>
+                <a href="/cikis" class="df-dropdown-item danger">
+                    <i class="bi bi-box-arrow-right"></i>
+                    Çıkış Yap
+                </a>
+            </div>
         </div>
-        <div class="avatar">@basHarf</div>
     </div>
 </header>

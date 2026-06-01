@@ -1,170 +1,217 @@
 @model List<YetkiliServisGazAcma.Entities.Ys_Sertifika>
 @{
     ViewData["Title"] = "Yetki Belgem";
-    Layout = "_PanelLayout";
+    ViewData["PanelTitle"] = "Yetki Belgem";
+    ViewData["PanelSubtitle"] = "Yetkili Servis";
     ViewData["ActiveMenu"] = "YetkiBelgesi";
     ViewData["PanelArea"] = "YetkiliServis";
-    var firma = ViewBag.Firma as YetkiliServisGazAcma.Entities.Ys_Firma;
-    string adSoyad = firma?.YetkiliKisi ?? "Yetkili Servis";
-    string basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "Y";
+    Layout = "~/Views/Shared/_PanelLayout.cshtml";
 }
+
 @section Styles {
     <style>
-.mesaj-basarili { background: #E1F5EE; color: #085041; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; }
-        .mesaj-hata { background: #FCEBEB; color: #501313; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; }
-        .yukle-kart { background: #fff; border-radius: 10px; border: 1px solid #eee; padding: 24px; margin-bottom: 20px; }
-        .kart-baslik { font-size: 14px; font-weight: bold; color: #333; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid #f0f0ee; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px; align-items: end; }
-        .alan { display: flex; flex-direction: column; gap: 5px; }
-        label { font-size: 12px; color: #444; font-weight: bold; }
-        input[type=file], input[type=date] { padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; width: 100%; outline: none; }
-        input:focus { border-color: #1B9FD4; }
-        .btn-yukle { padding: 10px 24px; background: #1B9FD4; color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; width: 100%; }
-        .btn-yukle:hover { background: #0d7faa; }
-        .sert-kart { background: #fff; border-radius: 10px; border: 1px solid #eee; padding: 20px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-        .sert-sol { display: flex; align-items: center; gap: 16px; }
-        .sert-icon { width: 48px; height: 48px; background: #E6F1FB; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
-        .sert-baslik { font-size: 14px; font-weight: bold; color: #333; }
-        .sert-alt { font-size: 12px; color: #888; margin-top: 3px; }
-        .badge { display: inline-block; padding: 4px 12px; border-radius: 10px; font-size: 12px; font-weight: bold; }
-        .b-yellow { background: #FAEEDA; color: #633806; }
-        .b-green { background: #E1F5EE; color: #085041; }
-        .b-red { background: #FCEBEB; color: #501313; }
-        .btn-indir { padding: 7px 16px; background: #E6F1FB; color: #0C447C; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; text-decoration: none; }
-        .btn-sil { padding: 7px 16px; background: #FCEBEB; color: #8A1F1F; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; }
-        .bos { text-align: center; padding: 40px; color: #bbb; font-size: 13px; }
-        .filter-bar { background: #fff; border-radius: 10px; border: 1px solid #eee; padding: 12px 14px; display: flex; gap: 10px; align-items: center; margin-bottom: 14px; }
-        .filter-bar input, .filter-bar select { padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; }
+        .cert-stack {
+            display: grid;
+            gap: 16px;
+        }
+
+        .cert-message {
+            padding: 12px 14px;
+            border-radius: var(--df-radius);
+            border: 1px solid var(--df-border);
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .cert-upload {
+            padding: 16px;
+        }
+
+        .cert-file-cell {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 220px;
+        }
+
+        .cert-file-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: var(--df-radius);
+            background: var(--df-primary-soft);
+            color: var(--df-primary);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+        }
+
+        .cert-reason {
+            margin-top: 5px;
+            color: var(--df-danger);
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        @@media (max-width: 860px) {
+            .cert-upload .df-form-row,
+            .cert-upload .df-field,
+            .cert-upload .df-btn {
+                width: 100%;
+            }
+        }
     </style>
 }
 
-@if (TempData["Basarili"] != null)
-            {
-                <div class="mesaj-basarili">&#9989; @TempData["Basarili"]</div>
-            }
-            @if (TempData["Hata"] != null)
-            {
-                <div class="mesaj-hata">&#10060; @TempData["Hata"]</div>
-            }
+<div class="cert-stack">
+    @if (TempData["Basarili"] != null)
+    {
+        <div class="cert-message mesaj-basarili">@TempData["Basarili"]</div>
+    }
+    @if (TempData["Hata"] != null)
+    {
+        <div class="cert-message mesaj-hata">@TempData["Hata"]</div>
+    }
 
-            <div class="yukle-kart">
-                <div class="kart-baslik">&#128196; Yeni Yetki Belgesi Yükle</div>
-                <form method="post" action="/ys-yetki-belgesi/yukle"
-                      enctype="multipart/form-data">
-                    @Html.AntiForgeryToken()
-                    <div class="grid">
-                        <div class="alan">
-                            <label>Yetki Belgesi Dosyası (PDF/JPG/PNG)</label>
-                            <input type="file" name="dosya"
-                                   accept=".pdf,.jpg,.jpeg,.png" required />
-                        </div>
-                        <div class="alan">
-                            <label>Yetki Belgesi Başlangıç Tarihi</label>
-                            <input type="date" name="baslangicTarihi"
-                                   value="@DateTime.Now.ToString("yyyy-MM-dd")" />
-                        </div>
-                        <div class="alan">
-                            <label>Yetki Belgesi Bitiş Tarihi</label>
-                            <input type="date" name="bitisTarihi" required />
-                        </div>
-                        <div class="alan">
-                            <button type="submit" class="btn-yukle">
-                                &#128228; Yükle
-                            </button>
-                        </div>
-                    </div>
-                </form>
+    <section class="df-page-panel">
+        <div class="df-panel-head">
+            <div>
+                <h2 class="df-panel-title">Yeni Yetki Belgesi Y&#252;kle</h2>
+                <div class="df-panel-subtitle">PDF, JPG veya PNG dosyas&#305; ekleyin.</div>
             </div>
-
-            <div class="kart-baslik" style="margin-bottom:12px;">
-                &#128202; Yetki Belgesi Geçmişi
+        </div>
+        <form class="cert-upload" method="post" action="/ys-yetki-belgesi/yukle" enctype="multipart/form-data">
+            @Html.AntiForgeryToken()
+            <div class="df-form-row">
+                <div class="df-field df-field-wide">
+                    <label>Yetki Belgesi Dosyas&#305;</label>
+                    <input class="df-control" type="file" name="dosya" accept=".pdf,.jpg,.jpeg,.png" required />
+                </div>
+                <div class="df-field">
+                    <label>Ba&#351;lang&#305;&#231; Tarihi</label>
+                    <input class="df-control" type="date" name="baslangicTarihi" value="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="df-field">
+                    <label>Biti&#351; Tarihi</label>
+                    <input class="df-control" type="date" name="bitisTarihi" required />
+                </div>
+                <button type="submit" class="df-btn df-btn-primary">Y&#252;kle</button>
             </div>
+        </form>
+    </section>
 
-            <div class="filter-bar">
-                <input type="text" id="sertifikaSearch" placeholder="Tarih veya durum ara..." />
-                <select id="sertifikaDurum">
-                    <option value="">Tüm</option>
-                    <option value="Onay Bekliyor">Onay Bekliyor</option>
-                    <option value="Onaylandı">Onaylandı</option>
-                    <option value="Reddedildi">Reddedildi</option>
-                </select>
+    <section class="df-page-panel">
+        <div class="df-panel-head">
+            <div>
+                <h2 class="df-panel-title">Yetki Belgesi Ge&#231;mi&#351;i</h2>
+                <div class="df-panel-subtitle">@Model.Count kay&#305;t</div>
             </div>
+        </div>
+        <div class="df-toolbar">
+            <div class="df-form-row">
+                <div class="df-field">
+                    <label>Arama</label>
+                    <input class="df-control" type="text" id="sertifikaSearch" placeholder="Tarih veya durum ara" />
+                </div>
+                <div class="df-field">
+                    <label>Durum</label>
+                    <select class="df-control" id="sertifikaDurum">
+                        <option value="">T&#252;m&#252;</option>
+                        <option value="Onay Bekliyor">Onay Bekliyor</option>
+                        <option value="Onaylandı">Onayland&#305;</option>
+                        <option value="Reddedildi">Reddedildi</option>
+                    </select>
+                </div>
+            </div>
+        </div>
 
-            @if (!Model.Any())
-            {
-                <div class="bos">Henüz yetki belgesi yüklenmemiş.</div>
-            }
-            else
-            {
-                @foreach (var s in Model)
-                {
-                    var baslangic = s.SertifikaBaslangicTarihi ?? s.OlusturmaTarihi;
-                    var durumText = s.Durum == 0 ? "Onay Bekliyor" : s.Durum == 1 ? "Onaylandı" : "Reddedildi";
-                    var searchText = $"{s.OlusturmaTarihi:dd.MM.yyyy} {baslangic:dd.MM.yyyy} {s.SertifikaBitisTarihi:dd.MM.yyyy} {durumText}";
-                    <div class="sert-kart" data-search="@searchText" data-durum="@durumText">
-                        <div class="sert-sol">
-                            <div class="sert-icon">&#128196;</div>
-                            <div>
-                                <div class="sert-baslik">
-                                    Yetki Belgesi @s.OlusturmaTarihi.ToString("dd.MM.yyyy")
-                                </div>
-                                <div class="sert-alt">
-                                    Başlangıç: @baslangic.ToString("dd.MM.yyyy")
-                                </div>
-                                <div class="sert-alt">
-                                    Bitiş: @s.SertifikaBitisTarihi.ToString("dd.MM.yyyy")
-                                </div>
-                                @if (!string.IsNullOrEmpty(s.RedGerekce))
-                                {
-                                    <div class="sert-alt" style="color:#e24b4a;">
-                                        Red gereke: @s.RedGerekce
+        @if (!Model.Any())
+        {
+            <div class="df-empty">
+                <div class="df-empty-title">Hen&#252;z yetki belgesi yok</div>
+                <div class="df-empty-text">Y&#252;klenen belgeler burada listelenecek.</div>
+            </div>
+        }
+        else
+        {
+            <div class="df-table-wrap">
+                <table class="df-table">
+                    <thead>
+                        <tr>
+                            <th>Belge</th>
+                            <th>Ba&#351;lang&#305;&#231;</th>
+                            <th>Biti&#351;</th>
+                            <th>Durum</th>
+                            <th>&#304;&#351;lem</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var s in Model)
+                        {
+                            var baslangic = s.SertifikaBaslangicTarihi ?? s.OlusturmaTarihi;
+                            var durumText = s.Durum == 0 ? "Onay Bekliyor" : s.Durum == 1 ? "Onaylandı" : "Reddedildi";
+                            var durumClass = s.Durum == 0 ? "b-yellow" : s.Durum == 1 ? "b-green" : "b-red";
+                            var searchText = $"{s.OlusturmaTarihi:dd.MM.yyyy} {baslangic:dd.MM.yyyy} {s.SertifikaBitisTarihi:dd.MM.yyyy} {durumText}";
+                            <tr class="sert-row" data-search="@searchText" data-durum="@durumText">
+                                <td>
+                                    <div class="cert-file-cell">
+                                        <span class="cert-file-icon">PDF</span>
+                                        <div>
+                                            <div class="df-cell-main">Yetki Belgesi</div>
+                                            <div class="df-cell-sub">@s.OlusturmaTarihi.ToString("dd.MM.yyyy") tarihinde y&#252;klendi</div>
+                                            @if (!string.IsNullOrEmpty(s.RedGerekce))
+                                            {
+                                                <div class="cert-reason">Red gerek&#231;esi: @s.RedGerekce</div>
+                                            }
+                                        </div>
                                     </div>
-                                }
-                            </div>
-                        </div>
-                        <div style="display:flex;align-items:center;gap:12px;">
-                            <span class="badge @(s.Durum == 0 ? "b-yellow" : s.Durum == 1 ? "b-green" : "b-red")">
-                                @durumText
-                            </span>
-                            <a class="btn-indir" href="@s.DosyaYolu" target="_blank">
-                                &#128065; Görüntüle
-                            </a>
-                            <form method="post" action="/ys-yetki-belgesi/sil" onsubmit="return confirm('Yetki belgesini silmek istiyor musunuz?');" style="display:inline;">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" value="@s.Id" />
-                                <button type="submit" class="btn-sil">Sil</button>
-                            </form>
-                        </div>
-                    </div>
-                }
+                                </td>
+                                <td>@baslangic.ToString("dd.MM.yyyy")</td>
+                                <td>@s.SertifikaBitisTarihi.ToString("dd.MM.yyyy")</td>
+                                <td><span class="badge @durumClass">@durumText</span></td>
+                                <td>
+                                    <div class="df-actions">
+                                        <a class="df-btn df-btn-secondary df-btn-sm" href="@s.DosyaYolu" target="_blank">G&#246;r&#252;nt&#252;le</a>
+                                        <form method="post" action="/ys-yetki-belgesi/sil" onsubmit="return confirm('Yetki belgesini silmek istiyor musunuz?');">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@s.Id" />
+                                            <button type="submit" class="df-btn df-btn-danger df-btn-sm">Sil</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const searchInput = document.getElementById("sertifikaSearch");
+            const durumSelect = document.getElementById("sertifikaDurum");
+            const rows = Array.from(document.querySelectorAll(".sert-row"));
+
+            if (!searchInput || !durumSelect || rows.length === 0) return;
+
+            function filtrele() {
+                const q = (searchInput.value || "").toLowerCase().trim();
+                const durum = (durumSelect.value || "").toLowerCase().trim();
+
+                rows.forEach(function (row) {
+                    const metin = (row.getAttribute("data-search") || "").toLowerCase();
+                    const satirDurum = (row.getAttribute("data-durum") || "").toLowerCase();
+                    const aramaUygun = q === "" || metin.indexOf(q) !== -1;
+                    const durumUygun = durum === "" || satirDurum === durum;
+                    row.hidden = !(aramaUygun && durumUygun);
+                });
             }
 
-<script>
-    (function () {
-        var searchInput = document.getElementById('sertifikaSearch');
-        var durumSelect = document.getElementById('sertifikaDurum');
-        var cards = Array.prototype.slice.call(document.querySelectorAll('.sert-kart'));
-
-        if (!searchInput || !durumSelect || cards.length === 0) {
-            return;
-        }
-
-        function filtrele() {
-            var q = (searchInput.value || '').toLowerCase().trim();
-            var durum = (durumSelect.value || '').toLowerCase().trim();
-
-            cards.forEach(function (card) {
-                var metin = (card.getAttribute('data-search') || '').toLowerCase();
-                var kartDurum = (card.getAttribute('data-durum') || '').toLowerCase();
-
-                var aramaUygun = q === '' || metin.indexOf(q) !== -1;
-                var durumUygun = durum === '' || kartDurum === durum;
-
-                card.style.display = (aramaUygun && durumUygun) ? 'flex' : 'none';
-            });
-        }
-
-        searchInput.addEventListener('input', filtrele);
-        durumSelect.addEventListener('change', filtrele);
-    })();
-</script>
+            searchInput.addEventListener("input", filtrele);
+            durumSelect.addEventListener("change", filtrele);
+        })();
+    </script>
+}
