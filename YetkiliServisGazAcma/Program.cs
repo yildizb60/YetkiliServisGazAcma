@@ -9,6 +9,7 @@ using Microsoft.Extensions.Options;
 using QuestPDF.Infrastructure;
 QuestPDF.Settings.License = LicenseType.Community;
 var builder = WebApplication.CreateBuilder(args);
+builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
 
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
@@ -28,9 +29,12 @@ builder.Services.AddControllersWithViews(options =>
     options.Filters.AddService<PanelKimlikActionFilter>();
 });
 
+var defaultConnection = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrWhiteSpace(defaultConnection))
+    throw new InvalidOperationException("ConnectionStrings:DefaultConnection ayari eksik. appsettings.Local.json veya environment variable ile tanimlayin.");
+
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(defaultConnection));
 
 builder.Services.AddScoped<DagitimSirketService>();
 builder.Services.AddScoped<MarkaService>();
@@ -158,6 +162,14 @@ builder.Services.ConfigureApplicationCookie(options =>
 });
 
 var app = builder.Build();
+
+app.Use(async (context, next) =>
+{
+    context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    context.Response.Headers["X-Frame-Options"] = "DENY";
+    context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    await next();
+});
 
 if (!app.Environment.IsDevelopment())
 {

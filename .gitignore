@@ -18,6 +18,8 @@ _codex_*.log
 .env
 .env.*
 !.env.example
+appsettings.Local.json
+**/appsettings.Local.json
 
 # IDE files
 .vs/

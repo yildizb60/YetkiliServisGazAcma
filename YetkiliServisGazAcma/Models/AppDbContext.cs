@@ -48,6 +48,42 @@ namespace YetkiliServisGazAcma.Models
             modelBuilder.Entity<Ys_Sube>().ToTable("Ys_Subeler");
             modelBuilder.Entity<SmsDogrulamaKodu>().ToTable("Ys_SmsDogrulamaKodlari");
             modelBuilder.Entity<SmsGonderimLog>().ToTable("Ys_SmsGonderimLoglari");
+
+            modelBuilder.Entity<AppKullanici>()
+                .HasIndex(x => new { x.KullaniciTipi, x.AktifMi, x.FirmaId });
+
+            modelBuilder.Entity<AppKullanici>()
+                .HasIndex(x => new { x.KullaniciTipi, x.AktifMi, x.SirketId });
+
+            modelBuilder.Entity<Ys_Firma>()
+                .HasIndex(x => new { x.SirketId, x.SilindiMi, x.AktifMi });
+
+            modelBuilder.Entity<Ys_Firma>()
+                .HasIndex(x => new { x.FaaliyetIli, x.SilindiMi });
+
+            modelBuilder.Entity<Ys_Sube>()
+                .HasIndex(x => new { x.FirmaId, x.SilindiMi, x.AktifMi });
+
+            modelBuilder.Entity<Ys_Sertifika>()
+                .HasIndex(x => new { x.FirmaId, x.Durum, x.SilindiMi });
+
+            modelBuilder.Entity<Ys_Sertifika>()
+                .HasIndex(x => new { x.SertifikaBitisTarihi, x.SilindiMi });
+
+            modelBuilder.Entity<Ys_FirmaMarka>()
+                .HasIndex(x => new { x.FirmaId, x.MarkaId, x.SilindiMi });
+
+            modelBuilder.Entity<Ys_FirmaKategori>()
+                .HasIndex(x => new { x.FirmaId, x.KategoriId, x.SilindiMi });
+
+            modelBuilder.Entity<Ys_DevreyeAlma>()
+                .HasIndex(x => new { x.FirmaId, x.DevreyeAlmaTarihi, x.SilindiMi });
+
+            modelBuilder.Entity<Ys_DevreyeAlma>()
+                .HasIndex(x => new { x.MarkaId, x.Durum, x.SilindiMi });
+
+            modelBuilder.Entity<SmsDogrulamaKodu>()
+                .HasIndex(x => new { x.KullaniciId, x.Amac, x.KullanildiMi, x.SilindiMi, x.GecerlilikTarihi });
         }
     }
 }
