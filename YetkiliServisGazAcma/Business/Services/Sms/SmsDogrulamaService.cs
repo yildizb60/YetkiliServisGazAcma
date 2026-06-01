@@ -12,15 +12,18 @@ namespace YetkiliServisGazAcma.Business.Services
         private readonly AppDbContext _context;
         private readonly SmsOptions _options;
         private readonly ISmsProvider _smsProvider;
+        private readonly SehirFirmaKoduService _sehirFirmaKoduService;
 
         public SmsDogrulamaService(
             AppDbContext context,
             IOptions<SmsOptions> options,
-            ISmsProvider smsProvider)
+            ISmsProvider smsProvider,
+            SehirFirmaKoduService sehirFirmaKoduService)
         {
             _context = context;
             _options = options.Value;
             _smsProvider = smsProvider;
+            _sehirFirmaKoduService = sehirFirmaKoduService;
         }
 
         public bool SmsGirisAktifMi => _options.Enabled;
@@ -49,7 +52,8 @@ namespace YetkiliServisGazAcma.Business.Services
 
             _context.SmsDogrulamaKodlari.Add(dogrulama);
 
-            var sonuc = await _smsProvider.GonderAsync(telefon, mesaj);
+            var firmaKodu = await FirmaKoduBulAsync(kullanici);
+            var sonuc = await _smsProvider.GonderAsync(telefon, mesaj, firmaKodu);
             _context.SmsGonderimLoglari.Add(new SmsGonderimLog
             {
                 KullaniciId = kullanici.Id,
@@ -113,6 +117,36 @@ namespace YetkiliServisGazAcma.Business.Services
             kayit.KullanildiTarihi = DateTime.Now;
             await _context.SaveChangesAsync();
             return (true, "SMS doğrulama tamamlandı.");
+        }
+
+        private async Task<string?> FirmaKoduBulAsync(AppKullanici kullanici)
+        {
+            if (kullanici.FirmaId.HasValue)
+            {
+                var firma = await _context.Ys_Firmalar
+                    .Include(x => x.Sirket)
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.Id == kullanici.FirmaId.Value && !x.SilindiMi);
+
+                return _sehirFirmaKoduService.FirmaKodu(firma?.FaaliyetIli)
+                    ?? _sehirFirmaKoduService.FirmaKodu(firma?.Sirket?.Il)
+                    ?? firma?.Sirket?.SirketAdi;
+            }
+
+            if (kullanici.SirketId.HasValue)
+            {
+                var sirket = await _context.Dag_Sirketler
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.Id == kullanici.SirketId.Value && !x.SilindiMi);
+
+                return _sehirFirmaKoduService.FirmaKodu(sirket?.Il)
+                    ?? sirket?.SirketAdi;
+            }
+
+            return kullanici.Sirket?.SirketAdi
+                ?? kullanici.Firma?.Sirket?.SirketAdi
+                ?? _sehirFirmaKoduService.FirmaKodu(kullanici.Firma?.FaaliyetIli)
+                ?? _sehirFirmaKoduService.FirmaKodu(kullanici.Firma?.Sirket?.Il);
         }
 
         private static string KodUret(int uzunluk)

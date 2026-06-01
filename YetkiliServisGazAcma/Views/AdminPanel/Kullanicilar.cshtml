@@ -233,16 +233,16 @@
                         <span class="badge b-red">Pasif</span>
                     }
                 </div>
-                <div class="action-cell">
-                    <a class="btn-link" href="/AdminPanel/Kullanicilar/Duzenle/@k.Id">Düzenle</a>
+                <div class="action-cell df-actions">
+                    <a class="df-btn df-btn-secondary df-btn-sm" href="/AdminPanel/Kullanicilar/Duzenle/@k.Id">D&#252;zenle</a>
                     <form method="post" action="/AdminPanel/Kullanicilar/durum/@k.Id">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="aktif" value='@(k.AktifMi ? "false" : "true")' />
-                        <button type="submit" class="btn-link">@(k.AktifMi ? "Pasifleştir" : "Aktifleştir")</button>
+                        <button type="submit" class="df-btn @(k.AktifMi ? "df-btn-ghost" : "df-btn-success") df-btn-sm">@(k.AktifMi ? "Pasifle&#351;tir" : "Aktifle&#351;tir")</button>
                     </form>
                     <form method="post" action="/AdminPanel/kullanicilar/sil/@k.Id" onsubmit="return confirm('Kullanıcı silmek istediğinize emin misiniz?');">
                         @Html.AntiForgeryToken()
-                        <button type="submit" class="btn-link" style="color:#b91c1c;border-color:#f1b4b4;min-width:52px;">Sil</button>
+                        <button type="submit" class="df-btn df-btn-danger df-btn-sm">Sil</button>
                     </form>
                 </div>
             </div>

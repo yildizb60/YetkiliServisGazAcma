@@ -5,6 +5,6 @@ namespace YetkiliServisGazAcma.Business.Services
     public interface ISmsProvider
     {
         string ProviderName { get; }
-        Task<SmsGonderimSonucu> GonderAsync(string telefon, string mesaj);
+        Task<SmsGonderimSonucu> GonderAsync(string telefon, string mesaj, string? firmaKodu = null);
     }
 }

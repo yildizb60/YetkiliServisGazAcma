@@ -1,117 +1,164 @@
 @model YetkiliServisGazAcma.Entities.Ys_DevreyeAlma
 @{
     ViewData["Title"] = "Devreye Alma Detay";
-    ViewData["PanelTitle"] = ViewData["Title"];
+    ViewData["PanelTitle"] = "Devreye Alma Detay";
     ViewData["PanelSubtitle"] = "Personel Paneli";
     ViewData["ActiveMenu"] = "DevreyeAlmalar";
+    ViewData["PanelArea"] = "Personel";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
-    var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
-    bool ySertifika = ViewBag.YetkiSertifika != false;
-    bool yRapor = ViewBag.YetkiRapor != false;
-    bool ySirket = ViewBag.YetkiSirket != false;
-    bool yMarka = ViewBag.YetkiMarka != false;    bool ySirketYonet = ViewBag.YetkiSirketYonet != false;    bool yMarkaYonet = ViewBag.YetkiMarkaYonet != false;
-    bool yServis = ViewBag.YetkiServis != false;
+
+    var marka = Model.Marka?.MarkaAdi ?? Model.CihazMarka ?? "-";
+    var durumClass = Model.Durum == 1 ? "df-pill-success" : Model.Durum == 2 ? "df-pill-danger" : "df-pill-warning";
+    var durumYazi = Model.Durum == 1 ? "Tamamlandi" : Model.Durum == 2 ? "Iptal" : "Bekliyor";
 }
 
-@section Styles {
-    <style>
-.content { padding: 28px 32px; }
-        .back-link { display: inline-flex; align-items: center; gap: 8px; color: #1B9FD4; font-weight: 700; text-decoration: none; margin-bottom: 14px; }
-        .page-title { font-size: 22px; font-weight: 800; margin: 4px 0 10px; }
-        .hero { background: #fff; border: 1px solid #e6eef4; border-radius: 12px; padding: 16px 18px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 24px rgba(20,40,60,0.08); }
-        .hero-title { font-weight: 800; font-size: 16px; }
-        .hero-sub { font-size: 12px; color: #6f7b86; margin-top: 4px; }
-        .badge { display: inline-block; padding: 4px 12px; border-radius: 10px; font-size: 12px; font-weight: bold; }
-        .b-green  { background: #E1F5EE; color: #085041; }
-        .b-yellow { background: #FAEEDA; color: #633806; }
-        .b-red    { background: #FCEBEB; color: #501313; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 16px; }
-        .card { background: #fff; border-radius: 12px; border: 1px solid #e6eef4; box-shadow: 0 10px 24px rgba(20,40,60,0.08); padding: 16px; }
-        .card-title { font-size: 14px; font-weight: 800; color: #4CAF7D; margin-bottom: 10px; display:flex; align-items:center; gap:8px; }
-        .info-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .info-item { background: #f7fafc; border: 1px solid #edf3f8; border-radius: 10px; padding: 10px 12px; }
-        .info-label { font-size: 11px; color: #6f7b86; margin-bottom: 4px; }
-        .info-value { font-weight: 700; font-size: 13px; color: #1a2c3b; }
-        .actions { display: flex; gap: 10px; margin-top: 16px; }
-        .btn-pdf { padding: 8px 14px; background: #1B9FD4; border-radius: 7px; color: #fff; text-decoration: none; font-weight: bold; }
-        .btn-pdf:hover { background: #0d7faa; }
-        .notif-wrap { position: relative; }
-        .notif { position: relative; width: 32px; height: 32px; border-radius: 50%; background: #f0f4f8; border: none; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #4CAF7D; cursor: pointer; }
-        .notif-badge { position: absolute; top: -4px; right: -4px; background: #e24b4a; color: #fff; font-size: 9px; font-weight: bold; padding: 2px 5px; border-radius: 10px; }
-        .notif-panel { position:absolute; right:0; top:38px; width:260px; background:#fff; border:1px solid #e6eef4; border-radius:10px; box-shadow:0 10px 24px rgba(20,40,60,0.12); padding:10px; display:none; z-index: 50; }
-        .notif-panel.open { display:block; }
-        .notif-item { font-size:12px; color:#55636f; padding:6px 4px; border-bottom:1px solid #f0f3f7; }
-        .notif-item:last-child { border-bottom:0; }
-        @@media (max-width: 1100px) { .grid { grid-template-columns: 1fr; } }
-        @@media (max-width: 720px) {
-            .sidebar { position: static; width: 100%; height: auto; }
-            .main { margin-left: 0; }
-            .info-grid { grid-template-columns: 1fr; }
-        }
-    </style>
-}
-
-<a class="back-link" href="/personel-panel/devreyealmalar">&#11013; Devreye Almalara Dön</a>
-<div class="page-title">Tesisat No: @Model.TesistatNo</div>
-
-<div class="hero">
-    <div>
-        <div class="hero-title">@Model.MusteriAdi</div>
-        <div class="hero-sub">Firma: @(Model.Firma?.FirmaAdi ?? "-") • Marka: @(Model.Marka?.MarkaAdi ?? "-")</div>
-    </div>
-    <span class="badge @(Model.Durum==1?"b-green":Model.Durum==2?"b-red":"b-yellow")">@(Model.Durum==1?"✅ Tamamlandı":Model.Durum==2?"❌ İptal":"⏳ Bekliyor")</span>
-</div>
-
-<div class="grid">
-    <div class="card">
-        <div class="card-title">&#128100; Müşteri Bilgileri</div>
-        <div class="info-grid">
-            <div class="info-item"><div class="info-label">Müşteri</div><div class="info-value">@Model.MusteriAdi</div></div>
-            <div class="info-item"><div class="info-label">Telefon</div><div class="info-value">@Model.MusteriTelefon</div></div>
-            <div class="info-item"><div class="info-label">TC</div><div class="info-value">@Model.MusteriTcNo</div></div>
-            <div class="info-item"><div class="info-label">Adres</div><div class="info-value">@Model.Adres</div></div>
-        </div>
-    </div>
-    <div class="card">
-        <div class="card-title">&#128295; Cihaz Bilgileri</div>
-        <div class="info-grid">
-            <div class="info-item"><div class="info-label">Tip</div><div class="info-value">@Model.CihazTipi</div></div>
-            <div class="info-item"><div class="info-label">Model</div><div class="info-value">@Model.CihazModeli</div></div>
-            <div class="info-item"><div class="info-label">Seri No</div><div class="info-value">@Model.SeriNo</div></div>
-            <div class="info-item"><div class="info-label">Kapasite</div><div class="info-value">@Model.CihazKapasite</div></div>
-        </div>
-    </div>
-</div>
-
-<div class="actions">
-    <a class="btn-pdf" href="/personel-panel/devreyealma-pdf/@Model.Id" target="_blank">PDF İndir</a>
-    <a class="btn-pdf" href="/personel-panel/devreyealma-excel/@Model.Id" target="_blank">Excel İndir</a>
-</div>
-
-@section Scripts {
-<script>\n    (function () {\n        var btns = document.querySelectorAll(".notif");\n        btns.forEach(function(btn){\n            var panel = btn.parentElement.querySelector(".notif-panel");\n            if (!panel) return;\n            btn.addEventListener("click", function(e){\n                e.stopPropagation();\n                panel.classList.toggle("open");\n            });\n            panel.addEventListener("click", function(e){ e.stopPropagation(); });\n        });\n        document.addEventListener("click", function(){\n            document.querySelectorAll(".notif-panel").forEach(function(p){ p.classList.remove("open"); });\n        });\n    })();\n</script>
-<script>
-(function () {
-    // PERSONEL_YETKI_MENU
-    var yetki = {
-        sertifika: @((ViewBag.YetkiSertifika == true).ToString().ToLower()),
-        rapor: @((ViewBag.YetkiRapor == true).ToString().ToLower())
-    };
-
-    function hide(selector, allowed) {
-        if (allowed) return;
-        var list = document.querySelectorAll(selector);
-        list.forEach(function (el) { el.style.display = 'none'; });
+@functions {
+    private static string Deger(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? "-" : value;
     }
 
-    hide('a[href="/personel-panel/onay-bekleyenler"]', yetki.sertifika);
-    hide('a[href="/personel-panel/onay-gecmisi"]', yetki.sertifika);
-    hide('a[href="/personel-panel/raporlar"]', yetki.rapor);
-
-    var raporSection = Array.from(document.querySelectorAll('.nav-section')).find(function (x) {
-        return (x.textContent || '').toLowerCase().indexOf('rapor') >= 0;
-    });
-    if (!yetki.rapor && raporSection) raporSection.style.display = 'none';
-})();
-</script>
+    private static string Tarih(DateTime? value)
+    {
+        return value.HasValue ? value.Value.ToString("dd.MM.yyyy") : "-";
+    }
 }
+
+<div class="cert-stack">
+    <section class="df-page-panel">
+        <div class="df-panel-head">
+            <div>
+                <h2 class="df-panel-title">Tesisat No: @Deger(Model.TesistatNo)</h2>
+                <div class="df-panel-subtitle">@(Deger(Model.Firma?.FirmaAdi)) / @(Deger(marka))</div>
+            </div>
+            <div class="df-actions">
+                <a class="df-btn df-btn-secondary df-btn-sm" href="/personel-panel/devreyealmalar">Listeye D&#246;n</a>
+                <span class="df-pill @durumClass">@durumYazi</span>
+            </div>
+        </div>
+
+        <div class="df-toolbar">
+            <div class="df-form-row">
+                <div class="df-field">
+                    <label>Devreye Alma Tarihi</label>
+                    <div class="df-control">@Model.DevreyeAlmaTarihi.ToString("dd.MM.yyyy")</div>
+                </div>
+                <div class="df-field">
+                    <label>Marka</label>
+                    <div class="df-control">@Deger(marka)</div>
+                </div>
+                <div class="df-field">
+                    <label>Teknisyen</label>
+                    <div class="df-control">@Deger(Model.TeknisyenAdi)</div>
+                </div>
+                <div class="df-field">
+                    <label>Servis</label>
+                    <div class="df-control">@Deger(Model.Firma?.FirmaAdi)</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="df-detail-grid">
+        <section class="df-detail-card">
+            <div class="df-detail-card-title">M&#252;&#351;teri Bilgileri</div>
+            <div class="df-detail-info">
+                <div class="info-item">
+                    <div class="info-label">M&#252;&#351;teri</div>
+                    <div class="info-value">@Deger(Model.MusteriAdi)</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Telefon</div>
+                    <div class="info-value">@Deger(Model.MusteriTelefon)</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">TC</div>
+                    <div class="info-value">@Deger(Model.MusteriTcNo)</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Adres</div>
+                    <div class="info-value">@Deger(Model.Adres)</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="df-detail-card">
+            <div class="df-detail-card-title">Tesisat Bilgileri</div>
+            <div class="df-detail-info">
+                <div class="info-item">
+                    <div class="info-label">Tesisat No</div>
+                    <div class="info-value">@Deger(Model.TesistatNo)</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Abone No</div>
+                    <div class="info-value">@Deger(Model.AboneNo)</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Uygunluk Belge No</div>
+                    <div class="info-value">@Deger(Model.UygunlukBelgeNo)</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Uygunluk Tarihi</div>
+                    <div class="info-value">@Tarih(Model.UygunlukTarihi)</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="df-detail-card">
+            <div class="df-detail-card-title">Cihaz Bilgileri</div>
+            <div class="df-detail-info">
+                <div class="info-item">
+                    <div class="info-label">Cihaz Tipi</div>
+                    <div class="info-value">@Deger(Model.CihazTipi)</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Model</div>
+                    <div class="info-value">@Deger(Model.CihazModeli)</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Seri No</div>
+                    <div class="info-value">@Deger(Model.SeriNo)</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Kapasite</div>
+                    <div class="info-value">@Deger(Model.CihazKapasite)</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="df-detail-card">
+            <div class="df-detail-card-title">Teknisyen Bilgileri</div>
+            <div class="df-detail-info">
+                <div class="info-item">
+                    <div class="info-label">Teknisyen</div>
+                    <div class="info-value">@Deger(Model.TeknisyenAdi)</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Yetki Belgesi No</div>
+                    <div class="info-value">@Deger(Model.TeknisyenSertifikaNo)</div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.Notlar))
+    {
+        <section class="df-detail-card">
+            <div class="df-detail-card-title">Notlar</div>
+            <div class="df-detail-note">@Model.Notlar</div>
+        </section>
+    }
+
+    <section class="df-page-panel">
+        <div class="df-panel-head">
+            <div>
+                <h2 class="df-panel-title">Rapor &#199;&#305;kt&#305;lar&#305;</h2>
+                <div class="df-panel-subtitle">Bu kayda ait PDF ve Excel dosyas&#305;n&#305; indirebilirsiniz.</div>
+            </div>
+            <div class="df-actions">
+                <a class="df-btn df-btn-secondary df-btn-sm" href="/personel-panel/devreyealma-pdf/@Model.Id" target="_blank">PDF</a>
+                <a class="df-btn df-btn-secondary df-btn-sm" href="/personel-panel/devreyealma-excel/@Model.Id" target="_blank">Excel</a>
+            </div>
+        </div>
+    </section>
+</div>

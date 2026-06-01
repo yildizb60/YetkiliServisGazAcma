@@ -111,7 +111,17 @@ builder.Services.AddHttpClient<UrunKategoriApiClient>((serviceProvider, client) 
     client.Timeout = TimeSpan.FromSeconds(Math.Max(1, options.TimeoutSeconds));
 });
 builder.Services.Configure<SmsOptions>(builder.Configuration.GetSection("Sms"));
-builder.Services.AddScoped<ISmsProvider, NullSmsProvider>();
+builder.Services.AddHttpClient<AhlatciSmsProvider>((serviceProvider, client) =>
+{
+    var options = serviceProvider.GetRequiredService<IOptions<SmsOptions>>().Value;
+    var baseUrl = string.IsNullOrWhiteSpace(options.BaseUrl)
+        ? "https://smsnviapi.ahlatci.com.tr"
+        : options.BaseUrl.TrimEnd('/');
+
+    client.BaseAddress = new Uri(baseUrl + "/");
+    client.Timeout = TimeSpan.FromSeconds(Math.Max(1, options.TimeoutSeconds));
+});
+builder.Services.AddScoped<ISmsProvider, AhlatciSmsProvider>();
 builder.Services.AddScoped<SmsDogrulamaService>();
 
 builder.Services.AddIdentity<AppKullanici, IdentityRole>(options =>

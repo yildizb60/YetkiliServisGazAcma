@@ -15,7 +15,7 @@ namespace YetkiliServisGazAcma.Business.Services
             ? "Pending"
             : _options.Provider;
 
-        public Task<SmsGonderimSonucu> GonderAsync(string telefon, string mesaj)
+        public Task<SmsGonderimSonucu> GonderAsync(string telefon, string mesaj, string? firmaKodu = null)
         {
             if (string.Equals(_options.Provider, "Development", StringComparison.OrdinalIgnoreCase))
             {
