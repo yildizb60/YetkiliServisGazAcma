@@ -11,36 +11,114 @@
     var reddedilenler = ViewBag.Reddedilenler as List<Ys_Sertifika> ?? new List<Ys_Sertifika>();
 }
 
-@if (TempData["Basarili"] != null)
-{
-    <div class="df-alert df-alert-success">@TempData["Basarili"]</div>
-}
-@if (TempData["Hata"] != null)
-{
-    <div class="df-alert df-alert-danger">@TempData["Hata"]</div>
+@section Styles {
+    <style>
+        .approval-admin-stack {
+            display: grid;
+            gap: 16px;
+        }
+
+        .approval-admin-summary {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(180px, 1fr));
+            gap: 12px;
+            margin-top: 14px;
+        }
+
+        .approval-admin-summary .info-item {
+            min-height: 74px;
+        }
+
+        .approval-admin-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .approval-admin-tab {
+            border: 1px solid var(--df-border);
+            background: var(--df-surface);
+            color: var(--df-text-soft);
+            border-radius: var(--df-radius);
+            min-height: 36px;
+            padding: 0 14px;
+            font-size: 12px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .approval-admin-tab.active {
+            background: var(--df-primary-soft);
+            border-color: #d5dbf5;
+            color: var(--df-primary);
+        }
+
+        .approval-admin-search {
+            min-width: min(100%, 280px);
+        }
+
+        .approval-admin-panels [data-panel] {
+            display: none;
+        }
+
+        .approval-admin-panels [data-panel].active {
+            display: block;
+        }
+
+        @@media (max-width: 900px) {
+            .approval-admin-summary {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 }
 
-<div class="approval-reference-panel approval-panels">
-    <div class="approval-reference-toolbar">
-        <div class="approval-reference-tabs" data-approval-tabs>
-            <button type="button" class="approval-reference-tab active" data-target="bekleyen">Onaya Gönderildi (@bekleyenler.Count)</button>
-            <button type="button" class="approval-reference-tab" data-target="onaylanan">Onaylananlar (@onaylananlar.Count)</button>
-            <button type="button" class="approval-reference-tab" data-target="reddedilen">Reddedilenler (@reddedilenler.Count)</button>
-        </div>
-        <div class="approval-reference-tools">
-            <button type="button" class="approval-filter-btn">
-                <i class="bi bi-funnel"></i>
-                <span>Filtreler</span>
-                <span class="approval-filter-count">0</span>
-            </button>
-            <div class="approval-search">
-                <input type="text" id="approvalSearchInput" placeholder="Arayınız..." autocomplete="off" />
-                <i class="bi bi-search"></i>
+<div class="approval-admin-stack">
+    @if (TempData["Basarili"] != null)
+    {
+        <div class="df-alert df-alert-success">@TempData["Basarili"]</div>
+    }
+    @if (TempData["Hata"] != null)
+    {
+        <div class="df-alert df-alert-danger">@TempData["Hata"]</div>
+    }
+
+    <section class="df-page-panel">
+        <div class="df-panel-head">
+            <div>
+                <h2 class="df-panel-title">Yetki Belgesi Onayları</h2>
+                <div class="df-panel-subtitle">Bekleyen, onaylanan ve reddedilen belgeleri aynı ekrandan yönetin.</div>
             </div>
         </div>
-    </div>
+        <div class="approval-admin-summary">
+            <div class="info-item">
+                <div class="info-label">Onaya Gönderildi</div>
+                <div class="info-value">@bekleyenler.Count</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Onaylananlar</div>
+                <div class="info-value">@onaylananlar.Count</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Reddedilenler</div>
+                <div class="info-value">@reddedilenler.Count</div>
+            </div>
+        </div>
+    </section>
 
-    <div class="approval-table-shell">
+    <section class="df-page-panel approval-admin-panels">
+        <div class="df-panel-head">
+            <div class="approval-admin-tabs" data-approval-tabs>
+                <button type="button" class="approval-admin-tab active" data-target="bekleyen">Onaya Gönderildi (@bekleyenler.Count)</button>
+                <button type="button" class="approval-admin-tab" data-target="onaylanan">Onaylananlar (@onaylananlar.Count)</button>
+                <button type="button" class="approval-admin-tab" data-target="reddedilen">Reddedilenler (@reddedilenler.Count)</button>
+            </div>
+            <div class="df-field approval-admin-search">
+                <label>Arama</label>
+                <input class="df-control" type="text" id="approvalSearchInput" placeholder="Firma, şirket veya tarih ara" autocomplete="off" />
+            </div>
+        </div>
+
         <div data-panel="bekleyen" class="active">
             @await Html.PartialAsync("~/Views/Shared/_SertifikaOnayTable.cshtml", new Tuple<List<Ys_Sertifika>, string, string>(bekleyenler, "bekleyen", "admin"))
         </div>
@@ -50,7 +128,7 @@
         <div data-panel="reddedilen">
             @await Html.PartialAsync("~/Views/Shared/_SertifikaOnayTable.cshtml", new Tuple<List<Ys_Sertifika>, string, string>(reddedilenler, "reddedilen", "admin"))
         </div>
-    </div>
+    </section>
 </div>
 
 @section Scripts {
@@ -62,7 +140,7 @@
 
     function applySearch() {
         var term = (searchInput && searchInput.value ? searchInput.value : '').toLocaleLowerCase('tr-TR').trim();
-        var activePanel = document.querySelector('.approval-panels [data-panel].active');
+        var activePanel = document.querySelector('.approval-admin-panels [data-panel].active');
         if (!activePanel) return;
 
         activePanel.querySelectorAll('tbody tr').forEach(function (row) {
@@ -86,7 +164,7 @@
             item.classList.toggle('active', item === btn);
         });
 
-        document.querySelectorAll('.approval-panels [data-panel]').forEach(function (panel) {
+        document.querySelectorAll('.approval-admin-panels [data-panel]').forEach(function (panel) {
             panel.classList.toggle('active', panel.getAttribute('data-panel') === target);
         });
 

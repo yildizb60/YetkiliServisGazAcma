@@ -305,10 +305,20 @@ namespace YetkiliServisGazAcma.Business.Services
 
         private static string? StringProperty(JsonElement root, params string[] names)
         {
+            if (root.ValueKind != JsonValueKind.Object)
+                return null;
+
             foreach (var prop in root.EnumerateObject())
             {
                 if (names.Any(x => string.Equals(x, prop.Name, StringComparison.OrdinalIgnoreCase)))
                     return prop.Value.ValueKind == JsonValueKind.String ? prop.Value.GetString() : prop.Value.ToString();
+
+                if (prop.Value.ValueKind == JsonValueKind.Object)
+                {
+                    var nestedValue = StringProperty(prop.Value, names);
+                    if (!string.IsNullOrWhiteSpace(nestedValue))
+                        return nestedValue;
+                }
             }
 
             return null;

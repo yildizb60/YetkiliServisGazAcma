@@ -238,7 +238,9 @@
                     <form method="post" action="/AdminPanel/Kullanicilar/durum/@k.Id">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="aktif" value='@(k.AktifMi ? "false" : "true")' />
-                        <button type="submit" class="df-btn @(k.AktifMi ? "df-btn-ghost" : "df-btn-success") df-btn-sm">@(k.AktifMi ? "Pasifle&#351;tir" : "Aktifle&#351;tir")</button>
+                        <button type="submit" class="df-btn @(k.AktifMi ? "df-btn-ghost" : "df-btn-success") df-btn-sm">
+                            @(k.AktifMi ? "Pasifleştir" : "Aktifleştir")
+                        </button>
                     </form>
                     <form method="post" action="/AdminPanel/kullanicilar/sil/@k.Id" onsubmit="return confirm('Kullanıcı silmek istediğinize emin misiniz?');">
                         @Html.AntiForgeryToken()

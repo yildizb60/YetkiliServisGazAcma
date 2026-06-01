@@ -54,66 +54,16 @@ builder.Services.AddHttpClient<OnlineCihazBilgileriClient>((serviceProvider, cli
 });
 builder.Services.AddScoped<ApiJwtTokenService>();
 builder.Services.Configure<ApiIntegrationOptions>(builder.Configuration.GetSection("ApiIntegration"));
-builder.Services.AddHttpClient<AdminDashboardApiClient>((serviceProvider, client) =>
-{
-    var options = serviceProvider.GetRequiredService<IOptions<ApiIntegrationOptions>>().Value;
-    client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/");
-    client.Timeout = TimeSpan.FromSeconds(Math.Max(1, options.TimeoutSeconds));
-});
-builder.Services.AddHttpClient<AdminKullaniciApiClient>((serviceProvider, client) =>
-{
-    var options = serviceProvider.GetRequiredService<IOptions<ApiIntegrationOptions>>().Value;
-    client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/");
-    client.Timeout = TimeSpan.FromSeconds(Math.Max(1, options.TimeoutSeconds));
-});
-builder.Services.AddHttpClient<AdminYetkiliServisApiClient>((serviceProvider, client) =>
-{
-    var options = serviceProvider.GetRequiredService<IOptions<ApiIntegrationOptions>>().Value;
-    client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/");
-    client.Timeout = TimeSpan.FromSeconds(Math.Max(1, options.TimeoutSeconds));
-});
-builder.Services.AddHttpClient<AdminYetkiBelgesiOnayApiClient>((serviceProvider, client) =>
-{
-    var options = serviceProvider.GetRequiredService<IOptions<ApiIntegrationOptions>>().Value;
-    client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/");
-    client.Timeout = TimeSpan.FromSeconds(Math.Max(1, options.TimeoutSeconds));
-});
-builder.Services.AddHttpClient<AdminSubeApiClient>((serviceProvider, client) =>
-{
-    var options = serviceProvider.GetRequiredService<IOptions<ApiIntegrationOptions>>().Value;
-    client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/");
-    client.Timeout = TimeSpan.FromSeconds(Math.Max(1, options.TimeoutSeconds));
-});
-builder.Services.AddHttpClient<AdminRaporApiClient>((serviceProvider, client) =>
-{
-    var options = serviceProvider.GetRequiredService<IOptions<ApiIntegrationOptions>>().Value;
-    client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/");
-    client.Timeout = TimeSpan.FromSeconds(Math.Max(1, options.TimeoutSeconds));
-});
-builder.Services.AddHttpClient<MarkaApiClient>((serviceProvider, client) =>
-{
-    var options = serviceProvider.GetRequiredService<IOptions<ApiIntegrationOptions>>().Value;
-    client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/");
-    client.Timeout = TimeSpan.FromSeconds(Math.Max(1, options.TimeoutSeconds));
-});
-builder.Services.AddHttpClient<DagitimSirketApiClient>((serviceProvider, client) =>
-{
-    var options = serviceProvider.GetRequiredService<IOptions<ApiIntegrationOptions>>().Value;
-    client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/");
-    client.Timeout = TimeSpan.FromSeconds(Math.Max(1, options.TimeoutSeconds));
-});
-builder.Services.AddHttpClient<YetkiliServisApiClient>((serviceProvider, client) =>
-{
-    var options = serviceProvider.GetRequiredService<IOptions<ApiIntegrationOptions>>().Value;
-    client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/");
-    client.Timeout = TimeSpan.FromSeconds(Math.Max(1, options.TimeoutSeconds));
-});
-builder.Services.AddHttpClient<UrunKategoriApiClient>((serviceProvider, client) =>
-{
-    var options = serviceProvider.GetRequiredService<IOptions<ApiIntegrationOptions>>().Value;
-    client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/");
-    client.Timeout = TimeSpan.FromSeconds(Math.Max(1, options.TimeoutSeconds));
-});
+AddApiClient<AdminDashboardApiClient>();
+AddApiClient<AdminKullaniciApiClient>();
+AddApiClient<AdminYetkiliServisApiClient>();
+AddApiClient<AdminYetkiBelgesiOnayApiClient>();
+AddApiClient<AdminSubeApiClient>();
+AddApiClient<AdminRaporApiClient>();
+AddApiClient<MarkaApiClient>();
+AddApiClient<DagitimSirketApiClient>();
+AddApiClient<YetkiliServisApiClient>();
+AddApiClient<UrunKategoriApiClient>();
 builder.Services.Configure<SmsOptions>(builder.Configuration.GetSection("Sms"));
 builder.Services.AddHttpClient<AhlatciSmsProvider>((serviceProvider, client) =>
 {
@@ -127,6 +77,16 @@ builder.Services.AddHttpClient<AhlatciSmsProvider>((serviceProvider, client) =>
 });
 builder.Services.AddScoped<ISmsProvider, AhlatciSmsProvider>();
 builder.Services.AddScoped<SmsDogrulamaService>();
+
+void AddApiClient<TClient>() where TClient : class
+{
+    builder.Services.AddHttpClient<TClient>((serviceProvider, client) =>
+    {
+        var options = serviceProvider.GetRequiredService<IOptions<ApiIntegrationOptions>>().Value;
+        client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/");
+        client.Timeout = TimeSpan.FromSeconds(Math.Max(1, options.TimeoutSeconds));
+    });
+}
 
 builder.Services.AddIdentity<AppKullanici, IdentityRole>(options =>
 {
