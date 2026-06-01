@@ -1162,8 +1162,8 @@ namespace YetkiliServisGazAcma.Controllers
                 .Where(x => !x.SilindiMi
                     && x.Firma != null
                     && !x.Firma.SilindiMi
-                    && x.OlusturmaTarihi >= basTarih
-                    && x.OlusturmaTarihi < bitSonrasi
+                    && x.DevreyeAlmaTarihi >= basTarih
+                    && x.DevreyeAlmaTarihi < bitSonrasi
                     && (sirketId == null || x.Firma.SirketId == sirketId));
 
             var sertifikaQuery = _context.Ys_Sertifikalar
@@ -1181,14 +1181,16 @@ namespace YetkiliServisGazAcma.Controllers
             var bekleyen = await temelQuery.CountAsync(x => x.Durum == 0);
             var iptal = await temelQuery.CountAsync(x => x.Durum == 2);
 
-            var aylar = Enumerable.Range(0, 6)
-                .Select(i => DateTime.Now.AddMonths(-5 + i))
-                .ToList();
+            var aylar = new List<DateTime>();
+            var ayBaslangic = new DateTime(basTarih.Year, basTarih.Month, 1);
+            var ayBitis = new DateTime(bitTarih.Year, bitTarih.Month, 1);
+            for (var ay = ayBaslangic; ay <= ayBitis && aylar.Count < 24; ay = ay.AddMonths(1))
+                aylar.Add(ay);
 
             var aylik = aylar.Select(a => new
             {
                 Ay = a.ToString("MMM", tr),
-                Sayi = temelQuery.Count(x => x.OlusturmaTarihi.Month == a.Month && x.OlusturmaTarihi.Year == a.Year)
+                Sayi = temelQuery.Count(x => x.DevreyeAlmaTarihi.Month == a.Month && x.DevreyeAlmaTarihi.Year == a.Year)
             }).ToList();
 
             var markaTop = await temelQuery
@@ -1216,7 +1218,7 @@ namespace YetkiliServisGazAcma.Controllers
             else
             {
                 ViewBag.SonIslemler = await temelQuery
-                    .OrderByDescending(x => x.OlusturmaTarihi)
+                    .OrderByDescending(x => x.DevreyeAlmaTarihi)
                     .Take(12)
                     .ToListAsync();
                 ViewBag.ListeTipi = "devreye";

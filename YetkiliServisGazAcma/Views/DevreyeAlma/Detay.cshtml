@@ -1,261 +1,161 @@
 @model YetkiliServisGazAcma.Entities.Ys_DevreyeAlma
 @{
-    ViewData["Title"] = "Devreye Alma Detayı";
-    Layout = "_PanelLayout";
+    ViewData["Title"] = "Devreye Alma Detay";
+    ViewData["PanelTitle"] = "Devreye Alma Detay";
+    ViewData["PanelSubtitle"] = "Yetkili Servis";
     ViewData["ActiveMenu"] = "DevreyeGecmis";
     ViewData["PanelArea"] = "YetkiliServis";
-    var firma = ViewBag.Firma as YetkiliServisGazAcma.Entities.Ys_Firma;
-    string adSoyad = firma?.YetkiliKisi ?? "Yetkili Servis";
-    string basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "Y";
-}
-@section Styles {
-    <style>
-.btn-pdf { padding: 9px 20px; background: #1B9FD4; color: #fff; border: none; border-radius: 7px; font-size: 14px; font-weight: bold; text-decoration: none; display: flex; align-items: center; gap: 6px; }
-        .btn-pdf:hover { background: #0d7faa; }
-        .btn-geri { padding: 9px 18px; background: #fff; color: #555; border: 1.5px solid #ddd; border-radius: 7px; font-size: 14px; text-decoration: none; }
-        .btn-geri:hover { border-color: #4CAF7D; color: #4CAF7D; }
-.content-actions { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 14px; }
+    Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
-        .hero { background: linear-gradient(135deg, #1a1a2e 0%, #1B9FD4 100%); border-radius: 14px; padding: 28px 32px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; }
-        .hero-left { display: flex; align-items: center; gap: 20px; }
-        .hero-icon { width: 64px; height: 64px; background: rgba(255,255,255,0.15); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 32px; }
-        .hero-baslik { color: #fff; font-size: 20px; font-weight: bold; }
-        .hero-alt { color: rgba(255,255,255,0.7); font-size: 13px; margin-top: 4px; }
-        .hero-badge { background: #4CAF7D; color: #fff; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: bold; }
-        .hero-badge.bekliyor { background: #f0a500; }
-
-        .kategori-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
-        .kategori-row.uc { grid-template-columns: 1fr 1fr 1fr; }
-        .kart { background: #fff; border-radius: 12px; border: 1px solid #eee; overflow: hidden; }
-        .kart-baslik { display: flex; align-items: center; gap: 10px; padding: 14px 20px; border-bottom: 1px solid #f0f0ee; }
-        .kart-baslik-ikon { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
-        .ikon-mavi { background: #E6F1FB; }
-        .ikon-yesil { background: #E1F5EE; }
-        .ikon-turuncu { background: #FEF0E0; }
-        .ikon-mor { background: #F0EBFF; }
-        .kart-baslik-yazi { font-size: 13px; font-weight: bold; color: #333; }
-        .kart-icerik { padding: 16px 20px; }
-        .bilgi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .bilgi-label { font-size: 11px; color: #999; margin-bottom: 3px; font-weight: bold; text-transform: uppercase; letter-spacing: .04em; }
-        .bilgi-deger { font-size: 14px; color: #222; font-weight: 500; }
-
-        .chip-wrap { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 20px; }
-        .chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
-        .chip-wrap .chip-row { margin-top: 0; margin-bottom: 0; }
-        .chip-actions { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; }
-        .chip-action { flex-shrink: 0; white-space: nowrap; }
-        .chip { display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: bold; border: 1.5px solid; }
-        .chip-mavi { background: #E6F1FB; color: #1565C0; border-color: #BBDEFB; }
-        .chip-yesil { background: #E1F5EE; color: #085041; border-color: #A5D6A7; }
-        .chip-turuncu { background: #FEF0E0; color: #8B4513; border-color: #FFCC80; }
-        .chip-mor { background: #F0EBFF; color: #4A148C; border-color: #CE93D8; }
-
-        .notlar-kutu { background: #f8f8f6; border-radius: 8px; padding: 14px 16px; font-size: 14px; color: #444; line-height: 1.6; border-left: 3px solid #4CAF7D; }
-        .imza-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 16px; }
-        .imza-kart { background: #fff; border-radius: 12px; border: 2px dashed #ddd; padding: 20px; text-align: center; }
-        .imza-bosluk { height: 60px; border-bottom: 1.5px solid #ccc; margin-bottom: 8px; }
-        .imza-label { font-size: 12px; color: #888; }
-    </style>
+    var marka = Model.Marka?.MarkaAdi ?? Model.CihazMarka ?? "-";
+    var durumClass = Model.Durum == 1 ? "df-pill-success" : Model.Durum == 2 ? "df-pill-danger" : "df-pill-warning";
+    var durumYazi = Model.Durum == 1 ? "Tamamlandı" : Model.Durum == 2 ? "İptal" : "Bekliyor";
 }
 
-<div class="hero">
-                <div class="hero-left">
-                    <div class="hero-icon"></div>
-                    <div>
-                        <div class="hero-baslik">@(Model.CihazMarka ?? "") @(Model.CihazModeli ?? "")</div>
-                        <div class="hero-alt">
-                            Tesisat No: <strong style="color:#fff">@Model.TesistatNo</strong>
-                            &nbsp;&nbsp; @Model.DevreyeAlmaTarihi.ToString("dd MMMM yyyy", new System.Globalization.CultureInfo("tr-TR"))
-                            &nbsp;&nbsp; @(Model.Marka?.MarkaAdi ?? "")
-                        </div>
-                    </div>
+@functions {
+    private static string Deger(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? "-" : value;
+    }
+
+    private static string Tarih(DateTime? value)
+    {
+        return value.HasValue ? value.Value.ToString("dd.MM.yyyy") : "-";
+    }
+}
+
+<div class="cert-stack">
+    <section class="df-page-panel">
+        <div class="df-panel-head">
+            <div>
+                <h2 class="df-panel-title">Tesisat No: @Deger(Model.TesistatNo)</h2>
+                <div class="df-panel-subtitle">@(Deger(Model.Firma?.FirmaAdi)) / @(Deger(marka))</div>
+            </div>
+            <div class="df-actions">
+                <a class="df-btn df-btn-secondary df-btn-sm" href="/ys-devreyeal/gecmis">Listeye Dön</a>
+                <a class="df-btn df-btn-primary df-btn-sm" href="/ys-devreyeal/pdf/@Model.Id" target="_blank">PDF</a>
+                <a class="df-btn df-btn-success df-btn-sm" href="/ys-devreyeal/excel/@Model.Id" target="_blank">Excel</a>
+                <span class="df-pill @durumClass">@durumYazi</span>
+            </div>
+        </div>
+
+        <div class="df-toolbar">
+            <div class="df-form-row">
+                <div class="df-field">
+                    <label>Devreye Alma Tarihi</label>
+                    <div class="df-control">@Model.DevreyeAlmaTarihi.ToString("dd.MM.yyyy")</div>
                 </div>
-                <div class="hero-badge @(Model.Durum == 0 ? "bekliyor" : "")">
-                    @(Model.Durum == 1 ? "✔ Tamamlandı" : Model.Durum == 2 ? "✖ İptal" : "⏳ Bekliyor")
+                <div class="df-field">
+                    <label>Marka</label>
+                    <div class="df-control">@Deger(marka)</div>
+                </div>
+                <div class="df-field">
+                    <label>Teknisyen</label>
+                    <div class="df-control">@Deger(Model.TeknisyenAdi)</div>
+                </div>
+                <div class="df-field">
+                    <label>Servis</label>
+                    <div class="df-control">@Deger(Model.Firma?.FirmaAdi)</div>
                 </div>
             </div>
+        </div>
+    </section>
 
-            <div class="chip-wrap" style="margin-top:4px;">
-                <div class="chip-row">
-                    <div class="chip chip-mavi">@(Model.CihazTipi ?? "")</div>
-                    <div class="chip chip-yesil">Tesisat: @(Model.TesistatNo ?? "")</div>
-                    <div class="chip chip-turuncu">Marka: @(Model.CihazMarka ?? "")</div>
-                    <div class="chip chip-mor">Kapasite: @(Model.CihazKapasite ?? "")</div>
-                    <div class="chip chip-mavi">Seri: @(Model.SeriNo ?? "")</div>
+    <div class="df-detail-grid">
+        <section class="df-detail-card">
+            <div class="df-detail-card-title">Müşteri Bilgileri</div>
+            <div class="df-detail-info">
+                <div class="info-item">
+                    <div class="info-label">Müşteri</div>
+                    <div class="info-value">@Deger(Model.MusteriAdi)</div>
                 </div>
-                <div class="chip-actions">
-                    <a class="btn-pdf chip-action" href="/ys-devreyeal/pdf/@Model.Id" target="_blank">PDF indir</a>
-                    <a class="btn-pdf chip-action" href="/ys-devreyeal/excel/@Model.Id" target="_blank">Excel indir</a>
+                <div class="info-item">
+                    <div class="info-label">Telefon</div>
+                    <div class="info-value">@Deger(Model.MusteriTelefon)</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">TC Kimlik No</div>
+                    <div class="info-value">@Deger(Model.MusteriTcNo)</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Adres</div>
+                    <div class="info-value">@Deger(Model.Adres)</div>
                 </div>
             </div>
+        </section>
 
-            <div class="kategori-row">
-                <div class="kart">
-                    <div class="kart-baslik">
-                        <div class="kart-baslik-ikon ikon-mavi">&#129470;</div>
-                        <div class="kart-baslik-yazi">Tesisat Bilgileri</div>
-                    </div>
-                    <div class="kart-icerik">
-                        <div class="bilgi-grid">
-                            <div>
-                                <div class="bilgi-label">Tesisat No</div>
-                                <div class="bilgi-deger">@(Model.TesistatNo ?? "")</div>
-                            </div>
-                            <div>
-                                <div class="bilgi-label">Abone No</div>
-                                <div class="bilgi-deger">@(Model.AboneNo ?? "")</div>
-                            </div>
-                            <div>
-                                <div class="bilgi-label">Uygunluk Belge No</div>
-                                <div class="bilgi-deger">@(Model.UygunlukBelgeNo ?? "")</div>
-                            </div>
-                            <div>
-                                <div class="bilgi-label">Uygunluk Tarihi</div>
-                                <div class="bilgi-deger">@(Model.UygunlukTarihi?.ToString("dd.MM.yyyy") ?? "")</div>
-                            </div>
-                        </div>
-                    </div>
+        <section class="df-detail-card">
+            <div class="df-detail-card-title">Tesisat Bilgileri</div>
+            <div class="df-detail-info">
+                <div class="info-item">
+                    <div class="info-label">Tesisat No</div>
+                    <div class="info-value">@Deger(Model.TesistatNo)</div>
                 </div>
-
-                <div class="kart">
-                    <div class="kart-baslik">
-                        <div class="kart-baslik-ikon ikon-yesil">&#128100;</div>
-                        <div class="kart-baslik-yazi">Müşteri Bilgileri</div>
-                    </div>
-                    <div class="kart-icerik">
-                        <div class="bilgi-grid">
-                            <div>
-                                <div class="bilgi-label">Müşteri Adı</div>
-                                <div class="bilgi-deger">@(Model.MusteriAdi ?? "")</div>
-                            </div>
-                            <div>
-                                <div class="bilgi-label">TC Kimlik No</div>
-                                <div class="bilgi-deger">@(Model.MusteriTcNo ?? "")</div>
-                            </div>
-                            <div>
-                                <div class="bilgi-label">Telefon</div>
-                                <div class="bilgi-deger">@(Model.MusteriTelefon ?? "")</div>
-                            </div>
-                            <div style="grid-column:span 2">
-                                <div class="bilgi-label">Adres</div>
-                                <div class="bilgi-deger">@(Model.Adres ?? "")</div>
-                            </div>
-                        </div>
-                    </div>
+                <div class="info-item">
+                    <div class="info-label">Cari / Abone No</div>
+                    <div class="info-value">@Deger(Model.AboneNo)</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Uygunluk Belge No</div>
+                    <div class="info-value">@Deger(Model.UygunlukBelgeNo)</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Uygunluk Tarihi</div>
+                    <div class="info-value">@Tarih(Model.UygunlukTarihi)</div>
                 </div>
             </div>
+        </section>
 
-            <div class="kategori-row uc">
-                <div class="kart">
-                    <div class="kart-baslik">
-                        <div class="kart-baslik-ikon ikon-turuncu">&#128295;</div>
-                        <div class="kart-baslik-yazi">Cihaz Bilgileri</div>
-                    </div>
-                    <div class="kart-icerik">
-                        <div class="bilgi-grid">
-                            <div>
-                                <div class="bilgi-label">Cihaz Tipi</div>
-                                <div class="bilgi-deger">@(Model.CihazTipi ?? "")</div>
-                            </div>
-                            <div>
-                                <div class="bilgi-label">Marka</div>
-                                <div class="bilgi-deger">@(Model.CihazMarka ?? "")</div>
-                            </div>
-                            <div>
-                                <div class="bilgi-label">Model</div>
-                                <div class="bilgi-deger">@(Model.CihazModeli ?? "")</div>
-                            </div>
-                            <div>
-                                <div class="bilgi-label">Seri No</div>
-                                <div class="bilgi-deger">@(Model.SeriNo ?? "")</div>
-                            </div>
-                            <div style="grid-column:span 2">
-                                <div class="bilgi-label">Kapasite</div>
-                                <div class="bilgi-deger">@(Model.CihazKapasite ?? "")</div>
-                            </div>
-                        </div>
-                    </div>
+        <section class="df-detail-card">
+            <div class="df-detail-card-title">Cihaz Bilgileri</div>
+            <div class="df-detail-info">
+                <div class="info-item">
+                    <div class="info-label">Cihaz Tipi</div>
+                    <div class="info-value">@Deger(Model.CihazTipi)</div>
                 </div>
-
-                <div class="kart">
-                    <div class="kart-baslik">
-                        <div class="kart-baslik-ikon ikon-mor">&#129528;</div>
-                        <div class="kart-baslik-yazi">Teknisyen Bilgileri</div>
-                    </div>
-                    <div class="kart-icerik">
-                        <div class="bilgi-grid">
-                            <div style="grid-column:span 2">
-                                <div class="bilgi-label">Teknisyen Adı</div>
-                                <div class="bilgi-deger">@(Model.TeknisyenAdi ?? "")</div>
-                            </div>
-                            <div style="grid-column:span 2">
-                                <div class="bilgi-label">Yetki Belgesi No</div>
-                                <div class="bilgi-deger">@(Model.TeknisyenSertifikaNo ?? "")</div>
-                            </div>
-                            <div style="grid-column:span 2">
-                                <div class="bilgi-label">Devreye Alma Tarihi</div>
-                                <div class="bilgi-deger">@Model.DevreyeAlmaTarihi.ToString("dd MMMM yyyy", new System.Globalization.CultureInfo("tr-TR"))</div>
-                            </div>
-                        </div>
-                    </div>
+                <div class="info-item">
+                    <div class="info-label">Cihaz Markası</div>
+                    <div class="info-value">@Deger(Model.CihazMarka)</div>
                 </div>
-
-                <div class="kart">
-                    <div class="kart-baslik">
-                        <div class="kart-baslik-ikon ikon-yesil">&#127970;</div>
-                        <div class="kart-baslik-yazi">Yetkili Servis</div>
-                    </div>
-                    <div class="kart-icerik">
-                        <div class="bilgi-grid">
-                            <div style="grid-column:span 2">
-                                <div class="bilgi-label">Firma Adı</div>
-                                <div class="bilgi-deger">@(Model.Firma?.FirmaAdi ?? "")</div>
-                            </div>
-                            <div style="grid-column:span 2">
-                                <div class="bilgi-label">Yetkili Marka</div>
-                                <div class="bilgi-deger">@(Model.Marka?.MarkaAdi ?? "")</div>
-                            </div>
-                            <div style="grid-column:span 2">
-                                <div class="bilgi-label">Kayıt Tarihi</div>
-                                <div class="bilgi-deger">@Model.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</div>
-                            </div>
-                        </div>
-                    </div>
+                <div class="info-item">
+                    <div class="info-label">Model</div>
+                    <div class="info-value">@Deger(Model.CihazModeli)</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Seri No</div>
+                    <div class="info-value">@Deger(Model.SeriNo)</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Kapasite</div>
+                    <div class="info-value">@Deger(Model.CihazKapasite)</div>
                 </div>
             </div>
+        </section>
 
-            @if (!string.IsNullOrEmpty(Model.Notlar))
-            {
-                <div class="kart" style="margin-bottom:16px;">
-                    <div class="kart-baslik">
-                        <div class="kart-baslik-ikon ikon-mavi">&#128221;</div>
-                        <div class="kart-baslik-yazi">Notlar</div>
-                    </div>
-                    <div class="kart-icerik">
-                        <div class="notlar-kutu">@Model.Notlar</div>
-                    </div>
+        <section class="df-detail-card">
+            <div class="df-detail-card-title">Teknisyen Bilgileri</div>
+            <div class="df-detail-info">
+                <div class="info-item">
+                    <div class="info-label">Teknisyen</div>
+                    <div class="info-value">@Deger(Model.TeknisyenAdi)</div>
                 </div>
-            }
-
-            <div class="kart">
-                <div class="kart-baslik">
-                    <div class="kart-baslik-ikon ikon-yesil">&#9997;</div>
-                    <div class="kart-baslik-yazi">İmza Alanları</div>
+                <div class="info-item">
+                    <div class="info-label">Yetki Belgesi No</div>
+                    <div class="info-value">@Deger(Model.TeknisyenSertifikaNo)</div>
                 </div>
-                <div class="kart-icerik">
-                    <div class="imza-row">
-                        <div class="imza-kart">
-                            <div class="imza-bosluk"></div>
-                            <div class="imza-label">Teknisyen İmzası<br><small>@(Model.TeknisyenAdi ?? "")</small></div>
-                        </div>
-                        <div class="imza-kart">
-                            <div class="imza-bosluk"></div>
-                            <div class="imza-label">Müşteri İmzası<br><small>@(Model.MusteriAdi ?? "")</small></div>
-                        </div>
-                        <div class="imza-kart">
-                            <div class="imza-bosluk"></div>
-                            <div class="imza-label">Yetkili Servis Kaşe/İmza<br><small>@(Model.Firma?.FirmaAdi ?? "")</small></div>
-                        </div>
-                    </div>
+                <div class="info-item">
+                    <div class="info-label">Kayıt Tarihi</div>
+                    <div class="info-value">@Model.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</div>
                 </div>
             </div>
+        </section>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.Notlar))
+    {
+        <section class="df-detail-card">
+            <div class="df-detail-card-title">Notlar</div>
+            <div class="df-detail-note">@Model.Notlar</div>
+        </section>
+    }
+</div>

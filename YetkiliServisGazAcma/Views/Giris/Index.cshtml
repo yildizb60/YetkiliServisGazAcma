@@ -487,6 +487,44 @@
             flex-shrink: 0;
         }
 
+        .demo-logins {
+            background: #f5f9ff;
+            border: 1px solid #d9e8f4;
+            border-radius: 14px;
+            padding: 10px;
+            margin: 0 0 16px;
+        }
+
+        .demo-logins-head {
+            font-size: 10px;
+            font-weight: 800;
+            color: #88a8c3;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            margin: 0 6px 8px;
+        }
+
+        .demo-login-btn {
+            width: 100%;
+            border: 1px solid #e4edf7;
+            background: #fff;
+            border-radius: 10px;
+            padding: 9px 10px;
+            margin-top: 7px;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 8px;
+            align-items: center;
+            text-align: left;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        .demo-login-btn:first-of-type { margin-top: 0; }
+        .demo-login-role { display: block; font-size: 12px; font-weight: 800; color: #1a3f61; }
+        .demo-login-mail { display: block; font-size: 11px; color: #84a0ba; margin-top: 2px; overflow-wrap: anywhere; }
+        .demo-login-pass { font-size: 10px; font-weight: 800; color: #468fb2; background: #e4eef8; border-radius: 999px; padding: 4px 8px; }
+
         @@media (max-width: 860px) {
             .left { display: none; }
             .right { width: 100%; }
@@ -668,6 +706,37 @@
                     </div>
                     <button type="submit" class="btn-submit">Giriş Yap →</button>
                 </form>
+                <div class="demo-logins">
+                    <div class="demo-logins-head">Demo kullanıcıları</div>
+                    <button type="button" class="demo-login-btn" data-demo-user="test.geneladmin@demo.com" data-demo-password="Demo123!">
+                        <span>
+                            <span class="demo-login-role">Genel Sistem Admini</span>
+                            <span class="demo-login-mail">test.geneladmin@demo.com</span>
+                        </span>
+                        <span class="demo-login-pass">Demo123!</span>
+                    </button>
+                    <button type="button" class="demo-login-btn" data-demo-user="test.sirketadmin@demo.com" data-demo-password="Demo123!">
+                        <span>
+                            <span class="demo-login-role">Şirket Admini</span>
+                            <span class="demo-login-mail">test.sirketadmin@demo.com</span>
+                        </span>
+                        <span class="demo-login-pass">Demo123!</span>
+                    </button>
+                    <button type="button" class="demo-login-btn" data-demo-user="test.personel@demo.com" data-demo-password="Demo123!">
+                        <span>
+                            <span class="demo-login-role">Personel</span>
+                            <span class="demo-login-mail">test.personel@demo.com</span>
+                        </span>
+                        <span class="demo-login-pass">Demo123!</span>
+                    </button>
+                    <button type="button" class="demo-login-btn" data-demo-user="test.servis@demo.com" data-demo-password="Demo123!">
+                        <span>
+                            <span class="demo-login-role">Yetkili Servis</span>
+                            <span class="demo-login-mail">test.servis@demo.com</span>
+                        </span>
+                        <span class="demo-login-pass">Demo123!</span>
+                    </button>
+                </div>
                 <a class="inline-link" href="/giris/sifre-unuttum">Şifremi unuttum</a>
             }
 
@@ -714,4 +783,17 @@
 
 </div>
 
+<script>
+(function () {
+    document.querySelectorAll('[data-demo-user]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            var userInput = document.querySelector('input[name="kullaniciAdi"]');
+            var passwordInput = document.querySelector('input[name="sifre"]');
+            if (userInput) userInput.value = button.dataset.demoUser || '';
+            if (passwordInput) passwordInput.value = button.dataset.demoPassword || '';
+            if (userInput) userInput.focus();
+        });
+    });
+})();
+</script>
 

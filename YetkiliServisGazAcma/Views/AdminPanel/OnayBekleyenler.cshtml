@@ -13,29 +13,10 @@
 
 @section Styles {
     <style>
-        .approval-admin-stack {
-            display: grid;
-            gap: 16px;
-        }
-
-        .approval-admin-summary {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(180px, 1fr));
-            gap: 12px;
-            margin-top: 14px;
-        }
-
-        .approval-admin-summary .info-item {
-            min-height: 74px;
-        }
-
-        .approval-admin-tabs {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .approval-admin-tab {
+        .approval-board { display: grid; gap: 16px; }
+        .approval-metrics { display: grid; grid-template-columns: repeat(3, minmax(160px, 1fr)); gap: 12px; }
+        .approval-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+        .approval-tab {
             border: 1px solid var(--df-border);
             background: var(--df-surface);
             color: var(--df-text-soft);
@@ -46,34 +27,15 @@
             font-weight: 800;
             cursor: pointer;
         }
-
-        .approval-admin-tab.active {
-            background: var(--df-primary-soft);
-            border-color: #d5dbf5;
-            color: var(--df-primary);
-        }
-
-        .approval-admin-search {
-            min-width: min(100%, 280px);
-        }
-
-        .approval-admin-panels [data-panel] {
-            display: none;
-        }
-
-        .approval-admin-panels [data-panel].active {
-            display: block;
-        }
-
-        @@media (max-width: 900px) {
-            .approval-admin-summary {
-                grid-template-columns: 1fr;
-            }
-        }
+        .approval-tab.active { background: var(--df-primary-soft); border-color: #d5dbf5; color: var(--df-primary); }
+        .approval-search { min-width: min(100%, 300px); }
+        .approval-panels [data-panel] { display: none; }
+        .approval-panels [data-panel].active { display: block; }
+        @@media (max-width: 900px) { .approval-metrics { grid-template-columns: 1fr; } }
     </style>
 }
 
-<div class="approval-admin-stack">
+<div class="approval-board">
     @if (TempData["Basarili"] != null)
     {
         <div class="df-alert df-alert-success">@TempData["Basarili"]</div>
@@ -90,7 +52,7 @@
                 <div class="df-panel-subtitle">Bekleyen, onaylanan ve reddedilen belgeleri aynı ekrandan yönetin.</div>
             </div>
         </div>
-        <div class="approval-admin-summary">
+        <div class="approval-metrics">
             <div class="info-item">
                 <div class="info-label">Onaya Gönderildi</div>
                 <div class="info-value">@bekleyenler.Count</div>
@@ -106,14 +68,14 @@
         </div>
     </section>
 
-    <section class="df-page-panel approval-admin-panels">
+    <section class="df-page-panel approval-panels">
         <div class="df-panel-head">
-            <div class="approval-admin-tabs" data-approval-tabs>
-                <button type="button" class="approval-admin-tab active" data-target="bekleyen">Onaya Gönderildi (@bekleyenler.Count)</button>
-                <button type="button" class="approval-admin-tab" data-target="onaylanan">Onaylananlar (@onaylananlar.Count)</button>
-                <button type="button" class="approval-admin-tab" data-target="reddedilen">Reddedilenler (@reddedilenler.Count)</button>
+            <div class="approval-tabs" data-approval-tabs>
+                <button type="button" class="approval-tab active" data-target="bekleyen">Onaya Gönderildi (@bekleyenler.Count)</button>
+                <button type="button" class="approval-tab" data-target="onaylanan">Onaylananlar (@onaylananlar.Count)</button>
+                <button type="button" class="approval-tab" data-target="reddedilen">Reddedilenler (@reddedilenler.Count)</button>
             </div>
-            <div class="df-field approval-admin-search">
+            <div class="df-field approval-search">
                 <label>Arama</label>
                 <input class="df-control" type="text" id="approvalSearchInput" placeholder="Firma, şirket veya tarih ara" autocomplete="off" />
             </div>
@@ -140,12 +102,11 @@
 
     function applySearch() {
         var term = (searchInput && searchInput.value ? searchInput.value : '').toLocaleLowerCase('tr-TR').trim();
-        var activePanel = document.querySelector('.approval-admin-panels [data-panel].active');
+        var activePanel = document.querySelector('.approval-panels [data-panel].active');
         if (!activePanel) return;
 
         activePanel.querySelectorAll('tbody tr').forEach(function (row) {
-            var emptyRow = row.querySelector('.df-empty');
-            if (emptyRow) {
+            if (row.querySelector('.df-empty')) {
                 row.style.display = '';
                 return;
             }
@@ -164,16 +125,14 @@
             item.classList.toggle('active', item === btn);
         });
 
-        document.querySelectorAll('.approval-admin-panels [data-panel]').forEach(function (panel) {
+        document.querySelectorAll('.approval-panels [data-panel]').forEach(function (panel) {
             panel.classList.toggle('active', panel.getAttribute('data-panel') === target);
         });
 
         applySearch();
     });
 
-    if (searchInput) {
-        searchInput.addEventListener('input', applySearch);
-    }
+    if (searchInput) searchInput.addEventListener('input', applySearch);
 })();
 </script>
 }

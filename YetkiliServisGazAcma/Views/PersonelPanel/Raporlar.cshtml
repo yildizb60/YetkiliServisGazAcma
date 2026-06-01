@@ -13,6 +13,10 @@
     DateTime bitTarih = ViewBag.BitTarih ?? DateTime.Now.Date;
     bool ySertifika = ViewBag.YetkiSertifika != false;
     bool yRapor = ViewBag.YetkiRapor != false;
+    var raporAylarJson = System.Text.Json.JsonSerializer.Serialize(ViewBag.RaporAylar ?? new List<string>());
+    var raporAylikJson = System.Text.Json.JsonSerializer.Serialize(ViewBag.RaporAylik ?? new List<int>());
+    var raporMarkaJson = System.Text.Json.JsonSerializer.Serialize(ViewBag.RaporMarka ?? new List<string>());
+    var raporMarkaSayiJson = System.Text.Json.JsonSerializer.Serialize(ViewBag.RaporMarkaSayi ?? new List<int>());
 }
 
 @section Styles {
@@ -96,6 +100,13 @@
     <div class="card"><div class="card-title">İptal</div><div class="card-value">@ViewBag.RaporIptal</div></div>
 </div>
 
+<div id="raporData"
+     data-aylar='@Html.Raw(raporAylarJson)'
+     data-aylik='@Html.Raw(raporAylikJson)'
+     data-marka='@Html.Raw(raporMarkaJson)'
+     data-marka-sayi='@Html.Raw(raporMarkaSayiJson)'
+     hidden></div>
+
 <div class="charts">
     <div class="chart-card">
         <div class="chart-title">Aylık İşlem</div>
@@ -126,7 +137,7 @@
         {
             foreach (var d in sonIslemler)
             {
-                <div class="tablo-row tablo-devreye"><div>@d.TesistatNo</div><div>@d.Firma?.FirmaAdi</div><div>@d.Marka?.MarkaAdi</div><div>@d.OlusturmaTarihi.ToString("dd.MM.yyyy")</div></div>
+                <div class="tablo-row tablo-devreye"><div>@d.TesistatNo</div><div>@d.Firma?.FirmaAdi</div><div>@d.Marka?.MarkaAdi</div><div>@d.DevreyeAlmaTarihi.ToString("dd.MM.yyyy")</div></div>
             }
         }
     }

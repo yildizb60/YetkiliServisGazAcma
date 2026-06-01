@@ -12,36 +12,76 @@
     var reddedilenler = ViewBag.Reddedilenler as List<Ys_Sertifika> ?? new List<Ys_Sertifika>();
 }
 
-@if (TempData["Basarili"] != null)
-{
-    <div class="df-alert df-alert-success">@TempData["Basarili"]</div>
-}
-@if (TempData["Hata"] != null)
-{
-    <div class="df-alert df-alert-danger">@TempData["Hata"]</div>
+@section Styles {
+    <style>
+        .approval-board { display: grid; gap: 16px; }
+        .approval-metrics { display: grid; grid-template-columns: repeat(3, minmax(160px, 1fr)); gap: 12px; }
+        .approval-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+        .approval-tab {
+            border: 1px solid var(--df-border);
+            background: var(--df-surface);
+            color: var(--df-text-soft);
+            border-radius: var(--df-radius);
+            min-height: 36px;
+            padding: 0 14px;
+            font-size: 12px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+        .approval-tab.active { background: var(--df-primary-soft); border-color: #d5dbf5; color: var(--df-primary); }
+        .approval-search { min-width: min(100%, 300px); }
+        .approval-panels [data-panel] { display: none; }
+        .approval-panels [data-panel].active { display: block; }
+        @@media (max-width: 900px) { .approval-metrics { grid-template-columns: 1fr; } }
+    </style>
 }
 
-<div class="approval-reference-panel approval-panels">
-    <div class="approval-reference-toolbar">
-        <div class="approval-reference-tabs" data-approval-tabs>
-            <button type="button" class="approval-reference-tab active" data-target="bekleyen">Onaya G&ouml;nderildi (@bekleyenler.Count)</button>
-            <button type="button" class="approval-reference-tab" data-target="onaylanan">Onaylananlar (@onaylananlar.Count)</button>
-            <button type="button" class="approval-reference-tab" data-target="reddedilen">Reddedilenler (@reddedilenler.Count)</button>
-        </div>
-        <div class="approval-reference-tools">
-            <button type="button" class="approval-filter-btn">
-                <i class="bi bi-funnel"></i>
-                <span>Filtreler</span>
-                <span class="approval-filter-count">0</span>
-            </button>
-            <div class="approval-search">
-                <input type="text" id="approvalSearchInput" placeholder="Aray&#305;n&#305;z..." autocomplete="off" />
-                <i class="bi bi-search"></i>
+<div class="approval-board">
+    @if (TempData["Basarili"] != null)
+    {
+        <div class="df-alert df-alert-success">@TempData["Basarili"]</div>
+    }
+    @if (TempData["Hata"] != null)
+    {
+        <div class="df-alert df-alert-danger">@TempData["Hata"]</div>
+    }
+
+    <section class="df-page-panel">
+        <div class="df-panel-head">
+            <div>
+                <h2 class="df-panel-title">Yetki Belgesi Onayları</h2>
+                <div class="df-panel-subtitle">Size tanımlı şirketlerdeki yetki belgesi başvurularını inceleyin.</div>
             </div>
         </div>
-    </div>
+        <div class="approval-metrics">
+            <div class="info-item">
+                <div class="info-label">Onaya Gönderildi</div>
+                <div class="info-value">@bekleyenler.Count</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Onaylananlar</div>
+                <div class="info-value">@onaylananlar.Count</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Reddedilenler</div>
+                <div class="info-value">@reddedilenler.Count</div>
+            </div>
+        </div>
+    </section>
 
-    <div class="approval-table-shell">
+    <section class="df-page-panel approval-panels">
+        <div class="df-panel-head">
+            <div class="approval-tabs" data-approval-tabs>
+                <button type="button" class="approval-tab active" data-target="bekleyen">Onaya Gönderildi (@bekleyenler.Count)</button>
+                <button type="button" class="approval-tab" data-target="onaylanan">Onaylananlar (@onaylananlar.Count)</button>
+                <button type="button" class="approval-tab" data-target="reddedilen">Reddedilenler (@reddedilenler.Count)</button>
+            </div>
+            <div class="df-field approval-search">
+                <label>Arama</label>
+                <input class="df-control" type="text" id="approvalSearchInput" placeholder="Firma, şirket veya tarih ara" autocomplete="off" />
+            </div>
+        </div>
+
         <div data-panel="bekleyen" class="active">
             @await Html.PartialAsync("~/Views/Shared/_SertifikaOnayTable.cshtml", new Tuple<List<Ys_Sertifika>, string, string>(bekleyenler, "bekleyen", "personel"))
         </div>
@@ -51,7 +91,7 @@
         <div data-panel="reddedilen">
             @await Html.PartialAsync("~/Views/Shared/_SertifikaOnayTable.cshtml", new Tuple<List<Ys_Sertifika>, string, string>(reddedilenler, "reddedilen", "personel"))
         </div>
-    </div>
+    </section>
 </div>
 
 @section Scripts {
@@ -67,8 +107,7 @@
         if (!activePanel) return;
 
         activePanel.querySelectorAll('tbody tr').forEach(function (row) {
-            var emptyRow = row.querySelector('.df-empty');
-            if (emptyRow) {
+            if (row.querySelector('.df-empty')) {
                 row.style.display = '';
                 return;
             }
@@ -94,9 +133,7 @@
         applySearch();
     });
 
-    if (searchInput) {
-        searchInput.addEventListener('input', applySearch);
-    }
+    if (searchInput) searchInput.addEventListener('input', applySearch);
 })();
 </script>
 }
