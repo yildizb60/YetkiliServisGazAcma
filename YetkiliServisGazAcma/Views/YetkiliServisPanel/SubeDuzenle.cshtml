@@ -1,7 +1,7 @@
 @{
     var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
-ViewData["Title"] = "&#350;ube D&#252;zenle";
-    ViewData["PanelTitle"] = ViewData["Title"];
+    ViewData["Title"] = "Şube Düzenle";
+    ViewData["PanelTitle"] = "Şube Düzenle";
     ViewData["PanelSubtitle"] = "Yetkili Servis";
     ViewData["ActiveMenu"] = "Subeler";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
@@ -13,10 +13,10 @@ ViewData["Title"] = "&#350;ube D&#252;zenle";
 
 @section Styles {
     <style>
-.content { padding: 28px 32px; }
+        .content { padding: 28px 32px; }
         .kart { background: #fff; border-radius: 12px; border: 1px solid #eee; overflow: hidden; }
-        .kart-baslik { display: flex; aligÃ¯¿½fÃ‚¼n-items: center; gap: 10px; padding: 16px 22px; border-bottom: 2px solid #f0f0ee; background: linear-gradient(to right, #f8f8f6, #fff); }
-        .kart-baslik-ikon { width: 36px; height: 36px; border-radius: 9px; display: flex; aligÃ¯¿½fÃ‚¼n-items: center; justify-content: center; font-size: 17px; background: #E6F1FB; }
+        .kart-baslik { display: flex; align-items: center; gap: 10px; padding: 16px 22px; border-bottom: 2px solid #f0f0ee; background: linear-gradient(to right, #f8f8f6, #fff); }
+        .kart-baslik-ikon { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 17px; background: #E6F1FB; }
         .kart-baslik-yazi { font-size: 14px; font-weight: bold; color: #333; }
         .kart-icerik { padding: 20px 22px; }
         .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
@@ -26,7 +26,7 @@ ViewData["Title"] = "&#350;ube D&#252;zenle";
         .alan input, .alan textarea { padding: 10px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; color: #333; background: #fafafa; }
         .alan textarea { resize: vertical; min-height: 70px; }
         .alan input:focus, .alan textarea:focus { border-color: #4CAF7D; background: #fff; }
-        .aktif-row { display: flex; aligÃ¯¿½fÃ‚¼n-items: center; gap: 10px; margin-top: 6px; }
+        .aktif-row { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
         .aktif-row input { width: auto; }
         .form-actions { margin-top: 14px; display: flex; justify-content: flex-end; gap: 10px; }
         .btn-primary { padding: 10px 26px; background: #4CAF7D; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; }
@@ -38,22 +38,22 @@ ViewData["Title"] = "&#350;ube D&#252;zenle";
 <div class="kart">
     <div class="kart-baslik">
         <div class="kart-baslik-ikon">&#127970;</div>
-        <div class="kart-baslik-yazi">&#350;ube Bilgileri</div>
+        <div class="kart-baslik-yazi">Şube Bilgileri</div>
     </div>
     <div class="kart-icerik">
         <form method="post" action="/ys-panel/subeler/duzenle/@sube?.Id">
             @Html.AntiForgeryToken()
             <div class="form-grid">
                 <div class="alan">
-                    <label>&#350;ube Ad&#305;</label>
+                    <label>Şube Adı</label>
                     <input type="text" name="subeAdi" value="@sube?.SubeAdi" required />
                 </div>
                 <div class="alan">
-                    <label>&#304;l</label>
+                    <label>İl</label>
                     <input type="text" name="il" value="@sube?.Il" />
                 </div>
                 <div class="alan">
-                    <label>&#304;l&#231;e</label>
+                    <label>İlçe</label>
                     <input type="text" name="ilce" value="@sube?.Ilce" />
                 </div>
                 <div class="alan">
@@ -73,7 +73,7 @@ ViewData["Title"] = "&#350;ube D&#252;zenle";
                 </div>
             </div>
             <div class="form-actions">
-                <a class="btn-secondary" href="/ys-panel/subeler">Vazge&#231;</a>
+                <a class="btn-secondary" href="/ys-panel/subeler">Vazgeç</a>
                 <button type="submit" class="btn-primary">Kaydet</button>
             </div>
         </form>

@@ -268,23 +268,6 @@
     let seciliMarkaId = 0;
     let seciliMarkaAdi = "";
     let servisCihazlari = [];
-    let secilenServisCihaz = null;
-
-    function normalizeMarka(value) {
-        return (value || "")
-            .toLocaleLowerCase("tr-TR")
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .replace(/ı/g, "i")
-            .replace(/[^a-z0-9]/g, "");
-    }
-
-    function markaUyariGoster(mesaj) {
-        const uyari = document.getElementById("markaUyari");
-        if (!uyari) return;
-        uyari.textContent = mesaj;
-        uyari.classList.add("goster");
-    }
 
     function setAdim(aktif) {
         for (let i = 1; i <= 4; i++) {
@@ -312,7 +295,6 @@
         seciliMarkaId = 0;
         seciliMarkaAdi = "";
         servisCihazlari = [];
-        secilenServisCihaz = null;
         document.querySelectorAll(".marka-kart").forEach(x => x.classList.remove("secili"));
         document.querySelectorAll(".cihaz-secim").forEach(x => x.classList.remove("secili"));
         setAdim(1);
@@ -369,7 +351,6 @@
 
             const cihazlar = Array.isArray(data.cihazlar) ? data.cihazlar : [];
             servisCihazlari = cihazlar;
-            secilenServisCihaz = null;
             const cihazListesi = document.getElementById("b-cihazlar");
             if (cihazListesi) {
                 cihazListesi.innerHTML = "";
@@ -425,7 +406,6 @@
         const cihaz = servisCihazlari[index];
         if (!cihaz) return;
 
-        secilenServisCihaz = cihaz;
         document.querySelectorAll(".cihaz-secim").forEach(function (satir, satirIndex) {
             satir.classList.toggle("secili", satirIndex === index);
         });
@@ -445,31 +425,13 @@
         const modelInput = document.querySelector('input[name="CihazModeli"]');
         if (modelInput && cihaz.cihazModeli) modelInput.value = cihaz.cihazModeli;
 
-        const cihazMarkaInput = document.getElementById("f-cihazMarka");
-        if (cihazMarkaInput) cihazMarkaInput.value = cihaz.cihazMarka || "";
-
-        document.querySelectorAll(".marka-kart").forEach(x => x.classList.remove("secili"));
-        document.getElementById("f-markaid").value = "";
-        document.getElementById("formKart")?.classList.remove("goster");
-
-        const cihazMarka = normalizeMarka(cihaz.cihazMarka);
-        if (!cihazMarka) {
-            document.getElementById("markaUyari")?.classList.remove("goster");
-            return;
-        }
-
-        const eslesenMarka = Array.from(document.querySelectorAll(".marka-kart")).find(function (kart) {
-            return normalizeMarka(kart.dataset.markaAdi) === cihazMarka;
-        });
-
-        if (!eslesenMarka) {
-            markaUyariGoster("Servisten gelen cihaz markası (" + (cihaz.cihazMarka || "-") + ") bu yetkili servisin marka yetkileri arasında yok. Bu cihaz için admin/personel tarafında marka yetkisi eklenmeden devreye alma tamamlanmamalı.");
-            setAdim(2);
-            return;
-        }
-
         document.getElementById("markaUyari")?.classList.remove("goster");
-        await markaSec(Number(eslesenMarka.dataset.markaId), eslesenMarka.dataset.markaAdi || "", eslesenMarka);
+        if (seciliMarkaId) {
+            document.getElementById("formKart")?.classList.add("goster");
+            setAdim(3);
+        } else {
+            setAdim(2);
+        }
     }
 
     async function markaSec(markaId, markaAdi, el) {
@@ -480,13 +442,6 @@
         }
 
         document.getElementById("markaUyari")?.classList.remove("goster");
-
-        if (secilenServisCihaz?.cihazMarka && normalizeMarka(secilenServisCihaz.cihazMarka) !== normalizeMarka(markaAdi)) {
-            markaUyariGoster("Seçilen marka, servisten gelen cihaz markası (" + secilenServisCihaz.cihazMarka + ") ile eşleşmiyor. Yanlış marka ile kayıt oluşmaması için bu işlem durduruldu.");
-            document.getElementById("formKart")?.classList.remove("goster");
-            document.getElementById("f-markaid").value = "";
-            return;
-        }
 
         try {
             const response = await fetch("/ys-devreyeal/marka-kontrol", {
@@ -516,7 +471,7 @@
             seciliMarkaId = markaId;
             seciliMarkaAdi = markaAdi;
             document.getElementById("f-markaid").value = String(markaId);
-            document.getElementById("f-cihazMarka").value = secilenServisCihaz?.cihazMarka || markaAdi;
+            document.getElementById("f-cihazMarka").value = markaAdi;
 
             document.getElementById("formKart")?.classList.add("goster");
             setAdim(3);
@@ -534,11 +489,6 @@
         if (!document.getElementById("f-markaid").value) {
             e.preventDefault();
             alert("Lütfen marka seçiniz.");
-            return;
-        }
-        if (secilenServisCihaz?.cihazMarka && normalizeMarka(secilenServisCihaz.cihazMarka) !== normalizeMarka(seciliMarkaAdi)) {
-            e.preventDefault();
-            alert("Servisten gelen cihaz markası ile seçilen marka eşleşmiyor. Lütfen doğru cihaz/marka yetkisini kontrol ediniz.");
             return;
         }
         setAdim(4);

@@ -15,6 +15,13 @@
     <style>
         .approval-board { display: grid; gap: 16px; }
         .approval-metrics { display: grid; grid-template-columns: repeat(3, minmax(160px, 1fr)); gap: 12px; }
+        .filtre-kart { background: #fff; border-radius: 12px; border: 1px solid #eee; padding: 20px 24px; }
+        .filtre-baslik { font-size: 14px; font-weight: 800; color: #333; margin-bottom: 16px; border-bottom: 1px solid #f0f0ee; padding-bottom: 12px; }
+        .filtre-grid { display: grid; grid-template-columns: minmax(260px, 1fr) 1.5fr; gap: 14px; align-items: end; }
+        .filtre-alan { display: flex; flex-direction: column; gap: 6px; }
+        .filtre-alan label { font-size: 11px; color: #555; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+        .filtre-alan input { padding: 10px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 13px; outline: none; color: #333; background: #fafafa; }
+        .filtre-alan input:focus { border-color: #4CAF7D; background: #fff; }
         .approval-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
         .approval-tab {
             border: 1px solid var(--df-border);
@@ -28,10 +35,13 @@
             cursor: pointer;
         }
         .approval-tab.active { background: var(--df-primary-soft); border-color: #d5dbf5; color: var(--df-primary); }
-        .approval-search { min-width: min(100%, 300px); }
+        .approval-table-title { font-size: 14px; font-weight: 800; color: #333; }
         .approval-panels [data-panel] { display: none; }
         .approval-panels [data-panel].active { display: block; }
-        @@media (max-width: 900px) { .approval-metrics { grid-template-columns: 1fr; } }
+        @@media (max-width: 900px) {
+            .approval-metrics,
+            .filtre-grid { grid-template-columns: 1fr; }
+        }
     </style>
 }
 
@@ -68,17 +78,27 @@
         </div>
     </section>
 
+    <section class="filtre-kart">
+        <div class="filtre-baslik">Filtrele</div>
+        <div class="filtre-grid">
+            <div class="filtre-alan">
+                <label>Arama</label>
+                <input type="text" id="approvalSearchInput" placeholder="Firma veya şirket yazın" autocomplete="off" />
+            </div>
+            <div class="filtre-alan">
+                <label>Durum</label>
+                <div class="approval-tabs" data-approval-tabs>
+                    <button type="button" class="approval-tab active" data-target="bekleyen">Onaya Gönderildi (@bekleyenler.Count)</button>
+                    <button type="button" class="approval-tab" data-target="onaylanan">Onaylananlar (@onaylananlar.Count)</button>
+                    <button type="button" class="approval-tab" data-target="reddedilen">Reddedilenler (@reddedilenler.Count)</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <section class="df-page-panel approval-panels">
         <div class="df-panel-head">
-            <div class="approval-tabs" data-approval-tabs>
-                <button type="button" class="approval-tab active" data-target="bekleyen">Onaya Gönderildi (@bekleyenler.Count)</button>
-                <button type="button" class="approval-tab" data-target="onaylanan">Onaylananlar (@onaylananlar.Count)</button>
-                <button type="button" class="approval-tab" data-target="reddedilen">Reddedilenler (@reddedilenler.Count)</button>
-            </div>
-            <div class="df-field approval-search">
-                <label>Arama</label>
-                <input class="df-control" type="text" id="approvalSearchInput" placeholder="Firma, şirket veya tarih ara" autocomplete="off" />
-            </div>
+            <div class="approval-table-title">Yetki Belgesi Listesi</div>
         </div>
 
         <div data-panel="bekleyen" class="active">
