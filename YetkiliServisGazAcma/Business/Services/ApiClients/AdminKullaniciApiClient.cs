@@ -33,13 +33,19 @@ namespace YetkiliServisGazAcma.Business.Services
             string? bagli)
         {
             if (!_options.Enabled)
+            {
+                ApiClientFallback.EnsureAllowed(_options, "Admin kullanici liste");
                 return null;
+            }
 
             try
             {
                 var token = await _tokenService.OlusturAsync(kullanici);
                 if (string.IsNullOrWhiteSpace(token))
+                {
+                    ApiClientFallback.EnsureAllowed(_options, "Admin kullanici liste token");
                     return null;
+                }
 
                 using var request = new HttpRequestMessage(HttpMethod.Post, "api/admin-panel/kullanicilar/liste");
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -56,6 +62,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     _logger.LogWarning("Admin kullanici liste API cagrisinda basarisiz yanit dondu. StatusCode: {StatusCode}", response.StatusCode);
+                    ApiClientFallback.EnsureAllowed(_options, "Admin kullanici liste");
                     return null;
                 }
 
@@ -65,6 +72,7 @@ namespace YetkiliServisGazAcma.Business.Services
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
             {
                 _logger.LogWarning(ex, "Admin kullanici liste API cagrisina ulasilamadi.");
+                ApiClientFallback.EnsureAllowed(_options, "Admin kullanici liste");
                 return null;
             }
         }

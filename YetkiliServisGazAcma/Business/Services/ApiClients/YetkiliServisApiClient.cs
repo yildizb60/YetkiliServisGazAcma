@@ -23,7 +23,10 @@ namespace YetkiliServisGazAcma.Business.Services
         public async Task<List<Ys_Firma>?> ListeAsync(YetkiliServisListeIstek istek)
         {
             if (!_options.Enabled)
+            {
+                ApiClientFallback.EnsureAllowed(_options, "Yetkili servis liste");
                 return null;
+            }
 
             try
             {
@@ -31,6 +34,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     _logger.LogWarning("Yetkili servis API liste cagrisinda basarisiz yanit dondu. StatusCode: {StatusCode}", response.StatusCode);
+                    ApiClientFallback.EnsureAllowed(_options, "Yetkili servis liste");
                     return null;
                 }
 
@@ -43,6 +47,7 @@ namespace YetkiliServisGazAcma.Business.Services
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
             {
                 _logger.LogWarning(ex, "Yetkili servis API liste cagrisina ulasilamadi.");
+                ApiClientFallback.EnsureAllowed(_options, "Yetkili servis liste");
                 return null;
             }
         }
@@ -50,7 +55,10 @@ namespace YetkiliServisGazAcma.Business.Services
         public async Task<YetkiliServisKayitSonuc?> KayitAsync(YetkiliServisKayitIstek istek)
         {
             if (!_options.Enabled)
+            {
+                ApiClientFallback.EnsureAllowed(_options, "Yetkili servis kayit");
                 return null;
+            }
 
             try
             {
@@ -71,6 +79,7 @@ namespace YetkiliServisGazAcma.Business.Services
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
             {
                 _logger.LogWarning(ex, "Yetkili servis API kayit cagrisina ulasilamadi.");
+                ApiClientFallback.EnsureAllowed(_options, "Yetkili servis kayit");
                 return null;
             }
         }

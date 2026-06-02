@@ -1,4 +1,5 @@
 <Solution>
   <Project Path="YetkiliServisGazAcma.API/YetkiliServisGazAcma.API.csproj" Id="93701066-f7f6-461e-93cd-5d30d4fc371b" />
+  <Project Path="YetkiliServisGazAcma.Core/YetkiliServisGazAcma.Core.csproj" />
   <Project Path="YetkiliServisGazAcma/YetkiliServisGazAcma.csproj" />
 </Solution>

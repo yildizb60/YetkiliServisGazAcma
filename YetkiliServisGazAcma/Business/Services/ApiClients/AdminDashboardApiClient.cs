@@ -27,13 +27,19 @@ namespace YetkiliServisGazAcma.Business.Services
         public async Task<AdminDashboardOzet?> GetirAsync(AppKullanici kullanici, int? sirketId)
         {
             if (!_options.Enabled)
+            {
+                ApiClientFallback.EnsureAllowed(_options, "Admin dashboard");
                 return null;
+            }
 
             try
             {
                 var token = await _tokenService.OlusturAsync(kullanici);
                 if (string.IsNullOrWhiteSpace(token))
+                {
+                    ApiClientFallback.EnsureAllowed(_options, "Admin dashboard token");
                     return null;
+                }
 
                 using var request = new HttpRequestMessage(HttpMethod.Post, "api/admin-panel/dashboard");
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -43,6 +49,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     _logger.LogWarning("Admin dashboard API cagrisinda basarisiz yanit dondu. StatusCode: {StatusCode}", response.StatusCode);
+                    ApiClientFallback.EnsureAllowed(_options, "Admin dashboard");
                     return null;
                 }
 
@@ -52,6 +59,7 @@ namespace YetkiliServisGazAcma.Business.Services
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
             {
                 _logger.LogWarning(ex, "Admin dashboard API cagrisina ulasilamadi.");
+                ApiClientFallback.EnsureAllowed(_options, "Admin dashboard");
                 return null;
             }
         }

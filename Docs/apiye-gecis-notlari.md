@@ -4,6 +4,16 @@
 
 MVC controller'larin veritabanina dogrudan gitmesini kademeli olarak azaltacagiz. Veritabani okuma/yazma islemleri API projesindeki endpointlere tasinacak. MVC tarafinda ise ekran, form ve yonlendirme kalacak.
 
+Guncel mimari:
+
+```text
+YetkiliServisGazAcma.API   -> API controllerlari, Swagger, JWT
+YetkiliServisGazAcma       -> MVC/Web ekranlari
+YetkiliServisGazAcma.Core  -> ortak entity, AppDbContext ve ortak is servisleri
+```
+
+API artik MVC/Web projesini referans almaz. API ve Web ayri publish edilebilir.
+
 Ornek eski akis:
 
 ```csharp
@@ -144,14 +154,14 @@ Akis:
 MarkaController.Index -> MarkaApiClient -> POST /api/marka/liste -> veritabani
 ```
 
-Emniyetli gecis icin fallback vardir:
+Fallback sadece `ApiIntegration:AllowDatabaseFallback=true` ise vardir:
 
 ```text
 API calisiyorsa: MVC -> API -> DB
-API kapaliysa: MVC -> MarkaService -> DB
+API kapaliysa: MVC hata verir, DB fallback yapmaz
 ```
 
-Bu sayede API projesi ayakta degilken marka ekrani bozulmaz. Development ortaminda API entegrasyonu aciktir; production/default ayarda kapali gelir.
+Canli ayrik mimaride `AllowDatabaseFallback=false` kalmalidir. Bu durumda API kapaliysa MVC sessizce veritabanina donmez; hata gorunur olur.
 
 Local API adresi:
 
@@ -173,11 +183,11 @@ Akis:
 DagitimSirketController.Index -> DagitimSirketApiClient -> POST /api/dagitim-sirket/liste -> veritabani
 ```
 
-Emniyetli gecis icin fallback vardir:
+Fallback sadece `ApiIntegration:AllowDatabaseFallback=true` ise vardir:
 
 ```text
 API calisiyorsa: MVC -> API -> DB
-API kapaliysa: MVC -> DagitimSirketService -> DB
+API kapaliysa: MVC hata verir, DB fallback yapmaz
 ```
 
 Bu ekranda da liste endpointi MVC'nin eski davranisini koruyacak sekilde pasif kayitlari destekler:
@@ -198,11 +208,11 @@ Akis:
 YetkiliServislerController.Index -> YetkiliServisApiClient -> POST /api/yetkili-servisler/liste -> veritabani
 ```
 
-Emniyetli gecis icin fallback vardir:
+Fallback sadece `ApiIntegration:AllowDatabaseFallback=true` ise vardir:
 
 ```text
 API calisiyorsa: MVC -> API -> DB
-API kapaliysa: MVC -> eski EF sorgusu -> DB
+API kapaliysa: MVC hata verir, DB fallback yapmaz
 ```
 
 Desteklenen filtreler:
@@ -261,7 +271,7 @@ Bu endpoint korumali oldugu icin MVC tarafinda mevcut giris yapan kullanici icin
 
 ```text
 API calisiyorsa: MVC -> API -> DB
-API kapaliysa: MVC -> AdminDashboardService -> DB
+API kapaliysa: MVC hata verir, DB fallback yapmaz
 ```
 
 ## AdminPanel kullanici listesi
@@ -328,11 +338,11 @@ Akis:
 AdminPanelController.YetkiliServisler -> AdminYetkiliServisApiClient -> POST /api/admin-panel/yetkili-servisler/liste -> AdminYetkiliServisListeService -> veritabani
 ```
 
-Emniyetli gecis icin fallback vardir:
+Fallback sadece `ApiIntegration:AllowDatabaseFallback=true` ise vardir:
 
 ```text
 API calisiyorsa: MVC -> API -> DB
-API kapaliysa: MVC -> AdminYetkiliServisListeService -> DB
+API kapaliysa: MVC hata verir, DB fallback yapmaz
 ```
 
 Bu adimda controller icindeki arama, il, aktif/pasif durum ve devreye alma sayisina gore siralama mantigi servis/API katmanina alinmis oldu.
@@ -364,11 +374,11 @@ AdminPanelController.YetkiliServisDetay -> AdminYetkiliServisApiClient -> POST /
 
 Bu endpoint admin detay ekraninin ihtiyaci olan firma bilgisi, hizmet turleri, son sertifikalar, subeler ve son devreye alma kayitlarini tek cevapta dondurur.
 
-Emniyetli gecis icin fallback vardir:
+Fallback sadece `ApiIntegration:AllowDatabaseFallback=true` ise vardir:
 
 ```text
 API calisiyorsa: MVC -> API -> DB
-API kapaliysa: MVC -> AdminYetkiliServisListeService.GetirAsync -> DB
+API kapaliysa: MVC hata verir, DB fallback yapmaz
 ```
 
 ## Kayit ekrani referans veri ayrimi
@@ -382,11 +392,11 @@ KayitController.YetkiliServis -> MarkaApiClient -> POST /api/marka/liste
 KayitController.YetkiliServis -> UrunKategoriApiClient -> POST /api/urun-kategorileri/liste
 ```
 
-Emniyetli gecis icin fallback vardir:
+Fallback sadece `ApiIntegration:AllowDatabaseFallback=true` ise vardir:
 
 ```text
 API calisiyorsa: MVC -> API -> DB
-API kapaliysa: MVC -> eski EF sorgusu -> DB
+API kapaliysa: MVC hata verir, DB fallback yapmaz
 ```
 
 Bu adim yazma islemini henuz tasimaz; sadece basvuru formunun ihtiyac duydugu liste verilerini API'den okur. Bir sonraki buyuk adim, yetkili servis basvuru kaydinin da API endpointine tasinmasidir.
@@ -435,11 +445,11 @@ Sehir -> appsettings.json / SehirFirmaKodlari -> firma kodu -> Dag_Sirketler kay
 
 Bu nedenle kayit ekraninda "dagitim sirketi" alani bulunmamalidir.
 
-Emniyetli gecis icin fallback vardir:
+Fallback sadece `ApiIntegration:AllowDatabaseFallback=true` ise vardir:
 
 ```text
 API calisiyorsa: MVC -> API -> DB
-API kapaliysa: MVC -> YetkiliServisService -> DB
+API kapaliysa: MVC hata verir, DB fallback yapmaz
 ```
 
 ## Razor ortak panel yapisi

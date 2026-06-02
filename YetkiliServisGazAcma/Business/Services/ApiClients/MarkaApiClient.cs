@@ -23,7 +23,10 @@ namespace YetkiliServisGazAcma.Business.Services
         public async Task<List<Ys_Marka>?> TumunuGetirAsync()
         {
             if (!_options.Enabled)
+            {
+                ApiClientFallback.EnsureAllowed(_options, "Marka liste");
                 return null;
+            }
 
             try
             {
@@ -34,6 +37,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     _logger.LogWarning("Marka API liste cagrisinda basarisiz yanit dondu. StatusCode: {StatusCode}", response.StatusCode);
+                    ApiClientFallback.EnsureAllowed(_options, "Marka liste");
                     return null;
                 }
 
@@ -52,6 +56,7 @@ namespace YetkiliServisGazAcma.Business.Services
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
             {
                 _logger.LogWarning(ex, "Marka API liste cagrisina ulasilamadi.");
+                ApiClientFallback.EnsureAllowed(_options, "Marka liste");
                 return null;
             }
         }

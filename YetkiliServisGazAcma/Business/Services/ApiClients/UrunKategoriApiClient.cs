@@ -23,7 +23,10 @@ namespace YetkiliServisGazAcma.Business.Services
         public async Task<List<UrunKategori>?> ListeAsync()
         {
             if (!_options.Enabled)
+            {
+                ApiClientFallback.EnsureAllowed(_options, "Urun kategori liste");
                 return null;
+            }
 
             try
             {
@@ -31,6 +34,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     _logger.LogWarning("Urun kategori API liste cagrisinda basarisiz yanit dondu. StatusCode: {StatusCode}", response.StatusCode);
+                    ApiClientFallback.EnsureAllowed(_options, "Urun kategori liste");
                     return null;
                 }
 
@@ -51,6 +55,7 @@ namespace YetkiliServisGazAcma.Business.Services
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
             {
                 _logger.LogWarning(ex, "Urun kategori API liste cagrisina ulasilamadi.");
+                ApiClientFallback.EnsureAllowed(_options, "Urun kategori liste");
                 return null;
             }
         }

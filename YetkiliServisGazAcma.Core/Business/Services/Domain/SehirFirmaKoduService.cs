@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.EntityFrameworkCore;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
 
@@ -97,3 +98,4 @@ namespace YetkiliServisGazAcma.Business.Services
         }
     }
 }
+

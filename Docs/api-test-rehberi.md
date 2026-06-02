@@ -134,6 +134,7 @@ MVC tarafinda API adresi buradan degistirilir:
   "ApiIntegration": {
     "Enabled": true,
     "BaseUrl": "https://api.firma.com",
+    "AllowDatabaseFallback": false,
     "TimeoutSeconds": 5
   }
 }
@@ -146,3 +147,4 @@ Canli icin dikkat edilecekler:
 - API HTTPS ile calismali.
 - Dis mobil uygulama veya baska panel kullanacaksa CORS ayari eklenmeli.
 - SMS API ve tesisat sorgu API'si MVC'ye degil, API katmanina baglanmali.
+- `ApiIntegration:AllowDatabaseFallback=false` kalmali. Boylece API'ye tasinan akislarda Web sunucusu sessizce veritabanina donmez.

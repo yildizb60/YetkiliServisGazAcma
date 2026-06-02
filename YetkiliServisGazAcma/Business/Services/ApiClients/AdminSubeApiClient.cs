@@ -123,13 +123,19 @@ namespace YetkiliServisGazAcma.Business.Services
         private async Task<TResponse?> PostAsync<TRequest, TResponse>(AppKullanici kullanici, string url, TRequest istek)
         {
             if (!_options.Enabled)
+            {
+                ApiClientFallback.EnsureAllowed(_options, "Admin sube");
                 return default;
+            }
 
             try
             {
                 var token = await _tokenService.OlusturAsync(kullanici);
                 if (string.IsNullOrWhiteSpace(token))
+                {
+                    ApiClientFallback.EnsureAllowed(_options, "Admin sube token");
                     return default;
+                }
 
                 using var request = new HttpRequestMessage(HttpMethod.Post, url);
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -139,6 +145,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     _logger.LogWarning("Admin sube API cagrisinda basarisiz yanit dondu. Url: {Url}, StatusCode: {StatusCode}", url, response.StatusCode);
+                    ApiClientFallback.EnsureAllowed(_options, "Admin sube");
                     return default;
                 }
 
@@ -147,6 +154,7 @@ namespace YetkiliServisGazAcma.Business.Services
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
             {
                 _logger.LogWarning(ex, "Admin sube API cagrisina ulasilamadi. Url: {Url}", url);
+                ApiClientFallback.EnsureAllowed(_options, "Admin sube");
                 return default;
             }
         }
