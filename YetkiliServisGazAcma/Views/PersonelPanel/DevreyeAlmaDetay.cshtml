@@ -33,6 +33,8 @@
             </div>
             <div class="df-actions">
                 <a class="df-btn df-btn-secondary df-btn-sm" href="/personel-panel/devreyealmalar">Listeye D&#246;n</a>
+                <a class="df-btn df-btn-primary df-btn-sm" href="/personel-panel/devreyealma-pdf/@Model.Id" target="_blank">PDF</a>
+                <a class="df-btn df-btn-success df-btn-sm" href="/personel-panel/devreyealma-excel/@Model.Id" target="_blank">Excel</a>
                 <span class="df-pill @durumClass">@durumYazi</span>
             </div>
         </div>
@@ -149,16 +151,4 @@
         </section>
     }
 
-    <section class="df-page-panel">
-        <div class="df-panel-head">
-            <div>
-                <h2 class="df-panel-title">Rapor &#199;&#305;kt&#305;lar&#305;</h2>
-                <div class="df-panel-subtitle">Bu kayda ait PDF ve Excel dosyas&#305;n&#305; indirebilirsiniz.</div>
-            </div>
-            <div class="df-actions">
-                <a class="df-btn df-btn-secondary df-btn-sm" href="/personel-panel/devreyealma-pdf/@Model.Id" target="_blank">PDF</a>
-                <a class="df-btn df-btn-secondary df-btn-sm" href="/personel-panel/devreyealma-excel/@Model.Id" target="_blank">Excel</a>
-            </div>
-        </div>
-    </section>
 </div>

@@ -27,6 +27,11 @@
         .filtre-alan select { padding: 10px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 13px; outline: none; color: #333; background: #fafafa; min-width: 0; }
         .filtre-alan input:focus,
         .filtre-alan select:focus { border-color: #4CAF7D; background: #fff; }
+        .filtre-butonlar { display: flex; gap: 10px; margin-top: 16px; }
+        .btn-filtre { padding: 10px 22px; background: linear-gradient(135deg, #1B9FD4, #0d7faa); color: #fff; border: none; border-radius: 8px; font-size: 13px; cursor: pointer; font-weight: 800; }
+        .btn-filtre:hover { opacity: .9; }
+        .btn-temizle { padding: 10px 16px; background: #fff; color: #888; border: 1.5px solid #ddd; border-radius: 8px; font-size: 13px; cursor: pointer; text-decoration: none; }
+        .btn-temizle:hover { border-color: #e24b4a; color: #e24b4a; }
         .approval-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
         .approval-tab {
             border: 1px solid var(--df-border);
@@ -83,6 +88,10 @@
                 <div class="info-label">Reddedilenler</div>
                 <div class="info-value">@reddedilenler.Count</div>
             </div>
+        </div>
+        <div class="filtre-butonlar">
+            <button type="button" class="btn-filtre" id="approvalFilterApply">Filtrele</button>
+            <button type="button" class="btn-temizle" id="approvalFilterClear">Temizle</button>
         </div>
     </section>
 
@@ -147,6 +156,8 @@
 (function () {
     var tabs = document.querySelector('[data-approval-tabs]');
     var durumSelect = document.getElementById('filterDurum');
+    var filterButton = document.getElementById('approvalFilterApply');
+    var clearButton = document.getElementById('approvalFilterClear');
     var inputs = {
         firma: document.getElementById('filterFirma'),
         sirket: document.getElementById('filterSirket'),
@@ -203,9 +214,15 @@
         });
     }
     if (durumSelect) durumSelect.addEventListener('change', function () { activatePanel(durumSelect.value); });
-    Object.keys(inputs).forEach(function (key) {
-        if (inputs[key]) inputs[key].addEventListener('input', applyFilters);
-    });
+    if (filterButton) filterButton.addEventListener('click', applyFilters);
+    if (clearButton) {
+        clearButton.addEventListener('click', function () {
+            Object.keys(inputs).forEach(function (key) {
+                if (inputs[key]) inputs[key].value = '';
+            });
+            activatePanel('bekleyen');
+        });
+    }
 })();
 </script>
 }

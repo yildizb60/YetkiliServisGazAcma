@@ -1,14 +1,16 @@
+@using YetkiliServisGazAcma.Entities
 @{
     ViewData["Title"] = "Yetkili Servis Detay";
     ViewData["PanelTitle"] = ViewData["Title"];
     ViewData["PanelSubtitle"] = "Admin Paneli";
     ViewData["ActiveMenu"] = "YetkiliServisler";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
-    var Kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
-    var servis = ViewBag.Servis as YetkiliServisGazAcma.Entities.Ys_Firma;
-    var sertifikalar = ViewBag.Sertifikalar as List<YetkiliServisGazAcma.Entities.Ys_Sertifika> ?? new();
-    var subeler = ViewBag.Subeler as List<YetkiliServisGazAcma.Entities.Ys_Sube> ?? new();
-    var devreye = ViewBag.Devreye as List<YetkiliServisGazAcma.Entities.Ys_DevreyeAlma> ?? new();
+
+    var kullanici = ViewBag.Kullanici as AppKullanici;
+    var servis = ViewBag.Servis as Ys_Firma;
+    var sertifikalar = ViewBag.Sertifikalar as List<Ys_Sertifika> ?? new();
+    var subeler = ViewBag.Subeler as List<Ys_Sube> ?? new();
+    var devreye = ViewBag.Devreye as List<Ys_DevreyeAlma> ?? new();
     var kategoriler = servis?.FirmaKategoriler?.Where(x => !x.SilindiMi
             && x.Kategori != null
             && !x.Kategori.SilindiMi
@@ -17,13 +19,18 @@
         .Select(x => x.Kategori!)
         .GroupBy(x => NormalizeKategori(x.Ad))
         .Select(g => g.First())
-        .ToList() ?? new List<YetkiliServisGazAcma.Entities.UrunKategori>();
-    string adSoyad = Kullanici?.AdSoyad ?? "S&#252;per Admin";
-    string basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "A";
-    int onayBekleyen = ViewBag.OnayBekleyen is int v ? v : 0;
+        .ToList() ?? new List<UrunKategori>();
+
+    var durumClass = servis?.AktifMi == true ? "df-pill-success" : "df-pill-danger";
+    var durumYazi = servis?.AktifMi == true ? "Aktif" : "Pasif";
 }
 
 @functions {
+    private static string Deger(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? "-" : value;
+    }
+
     private static bool KullanilanKategoriMi(string? ad)
     {
         var key = NormalizeKategori(ad);
@@ -56,153 +63,198 @@
 
 @section Styles {
     <style>
-.content { padding: 28px 32px; display: grid; gap: 16px; }
-.back-link { display: inline-flex; align-items: center; gap: 8px; color: #1B9FD4; font-weight: 700; text-decoration: none; margin-bottom: 6px; }
-.page-title { font-size: 22px; font-weight: 800; margin: 2px 0 8px; }
-.section { background: #fff; border-radius: 12px; border: 1px solid #e6eef4; box-shadow: 0 10px 24px rgba(20,40,60,0.08); padding: 16px; }
-.section-title { font-size: 14px; font-weight: 800; color: #1B9FD4; margin-bottom: 10px; display:flex; align-items:center; gap:8px; }
-.info-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.info-item { background: #f7fafc; border: 1px solid #edf3f8; border-radius: 10px; padding: 10px 12px; }
-.info-label { font-size: 11px; color: #6f7b86; margin-bottom: 4px; font-weight: 700; }
-.info-value { font-size: 13px; color: #333; font-weight: 600; }
-.table-head { padding: 10px 12px; background: #f8f8f6; font-size: 11px; color: #888; font-weight: bold; display: grid; grid-template-columns: 1.4fr 1fr 1fr 0.8fr; }
-.table-row { padding: 10px 12px; border-top: 1px solid #f0f0ee; font-size: 13px; color: #333; display: grid; grid-template-columns: 1.4fr 1fr 1fr 0.8fr; align-items: center; }
-.table-row.small { grid-template-columns: 1fr 1fr 1fr; }
-.table-head.small { grid-template-columns: 1fr 1fr 1fr; }
-.badge { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 11px; font-weight: bold; }
-.b-green { background: #E1F5EE; color: #085041; }
-.b-red { background: #FCEBEB; color: #501313; }
-.empty { padding: 18px; color: #999; font-size: 12px; }
-.category-list { display:flex; flex-wrap:wrap; gap:10px; }
-.category-chip { display:inline-flex; align-items:center; gap:10px; background:#f7fbff; border:1px solid #dbe8f2; border-radius:999px; padding:9px 13px; color:#17354c; font-size:13px; font-weight:800; }
-.category-icon { width:28px; height:28px; border-radius:10px; background:#eaf6fb; display:grid; place-items:center; flex:0 0 auto; overflow:hidden; }
-.category-icon img { width:20px; height:20px; object-fit:contain; }
-.category-fallback { color:#1B9FD4; font-size:12px; font-weight:900; }
-
-@@media (max-width: 980px) {
-    .info-grid { grid-template-columns: 1fr; }
-    .table-head, .table-row { grid-template-columns: 1fr; gap: 6px; }
-    .table-head.small, .table-row.small { grid-template-columns: 1fr; gap: 6px; }
-}
+        .service-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; padding: 0 24px 20px; }
+        .service-kpi { background: #f8fafc; border: 1px solid #edf2f7; border-radius: 8px; padding: 14px 16px; }
+        .service-kpi-label { font-size: 11px; color: #697386; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+        .service-kpi-value { margin-top: 7px; color: #172033; font-size: 24px; font-weight: 850; line-height: 1; }
+        .category-list { display: flex; flex-wrap: wrap; gap: 10px; padding: 14px 16px 16px; }
+        .category-chip { display: inline-flex; align-items: center; gap: 10px; background: #f7fbff; border: 1px solid #dbe8f2; border-radius: 999px; padding: 9px 13px; color: #17354c; font-size: 13px; font-weight: 800; }
+        .category-icon { width: 28px; height: 28px; border-radius: 8px; background: #eaf6fb; display: grid; place-items: center; flex: 0 0 auto; overflow: hidden; }
+        .category-icon img { width: 20px; height: 20px; object-fit: contain; }
+        .category-fallback { color: #1B9FD4; font-size: 12px; font-weight: 900; }
+        .service-list { display: grid; gap: 8px; padding: 14px 16px 16px; }
+        .service-row { display: grid; gap: 10px; align-items: center; background: #fff; border: 1px solid #e6ecf5; border-radius: 8px; padding: 11px 12px; color: #1e2d4a; font-size: 13px; }
+        .service-row.cert { grid-template-columns: 1fr 1fr 1fr auto; }
+        .service-row.branch { grid-template-columns: 1.2fr 1fr 1fr; }
+        .service-row.devreye { grid-template-columns: 1fr 1fr 1fr auto; }
+        .service-row-head { color: #697386; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; background: #f8fafc; }
+        .service-empty { color: #7d8eab; background: #f8fafc; border: 1px dashed #dbe3ee; border-radius: 8px; padding: 18px; font-size: 13px; text-align: center; }
+        @@media (max-width: 1100px) {
+            .service-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .service-row.cert,
+            .service-row.branch,
+            .service-row.devreye { grid-template-columns: 1fr; }
+        }
+        @@media (max-width: 700px) {
+            .service-kpis { grid-template-columns: 1fr; padding: 0 16px 16px; }
+        }
     </style>
 }
 
-<a class="back-link" href="/AdminPanel/yetkiliservisler">&#8592; Yetkili Servislere D&#246;n</a>
-<div class="page-title">@servis?.FirmaAdi</div>
-
-<div class="section">
-    <div class="section-title">&#128295; Firma Bilgileri</div>
-    <div class="info-grid">
-        <div class="info-item"><div class="info-label">Firma</div><div class="info-value">@servis?.FirmaAdi</div></div>
-        <div class="info-item"><div class="info-label">Firma Kodu</div><div class="info-value">@servis?.Sirket?.SirketAdi</div></div>
-        <div class="info-item"><div class="info-label">Vergi No</div><div class="info-value">@servis?.VergiNo</div></div>
-        <div class="info-item"><div class="info-label">Telefon</div><div class="info-value">@servis?.Telefon</div></div>
-        <div class="info-item"><div class="info-label">Yetkili Ki&#351;i</div><div class="info-value">@servis?.YetkiliKisi</div></div>
-        <div class="info-item"><div class="info-label">Faaliyet &#304;li</div><div class="info-value">@servis?.FaaliyetIli</div></div>
-        <div class="info-item" style="grid-column: span 2;"><div class="info-label">Adres</div><div class="info-value">@servis?.Adres</div></div>
-    </div>
-</div>
-
-<div class="section">
-    <div class="section-title">&#128230; Hizmet Türleri</div>
-    @if (kategoriler.Count == 0)
-    {
-        <div class="empty">Hizmet türü kaydı yok.</div>
-    }
-    else
-    {
-        <div class="category-list">
-            @foreach (var kategori in kategoriler)
-            {
-                <div class="category-chip">
-                    <span class="category-icon">
-                        @if (!string.IsNullOrWhiteSpace(kategori.IconUrl))
-                        {
-                            <img src="@kategori.IconUrl" alt="@kategori.Ad" />
-                        }
-                        else
-                        {
-                            <span class="category-fallback">@((kategori.Ad ?? "?").Substring(0, 1).ToUpper())</span>
-                        }
-                    </span>
-                    <span>@kategori.Ad</span>
-                </div>
-            }
+<div class="cert-stack">
+    <section class="df-page-panel">
+        <div class="df-panel-head">
+            <div>
+                <h2 class="df-panel-title">@Deger(servis?.FirmaAdi)</h2>
+                <div class="df-panel-subtitle">@Deger(servis?.Sirket?.SirketAdi) / @Deger(servis?.FaaliyetIli)</div>
+            </div>
+            <div class="df-actions">
+                <a class="df-btn df-btn-secondary df-btn-sm" href="/AdminPanel/yetkiliservisler">Listeye Dön</a>
+                @if (servis != null)
+                {
+                    <a class="df-btn df-btn-primary df-btn-sm" href="/AdminPanel/yetkiliservisler/duzenle/@servis.Id">Düzenle</a>
+                }
+                <span class="df-pill @durumClass">@durumYazi</span>
+            </div>
         </div>
-    }
-</div>
 
-<div class="section">
-    <div class="section-title">&#128196; Yetki Belgeleri</div>
-    <div class="table-head">
-        <div>Tarih</div><div>Ba&#351;lang&#305;&#231;</div><div>Biti&#351;</div><div>Durum</div>
+        <div class="service-kpis">
+            <div class="service-kpi">
+                <div class="service-kpi-label">Yetki Belgesi</div>
+                <div class="service-kpi-value">@sertifikalar.Count</div>
+            </div>
+            <div class="service-kpi">
+                <div class="service-kpi-label">Şube</div>
+                <div class="service-kpi-value">@subeler.Count</div>
+            </div>
+            <div class="service-kpi">
+                <div class="service-kpi-label">Devreye Alma</div>
+                <div class="service-kpi-value">@devreye.Count</div>
+            </div>
+            <div class="service-kpi">
+                <div class="service-kpi-label">Hizmet Türü</div>
+                <div class="service-kpi-value">@kategoriler.Count</div>
+            </div>
+        </div>
+    </section>
+
+    <div class="df-detail-grid">
+        <section class="df-detail-card">
+            <div class="df-detail-card-title">Firma Bilgileri</div>
+            <div class="df-detail-info">
+                <div class="info-item"><div class="info-label">Firma</div><div class="info-value">@Deger(servis?.FirmaAdi)</div></div>
+                <div class="info-item"><div class="info-label">Şirket</div><div class="info-value">@Deger(servis?.Sirket?.SirketAdi)</div></div>
+                <div class="info-item"><div class="info-label">Vergi No</div><div class="info-value">@Deger(servis?.VergiNo)</div></div>
+                <div class="info-item"><div class="info-label">Vergi Dairesi</div><div class="info-value">@Deger(servis?.VergiDairesi)</div></div>
+                <div class="info-item"><div class="info-label">Faaliyet İli</div><div class="info-value">@Deger(servis?.FaaliyetIli)</div></div>
+                <div class="info-item"><div class="info-label">Durum</div><div class="info-value">@durumYazi</div></div>
+            </div>
+        </section>
+
+        <section class="df-detail-card">
+            <div class="df-detail-card-title">İletişim Bilgileri</div>
+            <div class="df-detail-info">
+                <div class="info-item"><div class="info-label">Yetkili Kişi</div><div class="info-value">@Deger(servis?.YetkiliKisi)</div></div>
+                <div class="info-item"><div class="info-label">TC Kimlik No</div><div class="info-value">@Deger(servis?.TcKimlikNo)</div></div>
+                <div class="info-item"><div class="info-label">Telefon</div><div class="info-value">@Deger(servis?.Telefon)</div></div>
+                <div class="info-item"><div class="info-label">E-posta</div><div class="info-value">@Deger(servis?.Email)</div></div>
+                <div class="info-item" style="grid-column: 1 / -1;"><div class="info-label">Adres</div><div class="info-value">@Deger(servis?.Adres)</div></div>
+            </div>
+        </section>
     </div>
-    @if (sertifikalar.Count == 0)
-    {
-        <div class="empty">Yetki belgesi kayd&#305; yok.</div>
-    }
-    else
-    {
-        foreach (var s in sertifikalar)
+
+    <section class="df-detail-card">
+        <div class="df-detail-card-title">Hizmet Türleri</div>
+        @if (kategoriler.Count == 0)
         {
-            <div class="table-row">
-                <div>@s.OlusturmaTarihi.ToString("dd.MM.yyyy")</div>
-                <div>@(s.SertifikaBaslangicTarihi?.ToString("dd.MM.yyyy") ?? "-")</div>
-                <div>@s.SertifikaBitisTarihi.ToString("dd.MM.yyyy")</div>
-                <div>
-                    @if (s.Durum == 1) { <span class="badge b-green">Onayl&#305;</span> }
-                    else if (s.Durum == 2) { <span class="badge b-red">Reddedildi</span> }
-                    else { <span class="badge" style="background:#FAEEDA;color:#633806;">Bekliyor</span> }
-                </div>
+            <div class="service-empty">Hizmet türü kaydı yok.</div>
+        }
+        else
+        {
+            <div class="category-list">
+                @foreach (var kategori in kategoriler)
+                {
+                    <div class="category-chip">
+                        <span class="category-icon">
+                            @if (!string.IsNullOrWhiteSpace(kategori.IconUrl))
+                            {
+                                <img src="@kategori.IconUrl" alt="@kategori.Ad" />
+                            }
+                            else
+                            {
+                                <span class="category-fallback">@((kategori.Ad ?? "?").Substring(0, 1).ToUpper())</span>
+                            }
+                        </span>
+                        <span>@kategori.Ad</span>
+                    </div>
+                }
             </div>
         }
-    }
-</div>
+    </section>
 
-<div class="section">
-    <div class="section-title">&#127970; &#350;ubeler</div>
-    <div class="table-head small">
-        <div>&#350;ube</div><div>&#304;l / &#304;l&#231;e</div><div>Telefon</div>
-    </div>
-    @if (subeler.Count == 0)
-    {
-        <div class="empty">&#350;ube kayd&#305; yok.</div>
-    }
-    else
-    {
-        foreach (var s in subeler)
+    <section class="df-detail-card">
+        <div class="df-detail-card-title">Yetki Belgeleri</div>
+        @if (sertifikalar.Count == 0)
         {
-            <div class="table-row small">
-                <div>@s.SubeAdi</div>
-                <div>@s.Il @s.Ilce</div>
-                <div>@s.Telefon</div>
+            <div class="service-empty">Yetki belgesi kaydı yok.</div>
+        }
+        else
+        {
+            <div class="service-list">
+                <div class="service-row service-row-head cert"><div>Yükleme</div><div>Başlangıç</div><div>Bitiş</div><div>Durum</div></div>
+                @foreach (var s in sertifikalar)
+                {
+                    <div class="service-row cert">
+                        <div>@s.OlusturmaTarihi.ToString("dd.MM.yyyy")</div>
+                        <div>@(s.SertifikaBaslangicTarihi?.ToString("dd.MM.yyyy") ?? "-")</div>
+                        <div>@s.SertifikaBitisTarihi.ToString("dd.MM.yyyy")</div>
+                        <div>
+                            @if (s.Durum == 1) { <span class="df-pill df-pill-success">Onaylı</span> }
+                            else if (s.Durum == 2) { <span class="df-pill df-pill-danger">Reddedildi</span> }
+                            else { <span class="df-pill df-pill-warning">Bekliyor</span> }
+                        </div>
+                    </div>
+                }
             </div>
         }
-    }
-</div>
+    </section>
 
-<div class="section">
-    <div class="section-title">&#128202; Son Devreye Almalar</div>
-    <div class="table-head">
-        <div>Tesisat No</div><div>Marka</div><div>Tarih</div><div>Durum</div>
-    </div>
-    @if (devreye.Count == 0)
-    {
-        <div class="empty">Devreye alma kayd&#305; yok.</div>
-    }
-    else
-    {
-        foreach (var d in devreye)
+    <section class="df-detail-card">
+        <div class="df-detail-card-title">Şubeler</div>
+        @if (subeler.Count == 0)
         {
-            <div class="table-row">
-                <div>@(d.TesistatNo ?? "-")</div>
-                <div>@(d.Marka?.MarkaAdi ?? "-")</div>
-                <div>@d.OlusturmaTarihi.ToString("dd.MM.yyyy")</div>
-                <div>
-                    @if (d.Durum == 1) { <span class="badge b-green">Tamamland&#305;</span> }
-                    else { <span class="badge" style="background:#FAEEDA;color:#633806;">Bekliyor</span> }
-                </div>
+            <div class="service-empty">Şube kaydı yok.</div>
+        }
+        else
+        {
+            <div class="service-list">
+                <div class="service-row service-row-head branch"><div>Şube</div><div>İl / İlçe</div><div>Telefon</div></div>
+                @foreach (var s in subeler)
+                {
+                    <div class="service-row branch">
+                        <div>@Deger(s.SubeAdi)</div>
+                        <div>@Deger((s.Il + " " + s.Ilce).Trim())</div>
+                        <div>@Deger(s.Telefon)</div>
+                    </div>
+                }
             </div>
         }
-    }
+    </section>
+
+    <section class="df-detail-card">
+        <div class="df-detail-card-title">Son Devreye Almalar</div>
+        @if (devreye.Count == 0)
+        {
+            <div class="service-empty">Devreye alma kaydı yok.</div>
+        }
+        else
+        {
+            <div class="service-list">
+                <div class="service-row service-row-head devreye"><div>Tesisat No</div><div>Marka</div><div>Tarih</div><div>Durum</div></div>
+                @foreach (var d in devreye)
+                {
+                    <div class="service-row devreye">
+                        <div>@Deger(d.TesistatNo)</div>
+                        <div>@Deger(d.Marka?.MarkaAdi ?? d.CihazMarka)</div>
+                        <div>@d.OlusturmaTarihi.ToString("dd.MM.yyyy")</div>
+                        <div>
+                            @if (d.Durum == 1) { <span class="df-pill df-pill-success">Tamamlandı</span> }
+                            else if (d.Durum == 2) { <span class="df-pill df-pill-danger">İptal</span> }
+                            else { <span class="df-pill df-pill-warning">Bekliyor</span> }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </section>
 </div>
