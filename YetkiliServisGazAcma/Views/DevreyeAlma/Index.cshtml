@@ -44,9 +44,11 @@
         .uygunluk-badge { display: inline-block; padding: 4px 12px; border-radius: 10px; font-size: 12px; font-weight: bold; background: #E1F5EE; color: #085041; }
         .cihaz-listesi { display: grid; gap: 8px; }
         .cihaz-listesi .cihaz-satir { padding: 8px 10px; border: 1px solid #edf3f8; border-radius: 8px; background: #fff; }
-        .cihaz-secim { cursor: pointer; transition: border-color .15s, background .15s, box-shadow .15s; }
+        .cihaz-secim { cursor: pointer; transition: border-color .15s, background .15s, box-shadow .15s; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+        .cihaz-secim::after { content: "Sec"; flex: 0 0 auto; border-radius: 999px; background: #E6F1FB; color: #0d7faa; font-size: 11px; font-weight: 800; padding: 4px 10px; }
         .cihaz-secim:hover { border-color: #1B9FD4; background: #f4fbff; }
         .cihaz-secim.secili { border-color: #1B9FD4; background: #E6F1FB; box-shadow: 0 0 0 2px rgba(27,159,212,.10); }
+        .cihaz-secim.secili::after { content: "Secildi"; background: #4CAF7D; color: #fff; }
 
         /* Marka seçimi */
         .marka-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
@@ -268,6 +270,7 @@
     let seciliMarkaId = 0;
     let seciliMarkaAdi = "";
     let servisCihazlari = [];
+    let seciliServisCihazIndex = -1;
 
     function setAdim(aktif) {
         for (let i = 1; i <= 4; i++) {
@@ -295,9 +298,38 @@
         seciliMarkaId = 0;
         seciliMarkaAdi = "";
         servisCihazlari = [];
+        seciliServisCihazIndex = -1;
         document.querySelectorAll(".marka-kart").forEach(x => x.classList.remove("secili"));
         document.querySelectorAll(".cihaz-secim").forEach(x => x.classList.remove("secili"));
         setAdim(1);
+    }
+
+    function normalizeMarka(value) {
+        return (value || "")
+            .toLocaleLowerCase("tr-TR")
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-z0-9]/g, "");
+    }
+
+    function markaKartiBul(markaAdi) {
+        const aranan = normalizeMarka(markaAdi);
+        if (!aranan) return null;
+
+        return Array.from(document.querySelectorAll(".marka-kart")).find(function (kart) {
+            return normalizeMarka(kart.dataset.markaAdi) === aranan;
+        }) || null;
+    }
+
+    function cihazAlanlariniTemizle() {
+        const tipSelect = document.querySelector('select[name="CihazTipi"]');
+        const kapasiteInput = document.querySelector('input[name="CihazKapasite"]');
+        const modelInput = document.querySelector('input[name="CihazModeli"]');
+        if (tipSelect) tipSelect.value = "";
+        if (kapasiteInput) kapasiteInput.value = "";
+        if (modelInput) modelInput.value = "";
+        const cihazMarka = document.getElementById("f-cihazMarka");
+        if (cihazMarka) cihazMarka.value = "";
     }
 
     async function tesistatSorgula() {
@@ -391,10 +423,6 @@
             document.getElementById("musteriBilgiKart")?.classList.add("goster");
             document.getElementById("markaKart")?.classList.add("goster");
             setAdim(2);
-
-            if (cihazlar.length > 0) {
-                cihazSec(0);
-            }
         } catch (e) {
             alert("Bağlantı hatası oluştu. Lütfen tekrar deneyiniz.");
         } finally {
@@ -406,6 +434,7 @@
         const cihaz = servisCihazlari[index];
         if (!cihaz) return;
 
+        seciliServisCihazIndex = index;
         document.querySelectorAll(".cihaz-secim").forEach(function (satir, satirIndex) {
             satir.classList.toggle("secili", satirIndex === index);
         });
@@ -425,16 +454,23 @@
         const modelInput = document.querySelector('input[name="CihazModeli"]');
         if (modelInput && cihaz.cihazModeli) modelInput.value = cihaz.cihazModeli;
 
+        document.getElementById("f-cihazMarka").value = cihaz.cihazMarka || "";
         document.getElementById("markaUyari")?.classList.remove("goster");
-        if (seciliMarkaId) {
-            document.getElementById("formKart")?.classList.add("goster");
-            setAdim(3);
-        } else {
-            setAdim(2);
+        const markaKarti = markaKartiBul(cihaz.cihazMarka);
+        if (markaKarti) {
+            await markaSec(parseInt(markaKarti.dataset.markaId || "0", 10), markaKarti.dataset.markaAdi || cihaz.cihazMarka || "", markaKarti, true);
+            return;
         }
+
+        seciliMarkaId = 0;
+        seciliMarkaAdi = "";
+        document.getElementById("f-markaid").value = "";
+        document.querySelectorAll(".marka-kart").forEach(x => x.classList.remove("secili"));
+        document.getElementById("formKart")?.classList.remove("goster");
+        setAdim(2);
     }
 
-    async function markaSec(markaId, markaAdi, el) {
+    async function markaSec(markaId, markaAdi, el, servisCihazindan) {
         const tesistatNo = (document.getElementById("f-tesistatNo")?.value || "").trim();
         if (!tesistatNo) {
             alert("Önce tesisat sorgulaması yapınız.");
@@ -471,7 +507,16 @@
             seciliMarkaId = markaId;
             seciliMarkaAdi = markaAdi;
             document.getElementById("f-markaid").value = String(markaId);
-            document.getElementById("f-cihazMarka").value = markaAdi;
+            if (servisCihazindan) {
+                const cihaz = servisCihazlari[seciliServisCihazIndex];
+                document.getElementById("f-cihazMarka").value = cihaz?.cihazMarka || markaAdi;
+            } else {
+                const cihaz = servisCihazlari[seciliServisCihazIndex];
+                if (!cihaz) {
+                    cihazAlanlariniTemizle();
+                }
+                document.getElementById("f-cihazMarka").value = markaAdi;
+            }
 
             document.getElementById("formKart")?.classList.add("goster");
             setAdim(3);

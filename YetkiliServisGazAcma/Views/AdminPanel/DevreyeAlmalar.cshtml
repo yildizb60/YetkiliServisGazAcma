@@ -78,15 +78,16 @@
 
         .filtre-grid {
             display: grid;
-            grid-template-columns: repeat(6, 1fr);
+            grid-template-columns: repeat(6, minmax(130px, 1fr));
             gap: 14px;
-            align-items: flex-end;
+            align-items: end;
         }
 
         .filtre-alan {
             display: flex;
             flex-direction: column;
             gap: 6px;
+            min-width: 0;
         }
 
         .filtre-alan label {
@@ -106,6 +107,14 @@
             outline: none;
             color: #333;
             background: #fafafa;
+            min-width: 0;
+            width: 100%;
+        }
+
+        .filtre-alan input:focus,
+        .filtre-alan select:focus {
+            border-color: #4CAF7D;
+            background: #fff;
         }
 
         .filtre-butonlar {
@@ -133,6 +142,11 @@
             border-radius: 8px;
             font-size: 13px;
             text-decoration: none;
+        }
+
+        .btn-temizle:hover {
+            border-color: #e24b4a;
+            color: #e24b4a;
         }
 
         .section-head {
@@ -185,7 +199,7 @@
         }
 
         @@media (max-width: 1250px) {
-            .filtre-grid { grid-template-columns: repeat(3, 1fr); }
+            .filtre-grid { grid-template-columns: repeat(3, minmax(160px, 1fr)); }
             .istat-row { grid-template-columns: repeat(2, 1fr); }
         }
 

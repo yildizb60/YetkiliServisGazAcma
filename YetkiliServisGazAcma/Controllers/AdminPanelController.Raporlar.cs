@@ -59,6 +59,49 @@ namespace YetkiliServisGazAcma.Controllers
             return View("~/Views/AdminPanel/DevreyeAlmaDetay.cshtml", kayit);
         }
 
+        [HttpGet("devreyealmalar/pdf/{id:int}")]
+        public async Task<IActionResult> DevreyeAlmaPdf(int id)
+        {
+            var kullanici = await GetCurrentUser();
+            if (kullanici == null) return Redirect("/giris");
+
+            var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
+            var kayit = await AdminDevreyeAlmaKaydiBul(id, aktifSirketId);
+            if (kayit == null) return NotFound();
+
+            var pdf = DevreyeAlmaPdfService.Olustur(kayit);
+            return File(pdf, "application/pdf",
+                $"DevreyeAlma_{kayit.TesistatNo ?? id.ToString()}_{id}.pdf");
+        }
+
+        [HttpGet("devreyealmalar/excel/{id:int}")]
+        public async Task<IActionResult> DevreyeAlmaExcel(int id)
+        {
+            var kullanici = await GetCurrentUser();
+            if (kullanici == null) return Redirect("/giris");
+
+            var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
+            var kayit = await AdminDevreyeAlmaKaydiBul(id, aktifSirketId);
+            if (kayit == null) return NotFound();
+
+            var bytes = DevreyeAlmaExcelService.Olustur(new[] { kayit });
+            return File(bytes, "text/csv; charset=windows-1254",
+                $"DevreyeAlma_{kayit.TesistatNo ?? id.ToString()}_{id}.csv");
+        }
+
+        private async Task<Ys_DevreyeAlma?> AdminDevreyeAlmaKaydiBul(int id, int? aktifSirketId)
+        {
+            return await _context.Ys_DevreyeAlmalar
+                .Include(x => x.Firma)
+                    .ThenInclude(x => x!.Sirket)
+                .Include(x => x.Marka)
+                .FirstOrDefaultAsync(x => x.Id == id
+                    && !x.SilindiMi
+                    && x.Firma != null
+                    && !x.Firma.SilindiMi
+                    && (aktifSirketId == null || x.Firma.SirketId == aktifSirketId));
+        }
+
         [HttpGet("raporlar")]
         public async Task<IActionResult> Raporlar(DateTime? bas, DateTime? bit, string? tip, int? sirketId)
         {

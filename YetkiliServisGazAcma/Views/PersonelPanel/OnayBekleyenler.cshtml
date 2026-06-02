@@ -15,8 +15,10 @@
 @section Styles {
     <style>
         .approval-board { display: grid; gap: 16px; }
-        .approval-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: stretch; }
-        .approval-metrics .info-item { min-width: 0; }
+        .approval-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: stretch; padding: 0 24px 20px; }
+        .approval-metric { min-width: 0; background: #f8fafc; border: 1px solid #edf2f7; border-radius: 8px; padding: 14px 16px; display: grid; gap: 8px; }
+        .approval-metric .info-label { font-size: 11px; color: #526071; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+        .approval-metric .info-value { font-size: 22px; color: #172033; font-weight: 900; line-height: 1; }
         .filtre-kart { background: #fff; border-radius: 12px; border: 1px solid #eee; padding: 20px 24px; }
         .filtre-baslik { font-size: 14px; font-weight: 800; color: #333; margin-bottom: 16px; border-bottom: 1px solid #f0f0ee; padding-bottom: 12px; }
         .filtre-grid { display: grid; grid-template-columns: repeat(6, minmax(130px, 1fr)); gap: 14px; align-items: end; }
@@ -70,15 +72,15 @@
             </div>
         </div>
         <div class="approval-metrics">
-            <div class="info-item">
-                <div class="info-label">Onaya Gönderildi</div>
+            <div class="approval-metric">
+                <div class="info-label">Onaya G&#246;nderildi</div>
                 <div class="info-value">@bekleyenler.Count</div>
             </div>
-            <div class="info-item">
+            <div class="approval-metric">
                 <div class="info-label">Onaylananlar</div>
                 <div class="info-value">@onaylananlar.Count</div>
             </div>
-            <div class="info-item">
+            <div class="approval-metric">
                 <div class="info-label">Reddedilenler</div>
                 <div class="info-value">@reddedilenler.Count</div>
             </div>
@@ -123,7 +125,7 @@
         <div class="df-panel-head">
             <div class="approval-table-title">Yetki Belgesi Listesi</div>
             <div class="approval-tabs" data-approval-tabs>
-                <button type="button" class="approval-tab active" data-target="bekleyen">Onaya Gönderildi (@bekleyenler.Count)</button>
+                <button type="button" class="approval-tab active" data-target="bekleyen">Onaya G&#246;nderildi (@bekleyenler.Count)</button>
                 <button type="button" class="approval-tab" data-target="onaylanan">Onaylananlar (@onaylananlar.Count)</button>
                 <button type="button" class="approval-tab" data-target="reddedilen">Reddedilenler (@reddedilenler.Count)</button>
             </div>

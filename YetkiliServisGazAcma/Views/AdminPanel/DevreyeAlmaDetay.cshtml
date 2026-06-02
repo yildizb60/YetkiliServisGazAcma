@@ -31,7 +31,9 @@
                 <div class="df-panel-subtitle">@(Deger(Model.Firma?.Sirket?.SirketAdi)) / @(Deger(Model.Firma?.FirmaAdi)) / @(Deger(marka))</div>
             </div>
             <div class="df-actions">
-                <a class="df-btn df-btn-secondary df-btn-sm" href="/AdminPanel/devreyealmalar">Listeye Dön</a>
+                <a class="df-btn df-btn-secondary df-btn-sm" href="/AdminPanel/devreyealmalar">Listeye D&#246;n</a>
+                <a class="df-btn df-btn-primary df-btn-sm" href="/AdminPanel/devreyealmalar/pdf/@Model.Id" target="_blank">PDF</a>
+                <a class="df-btn df-btn-success df-btn-sm" href="/AdminPanel/devreyealmalar/excel/@Model.Id" target="_blank">Excel</a>
                 <span class="df-pill @durumClass">@durumYazi</span>
             </div>
         </div>

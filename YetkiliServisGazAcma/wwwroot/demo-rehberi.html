@@ -3,92 +3,105 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Gaz Açma Demo Rehberi</title>
+  <title>Genel Mudur Sunum Notu</title>
   <style>
-    :root { color-scheme: light; --ink:#172033; --muted:#667085; --line:#e7edf3; --brand:#1B9FD4; --ok:#4CAF7D; --soft:#f7fafc; }
-    * { box-sizing: border-box; }
-    body { margin:0; font-family: Arial, Helvetica, sans-serif; color:var(--ink); background:#f3f6f9; }
-    main { max-width: 1040px; margin: 0 auto; padding: 28px 20px 44px; }
-    header { background:#fff; border:1px solid var(--line); border-radius:12px; padding:22px 24px; margin-bottom:16px; }
-    h1 { font-size:26px; margin:0 0 6px; }
-    h2 { font-size:17px; margin:0 0 14px; }
-    p { margin:0; color:var(--muted); line-height:1.5; }
-    section { background:#fff; border:1px solid var(--line); border-radius:12px; padding:18px 20px; margin-top:14px; }
+    :root { --ink:#172033; --muted:#667085; --line:#e7edf3; --brand:#1B9FD4; --soft:#f7fafc; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Arial, Helvetica, sans-serif; color:var(--ink); background:#f3f6f9; }
+    main { max-width:960px; margin:0 auto; padding:28px 20px 44px; }
+    header, section { background:#fff; border:1px solid var(--line); border-radius:12px; padding:18px 20px; margin-bottom:14px; }
+    header { padding:22px 24px; }
+    h1 { font-size:26px; margin:0 0 8px; }
+    h2 { font-size:17px; margin:0 0 12px; }
+    p { margin:0; color:#344054; line-height:1.55; }
+    ol, ul { margin:0; padding-left:20px; color:#344054; line-height:1.6; }
+    li { margin:4px 0; }
     table { width:100%; border-collapse:collapse; font-size:14px; }
     th, td { border-bottom:1px solid var(--line); padding:10px 8px; text-align:left; vertical-align:top; }
     th { color:#475467; font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
     tr:last-child td { border-bottom:0; }
     code { background:#eef7fb; color:#0f6687; padding:2px 6px; border-radius:6px; }
-    .grid { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:14px; }
-    .note { border-left:4px solid var(--brand); background:var(--soft); padding:12px 14px; border-radius:8px; color:#344054; }
-    .ok { color:var(--ok); font-weight:700; }
-    .warn { color:#b35c00; font-weight:700; }
-    ul { margin:0; padding-left:18px; color:#344054; line-height:1.55; }
-    @media (max-width: 760px) { .grid { grid-template-columns:1fr; } table { font-size:12px; } }
-    @media print { body { background:#fff; } main { padding:0; } section, header { break-inside:avoid; } }
+    .note { border-left:4px solid var(--brand); background:var(--soft); padding:12px 14px; border-radius:8px; color:#344054; line-height:1.5; }
+    .muted { color:var(--muted); }
+    @media (max-width:760px) { table { font-size:12px; } }
+    @media print { body { background:#fff; } main { padding:0; } header, section { break-inside:avoid; } }
   </style>
 </head>
 <body>
 <main>
   <header>
-    <h1>Gaz Açma Sistemi Demo Rehberi</h1>
-    <p>Genel müdür demo akışı için kullanıcılar, servis entegrasyonu ve gösterilecek ana sayfalar.</p>
+    <h1>Yetkili Servis Gaz Acma Sistemi</h1>
+    <p class="muted">Genel mudur sunumunda takip edilecek sade anlatim ve demo akisi.</p>
   </header>
 
   <section>
-    <h2>Demo Kullanıcıları</h2>
+    <h2>Kisa Anlatim</h2>
+    <p>Bu sistem, yetkili servislerin cihaz devreye alma ve gaz acma surecini dijital olarak yonetmek icin hazirlandi. Yetkili servis kendi panelinden tesisat bilgisi sorguluyor, cihaz bilgisini goruyor ve devreye alma kaydini olusturuyor. Personel ve admin tarafinda ise yetki belgesi onaylari, servis/kullanici yonetimi, raporlar ve kayit detaylari tek ekranda takip ediliyor.</p>
+  </section>
+
+  <section>
+    <h2>Sunumda Vurgulanacak Kazanimlar</h2>
+    <ul>
+      <li>Yetkili servis islemleri tek panelde toplandi.</li>
+      <li>Tesisat ve sozlesme no ile musteri ve cihaz bilgileri sistemden cekiliyor.</li>
+      <li>Yetki belgesi yukleme, onaylama ve reddetme sureci takip ediliyor.</li>
+      <li>Admin, personel ve yetkili servis rolleri farkli yetkilerle ayrildi.</li>
+      <li>Devreye alma kayitlari filtrelenebiliyor, detaylari gorulebiliyor, PDF ve Excel olarak indirilebiliyor.</li>
+      <li>Rapor ekranlariyla hangi servis, hangi marka ve hangi tarih araliginda islem yapmis takip edilebiliyor.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Demo Akisi</h2>
+    <ol>
+      <li><b>Admin paneli acilir:</b> genel sayfalar, kullanici/servis yonetimi ve onay ekranlari gosterilir.</li>
+      <li><b>Yetki belgesi onaylari gosterilir:</b> bekleyen, onaylanan ve reddedilen belgeler ayni ekranda anlatilir.</li>
+      <li><b>Devreye alma listesi gosterilir:</b> filtreler, detay sayfasi, PDF ve Excel indirme butonlari gosterilir.</li>
+      <li><b>Yetkili servis paneline gecilir:</b> servis kendi hesabiyla girer, tesisat sorgular ve cihaz devreye alma kaydi olusturur.</li>
+      <li><b>Raporlar gosterilir:</b> tarih araligi secilip sistemdeki islemlerin yonetim tarafindan izlenebildigi anlatilir.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Devreye Alma Ornek Akisi</h2>
+    <div class="note">
+      Demo icin denenebilen ornek: <code>Tesisat No: 1000132</code> ve <code>Sozlesme No: 432237</code>.
+    </div>
+    <ul style="margin-top:12px">
+      <li>Yetkili servis tesisat ve sozlesme numarasini girer.</li>
+      <li>Sistem musteri, adres, sayac ve mevcut cihaz bilgilerini getirir.</li>
+      <li>Servisten gelen cihaz secilebilir veya ayni ekranda marka secimiyle isleme devam edilir.</li>
+      <li>Teknisyen ve cihaz bilgileri tamamlanir, devreye alma kaydi olusturulur.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Demo Kullanici Bilgileri</h2>
     <table>
       <thead>
-        <tr><th>Rol</th><th>E-posta</th><th>Şifre</th><th>Gösterilecek alan</th></tr>
+        <tr><th>Rol</th><th>E-posta</th><th>Sifre</th><th>Ne icin kullanilir?</th></tr>
       </thead>
       <tbody>
-        <tr><td>Genel Admin</td><td><code>test.geneladmin@demo.com</code></td><td><code>Demo123!</code></td><td>Tüm sistem, tüm şirketler, kullanıcı ve servis yönetimi.</td></tr>
-        <tr><td>Şirket Admini</td><td><code>test.sirketadmin@demo.com</code></td><td><code>Demo123!</code></td><td>Çorumgaz şirket paneli, kendi şirketindeki kayıtlar.</td></tr>
-        <tr><td>Personel</td><td><code>test.personel@demo.com</code></td><td><code>Demo123!</code></td><td>Çorumgaz için onay, rapor, devreye alma ve yetkili servis listeleri.</td></tr>
-        <tr><td>Yetkili Servis</td><td><code>test.servis@demo.com</code></td><td><code>Demo123!</code></td><td>Çorumgaz demo servis hesabı; marka, şube, yetki belgesi ve devreye alma akışı.</td></tr>
+        <tr><td>Genel Admin</td><td><code>test.geneladmin@demo.com</code></td><td><code>Demo123!</code></td><td>Tum sistemi ve yonetim ekranlarini gostermek icin.</td></tr>
+        <tr><td>Sirket Admini</td><td><code>test.sirketadmin@demo.com</code></td><td><code>Demo123!</code></td><td>Sirket bazli yonetim ornegi icin.</td></tr>
+        <tr><td>Personel</td><td><code>test.personel@demo.com</code></td><td><code>Demo123!</code></td><td>Onay ve takip ekranlarini gostermek icin.</td></tr>
+        <tr><td>Yetkili Servis</td><td><code>test.servis@demo.com</code></td><td><code>Demo123!</code></td><td>Tesisat sorgulama ve devreye alma akisini gostermek icin.</td></tr>
       </tbody>
     </table>
   </section>
 
   <section>
-    <h2>Devreye Alma Testi</h2>
-    <div class="grid">
-      <div class="note">
-        Tesisat sorgusu için denenebilen örnek:
-        <br><code>Tesisat No: 1000132</code>
-        <br><code>Sözleşme No: 432237</code>
-      </div>
-      <div class="note">
-        Akış: tesisat sorgula, servisten gelen cihazı seç, firmanın yetkili olduğu markayı seç, formu tamamla.
-      </div>
-    </div>
+    <h2>SMS Durumu Nasil Anlatilir?</h2>
+    <p>SMS dogrulama servisi ayrica entegre edilecek. Bugunku demoda once ana sistem akisi, tesisat sorgulama ve devreye alma sureci gosterilecek. SMS tarafinda firma bilgisine gore dogru baslikla OTP gonderimi planlandi; token/servis bilgisi netlestikten sonra aktif hale getirilecek.</p>
   </section>
 
   <section>
-    <h2>Servis Entegrasyonu</h2>
+    <h2>Sonraki Gelistirme Basliklari</h2>
     <ul>
-      <li><span class="ok">YS_CihazBilgileriGetir</span> metodu SOAP üzerinden çağrılıyor.</li>
-      <li>Yetkili servisin bağlı olduğu şirket/il bilgisine göre firma kodu seçiliyor: CORUMGAZ, KARGAZ, SURMELIGAZ, YALOVAGAZ veya CORLUGAZ.</li>
-      <li>Tesisat no ve sözleşme no sayısal olarak gönderiliyor; dönen müşteri, adres, sayaç ve cihaz listesi ekrana aktarılıyor.</li>
-      <li>TC/telefon servis cevabında yoksa sistemde çizgi olarak kalır; kayıt ekranı bu alanları zorunlu tutmaz.</li>
-    </ul>
-  </section>
-
-  <section>
-    <h2>SMS Durumu</h2>
-    <ul>
-      <li>Postman collection içindeki OTP gönderimi ayrı servis olarak hazırlandı.</li>
-      <li>Firma header bilgisi appsettings tarafındaki firma kodundan okunacak şekilde tasarlandı.</li>
-      <li><span class="warn">Demo için SMS bekletildi:</span> token alınamadığı durumda sistemi kilitlememek için önce servis tarafı gösterilecek.</li>
-    </ul>
-  </section>
-
-  <section>
-    <h2>Teknik Not</h2>
-    <ul>
-      <li>Fat controller geri bildirimi doğru: PersonelPanel ve Admin kullanıcı yönetimi sonraki teknik adımda servis sınıflarına bölünmeli.</li>
-      <li>Demo öncesinde riskli büyük refactor yerine görünür tasarım, filtre, yetki ve demo veri düzeltmeleri yapıldı.</li>
-      <li>Refactor planı: rapor sorguları, yetki kontrolü, kullanıcı yönetimi ve sertifika onay akışını ayrı service sınıflarına taşımak.</li>
+      <li>SMS dogrulamanin aktif edilmesi.</li>
+      <li>Mobil ekranlarda tablo gorunumlerinin daha da iyilestirilmesi.</li>
+      <li>Rapor ekranlarinda grafiklerin ve yonetim ozetlerinin zenginlestirilmesi.</li>
+      <li>Canli kullanim oncesi loglama, yetki kontrolu ve guvenlik kontrollerinin guclendirilmesi.</li>
     </ul>
   </section>
 </main>

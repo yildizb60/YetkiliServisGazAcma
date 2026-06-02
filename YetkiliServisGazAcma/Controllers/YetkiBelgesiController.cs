@@ -10,14 +10,14 @@ namespace YetkiliServisGazAcma.Controllers
 {
     [ApiExplorerSettings(IgnoreApi = true)]
     [Route("ys-yetki-belgesi")]
-    public class SertifikaController : Controller
+    public class YetkiBelgesiController : Controller
     {
         private readonly SertifikaService _service;
         private readonly UserManager<AppKullanici> _userManager;
         private readonly AppDbContext _context;
         private readonly AktifSirketService _aktifSirketService;
 
-        public SertifikaController(
+        public YetkiBelgesiController(
             SertifikaService service,
             UserManager<AppKullanici> userManager,
             AppDbContext context,
@@ -108,7 +108,7 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.Firma = await _context.Ys_Firmalar.FirstOrDefaultAsync(x => x.Id == firmaId);
             ViewBag.Kullanici = kullanici;
             await SetBildirimler(kullanici);
-            return View("~/Views/Sertifika/Index.cshtml", sertifikalar);
+            return View("~/Views/YetkiBelgesi/Index.cshtml", sertifikalar);
         }
 
         [HttpPost]
@@ -208,7 +208,7 @@ namespace YetkiliServisGazAcma.Controllers
                 .OrderByDescending(x => x.OnayTarihi ?? x.OlusturmaTarihi)
                 .Take(100)
                 .ToListAsync();
-            return View("~/Views/Sertifika/OnayBekleyenler.cshtml", sertifikalar);
+            return View("~/Views/YetkiBelgesi/OnayBekleyenler.cshtml", sertifikalar);
         }
 
         [Authorize(Roles = "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin")]
