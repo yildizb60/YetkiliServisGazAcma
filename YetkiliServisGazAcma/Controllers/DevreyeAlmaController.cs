@@ -254,15 +254,16 @@ namespace YetkiliServisGazAcma.Controllers
             }
 
             var ilkCihaz = servisSonuc.Cihazlar.FirstOrDefault();
+            var cariKod = servisSonuc.CariKod?.ToString(CultureInfo.InvariantCulture) ?? "";
             return Json(new
             {
                 basarili = true,
                 tesistatNo = (servisSonuc.TesisatNo ?? tesisatNo).ToString(CultureInfo.InvariantCulture),
                 sozlesmeNo = (servisSonuc.SozlesmeNo ?? sozlesmeNo).ToString(CultureInfo.InvariantCulture),
-                aboneNo = servisSonuc.CariKod?.ToString(CultureInfo.InvariantCulture) ?? "",
+                aboneNo = cariKod,
                 sayacNo = servisSonuc.SayacNo?.ToString(CultureInfo.InvariantCulture) ?? "",
                 musteriAdi = servisSonuc.CariAd ?? "",
-                musteriTcNo = "",
+                musteriTcNo = cariKod,
                 musteriTelefon = "",
                 adres = servisSonuc.Adres ?? "",
                 uygunlukBelgeNo = ilkCihaz?.ProjeNo ?? "",
@@ -274,7 +275,8 @@ namespace YetkiliServisGazAcma.Controllers
                     cihazTipi = c.CihazTipi ?? "",
                     cihazTipKodu = c.CihazTipKodu ?? "",
                     cihazKapasite = c.CihazKapasite?.ToString(CultureInfo.InvariantCulture) ?? "",
-                    projeNo = c.ProjeNo ?? ""
+                    projeNo = c.ProjeNo ?? "",
+                    tesisatNo = c.TesisatNo?.ToString(CultureInfo.InvariantCulture) ?? ""
                 }).ToList()
             });
         }

@@ -148,7 +148,7 @@
                         <div class="bilgi-deger" id="b-musteriTelefon"></div>
                     </div>
                     <div class="bilgi-alan">
-                        <div class="bilgi-label">Cari / Abone No</div>
+                        <div class="bilgi-label">Servis Cari Kod</div>
                         <div class="bilgi-deger" id="b-aboneNo"></div>
                     </div>
                     <div class="bilgi-alan">
@@ -386,7 +386,7 @@
             }
 
             document.getElementById("b-musteriAdi").textContent = data.musteriAdi || "-";
-            document.getElementById("b-musteriTcNo").textContent = data.musteriTcNo || "-";
+            document.getElementById("b-musteriTcNo").textContent = data.musteriTcNo || data.aboneNo || "-";
             document.getElementById("b-musteriTelefon").textContent = data.musteriTelefon || "-";
             document.getElementById("b-aboneNo").textContent = data.aboneNo || "-";
             document.getElementById("b-sozlesmeNo").textContent = data.sozlesmeNo || sozlesmeNo || "-";
@@ -413,7 +413,9 @@
                         satir.className = "cihaz-satir cihaz-secim";
                         satir.setAttribute("role", "button");
                         satir.setAttribute("tabindex", "0");
-                        satir.textContent = marka + " / " + tip + " / " + kapasite + " kcal - Proje: " + proje;
+                        const tipKodu = cihaz.cihazTipKodu ? " - Tip Kod: " + cihaz.cihazTipKodu : "";
+                        const cihazTesisat = cihaz.tesisatNo ? " - Tesisat: " + cihaz.tesisatNo : "";
+                        satir.textContent = marka + " / " + tip + " / " + kapasite + " kcal - Proje: " + proje + tipKodu + cihazTesisat;
                         satir.addEventListener("click", function () { cihazSec(index); });
                         satir.addEventListener("keydown", function (event) {
                             if (event.key === "Enter" || event.key === " ") {
@@ -431,7 +433,7 @@
             document.getElementById("f-uygunlukBelgeNo").value = data.uygunlukBelgeNo || "";
             document.getElementById("f-uygunlukTarihi").value = data.uygunlukTarihi || "";
             document.getElementById("f-musteriAdi").value = data.musteriAdi || "";
-            document.getElementById("f-musteriTcNo").value = data.musteriTcNo || "";
+            document.getElementById("f-musteriTcNo").value = data.musteriTcNo || data.aboneNo || "";
             document.getElementById("f-musteriTelefon").value = data.musteriTelefon || "";
             document.getElementById("f-adres").value = data.adres || "";
 

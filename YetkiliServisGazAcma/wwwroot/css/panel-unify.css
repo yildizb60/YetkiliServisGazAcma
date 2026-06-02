@@ -513,7 +513,7 @@ table tbody tr:hover,
 .df-detail-card-title {
     color: var(--df-text);
     font-size: 14px;
-    font-weight: 900;
+    font-weight: 800;
     margin: 0;
     padding: 14px 16px;
     border-bottom: 1px solid var(--df-border);
@@ -552,7 +552,7 @@ table tbody tr:hover,
 .df-detail-card .info-label {
     color: #697386 !important;
     font-size: 11px;
-    font-weight: 800;
+    font-weight: 700;
     text-transform: uppercase !important;
     letter-spacing: .04em !important;
     margin-bottom: 6px;
@@ -561,7 +561,7 @@ table tbody tr:hover,
 .df-detail-card .info-value {
     color: var(--df-text) !important;
     font-size: 14px;
-    font-weight: 850 !important;
+    font-weight: 600 !important;
     line-height: 1.4;
     overflow-wrap: anywhere;
 }

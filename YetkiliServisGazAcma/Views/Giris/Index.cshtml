@@ -434,17 +434,54 @@
             border: 1px solid #d9e8f4;
             border-radius: 14px;
             overflow: hidden;
-            padding: 6px 6px 8px;
+            padding: 6px;
         }
 
         .methods-head {
-            padding: 9px 16px;
-            border-bottom: 1px solid #d9e8f4;
+            padding: 9px 10px 9px 14px;
             font-size: 10px;
             font-weight: 800;
             color: #88a8c3;
             text-transform: uppercase;
             letter-spacing: .08em;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .methods-toggle {
+            border: 1px solid #d9e8f4;
+            background: #fff;
+            color: #1B9FD4;
+            border-radius: 999px;
+            padding: 6px 10px;
+            font-size: 11px;
+            font-weight: 800;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-transform: none;
+            letter-spacing: 0;
+        }
+
+        .methods-toggle .toggle-icon {
+            display: inline-block;
+            transition: transform .15s;
+        }
+
+        .methods-body {
+            border-top: 1px solid #d9e8f4;
+            padding-top: 2px;
+        }
+
+        .methods.is-collapsed .methods-body {
+            display: none;
+        }
+
+        .methods.is-collapsed .methods-toggle .toggle-icon {
+            transform: rotate(-90deg);
         }
 
         .method-row {
@@ -750,31 +787,39 @@
                 + Yetkili Servis Kaydı
             </a>
 
-            <div class="methods">
-                <div class="methods-head">Giriş Yöntemi</div>
-                <div class="method-row">
-                    <div class="method-icon mi-blue">🔧</div>
-                    <div>
-                        <div class="method-title">Yetkili Servis</div>
-                        <div class="method-desc">VKN ile giriş yapın</div>
-                    </div>
-                    <span class="method-tag">VKN</span>
+            <div class="methods is-collapsed" data-methods>
+                <div class="methods-head">
+                    <span>Giriş Yöntemi</span>
+                    <button class="methods-toggle" type="button" data-methods-toggle aria-expanded="false">
+                        <span class="toggle-text">Aç</span>
+                        <span class="toggle-icon">⌄</span>
+                    </button>
                 </div>
-                <div class="method-row">
-                    <div class="method-icon mi-green">💼</div>
-                    <div>
-                        <div class="method-title">Şirket Personeli</div>
-                        <div class="method-desc">E-posta ile giriş yapın</div>
+                <div class="methods-body">
+                    <div class="method-row">
+                        <div class="method-icon mi-blue">🔧</div>
+                        <div>
+                            <div class="method-title">Yetkili Servis</div>
+                            <div class="method-desc">VKN ile giriş yapın</div>
+                        </div>
+                        <span class="method-tag">VKN</span>
                     </div>
-                    <span class="method-tag">E-posta</span>
-                </div>
-                <div class="method-row">
-                    <div class="method-icon mi-violet">👤</div>
-                    <div>
-                        <div class="method-title">Sistem Yöneticisi</div>
-                        <div class="method-desc">E-posta ile giriş yapın</div>
+                    <div class="method-row">
+                        <div class="method-icon mi-green">💼</div>
+                        <div>
+                            <div class="method-title">Şirket Personeli</div>
+                            <div class="method-desc">E-posta ile giriş yapın</div>
+                        </div>
+                        <span class="method-tag">E-posta</span>
                     </div>
-                    <span class="method-tag">E-posta</span>
+                    <div class="method-row">
+                        <div class="method-icon mi-violet">👤</div>
+                        <div>
+                            <div class="method-title">Sistem Yöneticisi</div>
+                            <div class="method-desc">E-posta ile giriş yapın</div>
+                        </div>
+                        <span class="method-tag">E-posta</span>
+                    </div>
                 </div>
             </div>
 
@@ -794,6 +839,17 @@
             if (userInput) userInput.focus();
         });
     });
+
+    var methods = document.querySelector('[data-methods]');
+    var methodsToggle = document.querySelector('[data-methods-toggle]');
+    if (methods && methodsToggle) {
+        methodsToggle.addEventListener('click', function () {
+            var collapsed = methods.classList.toggle('is-collapsed');
+            methodsToggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+            var text = methodsToggle.querySelector('.toggle-text');
+            if (text) text.textContent = collapsed ? 'Aç' : 'Kapat';
+        });
+    }
 })();
 </script>
 
