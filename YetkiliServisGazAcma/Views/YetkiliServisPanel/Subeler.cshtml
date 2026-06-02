@@ -1,157 +1,167 @@
 @{
-    var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
     ViewData["Title"] = "Şube / Servis Noktaları";
     ViewData["PanelTitle"] = "Şube / Servis Noktaları";
     ViewData["PanelSubtitle"] = "Yetkili Servis";
     ViewData["ActiveMenu"] = "Subeler";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
-    var firma = ViewBag.Firma as YetkiliServisGazAcma.Entities.Ys_Firma;
     var subeler = ViewBag.Subeler as List<YetkiliServisGazAcma.Entities.Ys_Sube>
         ?? new List<YetkiliServisGazAcma.Entities.Ys_Sube>();
-    string adSoyad = kullanici?.AdSoyad ?? firma?.YetkiliKisi ?? "Yetkili Servis";
-    string basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "Y";
 }
 
 @section Styles {
     <style>
-.content { padding: 28px 32px; }
-        .mesaj-basarili { background: #E1F5EE; color: #085041; padding: 13px 18px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; border-left: 4px solid #4CAF7D; }
-        .mesaj-hata { background: #FCEBEB; color: #501313; padding: 13px 18px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; border-left: 4px solid #e24b4a; }
-        .kart { background: #fff; border-radius: 12px; border: 1px solid #eee; overflow: hidden; margin-bottom: 16px; }
-        .kart-baslik { display: flex; align-items: center; gap: 10px; padding: 16px 22px; border-bottom: 2px solid #f0f0ee; background: linear-gradient(to right, #f8f8f6, #fff); }
-        .kart-baslik-ikon { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 17px; background: #E6F1FB; }
-        .kart-baslik-yazi { font-size: 14px; font-weight: bold; color: #333; }
-        .kart-icerik { padding: 20px 22px; }
-        .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-        .alan { display: flex; flex-direction: column; gap: 6px; }
-        .alan.tam { grid-column: span 3; }
-        .alan label { font-size: 12px; color: #555; font-weight: bold; text-transform: uppercase; letter-spacing: .04em; }
-        .alan input, .alan textarea { padding: 10px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; color: #333; background: #fafafa; }
-        .alan textarea { resize: vertical; min-height: 70px; }
-        .alan input:focus, .alan textarea:focus { border-color: #4CAF7D; background: #fff; }
+        .sube-stack { display: grid; gap: 16px; }
+        .sube-card { background: #fff; border-radius: 12px; border: 1px solid #eee; overflow: hidden; }
+        .sube-card-head { display: flex; align-items: center; gap: 10px; padding: 16px 22px; border-bottom: 2px solid #f0f0ee; background: linear-gradient(to right, #f8f8f6, #fff); }
+        .sube-card-icon { width: 36px; height: 36px; border-radius: 9px; display: grid; place-items: center; font-size: 17px; background: #E6F1FB; }
+        .sube-card-title { font-size: 14px; font-weight: 800; color: #333; }
+        .sube-card-body { padding: 20px 22px; }
+        .sube-form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+        .sube-field { display: flex; flex-direction: column; gap: 6px; }
+        .sube-field.full { grid-column: span 3; }
+        .sube-field label { font-size: 12px; color: #555; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+        .sube-field input,
+        .sube-field textarea { padding: 10px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; color: #333; background: #fafafa; }
+        .sube-field textarea { resize: vertical; min-height: 70px; }
+        .sube-field input:focus,
+        .sube-field textarea:focus { border-color: #4CAF7D; background: #fff; }
         .aktif-row { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
         .aktif-row input { width: auto; }
-        .form-actions { margin-top: 14px; display: flex; justify-content: flex-end; gap: 10px; }
-        .btn-primary { padding: 10px 26px; background: #4CAF7D; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; }
+        .sube-actions { margin-top: 14px; display: flex; justify-content: flex-end; gap: 10px; }
+        .btn-primary { padding: 10px 26px; background: #4CAF7D; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 800; cursor: pointer; }
         .btn-primary:hover { background: #3d9e6e; }
-        .tablo { background: #fff; border-radius: 12px; border: 1px solid #eee; overflow: hidden; }
-        .tablo-head { padding: 12px 22px; background: #f4faf7; font-size: 12px; font-weight: bold; color: #4CAF7D; display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr 0.7fr 1.2fr; gap: 10px; }
-        .tablo-row { padding: 12px 22px; border-top: 1px solid #f0f0ee; display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr 0.7fr 1.2fr; gap: 10px; align-items: center; font-size: 14px; color: #333; }
-        .badge { display: inline-block; padding: 4px 10px; border-radius: 10px; font-size: 11px; font-weight: bold; }
-        .b-green { background: #E1F5EE; color: #085041; }
-        .b-red { background: #FCEBEB; color: #501313; }
         .btn-mini { padding: 6px 10px; border-radius: 6px; font-size: 12px; text-decoration: none; border: 1px solid #ddd; background: #f9f9f9; color: #333; cursor: pointer; }
         .btn-mini:hover { border-color: #4CAF7D; color: #085041; }
         .btn-danger { border-color: #e24b4a; color: #e24b4a; background: #fff; }
         .btn-danger:hover { background: #FCEBEB; }
-        @@media (max-width: 1100px) {
-            .form-grid { grid-template-columns: 1fr 1fr; }
-            .alan.tam { grid-column: span 2; }
-            .tablo-head, .tablo-row { grid-template-columns: 1fr 1fr 1fr; row-gap: 8px; }
-        }
-        @@media (max-width: 800px) {
-            .sidebar { position: static; width: 100%; height: auto; }
-            .main { margin-left: 0; }
-            .form-grid { grid-template-columns: 1fr; }
-            .alan.tam { grid-column: span 1; }
+        .sube-table-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+        @@media (max-width: 900px) {
+            .sube-form-grid { grid-template-columns: 1fr; }
+            .sube-field.full { grid-column: auto; }
         }
     </style>
 }
 
-@if (TempData["Basarili"] != null)
-{
-    <div class="mesaj-basarili">&#9989; @TempData["Basarili"]</div>
-}
-@if (TempData["Hata"] != null)
-{
-    <div class="mesaj-hata">&#10060; @TempData["Hata"]</div>
-}
-<div class="kart">
-    <div class="kart-baslik">
-        <div class="kart-baslik-ikon">&#127970;</div>
-        <div class="kart-baslik-yazi">Yeni &#350;ube Ekle</div>
-    </div>
-    <div class="kart-icerik">
-        <form method="post" action="/ys-panel/subeler/ekle">
-            @Html.AntiForgeryToken()
-            <div class="form-grid">
-                <div class="alan">
-                    <label>&#350;ube Ad&#305;</label>
-                    <input type="text" name="subeAdi" placeholder="&#214;rn: Merkez &#350;ube" required />
-                </div>
-                <div class="alan">
-                    <label>&#304;l</label>
-                    <input type="text" name="il" placeholder="&#214;rn: &#199;orum" />
-                </div>
-                <div class="alan">
-                    <label>&#304;l&#231;e</label>
-                    <input type="text" name="ilce" placeholder="&#214;rn: Merkez" />
-                </div>
-                <div class="alan">
-                    <label>Telefon</label>
-                    <input type="text" name="telefon" placeholder="0XXX XXX XX XX" />
-                </div>
-                <div class="alan tam">
-                    <label>Adres</label>
-                    <textarea name="adres" placeholder="Adres bilgisi"></textarea>
-                </div>
-                <div class="alan">
-                    <label>Aktif mi?</label>
-                    <div class="aktif-row">
-                        <input type="checkbox" name="aktifMi" value="true" checked />
-                        <span>Aktif</span>
+<div class="sube-stack">
+    @if (TempData["Basarili"] != null)
+    {
+        <div class="df-alert df-alert-success">@TempData["Basarili"]</div>
+    }
+    @if (TempData["Hata"] != null)
+    {
+        <div class="df-alert df-alert-danger">@TempData["Hata"]</div>
+    }
+
+    <section class="sube-card">
+        <div class="sube-card-head">
+            <div class="sube-card-icon">&#127970;</div>
+            <div class="sube-card-title">Yeni Şube Ekle</div>
+        </div>
+        <div class="sube-card-body">
+            <form method="post" action="/ys-panel/subeler/ekle">
+                @Html.AntiForgeryToken()
+                <div class="sube-form-grid">
+                    <div class="sube-field">
+                        <label>Şube Adı</label>
+                        <input type="text" name="subeAdi" placeholder="Örn: Merkez Şube" required />
+                    </div>
+                    <div class="sube-field">
+                        <label>İl</label>
+                        <input type="text" name="il" placeholder="Örn: Çorum" />
+                    </div>
+                    <div class="sube-field">
+                        <label>İlçe</label>
+                        <input type="text" name="ilce" placeholder="Örn: Merkez" />
+                    </div>
+                    <div class="sube-field">
+                        <label>Telefon</label>
+                        <input type="text" name="telefon" placeholder="0XXX XXX XX XX" />
+                    </div>
+                    <div class="sube-field full">
+                        <label>Adres</label>
+                        <textarea name="adres" placeholder="Adres bilgisi"></textarea>
+                    </div>
+                    <div class="sube-field">
+                        <label>Aktif mi?</label>
+                        <div class="aktif-row">
+                            <input type="checkbox" name="aktifMi" value="true" checked />
+                            <span>Aktif</span>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="form-actions">
-                <button type="submit" class="btn-primary">Kaydet</button>
-            </div>
-        </form>
-    </div>
-</div>
-<div class="tablo">
-    <div class="tablo-head">
-        <div>&#350;ube</div>
-        <div>&#304;l</div>
-        <div>&#304;l&#231;e</div>
-        <div>Telefon</div>
-        <div>Durum</div>
-        <div>&#304;&#351;lem</div>
-    </div>
-    @if (!subeler.Any())
-    {
-        <div style="padding:30px; text-align:center; color:#bbb;">Hen&#252;z &#351;ube kayd&#305; yok.</div>
-    }
-    else
-    {
-        @foreach (var s in subeler)
-        {
-            <div class="tablo-row">
-                <div>@s.SubeAdi</div>
-                <div>@s.Il</div>
-                <div>@s.Ilce</div>
-                <div>@s.Telefon</div>
-                <div>
-                    <span class="badge @(s.AktifMi ? "b-green" : "b-red")">
-                        @(s.AktifMi ? "Aktif" : "Pasif")
-                    </span>
+                <div class="sube-actions">
+                    <button type="submit" class="btn-primary">Kaydet</button>
                 </div>
-                <div style="display:flex; gap:8px;">
-                    <a class="btn-mini" href="/ys-panel/subeler/duzenle/@s.Id">D&#252;zenle</a>
-                    <form method="post" action="/ys-panel/subeler/durum">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="id" value="@s.Id" />
-                        <button type="submit" class="btn-mini">
-                            @(s.AktifMi ? "Pasife Al" : "Aktife Al")
-                        </button>
-                    </form>
-                    <form method="post" action="/ys-panel/subeler/sil" onsubmit="return confirm('&#350;ubeyi silmek istiyor musunuz?');">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="id" value="@s.Id" />
-                        <button type="submit" class="btn-mini btn-danger">Sil</button>
-                    </form>
-                </div>
+            </form>
+        </div>
+    </section>
+
+    <section class="df-page-panel">
+        <div class="df-panel-head">
+            <div>
+                <h2 class="df-panel-title">Şube Listesi</h2>
+                <div class="df-panel-subtitle">@subeler.Count kayıt</div>
             </div>
-        }
-    }
+        </div>
+        <div class="df-table-wrap">
+            <table class="df-table">
+                <thead>
+                    <tr>
+                        <th>Şube</th>
+                        <th>İl</th>
+                        <th>İlçe</th>
+                        <th>Telefon</th>
+                        <th>Durum</th>
+                        <th>İşlem</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!subeler.Any())
+                    {
+                        <tr>
+                            <td colspan="6">
+                                <div class="df-empty">
+                                    <div class="df-empty-title">Henüz şube kaydı yok.</div>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var s in subeler)
+                        {
+                            <tr>
+                                <td>@s.SubeAdi</td>
+                                <td>@s.Il</td>
+                                <td>@s.Ilce</td>
+                                <td>@s.Telefon</td>
+                                <td>
+                                    <span class="df-pill @(s.AktifMi ? "df-pill-success" : "df-pill-danger")">
+                                        @(s.AktifMi ? "Aktif" : "Pasif")
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="sube-table-actions">
+                                        <a class="btn-mini" href="/ys-panel/subeler/duzenle/@s.Id">Düzenle</a>
+                                        <form method="post" action="/ys-panel/subeler/durum">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@s.Id" />
+                                            <button type="submit" class="btn-mini">
+                                                @(s.AktifMi ? "Pasife Al" : "Aktife Al")
+                                            </button>
+                                        </form>
+                                        <form method="post" action="/ys-panel/subeler/sil" onsubmit="return confirm('Şubeyi silmek istiyor musunuz?');">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@s.Id" />
+                                            <button type="submit" class="btn-mini btn-danger">Sil</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
 </div>

@@ -106,6 +106,7 @@ namespace YetkiliServisGazAcma.Controllers
 
             ViewBag.FirmaId = firmaId;
             ViewBag.Firma = await _context.Ys_Firmalar.FirstOrDefaultAsync(x => x.Id == firmaId);
+            ViewBag.Kullanici = kullanici;
             await SetBildirimler(kullanici);
             return View("~/Views/Sertifika/Index.cshtml", sertifikalar);
         }

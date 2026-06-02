@@ -46,28 +46,4 @@
 </script>
 <script>\n    (function () {\n        var btns = document.querySelectorAll(".notif");\n        btns.forEach(function(btn){\n            var panel = btn.parentElement.querySelector(".notif-panel");\n            if (!panel) return;\n            btn.addEventListener("click", function(e){\n                e.stopPropagation();\n                panel.classList.toggle("open");\n            });\n            panel.addEventListener("click", function(e){ e.stopPropagation(); });\n        });\n        document.addEventListener("click", function(){\n            document.querySelectorAll(".notif-panel").forEach(function(p){ p.classList.remove("open"); });\n        });\n    })();\n</script>
 <script>    (function () {        var btns = document.querySelectorAll(".notif");        btns.forEach(function(btn){            var panel = btn.parentElement.querySelector(".notif-panel");            if (!panel) return;            btn.addEventListener("click", function(e){                e.stopPropagation();                panel.classList.toggle("open");            });            panel.addEventListener("click", function(e){ e.stopPropagation(); });        });        document.addEventListener("click", function(){            document.querySelectorAll(".notif-panel").forEach(function(p){ p.classList.remove("open"); });        });    })();</script>
-<script>
-(function () {
-    // PERSONEL_YETKI_MENU
-    var yetki = {
-        sertifika: @((ViewBag.YetkiSertifika == true).ToString().ToLower()),
-        rapor: @((ViewBag.YetkiRapor == true).ToString().ToLower())
-    };
-
-    function hide(selector, allowed) {
-        if (allowed) return;
-        var list = document.querySelectorAll(selector);
-        list.forEach(function (el) { el.style.display = 'none'; });
-    }
-
-    hide('a[href="/personel-panel/onay-bekleyenler"]', yetki.sertifika);
-    hide('a[href="/personel-panel/onay-gecmisi"]', yetki.sertifika);
-    hide('a[href="/personel-panel/raporlar"]', yetki.rapor);
-
-    var raporSection = Array.from(document.querySelectorAll('.nav-section')).find(function (x) {
-        return (x.textContent || '').toLowerCase().indexOf('rapor') >= 0;
-    });
-    if (!yetki.rapor && raporSection) raporSection.style.display = 'none';
-})();
-</script>
 }

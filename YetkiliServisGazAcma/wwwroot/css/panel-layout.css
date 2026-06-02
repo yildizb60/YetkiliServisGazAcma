@@ -858,6 +858,12 @@ textarea {
     border-color: var(--df-success-500);
 }
 
+.df-btn-warning {
+    background: var(--df-warning-50);
+    color: var(--df-warning-500);
+    border-color: #ffe6a8;
+}
+
 .df-btn-danger {
     background: var(--df-danger-50);
     color: var(--df-danger-500);

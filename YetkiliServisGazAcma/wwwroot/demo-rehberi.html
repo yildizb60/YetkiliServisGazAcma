@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gaz Açma Demo Rehberi</title>
+  <style>
+    :root { color-scheme: light; --ink:#172033; --muted:#667085; --line:#e7edf3; --brand:#1B9FD4; --ok:#4CAF7D; --soft:#f7fafc; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: Arial, Helvetica, sans-serif; color:var(--ink); background:#f3f6f9; }
+    main { max-width: 1040px; margin: 0 auto; padding: 28px 20px 44px; }
+    header { background:#fff; border:1px solid var(--line); border-radius:12px; padding:22px 24px; margin-bottom:16px; }
+    h1 { font-size:26px; margin:0 0 6px; }
+    h2 { font-size:17px; margin:0 0 14px; }
+    p { margin:0; color:var(--muted); line-height:1.5; }
+    section { background:#fff; border:1px solid var(--line); border-radius:12px; padding:18px 20px; margin-top:14px; }
+    table { width:100%; border-collapse:collapse; font-size:14px; }
+    th, td { border-bottom:1px solid var(--line); padding:10px 8px; text-align:left; vertical-align:top; }
+    th { color:#475467; font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
+    tr:last-child td { border-bottom:0; }
+    code { background:#eef7fb; color:#0f6687; padding:2px 6px; border-radius:6px; }
+    .grid { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:14px; }
+    .note { border-left:4px solid var(--brand); background:var(--soft); padding:12px 14px; border-radius:8px; color:#344054; }
+    .ok { color:var(--ok); font-weight:700; }
+    .warn { color:#b35c00; font-weight:700; }
+    ul { margin:0; padding-left:18px; color:#344054; line-height:1.55; }
+    @media (max-width: 760px) { .grid { grid-template-columns:1fr; } table { font-size:12px; } }
+    @media print { body { background:#fff; } main { padding:0; } section, header { break-inside:avoid; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Gaz Açma Sistemi Demo Rehberi</h1>
+    <p>Genel müdür demo akışı için kullanıcılar, servis entegrasyonu ve gösterilecek ana sayfalar.</p>
+  </header>
+
+  <section>
+    <h2>Demo Kullanıcıları</h2>
+    <table>
+      <thead>
+        <tr><th>Rol</th><th>E-posta</th><th>Şifre</th><th>Gösterilecek alan</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Genel Admin</td><td><code>test.geneladmin@demo.com</code></td><td><code>Demo123!</code></td><td>Tüm sistem, tüm şirketler, kullanıcı ve servis yönetimi.</td></tr>
+        <tr><td>Şirket Admini</td><td><code>test.sirketadmin@demo.com</code></td><td><code>Demo123!</code></td><td>Çorumgaz şirket paneli, kendi şirketindeki kayıtlar.</td></tr>
+        <tr><td>Personel</td><td><code>test.personel@demo.com</code></td><td><code>Demo123!</code></td><td>Çorumgaz için onay, rapor, devreye alma ve yetkili servis listeleri.</td></tr>
+        <tr><td>Yetkili Servis</td><td><code>test.servis@demo.com</code></td><td><code>Demo123!</code></td><td>Çorumgaz demo servis hesabı; marka, şube, yetki belgesi ve devreye alma akışı.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Devreye Alma Testi</h2>
+    <div class="grid">
+      <div class="note">
+        Tesisat sorgusu için denenebilen örnek:
+        <br><code>Tesisat No: 1000132</code>
+        <br><code>Sözleşme No: 432237</code>
+      </div>
+      <div class="note">
+        Akış: tesisat sorgula, servisten gelen cihazı seç, firmanın yetkili olduğu markayı seç, formu tamamla.
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Servis Entegrasyonu</h2>
+    <ul>
+      <li><span class="ok">YS_CihazBilgileriGetir</span> metodu SOAP üzerinden çağrılıyor.</li>
+      <li>Yetkili servisin bağlı olduğu şirket/il bilgisine göre firma kodu seçiliyor: CORUMGAZ, KARGAZ, SURMELIGAZ, YALOVAGAZ veya CORLUGAZ.</li>
+      <li>Tesisat no ve sözleşme no sayısal olarak gönderiliyor; dönen müşteri, adres, sayaç ve cihaz listesi ekrana aktarılıyor.</li>
+      <li>TC/telefon servis cevabında yoksa sistemde çizgi olarak kalır; kayıt ekranı bu alanları zorunlu tutmaz.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>SMS Durumu</h2>
+    <ul>
+      <li>Postman collection içindeki OTP gönderimi ayrı servis olarak hazırlandı.</li>
+      <li>Firma header bilgisi appsettings tarafındaki firma kodundan okunacak şekilde tasarlandı.</li>
+      <li><span class="warn">Demo için SMS bekletildi:</span> token alınamadığı durumda sistemi kilitlememek için önce servis tarafı gösterilecek.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Teknik Not</h2>
+    <ul>
+      <li>Fat controller geri bildirimi doğru: PersonelPanel ve Admin kullanıcı yönetimi sonraki teknik adımda servis sınıflarına bölünmeli.</li>
+      <li>Demo öncesinde riskli büyük refactor yerine görünür tasarım, filtre, yetki ve demo veri düzeltmeleri yapıldı.</li>
+      <li>Refactor planı: rapor sorguları, yetki kontrolü, kullanıcı yönetimi ve sertifika onay akışını ayrı service sınıflarına taşımak.</li>
+    </ul>
+  </section>
+</main>
+</body>
+</html>

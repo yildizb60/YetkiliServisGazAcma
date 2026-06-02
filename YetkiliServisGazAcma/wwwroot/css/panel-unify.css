@@ -422,7 +422,9 @@ table tbody tr:hover,
 }
 
 .df-btn-ghost,
-.df-actions .df-btn-ghost {
+.df-actions .df-btn-ghost,
+.df-btn-warning,
+.df-actions .df-btn-warning {
     background: var(--df-warning-soft) !important;
     border-color: #fff0c8 !important;
     color: var(--df-warning) !important;

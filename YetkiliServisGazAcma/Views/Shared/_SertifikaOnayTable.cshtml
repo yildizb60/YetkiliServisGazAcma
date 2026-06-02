@@ -31,7 +31,7 @@
         <tbody>
             @if (!kayitlar.Any())
             {
-                <tr>
+                <tr class="approval-empty-row">
                     <td colspan="8">
                         <div class="df-empty">
                             <div class="df-empty-title">@bosMetin</div>
@@ -49,13 +49,26 @@
                     var kalanYazi = kalanGun < 0 ? $"{Math.Abs(kalanGun)} gün geçti" : $"{kalanGun} gün kaldı";
                     var durumClass = s.Durum == 1 ? "df-pill-success" : s.Durum == 2 ? "df-pill-danger" : "df-pill-warning";
                     var durumYazi = s.Durum == 1 ? "Onaylandı" : s.Durum == 2 ? "Reddedildi" : "Onay bekliyor";
+                    var firmaAdi = s.Firma?.FirmaAdi ?? "";
+                    var sirketAdi = s.Firma?.Sirket?.SirketAdi ?? "";
+                    var vergiNo = s.Firma?.VergiNo ?? "";
+                    var yukleme = s.OlusturmaTarihi.ToString("yyyy-MM-dd");
+                    var baslangicFiltre = baslangic.ToString("yyyy-MM-dd");
+                    var bitisFiltre = s.SertifikaBitisTarihi.ToString("yyyy-MM-dd");
 
-                    <tr>
+                    <tr data-approval-row="true"
+                        data-firma="@firmaAdi"
+                        data-sirket="@sirketAdi"
+                        data-vergi="@vergiNo"
+                        data-yukleme="@yukleme"
+                        data-baslangic="@baslangicFiltre"
+                        data-bitis="@bitisFiltre"
+                        data-durum="@durum">
                         <td>
-                            <div class="df-cell-main">@s.Firma?.FirmaAdi</div>
-                            <div class="df-cell-sub">@s.Firma?.VergiNo</div>
+                            <div class="df-cell-main">@firmaAdi</div>
+                            <div class="df-cell-sub">@vergiNo</div>
                         </td>
-                        <td>@s.Firma?.Sirket?.SirketAdi</td>
+                        <td>@sirketAdi</td>
                         <td>@s.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</td>
                         <td>@baslangic.ToString("dd.MM.yyyy")</td>
                         <td>

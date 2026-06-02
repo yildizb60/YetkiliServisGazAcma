@@ -493,6 +493,7 @@ namespace YetkiliServisGazAcma.Controllers
 
             ViewBag.Sube = sube;
             ViewBag.Firma = firma;
+            ViewBag.Kullanici = kullanici;
             await SetBildirimler(kullanici);
             return View("~/Views/YetkiliServisPanel/SubeDuzenle.cshtml");
         }
@@ -913,6 +914,7 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.ChartMarkaLabels = chartMarka.Select(x => x.Marka).ToList();
             ViewBag.ChartMarkaData = chartMarka.Select(x => x.Sayi).ToList();
             ViewBag.Firma = firma;
+            ViewBag.Kullanici = kullanici;
             await SetBildirimler(kullanici);
             return View("~/Views/YetkiliServisPanel/Raporlar.cshtml");
         }

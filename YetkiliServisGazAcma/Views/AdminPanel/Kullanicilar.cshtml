@@ -25,11 +25,7 @@
             align-items: end;
         }
 
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
+        .filter-group { display: flex; flex-direction: column; gap: 6px; }
 
         .filter-group label {
             font-size: 11px;
@@ -47,10 +43,7 @@
             font-size: 13px;
         }
 
-        .filter-actions {
-            display: flex;
-            gap: 8px;
-        }
+        .filter-actions { display: flex; gap: 8px; }
 
         .btn-filter {
             padding: 9px 14px;
@@ -61,10 +54,7 @@
             cursor: pointer;
         }
 
-        .btn-apply {
-            background: #1B9FD4;
-            color: #fff;
-        }
+        .btn-apply { background: #1B9FD4; color: #fff; }
 
         .btn-clear {
             background: #fff;
@@ -93,61 +83,24 @@
             font-weight: 800;
         }
 
-        .alert-success {
-            background: #E1F5EE;
-            color: #085041;
-            border: 1px solid #c3e6db;
-        }
-
-        .alert-danger {
-            background: #FCEBEB;
-            color: #501313;
-            border: 1px solid #eccaca;
-        }
+        .alert-success { background: #E1F5EE; color: #085041; border: 1px solid #c3e6db; }
+        .alert-danger { background: #FCEBEB; color: #501313; border: 1px solid #eccaca; }
 
         .tablo-head,
-        .tablo-row {
-            grid-template-columns: 1.2fr 1.1fr .9fr .9fr .6fr 1.5fr;
-        }
+        .tablo-row { grid-template-columns: 1.2fr 1.1fr .9fr .9fr .6fr 1.5fr; }
 
-        .action-cell {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            flex-wrap: wrap;
-        }
-
-        .action-cell form {
-            margin: 0 !important;
-            display: inline-block;
-        }
-
-        .action-cell .btn-link {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 30px;
-            min-width: 88px;
-            line-height: 1;
-            white-space: nowrap;
-        }
+        .action-cell { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .action-cell form { margin: 0 !important; display: inline-block; }
+        .action-cell .df-btn { min-width: 82px; }
 
         @@media (max-width: 1100px) {
-            .filter-bar {
-                grid-template-columns: 1fr 1fr;
-            }
-
+            .filter-bar { grid-template-columns: 1fr 1fr; }
             .tablo-head,
-            .tablo-row {
-                grid-template-columns: 1fr;
-                gap: 8px;
-            }
+            .tablo-row { grid-template-columns: 1fr; gap: 8px; }
         }
 
         @@media (max-width: 720px) {
-            .filter-bar {
-                grid-template-columns: 1fr;
-            }
+            .filter-bar { grid-template-columns: 1fr; }
         }
     </style>
 }
@@ -160,7 +113,7 @@
     <div class="filter-group">
         <label>Tip</label>
         <select name="tip">
-            <option value="" selected="@(string.IsNullOrEmpty(seciliTip) ? "selected" : null)">Tüm</option>
+            <option value="" selected="@(string.IsNullOrEmpty(seciliTip) ? "selected" : null)">Tümü</option>
             <option value="SuperAdmin" selected="@(seciliTip == "SuperAdmin" ? "selected" : null)">Süper Admin</option>
             <option value="Personel" selected="@(seciliTip == "Personel" ? "selected" : null)">Personel</option>
             <option value="Servis" selected="@(seciliTip == "Servis" ? "selected" : null)">Yetkili Servis</option>
@@ -169,7 +122,7 @@
     <div class="filter-group">
         <label>Durum</label>
         <select name="durum">
-            <option value="" selected="@(string.IsNullOrEmpty(seciliDurum) ? "selected" : null)">Tüm</option>
+            <option value="" selected="@(string.IsNullOrEmpty(seciliDurum) ? "selected" : null)">Tümü</option>
             <option value="Aktif" selected="@(seciliDurum == "Aktif" ? "selected" : null)">Aktif</option>
             <option value="Pasif" selected="@(seciliDurum == "Pasif" ? "selected" : null)">Pasif</option>
         </select>
@@ -234,15 +187,15 @@
                     }
                 </div>
                 <div class="action-cell df-actions">
-                    <a class="df-btn df-btn-secondary df-btn-sm" href="/AdminPanel/Kullanicilar/Duzenle/@k.Id">D&#252;zenle</a>
+                    <a class="df-btn df-btn-secondary df-btn-sm" href="/AdminPanel/Kullanicilar/Duzenle/@k.Id">Düzenle</a>
                     <form method="post" action="/AdminPanel/Kullanicilar/durum/@k.Id">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="aktif" value='@(k.AktifMi ? "false" : "true")' />
-                        <button type="submit" class="df-btn @(k.AktifMi ? "df-btn-ghost" : "df-btn-success") df-btn-sm">
+                        <button type="submit" class="df-btn @(k.AktifMi ? "df-btn-warning" : "df-btn-success") df-btn-sm">
                             @(k.AktifMi ? "Pasifleştir" : "Aktifleştir")
                         </button>
                     </form>
-                    <form method="post" action="/AdminPanel/kullanicilar/sil/@k.Id" onsubmit="return confirm('Kullanıcı silmek istediğinize emin misiniz?');">
+                    <form method="post" action="/AdminPanel/kullanicilar/sil/@k.Id" onsubmit="return confirm('Kullanıcıyı silmek istediğinize emin misiniz?');">
                         @Html.AntiForgeryToken()
                         <button type="submit" class="df-btn df-btn-danger df-btn-sm">Sil</button>
                     </form>

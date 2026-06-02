@@ -1,70 +1,71 @@
 @{
-    var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
     ViewData["Title"] = "Şube Düzenle";
     ViewData["PanelTitle"] = "Şube Düzenle";
     ViewData["PanelSubtitle"] = "Yetkili Servis";
     ViewData["ActiveMenu"] = "Subeler";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
     var sube = ViewBag.Sube as YetkiliServisGazAcma.Entities.Ys_Sube;
-    var firma = ViewBag.Firma as YetkiliServisGazAcma.Entities.Ys_Firma;
-    string adSoyad = kullanici?.AdSoyad ?? firma?.YetkiliKisi ?? "Yetkili Servis";
-    string basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "Y";
 }
 
 @section Styles {
     <style>
-        .content { padding: 28px 32px; }
-        .kart { background: #fff; border-radius: 12px; border: 1px solid #eee; overflow: hidden; }
-        .kart-baslik { display: flex; align-items: center; gap: 10px; padding: 16px 22px; border-bottom: 2px solid #f0f0ee; background: linear-gradient(to right, #f8f8f6, #fff); }
-        .kart-baslik-ikon { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 17px; background: #E6F1FB; }
-        .kart-baslik-yazi { font-size: 14px; font-weight: bold; color: #333; }
-        .kart-icerik { padding: 20px 22px; }
-        .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-        .alan { display: flex; flex-direction: column; gap: 6px; }
-        .alan.tam { grid-column: span 3; }
-        .alan label { font-size: 12px; color: #555; font-weight: bold; text-transform: uppercase; letter-spacing: .04em; }
-        .alan input, .alan textarea { padding: 10px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; color: #333; background: #fafafa; }
-        .alan textarea { resize: vertical; min-height: 70px; }
-        .alan input:focus, .alan textarea:focus { border-color: #4CAF7D; background: #fff; }
+        .sube-edit-card { background: #fff; border-radius: 12px; border: 1px solid #eee; overflow: hidden; }
+        .sube-edit-head { display: flex; align-items: center; gap: 10px; padding: 16px 22px; border-bottom: 2px solid #f0f0ee; background: linear-gradient(to right, #f8f8f6, #fff); }
+        .sube-edit-icon { width: 36px; height: 36px; border-radius: 9px; display: grid; place-items: center; font-size: 17px; background: #E6F1FB; }
+        .sube-edit-title { font-size: 14px; font-weight: 800; color: #333; }
+        .sube-edit-body { padding: 20px 22px; }
+        .sube-form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+        .sube-field { display: flex; flex-direction: column; gap: 6px; }
+        .sube-field.full { grid-column: span 3; }
+        .sube-field label { font-size: 12px; color: #555; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+        .sube-field input,
+        .sube-field textarea { padding: 10px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; color: #333; background: #fafafa; }
+        .sube-field textarea { resize: vertical; min-height: 70px; }
+        .sube-field input:focus,
+        .sube-field textarea:focus { border-color: #4CAF7D; background: #fff; }
         .aktif-row { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
         .aktif-row input { width: auto; }
-        .form-actions { margin-top: 14px; display: flex; justify-content: flex-end; gap: 10px; }
-        .btn-primary { padding: 10px 26px; background: #4CAF7D; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; }
+        .sube-actions { margin-top: 14px; display: flex; justify-content: flex-end; gap: 10px; }
+        .btn-primary { padding: 10px 26px; background: #4CAF7D; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 800; cursor: pointer; }
         .btn-primary:hover { background: #3d9e6e; }
         .btn-secondary { padding: 10px 20px; background: #fff; color: #4CAF7D; border: 1px solid #4CAF7D; border-radius: 8px; font-size: 14px; text-decoration: none; }
+        @@media (max-width: 900px) {
+            .sube-form-grid { grid-template-columns: 1fr; }
+            .sube-field.full { grid-column: auto; }
+        }
     </style>
 }
 
-<div class="kart">
-    <div class="kart-baslik">
-        <div class="kart-baslik-ikon">&#127970;</div>
-        <div class="kart-baslik-yazi">Şube Bilgileri</div>
+<div class="sube-edit-card">
+    <div class="sube-edit-head">
+        <div class="sube-edit-icon">&#127970;</div>
+        <div class="sube-edit-title">Şube Bilgileri</div>
     </div>
-    <div class="kart-icerik">
+    <div class="sube-edit-body">
         <form method="post" action="/ys-panel/subeler/duzenle/@sube?.Id">
             @Html.AntiForgeryToken()
-            <div class="form-grid">
-                <div class="alan">
+            <div class="sube-form-grid">
+                <div class="sube-field">
                     <label>Şube Adı</label>
                     <input type="text" name="subeAdi" value="@sube?.SubeAdi" required />
                 </div>
-                <div class="alan">
+                <div class="sube-field">
                     <label>İl</label>
                     <input type="text" name="il" value="@sube?.Il" />
                 </div>
-                <div class="alan">
+                <div class="sube-field">
                     <label>İlçe</label>
                     <input type="text" name="ilce" value="@sube?.Ilce" />
                 </div>
-                <div class="alan">
+                <div class="sube-field">
                     <label>Telefon</label>
                     <input type="text" name="telefon" value="@sube?.Telefon" />
                 </div>
-                <div class="alan tam">
+                <div class="sube-field full">
                     <label>Adres</label>
                     <textarea name="adres">@sube?.Adres</textarea>
                 </div>
-                <div class="alan">
+                <div class="sube-field">
                     <label>Aktif mi?</label>
                     <div class="aktif-row">
                         <input type="checkbox" name="aktifMi" value="true" @(sube?.AktifMi == true ? "checked" : "") />
@@ -72,7 +73,7 @@
                     </div>
                 </div>
             </div>
-            <div class="form-actions">
+            <div class="sube-actions">
                 <a class="btn-secondary" href="/ys-panel/subeler">Vazgeç</a>
                 <button type="submit" class="btn-primary">Kaydet</button>
             </div>

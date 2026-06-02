@@ -1152,19 +1152,43 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null) return Redirect("/giris");
 
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            var basTarih = bas?.Date ?? DateTime.Now.Date.AddDays(-30);
-            var bitTarih = bit?.Date ?? DateTime.Now.Date;
+            var devreyeBaseQuery = _context.Ys_DevreyeAlmalar
+                .Include(x => x.Firma)
+                .Where(x => !x.SilindiMi
+                    && x.Firma != null
+                    && !x.Firma.SilindiMi
+                    && (sirketId == null || x.Firma.SirketId == sirketId));
+
+            DateTime basTarih;
+            DateTime bitTarih;
+            if (!bas.HasValue && !bit.HasValue)
+            {
+                var mevcutAralik = await devreyeBaseQuery
+                    .GroupBy(_ => 1)
+                    .Select(g => new
+                    {
+                        Bas = g.Min(x => x.DevreyeAlmaTarihi),
+                        Bit = g.Max(x => x.DevreyeAlmaTarihi)
+                    })
+                    .FirstOrDefaultAsync();
+
+                basTarih = mevcutAralik?.Bas.Date ?? DateTime.Now.Date.AddDays(-30);
+                bitTarih = mevcutAralik?.Bit.Date ?? DateTime.Now.Date;
+            }
+            else
+            {
+                bitTarih = bit?.Date ?? DateTime.Now.Date;
+                basTarih = bas?.Date ?? bitTarih.AddDays(-30);
+            }
+
             var bitSonrasi = bitTarih.AddDays(1);
             var raporTipi = string.IsNullOrWhiteSpace(tip) ? "devreye" : tip.Trim().ToLowerInvariant();
             var tr = new System.Globalization.CultureInfo("tr-TR");
 
-            var temelQuery = _context.Ys_DevreyeAlmalar.Include(x => x.Firma).Include(x => x.Marka)
-                .Where(x => !x.SilindiMi
-                    && x.Firma != null
-                    && !x.Firma.SilindiMi
-                    && x.DevreyeAlmaTarihi >= basTarih
-                    && x.DevreyeAlmaTarihi < bitSonrasi
-                    && (sirketId == null || x.Firma.SirketId == sirketId));
+            var temelQuery = devreyeBaseQuery
+                .Include(x => x.Marka)
+                .Where(x => x.DevreyeAlmaTarihi >= basTarih
+                    && x.DevreyeAlmaTarihi < bitSonrasi);
 
             var sertifikaQuery = _context.Ys_Sertifikalar
                 .Include(x => x.Firma)

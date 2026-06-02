@@ -5,225 +5,154 @@
     ViewData["PanelSubtitle"] = "Admin Paneli";
     ViewData["ActiveMenu"] = "DevreyeAlmalar";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
+
+    var marka = Model.Marka?.MarkaAdi ?? Model.CihazMarka ?? "-";
+    var durumClass = Model.Durum == 1 ? "df-pill-success" : Model.Durum == 2 ? "df-pill-danger" : "df-pill-warning";
+    var durumYazi = Model.Durum == 1 ? "Tamamlandı" : Model.Durum == 2 ? "İptal" : "Bekliyor";
 }
 
-@section Styles {
-    <style>
-        .content {
-            display: grid;
-            gap: 14px;
-            padding-bottom: 40px;
-        }
+@functions {
+    private static string Deger(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? "-" : value;
+    }
 
-        .back-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: #1B9FD4;
-            font-weight: 800;
-            text-decoration: none;
-        }
-
-        .hero {
-            background: linear-gradient(135deg, #1a1a2e 0%, #1B9FD4 100%);
-            border-radius: 14px;
-            padding: 24px 26px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 16px;
-            box-shadow: 0 12px 24px rgba(15, 23, 42, .12);
-        }
-
-        .hero-left {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .hero-icon {
-            width: 56px;
-            height: 56px;
-            border-radius: 14px;
-            background: rgba(255, 255, 255, .18);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 26px;
-        }
-
-        .hero h1 {
-            font-size: 21px;
-            margin-bottom: 4px;
-            color: #fff;
-        }
-
-        .hero p {
-            color: rgba(255, 255, 255, .8);
-            font-size: 13px;
-        }
-
-        .status {
-            padding: 6px 12px;
-            border-radius: 999px;
-            font-size: 12px;
-            font-weight: 800;
-        }
-
-        .ok { background: #4CAF7D; color: #fff; }
-        .warn { background: #f0a500; color: #fff; }
-        .cancel { background: #e24b4a; color: #fff; }
-
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
-        }
-
-        .stat {
-            background: #fff;
-            border: 1px solid #dbe3ea;
-            border-radius: 12px;
-            padding: 12px 14px;
-        }
-
-        .stat-label {
-            font-size: 11px;
-            color: #64748b;
-            text-transform: uppercase;
-            font-weight: 800;
-        }
-
-        .stat-value {
-            font-size: 18px;
-            font-weight: 800;
-            margin-top: 4px;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
-
-        .detail-card {
-            background: #fff;
-            border: 1px solid #dbe3ea;
-            border-radius: 14px;
-            box-shadow: 0 8px 18px rgba(15, 23, 42, .06);
-            overflow: hidden;
-        }
-
-        .card-head {
-            padding: 12px 14px;
-            font-size: 14px;
-            font-weight: 800;
-            border-bottom: 1px solid #e9eff4;
-            background: linear-gradient(90deg, #f7fbfe, #fff);
-        }
-
-        .card-body {
-            padding: 14px;
-        }
-
-        .row {
-            display: grid;
-            grid-template-columns: 140px 1fr;
-            gap: 10px;
-            padding: 8px 0;
-            border-bottom: 1px solid #f1f5f9;
-            font-size: 13px;
-        }
-
-        .row:last-child {
-            border-bottom: 0;
-        }
-
-        .k {
-            color: #64748b;
-            font-size: 11px;
-            text-transform: uppercase;
-            font-weight: 800;
-        }
-
-        .v {
-            font-weight: 600;
-            color: #0f172a;
-        }
-
-        .note {
-            background: #fff;
-            border: 1px solid #dbe3ea;
-            border-left: 4px solid #1B9FD4;
-            border-radius: 12px;
-            padding: 12px 14px;
-            color: #334155;
-        }
-
-        @@media (max-width: 1040px) {
-            .stats {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        @@media (max-width: 760px) {
-            .row,
-            .stats {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
+    private static string Tarih(DateTime? value)
+    {
+        return value.HasValue ? value.Value.ToString("dd.MM.yyyy") : "-";
+    }
 }
 
-<a class="back-link" href="/AdminPanel/devreyealmalar">← Devreye Alma Listesine Dön</a>
-
-<div class="hero">
-    <div class="hero-left">
-        <div class="hero-icon">🔧</div>
-        <div>
-            <h1>Tesisat No: @Model.TesistatNo</h1>
-            <p>@(Model.Firma?.Sirket?.SirketAdi ?? "-") • @(Model.Firma?.FirmaAdi ?? "-") • @(Model.Marka?.MarkaAdi ?? Model.CihazMarka ?? "-")</p>
+<div class="cert-stack">
+    <section class="df-page-panel">
+        <div class="df-panel-head">
+            <div>
+                <h2 class="df-panel-title">Tesisat No: @Deger(Model.TesistatNo)</h2>
+                <div class="df-panel-subtitle">@(Deger(Model.Firma?.Sirket?.SirketAdi)) / @(Deger(Model.Firma?.FirmaAdi)) / @(Deger(marka))</div>
+            </div>
+            <div class="df-actions">
+                <a class="df-btn df-btn-secondary df-btn-sm" href="/AdminPanel/devreyealmalar">Listeye Dön</a>
+                <span class="df-pill @durumClass">@durumYazi</span>
+            </div>
         </div>
-    </div>
-    <span class="status @(Model.Durum == 1 ? "ok" : Model.Durum == 2 ? "cancel" : "warn")">@(Model.Durum == 1 ? "Tamamlandı" : Model.Durum == 2 ? "İptal" : "Bekliyor")</span>
-</div>
 
-<div class="stats">
-    <div class="stat"><div class="stat-label">Devreye Alma Tarihi</div><div class="stat-value">@Model.OlusturmaTarihi.ToString("dd.MM.yyyy")</div></div>
-    <div class="stat"><div class="stat-label">Marka</div><div class="stat-value">@(Model.Marka?.MarkaAdi ?? Model.CihazMarka ?? "-")</div></div>
-    <div class="stat"><div class="stat-label">Teknisyen</div><div class="stat-value">@(Model.TeknisyenAdi ?? "-")</div></div>
-    <div class="stat"><div class="stat-label">Servis</div><div class="stat-value">@(Model.Firma?.FirmaAdi ?? "-")</div></div>
-</div>
-
-<div class="grid">
-    <div class="detail-card">
-        <div class="card-head">Müşteri Bilgileri</div>
-        <div class="card-body">
-            <div class="row"><div class="k">Müşteri</div><div class="v">@Model.MusteriAdi</div></div>
-            <div class="row"><div class="k">Telefon</div><div class="v">@Model.MusteriTelefon</div></div>
-            <div class="row"><div class="k">TC</div><div class="v">@Model.MusteriTcNo</div></div>
-            <div class="row"><div class="k">Adres</div><div class="v">@Model.Adres</div></div>
+        <div class="df-toolbar">
+            <div class="df-form-row">
+                <div class="df-field">
+                    <label>Devreye Alma Tarihi</label>
+                    <div class="df-control">@Model.DevreyeAlmaTarihi.ToString("dd.MM.yyyy")</div>
+                </div>
+                <div class="df-field">
+                    <label>Marka</label>
+                    <div class="df-control">@Deger(marka)</div>
+                </div>
+                <div class="df-field">
+                    <label>Teknisyen</label>
+                    <div class="df-control">@Deger(Model.TeknisyenAdi)</div>
+                </div>
+                <div class="df-field">
+                    <label>Servis</label>
+                    <div class="df-control">@Deger(Model.Firma?.FirmaAdi)</div>
+                </div>
+            </div>
         </div>
+    </section>
+
+    <div class="df-detail-grid">
+        <section class="df-detail-card">
+            <div class="df-detail-card-title">Müşteri Bilgileri</div>
+            <div class="df-detail-info">
+                <div class="info-item">
+                    <div class="info-label">Müşteri</div>
+                    <div class="info-value">@Deger(Model.MusteriAdi)</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Telefon</div>
+                    <div class="info-value">@Deger(Model.MusteriTelefon)</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">TC Kimlik No</div>
+                    <div class="info-value">@Deger(Model.MusteriTcNo)</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Adres</div>
+                    <div class="info-value">@Deger(Model.Adres)</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="df-detail-card">
+            <div class="df-detail-card-title">Tesisat Bilgileri</div>
+            <div class="df-detail-info">
+                <div class="info-item">
+                    <div class="info-label">Tesisat No</div>
+                    <div class="info-value">@Deger(Model.TesistatNo)</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Cari / Abone No</div>
+                    <div class="info-value">@Deger(Model.AboneNo)</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Uygunluk Belge No</div>
+                    <div class="info-value">@Deger(Model.UygunlukBelgeNo)</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Uygunluk Tarihi</div>
+                    <div class="info-value">@Tarih(Model.UygunlukTarihi)</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="df-detail-card">
+            <div class="df-detail-card-title">Cihaz Bilgileri</div>
+            <div class="df-detail-info">
+                <div class="info-item">
+                    <div class="info-label">Cihaz Tipi</div>
+                    <div class="info-value">@Deger(Model.CihazTipi)</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Cihaz Markası</div>
+                    <div class="info-value">@Deger(Model.CihazMarka)</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Model</div>
+                    <div class="info-value">@Deger(Model.CihazModeli)</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Seri No</div>
+                    <div class="info-value">@Deger(Model.SeriNo)</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Kapasite</div>
+                    <div class="info-value">@Deger(Model.CihazKapasite)</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="df-detail-card">
+            <div class="df-detail-card-title">Teknisyen Bilgileri</div>
+            <div class="df-detail-info">
+                <div class="info-item">
+                    <div class="info-label">Teknisyen</div>
+                    <div class="info-value">@Deger(Model.TeknisyenAdi)</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Yetki Belgesi No</div>
+                    <div class="info-value">@Deger(Model.TeknisyenSertifikaNo)</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Kayıt Tarihi</div>
+                    <div class="info-value">@Model.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</div>
+                </div>
+            </div>
+        </section>
     </div>
 
-    <div class="detail-card">
-        <div class="card-head">Cihaz ve Teknisyen Bilgileri</div>
-        <div class="card-body">
-            <div class="row"><div class="k">Cihaz Tipi</div><div class="v">@Model.CihazTipi</div></div>
-            <div class="row"><div class="k">Model</div><div class="v">@Model.CihazModeli</div></div>
-            <div class="row"><div class="k">Seri No</div><div class="v">@Model.SeriNo</div></div>
-            <div class="row"><div class="k">Kapasite</div><div class="v">@Model.CihazKapasite</div></div>
-            <div class="row"><div class="k">Teknisyen</div><div class="v">@Model.TeknisyenAdi</div></div>
-            <div class="row"><div class="k">Yetki Belgesi No</div><div class="v">@Model.TeknisyenSertifikaNo</div></div>
-        </div>
-    </div>
+    @if (!string.IsNullOrWhiteSpace(Model.Notlar))
+    {
+        <section class="df-detail-card">
+            <div class="df-detail-card-title">Notlar</div>
+            <div class="df-detail-note">@Model.Notlar</div>
+        </section>
+    }
 </div>
-
-@if (!string.IsNullOrWhiteSpace(Model.Notlar))
-{
-    <div class="note"><strong>Notlar:</strong> @Model.Notlar</div>
-}

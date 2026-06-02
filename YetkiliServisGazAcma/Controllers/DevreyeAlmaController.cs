@@ -202,6 +202,7 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.Markalar = markalar;
             ViewBag.Firma = await _context.Ys_Firmalar
                 .FirstOrDefaultAsync(x => x.Id == kullanici.FirmaId);
+            ViewBag.Kullanici = kullanici;
             await SetBildirimler(kullanici);
 
             return View("~/Views/DevreyeAlma/Index.cshtml");
@@ -322,6 +323,7 @@ namespace YetkiliServisGazAcma.Controllers
 
             ViewBag.Firma = await _context.Ys_Firmalar
                 .FirstOrDefaultAsync(x => x.Id == kullanici.FirmaId);
+            ViewBag.Kullanici = kullanici;
             await SetBildirimler(kullanici);
             return View("~/Views/DevreyeAlma/Detay.cshtml", islem);
         }
@@ -482,6 +484,7 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.SeciliBit = bit?.ToString("yyyy-MM-dd");
             ViewBag.SeciliMusteri = musteri;
             ViewBag.SeciliDurum = durum;
+            ViewBag.Kullanici = kullanici;
             await SetBildirimler(kullanici);
             return View("~/Views/DevreyeAlma/Gecmis.cshtml", islemler);
         }

@@ -9,14 +9,49 @@
     var sertifikalar = ViewBag.Sertifikalar as List<YetkiliServisGazAcma.Entities.Ys_Sertifika> ?? new();
     var subeler = ViewBag.Subeler as List<YetkiliServisGazAcma.Entities.Ys_Sube> ?? new();
     var devreye = ViewBag.Devreye as List<YetkiliServisGazAcma.Entities.Ys_DevreyeAlma> ?? new();
-    var kategoriler = servis?.FirmaKategoriler?.Where(x => !x.SilindiMi && x.Kategori != null)
+    var kategoriler = servis?.FirmaKategoriler?.Where(x => !x.SilindiMi
+            && x.Kategori != null
+            && !x.Kategori.SilindiMi
+            && x.Kategori.AktifMi
+            && KullanilanKategoriMi(x.Kategori.Ad))
         .Select(x => x.Kategori!)
-        .GroupBy(x => x.Id)
+        .GroupBy(x => NormalizeKategori(x.Ad))
         .Select(g => g.First())
         .ToList() ?? new List<YetkiliServisGazAcma.Entities.UrunKategori>();
     string adSoyad = Kullanici?.AdSoyad ?? "S&#252;per Admin";
     string basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "A";
     int onayBekleyen = ViewBag.OnayBekleyen is int v ? v : 0;
+}
+
+@functions {
+    private static bool KullanilanKategoriMi(string? ad)
+    {
+        var key = NormalizeKategori(ad);
+
+        return key == "kombi"
+            || key.Contains("merkezikazan")
+            || key.Contains("sofben")
+            || key.Contains("sohben");
+    }
+
+    private static string NormalizeKategori(string? ad)
+    {
+        if (string.IsNullOrWhiteSpace(ad))
+            return string.Empty;
+
+        var normalized = ad.Trim().ToLower(new System.Globalization.CultureInfo("tr-TR")).Normalize(System.Text.NormalizationForm.FormD);
+        var chars = normalized
+            .Where(ch => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(ch) != System.Globalization.UnicodeCategory.NonSpacingMark && char.IsLetterOrDigit(ch))
+            .ToArray();
+
+        return new string(chars)
+            .Replace("ı", "i")
+            .Replace("ş", "s")
+            .Replace("ğ", "g")
+            .Replace("ü", "u")
+            .Replace("ö", "o")
+            .Replace("ç", "c");
+    }
 }
 
 @section Styles {

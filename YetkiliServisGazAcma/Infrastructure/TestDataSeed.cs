@@ -33,10 +33,10 @@ namespace YetkiliServisGazAcma.Infrastructure
             await KullaniciOlusturVeyaGuncelle(
                 userManager,
                 "test.sirketadmin@demo.com",
-                "Demo Kargaz Şirket Admini",
+                "Demo Çorumgaz Şirket Admini",
                 "905551000002",
                 3,
-                kargaz.Id,
+                corumgaz.Id,
                 null,
                 new[] { KullaniciRolAdlari.SirketAdmin });
 
@@ -46,18 +46,19 @@ namespace YetkiliServisGazAcma.Infrastructure
                 "Demo Çok Şirketli Personel",
                 "905551000003",
                 2,
-                kargaz.Id,
+                corumgaz.Id,
                 null,
                 new[] { KullaniciRolAdlari.Personel });
 
-            var firma = await YetkiliServisFirmasiBulVeyaOlustur(context, kargaz);
+            var firma = await YetkiliServisFirmasiBulVeyaOlustur(context, corumgaz);
+            await DemoServisIlkKurulumuHazirla(context, firma);
             await KullaniciOlusturVeyaGuncelle(
                 userManager,
                 "test.servis@demo.com",
                 "Demo Yetkili Servis",
                 "905551000004",
                 1,
-                kargaz.Id,
+                corumgaz.Id,
                 firma.Id,
                 new[] { KullaniciRolAdlari.YetkiliServis });
 
@@ -70,14 +71,14 @@ namespace YetkiliServisGazAcma.Infrastructure
                 new Dag_PersonelYetki
                 {
                     KullaniciId = personel.Id,
-                    SirketId = kargaz.Id,
+                    SirketId = corumgaz.Id,
                     YetkiTipi = YetkiTipleri.TAM_YETKI,
                     OlusturanKullanici = "demo-seed"
                 },
                 new Dag_PersonelYetki
                 {
                     KullaniciId = personel.Id,
-                    SirketId = corumgaz.Id,
+                    SirketId = kargaz.Id,
                     YetkiTipi = YetkiTipleri.RAPOR_GOR,
                     OlusturanKullanici = "demo-seed"
                 },
@@ -160,12 +161,155 @@ namespace YetkiliServisGazAcma.Infrastructure
                 firma.Telefon = "05551000004";
                 firma.Email = email;
                 firma.VergiNo = vergiNo;
+                firma.VergiDairesi = "Demo";
+                firma.FaaliyetIli = sirket.Il;
                 firma.SirketId = sirket.Id;
                 firma.AktifMi = true;
             }
 
             await context.SaveChangesAsync();
             return firma;
+        }
+
+        private static async Task DemoServisIlkKurulumuHazirla(AppDbContext context, Ys_Firma firma)
+        {
+            var markaAdlari = new[] { "Arçelik", "Baymak", "Vaillant", "Bosch" };
+            foreach (var markaAdi in markaAdlari)
+            {
+                var marka = await MarkaBulVeyaOlustur(context, markaAdi);
+                var bagVar = await context.Ys_FirmaMarkalar.AnyAsync(x =>
+                    x.FirmaId == firma.Id &&
+                    x.MarkaId == marka.Id &&
+                    !x.SilindiMi);
+
+                if (!bagVar)
+                {
+                    context.Ys_FirmaMarkalar.Add(new Ys_FirmaMarka
+                    {
+                        FirmaId = firma.Id,
+                        MarkaId = marka.Id,
+                        YetkiBitisTarihi = DateTime.Now.AddYears(5),
+                        OlusturanKullanici = "demo-seed"
+                    });
+                }
+            }
+
+            var kategori = await KategoriBulVeyaOlustur(context, "Kombi", 1);
+            var kategoriBagVar = await context.Ys_FirmaKategoriler.AnyAsync(x =>
+                x.FirmaId == firma.Id &&
+                x.KategoriId == kategori.Id &&
+                !x.SilindiMi);
+
+            if (!kategoriBagVar)
+            {
+                context.Ys_FirmaKategoriler.Add(new Ys_FirmaKategori
+                {
+                    FirmaId = firma.Id,
+                    KategoriId = kategori.Id,
+                    YetkiBitisTarihi = DateTime.Now.AddYears(5),
+                    OlusturanKullanici = "demo-seed"
+                });
+            }
+
+            var subeVar = await context.Ys_Subeler.AnyAsync(x => x.FirmaId == firma.Id && !x.SilindiMi);
+            if (!subeVar)
+            {
+                context.Ys_Subeler.Add(new Ys_Sube
+                {
+                    FirmaId = firma.Id,
+                    SubeAdi = "Çorum Merkez Şube",
+                    Il = "Çorum",
+                    Ilce = "Merkez",
+                    Telefon = "05551000004",
+                    Adres = "Demo yetkili servis şubesi",
+                    AktifMi = true,
+                    OlusturanKullanici = "demo-seed"
+                });
+            }
+
+            var bugun = DateTime.Now.Date;
+            var gecerliSertifika = await context.Ys_Sertifikalar.FirstOrDefaultAsync(x =>
+                x.FirmaId == firma.Id &&
+                !x.SilindiMi &&
+                x.Durum == 1 &&
+                (!x.SertifikaBaslangicTarihi.HasValue || x.SertifikaBaslangicTarihi.Value.Date <= bugun) &&
+                x.SertifikaBitisTarihi.Date >= bugun);
+
+            if (gecerliSertifika != null)
+            {
+                gecerliSertifika.DosyaYolu = "/uploads/demo-yetki-belgesi.html";
+                gecerliSertifika.GuncellemeTarihi = DateTime.Now;
+                gecerliSertifika.GuncelleyenKullanici = "demo-seed";
+            }
+            else
+            {
+                context.Ys_Sertifikalar.Add(new Ys_Sertifika
+                {
+                    FirmaId = firma.Id,
+                    DosyaYolu = "/uploads/demo-yetki-belgesi.html",
+                    SertifikaBaslangicTarihi = bugun.AddDays(-7),
+                    SertifikaBitisTarihi = bugun.AddYears(1),
+                    Durum = 1,
+                    OnayTarihi = DateTime.Now,
+                    OnaylayanKullanici = "demo-seed",
+                    OlusturanKullanici = "demo-seed"
+                });
+            }
+
+            await context.SaveChangesAsync();
+        }
+
+        private static async Task<Ys_Marka> MarkaBulVeyaOlustur(AppDbContext context, string markaAdi)
+        {
+            var normalized = Normalize(markaAdi);
+            var marka = (await context.Ys_Markalar
+                    .Where(x => !x.SilindiMi)
+                    .ToListAsync())
+                .FirstOrDefault(x => Normalize(x.MarkaAdi) == normalized);
+
+            if (marka != null)
+            {
+                marka.AktifMi = true;
+                await context.SaveChangesAsync();
+                return marka;
+            }
+
+            marka = new Ys_Marka
+            {
+                MarkaAdi = markaAdi,
+                AktifMi = true,
+                OlusturanKullanici = "demo-seed"
+            };
+            context.Ys_Markalar.Add(marka);
+            await context.SaveChangesAsync();
+            return marka;
+        }
+
+        private static async Task<UrunKategori> KategoriBulVeyaOlustur(AppDbContext context, string kategoriAdi, int siraNo)
+        {
+            var normalized = Normalize(kategoriAdi);
+            var kategori = (await context.UrunKategoriler
+                    .Where(x => !x.SilindiMi)
+                    .ToListAsync())
+                .FirstOrDefault(x => Normalize(x.Ad) == normalized);
+
+            if (kategori != null)
+            {
+                kategori.AktifMi = true;
+                await context.SaveChangesAsync();
+                return kategori;
+            }
+
+            kategori = new UrunKategori
+            {
+                Ad = kategoriAdi,
+                SiraNo = siraNo,
+                AktifMi = true,
+                OlusturanKullanici = "demo-seed"
+            };
+            context.UrunKategoriler.Add(kategori);
+            await context.SaveChangesAsync();
+            return kategori;
         }
 
         private static async Task<AppKullanici> KullaniciOlusturVeyaGuncelle(
