@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Yetkili Servis Gaz Açma Sistemi - Bilgi Notu</title>
+  <style>
+    :root {
+      --ink:#152238;
+      --muted:#5f6f82;
+      --line:#dfe7ef;
+      --blue:#1B9FD4;
+      --green:#4CAF7D;
+      --soft:#f6f9fc;
+    }
+
+    * { box-sizing:border-box; }
+    body {
+      margin:0;
+      background:#eef3f8;
+      color:var(--ink);
+      font-family:Arial, Helvetica, sans-serif;
+      line-height:1.5;
+    }
+
+    main {
+      width:min(980px, calc(100% - 32px));
+      margin:24px auto 40px;
+      background:#fff;
+      border:1px solid var(--line);
+      box-shadow:0 18px 50px rgba(16,42,67,.08);
+    }
+
+    header {
+      padding:28px 34px 24px;
+      border-bottom:4px solid var(--blue);
+      display:flex;
+      justify-content:space-between;
+      gap:24px;
+      align-items:flex-start;
+    }
+
+    .brand {
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      color:#0d5f7f;
+      font-size:13px;
+      font-weight:800;
+      margin-bottom:18px;
+    }
+
+    .brand-dot {
+      width:10px;
+      height:10px;
+      border-radius:50%;
+      background:var(--blue);
+      box-shadow:0 0 0 4px rgba(27,159,212,.14);
+    }
+
+    h1 {
+      margin:0;
+      font-size:28px;
+      line-height:1.18;
+      letter-spacing:-.01em;
+    }
+
+    .subtitle {
+      margin-top:10px;
+      max-width:680px;
+      color:var(--muted);
+      font-size:15px;
+    }
+
+    .date-box {
+      min-width:150px;
+      border:1px solid var(--line);
+      background:var(--soft);
+      border-radius:8px;
+      padding:12px 14px;
+      font-size:12px;
+      color:var(--muted);
+      text-align:right;
+    }
+
+    .date-box strong {
+      display:block;
+      color:var(--ink);
+      font-size:15px;
+      margin-top:4px;
+    }
+
+    section { padding:22px 34px; border-bottom:1px solid var(--line); }
+    section:last-child { border-bottom:0; }
+    h2 { margin:0 0 12px; font-size:18px; }
+    p { margin:0; color:#344054; }
+    ul, ol { margin:0; padding-left:20px; color:#344054; }
+    li { margin:5px 0; }
+
+    .grid {
+      display:grid;
+      grid-template-columns:repeat(3, minmax(0, 1fr));
+      gap:12px;
+    }
+
+    .metric {
+      border:1px solid var(--line);
+      border-radius:8px;
+      padding:14px;
+      background:var(--soft);
+    }
+
+    .metric strong {
+      display:block;
+      font-size:20px;
+      color:var(--blue);
+      margin-bottom:4px;
+    }
+
+    .metric span {
+      display:block;
+      font-size:13px;
+      color:var(--muted);
+    }
+
+    .two-col {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:20px;
+    }
+
+    .box {
+      border:1px solid var(--line);
+      border-radius:8px;
+      padding:16px;
+      background:#fff;
+    }
+
+    .box h3 {
+      margin:0 0 10px;
+      font-size:15px;
+      color:#0d5f7f;
+    }
+
+    .tag {
+      display:inline-block;
+      border-radius:999px;
+      background:#edfaf4;
+      color:#08704d;
+      font-size:12px;
+      font-weight:800;
+      padding:5px 9px;
+      margin:3px 4px 3px 0;
+    }
+
+    footer {
+      padding:18px 34px 24px;
+      color:var(--muted);
+      font-size:12px;
+      background:#fbfdff;
+    }
+
+    @media (max-width:760px) {
+      header { display:block; }
+      .date-box { margin-top:16px; text-align:left; }
+      .grid, .two-col { grid-template-columns:1fr; }
+    }
+
+    @media print {
+      body { background:#fff; }
+      main { width:100%; margin:0; border:0; box-shadow:none; }
+      section, header, footer { break-inside:avoid; }
+      a { color:inherit; text-decoration:none; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <div class="brand"><span class="brand-dot"></span> Dijital Yetkili Servis Yönetimi</div>
+      <h1>Yetkili Servis Gaz Açma Sistemi</h1>
+      <p class="subtitle">Yetkili servislerin devreye alma, yetki belgesi, onay ve raporlama süreçlerini tek merkezden yönetmek için geliştirilen dijital panel.</p>
+    </div>
+    <div class="date-box">
+      Bilgi Notu
+      <strong>Haziran 2026</strong>
+    </div>
+  </header>
+
+  <section>
+    <h2>Projenin Amacı</h2>
+    <p>Gaz açma ve cihaz devreye alma işlemlerinde yetkili servis, personel ve yönetim tarafında oluşan kayıt, onay ve takip süreçlerini dijitalleştirmek; işlemlerin daha düzenli, izlenebilir ve raporlanabilir şekilde yürütülmesini sağlamak.</p>
+  </section>
+
+  <section>
+    <h2>Temel Kapsam</h2>
+    <div class="grid">
+      <div class="metric"><strong>Servis Paneli</strong><span>Tesisat sorgulama, cihaz seçimi ve devreye alma kaydı.</span></div>
+      <div class="metric"><strong>Personel Paneli</strong><span>Yetki belgesi onayı, kayıt takibi ve raporlama.</span></div>
+      <div class="metric"><strong>Admin Paneli</strong><span>Kullanıcı, şirket, servis, onay ve genel rapor yönetimi.</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Sistemde Yer Alan Başlıca İşlemler</h2>
+    <div class="two-col">
+      <div class="box">
+        <h3>Yetkili Servis Tarafı</h3>
+        <ul>
+          <li>Tesisat ve sözleşme numarası ile sorgulama yapılır.</li>
+          <li>Müşteri, adres, sayaç ve cihaz bilgileri görüntülenir.</li>
+          <li>Servisten gelen cihaz seçilerek devreye alma kaydı oluşturulur.</li>
+          <li>Yetki belgesi ve şube bilgileri panelden takip edilir.</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>Yönetim ve Personel Tarafı</h3>
+        <ul>
+          <li>Yetki belgeleri onaylanır veya reddedilir.</li>
+          <li>Devreye alma kayıtları filtrelenir ve detayları incelenir.</li>
+          <li>PDF ve Excel çıktıları alınır.</li>
+          <li>Rapor ekranlarıyla işlem yoğunluğu takip edilir.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Sağlanan Faydalar</h2>
+    <ul>
+      <li>Kâğıt ve manuel takip ihtiyacını azaltır.</li>
+      <li>Yetkili servis işlemlerini standart bir akışa bağlar.</li>
+      <li>Onay süreçlerini görünür ve takip edilebilir hale getirir.</li>
+      <li>Yönetim için tarih, marka, servis ve durum bazlı raporlama sağlar.</li>
+      <li>Rol bazlı erişim sayesinde kullanıcıların yalnızca yetkili olduğu alanlarda işlem yapmasını sağlar.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Roller</h2>
+    <span class="tag">Genel Admin</span>
+    <span class="tag">Şirket Admini</span>
+    <span class="tag">Personel</span>
+    <span class="tag">Yetkili Servis</span>
+    <p style="margin-top:10px">Her rolün ekranı ve işlem yetkisi ayrıdır. Böylece servis, personel ve yönetim tarafındaki sorumluluklar sistem içinde netleşir.</p>
+  </section>
+
+  <section>
+    <h2>Sonraki Geliştirme Başlıkları</h2>
+    <ul>
+      <li>SMS doğrulama sürecinin aktif edilmesi.</li>
+      <li>Rapor ekranlarının yönetim özetleriyle zenginleştirilmesi.</li>
+      <li>Mobil kullanımda tablo ve liste ekranlarının daha da iyileştirilmesi.</li>
+      <li>Canlı kullanım öncesi güvenlik, loglama ve yetki kontrollerinin güçlendirilmesi.</li>
+    </ul>
+  </section>
+
+  <footer>
+    Bu bilgi notu, toplantı katılımcılarına sistemin amacı, kapsamı ve sağladığı faydaları özetlemek için hazırlanmıştır.
+  </footer>
+</main>
+</body>
+</html>

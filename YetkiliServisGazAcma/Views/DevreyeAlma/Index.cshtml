@@ -45,16 +45,18 @@
         .cihaz-listesi { display: grid; gap: 8px; }
         .cihaz-listesi .cihaz-satir { padding: 8px 10px; border: 1px solid #edf3f8; border-radius: 8px; background: #fff; }
         .cihaz-secim { cursor: pointer; transition: border-color .15s, background .15s, box-shadow .15s; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-        .cihaz-secim::after { content: "Sec"; flex: 0 0 auto; border-radius: 999px; background: #E6F1FB; color: #0d7faa; font-size: 11px; font-weight: 800; padding: 4px 10px; }
+        .cihaz-secim::after { content: "Seç"; flex: 0 0 auto; border-radius: 999px; background: #E6F1FB; color: #0d7faa; font-size: 11px; font-weight: 800; padding: 4px 10px; }
         .cihaz-secim:hover { border-color: #1B9FD4; background: #f4fbff; }
         .cihaz-secim.secili { border-color: #1B9FD4; background: #E6F1FB; box-shadow: 0 0 0 2px rgba(27,159,212,.10); }
-        .cihaz-secim.secili::after { content: "Secildi"; background: #4CAF7D; color: #fff; }
+        .cihaz-secim.secili::after { content: "Seçildi"; background: #4CAF7D; color: #fff; }
 
         /* Marka seçimi */
         .marka-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-        .marka-kart { border: 2px solid #eee; border-radius: 8px; padding: 14px; text-align: center; cursor: pointer; transition: all .15s; }
+        .marka-kart { border: 2px solid #eee; border-radius: 8px; padding: 14px; text-align: center; cursor: pointer; transition: all .15s; position: relative; min-height: 86px; }
         .marka-kart:hover { border-color: #1B9FD4; }
-        .marka-kart.secili { border-color: #1B9FD4; background: #E6F1FB; }
+        .marka-kart.secili { border-color: #0d7faa; background: #E6F1FB; box-shadow: 0 0 0 3px rgba(27,159,212,.16), 0 10px 22px rgba(13,127,170,.12); transform: translateY(-2px); }
+        .marka-kart.secili::after { content: "Seçili"; position: absolute; top: 8px; right: 8px; border-radius: 999px; background: #0d7faa; color: #fff; font-size: 10px; font-weight: 800; padding: 3px 8px; }
+        .marka-kart.secili .marka-adi { color: #0d5f7f; }
         .marka-kart.yetkisiz { border-color: #F09595; background: #FCEBEB; cursor: not-allowed; opacity: .6; }
         .marka-adi { font-size: 13px; font-weight: bold; color: #333; margin-top: 4px; }
 
@@ -332,6 +334,19 @@
         if (cihazMarka) cihazMarka.value = "";
     }
 
+    function secimleriTemizle() {
+        seciliMarkaId = 0;
+        seciliMarkaAdi = "";
+        seciliServisCihazIndex = -1;
+        document.getElementById("f-markaid").value = "";
+        document.getElementById("f-cihazMarka").value = "";
+        document.querySelectorAll(".cihaz-secim").forEach(x => x.classList.remove("secili"));
+        document.querySelectorAll(".marka-kart").forEach(x => x.classList.remove("secili"));
+        cihazAlanlariniTemizle();
+        document.getElementById("formKart")?.classList.remove("goster");
+        setAdim(2);
+    }
+
     async function tesistatSorgula() {
         const tesisatNoInput = document.getElementById("tesistatNo");
         const sozlesmeNoInput = document.getElementById("sozlesmeNo");
@@ -433,6 +448,11 @@
     async function cihazSec(index) {
         const cihaz = servisCihazlari[index];
         if (!cihaz) return;
+
+        if (seciliServisCihazIndex === index) {
+            secimleriTemizle();
+            return;
+        }
 
         seciliServisCihazIndex = index;
         document.querySelectorAll(".cihaz-secim").forEach(function (satir, satirIndex) {

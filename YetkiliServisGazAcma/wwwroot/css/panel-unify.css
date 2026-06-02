@@ -139,6 +139,7 @@ textarea,
 .stats-card {
     background: var(--df-surface) !important;
     border: 1px solid var(--df-border) !important;
+    border-top: 3px solid var(--detail-accent) !important;
     border-radius: var(--df-radius) !important;
     box-shadow: var(--df-shadow-soft) !important;
 }
@@ -504,19 +505,71 @@ table tbody tr:hover,
     border: 1px solid var(--df-border) !important;
     border-radius: var(--df-radius) !important;
     box-shadow: var(--df-shadow-soft) !important;
-    padding: 16px;
+    padding: 0;
+    overflow: hidden;
+    --detail-accent: var(--df-primary);
 }
 
 .df-detail-card-title {
-    color: var(--df-text-soft);
+    color: var(--df-text);
     font-size: 14px;
+    font-weight: 900;
+    margin: 0;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--df-border);
+    background: #fbfcff;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.df-detail-card-title::before {
+    content: "";
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: var(--detail-accent);
+    box-shadow: 0 0 0 4px rgba(27,159,212,.12);
+    flex: 0 0 auto;
+}
+
+.df-detail-grid .df-detail-card:nth-child(1) { --detail-accent: #1B9FD4; }
+.df-detail-grid .df-detail-card:nth-child(2) { --detail-accent: #1dbb7a; }
+.df-detail-grid .df-detail-card:nth-child(3) { --detail-accent: #dc8e0d; }
+.df-detail-grid .df-detail-card:nth-child(4) { --detail-accent: #7056d8; }
+
+.df-detail-card .df-detail-info {
+    padding: 14px 16px 16px;
+}
+
+.df-detail-card .info-item {
+    background: #fff !important;
+    border: 1px solid #e6ecf5 !important;
+    border-radius: var(--df-radius) !important;
+    padding: 12px 13px;
+}
+
+.df-detail-card .info-label {
+    color: #697386 !important;
+    font-size: 11px;
     font-weight: 800;
-    margin-bottom: 12px;
+    text-transform: uppercase !important;
+    letter-spacing: .04em !important;
+    margin-bottom: 6px;
+}
+
+.df-detail-card .info-value {
+    color: var(--df-text) !important;
+    font-size: 14px;
+    font-weight: 850 !important;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
 }
 
 .df-detail-note {
     color: var(--df-text-soft);
     line-height: 1.5;
+    padding: 14px 16px 16px;
 }
 
 @media (max-width: 900px) {

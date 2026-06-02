@@ -8,70 +8,305 @@
     var genelSistemAdminMi = ViewBag.GenelSistemAdminMi as bool? ?? false;
     string returnUrl = ViewBag.ReturnUrl as string ?? "/personel-panel";
 }
+
 @section Styles {
     <style>
+        :root {
+            --blue: #1B9FD4;
+            --blue-dark: #0d7faa;
+            --green: #4CAF7D;
+            --ink: #102a43;
+            --muted: #667085;
+            --line: #dbe7f1;
+            --soft: #f6fafc;
+        }
+
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { min-height: 100vh; font-family: "Segoe UI", Arial, sans-serif; background: #f0f4f8; color: #1f2d3d; display: flex; align-items: center; justify-content: center; padding: 28px; }
-        .card { width: min(520px, 100%); background: #fff; border: 1px solid #e2edf6; border-radius: 14px; box-shadow: 0 18px 50px rgba(16,42,67,.09); overflow: hidden; }
-        .head { padding: 22px 24px; border-bottom: 2px solid #1B9FD4; }
-        .eyebrow { font-size: 11px; font-weight: 800; color: #1B9FD4; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 7px; }
-        h1 { font-size: 22px; line-height: 1.2; }
-        .body { padding: 22px 24px; }
-        .sub { color: #688098; font-size: 13px; line-height: 1.6; margin-bottom: 18px; }
+        html, body { min-height: 100%; }
+        body {
+            font-family: "Plus Jakarta Sans", "Segoe UI", Arial, sans-serif;
+            background: #f4f8fb;
+            color: var(--ink);
+        }
+
+        .select-page {
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: minmax(320px, 0.9fr) minmax(420px, 1.1fr);
+        }
+
+        .select-hero {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(145deg, #13233a 0%, #1B9FD4 100%);
+            color: #fff;
+            padding: 48px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .select-hero::before,
+        .select-hero::after {
+            content: "";
+            position: absolute;
+            border-radius: 999px;
+            border: 52px solid rgba(255,255,255,.13);
+            pointer-events: none;
+        }
+
+        .select-hero::before { width: 360px; height: 360px; right: -130px; top: -120px; }
+        .select-hero::after { width: 260px; height: 260px; left: -100px; bottom: -90px; }
+
+        .brand, .hero-copy, .hero-stats { position: relative; z-index: 1; }
+
+        .brand {
+            display: inline-flex;
+            width: fit-content;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255,255,255,.94);
+            color: #153b5b;
+            padding: 10px 16px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 900;
+        }
+
+        .brand-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            background: var(--blue);
+            box-shadow: 0 0 0 4px rgba(27,159,212,.16);
+        }
+
+        .hero-copy h1 {
+            font-size: 34px;
+            line-height: 1.12;
+            margin-bottom: 14px;
+            max-width: 460px;
+        }
+
+        .hero-copy p {
+            color: rgba(255,255,255,.86);
+            line-height: 1.7;
+            max-width: 460px;
+            font-size: 14px;
+        }
+
+        .hero-stats {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            border-top: 1px solid rgba(255,255,255,.22);
+            padding-top: 18px;
+        }
+
+        .hero-stat {
+            background: rgba(255,255,255,.12);
+            border: 1px solid rgba(255,255,255,.2);
+            border-radius: 10px;
+            padding: 12px;
+        }
+
+        .hero-stat strong { display: block; font-size: 20px; }
+        .hero-stat span { display: block; color: rgba(255,255,255,.72); font-size: 11px; margin-top: 4px; }
+
+        .select-main {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 42px;
+        }
+
+        .select-card {
+            width: min(720px, 100%);
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            box-shadow: 0 22px 70px rgba(16,42,67,.10);
+            overflow: hidden;
+        }
+
+        .select-head {
+            padding: 24px 26px;
+            border-bottom: 1px solid var(--line);
+            background: linear-gradient(90deg, #f4fbff, #fff);
+        }
+
+        .eyebrow {
+            font-size: 11px;
+            color: var(--blue-dark);
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            margin-bottom: 8px;
+        }
+
+        .select-head h2 { font-size: 24px; margin-bottom: 8px; }
+        .select-head p { color: var(--muted); font-size: 13px; line-height: 1.6; max-width: 560px; }
+
+        .select-body { padding: 22px 26px 26px; }
         .alert { background: #fff5f5; color: #7f1d1d; border: 1px solid #fecaca; border-radius: 10px; padding: 10px 12px; font-size: 13px; margin-bottom: 14px; }
-        label { display: block; font-size: 12px; font-weight: 800; color: #65798c; margin-bottom: 7px; text-transform: uppercase; letter-spacing: .04em; }
-        select { width: 100%; padding: 12px 13px; border: 1px solid #d7e4ef; border-radius: 10px; color: #1f2d3d; font-size: 14px; background: #f8fbff; }
-        .actions { display: flex; gap: 10px; margin-top: 18px; }
-        .btn { border: none; border-radius: 10px; padding: 11px 16px; font-weight: 800; cursor: pointer; text-decoration: none; font-size: 13px; }
-        .primary { background: #1B9FD4; color: #fff; }
-        .secondary { background: #f1f5f9; color: #334155; border: 1px solid #d8e1ea; }
-        </style>
+        .company-list { display: grid; gap: 10px; }
+
+        .company-card {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: center;
+            gap: 13px;
+            border: 1.5px solid var(--line);
+            border-radius: 10px;
+            background: var(--soft);
+            padding: 14px 15px;
+            cursor: pointer;
+            transition: border-color .15s, background .15s, box-shadow .15s, transform .15s;
+        }
+
+        .company-card:hover {
+            border-color: var(--blue);
+            background: #fff;
+        }
+
+        .company-card.selected {
+            border-color: var(--blue-dark);
+            background: #eef8fd;
+            box-shadow: 0 0 0 3px rgba(27,159,212,.13);
+            transform: translateY(-1px);
+        }
+
+        .company-radio {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--blue-dark);
+        }
+
+        .company-name { font-size: 14px; font-weight: 900; color: var(--ink); }
+        .company-sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+        .company-pill { font-size: 11px; font-weight: 900; color: var(--green); background: #edfaf4; border-radius: 999px; padding: 5px 9px; }
+
+        .actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+            border-top: 1px solid var(--line);
+            padding-top: 18px;
+        }
+
+        .btn {
+            border-radius: 10px;
+            padding: 11px 18px;
+            font-size: 13px;
+            font-weight: 900;
+            cursor: pointer;
+            text-decoration: none;
+            border: 1px solid transparent;
+        }
+
+        .primary { background: var(--blue); color: #fff; }
+        .secondary { background: #fff; color: #344054; border-color: var(--line); }
+
+        @@media (max-width: 960px) {
+            .select-page { grid-template-columns: 1fr; }
+            .select-hero { min-height: 320px; gap: 42px; padding: 34px; }
+            .select-main { min-height: auto; padding: 24px; }
+        }
+
+        @@media (max-width: 620px) {
+            .hero-stats { grid-template-columns: 1fr; }
+            .company-card { grid-template-columns: auto 1fr; }
+            .company-pill { grid-column: 2; width: fit-content; }
+            .actions { flex-direction: column-reverse; }
+            .btn { width: 100%; text-align: center; }
+        }
+    </style>
 }
-    <div class="card">
-        <div class="head">
-            <div class="eyebrow">Aktif şirket</div>
-            <h1>İşlem yapacağınız şirketi seçin</h1>
+
+<div class="select-page">
+    <aside class="select-hero">
+        <div class="brand">
+            <span class="brand-dot"></span>
+            <span>Yetkili Servis Gaz Açma</span>
         </div>
-        <div class="body">
-            <div class="sub">
-                @(kullanici?.AdSoyad ?? "Kullanıcı") hesabınız birden fazla şirkete bağlıysa paneldeki kayıtlar bu seçime göre filtrelenir.
+
+        <div class="hero-copy">
+            <h1>İşlem yapılacak şirketi seçin</h1>
+            <p>Bu seçimden sonra paneldeki kayıtlar, onaylar ve raporlar seçilen şirket kapsamına göre görüntülenir.</p>
+        </div>
+
+        <div class="hero-stats">
+            <div class="hero-stat"><strong>@(sirketler.Count + (genelSistemAdminMi ? 1 : 0))</strong><span>Seçenek</span></div>
+            <div class="hero-stat"><strong>Tek</strong><span>Aktif kapsam</span></div>
+            <div class="hero-stat"><strong>Güvenli</strong><span>Yetki kontrolü</span></div>
+        </div>
+    </aside>
+
+    <main class="select-main">
+        <section class="select-card">
+            <div class="select-head">
+                <div class="eyebrow">Aktif şirket</div>
+                <h2>Hoş geldiniz, @(kullanici?.AdSoyad ?? "Kullanıcı")</h2>
+                <p>Birden fazla şirket yetkiniz varsa, devam etmeden önce çalışmak istediğiniz kapsamı seçin.</p>
             </div>
-            @if (TempData["Hata"] != null)
-            {
-                <div class="alert">@TempData["Hata"]</div>
-            }
-            <form method="post" action="/panel/sirket-sec">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="returnUrl" value="@returnUrl" />
-                <label>Şirket</label>
-                <select name="sirketId">
-                    @if (genelSistemAdminMi)
-                    {
-                        if (!aktifSirketId.HasValue)
+
+            <div class="select-body">
+                @if (TempData["Hata"] != null)
+                {
+                    <div class="alert">@TempData["Hata"]</div>
+                }
+
+                <form method="post" action="/panel/sirket-sec">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="returnUrl" value="@returnUrl" />
+
+                    <div class="company-list">
+                        @if (genelSistemAdminMi)
                         {
-                            <option value="0" selected="selected">Tüm Şirketler</option>
+                            var selectedAll = !aktifSirketId.HasValue;
+                            <label class="company-card @(selectedAll ? "selected" : "")">
+                                <input class="company-radio" type="radio" name="sirketId" value="0" checked="@selectedAll" />
+                                <span>
+                                    <span class="company-name">Tüm Şirketler</span>
+                                    <span class="company-sub">Genel yönetim ve tüm kayıtları izleme kapsamı</span>
+                                </span>
+                                <span class="company-pill">Genel</span>
+                            </label>
                         }
-                        else
+
+                        @foreach (var sirket in sirketler)
                         {
-                            <option value="0">Tüm Şirketler</option>
+                            var selected = aktifSirketId == sirket.Id;
+                            <label class="company-card @(selected ? "selected" : "")">
+                                <input class="company-radio" type="radio" name="sirketId" value="@sirket.Id" checked="@selected" />
+                                <span>
+                                    <span class="company-name">@sirket.SirketAdi</span>
+                                    <span class="company-sub">Bu şirketin servisleri, onayları ve raporları</span>
+                                </span>
+                                <span class="company-pill">Şirket</span>
+                            </label>
                         }
-                    }
-                    @foreach (var sirket in sirketler)
-                    {
-                        if (aktifSirketId == sirket.Id)
-                        {
-                            <option value="@sirket.Id" selected="selected">@sirket.SirketAdi</option>
-                        }
-                        else
-                        {
-                            <option value="@sirket.Id">@sirket.SirketAdi</option>
-                        }
-                    }
-                </select>
-                <div class="actions">
-                    <button class="btn primary" type="submit">Devam Et</button>
-                    <a class="btn secondary" href="@returnUrl">Vazgeç</a>
-                </div>
-            </form>
-        </div>
-    </div>
+                    </div>
+
+                    <div class="actions">
+                        <a class="btn secondary" href="@returnUrl">Vazgeç</a>
+                        <button class="btn primary" type="submit">Devam Et</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+</div>
+
+@section Scripts {
+    <script>
+        document.querySelectorAll(".company-radio").forEach(function (radio) {
+            radio.addEventListener("change", function () {
+                document.querySelectorAll(".company-card").forEach(x => x.classList.remove("selected"));
+                radio.closest(".company-card")?.classList.add("selected");
+            });
+        });
+    </script>
+}
