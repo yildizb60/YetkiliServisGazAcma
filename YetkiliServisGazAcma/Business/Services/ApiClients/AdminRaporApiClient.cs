@@ -285,6 +285,9 @@ namespace YetkiliServisGazAcma.Business.Services
             public string RaporTipi { get; set; } = "devreye";
             public string ListeTipi { get; set; } = "devreye";
             public int DevreyeSayisi { get; set; }
+            public int DevreyeTamamlanan { get; set; }
+            public int DevreyeBekleyen { get; set; }
+            public int DevreyeIptal { get; set; }
             public int SertifikaOnayli { get; set; }
             public int SertifikaBekleyen { get; set; }
             public int SertifikaReddedilen { get; set; }
@@ -293,6 +296,8 @@ namespace YetkiliServisGazAcma.Business.Services
             public List<string> ChartAylikLabels { get; set; } = new();
             public List<int> ChartAylikData { get; set; } = new();
             public List<int> ChartDurumData { get; set; } = new();
+            public List<string?> ChartMarkaLabels { get; set; } = new();
+            public List<int> ChartMarkaData { get; set; } = new();
             public List<AdminDevreyeAlmaCevap> SonIslemler { get; set; } = new();
             public List<AdminSertifikaCevap> SertifikaIslemler { get; set; } = new();
             public List<AdminSirketCevap> Sirketler { get; set; } = new();
@@ -306,6 +311,9 @@ namespace YetkiliServisGazAcma.Business.Services
                     RaporTipi = RaporTipi,
                     ListeTipi = ListeTipi,
                     DevreyeSayisi = DevreyeSayisi,
+                    DevreyeTamamlanan = DevreyeTamamlanan,
+                    DevreyeBekleyen = DevreyeBekleyen,
+                    DevreyeIptal = DevreyeIptal,
                     SertifikaOnayli = SertifikaOnayli,
                     SertifikaBekleyen = SertifikaBekleyen,
                     SertifikaReddedilen = SertifikaReddedilen,
@@ -314,6 +322,8 @@ namespace YetkiliServisGazAcma.Business.Services
                     ChartAylikLabels = ChartAylikLabels,
                     ChartAylikData = ChartAylikData,
                     ChartDurumData = ChartDurumData,
+                    ChartMarkaLabels = ChartMarkaLabels,
+                    ChartMarkaData = ChartMarkaData,
                     SonIslemler = SonIslemler.Select(x => x.ToEntity()).ToList(),
                     SertifikaIslemler = SertifikaIslemler.Select(x => x.ToEntity()).ToList(),
                     Sirketler = Sirketler.Select(x => x.ToEntity()).ToList()
@@ -494,6 +504,9 @@ namespace YetkiliServisGazAcma.Business.Services
         public string RaporTipi { get; set; } = "devreye";
         public string ListeTipi { get; set; } = "devreye";
         public int DevreyeSayisi { get; set; }
+        public int DevreyeTamamlanan { get; set; }
+        public int DevreyeBekleyen { get; set; }
+        public int DevreyeIptal { get; set; }
         public int SertifikaOnayli { get; set; }
         public int SertifikaBekleyen { get; set; }
         public int SertifikaReddedilen { get; set; }
@@ -502,6 +515,8 @@ namespace YetkiliServisGazAcma.Business.Services
         public List<string> ChartAylikLabels { get; set; } = new();
         public List<int> ChartAylikData { get; set; } = new();
         public List<int> ChartDurumData { get; set; } = new();
+        public List<string?> ChartMarkaLabels { get; set; } = new();
+        public List<int> ChartMarkaData { get; set; } = new();
         public List<Ys_DevreyeAlma> SonIslemler { get; set; } = new();
         public List<Ys_Sertifika> SertifikaIslemler { get; set; } = new();
         public List<Dag_Sirket> Sirketler { get; set; } = new();

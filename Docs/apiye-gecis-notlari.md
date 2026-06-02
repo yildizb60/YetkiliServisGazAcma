@@ -452,6 +452,35 @@ API calisiyorsa: MVC -> API -> DB
 API kapaliysa: MVC hata verir, DB fallback yapmaz
 ```
 
+## Faz 2 - PersonelPanel API gecisi
+
+Ilk Faz 2 parcasi PersonelPanel uzerinden baslatildi. Bu adimda ekran tasarimi degistirilmeden veri akisi API'ye alindi.
+
+API'ye baglanan PersonelPanel akislari:
+
+```text
+PersonelPanel.DevreyeAlmalar       -> AdminRaporApiClient -> /api/admin-panel/devreye-almalar/liste
+PersonelPanel.DevreyeAlmaDetay     -> AdminRaporApiClient -> /api/admin-panel/devreye-almalar/getir
+PersonelPanel.DevreyeAlmaPdf/Excel -> AdminRaporApiClient -> /api/admin-panel/devreye-almalar/getir
+PersonelPanel.OnayBekleyenler      -> AdminYetkiBelgesiOnayApiClient -> /api/admin-panel/yetki-belgeleri/onay-listesi
+PersonelPanel.Onayla/Reddet        -> YetkiBelgesiApiClient -> yetki belgesi onay/red API akisi
+PersonelPanel.Raporlar             -> AdminRaporApiClient -> /api/admin-panel/raporlar/ozet
+```
+
+Rapor ozeti API cevabi PersonelPanel icin genisletildi:
+
+```text
+DevreyeTamamlanan
+DevreyeBekleyen
+DevreyeIptal
+ChartMarkaLabels
+ChartMarkaData
+```
+
+Bu alanlar mevcut AdminPanel rapor ekranini bozmaz; sadece PersonelPanel rapor kartlari ve marka grafigi icin kullanilir.
+
+Not: Veritabani/entity tarafinda eski teknik tablo ve servis adlari korunur. Yeni MVC client ve ekrana anlatilan akis "Yetki Belgesi" adini kullanir. Eski teknik adlarin toplu temizligi ayri bir isimlendirme/refactor adimi olarak ele alinmalidir.
+
 ## Razor ortak panel yapisi
 
 Panel sayfalarinda tekrar eden sol menu, ust bar, sirket secici ve bildirim alani ortak yapıya alinmaya baslandi.

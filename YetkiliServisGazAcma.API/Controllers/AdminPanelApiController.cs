@@ -634,6 +634,9 @@ namespace YetkiliServisGazAcma.API.Controllers
                 .Where(x => x.OlusturmaTarihi >= basTarih && x.OlusturmaTarihi < bitSonrasi);
 
             var devreyeSayisi = await devreyeTemelQuery.CountAsync();
+            var devreyeTamamlanan = await devreyeTemelQuery.Where(x => x.Durum == 1).CountAsync();
+            var devreyeBekleyen = await devreyeTemelQuery.Where(x => x.Durum == 0).CountAsync();
+            var devreyeIptal = await devreyeTemelQuery.Where(x => x.Durum == 2).CountAsync();
             var sertifikaOnayli = await sertifikaTemelQuery.Where(x => x.Durum == 1).CountAsync();
             var sertifikaBekleyen = await sertifikaTemelQuery.Where(x => x.Durum == 0).CountAsync();
             var sertifikaReddedilen = await sertifikaTemelQuery.Where(x => x.Durum == 2).CountAsync();
@@ -663,12 +666,23 @@ namespace YetkiliServisGazAcma.API.Controllers
                 .Take(6)
                 .ToListAsync();
 
+            var chartMarka = await devreyeTemelQuery
+                .Where(x => x.Marka != null)
+                .GroupBy(x => x.Marka!.MarkaAdi)
+                .Select(g => new { Marka = g.Key, Sayi = g.Count() })
+                .OrderByDescending(x => x.Sayi)
+                .Take(6)
+                .ToListAsync();
+
             var sonuc = new AdminRaporOzetDto
             {
                 BasTarih = basTarih,
                 BitTarih = bitTarih,
                 RaporTipi = raporTipi,
                 DevreyeSayisi = devreyeSayisi,
+                DevreyeTamamlanan = devreyeTamamlanan,
+                DevreyeBekleyen = devreyeBekleyen,
+                DevreyeIptal = devreyeIptal,
                 SertifikaOnayli = sertifikaOnayli,
                 SertifikaBekleyen = sertifikaBekleyen,
                 SertifikaReddedilen = sertifikaReddedilen,
@@ -677,6 +691,8 @@ namespace YetkiliServisGazAcma.API.Controllers
                 ChartDurumData = new List<int> { sertifikaOnayli, sertifikaBekleyen, sertifikaReddedilen },
                 ChartSirketLabels = chartSirket.Select(x => x.Sirket).ToList(),
                 ChartSirketData = chartSirket.Select(x => x.Sayi).ToList(),
+                ChartMarkaLabels = chartMarka.Select(x => x.Marka).ToList(),
+                ChartMarkaData = chartMarka.Select(x => x.Sayi).ToList(),
                 Sirketler = await SirketSecenekleriAsync(kapsam.sirketId)
             };
 
@@ -1062,6 +1078,9 @@ namespace YetkiliServisGazAcma.API.Controllers
         public string RaporTipi { get; set; } = "devreye";
         public string ListeTipi { get; set; } = "devreye";
         public int DevreyeSayisi { get; set; }
+        public int DevreyeTamamlanan { get; set; }
+        public int DevreyeBekleyen { get; set; }
+        public int DevreyeIptal { get; set; }
         public int SertifikaOnayli { get; set; }
         public int SertifikaBekleyen { get; set; }
         public int SertifikaReddedilen { get; set; }
@@ -1070,6 +1089,8 @@ namespace YetkiliServisGazAcma.API.Controllers
         public List<string> ChartAylikLabels { get; set; } = new();
         public List<int> ChartAylikData { get; set; } = new();
         public List<int> ChartDurumData { get; set; } = new();
+        public List<string?> ChartMarkaLabels { get; set; } = new();
+        public List<int> ChartMarkaData { get; set; } = new();
         public List<AdminDevreyeAlmaDto> SonIslemler { get; set; } = new();
         public List<AdminYetkiBelgesiOnayDto> SertifikaIslemler { get; set; } = new();
         public List<AdminSirketSecenekDto> Sirketler { get; set; } = new();

@@ -19,17 +19,26 @@ namespace YetkiliServisGazAcma.Controllers
         private readonly AppDbContext _context;
         private readonly SehirFirmaKoduService _sehirFirmaKoduService;
         private readonly AktifSirketService _aktifSirketService;
+        private readonly AdminYetkiBelgesiOnayApiClient _yetkiBelgesiOnayApiClient;
+        private readonly AdminRaporApiClient _adminRaporApiClient;
+        private readonly YetkiBelgesiApiClient _yetkiBelgesiApiClient;
 
         public PersonelPanelController(
             UserManager<AppKullanici> userManager,
             AppDbContext context,
             SehirFirmaKoduService sehirFirmaKoduService,
-            AktifSirketService aktifSirketService)
+            AktifSirketService aktifSirketService,
+            AdminYetkiBelgesiOnayApiClient yetkiBelgesiOnayApiClient,
+            AdminRaporApiClient adminRaporApiClient,
+            YetkiBelgesiApiClient yetkiBelgesiApiClient)
         {
             _userManager = userManager;
             _context = context;
             _sehirFirmaKoduService = sehirFirmaKoduService;
             _aktifSirketService = aktifSirketService;
+            _yetkiBelgesiOnayApiClient = yetkiBelgesiOnayApiClient;
+            _adminRaporApiClient = adminRaporApiClient;
+            _yetkiBelgesiApiClient = yetkiBelgesiApiClient;
         }
 
         private static bool KullanilanKategoriMi(string? ad)
@@ -323,24 +332,23 @@ namespace YetkiliServisGazAcma.Controllers
             // Devreye almalar raporu personel icin goruntulenebilir olsun.
 
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            var query = _context.Ys_DevreyeAlmalar.Include(x => x.Firma).Include(x => x.Marka)
-                .Where(x => !x.SilindiMi
-                    && x.Firma != null
-                    && !x.Firma.SilindiMi
-                    && (sirketId == null || x.Firma.SirketId == sirketId))
-                .AsQueryable();
+            AdminDevreyeAlmaListeSonuc sonuc;
+            try
+            {
+                sonuc = await _adminRaporApiClient.DevreyeAlmalarAsync(kullanici, sirketId, marka, servis, null, durum, bas, bit)
+                    ?? new AdminDevreyeAlmaListeSonuc();
+            }
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
+                sonuc = new AdminDevreyeAlmaListeSonuc();
+            }
 
-            if (!string.IsNullOrEmpty(marka)) query = query.Where(x => x.Marka != null && x.Marka.MarkaAdi != null && x.Marka.MarkaAdi.Contains(marka));
-            if (!string.IsNullOrEmpty(servis)) query = query.Where(x => x.Firma != null && x.Firma.FirmaAdi != null && x.Firma.FirmaAdi.Contains(servis));
-            if (int.TryParse(durum, out int d)) query = query.Where(x => x.Durum == d);
-            if (bas.HasValue) query = query.Where(x => x.OlusturmaTarihi >= bas.Value);
-            if (bit.HasValue) query = query.Where(x => x.OlusturmaTarihi <= bit.Value.AddDays(1));
-
-            ViewBag.Markalar = await _context.Ys_Markalar.Where(x => !x.SilindiMi).ToListAsync();
+            ViewBag.Markalar = sonuc.Markalar;
             ViewBag.Kullanici = kullanici;
             await SetPersonelYetkiViewBags(kullanici);
             await SetPersonelNotifViewBags(kullanici);
-            return View("~/Views/PersonelPanel/DevreyeAlmalar.cshtml", await query.OrderByDescending(x => x.OlusturmaTarihi).ToListAsync());
+            return View("~/Views/PersonelPanel/DevreyeAlmalar.cshtml", sonuc.Islemler);
         }
 
         [HttpGet("devreyealmalar/detay/{id}")]
@@ -350,14 +358,16 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null) return Redirect("/giris");
 
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            var kayit = await _context.Ys_DevreyeAlmalar
-                .Include(x => x.Firma)
-                .Include(x => x.Marka)
-                .FirstOrDefaultAsync(x => x.Id == id
-                    && !x.SilindiMi
-                    && x.Firma != null
-                    && !x.Firma.SilindiMi
-                    && (sirketId == null || x.Firma.SirketId == sirketId));
+            Ys_DevreyeAlma? kayit;
+            try
+            {
+                kayit = await _adminRaporApiClient.DevreyeAlmaDetayAsync(kullanici, id, sirketId);
+            }
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
+                return RedirectToAction(nameof(DevreyeAlmalar));
+            }
 
             if (kayit == null) return RedirectToAction(nameof(DevreyeAlmalar));
 
@@ -374,15 +384,16 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null) return Redirect("/giris");
 
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            var kayit = await _context.Ys_DevreyeAlmalar
-                .Include(x => x.Firma)
-                    .ThenInclude(x => x!.Sirket)
-                .Include(x => x.Marka)
-                .FirstOrDefaultAsync(x => x.Id == id
-                    && !x.SilindiMi
-                    && x.Firma != null
-                    && !x.Firma.SilindiMi
-                    && (sirketId == null || x.Firma.SirketId == sirketId));
+            Ys_DevreyeAlma? kayit;
+            try
+            {
+                kayit = await _adminRaporApiClient.DevreyeAlmaDetayAsync(kullanici, id, sirketId);
+            }
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
+                return RedirectToAction(nameof(DevreyeAlmalar));
+            }
 
             if (kayit == null) return NotFound();
 
@@ -398,15 +409,16 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null) return Redirect("/giris");
 
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            var kayit = await _context.Ys_DevreyeAlmalar
-                .Include(x => x.Firma)
-                    .ThenInclude(x => x!.Sirket)
-                .Include(x => x.Marka)
-                .FirstOrDefaultAsync(x => x.Id == id
-                    && !x.SilindiMi
-                    && x.Firma != null
-                    && !x.Firma.SilindiMi
-                    && (sirketId == null || x.Firma.SirketId == sirketId));
+            Ys_DevreyeAlma? kayit;
+            try
+            {
+                kayit = await _adminRaporApiClient.DevreyeAlmaDetayAsync(kullanici, id, sirketId);
+            }
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
+                return RedirectToAction(nameof(DevreyeAlmalar));
+            }
 
             if (kayit == null) return NotFound();
 
@@ -425,37 +437,21 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null) return Redirect("/giris");
 
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            var bekleyenler = await _context.Ys_Sertifikalar
-                .Include(x => x.Firma).ThenInclude(x => x!.Sirket)
-                .Where(x => !x.SilindiMi
-                    && x.Durum == 0
-                    && x.Firma != null
-                    && !x.Firma.SilindiMi
-                    && (sirketId == null || x.Firma.SirketId == sirketId))
-                .OrderByDescending(x => x.OlusturmaTarihi)
-                .ToListAsync();
+            AdminYetkiBelgesiOnaySonuc sonuc;
+            try
+            {
+                sonuc = await _yetkiBelgesiOnayApiClient.ListeleAsync(kullanici, sirketId)
+                    ?? new AdminYetkiBelgesiOnaySonuc();
+            }
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
+                sonuc = new AdminYetkiBelgesiOnaySonuc();
+            }
 
-            var onaylananlar = await _context.Ys_Sertifikalar
-                .Include(x => x.Firma).ThenInclude(x => x!.Sirket)
-                .Where(x => !x.SilindiMi
-                    && x.Durum == 1
-                    && x.Firma != null
-                    && !x.Firma.SilindiMi
-                    && (sirketId == null || x.Firma.SirketId == sirketId))
-                .OrderByDescending(x => x.OnayTarihi ?? x.OlusturmaTarihi)
-                .Take(100)
-                .ToListAsync();
-
-            var reddedilenler = await _context.Ys_Sertifikalar
-                .Include(x => x.Firma).ThenInclude(x => x!.Sirket)
-                .Where(x => !x.SilindiMi
-                    && x.Durum == 2
-                    && x.Firma != null
-                    && !x.Firma.SilindiMi
-                    && (sirketId == null || x.Firma.SirketId == sirketId))
-                .OrderByDescending(x => x.OnayTarihi ?? x.OlusturmaTarihi)
-                .Take(100)
-                .ToListAsync();
+            var bekleyenler = sonuc.Bekleyenler;
+            var onaylananlar = sonuc.Onaylananlar;
+            var reddedilenler = sonuc.Reddedilenler;
 
             ViewBag.OnayBekleyen = bekleyenler.Count;
             ViewBag.Kullanici = kullanici;
@@ -482,39 +478,19 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await _userManager.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
-            var sertifika = await _context.Ys_Sertifikalar
-                .Include(x => x.Firma)
-                .FirstOrDefaultAsync(x => x.Id == id && !x.SilindiMi);
-
-            if (sertifika == null)
+            try
             {
-                TempData["Hata"] = "Yetki belgesi bulunamadı.";
-                return Redirect("/personel-panel/onay-bekleyenler");
+                var sonuc = await _yetkiBelgesiApiClient.OnaylaAsync(kullanici, id);
+                if (sonuc?.Basarili == true)
+                    TempData["Basarili"] = "Yetki belgesi onaylandı.";
+                else
+                    TempData["Hata"] = sonuc?.Mesaj ?? "Yetki belgesi onaylanamadı.";
+            }
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
             }
 
-            if (sertifika.Firma == null || sertifika.Firma.SilindiMi)
-            {
-                TempData["Hata"] = "Silinmiş firmaya ait yetki belgesi için işlem yapılamaz.";
-                return Redirect("/personel-panel/onay-bekleyenler");
-            }
-
-            var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            if (aktifSirketId.HasValue && sertifika.Firma?.SirketId != aktifSirketId)
-            {
-                TempData["Hata"] = "Bu yetki belgesi için işlem yetkiniz yok.";
-                return Redirect("/personel-panel/onay-bekleyenler");
-            }
-
-            sertifika.Durum = 1;
-            sertifika.RedGerekce = null;
-            sertifika.OnayTarihi = DateTime.Now;
-            sertifika.OnaylayanKullanici = kullanici.UserName ?? "sistem";
-            sertifika.GuncellemeTarihi = DateTime.Now;
-            sertifika.GuncelleyenKullanici = kullanici.UserName ?? "sistem";
-
-            await _context.SaveChangesAsync();
-
-            TempData["Basarili"] = "Yetki belgesi onaylandı.";
             return Redirect("/personel-panel/onay-bekleyenler");
         }
 
@@ -528,39 +504,19 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await _userManager.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
-            var sertifika = await _context.Ys_Sertifikalar
-                .Include(x => x.Firma)
-                .FirstOrDefaultAsync(x => x.Id == id && !x.SilindiMi);
-
-            if (sertifika == null)
+            try
             {
-                TempData["Hata"] = "Yetki belgesi bulunamadı.";
-                return Redirect("/personel-panel/onay-bekleyenler");
+                var sonuc = await _yetkiBelgesiApiClient.ReddetAsync(kullanici, id, gerekce);
+                if (sonuc?.Basarili == true)
+                    TempData["Hata"] = "Yetki belgesi reddedildi.";
+                else
+                    TempData["Hata"] = sonuc?.Mesaj ?? "Yetki belgesi reddedilemedi.";
+            }
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
             }
 
-            if (sertifika.Firma == null || sertifika.Firma.SilindiMi)
-            {
-                TempData["Hata"] = "Silinmiş firmaya ait yetki belgesi için işlem yapılamaz.";
-                return Redirect("/personel-panel/onay-bekleyenler");
-            }
-
-            var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            if (aktifSirketId.HasValue && sertifika.Firma?.SirketId != aktifSirketId)
-            {
-                TempData["Hata"] = "Bu yetki belgesi için işlem yetkiniz yok.";
-                return Redirect("/personel-panel/onay-bekleyenler");
-            }
-
-            sertifika.Durum = 2;
-            sertifika.RedGerekce = string.IsNullOrWhiteSpace(gerekce) ? "Belirtilmedi." : gerekce.Trim();
-            sertifika.OnayTarihi = DateTime.Now;
-            sertifika.OnaylayanKullanici = kullanici.UserName ?? "sistem";
-            sertifika.GuncellemeTarihi = DateTime.Now;
-            sertifika.GuncelleyenKullanici = kullanici.UserName ?? "sistem";
-
-            await _context.SaveChangesAsync();
-
-            TempData["Hata"] = "Yetki belgesi reddedildi.";
             return Redirect("/personel-panel/onay-bekleyenler");
         }
 
@@ -1152,116 +1108,46 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null) return Redirect("/giris");
 
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            var devreyeBaseQuery = _context.Ys_DevreyeAlmalar
-                .Include(x => x.Firma)
-                .Where(x => !x.SilindiMi
-                    && x.Firma != null
-                    && !x.Firma.SilindiMi
-                    && (sirketId == null || x.Firma.SirketId == sirketId));
-
-            DateTime basTarih;
-            DateTime bitTarih;
-            if (!bas.HasValue && !bit.HasValue)
+            AdminRaporOzetSonuc sonuc;
+            try
             {
-                var mevcutAralik = await devreyeBaseQuery
-                    .GroupBy(_ => 1)
-                    .Select(g => new
+                sonuc = await _adminRaporApiClient.RaporlarOzetAsync(kullanici, sirketId, bas, bit, tip)
+                    ?? new AdminRaporOzetSonuc
                     {
-                        Bas = g.Min(x => x.DevreyeAlmaTarihi),
-                        Bit = g.Max(x => x.DevreyeAlmaTarihi)
-                    })
-                    .FirstOrDefaultAsync();
-
-                basTarih = mevcutAralik?.Bas.Date ?? DateTime.Now.Date.AddDays(-30);
-                bitTarih = mevcutAralik?.Bit.Date ?? DateTime.Now.Date;
+                        BasTarih = bas?.Date ?? DateTime.Now.Date.AddDays(-30),
+                        BitTarih = bit?.Date ?? DateTime.Now.Date,
+                        RaporTipi = string.IsNullOrWhiteSpace(tip) ? "devreye" : tip.Trim().ToLowerInvariant()
+                    };
             }
-            else
+            catch (ApiIntegrationException ex)
             {
-                bitTarih = bit?.Date ?? DateTime.Now.Date;
-                basTarih = bas?.Date ?? bitTarih.AddDays(-30);
-            }
-
-            var bitSonrasi = bitTarih.AddDays(1);
-            var raporTipi = string.IsNullOrWhiteSpace(tip) ? "devreye" : tip.Trim().ToLowerInvariant();
-            var tr = new System.Globalization.CultureInfo("tr-TR");
-
-            var temelQuery = devreyeBaseQuery
-                .Include(x => x.Marka)
-                .Where(x => x.DevreyeAlmaTarihi >= basTarih
-                    && x.DevreyeAlmaTarihi < bitSonrasi);
-
-            var sertifikaQuery = _context.Ys_Sertifikalar
-                .Include(x => x.Firma)
-                .ThenInclude(x => x!.Sirket)
-                .Where(x => !x.SilindiMi
-                    && x.Firma != null
-                    && !x.Firma.SilindiMi
-                    && x.OlusturmaTarihi >= basTarih
-                    && x.OlusturmaTarihi < bitSonrasi
-                    && (sirketId == null || x.Firma.SirketId == sirketId));
-
-            var toplam = await temelQuery.CountAsync();
-            var tamam = await temelQuery.CountAsync(x => x.Durum == 1);
-            var bekleyen = await temelQuery.CountAsync(x => x.Durum == 0);
-            var iptal = await temelQuery.CountAsync(x => x.Durum == 2);
-
-            var aylar = new List<DateTime>();
-            var ayBaslangic = new DateTime(basTarih.Year, basTarih.Month, 1);
-            var ayBitis = new DateTime(bitTarih.Year, bitTarih.Month, 1);
-            for (var ay = ayBaslangic; ay <= ayBitis && aylar.Count < 24; ay = ay.AddMonths(1))
-                aylar.Add(ay);
-
-            var aylik = aylar.Select(a => new
-            {
-                Ay = a.ToString("MMM", tr),
-                Sayi = temelQuery.Count(x => x.DevreyeAlmaTarihi.Month == a.Month && x.DevreyeAlmaTarihi.Year == a.Year)
-            }).ToList();
-
-            var markaTop = await temelQuery
-                .Where(x => x.MarkaId != null)
-                .GroupBy(x => x.Marka!.MarkaAdi)
-                .Select(g => new { Marka = g.Key, Sayi = g.Count() })
-                .OrderByDescending(x => x.Sayi)
-                .Take(5)
-                .ToListAsync();
-
-            var sertifikaOnayli = await sertifikaQuery.Where(x => x.Durum == 1).CountAsync();
-            var sertifikaBekleyen = await sertifikaQuery.Where(x => x.Durum == 0).CountAsync();
-            var sertifikaReddedilen = await sertifikaQuery.Where(x => x.Durum == 2).CountAsync();
-
-            if (raporTipi == "onayli" || raporTipi == "bekleyen" || raporTipi == "reddedilen")
-            {
-                var durum = raporTipi == "onayli" ? 1 : (raporTipi == "bekleyen" ? 0 : 2);
-                ViewBag.SertifikaIslemler = await sertifikaQuery
-                    .Where(x => x.Durum == durum)
-                    .OrderByDescending(x => x.OlusturmaTarihi)
-                    .Take(12)
-                    .ToListAsync();
-                ViewBag.ListeTipi = "sertifika";
-            }
-            else
-            {
-                ViewBag.SonIslemler = await temelQuery
-                    .OrderByDescending(x => x.DevreyeAlmaTarihi)
-                    .Take(12)
-                    .ToListAsync();
-                ViewBag.ListeTipi = "devreye";
+                TempData["Hata"] = ex.Message;
+                sonuc = new AdminRaporOzetSonuc
+                {
+                    BasTarih = bas?.Date ?? DateTime.Now.Date.AddDays(-30),
+                    BitTarih = bit?.Date ?? DateTime.Now.Date,
+                    RaporTipi = string.IsNullOrWhiteSpace(tip) ? "devreye" : tip.Trim().ToLowerInvariant(),
+                    ListeTipi = (tip == "onayli" || tip == "bekleyen" || tip == "reddedilen") ? "sertifika" : "devreye"
+                };
             }
 
-            ViewBag.RaporToplam = toplam;
-            ViewBag.RaporTamam = tamam;
-            ViewBag.RaporBekleyen = bekleyen;
-            ViewBag.RaporIptal = iptal;
-            ViewBag.SertifikaOnayli = sertifikaOnayli;
-            ViewBag.SertifikaBekleyen = sertifikaBekleyen;
-            ViewBag.SertifikaReddedilen = sertifikaReddedilen;
-            ViewBag.RaporAylar = aylik.Select(x => x.Ay).ToList();
-            ViewBag.RaporAylik = aylik.Select(x => x.Sayi).ToList();
-            ViewBag.RaporMarka = markaTop.Select(x => x.Marka).ToList();
-            ViewBag.RaporMarkaSayi = markaTop.Select(x => x.Sayi).ToList();
-            ViewBag.BasTarih = basTarih;
-            ViewBag.BitTarih = bitTarih;
-            ViewBag.RaporTipi = raporTipi;
+            ViewBag.SonIslemler = sonuc.SonIslemler;
+            ViewBag.SertifikaIslemler = sonuc.SertifikaIslemler;
+            ViewBag.ListeTipi = sonuc.ListeTipi;
+            ViewBag.RaporToplam = sonuc.DevreyeSayisi;
+            ViewBag.RaporTamam = sonuc.DevreyeTamamlanan;
+            ViewBag.RaporBekleyen = sonuc.DevreyeBekleyen;
+            ViewBag.RaporIptal = sonuc.DevreyeIptal;
+            ViewBag.SertifikaOnayli = sonuc.SertifikaOnayli;
+            ViewBag.SertifikaBekleyen = sonuc.SertifikaBekleyen;
+            ViewBag.SertifikaReddedilen = sonuc.SertifikaReddedilen;
+            ViewBag.RaporAylar = sonuc.ChartAylikLabels;
+            ViewBag.RaporAylik = sonuc.ChartAylikData;
+            ViewBag.RaporMarka = sonuc.ChartMarkaLabels;
+            ViewBag.RaporMarkaSayi = sonuc.ChartMarkaData;
+            ViewBag.BasTarih = sonuc.BasTarih;
+            ViewBag.BitTarih = sonuc.BitTarih;
+            ViewBag.RaporTipi = sonuc.RaporTipi;
 
             ViewBag.Kullanici = kullanici;
             await SetPersonelYetkiViewBags(kullanici);

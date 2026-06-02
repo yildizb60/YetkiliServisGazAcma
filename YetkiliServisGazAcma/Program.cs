@@ -60,6 +60,7 @@ AddApiClient<AdminYetkiliServisApiClient>();
 AddApiClient<AdminYetkiBelgesiOnayApiClient>();
 AddApiClient<AdminSubeApiClient>();
 AddApiClient<AdminRaporApiClient>();
+AddApiClient<YetkiBelgesiApiClient>();
 AddApiClient<MarkaApiClient>();
 AddApiClient<DagitimSirketApiClient>();
 AddApiClient<YetkiliServisApiClient>();

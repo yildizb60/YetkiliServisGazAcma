@@ -107,6 +107,7 @@ namespace YetkiliServisGazAcma.Business.Services
             if (sertifika == null) return false;
 
             sertifika.Durum = 1; // Onaylandı
+            sertifika.RedGerekce = null;
             sertifika.OnayTarihi = DateTime.Now;
             sertifika.OnaylayanKullanici = kullanici ?? "sistem";
             sertifika.GuncellemeTarihi = DateTime.Now;
@@ -125,7 +126,9 @@ namespace YetkiliServisGazAcma.Business.Services
             if (sertifika == null) return false;
 
             sertifika.Durum = 2; // Reddedildi
-            sertifika.RedGerekce = gerekce;
+            sertifika.RedGerekce = string.IsNullOrWhiteSpace(gerekce) ? "Belirtilmedi." : gerekce.Trim();
+            sertifika.OnayTarihi = DateTime.Now;
+            sertifika.OnaylayanKullanici = kullanici ?? "sistem";
             sertifika.GuncellemeTarihi = DateTime.Now;
             sertifika.GuncelleyenKullanici = kullanici ?? "sistem";
 
