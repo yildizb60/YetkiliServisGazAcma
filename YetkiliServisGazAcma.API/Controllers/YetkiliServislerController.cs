@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,6 +12,8 @@ namespace YetkiliServisGazAcma.API.Controllers
     [Route("api/yetkili-servisler")]
     public class YetkiliServislerController : ControllerBase
     {
+        private static readonly CultureInfo TrCulture = new("tr-TR");
+
         private readonly AppDbContext _context;
         private readonly YetkiliServisService _yetkiliServisService;
         private readonly SehirFirmaKoduService _sehirFirmaKoduService;
@@ -107,6 +110,91 @@ namespace YetkiliServisGazAcma.API.Controllers
                 .ToListAsync();
 
             return Ok(list);
+        }
+
+        [HttpPost("filtre-secenekleri")]
+        [AllowAnonymous]
+        public async Task<IActionResult> FiltreSecenekleri([FromBody] YetkiliServisFiltreSecenekleriIstek? dto)
+        {
+            var markalar = await _context.Ys_Markalar
+                .Where(x => !x.SilindiMi && x.AktifMi)
+                .OrderBy(x => x.MarkaAdi)
+                .Select(x => new YetkiliServisMarkaSecenekDto
+                {
+                    Id = x.Id,
+                    MarkaAdi = x.MarkaAdi
+                })
+                .ToListAsync();
+
+            var kategoriler = await _context.UrunKategoriler
+                .Where(x => !x.SilindiMi)
+                .OrderBy(x => x.SiraNo)
+                .ThenBy(x => x.Ad)
+                .Select(x => new KategoriDto
+                {
+                    Id = x.Id,
+                    Ad = x.Ad,
+                    IconUrl = x.IconUrl,
+                    SiraNo = x.SiraNo,
+                    AktifMi = x.AktifMi
+                })
+                .ToListAsync();
+
+            var illerRaw = await _context.Ys_Firmalar
+                .Where(x => !x.SilindiMi && x.AktifMi && x.FaaliyetIli != null && x.FaaliyetIli != "")
+                .Select(x => x.FaaliyetIli!)
+                .ToListAsync();
+
+            var subeIllerRaw = await _context.Ys_Subeler
+                .Where(x => !x.SilindiMi
+                    && x.AktifMi
+                    && x.Il != null
+                    && x.Il != ""
+                    && _context.Ys_Firmalar.Any(f => f.Id == x.FirmaId && !f.SilindiMi && f.AktifMi))
+                .Select(x => x.Il!)
+                .ToListAsync();
+
+            var dagitimIllerRaw = await _context.Dag_Sirketler
+                .Where(x => x.AktifMi && x.Il != null && x.Il != "")
+                .Select(x => x.Il!)
+                .ToListAsync();
+
+            var iller = illerRaw
+                .Concat(subeIllerRaw)
+                .Concat(dagitimIllerRaw)
+                .Select(NormalizeKonum)
+                .Where(GecerliKonumMu)
+                .GroupBy(NormalizeKonumKey)
+                .Select(g => TitleCaseTr(g.First()))
+                .OrderBy(x => x)
+                .ToList();
+
+            var ilcelerQuery = _context.Ys_Subeler
+                .Where(x => !x.SilindiMi
+                    && x.AktifMi
+                    && x.Ilce != null
+                    && x.Ilce != ""
+                    && _context.Ys_Firmalar.Any(f => f.Id == x.FirmaId && !f.SilindiMi && f.AktifMi));
+
+            if (!string.IsNullOrWhiteSpace(dto?.Il))
+                ilcelerQuery = ilcelerQuery.Where(x => x.Il == dto.Il);
+
+            var ilceler = (await ilcelerQuery
+                    .Select(x => x.Ilce!)
+                    .ToListAsync())
+                .Select(NormalizeKonum)
+                .Where(GecerliKonumMu)
+                .Distinct()
+                .OrderBy(x => x)
+                .ToList();
+
+            return Ok(new YetkiliServisFiltreSecenekleriDto
+            {
+                Markalar = markalar,
+                Kategoriler = kategoriler,
+                Iller = iller,
+                Ilceler = ilceler
+            });
         }
 
         [HttpPost("kayit")]
@@ -289,6 +377,37 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             return Ok(new { basarili = true, mesaj = "Yetkili servis silindi" });
         }
+
+        private static string NormalizeKonum(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return "";
+            var trimmed = value.Trim();
+            while (trimmed.Contains("  ")) trimmed = trimmed.Replace("  ", " ");
+            return trimmed;
+        }
+
+        private static bool GecerliKonumMu(string? value)
+        {
+            var norm = NormalizeKonum(value);
+            return norm.Length >= 2 && norm.Any(char.IsLetter);
+        }
+
+        private static string NormalizeKonumKey(string? value)
+        {
+            var norm = NormalizeKonum(value);
+            if (string.IsNullOrWhiteSpace(norm)) return "";
+            var lower = norm.ToLower(TrCulture);
+            var keyChars = lower.Where(char.IsLetterOrDigit).ToArray();
+            return new string(keyChars);
+        }
+
+        private static string TitleCaseTr(string value)
+        {
+            var trimmed = NormalizeKonum(value);
+            if (string.IsNullOrWhiteSpace(trimmed)) return "";
+            var lower = trimmed.ToLower(TrCulture);
+            return TrCulture.TextInfo.ToTitleCase(lower);
+        }
     }
 
     public class YetkiliServisDto
@@ -312,6 +431,27 @@ namespace YetkiliServisGazAcma.API.Controllers
         public int Id { get; set; }
         public string? Ad { get; set; }
         public string? IconUrl { get; set; }
+        public int SiraNo { get; set; }
+        public bool AktifMi { get; set; }
+    }
+
+    public class YetkiliServisFiltreSecenekleriIstek
+    {
+        public string? Il { get; set; }
+    }
+
+    public class YetkiliServisFiltreSecenekleriDto
+    {
+        public List<YetkiliServisMarkaSecenekDto> Markalar { get; set; } = new();
+        public List<KategoriDto> Kategoriler { get; set; } = new();
+        public List<string> Iller { get; set; } = new();
+        public List<string> Ilceler { get; set; } = new();
+    }
+
+    public class YetkiliServisMarkaSecenekDto
+    {
+        public int Id { get; set; }
+        public string? MarkaAdi { get; set; }
     }
 
     public class YetkiliServisFiltreDto

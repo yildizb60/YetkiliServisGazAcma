@@ -52,6 +52,38 @@ namespace YetkiliServisGazAcma.Business.Services
             }
         }
 
+        public async Task<YetkiliServisFiltreSecenekleri?> FiltreSecenekleriAsync(string? il)
+        {
+            if (!_options.Enabled)
+            {
+                ApiClientFallback.EnsureAllowed(_options, "Yetkili servis filtre secenekleri");
+                return null;
+            }
+
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync(
+                    "api/yetkili-servisler/filtre-secenekleri",
+                    new YetkiliServisFiltreSecenekleriIstek { Il = il });
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("Yetkili servis filtre secenekleri API cagrisinda basarisiz yanit dondu. StatusCode: {StatusCode}", response.StatusCode);
+                    ApiClientFallback.EnsureAllowed(_options, "Yetkili servis filtre secenekleri");
+                    return null;
+                }
+
+                var secenekler = await response.Content.ReadFromJsonAsync<YetkiliServisFiltreSecenekleriCevap>();
+                return secenekler?.ToModel();
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
+            {
+                _logger.LogWarning(ex, "Yetkili servis filtre secenekleri API cagrisina ulasilamadi.");
+                ApiClientFallback.EnsureAllowed(_options, "Yetkili servis filtre secenekleri");
+                return null;
+            }
+        }
+
         public async Task<YetkiliServisKayitSonuc?> KayitAsync(YetkiliServisKayitIstek istek)
         {
             if (!_options.Enabled)
@@ -154,6 +186,19 @@ namespace YetkiliServisGazAcma.Business.Services
             public string? Q { get; set; }
         }
 
+        public class YetkiliServisFiltreSecenekleri
+        {
+            public List<Ys_Marka> Markalar { get; set; } = new();
+            public List<UrunKategori> Kategoriler { get; set; } = new();
+            public List<string> Iller { get; set; } = new();
+            public List<string> Ilceler { get; set; } = new();
+        }
+
+        private class YetkiliServisFiltreSecenekleriIstek
+        {
+            public string? Il { get; set; }
+        }
+
         public class YetkiliServisKayitIstek
         {
             public string? FirmaAdi { get; set; }
@@ -197,6 +242,52 @@ namespace YetkiliServisGazAcma.Business.Services
             public int Id { get; set; }
             public string? Ad { get; set; }
             public string? IconUrl { get; set; }
+            public int SiraNo { get; set; }
+            public bool AktifMi { get; set; }
+        }
+
+        private class YetkiliServisFiltreSecenekleriCevap
+        {
+            public List<MarkaSecenekDto> Markalar { get; set; } = new();
+            public List<KategoriApiDto> Kategoriler { get; set; } = new();
+            public List<string> Iller { get; set; } = new();
+            public List<string> Ilceler { get; set; } = new();
+
+            public YetkiliServisFiltreSecenekleri ToModel()
+            {
+                return new YetkiliServisFiltreSecenekleri
+                {
+                    Markalar = Markalar
+                        .Select(x => new Ys_Marka
+                        {
+                            Id = x.Id,
+                            MarkaAdi = x.MarkaAdi,
+                            AktifMi = true
+                        })
+                        .OrderBy(x => x.MarkaAdi)
+                        .ToList(),
+                    Kategoriler = Kategoriler
+                        .Select(x => new UrunKategori
+                        {
+                            Id = x.Id,
+                            Ad = x.Ad,
+                            IconUrl = x.IconUrl,
+                            SiraNo = x.SiraNo,
+                            AktifMi = x.AktifMi
+                        })
+                        .OrderBy(x => x.SiraNo)
+                        .ThenBy(x => x.Ad)
+                        .ToList(),
+                    Iller = Iller,
+                    Ilceler = Ilceler
+                };
+            }
+        }
+
+        private class MarkaSecenekDto
+        {
+            public int Id { get; set; }
+            public string? MarkaAdi { get; set; }
         }
     }
 }
