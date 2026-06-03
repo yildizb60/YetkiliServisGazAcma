@@ -12,20 +12,17 @@ namespace YetkiliServisGazAcma.Controllers
     [Authorize(Roles = "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel")]
     public class DagitimSirketController : Controller
     {
-        private readonly DagitimSirketService _service;
         private readonly DagitimSirketApiClient _dagitimSirketApiClient;
         private readonly AppDbContext _context;
         private readonly UserManager<AppKullanici> _userManager;
         private readonly AktifSirketService _aktifSirketService;
 
         public DagitimSirketController(
-            DagitimSirketService service,
             DagitimSirketApiClient dagitimSirketApiClient,
             AppDbContext context,
             UserManager<AppKullanici> userManager,
             AktifSirketService aktifSirketService)
         {
-            _service = service;
             _dagitimSirketApiClient = dagitimSirketApiClient;
             _context = context;
             _userManager = userManager;
@@ -86,8 +83,8 @@ namespace YetkiliServisGazAcma.Controllers
 
             if (sirketler == null)
             {
-                sirketler = await _service.TumunuGetir();
-                ViewBag.DagitimSirketVeriKaynagi = "MVC";
+                TempData["Hata"] = "Sirket listesi API uzerinden alinamadi.";
+                sirketler = new List<Dag_Sirket>();
             }
 
             var aktifSirketId = kullanici == null ? null : await _aktifSirketService.AktifSirketIdAsync(kullanici);
@@ -142,8 +139,8 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null) return Redirect("/giris");
             if (!await _aktifSirketService.GenelSistemAdminMi(kullanici)) return RedirectToAction(nameof(Index));
 
-            await _service.Ekle(sirket, User.Identity?.Name ?? "sistem");
-            TempData["Mesaj"] = "Şirket başarıyla eklendi.";
+            var sonuc = await _dagitimSirketApiClient.EkleAsync(kullanici, sirket);
+            SetDagitimSirketIslemMesaji(sonuc, "Sirket basariyla eklendi.");
             return RedirectToAction("Index");
         }
 
@@ -151,10 +148,16 @@ namespace YetkiliServisGazAcma.Controllers
         [HttpGet]
         public async Task<IActionResult> Duzenle(int id)
         {
-            var sirket = await _service.IdIleGetir(id);
-            if (sirket == null) return NotFound();
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
+
+            var sirket = await _dagitimSirketApiClient.GetirAsync(kullanici, id);
+            if (sirket == null)
+            {
+                TempData["Hata"] = "Sirket detayi API uzerinden alinamadi.";
+                return RedirectToAction(nameof(Index));
+            }
+
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
             if (!await _aktifSirketService.GenelSistemAdminMi(kullanici) && (!aktifSirketId.HasValue || sirket.Id != aktifSirketId.Value))
                 return RedirectToAction(nameof(Index));
@@ -174,8 +177,8 @@ namespace YetkiliServisGazAcma.Controllers
             if (!await _aktifSirketService.GenelSistemAdminMi(kullanici) && (!aktifSirketId.HasValue || sirket.Id != aktifSirketId.Value))
                 return RedirectToAction(nameof(Index));
 
-            await _service.Guncelle(sirket, User.Identity?.Name ?? "sistem");
-            TempData["Mesaj"] = "Şirket başarıyla güncellendi.";
+            var sonuc = await _dagitimSirketApiClient.GuncelleAsync(kullanici, sirket);
+            SetDagitimSirketIslemMesaji(sonuc, "Sirket basariyla guncellendi.");
             return RedirectToAction("Index");
         }
 
@@ -186,9 +189,20 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null) return Redirect("/giris");
             if (!await _aktifSirketService.GenelSistemAdminMi(kullanici)) return RedirectToAction(nameof(Index));
 
-            await _service.Sil(id, User.Identity?.Name ?? "sistem");
-            TempData["Mesaj"] = "Şirket başarıyla silindi.";
+            var sonuc = await _dagitimSirketApiClient.SilAsync(kullanici, id);
+            SetDagitimSirketIslemMesaji(sonuc, "Sirket basariyla silindi.");
             return RedirectToAction("Index");
+        }
+
+        private void SetDagitimSirketIslemMesaji(DagitimSirketIslemSonuc? sonuc, string varsayilanBasari)
+        {
+            if (sonuc?.Basarili == true)
+            {
+                TempData["Mesaj"] = sonuc.Mesaj ?? varsayilanBasari;
+                return;
+            }
+
+            TempData["Hata"] = sonuc?.Mesaj ?? "Sirket islemi API uzerinden tamamlanamadi.";
         }
     }
 }

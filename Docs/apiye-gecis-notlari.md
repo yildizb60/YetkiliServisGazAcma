@@ -511,6 +511,30 @@ AdminPanel.KullaniciSil    -> AdminKullaniciApiClient -> /api/admin-panel/kullan
 
 Bu endpointler aktif sirket kapsamini ve kullanici yonetim yetkisini API tarafinda da kontrol eder. Personel ekranindan gelen isteklerde `SadecePersonel=true` gonderilir; boylece personel sayfasindan farkli tipte kullanici silinmesi veya pasiflestirilmesi engellenir.
 
+## Faz 2 - Marka ve dagitim sirketi gecisi
+
+Kucuk yonetim controllerlari icin yazma ve tekil getirme akislarinin API baglantisi tamamlandi.
+
+API'ye baglanan Web akislari:
+
+```text
+MarkaController.Index      -> MarkaApiClient -> /api/marka/liste
+MarkaController.Duzenle    -> MarkaApiClient -> /api/marka/getir
+MarkaController.Ekle       -> MarkaApiClient -> /api/marka/ekle
+MarkaController.Guncelle   -> MarkaApiClient -> /api/marka/guncelle
+MarkaController.Sil        -> MarkaApiClient -> /api/marka/sil
+
+DagitimSirket.Index        -> DagitimSirketApiClient -> /api/dagitim-sirket/liste
+DagitimSirket.Duzenle      -> DagitimSirketApiClient -> /api/dagitim-sirket/getir
+DagitimSirket.Ekle         -> DagitimSirketApiClient -> /api/dagitim-sirket/ekle
+DagitimSirket.Guncelle     -> DagitimSirketApiClient -> /api/dagitim-sirket/guncelle
+DagitimSirket.Sil          -> DagitimSirketApiClient -> /api/dagitim-sirket/sil
+```
+
+Marka API yazma endpointleri personel icin `MARKA_YONET` veya `TAM_YETKI` kontrolu yapar. Dagitim sirketi guncelleme endpointi, genel sistem yoneticisine ek olarak kendi sirketi kapsamindaki sirket admini veya `DAGITIM_SIRKET_YONET` / `TAM_YETKI` olan personele izin verir. Dagitim sirketi ekle/sil ise genel sistem yonetimi olarak kalir.
+
+Bu akislarda MVC tarafinda veritabani fallback'i yoktur. API yaniti alinamazsa ekran hata mesaji verir; MVC ayni islemi dogrudan veritabanindan tekrar denemez.
+
 ## Razor ortak panel yapisi
 
 Panel sayfalarinda tekrar eden sol menu, ust bar, sirket secici ve bildirim alani ortak yapıya alinmaya baslandi.

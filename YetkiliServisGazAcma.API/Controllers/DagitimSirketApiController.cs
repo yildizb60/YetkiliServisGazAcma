@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using YetkiliServisGazAcma.Business.Services;
@@ -20,7 +21,6 @@ namespace YetkiliServisGazAcma.API.Controllers
             _service = service;
         }
 
-        // Herkese açık — liste
         [HttpPost("liste")]
         [AllowAnonymous]
         public async Task<IActionResult> Tumunu([FromBody] DagitimSirketListeFiltreDto? dto)
@@ -52,7 +52,6 @@ namespace YetkiliServisGazAcma.API.Controllers
             return Ok(sirketler);
         }
 
-        // Token gerekli — tek kayıt
         [HttpPost("getir")]
         [Authorize]
         public async Task<IActionResult> Getir([FromBody] IdDto dto)
@@ -66,12 +65,13 @@ namespace YetkiliServisGazAcma.API.Controllers
                     x.Il,
                     x.Telefon,
                     x.Email,
-                    x.Adres
+                    x.Adres,
+                    x.AktifMi
                 })
                 .FirstOrDefaultAsync();
 
             if (sirket == null)
-                return NotFound(new { mesaj = "Sirket bulunamadı" });
+                return NotFound(new { mesaj = "Sirket bulunamadi" });
 
             return Ok(sirket);
         }
@@ -80,6 +80,9 @@ namespace YetkiliServisGazAcma.API.Controllers
         [Authorize(Roles = "GenelSistemAdmin,SuperAdmin")]
         public async Task<IActionResult> Ekle([FromBody] DagitimSirketKaydetDto dto)
         {
+            if (!await GenelSistemYonetebilirMi())
+                return Forbid();
+
             if (string.IsNullOrWhiteSpace(dto.SirketAdi))
                 return BadRequest(new { basarili = false, mesaj = "Sirket adi zorunludur" });
 
@@ -98,11 +101,14 @@ namespace YetkiliServisGazAcma.API.Controllers
         }
 
         [HttpPost("guncelle")]
-        [Authorize(Roles = "GenelSistemAdmin,SuperAdmin")]
+        [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel")]
         public async Task<IActionResult> Guncelle([FromBody] DagitimSirketKaydetDto dto)
         {
             if (!dto.Id.HasValue)
                 return BadRequest(new { basarili = false, mesaj = "Id zorunludur" });
+
+            if (!await DagitimSirketYonetebilirMi(dto.Id.Value))
+                return Forbid();
 
             var sirket = new Dag_Sirket
             {
@@ -126,11 +132,52 @@ namespace YetkiliServisGazAcma.API.Controllers
         [Authorize(Roles = "GenelSistemAdmin,SuperAdmin")]
         public async Task<IActionResult> Sil([FromBody] IdDto dto)
         {
+            if (!await GenelSistemYonetebilirMi())
+                return Forbid();
+
             var sonuc = await _service.Sil(dto.Id, User.Identity?.Name);
             if (!sonuc)
                 return NotFound(new { basarili = false, mesaj = "Sirket bulunamadi" });
 
             return Ok(new { basarili = true, mesaj = "Sirket silindi" });
+        }
+
+        private async Task<bool> GenelSistemYonetebilirMi()
+        {
+            if (User.IsInRole("GenelSistemAdmin") || User.IsInRole("SuperAdmin"))
+                return true;
+
+            var kullanici = await AktifKullaniciAsync();
+            return kullanici?.KullaniciTipi == 4;
+        }
+
+        private async Task<bool> DagitimSirketYonetebilirMi(int sirketId)
+        {
+            if (await GenelSistemYonetebilirMi())
+                return true;
+
+            var kullanici = await AktifKullaniciAsync();
+            if (kullanici == null)
+                return false;
+
+            if ((User.IsInRole("SirketAdmin") || kullanici.KullaniciTipi == 3)
+                && kullanici.SirketId == sirketId)
+                return true;
+
+            return await _context.Dag_PersonelYetkiler.AnyAsync(x =>
+                x.KullaniciId == kullanici.Id &&
+                !x.SilindiMi &&
+                x.SirketId == sirketId &&
+                (x.YetkiTipi == YetkiTipleri.TAM_YETKI || x.YetkiTipi == YetkiTipleri.DAGITIM_SIRKET_YONET));
+        }
+
+        private async Task<AppKullanici?> AktifKullaniciAsync()
+        {
+            var kullaniciId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(kullaniciId))
+                return null;
+
+            return await _context.Users.FirstOrDefaultAsync(x => x.Id == kullaniciId);
         }
     }
 

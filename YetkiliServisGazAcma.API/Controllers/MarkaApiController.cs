@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using YetkiliServisGazAcma.Business.Services;
@@ -64,15 +65,18 @@ namespace YetkiliServisGazAcma.API.Controllers
                 .FirstOrDefaultAsync();
 
             if (marka == null)
-                return NotFound(new { mesaj = "Marka bulunamadı" });
+                return NotFound(new { mesaj = "Marka bulunamadi" });
 
             return Ok(marka);
         }
 
         [HttpPost("ekle")]
-        [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin")]
+        [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel")]
         public async Task<IActionResult> Ekle([FromBody] MarkaKaydetDto dto)
         {
+            if (!await MarkaYonetebilirMi())
+                return Forbid();
+
             if (string.IsNullOrWhiteSpace(dto.MarkaAdi))
                 return BadRequest(new { basarili = false, mesaj = "Marka adi zorunludur" });
 
@@ -88,9 +92,12 @@ namespace YetkiliServisGazAcma.API.Controllers
         }
 
         [HttpPost("guncelle")]
-        [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin")]
+        [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel")]
         public async Task<IActionResult> Guncelle([FromBody] MarkaKaydetDto dto)
         {
+            if (!await MarkaYonetebilirMi())
+                return Forbid();
+
             if (!dto.Id.HasValue)
                 return BadRequest(new { basarili = false, mesaj = "Id zorunludur" });
 
@@ -110,9 +117,12 @@ namespace YetkiliServisGazAcma.API.Controllers
         }
 
         [HttpPost("sil")]
-        [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin")]
+        [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel")]
         public async Task<IActionResult> Sil([FromBody] IdDto dto)
         {
+            if (!await MarkaYonetebilirMi())
+                return Forbid();
+
             if (await _service.KullaniliyorMu(dto.Id))
                 return BadRequest(new { basarili = false, mesaj = "Bu marka kullanildigi icin silinemez" });
 
@@ -121,6 +131,30 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return NotFound(new { basarili = false, mesaj = "Marka bulunamadi" });
 
             return Ok(new { basarili = true, mesaj = "Marka silindi" });
+        }
+
+        private async Task<bool> MarkaYonetebilirMi()
+        {
+            if (User.IsInRole("GenelSistemAdmin")
+                || User.IsInRole("SuperAdmin")
+                || User.IsInRole("SirketAdmin"))
+                return true;
+
+            var kullaniciId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(kullaniciId))
+                return false;
+
+            var kullanici = await _context.Users.FirstOrDefaultAsync(x => x.Id == kullaniciId);
+            if (kullanici == null)
+                return false;
+
+            if (kullanici.KullaniciTipi == 4 || kullanici.KullaniciTipi == 3)
+                return true;
+
+            return await _context.Dag_PersonelYetkiler.AnyAsync(x =>
+                x.KullaniciId == kullanici.Id &&
+                !x.SilindiMi &&
+                (x.YetkiTipi == YetkiTipleri.TAM_YETKI || x.YetkiTipi == YetkiTipleri.MARKA_YONET));
         }
     }
 
@@ -137,5 +171,4 @@ namespace YetkiliServisGazAcma.API.Controllers
         public bool TumunuGetir { get; set; }
         public bool? AktifMi { get; set; }
     }
-
 }
