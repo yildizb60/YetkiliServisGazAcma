@@ -77,6 +77,107 @@ namespace YetkiliServisGazAcma.Business.Services
             }
         }
 
+        public Task<AdminKullaniciIslemSonuc?> DurumAsync(
+            AppKullanici kullanici,
+            string id,
+            bool aktifMi,
+            int? sirketId,
+            bool sadecePersonel)
+        {
+            return PostIslemAsync(
+                kullanici,
+                "api/admin-panel/kullanicilar/durum",
+                new AdminKullaniciDurumIstek
+                {
+                    Id = id,
+                    SirketId = sirketId,
+                    AktifMi = aktifMi,
+                    SadecePersonel = sadecePersonel
+                },
+                "Admin kullanici durum");
+        }
+
+        public Task<AdminKullaniciIslemSonuc?> SilAsync(
+            AppKullanici kullanici,
+            string id,
+            int? sirketId,
+            bool sadecePersonel)
+        {
+            return PostIslemAsync(
+                kullanici,
+                "api/admin-panel/kullanicilar/sil",
+                new AdminKullaniciSilIstek
+                {
+                    Id = id,
+                    SirketId = sirketId,
+                    SadecePersonel = sadecePersonel
+                },
+                "Admin kullanici sil");
+        }
+
+        private async Task<AdminKullaniciIslemSonuc?> PostIslemAsync<TRequest>(
+            AppKullanici kullanici,
+            string url,
+            TRequest istek,
+            string operasyon)
+        {
+            if (!_options.Enabled)
+            {
+                ApiClientFallback.EnsureAllowed(_options, operasyon);
+                return null;
+            }
+
+            try
+            {
+                var token = await _tokenService.OlusturAsync(kullanici);
+                if (string.IsNullOrWhiteSpace(token))
+                {
+                    ApiClientFallback.EnsureAllowed(_options, $"{operasyon} token");
+                    return null;
+                }
+
+                using var request = new HttpRequestMessage(HttpMethod.Post, url);
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                request.Content = JsonContent.Create(istek);
+
+                using var response = await _httpClient.SendAsync(request);
+                AdminKullaniciIslemCevap? cevap = null;
+                try
+                {
+                    cevap = await response.Content.ReadFromJsonAsync<AdminKullaniciIslemCevap>();
+                }
+                catch (Exception ex) when (ex is InvalidOperationException or System.Text.Json.JsonException)
+                {
+                    cevap = null;
+                }
+
+                if (cevap != null)
+                    return cevap.ToSonuc();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("{Operasyon} API cagrisinda basarisiz yanit dondu. Url: {Url}, StatusCode: {StatusCode}", operasyon, url, response.StatusCode);
+
+                    if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                        return new AdminKullaniciIslemSonuc
+                        {
+                            Basarili = false,
+                            Mesaj = "Bu kullanici islemi icin yetkiniz yok."
+                        };
+
+                    ApiClientFallback.EnsureAllowed(_options, operasyon);
+                }
+
+                return null;
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
+            {
+                _logger.LogWarning(ex, "{Operasyon} API cagrisina ulasilamadi. Url: {Url}", operasyon, url);
+                ApiClientFallback.EnsureAllowed(_options, operasyon);
+                return null;
+            }
+        }
+
         private class AdminKullaniciListeIstek
         {
             public int? SirketId { get; set; }
@@ -84,6 +185,36 @@ namespace YetkiliServisGazAcma.Business.Services
             public string? Tip { get; set; }
             public string? Durum { get; set; }
             public string? Bagli { get; set; }
+        }
+
+        private class AdminKullaniciDurumIstek
+        {
+            public string Id { get; set; } = string.Empty;
+            public int? SirketId { get; set; }
+            public bool AktifMi { get; set; }
+            public bool SadecePersonel { get; set; }
+        }
+
+        private class AdminKullaniciSilIstek
+        {
+            public string Id { get; set; } = string.Empty;
+            public int? SirketId { get; set; }
+            public bool SadecePersonel { get; set; }
+        }
+
+        private class AdminKullaniciIslemCevap
+        {
+            public bool Basarili { get; set; }
+            public string? Mesaj { get; set; }
+
+            public AdminKullaniciIslemSonuc ToSonuc()
+            {
+                return new AdminKullaniciIslemSonuc
+                {
+                    Basarili = Basarili,
+                    Mesaj = Mesaj
+                };
+            }
         }
 
         private class AdminKullaniciListeCevap
@@ -131,5 +262,11 @@ namespace YetkiliServisGazAcma.Business.Services
                 };
             }
         }
+    }
+
+    public class AdminKullaniciIslemSonuc
+    {
+        public bool Basarili { get; set; }
+        public string? Mesaj { get; set; }
     }
 }

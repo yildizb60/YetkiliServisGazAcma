@@ -854,6 +854,14 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null) return Redirect("/giris");
             if (!await KullaniciYonetebilirMi(kullanici)) return Redirect("/AdminPanel");
 
+            var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
+            var sonuc = await _adminKullaniciApiClient.DurumAsync(kullanici, id, aktif, aktifSirketId, sadecePersonel: true);
+            SetKullaniciIslemMesaji(sonuc, aktif ? "Personel aktif edildi." : "Personel pasiflestirildi.");
+            return Redirect("/AdminPanel/personeller");
+        }
+
+#if false
+
             var hedef = await _context.Users.FirstOrDefaultAsync(x => x.Id == id && x.KullaniciTipi == 2);
             if (hedef == null)
             {
@@ -868,6 +876,8 @@ namespace YetkiliServisGazAcma.Controllers
             return Redirect("/AdminPanel/personeller");
         }
 
+#endif
+
         [HttpPost("personeller/sil/{id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> PersonelSil(string id)
@@ -875,6 +885,14 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
             if (!await KullaniciYonetebilirMi(kullanici)) return Redirect("/AdminPanel");
+
+            var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
+            var sonuc = await _adminKullaniciApiClient.SilAsync(kullanici, id, aktifSirketId, sadecePersonel: true);
+            SetKullaniciIslemMesaji(sonuc, "Personel silindi.");
+            return Redirect("/AdminPanel/personeller");
+        }
+
+#if false
 
             var hedef = await _context.Users.FirstOrDefaultAsync(x => x.Id == id && x.KullaniciTipi == 2);
             if (hedef == null)
@@ -900,6 +918,8 @@ namespace YetkiliServisGazAcma.Controllers
             return Redirect("/AdminPanel/personeller");
         }
 
+#endif
+
         [HttpPost("kullanicilar/durum/{id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> KullaniciDurum(string id, bool aktif)
@@ -907,6 +927,14 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
             if (!await KullaniciYonetebilirMi(kullanici)) return Redirect("/AdminPanel");
+
+            var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
+            var sonuc = await _adminKullaniciApiClient.DurumAsync(kullanici, id, aktif, aktifSirketId, sadecePersonel: false);
+            SetKullaniciIslemMesaji(sonuc, aktif ? "Kullanici aktif edildi." : "Kullanici pasiflestirildi.");
+            return Redirect("/AdminPanel/kullanicilar");
+        }
+
+#if false
 
             var hedef = await _context.Users.FirstOrDefaultAsync(x => x.Id == id);
             if (hedef == null) return Redirect("/AdminPanel/kullanicilar");
@@ -919,6 +947,8 @@ namespace YetkiliServisGazAcma.Controllers
             return Redirect("/AdminPanel/kullanicilar");
         }
 
+#endif
+
         [HttpPost("kullanicilar/sil/{id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> KullaniciSil(string id)
@@ -926,6 +956,14 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
             if (!await KullaniciYonetebilirMi(kullanici)) return Redirect("/AdminPanel");
+
+            var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
+            var sonuc = await _adminKullaniciApiClient.SilAsync(kullanici, id, aktifSirketId, sadecePersonel: false);
+            SetKullaniciIslemMesaji(sonuc, "Kullanici silindi.");
+            return Redirect("/AdminPanel/kullanicilar");
+        }
+
+#if false
 
             var hedef = await _context.Users.FirstOrDefaultAsync(x => x.Id == id);
             if (hedef == null)
@@ -950,6 +988,19 @@ namespace YetkiliServisGazAcma.Controllers
 
             TempData["Basarili"] = "Kullanıcı silindi.";
             return Redirect("/AdminPanel/kullanicilar");
+        }
+
+#endif
+
+        private void SetKullaniciIslemMesaji(AdminKullaniciIslemSonuc? sonuc, string varsayilanBasari)
+        {
+            if (sonuc?.Basarili == true)
+            {
+                TempData["Basarili"] = sonuc.Mesaj ?? varsayilanBasari;
+                return;
+            }
+
+            TempData["Hata"] = sonuc?.Mesaj ?? "Kullanici islemi API uzerinden tamamlanamadi.";
         }
 
         [HttpGet("yetkiler")]

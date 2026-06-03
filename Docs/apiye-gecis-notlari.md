@@ -489,11 +489,27 @@ API'ye baglanan AdminPanel akislari:
 
 ```text
 AdminPanel.YetkiliServisDetay   -> AdminYetkiliServisApiClient -> /api/admin-panel/yetkili-servisler/getir
-AdminPanel.YetkiliServisDuzenle -> AdminYetkiliServisApiClient -> /api/yetkili-servisler/guncelle
-AdminPanel.YetkiliServisSil     -> AdminYetkiliServisApiClient -> /api/yetkili-servisler/sil
+AdminPanel.YetkiliServisEkle    -> AdminYetkiliServisApiClient -> /api/admin-panel/yetkili-servisler/ekle
+AdminPanel.YetkiliServisDuzenle -> AdminYetkiliServisApiClient -> /api/admin-panel/yetkili-servisler/guncelle
+AdminPanel.YetkiliServisSil     -> AdminYetkiliServisApiClient -> /api/admin-panel/yetkili-servisler/sil
 ```
 
-Bu adimda AdminPanel yetkili servis ekleme akisi bilerek tasinmadi. Mevcut `/api/yetkili-servisler/kayit` public basvuru akisi olarak calisir ve sifre ister; AdminPanel ekleme ekrani ise firma/marka/kategori tanimi gibi calisir. Bu yuzden admin ekleme icin ayri ve net bir API sozlesmesi acilmalidir.
+Mevcut `/api/yetkili-servisler/kayit` public basvuru akisi olarak kalir ve sifre ister. AdminPanel ekleme ekrani bu endpoint'i kullanmaz; admin token'i ile calisan `/api/admin-panel/yetkili-servisler/ekle` endpoint'i firma/marka/kategori tanimi yapar ve kullanici sifresi istemez.
+
+## Faz 2 - AdminPanel kullanici durum/sil gecisi
+
+Kullanici ve personel yonetiminde dusuk riskli yazma islemleri API'ye tasindi.
+
+API'ye baglanan AdminPanel akislari:
+
+```text
+AdminPanel.PersonelDurum   -> AdminKullaniciApiClient -> /api/admin-panel/kullanicilar/durum
+AdminPanel.PersonelSil     -> AdminKullaniciApiClient -> /api/admin-panel/kullanicilar/sil
+AdminPanel.KullaniciDurum  -> AdminKullaniciApiClient -> /api/admin-panel/kullanicilar/durum
+AdminPanel.KullaniciSil    -> AdminKullaniciApiClient -> /api/admin-panel/kullanicilar/sil
+```
+
+Bu endpointler aktif sirket kapsamini ve kullanici yonetim yetkisini API tarafinda da kontrol eder. Personel ekranindan gelen isteklerde `SadecePersonel=true` gonderilir; boylece personel sayfasindan farkli tipte kullanici silinmesi veya pasiflestirilmesi engellenir.
 
 ## Razor ortak panel yapisi
 

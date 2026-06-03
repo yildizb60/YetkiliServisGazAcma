@@ -127,6 +127,7 @@ namespace YetkiliServisGazAcma.Business.Services
         public async Task<AdminYetkiliServisIslemSonuc?> GuncelleAsync(
             AppKullanici kullanici,
             int id,
+            int? sirketId,
             string? firmaAdi,
             string? yetkiliKisi,
             string? telefon,
@@ -136,14 +137,16 @@ namespace YetkiliServisGazAcma.Business.Services
             string? vergiNo,
             string? vergiDairesi,
             bool aktifMi,
-            List<int>? kategoriIds)
+            List<int>? kategoriIds,
+            List<int>? markaIds = null)
         {
             var cevap = await PostAsync<AdminYetkiliServisKaydetIstek, AdminYetkiliServisIslemCevap>(
                 kullanici,
-                "api/yetkili-servisler/guncelle",
+                "api/admin-panel/yetkili-servisler/guncelle",
                 new AdminYetkiliServisKaydetIstek
                 {
                     Id = id,
+                    SirketId = sirketId,
                     FirmaAdi = firmaAdi,
                     YetkiliKisi = yetkiliKisi,
                     Telefon = telefon,
@@ -153,19 +156,57 @@ namespace YetkiliServisGazAcma.Business.Services
                     VergiNo = vergiNo,
                     VergiDairesi = vergiDairesi,
                     AktifMi = aktifMi,
-                    KategoriIds = kategoriIds?.Distinct().ToList()
+                    KategoriIds = kategoriIds?.Distinct().ToList(),
+                    MarkaIds = markaIds?.Distinct().ToList()
                 },
                 "Admin yetkili servis guncelle");
 
             return cevap?.ToSonuc();
         }
 
-        public async Task<AdminYetkiliServisIslemSonuc?> SilAsync(AppKullanici kullanici, int id)
+        public async Task<AdminYetkiliServisIslemSonuc?> EkleAsync(
+            AppKullanici kullanici,
+            int? sirketId,
+            string? firmaAdi,
+            string? yetkiliKisi,
+            string? telefon,
+            string? email,
+            string? adres,
+            string? faaliyetIli,
+            string? vergiNo,
+            string? vergiDairesi,
+            List<int>? kategoriIds,
+            List<int>? markaIds)
+        {
+            var cevap = await PostAsync<AdminYetkiliServisKaydetIstek, AdminYetkiliServisIslemCevap>(
+                kullanici,
+                "api/admin-panel/yetkili-servisler/ekle",
+                new AdminYetkiliServisKaydetIstek
+                {
+                    SirketId = sirketId,
+                    FirmaAdi = firmaAdi,
+                    YetkiliKisi = yetkiliKisi,
+                    Telefon = telefon,
+                    Email = email,
+                    Adres = adres,
+                    FaaliyetIli = faaliyetIli,
+                    VergiNo = vergiNo,
+                    VergiDairesi = vergiDairesi,
+                    AktifMi = true,
+                    KategoriIds = kategoriIds?.Distinct().ToList(),
+                    MarkaIds = markaIds?.Distinct().ToList()
+                },
+                "Admin yetkili servis ekle");
+
+            return cevap?.ToSonuc();
+        }
+
+        public async Task<AdminYetkiliServisIslemSonuc?> SilAsync(AppKullanici kullanici, int id, int? sirketId)
         {
             var cevap = await PostAsync<AdminYetkiliServisIdIstek, AdminYetkiliServisIslemCevap>(
                 kullanici,
-                "api/yetkili-servisler/sil",
-                new AdminYetkiliServisIdIstek { Id = id },
+                "api/admin-panel/yetkili-servisler/sil",
+                new AdminYetkiliServisIdIstek { Id = id, SirketId = sirketId },
                 "Admin yetkili servis sil");
 
             return cevap?.ToSonuc();
@@ -252,11 +293,13 @@ namespace YetkiliServisGazAcma.Business.Services
         private class AdminYetkiliServisIdIstek
         {
             public int Id { get; set; }
+            public int? SirketId { get; set; }
         }
 
         private class AdminYetkiliServisKaydetIstek
         {
             public int Id { get; set; }
+            public int? SirketId { get; set; }
             public string? FirmaAdi { get; set; }
             public string? YetkiliKisi { get; set; }
             public string? Telefon { get; set; }
@@ -267,6 +310,7 @@ namespace YetkiliServisGazAcma.Business.Services
             public string? VergiDairesi { get; set; }
             public bool AktifMi { get; set; }
             public List<int>? KategoriIds { get; set; }
+            public List<int>? MarkaIds { get; set; }
         }
 
         private class AdminYetkiliServisIslemCevap
