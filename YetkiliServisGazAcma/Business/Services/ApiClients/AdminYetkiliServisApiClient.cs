@@ -124,6 +124,116 @@ namespace YetkiliServisGazAcma.Business.Services
             }
         }
 
+        public async Task<AdminYetkiliServisIslemSonuc?> GuncelleAsync(
+            AppKullanici kullanici,
+            int id,
+            string? firmaAdi,
+            string? yetkiliKisi,
+            string? telefon,
+            string? email,
+            string? adres,
+            string? faaliyetIli,
+            string? vergiNo,
+            string? vergiDairesi,
+            bool aktifMi,
+            List<int>? kategoriIds)
+        {
+            var cevap = await PostAsync<AdminYetkiliServisKaydetIstek, AdminYetkiliServisIslemCevap>(
+                kullanici,
+                "api/yetkili-servisler/guncelle",
+                new AdminYetkiliServisKaydetIstek
+                {
+                    Id = id,
+                    FirmaAdi = firmaAdi,
+                    YetkiliKisi = yetkiliKisi,
+                    Telefon = telefon,
+                    Email = email,
+                    Adres = adres,
+                    FaaliyetIli = faaliyetIli,
+                    VergiNo = vergiNo,
+                    VergiDairesi = vergiDairesi,
+                    AktifMi = aktifMi,
+                    KategoriIds = kategoriIds?.Distinct().ToList()
+                },
+                "Admin yetkili servis guncelle");
+
+            return cevap?.ToSonuc();
+        }
+
+        public async Task<AdminYetkiliServisIslemSonuc?> SilAsync(AppKullanici kullanici, int id)
+        {
+            var cevap = await PostAsync<AdminYetkiliServisIdIstek, AdminYetkiliServisIslemCevap>(
+                kullanici,
+                "api/yetkili-servisler/sil",
+                new AdminYetkiliServisIdIstek { Id = id },
+                "Admin yetkili servis sil");
+
+            return cevap?.ToSonuc();
+        }
+
+        private async Task<TResponse?> PostAsync<TRequest, TResponse>(
+            AppKullanici kullanici,
+            string url,
+            TRequest istek,
+            string operasyon)
+        {
+            if (!_options.Enabled)
+            {
+                ApiClientFallback.EnsureAllowed(_options, operasyon);
+                return default;
+            }
+
+            try
+            {
+                var token = await _tokenService.OlusturAsync(kullanici);
+                if (string.IsNullOrWhiteSpace(token))
+                {
+                    ApiClientFallback.EnsureAllowed(_options, $"{operasyon} token");
+                    return default;
+                }
+
+                using var request = new HttpRequestMessage(HttpMethod.Post, url);
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                request.Content = JsonContent.Create(istek);
+
+                using var response = await _httpClient.SendAsync(request);
+                TResponse? cevap = default;
+                try
+                {
+                    cevap = await response.Content.ReadFromJsonAsync<TResponse>();
+                }
+                catch (Exception ex) when (ex is InvalidOperationException or System.Text.Json.JsonException)
+                {
+                    cevap = default;
+                }
+
+                if (cevap != null)
+                    return cevap;
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("{Operasyon} API cagrisinda basarisiz yanit dondu. Url: {Url}, StatusCode: {StatusCode}", operasyon, url, response.StatusCode);
+
+                    if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                        return (TResponse?)(object)new AdminYetkiliServisIslemCevap
+                        {
+                            Basarili = false,
+                            Mesaj = "Bu yetkili servis islemi icin yetkiniz yok."
+                        };
+
+                    ApiClientFallback.EnsureAllowed(_options, operasyon);
+                }
+
+                return default;
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
+            {
+                _logger.LogWarning(ex, "{Operasyon} API cagrisina ulasilamadi. Url: {Url}", operasyon, url);
+                ApiClientFallback.EnsureAllowed(_options, operasyon);
+                return default;
+            }
+        }
+
         private class AdminYetkiliServisListeIstek
         {
             public int? SirketId { get; set; }
@@ -137,6 +247,41 @@ namespace YetkiliServisGazAcma.Business.Services
         {
             public int Id { get; set; }
             public int? SirketId { get; set; }
+        }
+
+        private class AdminYetkiliServisIdIstek
+        {
+            public int Id { get; set; }
+        }
+
+        private class AdminYetkiliServisKaydetIstek
+        {
+            public int Id { get; set; }
+            public string? FirmaAdi { get; set; }
+            public string? YetkiliKisi { get; set; }
+            public string? Telefon { get; set; }
+            public string? Email { get; set; }
+            public string? Adres { get; set; }
+            public string? FaaliyetIli { get; set; }
+            public string? VergiNo { get; set; }
+            public string? VergiDairesi { get; set; }
+            public bool AktifMi { get; set; }
+            public List<int>? KategoriIds { get; set; }
+        }
+
+        private class AdminYetkiliServisIslemCevap
+        {
+            public bool Basarili { get; set; }
+            public string? Mesaj { get; set; }
+
+            public AdminYetkiliServisIslemSonuc ToSonuc()
+            {
+                return new AdminYetkiliServisIslemSonuc
+                {
+                    Basarili = Basarili,
+                    Mesaj = Mesaj
+                };
+            }
         }
 
         private class AdminYetkiliServisListeCevap
@@ -160,6 +305,7 @@ namespace YetkiliServisGazAcma.Business.Services
             public string? FirmaAdi { get; set; }
             public string? YetkiliKisi { get; set; }
             public string? VergiNo { get; set; }
+            public string? VergiDairesi { get; set; }
             public string? Telefon { get; set; }
             public string? Email { get; set; }
             public string? Adres { get; set; }
@@ -177,6 +323,7 @@ namespace YetkiliServisGazAcma.Business.Services
                     FirmaAdi = FirmaAdi,
                     YetkiliKisi = YetkiliKisi,
                     VergiNo = VergiNo,
+                    VergiDairesi = VergiDairesi,
                     Telefon = Telefon,
                     Email = Email,
                     Adres = Adres,
@@ -301,5 +448,11 @@ namespace YetkiliServisGazAcma.Business.Services
                 };
             }
         }
+    }
+
+    public class AdminYetkiliServisIslemSonuc
+    {
+        public bool Basarili { get; set; }
+        public string? Mesaj { get; set; }
     }
 }

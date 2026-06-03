@@ -185,6 +185,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                     FirmaAdi = x.FirmaAdi,
                     YetkiliKisi = x.YetkiliKisi,
                     VergiNo = x.VergiNo,
+                    VergiDairesi = x.VergiDairesi,
                     Telefon = x.Telefon,
                     Email = x.Email,
                     Adres = x.Adres,
@@ -219,6 +220,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                     FirmaAdi = sonuc.Servis.FirmaAdi,
                     YetkiliKisi = sonuc.Servis.YetkiliKisi,
                     VergiNo = sonuc.Servis.VergiNo,
+                    VergiDairesi = sonuc.Servis.VergiDairesi,
                     Telefon = sonuc.Servis.Telefon,
                     Email = sonuc.Servis.Email,
                     Adres = sonuc.Servis.Adres,
@@ -1197,6 +1199,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         public string? FirmaAdi { get; set; }
         public string? YetkiliKisi { get; set; }
         public string? VergiNo { get; set; }
+        public string? VergiDairesi { get; set; }
         public string? Telefon { get; set; }
         public string? Email { get; set; }
         public string? Adres { get; set; }

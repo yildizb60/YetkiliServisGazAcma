@@ -481,6 +481,20 @@ Bu alanlar mevcut AdminPanel rapor ekranini bozmaz; sadece PersonelPanel rapor k
 
 Not: Veritabani/entity tarafinda eski teknik tablo ve servis adlari korunur. Yeni MVC client ve ekrana anlatilan akis "Yetki Belgesi" adini kullanir. Eski teknik adlarin toplu temizligi ayri bir isimlendirme/refactor adimi olarak ele alinmalidir.
 
+## Faz 2 - AdminPanel yetkili servis gecisi
+
+AdminPanel yetkili servis ekraninda yazma akislarinin bir bolumu API'ye tasindi.
+
+API'ye baglanan AdminPanel akislari:
+
+```text
+AdminPanel.YetkiliServisDetay   -> AdminYetkiliServisApiClient -> /api/admin-panel/yetkili-servisler/getir
+AdminPanel.YetkiliServisDuzenle -> AdminYetkiliServisApiClient -> /api/yetkili-servisler/guncelle
+AdminPanel.YetkiliServisSil     -> AdminYetkiliServisApiClient -> /api/yetkili-servisler/sil
+```
+
+Bu adimda AdminPanel yetkili servis ekleme akisi bilerek tasinmadi. Mevcut `/api/yetkili-servisler/kayit` public basvuru akisi olarak calisir ve sifre ister; AdminPanel ekleme ekrani ise firma/marka/kategori tanimi gibi calisir. Bu yuzden admin ekleme icin ayri ve net bir API sozlesmesi acilmalidir.
+
 ## Razor ortak panel yapisi
 
 Panel sayfalarinda tekrar eden sol menu, ust bar, sirket secici ve bildirim alani ortak yapıya alinmaya baslandi.

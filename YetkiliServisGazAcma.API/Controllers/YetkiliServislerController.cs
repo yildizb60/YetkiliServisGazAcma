@@ -211,6 +211,9 @@ namespace YetkiliServisGazAcma.API.Controllers
             servis.FaaliyetIli = dto.FaaliyetIli;
             servis.VergiNo = dto.VergiNo;
             servis.VergiDairesi = dto.VergiDairesi;
+            servis.SirketId = await _sehirFirmaKoduService.SirketIdBulVeyaOlustur(
+                dto.FaaliyetIli,
+                User.Identity?.Name ?? "api");
             servis.AktifMi = dto.AktifMi;
             servis.GuncellemeTarihi = DateTime.Now;
             servis.GuncelleyenKullanici = User.Identity?.Name ?? "api";
