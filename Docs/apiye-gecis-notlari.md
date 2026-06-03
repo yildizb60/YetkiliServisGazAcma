@@ -553,6 +553,17 @@ Personel formu sirketleri    -> AdminKullaniciApiClient -> /api/admin-panel/kull
 
 Bu akislarda Web tarafinda personel kaydi icin `_userManager.CreateAsync` veya dogrudan DB yazimi kullanilmaz. API ulasilamazsa form hata mesaji verir ve islem veritabanina MVC tarafindan yazilmaz.
 
+## Faz 2 - Yetki belgesi onay/red gecisi
+
+Yetki belgesi onay ve red yazma islemleri API hattina alindi.
+
+```text
+ys-yetki-belgesi/onayla -> YetkiBelgesiApiClient -> /api/sertifika/onayla
+ys-yetki-belgesi/reddet -> YetkiBelgesiApiClient -> /api/sertifika/reddet
+```
+
+Bu akislarda yetki ve sirket kapsami API tarafinda kontrol edilir. MVC tarafinda onay/red icin dogrudan `SertifikaService.Onayla` veya `SertifikaService.Reddet` cagrisi yapilmaz.
+
 ## Razor ortak panel yapisi
 
 Panel sayfalarinda tekrar eden sol menu, ust bar, sirket secici ve bildirim alani ortak yapıya alinmaya baslandi.

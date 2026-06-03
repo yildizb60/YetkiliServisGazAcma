@@ -13,17 +13,20 @@ namespace YetkiliServisGazAcma.Controllers
     public class YetkiBelgesiController : Controller
     {
         private readonly SertifikaService _service;
+        private readonly YetkiBelgesiApiClient _yetkiBelgesiApiClient;
         private readonly UserManager<AppKullanici> _userManager;
         private readonly AppDbContext _context;
         private readonly AktifSirketService _aktifSirketService;
 
         public YetkiBelgesiController(
             SertifikaService service,
+            YetkiBelgesiApiClient yetkiBelgesiApiClient,
             UserManager<AppKullanici> userManager,
             AppDbContext context,
             AktifSirketService aktifSirketService)
         {
             _service = service;
+            _yetkiBelgesiApiClient = yetkiBelgesiApiClient;
             _userManager = userManager;
             _context = context;
             _aktifSirketService = aktifSirketService;
@@ -219,20 +222,8 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await _userManager.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
-            if (!await KullaniciYetkiliMi(kullanici, YetkiTipleri.CERTIFIKA_ONAY))
-            {
-                TempData["Hata"] = "Yetki belgesi onay yetkiniz yok.";
-                return Redirect("/personel-panel");
-            }
-
-            if (!await SertifikaAktifSirketteMi(id, kullanici))
-            {
-                TempData["Hata"] = "Bu yetki belgesi için işlem yetkiniz yok.";
-                return Redirect("/ys-yetki-belgesi/onay-bekleyenler");
-            }
-
-            await _service.Onayla(id, kullanici?.UserName);
-            TempData["Basarili"] = "Yetki belgesi onaylandı.";
+            var sonuc = await _yetkiBelgesiApiClient.OnaylaAsync(kullanici, id);
+            SetYetkiBelgesiIslemMesaji(sonuc, "Yetki belgesi onaylandi.", basariKey: "Basarili");
             return Redirect("/ys-yetki-belgesi/onay-bekleyenler");
         }
 
@@ -244,37 +235,20 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await _userManager.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
-            if (!await KullaniciYetkiliMi(kullanici, YetkiTipleri.CERTIFIKA_ONAY))
-            {
-                TempData["Hata"] = "Yetki belgesi onay yetkiniz yok.";
-                return Redirect("/personel-panel");
-            }
-
-            if (!await SertifikaAktifSirketteMi(id, kullanici))
-            {
-                TempData["Hata"] = "Bu yetki belgesi için işlem yetkiniz yok.";
-                return Redirect("/ys-yetki-belgesi/onay-bekleyenler");
-            }
-
-            await _service.Reddet(id, gerekce, kullanici?.UserName);
-            TempData["Hata"] = "Yetki belgesi reddedildi.";
+            var sonuc = await _yetkiBelgesiApiClient.ReddetAsync(kullanici, id, gerekce);
+            SetYetkiBelgesiIslemMesaji(sonuc, "Yetki belgesi reddedildi.", basariKey: "Hata");
             return Redirect("/ys-yetki-belgesi/onay-bekleyenler");
         }
 
-        private async Task<bool> SertifikaAktifSirketteMi(int sertifikaId, AppKullanici kullanici)
+        private void SetYetkiBelgesiIslemMesaji(YetkiBelgesiIslemSonuc? sonuc, string varsayilanBasari, string basariKey)
         {
-            var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            if (!sirketId.HasValue && await _aktifSirketService.GenelSistemAdminMi(kullanici))
-                return true;
+            if (sonuc?.Basarili == true)
+            {
+                TempData[basariKey] = sonuc.Mesaj ?? varsayilanBasari;
+                return;
+            }
 
-            return await _context.Ys_Sertifikalar
-                .Include(x => x.Firma)
-                .AnyAsync(x => x.Id == sertifikaId
-                    && !x.SilindiMi
-                    && x.Firma != null
-                    && !x.Firma.SilindiMi
-                    && sirketId.HasValue
-                    && x.Firma.SirketId == sirketId.Value);
+            TempData["Hata"] = sonuc?.Mesaj ?? "Yetki belgesi islemi API uzerinden tamamlanamadi.";
         }
     }
 }
