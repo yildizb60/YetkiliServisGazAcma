@@ -85,12 +85,12 @@ Yetkili servisler:
 - `POST /api/yetkili-servisler/guncelle`
 - `POST /api/yetkili-servisler/sil`
 
-Sertifikalar:
+Yetki belgeleri:
 
-- `POST /api/sertifika/firma-liste`
-- `POST /api/sertifika/onay-bekleyenler`
-- `POST /api/sertifika/onayla`
-- `POST /api/sertifika/reddet`
+- `POST /api/yetki-belgesi/firma-liste`
+- `POST /api/yetki-belgesi/onay-bekleyenler`
+- `POST /api/yetki-belgesi/onayla`
+- `POST /api/yetki-belgesi/reddet`
 
 ## Neden MVC henuz baglanmadi?
 
@@ -558,11 +558,11 @@ Bu akislarda Web tarafinda personel kaydi icin `_userManager.CreateAsync` veya d
 Yetki belgesi onay ve red yazma islemleri API hattina alindi.
 
 ```text
-ys-yetki-belgesi/onayla -> YetkiBelgesiApiClient -> /api/sertifika/onayla
-ys-yetki-belgesi/reddet -> YetkiBelgesiApiClient -> /api/sertifika/reddet
+ys-yetki-belgesi/onayla -> YetkiBelgesiApiClient -> /api/yetki-belgesi/onayla
+ys-yetki-belgesi/reddet -> YetkiBelgesiApiClient -> /api/yetki-belgesi/reddet
 ```
 
-Bu akislarda yetki ve sirket kapsami API tarafinda kontrol edilir. MVC tarafinda onay/red icin dogrudan `SertifikaService.Onayla` veya `SertifikaService.Reddet` cagrisi yapilmaz.
+Bu akislarda yetki ve sirket kapsami API tarafinda kontrol edilir. MVC tarafinda onay/red icin dogrudan veritabani/domain servis cagrisi yapilmaz.
 
 ## Razor ortak panel yapisi
 

@@ -27,13 +27,13 @@ namespace YetkiliServisGazAcma.Business.Services
 
         public Task<YetkiBelgesiIslemSonuc?> OnaylaAsync(AppKullanici kullanici, int id)
         {
-            return PostAsync<IdIstek>("api/sertifika/onayla", kullanici, new IdIstek { Id = id });
+            return PostAsync<IdIstek>("api/yetki-belgesi/onayla", kullanici, new IdIstek { Id = id });
         }
 
         public Task<YetkiBelgesiIslemSonuc?> ReddetAsync(AppKullanici kullanici, int id, string? gerekce)
         {
             return PostAsync<YetkiBelgesiRedIstek>(
-                "api/sertifika/reddet",
+                "api/yetki-belgesi/reddet",
                 kullanici,
                 new YetkiBelgesiRedIstek
                 {

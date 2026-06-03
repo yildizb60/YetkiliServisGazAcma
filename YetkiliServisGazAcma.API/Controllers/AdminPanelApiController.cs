@@ -394,14 +394,14 @@ namespace YetkiliServisGazAcma.API.Controllers
                         .Select(x => x.First())
                         .ToList() ?? new List<AdminYetkiliServisKategoriDto>()
                 },
-                Sertifikalar = sonuc.Sertifikalar.Select(x => new AdminYetkiliServisSertifikaDto
+                YetkiBelgeleri = sonuc.Sertifikalar.Select(x => new AdminYetkiliServisYetkiBelgesiDto
                 {
                     Id = x.Id,
                     FirmaId = x.FirmaId,
                     Durum = x.Durum,
                     OlusturmaTarihi = x.OlusturmaTarihi,
-                    SertifikaBaslangicTarihi = x.SertifikaBaslangicTarihi,
-                    SertifikaBitisTarihi = x.SertifikaBitisTarihi
+                    YetkiBelgesiBaslangicTarihi = x.SertifikaBaslangicTarihi,
+                    YetkiBelgesiBitisTarihi = x.SertifikaBitisTarihi
                 }).ToList(),
                 Subeler = sonuc.Subeler.Select(x => new AdminYetkiliServisSubeDto
                 {
@@ -1696,7 +1696,7 @@ namespace YetkiliServisGazAcma.API.Controllers
     public class AdminYetkiliServisDetayDto
     {
         public AdminYetkiliServisDto? Servis { get; set; }
-        public List<AdminYetkiliServisSertifikaDto> Sertifikalar { get; set; } = new();
+        public List<AdminYetkiliServisYetkiBelgesiDto> YetkiBelgeleri { get; set; } = new();
         public List<AdminYetkiliServisSubeDto> Subeler { get; set; } = new();
         public List<AdminYetkiliServisDevreyeDto> Devreye { get; set; } = new();
     }
@@ -1725,14 +1725,14 @@ namespace YetkiliServisGazAcma.API.Controllers
         public string? IconUrl { get; set; }
     }
 
-    public class AdminYetkiliServisSertifikaDto
+    public class AdminYetkiliServisYetkiBelgesiDto
     {
         public int Id { get; set; }
         public int FirmaId { get; set; }
         public int Durum { get; set; }
         public DateTime OlusturmaTarihi { get; set; }
-        public DateTime? SertifikaBaslangicTarihi { get; set; }
-        public DateTime SertifikaBitisTarihi { get; set; }
+        public DateTime? YetkiBelgesiBaslangicTarihi { get; set; }
+        public DateTime YetkiBelgesiBitisTarihi { get; set; }
     }
 
     public class AdminYetkiliServisSubeDto

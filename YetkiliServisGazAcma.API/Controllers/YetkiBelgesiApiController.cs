@@ -9,14 +9,14 @@ using YetkiliServisGazAcma.Models;
 namespace YetkiliServisGazAcma.API.Controllers
 {
     [ApiController]
-    [Route("api/sertifika")]
+    [Route("api/yetki-belgesi")]
     [Authorize]
-    public class SertifikaApiController : ControllerBase
+    public class YetkiBelgesiApiController : ControllerBase
     {
         private readonly AppDbContext _context;
         private readonly SertifikaService _service;
 
-        public SertifikaApiController(AppDbContext context, SertifikaService service)
+        public YetkiBelgesiApiController(AppDbContext context, SertifikaService service)
         {
             _context = context;
             _service = service;
@@ -27,14 +27,14 @@ namespace YetkiliServisGazAcma.API.Controllers
         {
             var sertifikalar = await _service.FirmaninSertifikalari(dto.Id);
 
-            return Ok(sertifikalar.Select(x => new SertifikaDto
+            return Ok(sertifikalar.Select(x => new YetkiBelgesiDto
             {
                 Id = x.Id,
                 FirmaId = x.FirmaId,
                 DosyaYolu = x.DosyaYolu,
                 Durum = x.Durum,
-                SertifikaBaslangicTarihi = x.SertifikaBaslangicTarihi,
-                SertifikaBitisTarihi = x.SertifikaBitisTarihi,
+                YetkiBelgesiBaslangicTarihi = x.SertifikaBaslangicTarihi,
+                YetkiBelgesiBitisTarihi = x.SertifikaBitisTarihi,
                 OnayTarihi = x.OnayTarihi,
                 OnaylayanKullanici = x.OnaylayanKullanici,
                 RedGerekce = x.RedGerekce
@@ -42,7 +42,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         }
 
         [HttpPost("onay-bekleyenler")]
-        public async Task<IActionResult> OnayBekleyenler([FromBody] SertifikaFiltreDto? dto)
+        public async Task<IActionResult> OnayBekleyenler([FromBody] YetkiBelgesiFiltreDto? dto)
         {
             var sirketId = await KapsamSirketIdAsync(dto?.SirketId);
             if (sirketId.gecersiz)
@@ -50,7 +50,7 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             var sertifikalar = await _service.OnayBekleyenler(sirketId.sirketId);
 
-            return Ok(sertifikalar.Select(x => new SertifikaDto
+            return Ok(sertifikalar.Select(x => new YetkiBelgesiDto
             {
                 Id = x.Id,
                 FirmaId = x.FirmaId,
@@ -59,8 +59,8 @@ namespace YetkiliServisGazAcma.API.Controllers
                 SirketAdi = x.Firma?.Sirket?.SirketAdi,
                 DosyaYolu = x.DosyaYolu,
                 Durum = x.Durum,
-                SertifikaBaslangicTarihi = x.SertifikaBaslangicTarihi,
-                SertifikaBitisTarihi = x.SertifikaBitisTarihi,
+                YetkiBelgesiBaslangicTarihi = x.SertifikaBaslangicTarihi,
+                YetkiBelgesiBitisTarihi = x.SertifikaBitisTarihi,
                 OnayTarihi = x.OnayTarihi,
                 OnaylayanKullanici = x.OnaylayanKullanici,
                 RedGerekce = x.RedGerekce
@@ -72,33 +72,33 @@ namespace YetkiliServisGazAcma.API.Controllers
         {
             var sirketId = await SertifikaSirketIdAsync(dto.Id);
             if (!sirketId.HasValue)
-                return NotFound(new { basarili = false, mesaj = "Sertifika bulunamadi" });
+                return NotFound(new { basarili = false, mesaj = "Yetki belgesi bulunamadi" });
 
             if (!await SertifikaOnayYetkisiVarMi(sirketId.Value))
                 return Forbid();
 
             var sonuc = await _service.Onayla(dto.Id, User.Identity?.Name);
             if (!sonuc)
-                return NotFound(new { basarili = false, mesaj = "Sertifika bulunamadi" });
+                return NotFound(new { basarili = false, mesaj = "Yetki belgesi bulunamadi" });
 
-            return Ok(new { basarili = true, mesaj = "Sertifika onaylandi" });
+            return Ok(new { basarili = true, mesaj = "Yetki belgesi onaylandi" });
         }
 
         [HttpPost("reddet")]
-        public async Task<IActionResult> Reddet([FromBody] SertifikaRedDto dto)
+        public async Task<IActionResult> Reddet([FromBody] YetkiBelgesiRedDto dto)
         {
             var sirketId = await SertifikaSirketIdAsync(dto.Id);
             if (!sirketId.HasValue)
-                return NotFound(new { basarili = false, mesaj = "Sertifika bulunamadi" });
+                return NotFound(new { basarili = false, mesaj = "Yetki belgesi bulunamadi" });
 
             if (!await SertifikaOnayYetkisiVarMi(sirketId.Value))
                 return Forbid();
 
             var sonuc = await _service.Reddet(dto.Id, dto.Gerekce, User.Identity?.Name);
             if (!sonuc)
-                return NotFound(new { basarili = false, mesaj = "Sertifika bulunamadi" });
+                return NotFound(new { basarili = false, mesaj = "Yetki belgesi bulunamadi" });
 
-            return Ok(new { basarili = true, mesaj = "Sertifika reddedildi" });
+            return Ok(new { basarili = true, mesaj = "Yetki belgesi reddedildi" });
         }
 
         private async Task<(int? sirketId, bool gecersiz)> KapsamSirketIdAsync(int? istenenSirketId)
@@ -163,18 +163,18 @@ namespace YetkiliServisGazAcma.API.Controllers
         }
     }
 
-    public class SertifikaFiltreDto
+    public class YetkiBelgesiFiltreDto
     {
         public int? SirketId { get; set; }
     }
 
-    public class SertifikaRedDto
+    public class YetkiBelgesiRedDto
     {
         public int Id { get; set; }
         public string? Gerekce { get; set; }
     }
 
-    public class SertifikaDto
+    public class YetkiBelgesiDto
     {
         public int Id { get; set; }
         public int FirmaId { get; set; }
@@ -183,8 +183,8 @@ namespace YetkiliServisGazAcma.API.Controllers
         public string? SirketAdi { get; set; }
         public string? DosyaYolu { get; set; }
         public int Durum { get; set; }
-        public DateTime? SertifikaBaslangicTarihi { get; set; }
-        public DateTime? SertifikaBitisTarihi { get; set; }
+        public DateTime? YetkiBelgesiBaslangicTarihi { get; set; }
+        public DateTime? YetkiBelgesiBitisTarihi { get; set; }
         public DateTime? OnayTarihi { get; set; }
         public string? OnaylayanKullanici { get; set; }
         public string? RedGerekce { get; set; }
