@@ -3,8 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
-using YetkiliServisGazAcma.Models;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 
 namespace YetkiliServisGazAcma.Controllers
@@ -13,35 +11,33 @@ namespace YetkiliServisGazAcma.Controllers
     public class DagitimSirketController : Controller
     {
         private readonly DagitimSirketApiClient _dagitimSirketApiClient;
-        private readonly AppDbContext _context;
+        private readonly AdminDashboardApiClient _adminDashboardApiClient;
         private readonly UserManager<AppKullanici> _userManager;
         private readonly AktifSirketService _aktifSirketService;
 
         public DagitimSirketController(
             DagitimSirketApiClient dagitimSirketApiClient,
-            AppDbContext context,
+            AdminDashboardApiClient adminDashboardApiClient,
             UserManager<AppKullanici> userManager,
             AktifSirketService aktifSirketService)
         {
             _dagitimSirketApiClient = dagitimSirketApiClient;
-            _context = context;
+            _adminDashboardApiClient = adminDashboardApiClient;
             _userManager = userManager;
             _aktifSirketService = aktifSirketService;
         }
 
         private async Task<int> GetOnayBekleyenCount()
         {
-            return await _context.Ys_Sertifikalar
-                .Where(x => !x.SilindiMi && x.Durum == 0)
-                .CountAsync();
+            var dashboard = await GetDashboardOzetAsync();
+            return dashboard?.OnayBekleyen ?? 0;
         }
 
         public override async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
         {
-            ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
-            ViewBag.SuresiBitecek = await _context.Ys_Sertifikalar
-                .Where(x => !x.SilindiMi && x.Durum == 1 && x.SertifikaBitisTarihi <= DateTime.Now.AddDays(30) && x.SertifikaBitisTarihi >= DateTime.Now)
-                .CountAsync();
+            var dashboard = await GetDashboardOzetAsync();
+            ViewBag.OnayBekleyen = dashboard?.OnayBekleyen ?? 0;
+            ViewBag.SuresiBitecek = dashboard?.SuresiBitecek ?? 0;
             await next();
         }
 
@@ -49,29 +45,22 @@ namespace YetkiliServisGazAcma.Controllers
         {
             return await _userManager.GetUserAsync(User);
         }
-        private async Task<bool> KullaniciYetkiliMi(AppKullanici? kullanici, string yetki)
-        {
-            if (kullanici == null) return false;
-            if (await _aktifSirketService.GenelSistemAdminMi(kullanici) || await _aktifSirketService.SirketAdminMi(kullanici))
-                return true;
-            var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            return await _context.Dag_PersonelYetkiler.AnyAsync(x =>
-                x.KullaniciId == kullanici.Id &&
-                !x.SilindiMi &&
-                (aktifSirketId == null || x.SirketId == aktifSirketId) &&
-                (x.YetkiTipi == YetkiTipleri.TAM_YETKI || x.YetkiTipi == yetki));
-        }
 
-        private async Task<IActionResult?> YetkiKontrol(string yetki, string redirectPath)
+        private async Task<AdminDashboardOzet?> GetDashboardOzetAsync()
         {
             var kullanici = await GetCurrentUser();
-            if (kullanici == null) return Redirect("/giris");
+            if (kullanici == null) return null;
 
-            var yetkili = await KullaniciYetkiliMi(kullanici, yetki);
-            if (!yetkili && await _userManager.IsInRoleAsync(kullanici, "Personel"))
-                return Redirect(redirectPath);
+            var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
+            var cacheKey = $"DagitimSirketDashboard:{aktifSirketId?.ToString() ?? "tum"}";
+            if (HttpContext.Items.TryGetValue(cacheKey, out var cached))
+                return cached as AdminDashboardOzet;
 
-            return null;
+            var dashboard = await _adminDashboardApiClient.GetirAsync(kullanici, aktifSirketId);
+            if (dashboard != null)
+                HttpContext.Items[cacheKey] = dashboard;
+
+            return dashboard;
         }
 
         // Liste sayfası
@@ -110,10 +99,9 @@ namespace YetkiliServisGazAcma.Controllers
 
             ViewBag.SeciliQ = q ?? "";
             ViewBag.SeciliDurum = string.IsNullOrWhiteSpace(durum) ? "tumu" : durum;
-            ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
-            ViewBag.SuresiBitecek = await _context.Ys_Sertifikalar
-                .Where(x => !x.SilindiMi && x.Durum == 1 && x.SertifikaBitisTarihi <= DateTime.Now.AddDays(30) && x.SertifikaBitisTarihi >= DateTime.Now)
-                .CountAsync();
+            var dashboard = await GetDashboardOzetAsync();
+            ViewBag.OnayBekleyen = dashboard?.OnayBekleyen ?? 0;
+            ViewBag.SuresiBitecek = dashboard?.SuresiBitecek ?? 0;
             ViewBag.Kullanici = kullanici;
             return View(sirketler);
         }

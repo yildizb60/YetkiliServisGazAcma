@@ -535,6 +535,8 @@ Marka API yazma endpointleri personel icin `MARKA_YONET` veya `TAM_YETKI` kontro
 
 Bu akislarda MVC tarafinda veritabani fallback'i yoktur. API yaniti alinamazsa ekran hata mesaji verir; MVC ayni islemi dogrudan veritabanindan tekrar denemez.
 
+Dagitim sirketi Web controller'indaki kalan bildirim sayisi okumasi da dashboard API client'a tasindi. Bu controller artik `AppDbContext` tasimaz.
+
 ## Faz 2 - Personel yonetimi ilk gecis
 
 Admin personel listeleme ve personel olusturma akislari API hattina alindi.
