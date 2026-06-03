@@ -3,8 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
-using YetkiliServisGazAcma.Models;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 
 namespace YetkiliServisGazAcma.Controllers
@@ -14,38 +12,52 @@ namespace YetkiliServisGazAcma.Controllers
     public class MarkaController : Controller
     {
         private readonly MarkaApiClient _markaApiClient;
-        private readonly AppDbContext _context;
+        private readonly AdminDashboardApiClient _adminDashboardApiClient;
         private readonly UserManager<AppKullanici> _userManager;
 
         public MarkaController(
             MarkaApiClient markaApiClient,
-            AppDbContext context,
+            AdminDashboardApiClient adminDashboardApiClient,
             UserManager<AppKullanici> userManager)
         {
             _markaApiClient = markaApiClient;
-            _context = context;
+            _adminDashboardApiClient = adminDashboardApiClient;
             _userManager = userManager;
         }
 
         private async Task<int> GetOnayBekleyenCount()
         {
-            return await _context.Ys_Sertifikalar
-                .Where(x => !x.SilindiMi && x.Durum == 0)
-                .CountAsync();
+            var dashboard = await GetDashboardOzetAsync();
+            return dashboard?.OnayBekleyen ?? 0;
         }
 
         public override async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
         {
-            ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
-            ViewBag.SuresiBitecek = await _context.Ys_Sertifikalar
-                .Where(x => !x.SilindiMi && x.Durum == 1 && x.SertifikaBitisTarihi <= DateTime.Now.AddDays(30) && x.SertifikaBitisTarihi >= DateTime.Now)
-                .CountAsync();
+            var dashboard = await GetDashboardOzetAsync();
+            ViewBag.OnayBekleyen = dashboard?.OnayBekleyen ?? 0;
+            ViewBag.SuresiBitecek = dashboard?.SuresiBitecek ?? 0;
             await next();
         }
 
         private async Task<AppKullanici?> GetCurrentUser()
         {
             return await _userManager.GetUserAsync(User);
+        }
+
+        private async Task<AdminDashboardOzet?> GetDashboardOzetAsync()
+        {
+            var kullanici = await GetCurrentUser();
+            if (kullanici == null) return null;
+
+            var cacheKey = "MarkaDashboard:tum";
+            if (HttpContext.Items.TryGetValue(cacheKey, out var cached))
+                return cached as AdminDashboardOzet;
+
+            var dashboard = await _adminDashboardApiClient.GetirAsync(kullanici, null);
+            if (dashboard != null)
+                HttpContext.Items[cacheKey] = dashboard;
+
+            return dashboard;
         }
 
         public async Task<IActionResult> Index(string? q, string? durum)
@@ -77,10 +89,9 @@ namespace YetkiliServisGazAcma.Controllers
 
             ViewBag.SeciliQ = q ?? "";
             ViewBag.SeciliDurum = string.IsNullOrWhiteSpace(durum) ? "tumu" : durum;
-            ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
-            ViewBag.SuresiBitecek = await _context.Ys_Sertifikalar
-                .Where(x => !x.SilindiMi && x.Durum == 1 && x.SertifikaBitisTarihi <= DateTime.Now.AddDays(30) && x.SertifikaBitisTarihi >= DateTime.Now)
-                .CountAsync();
+            var dashboard = await GetDashboardOzetAsync();
+            ViewBag.OnayBekleyen = dashboard?.OnayBekleyen ?? 0;
+            ViewBag.SuresiBitecek = dashboard?.SuresiBitecek ?? 0;
             ViewBag.Kullanici = await GetCurrentUser();
             return View(markalar);
         }

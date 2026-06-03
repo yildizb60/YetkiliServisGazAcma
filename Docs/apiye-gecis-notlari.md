@@ -537,6 +537,8 @@ Bu akislarda MVC tarafinda veritabani fallback'i yoktur. API yaniti alinamazsa e
 
 Dagitim sirketi Web controller'indaki kalan bildirim sayisi okumasi da dashboard API client'a tasindi. Bu controller artik `AppDbContext` tasimaz.
 
+Marka Web controller'indaki kalan bildirim sayisi okumasi da dashboard API client'a tasindi. Bu controller artik `AppDbContext` tasimaz.
+
 ## Faz 2 - Personel yonetimi ilk gecis
 
 Admin personel listeleme ve personel olusturma akislari API hattina alindi.
