@@ -168,6 +168,87 @@ namespace YetkiliServisGazAcma.API.Controllers
             }).ToList());
         }
 
+        [HttpPost("kullanicilar/sirket-secenekleri")]
+        public async Task<IActionResult> KullaniciSirketSecenekleri([FromBody] AdminKullaniciSirketSecenekFiltreDto? dto)
+        {
+            var kullanici = await AktifKullaniciAsync();
+            if (kullanici == null)
+                return Unauthorized();
+
+            var kapsam = await KapsamSirketIdAsync(dto?.SirketId);
+            if (kapsam.gecersiz)
+                return Forbid();
+
+            if (!await KullaniciYonetebilirMi(kullanici, kapsam.sirketId))
+                return Forbid();
+
+            return Ok(await SirketSecenekleriAsync(kapsam.sirketId));
+        }
+
+        [HttpPost("personeller/ekle")]
+        public async Task<IActionResult> PersonelEkle([FromBody] AdminPersonelKaydetDto? dto)
+        {
+            var kullanici = await AktifKullaniciAsync();
+            if (kullanici == null)
+                return Unauthorized();
+
+            var kapsam = await KapsamSirketIdAsync(dto?.KapsamSirketId ?? dto?.SirketId);
+            if (kapsam.gecersiz)
+                return Forbid();
+
+            if (!await KullaniciYonetebilirMi(kullanici, kapsam.sirketId))
+                return Forbid();
+
+            if (dto == null)
+                return Ok(AdminIslemSonucDto.Basarisiz("Personel bilgileri zorunludur."));
+
+            if (dto.SirketId <= 0)
+                return Ok(AdminIslemSonucDto.Basarisiz("Personel icin sirket secilmelidir."));
+
+            if (!await SirketYonetimKapsamindaMi(kullanici, dto.SirketId, kapsam.sirketId))
+                return Forbid();
+
+            if (string.IsNullOrWhiteSpace(dto.AdSoyad))
+                return Ok(AdminIslemSonucDto.Basarisiz("Ad soyad zorunludur."));
+
+            if (string.IsNullOrWhiteSpace(dto.Email))
+                return Ok(AdminIslemSonucDto.Basarisiz("E-posta zorunludur."));
+
+            var sifreHatalari = ValidatePassword(dto.Sifre);
+            if (sifreHatalari.Count > 0)
+                return Ok(AdminIslemSonucDto.Basarisiz(string.Join(" ", sifreHatalari)));
+
+            var email = dto.Email.Trim();
+            var mevcut = await _userManager.FindByEmailAsync(email);
+            if (mevcut != null)
+                return Ok(AdminIslemSonucDto.Basarisiz("Bu e-posta ile kayitli bir kullanici zaten var."));
+
+            var yeni = new AppKullanici
+            {
+                UserName = email,
+                Email = email,
+                PhoneNumber = dto.Telefon,
+                AdSoyad = dto.AdSoyad.Trim(),
+                KullaniciTipi = 2,
+                SirketId = dto.SirketId,
+                AktifMi = true,
+                EmailConfirmed = true
+            };
+
+            var sonuc = await _userManager.CreateAsync(yeni, dto.Sifre ?? string.Empty);
+            if (!sonuc.Succeeded)
+                return Ok(AdminIslemSonucDto.Basarisiz(string.Join(", ", sonuc.Errors.Select(x => x.Description))));
+
+            var rolSonuc = await _userManager.AddToRoleAsync(yeni, "Personel");
+            if (!rolSonuc.Succeeded)
+            {
+                await _userManager.DeleteAsync(yeni);
+                return Ok(AdminIslemSonucDto.Basarisiz(string.Join(", ", rolSonuc.Errors.Select(x => x.Description))));
+            }
+
+            return Ok(AdminIslemSonucDto.BasariliSonuc("Personel basariyla olusturuldu."));
+        }
+
         [HttpPost("kullanicilar/durum")]
         public async Task<IActionResult> KullaniciDurum([FromBody] AdminKullaniciDurumDto? dto)
         {
@@ -1146,6 +1227,50 @@ namespace YetkiliServisGazAcma.API.Controllers
             return (hedef.KullaniciTipi == 2 || hedef.KullaniciTipi == 3) && hedef.SirketId == sirketId.Value;
         }
 
+        private async Task<bool> SirketYonetimKapsamindaMi(AppKullanici yapan, int hedefSirketId, int? kapsamSirketId)
+        {
+            var genelSistemAdminMi = User.IsInRole("GenelSistemAdmin")
+                || User.IsInRole("SuperAdmin")
+                || yapan.KullaniciTipi == 4
+                || (yapan.KullaniciTipi == 3 && !yapan.SirketId.HasValue);
+
+            if (genelSistemAdminMi && !kapsamSirketId.HasValue)
+                return true;
+
+            if (kapsamSirketId.HasValue)
+                return hedefSirketId == kapsamSirketId.Value;
+
+            if (yapan.SirketId == hedefSirketId)
+                return true;
+
+            return await _context.Dag_PersonelYetkiler.AnyAsync(x =>
+                x.KullaniciId == yapan.Id &&
+                !x.SilindiMi &&
+                x.SirketId == hedefSirketId &&
+                (x.YetkiTipi == YetkiTipleri.TAM_YETKI || x.YetkiTipi == YetkiTipleri.KULLANICI_YONET));
+        }
+
+        private static List<string> ValidatePassword(string? sifre)
+        {
+            var hatalar = new List<string>();
+            if (string.IsNullOrWhiteSpace(sifre))
+            {
+                hatalar.Add("Sifre zorunludur.");
+                return hatalar;
+            }
+
+            if (sifre.Length < 6)
+                hatalar.Add("Sifre en az 6 karakter olmalidir.");
+
+            if (!sifre.Any(char.IsLower))
+                hatalar.Add("Sifre en az bir kucuk harf icermelidir.");
+
+            if (!sifre.Any(char.IsDigit))
+                hatalar.Add("Sifre en az bir rakam icermelidir.");
+
+            return hatalar;
+        }
+
         private async Task YetkiliServisIliskileriniYenileAsync(
             int firmaId,
             List<int>? kategoriIds,
@@ -1222,6 +1347,21 @@ namespace YetkiliServisGazAcma.API.Controllers
         public string? Tip { get; set; }
         public string? Durum { get; set; }
         public string? Bagli { get; set; }
+    }
+
+    public class AdminKullaniciSirketSecenekFiltreDto
+    {
+        public int? SirketId { get; set; }
+    }
+
+    public class AdminPersonelKaydetDto
+    {
+        public int? KapsamSirketId { get; set; }
+        public string? AdSoyad { get; set; }
+        public string? Email { get; set; }
+        public string? Telefon { get; set; }
+        public int SirketId { get; set; }
+        public string? Sifre { get; set; }
     }
 
     public class AdminKullaniciDurumDto

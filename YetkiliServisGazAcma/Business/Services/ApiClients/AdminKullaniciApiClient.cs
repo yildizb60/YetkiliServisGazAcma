@@ -77,6 +77,74 @@ namespace YetkiliServisGazAcma.Business.Services
             }
         }
 
+        public async Task<List<Dag_Sirket>?> SirketSecenekleriAsync(AppKullanici kullanici, int? sirketId)
+        {
+            if (!_options.Enabled)
+            {
+                ApiClientFallback.EnsureAllowed(_options, "Admin kullanici sirket secenekleri");
+                return null;
+            }
+
+            try
+            {
+                var token = await _tokenService.OlusturAsync(kullanici);
+                if (string.IsNullOrWhiteSpace(token))
+                {
+                    ApiClientFallback.EnsureAllowed(_options, "Admin kullanici sirket secenekleri token");
+                    return null;
+                }
+
+                using var request = new HttpRequestMessage(HttpMethod.Post, "api/admin-panel/kullanicilar/sirket-secenekleri");
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                request.Content = JsonContent.Create(new AdminKullaniciSirketSecenekIstek { SirketId = sirketId });
+
+                using var response = await _httpClient.SendAsync(request);
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("Admin kullanici sirket secenekleri API cagrisinda basarisiz yanit dondu. StatusCode: {StatusCode}", response.StatusCode);
+                    ApiClientFallback.EnsureAllowed(_options, "Admin kullanici sirket secenekleri");
+                    return null;
+                }
+
+                var sirketler = await response.Content.ReadFromJsonAsync<List<AdminSirketSecenekCevap>>();
+                return sirketler?.Select(x => new Dag_Sirket
+                {
+                    Id = x.Id,
+                    SirketAdi = x.SirketAdi
+                }).ToList();
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
+            {
+                _logger.LogWarning(ex, "Admin kullanici sirket secenekleri API cagrisina ulasilamadi.");
+                ApiClientFallback.EnsureAllowed(_options, "Admin kullanici sirket secenekleri");
+                return null;
+            }
+        }
+
+        public Task<AdminKullaniciIslemSonuc?> PersonelEkleAsync(
+            AppKullanici kullanici,
+            int? kapsamSirketId,
+            string adSoyad,
+            string email,
+            string telefon,
+            int sirketId,
+            string sifre)
+        {
+            return PostIslemAsync(
+                kullanici,
+                "api/admin-panel/personeller/ekle",
+                new AdminPersonelKaydetIstek
+                {
+                    KapsamSirketId = kapsamSirketId,
+                    AdSoyad = adSoyad,
+                    Email = email,
+                    Telefon = telefon,
+                    SirketId = sirketId,
+                    Sifre = sifre
+                },
+                "Admin personel ekle");
+        }
+
         public Task<AdminKullaniciIslemSonuc?> DurumAsync(
             AppKullanici kullanici,
             string id,
@@ -195,6 +263,21 @@ namespace YetkiliServisGazAcma.Business.Services
             public bool SadecePersonel { get; set; }
         }
 
+        private class AdminKullaniciSirketSecenekIstek
+        {
+            public int? SirketId { get; set; }
+        }
+
+        private class AdminPersonelKaydetIstek
+        {
+            public int? KapsamSirketId { get; set; }
+            public string? AdSoyad { get; set; }
+            public string? Email { get; set; }
+            public string? Telefon { get; set; }
+            public int SirketId { get; set; }
+            public string? Sifre { get; set; }
+        }
+
         private class AdminKullaniciSilIstek
         {
             public string Id { get; set; } = string.Empty;
@@ -261,6 +344,12 @@ namespace YetkiliServisGazAcma.Business.Services
                         : null
                 };
             }
+        }
+
+        private class AdminSirketSecenekCevap
+        {
+            public int Id { get; set; }
+            public string? SirketAdi { get; set; }
         }
     }
 

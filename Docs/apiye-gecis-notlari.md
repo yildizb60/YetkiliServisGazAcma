@@ -535,6 +535,20 @@ Marka API yazma endpointleri personel icin `MARKA_YONET` veya `TAM_YETKI` kontro
 
 Bu akislarda MVC tarafinda veritabani fallback'i yoktur. API yaniti alinamazsa ekran hata mesaji verir; MVC ayni islemi dogrudan veritabanindan tekrar denemez.
 
+## Faz 2 - Personel yonetimi ilk gecis
+
+Admin personel listeleme ve personel olusturma akislari API hattina alindi.
+
+API'ye baglanan Web akislari:
+
+```text
+AdminPanel/personeller       -> AdminKullaniciApiClient -> /api/admin-panel/kullanicilar/liste (Tip=Personel)
+AdminPanel/personeller/ekle  -> AdminKullaniciApiClient -> /api/admin-panel/personeller/ekle
+Personel formu sirketleri    -> AdminKullaniciApiClient -> /api/admin-panel/kullanicilar/sirket-secenekleri
+```
+
+Bu akislarda Web tarafinda personel kaydi icin `_userManager.CreateAsync` veya dogrudan DB yazimi kullanilmaz. API ulasilamazsa form hata mesaji verir ve islem veritabanina MVC tarafindan yazilmaz.
+
 ## Razor ortak panel yapisi
 
 Panel sayfalarinda tekrar eden sol menu, ust bar, sirket secici ve bildirim alani ortak yapıya alinmaya baslandi.

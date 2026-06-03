@@ -300,36 +300,14 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null) return Redirect("/giris");
             if (!await KullaniciYonetebilirMi(kullanici)) return Redirect("/AdminPanel");
 
-            var personeller = await _context.Users
-                .Include(x => x.Sirket)
-                .Where(x => x.KullaniciTipi == 2)
-                .OrderBy(x => x.AdSoyad)
-                .ToListAsync();
+            var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
+            var personeller = await _adminKullaniciApiClient.ListeleAsync(kullanici, aktifSirketId, q, "Personel", durum, sirket);
+            ViewBag.AdminKullaniciVeriKaynagi = "API";
 
-            if (!string.IsNullOrWhiteSpace(q))
+            if (personeller == null)
             {
-                var aranacak = q.Trim();
-                personeller = personeller.Where(x =>
-                    (!string.IsNullOrWhiteSpace(x.AdSoyad) && x.AdSoyad.IndexOf(aranacak, StringComparison.CurrentCultureIgnoreCase) >= 0) ||
-                    (!string.IsNullOrWhiteSpace(x.Email) && x.Email.IndexOf(aranacak, StringComparison.CurrentCultureIgnoreCase) >= 0) ||
-                    (!string.IsNullOrWhiteSpace(x.PhoneNumber) && x.PhoneNumber.IndexOf(aranacak, StringComparison.CurrentCultureIgnoreCase) >= 0))
-                    .ToList();
-            }
-
-            if (!string.IsNullOrWhiteSpace(sirket))
-            {
-                var sirketArama = sirket.Trim();
-                personeller = personeller.Where(x =>
-                    x.Sirket != null &&
-                    !string.IsNullOrWhiteSpace(x.Sirket.SirketAdi) &&
-                    x.Sirket.SirketAdi.IndexOf(sirketArama, StringComparison.CurrentCultureIgnoreCase) >= 0)
-                    .ToList();
-            }
-
-            if (!string.IsNullOrWhiteSpace(durum))
-            {
-                var aktifMi = durum.Equals("Aktif", StringComparison.CurrentCultureIgnoreCase);
-                personeller = personeller.Where(x => x.AktifMi == aktifMi).ToList();
+                TempData["Hata"] = "Personel listesi API uzerinden alinamadi.";
+                personeller = new List<AppKullanici>();
             }
 
             ViewBag.Kullanici = kullanici;
@@ -348,12 +326,7 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null) return Redirect("/giris");
             if (!await KullaniciYonetebilirMi(kullanici)) return Redirect("/AdminPanel");
 
-            ViewBag.Kullanici = kullanici;
-            ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
-            ViewBag.Sirketler = await _context.Dag_Sirketler
-                .Where(x => !x.SilindiMi && x.AktifMi)
-                .OrderBy(x => x.SirketAdi)
-                .ToListAsync();
+            await PersonelEkleViewBagHazirla(kullanici);
             return View("~/Views/AdminPanel/PersonelEkle.cshtml");
         }
 
@@ -368,52 +341,47 @@ namespace YetkiliServisGazAcma.Controllers
             var sifreHatalari = ValidatePassword(sifre);
             if (sifreHatalari.Count > 0)
             {
-                ViewBag.Kullanici = kullanici;
-                ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
-                ViewBag.Sirketler = await _context.Dag_Sirketler
-                    .Where(x => !x.SilindiMi && x.AktifMi)
-                    .OrderBy(x => x.SirketAdi)
-                    .ToListAsync();
                 ViewBag.Hata = string.Join(" ", sifreHatalari);
-                ViewBag.FormAdSoyad = adSoyad;
-                ViewBag.FormEmail = email;
-                ViewBag.FormTelefon = telefon;
-                ViewBag.FormSirketId = sirketId;
+                await PersonelEkleViewBagHazirla(kullanici, adSoyad, email, telefon, sirketId);
                 return View("~/Views/AdminPanel/PersonelEkle.cshtml");
             }
 
-            var yeni = new AppKullanici
+            var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
+            var sonuc = await _adminKullaniciApiClient.PersonelEkleAsync(kullanici, aktifSirketId, adSoyad, email, telefon, sirketId, sifre);
+            if (sonuc?.Basarili == true)
             {
-                UserName = email,
-                Email = email,
-                PhoneNumber = telefon,
-                AdSoyad = adSoyad,
-                KullaniciTipi = 2,
-                SirketId = sirketId,
-                AktifMi = true,
-                EmailConfirmed = true
-            };
-
-            var sonuc = await _userManager.CreateAsync(yeni, sifre);
-            if (!sonuc.Succeeded)
-            {
-                ViewBag.Kullanici = kullanici;
-                ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
-                ViewBag.Sirketler = await _context.Dag_Sirketler
-                    .Where(x => !x.SilindiMi && x.AktifMi)
-                    .OrderBy(x => x.SirketAdi)
-                    .ToListAsync();
-                ViewBag.Hata = string.Join(", ", sonuc.Errors.Select(x => x.Description));
-                ViewBag.FormAdSoyad = adSoyad;
-                ViewBag.FormEmail = email;
-                ViewBag.FormTelefon = telefon;
-                ViewBag.FormSirketId = sirketId;
-                return View("~/Views/AdminPanel/PersonelEkle.cshtml");
+                TempData["Basarili"] = sonuc.Mesaj ?? "Personel basariyla olusturuldu.";
+                return Redirect("/AdminPanel/personeller");
             }
 
-            await _userManager.AddToRoleAsync(yeni, "Personel");
-            TempData["Basarili"] = "Personel başarıyla oluşturuldu.";
-            return Redirect("/AdminPanel/personeller");
+            ViewBag.Hata = sonuc?.Mesaj ?? "Personel API uzerinden olusturulamadi.";
+            await PersonelEkleViewBagHazirla(kullanici, adSoyad, email, telefon, sirketId);
+            return View("~/Views/AdminPanel/PersonelEkle.cshtml");
+        }
+
+        private async Task PersonelEkleViewBagHazirla(
+            AppKullanici kullanici,
+            string? adSoyad = null,
+            string? email = null,
+            string? telefon = null,
+            int sirketId = 0)
+        {
+            var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
+            var sirketler = await _adminKullaniciApiClient.SirketSecenekleriAsync(kullanici, aktifSirketId);
+
+            if (sirketler == null)
+            {
+                ViewBag.Hata = ViewBag.Hata ?? "Sirket listesi API uzerinden alinamadi.";
+                sirketler = new List<Dag_Sirket>();
+            }
+
+            ViewBag.Kullanici = kullanici;
+            ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
+            ViewBag.Sirketler = sirketler;
+            ViewBag.FormAdSoyad = adSoyad ?? "";
+            ViewBag.FormEmail = email ?? "";
+            ViewBag.FormTelefon = telefon ?? "";
+            ViewBag.FormSirketId = sirketId;
         }
 
         [HttpGet("kullanicilar")]
