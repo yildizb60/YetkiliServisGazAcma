@@ -3,8 +3,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
-using YetkiliServisGazAcma.Models;
-using Microsoft.EntityFrameworkCore;
 
 namespace YetkiliServisGazAcma.Controllers
 {
@@ -15,83 +13,18 @@ namespace YetkiliServisGazAcma.Controllers
         private readonly SertifikaService _service;
         private readonly YetkiBelgesiApiClient _yetkiBelgesiApiClient;
         private readonly UserManager<AppKullanici> _userManager;
-        private readonly AppDbContext _context;
         private readonly AktifSirketService _aktifSirketService;
 
         public YetkiBelgesiController(
             SertifikaService service,
             YetkiBelgesiApiClient yetkiBelgesiApiClient,
             UserManager<AppKullanici> userManager,
-            AppDbContext context,
             AktifSirketService aktifSirketService)
         {
             _service = service;
             _yetkiBelgesiApiClient = yetkiBelgesiApiClient;
             _userManager = userManager;
-            _context = context;
             _aktifSirketService = aktifSirketService;
-        }
-
-        private async Task SetBildirimler(AppKullanici kullanici)
-        {
-            var bildirimler = new List<string>();
-            var firmaId = kullanici.FirmaId ?? 0;
-
-            var firma = await _context.Ys_Firmalar
-                .Include(x => x.Sertifikalar)
-                .FirstOrDefaultAsync(x => x.Id == firmaId);
-
-            var onayli = firma?.Sertifikalar?
-                .Where(x => x.Durum == 1)
-                .OrderByDescending(x => x.OlusturmaTarihi)
-                .FirstOrDefault();
-            var bekleyenVar = firma?.Sertifikalar?.Any(x => x.Durum == 0) ?? false;
-            if (onayli != null)
-            {
-                bildirimler.Add("Yetki belgeniz onaylandı. Cihaz devreye alabilirsiniz.");
-                var kalan = (onayli.SertifikaBitisTarihi.Date - DateTime.Now.Date).Days;
-                if (kalan <= 30)
-                {
-                    bildirimler.Add($"Yetki belgenizin bitmesine {kalan} gün kaldı. Lütfen yenileyin.");
-                }
-            }
-            if (bekleyenVar)
-            {
-                bildirimler.Add("Yetki belgeniz onay bekliyor. Yetkili onayladıktan sonra işlem yapabilirsiniz.");
-            }
-
-            var son7Gun = DateTime.Now.AddDays(-7);
-            var sonDevreye = await _context.Ys_DevreyeAlmalar
-                .Where(x => x.FirmaId == firmaId && !x.SilindiMi && x.OlusturmaTarihi >= son7Gun)
-                .CountAsync();
-            if (sonDevreye > 0)
-            {
-                bildirimler.Add($"Son 7 günde {sonDevreye} cihaz devreye alındı.");
-            }
-
-            var sonSube = await _context.Ys_Subeler
-                .Where(x => x.FirmaId == firmaId && !x.SilindiMi && x.OlusturmaTarihi >= son7Gun)
-                .CountAsync();
-            if (sonSube > 0)
-            {
-                bildirimler.Add($"Son 7 günde {sonSube} şube kaydı eklendi.");
-            }
-
-            ViewBag.Bildirimler = bildirimler;
-            ViewBag.BildirimSayisi = bildirimler.Count;
-        }
-
-        private async Task<bool> KullaniciYetkiliMi(AppKullanici kullanici, string yetki)
-        {
-            if (await _aktifSirketService.GenelSistemAdminMi(kullanici) || await _aktifSirketService.SirketAdminMi(kullanici))
-                return true;
-
-            var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            return await _context.Dag_PersonelYetkiler.AnyAsync(x =>
-                x.KullaniciId == kullanici.Id &&
-                !x.SilindiMi &&
-                (aktifSirketId == null || x.SirketId == aktifSirketId) &&
-                (x.YetkiTipi == YetkiTipleri.TAM_YETKI || x.YetkiTipi == yetki));
         }
 
         [HttpGet]
@@ -105,13 +38,19 @@ namespace YetkiliServisGazAcma.Controllers
                 return Redirect("/giris");
 
             var firmaId = kullanici.FirmaId ?? 0;
-            var sertifikalar = await _service.FirmaninSertifikalari(firmaId);
+            var ekran = await _yetkiBelgesiApiClient.FirmaEkraniAsync(kullanici, firmaId);
+            if (ekran == null)
+            {
+                TempData["Hata"] = "Yetki belgesi bilgileri API uzerinden alinamadi.";
+                ekran = new YetkiBelgesiFirmaEkraniSonuc();
+            }
 
             ViewBag.FirmaId = firmaId;
-            ViewBag.Firma = await _context.Ys_Firmalar.FirstOrDefaultAsync(x => x.Id == firmaId);
+            ViewBag.Firma = ekran.Firma;
             ViewBag.Kullanici = kullanici;
-            await SetBildirimler(kullanici);
-            return View("~/Views/YetkiBelgesi/Index.cshtml", sertifikalar);
+            ViewBag.Bildirimler = ekran.Bildirimler;
+            ViewBag.BildirimSayisi = ekran.Bildirimler.Count;
+            return View("~/Views/YetkiBelgesi/Index.cshtml", ekran.Belgeler);
         }
 
         [HttpPost]
@@ -148,22 +87,8 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null)
                 return Redirect("/giris");
 
-            var firmaId = kullanici.FirmaId ?? 0;
-            var sertifika = await _context.Ys_Sertifikalar
-                .FirstOrDefaultAsync(x => x.Id == id && x.FirmaId == firmaId);
-
-            if (sertifika == null)
-            {
-                TempData["Hata"] = "Yetki belgesi bulunamadı.";
-                return Redirect("/ys-yetki-belgesi");
-            }
-
-            sertifika.SilindiMi = true;
-            sertifika.SilinmeTarihi = DateTime.Now;
-            sertifika.SilenKullanici = kullanici.UserName ?? "sistem";
-            await _context.SaveChangesAsync();
-
-            TempData["Basarili"] = "Yetki belgesi silindi.";
+            var sonuc = await _yetkiBelgesiApiClient.SilAsync(kullanici, id);
+            SetYetkiBelgesiIslemMesaji(sonuc, "Yetki belgesi silindi.", basariKey: "Basarili");
             return Redirect("/ys-yetki-belgesi");
         }
 
@@ -175,43 +100,19 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await _userManager.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
-            if (!await KullaniciYetkiliMi(kullanici, YetkiTipleri.CERTIFIKA_ONAY))
+            var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
+            var ekran = await _yetkiBelgesiApiClient.OnayEkraniAsync(kullanici, sirketId);
+            if (ekran == null)
             {
-                TempData["Hata"] = "Yetki belgesi onay yetkiniz yok.";
+                TempData["Hata"] = "Yetki belgesi onay bilgileri API uzerinden alinamadi veya yetkiniz yok.";
                 return Redirect("/personel-panel");
             }
 
-            var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            ViewBag.OnayBekleyen = await _context.Ys_Sertifikalar
-                .Where(x => !x.SilindiMi
-                    && x.Durum == 0
-                    && x.Firma != null
-                    && (sirketId == null || x.Firma.SirketId == sirketId))
-                .CountAsync();
-
-            var sertifikalar = await _service.OnayBekleyenler(sirketId);
             ViewBag.Kullanici = kullanici;
-            ViewBag.Onaylananlar = await _context.Ys_Sertifikalar
-                .Include(x => x.Firma).ThenInclude(x => x!.Sirket)
-                .Where(x => !x.SilindiMi
-                    && x.Durum == 1
-                    && x.Firma != null
-                    && !x.Firma.SilindiMi
-                    && (sirketId == null || x.Firma.SirketId == sirketId))
-                .OrderByDescending(x => x.OnayTarihi ?? x.OlusturmaTarihi)
-                .Take(100)
-                .ToListAsync();
-            ViewBag.Reddedilenler = await _context.Ys_Sertifikalar
-                .Include(x => x.Firma).ThenInclude(x => x!.Sirket)
-                .Where(x => !x.SilindiMi
-                    && x.Durum == 2
-                    && x.Firma != null
-                    && !x.Firma.SilindiMi
-                    && (sirketId == null || x.Firma.SirketId == sirketId))
-                .OrderByDescending(x => x.OnayTarihi ?? x.OlusturmaTarihi)
-                .Take(100)
-                .ToListAsync();
-            return View("~/Views/YetkiBelgesi/OnayBekleyenler.cshtml", sertifikalar);
+            ViewBag.OnayBekleyen = ekran.Bekleyenler.Count;
+            ViewBag.Onaylananlar = ekran.Onaylananlar;
+            ViewBag.Reddedilenler = ekran.Reddedilenler;
+            return View("~/Views/YetkiBelgesi/OnayBekleyenler.cshtml", ekran.Bekleyenler);
         }
 
         [Authorize(Roles = "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin")]

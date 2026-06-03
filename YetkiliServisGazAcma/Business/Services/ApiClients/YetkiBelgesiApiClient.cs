@@ -30,6 +30,31 @@ namespace YetkiliServisGazAcma.Business.Services
             return PostAsync<IdIstek>("api/yetki-belgesi/onayla", kullanici, new IdIstek { Id = id });
         }
 
+        public Task<YetkiBelgesiFirmaEkraniSonuc?> FirmaEkraniAsync(AppKullanici kullanici, int firmaId)
+        {
+            return PostForResponseAsync<IdIstek, YetkiBelgesiFirmaEkraniCevap>(
+                "api/yetki-belgesi/firma-ekrani",
+                kullanici,
+                new IdIstek { Id = firmaId },
+                "Yetki belgesi firma ekrani")
+                .ContinueWith(t => t.Result?.ToSonuc());
+        }
+
+        public Task<YetkiBelgesiOnayEkraniSonuc?> OnayEkraniAsync(AppKullanici kullanici, int? sirketId)
+        {
+            return PostForResponseAsync<YetkiBelgesiFiltreIstek, YetkiBelgesiOnayEkraniCevap>(
+                "api/yetki-belgesi/onay-ekrani",
+                kullanici,
+                new YetkiBelgesiFiltreIstek { SirketId = sirketId },
+                "Yetki belgesi onay ekrani")
+                .ContinueWith(t => t.Result?.ToSonuc());
+        }
+
+        public Task<YetkiBelgesiIslemSonuc?> SilAsync(AppKullanici kullanici, int id)
+        {
+            return PostAsync<IdIstek>("api/yetki-belgesi/sil", kullanici, new IdIstek { Id = id });
+        }
+
         public Task<YetkiBelgesiIslemSonuc?> ReddetAsync(AppKullanici kullanici, int id, string? gerekce)
         {
             return PostAsync<YetkiBelgesiRedIstek>(
@@ -99,9 +124,61 @@ namespace YetkiliServisGazAcma.Business.Services
             }
         }
 
+        private async Task<TResponse?> PostForResponseAsync<TRequest, TResponse>(
+            string url,
+            AppKullanici kullanici,
+            TRequest istek,
+            string operasyon)
+        {
+            if (!_options.Enabled)
+            {
+                ApiClientFallback.EnsureAllowed(_options, operasyon);
+                return default;
+            }
+
+            try
+            {
+                var token = await _tokenService.OlusturAsync(kullanici);
+                if (string.IsNullOrWhiteSpace(token))
+                {
+                    ApiClientFallback.EnsureAllowed(_options, $"{operasyon} token");
+                    return default;
+                }
+
+                using var request = new HttpRequestMessage(HttpMethod.Post, url);
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                request.Content = JsonContent.Create(istek);
+
+                using var response = await _httpClient.SendAsync(request);
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("{Operasyon} API cagrisinda basarisiz yanit dondu. Url: {Url}, StatusCode: {StatusCode}", operasyon, url, response.StatusCode);
+
+                    if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                        return default;
+
+                    ApiClientFallback.EnsureAllowed(_options, operasyon);
+                    return default;
+                }
+
+                return await response.Content.ReadFromJsonAsync<TResponse>();
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
+            {
+                _logger.LogWarning(ex, "{Operasyon} API cagrisina ulasilamadi. Url: {Url}", operasyon, url);
+                ApiClientFallback.EnsureAllowed(_options, operasyon);
+                return default;
+            }
+        }
+
         private class IdIstek
         {
             public int Id { get; set; }
+        }
+
+        private class YetkiBelgesiFiltreIstek
+        {
+            public int? SirketId { get; set; }
         }
 
         private class YetkiBelgesiRedIstek
@@ -124,11 +201,123 @@ namespace YetkiliServisGazAcma.Business.Services
                 };
             }
         }
+
+        private class YetkiBelgesiFirmaEkraniCevap
+        {
+            public YetkiBelgesiFirmaCevap? Firma { get; set; }
+            public List<YetkiBelgesiCevap> Belgeler { get; set; } = new();
+            public List<string> Bildirimler { get; set; } = new();
+
+            public YetkiBelgesiFirmaEkraniSonuc ToSonuc()
+            {
+                return new YetkiBelgesiFirmaEkraniSonuc
+                {
+                    Firma = Firma?.ToEntity(),
+                    Belgeler = Belgeler.Select(x => x.ToEntity()).ToList(),
+                    Bildirimler = Bildirimler
+                };
+            }
+        }
+
+        private class YetkiBelgesiOnayEkraniCevap
+        {
+            public List<YetkiBelgesiCevap> Bekleyenler { get; set; } = new();
+            public List<YetkiBelgesiCevap> Onaylananlar { get; set; } = new();
+            public List<YetkiBelgesiCevap> Reddedilenler { get; set; } = new();
+
+            public YetkiBelgesiOnayEkraniSonuc ToSonuc()
+            {
+                return new YetkiBelgesiOnayEkraniSonuc
+                {
+                    Bekleyenler = Bekleyenler.Select(x => x.ToEntity()).ToList(),
+                    Onaylananlar = Onaylananlar.Select(x => x.ToEntity()).ToList(),
+                    Reddedilenler = Reddedilenler.Select(x => x.ToEntity()).ToList()
+                };
+            }
+        }
+
+        private class YetkiBelgesiFirmaCevap
+        {
+            public int Id { get; set; }
+            public string? FirmaAdi { get; set; }
+            public string? YetkiliKisi { get; set; }
+            public string? VergiNo { get; set; }
+            public string? FaaliyetIli { get; set; }
+
+            public Ys_Firma ToEntity()
+            {
+                return new Ys_Firma
+                {
+                    Id = Id,
+                    FirmaAdi = FirmaAdi,
+                    YetkiliKisi = YetkiliKisi,
+                    VergiNo = VergiNo,
+                    FaaliyetIli = FaaliyetIli
+                };
+            }
+        }
+
+        private class YetkiBelgesiCevap
+        {
+            public int Id { get; set; }
+            public int FirmaId { get; set; }
+            public string? FirmaAdi { get; set; }
+            public int? SirketId { get; set; }
+            public string? SirketAdi { get; set; }
+            public string? DosyaYolu { get; set; }
+            public int Durum { get; set; }
+            public DateTime OlusturmaTarihi { get; set; }
+            public DateTime? YetkiBelgesiBaslangicTarihi { get; set; }
+            public DateTime? YetkiBelgesiBitisTarihi { get; set; }
+            public DateTime? OnayTarihi { get; set; }
+            public string? OnaylayanKullanici { get; set; }
+            public string? RedGerekce { get; set; }
+
+            public Ys_Sertifika ToEntity()
+            {
+                return new Ys_Sertifika
+                {
+                    Id = Id,
+                    FirmaId = FirmaId,
+                    Firma = new Ys_Firma
+                    {
+                        Id = FirmaId,
+                        FirmaAdi = FirmaAdi,
+                        SirketId = SirketId ?? 0,
+                        Sirket = string.IsNullOrWhiteSpace(SirketAdi)
+                            ? null
+                            : new Dag_Sirket { Id = SirketId ?? 0, SirketAdi = SirketAdi }
+                    },
+                    DosyaYolu = DosyaYolu,
+                    Durum = Durum,
+                    OlusturmaTarihi = OlusturmaTarihi,
+                    SertifikaBaslangicTarihi = YetkiBelgesiBaslangicTarihi,
+                    SertifikaBitisTarihi = YetkiBelgesiBitisTarihi ?? DateTime.MinValue,
+                    OnayTarihi = OnayTarihi,
+                    OnaylayanKullanici = OnaylayanKullanici,
+                    RedGerekce = RedGerekce
+                };
+            }
+        }
     }
 
     public class YetkiBelgesiIslemSonuc
     {
         public bool Basarili { get; set; }
         public string? Mesaj { get; set; }
+    }
+
+    public class YetkiBelgesiFirmaEkraniSonuc
+    {
+        public Ys_Firma? Firma { get; set; }
+        public List<Ys_Sertifika> Belgeler { get; set; } = new();
+        public List<string> Bildirimler { get; set; } = new();
+    }
+
+    public class YetkiBelgesiOnayEkraniSonuc
+    {
+        public List<Ys_Sertifika> Bekleyenler { get; set; } = new();
+        public List<Ys_Sertifika> Onaylananlar { get; set; } = new();
+        public List<Ys_Sertifika> Reddedilenler { get; set; } = new();
     }
 }
