@@ -39,7 +39,6 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<DagitimSirketService>();
 builder.Services.AddScoped<MarkaService>();
 builder.Services.AddScoped<YetkiliServisService>();
-builder.Services.AddScoped<SertifikaService>();
 builder.Services.AddScoped<AdminDashboardService>();
 builder.Services.AddScoped<AdminYetkiliServisListeService>();
 builder.Services.AddScoped<SehirFirmaKoduService>();

@@ -36,7 +36,7 @@ builder.Services.AddIdentity<AppKullanici, IdentityRole>()
 builder.Services.AddScoped<DagitimSirketService>();
 builder.Services.AddScoped<MarkaService>();
 builder.Services.AddScoped<YetkiliServisService>();
-builder.Services.AddScoped<SertifikaService>();
+builder.Services.AddScoped<YetkiBelgesiService>();
 builder.Services.AddScoped<AdminDashboardService>();
 builder.Services.AddScoped<AdminYetkiliServisListeService>();
 builder.Services.AddScoped<SehirFirmaKoduService>();
@@ -191,6 +191,7 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
+app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

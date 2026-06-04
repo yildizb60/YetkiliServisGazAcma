@@ -6,19 +6,19 @@ using YetkiliServisGazAcma.Models;
 
 namespace YetkiliServisGazAcma.Business.Services
 {
-    public class SertifikaService
+    public class YetkiBelgesiService
     {
         private readonly AppDbContext _context;
         private readonly IWebHostEnvironment _env;
 
-        public SertifikaService(AppDbContext context, IWebHostEnvironment env)
+        public YetkiBelgesiService(AppDbContext context, IWebHostEnvironment env)
         {
             _context = context;
             _env = env;
         }
 
         // Firmaya ait yetki belgelerini getir
-        public async Task<List<Ys_Sertifika>> FirmaninSertifikalari(int firmaId)
+        public async Task<List<Ys_Sertifika>> FirmaninYetkiBelgeleri(int firmaId)
         {
             return await _context.Ys_Sertifikalar
                 .Where(x => x.FirmaId == firmaId && !x.SilindiMi)
@@ -48,7 +48,8 @@ namespace YetkiliServisGazAcma.Business.Services
             IFormFile dosya,
             DateTime bitisTarihi,
             DateTime? baslangicTarihi,
-            string? kullanici)
+            string? kullanici,
+            string? publicBaseUrl = null)
         {
             var baslangic = (baslangicTarihi ?? DateTime.Now.Date).Date;
             var bitis = bitisTarihi.Date;
@@ -67,7 +68,10 @@ namespace YetkiliServisGazAcma.Business.Services
                 return (false, "Sadece PDF, JPG veya PNG dosyası yükleyebilirsiniz.");
 
             // Dosyayı kaydet
-            var klasor = Path.Combine(_env.WebRootPath, "sertifikalar");
+            var webRoot = string.IsNullOrWhiteSpace(_env.WebRootPath)
+                ? Path.Combine(_env.ContentRootPath, "wwwroot")
+                : _env.WebRootPath;
+            var klasor = Path.Combine(webRoot, "sertifikalar");
             if (!Directory.Exists(klasor))
                 Directory.CreateDirectory(klasor);
 
@@ -83,7 +87,7 @@ namespace YetkiliServisGazAcma.Business.Services
             var sertifika = new Ys_Sertifika
             {
                 FirmaId = firmaId,
-                DosyaYolu = "/sertifikalar/" + dosyaAdi,
+                DosyaYolu = BuildDosyaYolu(publicBaseUrl, dosyaAdi),
                 SertifikaBaslangicTarihi = baslangic,
                 SertifikaBitisTarihi = bitis,
                 Durum = 0, // Onayda Bekliyor
@@ -96,6 +100,15 @@ namespace YetkiliServisGazAcma.Business.Services
             await _context.SaveChangesAsync();
 
             return (true, "Yetki belgeniz başarıyla yüklendi. Onay bekleniyor.");
+        }
+
+        private static string BuildDosyaYolu(string? publicBaseUrl, string dosyaAdi)
+        {
+            var relativePath = "/sertifikalar/" + dosyaAdi;
+            if (string.IsNullOrWhiteSpace(publicBaseUrl))
+                return relativePath;
+
+            return publicBaseUrl.TrimEnd('/') + relativePath;
         }
 
         // Yetki belgesi onayla (ÇEDAŞ personeli)

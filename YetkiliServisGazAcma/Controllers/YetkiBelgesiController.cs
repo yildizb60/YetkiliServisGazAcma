@@ -10,18 +10,15 @@ namespace YetkiliServisGazAcma.Controllers
     [Route("ys-yetki-belgesi")]
     public class YetkiBelgesiController : Controller
     {
-        private readonly SertifikaService _service;
         private readonly YetkiBelgesiApiClient _yetkiBelgesiApiClient;
         private readonly UserManager<AppKullanici> _userManager;
         private readonly AktifSirketService _aktifSirketService;
 
         public YetkiBelgesiController(
-            SertifikaService service,
             YetkiBelgesiApiClient yetkiBelgesiApiClient,
             UserManager<AppKullanici> userManager,
             AktifSirketService aktifSirketService)
         {
-            _service = service;
             _yetkiBelgesiApiClient = yetkiBelgesiApiClient;
             _userManager = userManager;
             _aktifSirketService = aktifSirketService;
@@ -71,10 +68,9 @@ namespace YetkiliServisGazAcma.Controllers
             }
 
             var firmaId = kullanici.FirmaId ?? 0;
-            var (basarili, mesaj) = await _service.Yukle(
-                firmaId, dosya, bitisTarihi, baslangicTarihi, kullanici.UserName);
-
-            TempData[basarili ? "Basarili" : "Hata"] = mesaj;
+            var sonuc = await _yetkiBelgesiApiClient.YukleAsync(
+                kullanici, firmaId, dosya, bitisTarihi, baslangicTarihi);
+            SetYetkiBelgesiIslemMesaji(sonuc, "Yetki belgesi yüklendi. Onay bekleniyor.", "Basarili");
             return Redirect("/ys-yetki-belgesi");
         }
 

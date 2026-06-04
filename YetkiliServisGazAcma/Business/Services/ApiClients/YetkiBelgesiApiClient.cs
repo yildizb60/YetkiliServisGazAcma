@@ -1,6 +1,8 @@
+using System.Globalization;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using YetkiliServisGazAcma.Entities;
 
@@ -53,6 +55,84 @@ namespace YetkiliServisGazAcma.Business.Services
         public Task<YetkiBelgesiIslemSonuc?> SilAsync(AppKullanici kullanici, int id)
         {
             return PostAsync<IdIstek>("api/yetki-belgesi/sil", kullanici, new IdIstek { Id = id });
+        }
+
+        public async Task<YetkiBelgesiIslemSonuc?> YukleAsync(
+            AppKullanici kullanici,
+            int firmaId,
+            IFormFile dosya,
+            DateTime bitisTarihi,
+            DateTime? baslangicTarihi)
+        {
+            if (!_options.Enabled)
+            {
+                ApiClientFallback.EnsureAllowed(_options, "Yetki belgesi yukleme");
+                return null;
+            }
+
+            try
+            {
+                var token = await _tokenService.OlusturAsync(kullanici);
+                if (string.IsNullOrWhiteSpace(token))
+                {
+                    ApiClientFallback.EnsureAllowed(_options, "Yetki belgesi yukleme token");
+                    return null;
+                }
+
+                using var request = new HttpRequestMessage(HttpMethod.Post, "api/yetki-belgesi/yukle");
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+                using var form = new MultipartFormDataContent();
+                form.Add(new StringContent(firmaId.ToString(CultureInfo.InvariantCulture)), "FirmaId");
+                form.Add(new StringContent(bitisTarihi.ToString("O", CultureInfo.InvariantCulture)), "BitisTarihi");
+                if (baslangicTarihi.HasValue)
+                {
+                    form.Add(
+                        new StringContent(baslangicTarihi.Value.ToString("O", CultureInfo.InvariantCulture)),
+                        "BaslangicTarihi");
+                }
+
+                var fileContent = new StreamContent(dosya.OpenReadStream());
+                if (!string.IsNullOrWhiteSpace(dosya.ContentType))
+                    fileContent.Headers.ContentType = new MediaTypeHeaderValue(dosya.ContentType);
+
+                form.Add(fileContent, "Dosya", dosya.FileName);
+                request.Content = form;
+
+                using var response = await _httpClient.SendAsync(request);
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("Yetki belgesi yukleme API cagrisinda basarisiz yanit dondu. StatusCode: {StatusCode}", response.StatusCode);
+
+                    YetkiBelgesiIslemCevap? hata = null;
+                    try
+                    {
+                        hata = await response.Content.ReadFromJsonAsync<YetkiBelgesiIslemCevap>();
+                    }
+                    catch (Exception ex) when (ex is InvalidOperationException or JsonException)
+                    {
+                        hata = null;
+                    }
+
+                    if (hata != null)
+                        return hata.ToSonuc();
+
+                    if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                        return new YetkiBelgesiIslemSonuc { Basarili = false, Mesaj = "Bu yetki belgesi icin islem yetkiniz yok." };
+
+                    ApiClientFallback.EnsureAllowed(_options, "Yetki belgesi yukleme");
+                    return null;
+                }
+
+                var sonuc = await response.Content.ReadFromJsonAsync<YetkiBelgesiIslemCevap>();
+                return sonuc?.ToSonuc();
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
+            {
+                _logger.LogWarning(ex, "Yetki belgesi yukleme API cagrisina ulasilamadi.");
+                ApiClientFallback.EnsureAllowed(_options, "Yetki belgesi yukleme");
+                return null;
+            }
         }
 
         public Task<YetkiBelgesiIslemSonuc?> ReddetAsync(AppKullanici kullanici, int id, string? gerekce)

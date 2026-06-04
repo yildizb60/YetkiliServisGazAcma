@@ -14,9 +14,9 @@ namespace YetkiliServisGazAcma.API.Controllers
     public class YetkiBelgesiApiController : ControllerBase
     {
         private readonly AppDbContext _context;
-        private readonly SertifikaService _service;
+        private readonly YetkiBelgesiService _service;
 
-        public YetkiBelgesiApiController(AppDbContext context, SertifikaService service)
+        public YetkiBelgesiApiController(AppDbContext context, YetkiBelgesiService service)
         {
             _context = context;
             _service = service;
@@ -25,9 +25,9 @@ namespace YetkiliServisGazAcma.API.Controllers
         [HttpPost("firma-liste")]
         public async Task<IActionResult> FirmaListe([FromBody] IdDto dto)
         {
-            var sertifikalar = await _service.FirmaninSertifikalari(dto.Id);
+            var belgeler = await _service.FirmaninYetkiBelgeleri(dto.Id);
 
-            return Ok(sertifikalar.Select(x => new YetkiBelgesiDto
+            return Ok(belgeler.Select(x => new YetkiBelgesiDto
             {
                 Id = x.Id,
                 FirmaId = x.FirmaId,
@@ -56,7 +56,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (firma == null)
                 return NotFound(new { basarili = false, mesaj = "Yetkili servis bulunamadi" });
 
-            var sertifikalar = await _service.FirmaninSertifikalari(firmaId);
+            var belgeler = await _service.FirmaninYetkiBelgeleri(firmaId);
             var bildirimler = await FirmaBildirimleriAsync(firmaId, firma);
 
             return Ok(new YetkiBelgesiFirmaEkraniDto
@@ -69,9 +69,37 @@ namespace YetkiliServisGazAcma.API.Controllers
                     VergiNo = firma.VergiNo,
                     FaaliyetIli = firma.FaaliyetIli
                 },
-                Belgeler = sertifikalar.Select(MapYetkiBelgesi).ToList(),
+                Belgeler = belgeler.Select(MapYetkiBelgesi).ToList(),
                 Bildirimler = bildirimler
             });
+        }
+
+        [HttpPost("yukle")]
+        [RequestSizeLimit(10 * 1024 * 1024)]
+        public async Task<IActionResult> Yukle([FromForm] YetkiBelgesiYukleDto dto)
+        {
+            if (dto.BitisTarihi == default)
+                return BadRequest(new { basarili = false, mesaj = "Yetki belgesi bitiş tarihi zorunludur." });
+
+            if (dto.Dosya == null || dto.Dosya.Length == 0)
+                return BadRequest(new { basarili = false, mesaj = "Lütfen bir dosya seçiniz." });
+
+            if (!await FirmaGoruntulemeYetkisiVarMi(dto.FirmaId))
+                return Forbid();
+
+            var publicBaseUrl = $"{Request.Scheme}://{Request.Host}";
+            var sonuc = await _service.Yukle(
+                dto.FirmaId,
+                dto.Dosya,
+                dto.BitisTarihi,
+                dto.BaslangicTarihi,
+                User.Identity?.Name,
+                publicBaseUrl);
+
+            if (!sonuc.basarili)
+                return BadRequest(new { basarili = false, mesaj = sonuc.mesaj });
+
+            return Ok(new { basarili = true, mesaj = sonuc.mesaj });
         }
 
         [HttpPost("onay-bekleyenler")]
@@ -206,11 +234,11 @@ namespace YetkiliServisGazAcma.API.Controllers
         [HttpPost("onayla")]
         public async Task<IActionResult> Onayla([FromBody] IdDto dto)
         {
-            var sirketId = await SertifikaSirketIdAsync(dto.Id);
+            var sirketId = await YetkiBelgesiSirketIdAsync(dto.Id);
             if (!sirketId.HasValue)
                 return NotFound(new { basarili = false, mesaj = "Yetki belgesi bulunamadi" });
 
-            if (!await SertifikaOnayYetkisiVarMi(sirketId.Value))
+            if (!await YetkiBelgesiOnayYetkisiVarMi(sirketId.Value))
                 return Forbid();
 
             var sonuc = await _service.Onayla(dto.Id, User.Identity?.Name);
@@ -223,11 +251,11 @@ namespace YetkiliServisGazAcma.API.Controllers
         [HttpPost("reddet")]
         public async Task<IActionResult> Reddet([FromBody] YetkiBelgesiRedDto dto)
         {
-            var sirketId = await SertifikaSirketIdAsync(dto.Id);
+            var sirketId = await YetkiBelgesiSirketIdAsync(dto.Id);
             if (!sirketId.HasValue)
                 return NotFound(new { basarili = false, mesaj = "Yetki belgesi bulunamadi" });
 
-            if (!await SertifikaOnayYetkisiVarMi(sirketId.Value))
+            if (!await YetkiBelgesiOnayYetkisiVarMi(sirketId.Value))
                 return Forbid();
 
             var sonuc = await _service.Reddet(dto.Id, dto.Gerekce, User.Identity?.Name);
@@ -263,22 +291,22 @@ namespace YetkiliServisGazAcma.API.Controllers
                 if (!istenenSirketId.HasValue)
                     return (null, true);
 
-                return (istenenSirketId.Value, !await SertifikaOnayYetkisiVarMi(istenenSirketId.Value));
+                return (istenenSirketId.Value, !await YetkiBelgesiOnayYetkisiVarMi(istenenSirketId.Value));
             }
 
             return (null, true);
         }
 
-        private async Task<int?> SertifikaSirketIdAsync(int sertifikaId)
+        private async Task<int?> YetkiBelgesiSirketIdAsync(int yetkiBelgesiId)
         {
             return await _context.Ys_Sertifikalar
                 .Include(x => x.Firma)
-                .Where(x => x.Id == sertifikaId && !x.SilindiMi && x.Firma != null)
+                .Where(x => x.Id == yetkiBelgesiId && !x.SilindiMi && x.Firma != null)
                 .Select(x => (int?)x.Firma!.SirketId)
                 .FirstOrDefaultAsync();
         }
 
-        private async Task<bool> SertifikaOnayYetkisiVarMi(int sirketId)
+        private async Task<bool> YetkiBelgesiOnayYetkisiVarMi(int sirketId)
         {
             if (User.IsInRole("GenelSistemAdmin") || User.IsInRole("SuperAdmin"))
                 return true;
@@ -324,7 +352,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 if (User.IsInRole("SirketAdmin"))
                     return kullanici.SirketId == firmaSirketId.Value;
 
-                return await SertifikaOnayYetkisiVarMi(firmaSirketId.Value);
+                return await YetkiBelgesiOnayYetkisiVarMi(firmaSirketId.Value);
             }
 
             return false;
@@ -340,6 +368,14 @@ namespace YetkiliServisGazAcma.API.Controllers
     {
         public int Id { get; set; }
         public string? Gerekce { get; set; }
+    }
+
+    public class YetkiBelgesiYukleDto
+    {
+        public int FirmaId { get; set; }
+        public IFormFile? Dosya { get; set; }
+        public DateTime BitisTarihi { get; set; }
+        public DateTime? BaslangicTarihi { get; set; }
     }
 
     public class YetkiBelgesiDto
