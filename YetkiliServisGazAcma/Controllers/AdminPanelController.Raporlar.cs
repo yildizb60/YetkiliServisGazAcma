@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Microsoft.EntityFrameworkCore;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
@@ -66,7 +65,7 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null) return Redirect("/giris");
 
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            var kayit = await AdminDevreyeAlmaKaydiBul(id, aktifSirketId);
+            var kayit = await AdminDevreyeAlmaKaydiBul(kullanici, id, aktifSirketId);
             if (kayit == null) return NotFound();
 
             var pdf = DevreyeAlmaPdfService.Olustur(kayit);
@@ -81,7 +80,7 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null) return Redirect("/giris");
 
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            var kayit = await AdminDevreyeAlmaKaydiBul(id, aktifSirketId);
+            var kayit = await AdminDevreyeAlmaKaydiBul(kullanici, id, aktifSirketId);
             if (kayit == null) return NotFound();
 
             var bytes = DevreyeAlmaExcelService.Olustur(new[] { kayit });
@@ -89,17 +88,49 @@ namespace YetkiliServisGazAcma.Controllers
                 $"DevreyeAlma_{kayit.TesistatNo ?? id.ToString()}_{id}.csv");
         }
 
-        private async Task<Ys_DevreyeAlma?> AdminDevreyeAlmaKaydiBul(int id, int? aktifSirketId)
+        private async Task<Ys_DevreyeAlma?> AdminDevreyeAlmaKaydiBul(AppKullanici kullanici, int id, int? aktifSirketId)
         {
-            return await _context.Ys_DevreyeAlmalar
-                .Include(x => x.Firma)
-                    .ThenInclude(x => x!.Sirket)
-                .Include(x => x.Marka)
-                .FirstOrDefaultAsync(x => x.Id == id
-                    && !x.SilindiMi
-                    && x.Firma != null
-                    && !x.Firma.SilindiMi
-                    && (aktifSirketId == null || x.Firma.SirketId == aktifSirketId));
+            return await _adminRaporApiClient.DevreyeAlmaDetayAsync(kullanici, id, aktifSirketId);
+        }
+
+        private async Task<List<Ys_DevreyeAlma>> AdminDevreyeAlmaKayitlariBul(
+            AppKullanici kullanici,
+            int? aktifSirketId,
+            DateTime basTarih,
+            DateTime bitTarih,
+            List<int>? ids,
+            int? take = null)
+        {
+            if (ids != null && ids.Count > 0)
+            {
+                var kayitlar = new List<Ys_DevreyeAlma>();
+                foreach (var id in ids.Distinct())
+                {
+                    var kayit = await AdminDevreyeAlmaKaydiBul(kullanici, id, aktifSirketId);
+                    if (kayit != null)
+                        kayitlar.Add(kayit);
+                }
+
+                return kayitlar
+                    .OrderByDescending(x => x.OlusturmaTarihi)
+                    .ToList();
+            }
+
+            var sonuc = await _adminRaporApiClient.DevreyeAlmalarAsync(
+                kullanici,
+                aktifSirketId,
+                marka: null,
+                servis: null,
+                il: null,
+                durum: null,
+                bas: basTarih,
+                bit: bitTarih);
+
+            var islemler = sonuc?.Islemler ?? new List<Ys_DevreyeAlma>();
+            if (take.HasValue)
+                islemler = islemler.Take(take.Value).ToList();
+
+            return islemler;
         }
 
         [HttpGet("raporlar")]
@@ -149,37 +180,15 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
 
-            List<Ys_DevreyeAlma> sonIslemler;
-            DateTime basTarih;
-            DateTime bitTarih;
+            var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
+            var basTarih = bas?.Date ?? DateTime.Now.Date.AddDays(-30);
+            var bitTarih = bit?.Date ?? DateTime.Now.Date;
+            var sonIslemler = await AdminDevreyeAlmaKayitlariBul(kullanici, aktifSirketId, basTarih, bitTarih, ids, take: 20);
 
-            if (ids != null && ids.Count > 0)
+            if (ids != null && ids.Count > 0 && sonIslemler.Count > 0)
             {
-                sonIslemler = await _context.Ys_DevreyeAlmalar
-                    .Include(x => x.Firma)
-                    .ThenInclude(x => x!.Sirket)
-                    .Include(x => x.Marka)
-                    .Where(x => !x.SilindiMi && ids.Contains(x.Id))
-                    .OrderByDescending(x => x.OlusturmaTarihi)
-                    .ToListAsync();
-
-                basTarih = sonIslemler.Count > 0 ? sonIslemler.Min(x => x.OlusturmaTarihi).Date : DateTime.Now.Date;
-                bitTarih = sonIslemler.Count > 0 ? sonIslemler.Max(x => x.OlusturmaTarihi).Date : DateTime.Now.Date;
-            }
-            else
-            {
-                basTarih = bas?.Date ?? DateTime.Now.Date.AddDays(-30);
-                bitTarih = bit?.Date ?? DateTime.Now.Date;
-                var bitSonrasi = bitTarih.AddDays(1);
-
-                sonIslemler = await _context.Ys_DevreyeAlmalar
-                    .Include(x => x.Firma)
-                    .ThenInclude(x => x!.Sirket)
-                    .Include(x => x.Marka)
-                    .Where(x => !x.SilindiMi && x.OlusturmaTarihi >= basTarih && x.OlusturmaTarihi < bitSonrasi)
-                    .OrderByDescending(x => x.OlusturmaTarihi)
-                    .Take(20)
-                    .ToListAsync();
+                basTarih = sonIslemler.Min(x => x.OlusturmaTarihi).Date;
+                bitTarih = sonIslemler.Max(x => x.OlusturmaTarihi).Date;
             }
 
             var devreyeSayisi = sonIslemler.Count;
@@ -311,36 +320,15 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
 
-            List<Ys_DevreyeAlma> islemler;
-            DateTime basTarih;
-            DateTime bitTarih;
+            var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
+            var basTarih = bas?.Date ?? DateTime.Now.Date.AddDays(-30);
+            var bitTarih = bit?.Date ?? DateTime.Now.Date;
+            var islemler = await AdminDevreyeAlmaKayitlariBul(kullanici, aktifSirketId, basTarih, bitTarih, ids);
 
-            if (ids != null && ids.Count > 0)
+            if (ids != null && ids.Count > 0 && islemler.Count > 0)
             {
-                islemler = await _context.Ys_DevreyeAlmalar
-                    .Include(x => x.Firma)
-                    .ThenInclude(x => x!.Sirket)
-                    .Include(x => x.Marka)
-                    .Where(x => !x.SilindiMi && ids.Contains(x.Id))
-                    .OrderByDescending(x => x.OlusturmaTarihi)
-                    .ToListAsync();
-
-                basTarih = islemler.Count > 0 ? islemler.Min(x => x.OlusturmaTarihi).Date : DateTime.Now.Date;
-                bitTarih = islemler.Count > 0 ? islemler.Max(x => x.OlusturmaTarihi).Date : DateTime.Now.Date;
-            }
-            else
-            {
-                basTarih = bas?.Date ?? DateTime.Now.Date.AddDays(-30);
-                bitTarih = bit?.Date ?? DateTime.Now.Date;
-                var bitSonrasi = bitTarih.AddDays(1);
-
-                islemler = await _context.Ys_DevreyeAlmalar
-                    .Include(x => x.Firma)
-                    .ThenInclude(x => x!.Sirket)
-                    .Include(x => x.Marka)
-                    .Where(x => !x.SilindiMi && x.OlusturmaTarihi >= basTarih && x.OlusturmaTarihi < bitSonrasi)
-                    .OrderByDescending(x => x.OlusturmaTarihi)
-                    .ToListAsync();
+                basTarih = islemler.Min(x => x.OlusturmaTarihi).Date;
+                bitTarih = islemler.Max(x => x.OlusturmaTarihi).Date;
             }
 
             var bytes = DevreyeAlmaExcelService.Olustur(islemler);
