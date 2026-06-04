@@ -121,6 +121,56 @@ namespace YetkiliServisGazAcma.Business.Services
             }
         }
 
+        public async Task<List<Ys_Firma>?> FirmaSecenekleriAsync(AppKullanici kullanici, int? sirketId)
+        {
+            if (!_options.Enabled)
+            {
+                ApiClientFallback.EnsureAllowed(_options, "Admin kullanici firma secenekleri");
+                return null;
+            }
+
+            try
+            {
+                var token = await _tokenService.OlusturAsync(kullanici);
+                if (string.IsNullOrWhiteSpace(token))
+                {
+                    ApiClientFallback.EnsureAllowed(_options, "Admin kullanici firma secenekleri token");
+                    return null;
+                }
+
+                using var request = new HttpRequestMessage(HttpMethod.Post, "api/admin-panel/kullanicilar/firma-secenekleri");
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                request.Content = JsonContent.Create(new AdminKullaniciFirmaSecenekIstek { SirketId = sirketId });
+
+                using var response = await _httpClient.SendAsync(request);
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("Admin kullanici firma secenekleri API cagrisinda basarisiz yanit dondu. StatusCode: {StatusCode}", response.StatusCode);
+                    ApiClientFallback.EnsureAllowed(_options, "Admin kullanici firma secenekleri");
+                    return null;
+                }
+
+                var firmalar = await response.Content.ReadFromJsonAsync<List<AdminFirmaSecenekCevap>>();
+                return firmalar?.Select(x => new Ys_Firma
+                {
+                    Id = x.Id,
+                    FirmaAdi = x.FirmaAdi,
+                    SirketId = x.SirketId,
+                    Sirket = new Dag_Sirket
+                    {
+                        Id = x.SirketId,
+                        SirketAdi = x.SirketAdi
+                    }
+                }).ToList();
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
+            {
+                _logger.LogWarning(ex, "Admin kullanici firma secenekleri API cagrisina ulasilamadi.");
+                ApiClientFallback.EnsureAllowed(_options, "Admin kullanici firma secenekleri");
+                return null;
+            }
+        }
+
         public Task<AdminKullaniciIslemSonuc?> PersonelEkleAsync(
             AppKullanici kullanici,
             int? kapsamSirketId,
@@ -268,6 +318,11 @@ namespace YetkiliServisGazAcma.Business.Services
             public int? SirketId { get; set; }
         }
 
+        private class AdminKullaniciFirmaSecenekIstek
+        {
+            public int? SirketId { get; set; }
+        }
+
         private class AdminPersonelKaydetIstek
         {
             public int? KapsamSirketId { get; set; }
@@ -349,6 +404,14 @@ namespace YetkiliServisGazAcma.Business.Services
         private class AdminSirketSecenekCevap
         {
             public int Id { get; set; }
+            public string? SirketAdi { get; set; }
+        }
+
+        private class AdminFirmaSecenekCevap
+        {
+            public int Id { get; set; }
+            public string? FirmaAdi { get; set; }
+            public int SirketId { get; set; }
             public string? SirketAdi { get; set; }
         }
     }

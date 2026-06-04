@@ -185,6 +185,23 @@ namespace YetkiliServisGazAcma.API.Controllers
             return Ok(await SirketSecenekleriAsync(kapsam.sirketId));
         }
 
+        [HttpPost("kullanicilar/firma-secenekleri")]
+        public async Task<IActionResult> KullaniciFirmaSecenekleri([FromBody] AdminKullaniciFirmaSecenekFiltreDto? dto)
+        {
+            var kullanici = await AktifKullaniciAsync();
+            if (kullanici == null)
+                return Unauthorized();
+
+            var kapsam = await KapsamSirketIdAsync(dto?.SirketId);
+            if (kapsam.gecersiz)
+                return Forbid();
+
+            if (!await KullaniciYonetebilirMi(kullanici, kapsam.sirketId))
+                return Forbid();
+
+            return Ok(await FirmaSecenekleriAsync(kapsam.sirketId));
+        }
+
         [HttpPost("personeller/ekle")]
         public async Task<IActionResult> PersonelEkle([FromBody] AdminPersonelKaydetDto? dto)
         {
@@ -1123,6 +1140,28 @@ namespace YetkiliServisGazAcma.API.Controllers
                 .ToListAsync();
         }
 
+        private async Task<List<AdminFirmaSecenekDto>> FirmaSecenekleriAsync(int? sirketId)
+        {
+            var query = _context.Ys_Firmalar
+                .Include(x => x.Sirket)
+                .Where(x => !x.SilindiMi && x.AktifMi)
+                .AsQueryable();
+
+            if (sirketId.HasValue)
+                query = query.Where(x => x.SirketId == sirketId.Value);
+
+            return await query
+                .OrderBy(x => x.FirmaAdi)
+                .Select(x => new AdminFirmaSecenekDto
+                {
+                    Id = x.Id,
+                    FirmaAdi = x.FirmaAdi,
+                    SirketId = x.SirketId,
+                    SirketAdi = x.Sirket != null ? x.Sirket.SirketAdi : null
+                })
+                .ToListAsync();
+        }
+
         private async Task<(int? sirketId, bool gecersiz)> KapsamSirketIdAsync(int? istenenSirketId)
         {
             var kullaniciId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -1350,6 +1389,11 @@ namespace YetkiliServisGazAcma.API.Controllers
     }
 
     public class AdminKullaniciSirketSecenekFiltreDto
+    {
+        public int? SirketId { get; set; }
+    }
+
+    public class AdminKullaniciFirmaSecenekFiltreDto
     {
         public int? SirketId { get; set; }
     }
@@ -1615,6 +1659,14 @@ namespace YetkiliServisGazAcma.API.Controllers
     public class AdminSirketSecenekDto
     {
         public int Id { get; set; }
+        public string? SirketAdi { get; set; }
+    }
+
+    public class AdminFirmaSecenekDto
+    {
+        public int Id { get; set; }
+        public string? FirmaAdi { get; set; }
+        public int SirketId { get; set; }
         public string? SirketAdi { get; set; }
     }
 

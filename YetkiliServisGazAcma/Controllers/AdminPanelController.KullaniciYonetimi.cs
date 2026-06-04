@@ -381,6 +381,28 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.FormSirketId = sirketId;
         }
 
+        private async Task KullaniciFormSecenekleriHazirla(AppKullanici kullanici)
+        {
+            var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
+            var sirketler = await _adminKullaniciApiClient.SirketSecenekleriAsync(kullanici, aktifSirketId);
+            var firmalar = await _adminKullaniciApiClient.FirmaSecenekleriAsync(kullanici, aktifSirketId);
+
+            if (sirketler == null)
+            {
+                ViewBag.Hata = ViewBag.Hata ?? "Sirket listesi API uzerinden alinamadi.";
+                sirketler = new List<Dag_Sirket>();
+            }
+
+            if (firmalar == null)
+            {
+                ViewBag.Hata = ViewBag.Hata ?? "Firma listesi API uzerinden alinamadi.";
+                firmalar = new List<Ys_Firma>();
+            }
+
+            ViewBag.Sirketler = sirketler;
+            ViewBag.Firmalar = firmalar;
+        }
+
         [HttpGet("kullanicilar")]
         public async Task<IActionResult> Kullanicilar(string? q, string? tip, string? durum, string? bagli)
         {
@@ -432,14 +454,7 @@ namespace YetkiliServisGazAcma.Controllers
 
             ViewBag.Kullanici = kullanici;
             ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
-            var yonetilebilirSirketler = await YonetilebilirSirketler(kullanici);
-            var yonetilebilirSirketIds = yonetilebilirSirketler.Select(x => x.Id).ToHashSet();
-            ViewBag.Sirketler = yonetilebilirSirketler;
-            ViewBag.Firmalar = await _context.Ys_Firmalar
-                .Include(x => x.Sirket)
-                .Where(x => !x.SilindiMi && x.AktifMi && yonetilebilirSirketIds.Contains(x.SirketId))
-                .OrderBy(x => x.FirmaAdi)
-                .ToListAsync();
+            await KullaniciFormSecenekleriHazirla(kullanici);
             return View("~/Views/AdminPanel/KullaniciEkle.cshtml");
         }
 
@@ -455,14 +470,7 @@ namespace YetkiliServisGazAcma.Controllers
             {
                 ViewBag.Kullanici = kullanici;
                 ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
-                var yonetilebilirSirketler = await YonetilebilirSirketler(kullanici);
-                var yonetilebilirSirketIds = yonetilebilirSirketler.Select(x => x.Id).ToHashSet();
-                ViewBag.Sirketler = yonetilebilirSirketler;
-                ViewBag.Firmalar = await _context.Ys_Firmalar
-                    .Include(x => x.Sirket)
-                    .Where(x => !x.SilindiMi && x.AktifMi && yonetilebilirSirketIds.Contains(x.SirketId))
-                    .OrderBy(x => x.FirmaAdi)
-                    .ToListAsync();
+                await KullaniciFormSecenekleriHazirla(kullanici);
                 ViewBag.Hata = mesaj;
                 ViewBag.FormAdSoyad = adSoyad;
                 ViewBag.FormEmail = email;
@@ -612,14 +620,7 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.Kullanici = kullanici;
             ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
             ViewBag.Hedef = hedef;
-            var yonetilebilirSirketler = await YonetilebilirSirketler(kullanici);
-            var yonetilebilirSirketIds = yonetilebilirSirketler.Select(x => x.Id).ToHashSet();
-            ViewBag.Sirketler = yonetilebilirSirketler;
-            ViewBag.Firmalar = await _context.Ys_Firmalar
-                .Include(x => x.Sirket)
-                .Where(x => !x.SilindiMi && x.AktifMi && yonetilebilirSirketIds.Contains(x.SirketId))
-                .OrderBy(x => x.FirmaAdi)
-                .ToListAsync();
+            await KullaniciFormSecenekleriHazirla(kullanici);
             ViewBag.ReturnUrl = string.IsNullOrWhiteSpace(returnUrl) ? "/AdminPanel/kullanicilar" : returnUrl;
             return View("~/Views/AdminPanel/KullaniciDuzenle.cshtml");
         }
@@ -644,15 +645,7 @@ namespace YetkiliServisGazAcma.Controllers
                     ViewBag.Kullanici = kullanici;
                     ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
                     ViewBag.Hedef = hedef;
-                    ViewBag.Sirketler = await _context.Dag_Sirketler
-                        .Where(x => !x.SilindiMi && x.AktifMi)
-                        .OrderBy(x => x.SirketAdi)
-                        .ToListAsync();
-                    ViewBag.Firmalar = await _context.Ys_Firmalar
-                        .Include(x => x.Sirket)
-                        .Where(x => !x.SilindiMi && x.AktifMi)
-                        .OrderBy(x => x.FirmaAdi)
-                        .ToListAsync();
+                    await KullaniciFormSecenekleriHazirla(kullanici);
                     ViewBag.ReturnUrl = string.IsNullOrWhiteSpace(returnUrl) ? "/AdminPanel/kullanicilar" : returnUrl;
                     ViewBag.Hata = hedef.KullaniciTipi == 2
                         ? "Personel için şirket seçilmelidir."
@@ -670,36 +663,21 @@ namespace YetkiliServisGazAcma.Controllers
                     ViewBag.Kullanici = kullanici;
                     ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
                     ViewBag.Hedef = hedef;
-                    ViewBag.Sirketler = await _context.Dag_Sirketler
-                        .Where(x => !x.SilindiMi && x.AktifMi)
-                        .OrderBy(x => x.SirketAdi)
-                        .ToListAsync();
-                    ViewBag.Firmalar = await _context.Ys_Firmalar
-                        .Include(x => x.Sirket)
-                        .Where(x => !x.SilindiMi && x.AktifMi)
-                        .OrderBy(x => x.FirmaAdi)
-                        .ToListAsync();
+                    await KullaniciFormSecenekleriHazirla(kullanici);
                     ViewBag.ReturnUrl = string.IsNullOrWhiteSpace(returnUrl) ? "/AdminPanel/kullanicilar" : returnUrl;
                     ViewBag.Hata = "Yetkili servis kullanıcısı için firma seçilmelidir.";
                     return View("~/Views/AdminPanel/KullaniciDuzenle.cshtml");
                 }
 
-                var firma = await _context.Ys_Firmalar
-                    .FirstOrDefaultAsync(x => x.Id == firmaId.Value && !x.SilindiMi);
+                var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
+                var firmalar = await _adminKullaniciApiClient.FirmaSecenekleriAsync(kullanici, aktifSirketId);
+                var firma = firmalar?.FirstOrDefault(x => x.Id == firmaId.Value);
                 if (firma == null)
                 {
                     ViewBag.Kullanici = kullanici;
                     ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
                     ViewBag.Hedef = hedef;
-                    ViewBag.Sirketler = await _context.Dag_Sirketler
-                        .Where(x => !x.SilindiMi && x.AktifMi)
-                        .OrderBy(x => x.SirketAdi)
-                        .ToListAsync();
-                    ViewBag.Firmalar = await _context.Ys_Firmalar
-                        .Include(x => x.Sirket)
-                        .Where(x => !x.SilindiMi && x.AktifMi)
-                        .OrderBy(x => x.FirmaAdi)
-                        .ToListAsync();
+                    await KullaniciFormSecenekleriHazirla(kullanici);
                     ViewBag.ReturnUrl = string.IsNullOrWhiteSpace(returnUrl) ? "/AdminPanel/kullanicilar" : returnUrl;
                     ViewBag.Hata = "Seçilen firma bulunamadı.";
                     return View("~/Views/AdminPanel/KullaniciDuzenle.cshtml");
@@ -726,15 +704,7 @@ namespace YetkiliServisGazAcma.Controllers
                 ViewBag.Kullanici = kullanici;
                 ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
                 ViewBag.Hedef = hedef;
-                ViewBag.Sirketler = await _context.Dag_Sirketler
-                    .Where(x => !x.SilindiMi && x.AktifMi)
-                    .OrderBy(x => x.SirketAdi)
-                    .ToListAsync();
-                ViewBag.Firmalar = await _context.Ys_Firmalar
-                    .Include(x => x.Sirket)
-                    .Where(x => !x.SilindiMi && x.AktifMi)
-                    .OrderBy(x => x.FirmaAdi)
-                    .ToListAsync();
+                await KullaniciFormSecenekleriHazirla(kullanici);
                 ViewBag.ReturnUrl = string.IsNullOrWhiteSpace(returnUrl) ? "/AdminPanel/kullanicilar" : returnUrl;
                 ViewBag.Hata = string.Join(", ", sonuc.Errors.Select(x => x.Description));
                 return View("~/Views/AdminPanel/KullaniciDuzenle.cshtml");
@@ -747,15 +717,7 @@ namespace YetkiliServisGazAcma.Controllers
                     ViewBag.Kullanici = kullanici;
                     ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
                     ViewBag.Hedef = hedef;
-                    ViewBag.Sirketler = await _context.Dag_Sirketler
-                        .Where(x => !x.SilindiMi && x.AktifMi)
-                        .OrderBy(x => x.SirketAdi)
-                        .ToListAsync();
-                    ViewBag.Firmalar = await _context.Ys_Firmalar
-                        .Include(x => x.Sirket)
-                        .Where(x => !x.SilindiMi && x.AktifMi)
-                        .OrderBy(x => x.FirmaAdi)
-                        .ToListAsync();
+                    await KullaniciFormSecenekleriHazirla(kullanici);
                     ViewBag.ReturnUrl = string.IsNullOrWhiteSpace(returnUrl) ? "/AdminPanel/kullanicilar" : returnUrl;
                     ViewBag.Hata = "Yeni şifreler eşleşmiyor.";
                     return View("~/Views/AdminPanel/KullaniciDuzenle.cshtml");
@@ -767,15 +729,7 @@ namespace YetkiliServisGazAcma.Controllers
                     ViewBag.Kullanici = kullanici;
                     ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
                     ViewBag.Hedef = hedef;
-                    ViewBag.Sirketler = await _context.Dag_Sirketler
-                        .Where(x => !x.SilindiMi && x.AktifMi)
-                        .OrderBy(x => x.SirketAdi)
-                        .ToListAsync();
-                    ViewBag.Firmalar = await _context.Ys_Firmalar
-                        .Include(x => x.Sirket)
-                        .Where(x => !x.SilindiMi && x.AktifMi)
-                        .OrderBy(x => x.FirmaAdi)
-                        .ToListAsync();
+                    await KullaniciFormSecenekleriHazirla(kullanici);
                     ViewBag.ReturnUrl = string.IsNullOrWhiteSpace(returnUrl) ? "/AdminPanel/kullanicilar" : returnUrl;
                     ViewBag.Hata = string.Join(" ", sifreHatalari);
                     return View("~/Views/AdminPanel/KullaniciDuzenle.cshtml");
@@ -788,15 +742,7 @@ namespace YetkiliServisGazAcma.Controllers
                     ViewBag.Kullanici = kullanici;
                     ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
                     ViewBag.Hedef = hedef;
-                    ViewBag.Sirketler = await _context.Dag_Sirketler
-                        .Where(x => !x.SilindiMi && x.AktifMi)
-                        .OrderBy(x => x.SirketAdi)
-                        .ToListAsync();
-                    ViewBag.Firmalar = await _context.Ys_Firmalar
-                        .Include(x => x.Sirket)
-                        .Where(x => !x.SilindiMi && x.AktifMi)
-                        .OrderBy(x => x.FirmaAdi)
-                        .ToListAsync();
+                    await KullaniciFormSecenekleriHazirla(kullanici);
                     ViewBag.ReturnUrl = string.IsNullOrWhiteSpace(returnUrl) ? "/AdminPanel/kullanicilar" : returnUrl;
                     ViewBag.Hata = string.Join(", ", sifreSonuc.Errors.Select(x => x.Description));
                     return View("~/Views/AdminPanel/KullaniciDuzenle.cshtml");
