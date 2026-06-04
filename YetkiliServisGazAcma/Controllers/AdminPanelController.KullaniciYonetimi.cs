@@ -53,13 +53,10 @@ namespace YetkiliServisGazAcma.Controllers
 
         private async Task<List<Dag_Sirket>> YonetilebilirSirketler(AppKullanici kullanici)
         {
-            if (await _aktifSirketService.GenelSistemAdminMi(kullanici))
-            {
-                return await _context.Dag_Sirketler
-                    .Where(x => !x.SilindiMi && x.AktifMi)
-                    .OrderBy(x => x.SirketAdi)
-                    .ToListAsync();
-            }
+            var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
+            var sirketler = await _adminKullaniciApiClient.SirketSecenekleriAsync(kullanici, aktifSirketId);
+            if (sirketler != null)
+                return sirketler;
 
             return await _aktifSirketService.KullaniciSirketleriAsync(kullanici);
         }
