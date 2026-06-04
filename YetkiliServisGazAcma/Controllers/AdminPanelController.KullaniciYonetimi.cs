@@ -825,24 +825,6 @@ namespace YetkiliServisGazAcma.Controllers
             return Redirect("/AdminPanel/personeller");
         }
 
-#if false
-
-            var hedef = await _context.Users.FirstOrDefaultAsync(x => x.Id == id && x.KullaniciTipi == 2);
-            if (hedef == null)
-            {
-                TempData["Hata"] = "Personel bulunamadı.";
-                return Redirect("/AdminPanel/personeller");
-            }
-
-            hedef.AktifMi = aktif;
-            await _userManager.UpdateAsync(hedef);
-
-            TempData["Basarili"] = aktif ? "Personel aktif edildi." : "Personel pasifleştirildi.";
-            return Redirect("/AdminPanel/personeller");
-        }
-
-#endif
-
         [HttpPost("personeller/sil/{id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> PersonelSil(string id)
@@ -856,34 +838,6 @@ namespace YetkiliServisGazAcma.Controllers
             SetKullaniciIslemMesaji(sonuc, "Personel silindi.");
             return Redirect("/AdminPanel/personeller");
         }
-
-#if false
-
-            var hedef = await _context.Users.FirstOrDefaultAsync(x => x.Id == id && x.KullaniciTipi == 2);
-            if (hedef == null)
-            {
-                TempData["Hata"] = "Personel bulunamadı.";
-                return Redirect("/AdminPanel/personeller");
-            }
-
-            if (kullanici.Id == hedef.Id)
-            {
-                TempData["Hata"] = "Kendi hesabınızı silemezsiniz.";
-                return Redirect("/AdminPanel/personeller");
-            }
-
-            var sonuc = await _userManager.DeleteAsync(hedef);
-            if (!sonuc.Succeeded)
-            {
-                TempData["Hata"] = string.Join(", ", sonuc.Errors.Select(x => x.Description));
-                return Redirect("/AdminPanel/personeller");
-            }
-
-            TempData["Basarili"] = "Personel silindi.";
-            return Redirect("/AdminPanel/personeller");
-        }
-
-#endif
 
         [HttpPost("kullanicilar/durum/{id}")]
         [ValidateAntiForgeryToken]
@@ -899,21 +853,6 @@ namespace YetkiliServisGazAcma.Controllers
             return Redirect("/AdminPanel/kullanicilar");
         }
 
-#if false
-
-            var hedef = await _context.Users.FirstOrDefaultAsync(x => x.Id == id);
-            if (hedef == null) return Redirect("/AdminPanel/kullanicilar");
-            if (!await KullaniciKapsamindaMi(kullanici, hedef)) return Redirect("/AdminPanel/kullanicilar");
-
-            hedef.AktifMi = aktif;
-            await _userManager.UpdateAsync(hedef);
-
-            TempData["Basarili"] = aktif ? "Kullanici aktif edildi." : "Kullanici pasifleştirildi.";
-            return Redirect("/AdminPanel/kullanicilar");
-        }
-
-#endif
-
         [HttpPost("kullanicilar/sil/{id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> KullaniciSil(string id)
@@ -927,35 +866,6 @@ namespace YetkiliServisGazAcma.Controllers
             SetKullaniciIslemMesaji(sonuc, "Kullanici silindi.");
             return Redirect("/AdminPanel/kullanicilar");
         }
-
-#if false
-
-            var hedef = await _context.Users.FirstOrDefaultAsync(x => x.Id == id);
-            if (hedef == null)
-            {
-                TempData["Hata"] = "Kullanıcı bulunamadı.";
-                return Redirect("/AdminPanel/kullanicilar");
-            }
-            if (!await KullaniciKapsamindaMi(kullanici, hedef)) return Redirect("/AdminPanel/kullanicilar");
-
-            if (kullanici.Id == hedef.Id)
-            {
-                TempData["Hata"] = "Kendi hesabınızı silemezsiniz.";
-                return Redirect("/AdminPanel/kullanicilar");
-            }
-
-            var sonuc = await _userManager.DeleteAsync(hedef);
-            if (!sonuc.Succeeded)
-            {
-                TempData["Hata"] = string.Join(", ", sonuc.Errors.Select(x => x.Description));
-                return Redirect("/AdminPanel/kullanicilar");
-            }
-
-            TempData["Basarili"] = "Kullanıcı silindi.";
-            return Redirect("/AdminPanel/kullanicilar");
-        }
-
-#endif
 
         private void SetKullaniciIslemMesaji(AdminKullaniciIslemSonuc? sonuc, string varsayilanBasari)
         {
