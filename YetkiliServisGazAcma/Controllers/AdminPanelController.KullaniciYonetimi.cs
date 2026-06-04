@@ -84,14 +84,6 @@ namespace YetkiliServisGazAcma.Controllers
             return (hedef.KullaniciTipi == 2 || hedef.KullaniciTipi == 3) && hedef.SirketId == aktifSirketId.Value;
         }
 
-        private IQueryable<int> GetAktifYetkiliServisFirmaIdsQuery()
-        {
-            return _context.Users
-                .Where(u => u.KullaniciTipi == 1 && u.AktifMi && u.FirmaId.HasValue)
-                .Select(u => u.FirmaId!.Value)
-                .Distinct();
-        }
-
         private async Task<string?> GetYetkiliServisRolAdiAsync()
         {
             var tumRoller = await _context.Set<IdentityRole>()
@@ -114,92 +106,12 @@ namespace YetkiliServisGazAcma.Controllers
                 r.Contains("servis", StringComparison.OrdinalIgnoreCase));
         }
 
-        // Yetkili servis firmaları ile kullanıcı hesaplarını senkron tutar.
-        // Amaç: Yetkili Servisler ekranındaki her firma, Kullanıcılar ekranında da yönetilebilir olsun.
-        private async Task SyncYetkiliServisKullanicilariAsync()
+        private async Task SyncYetkiliServisKullanicilariAsync(AppKullanici kullanici)
         {
-            var yetkiliServisRolAdi = await GetYetkiliServisRolAdiAsync();
-            var firmalar = await _context.Ys_Firmalar
-                .Where(x => !x.SilindiMi)
-                .ToListAsync();
-
-            foreach (var firma in firmalar)
-            {
-                if (string.IsNullOrWhiteSpace(firma.Email))
-                    continue;
-
-                var email = firma.Email.Trim();
-                var adSoyad = !string.IsNullOrWhiteSpace(firma.YetkiliKisi) ? firma.YetkiliKisi : firma.FirmaAdi;
-
-                // Önce firmaya bağlı mevcut kullanıcıyı bul
-                var kullanici = await _context.Users
-                    .FirstOrDefaultAsync(u => u.FirmaId == firma.Id);
-
-                // FirmaId yoksa e-posta üzerinden bulup bağla
-                if (kullanici == null)
-                {
-                    kullanici = await _userManager.FindByEmailAsync(email);
-                    if (kullanici != null && !kullanici.FirmaId.HasValue)
-                    {
-                        kullanici.FirmaId = firma.Id;
-                    }
-                }
-
-                if (kullanici == null)
-                {
-                    // Hiç kullanıcı yoksa otomatik oluştur
-                    var yeni = new AppKullanici
-                    {
-                        UserName = email,
-                        Email = email,
-                        EmailConfirmed = true,
-                        AdSoyad = adSoyad,
-                        PhoneNumber = firma.Telefon,
-                        KullaniciTipi = 1,
-                        FirmaId = firma.Id,
-                        SirketId = firma.SirketId,
-                        AktifMi = firma.AktifMi
-                    };
-
-                    var createResult = await _userManager.CreateAsync(yeni, "Servis123!");
-                    if (createResult.Succeeded && !string.IsNullOrWhiteSpace(yetkiliServisRolAdi))
-                    {
-                        await _userManager.AddToRoleAsync(yeni, yetkiliServisRolAdi!);
-                    }
-                    continue;
-                }
-
-                // Mevcut kullanıcıyı servis hesabı standardına çek
-                kullanici.KullaniciTipi = 1;
-                kullanici.FirmaId = firma.Id;
-                kullanici.SirketId = firma.SirketId;
-                kullanici.AktifMi = firma.AktifMi;
-
-                if (string.IsNullOrWhiteSpace(kullanici.AdSoyad))
-                    kullanici.AdSoyad = adSoyad;
-
-                if (string.IsNullOrWhiteSpace(kullanici.PhoneNumber) && !string.IsNullOrWhiteSpace(firma.Telefon))
-                    kullanici.PhoneNumber = firma.Telefon;
-
-                // E-posta değişimi, sadece başka kullanıcıyla çakışmıyorsa uygulanır
-                if (!string.Equals(kullanici.Email, email, StringComparison.OrdinalIgnoreCase))
-                {
-                    var emailSahibi = await _userManager.FindByEmailAsync(email);
-                    if (emailSahibi == null || emailSahibi.Id == kullanici.Id)
-                    {
-                        kullanici.Email = email;
-                        kullanici.UserName = email;
-                    }
-                }
-
-                await _userManager.UpdateAsync(kullanici);
-
-                if (!string.IsNullOrWhiteSpace(yetkiliServisRolAdi))
-                {
-                    if (!await _userManager.IsInRoleAsync(kullanici, yetkiliServisRolAdi!))
-                        await _userManager.AddToRoleAsync(kullanici, yetkiliServisRolAdi!);
-                }
-            }
+            var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
+            var sonuc = await _adminKullaniciApiClient.YetkiliServisKullanicilariniSenkronizeAsync(kullanici, aktifSirketId);
+            if (sonuc?.Basarili == false)
+                TempData["Hata"] = sonuc.Mesaj ?? "Yetkili servis kullanicilari API uzerinden senkronize edilemedi.";
         }
 
         [HttpGet("")]
@@ -410,7 +322,7 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null) return Redirect("/giris");
             if (!await KullaniciYonetebilirMi(kullanici)) return Redirect("/AdminPanel");
 
-            await SyncYetkiliServisKullanicilariAsync();
+            await SyncYetkiliServisKullanicilariAsync(kullanici);
 
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
             var kullanicilar = await _adminKullaniciApiClient.ListeleAsync(kullanici, aktifSirketId, q, tip, durum, bagli);

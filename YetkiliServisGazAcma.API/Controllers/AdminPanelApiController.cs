@@ -202,6 +202,24 @@ namespace YetkiliServisGazAcma.API.Controllers
             return Ok(await FirmaSecenekleriAsync(kapsam.sirketId));
         }
 
+        [HttpPost("kullanicilar/yetkili-servis-senkronize")]
+        public async Task<IActionResult> YetkiliServisKullanicilariniSenkronize([FromBody] AdminKullaniciSenkronFiltreDto? dto)
+        {
+            var kullanici = await AktifKullaniciAsync();
+            if (kullanici == null)
+                return Unauthorized();
+
+            var kapsam = await KapsamSirketIdAsync(dto?.SirketId);
+            if (kapsam.gecersiz)
+                return Forbid();
+
+            if (!await KullaniciYonetebilirMi(kullanici, kapsam.sirketId))
+                return Forbid();
+
+            await YetkiliServisKullanicilariniSenkronizeAsync(kapsam.sirketId);
+            return Ok(AdminIslemSonucDto.BasariliSonuc("Yetkili servis kullanicilari senkronize edildi."));
+        }
+
         [HttpPost("personeller/ekle")]
         public async Task<IActionResult> PersonelEkle([FromBody] AdminPersonelKaydetDto? dto)
         {
@@ -1162,6 +1180,115 @@ namespace YetkiliServisGazAcma.API.Controllers
                 .ToListAsync();
         }
 
+        private async Task<string?> YetkiliServisRolAdiAsync()
+        {
+            var tumRoller = await _context.Set<IdentityRole>()
+                .Select(r => r.Name)
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .ToListAsync();
+
+            var adaylar = new[] { "YetkiliServis", "SERVIS", "Servis" };
+
+            foreach (var aday in adaylar)
+            {
+                var eslesen = tumRoller.FirstOrDefault(r =>
+                    string.Equals(r, aday, StringComparison.OrdinalIgnoreCase));
+                if (!string.IsNullOrWhiteSpace(eslesen))
+                    return eslesen;
+            }
+
+            return tumRoller.FirstOrDefault(r =>
+                r!.Contains("yetkili", StringComparison.OrdinalIgnoreCase) &&
+                r.Contains("servis", StringComparison.OrdinalIgnoreCase));
+        }
+
+        private async Task YetkiliServisKullanicilariniSenkronizeAsync(int? sirketId)
+        {
+            var yetkiliServisRolAdi = await YetkiliServisRolAdiAsync();
+            var firmalarQuery = _context.Ys_Firmalar
+                .Where(x => !x.SilindiMi)
+                .AsQueryable();
+
+            if (sirketId.HasValue)
+                firmalarQuery = firmalarQuery.Where(x => x.SirketId == sirketId.Value);
+
+            var firmalar = await firmalarQuery.ToListAsync();
+
+            foreach (var firma in firmalar)
+            {
+                if (string.IsNullOrWhiteSpace(firma.Email))
+                    continue;
+
+                var email = firma.Email.Trim();
+                var adSoyad = !string.IsNullOrWhiteSpace(firma.YetkiliKisi) ? firma.YetkiliKisi : firma.FirmaAdi;
+
+                var servisKullanicisi = await _context.Users
+                    .FirstOrDefaultAsync(u => u.FirmaId == firma.Id);
+
+                if (servisKullanicisi == null)
+                {
+                    servisKullanicisi = await _userManager.FindByEmailAsync(email);
+                    if (servisKullanicisi != null && !servisKullanicisi.FirmaId.HasValue)
+                    {
+                        servisKullanicisi.FirmaId = firma.Id;
+                    }
+                }
+
+                if (servisKullanicisi == null)
+                {
+                    var yeni = new AppKullanici
+                    {
+                        UserName = email,
+                        Email = email,
+                        EmailConfirmed = true,
+                        AdSoyad = adSoyad,
+                        PhoneNumber = firma.Telefon,
+                        KullaniciTipi = 1,
+                        FirmaId = firma.Id,
+                        SirketId = firma.SirketId,
+                        AktifMi = firma.AktifMi
+                    };
+
+                    var createResult = await _userManager.CreateAsync(yeni, "Servis123!");
+                    if (createResult.Succeeded && !string.IsNullOrWhiteSpace(yetkiliServisRolAdi))
+                    {
+                        await _userManager.AddToRoleAsync(yeni, yetkiliServisRolAdi!);
+                    }
+
+                    continue;
+                }
+
+                servisKullanicisi.KullaniciTipi = 1;
+                servisKullanicisi.FirmaId = firma.Id;
+                servisKullanicisi.SirketId = firma.SirketId;
+                servisKullanicisi.AktifMi = firma.AktifMi;
+
+                if (string.IsNullOrWhiteSpace(servisKullanicisi.AdSoyad))
+                    servisKullanicisi.AdSoyad = adSoyad;
+
+                if (string.IsNullOrWhiteSpace(servisKullanicisi.PhoneNumber) && !string.IsNullOrWhiteSpace(firma.Telefon))
+                    servisKullanicisi.PhoneNumber = firma.Telefon;
+
+                if (!string.Equals(servisKullanicisi.Email, email, StringComparison.OrdinalIgnoreCase))
+                {
+                    var emailSahibi = await _userManager.FindByEmailAsync(email);
+                    if (emailSahibi == null || emailSahibi.Id == servisKullanicisi.Id)
+                    {
+                        servisKullanicisi.Email = email;
+                        servisKullanicisi.UserName = email;
+                    }
+                }
+
+                await _userManager.UpdateAsync(servisKullanicisi);
+
+                if (!string.IsNullOrWhiteSpace(yetkiliServisRolAdi))
+                {
+                    if (!await _userManager.IsInRoleAsync(servisKullanicisi, yetkiliServisRolAdi!))
+                        await _userManager.AddToRoleAsync(servisKullanicisi, yetkiliServisRolAdi!);
+                }
+            }
+        }
+
         private async Task<(int? sirketId, bool gecersiz)> KapsamSirketIdAsync(int? istenenSirketId)
         {
             var kullaniciId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -1394,6 +1521,11 @@ namespace YetkiliServisGazAcma.API.Controllers
     }
 
     public class AdminKullaniciFirmaSecenekFiltreDto
+    {
+        public int? SirketId { get; set; }
+    }
+
+    public class AdminKullaniciSenkronFiltreDto
     {
         public int? SirketId { get; set; }
     }
