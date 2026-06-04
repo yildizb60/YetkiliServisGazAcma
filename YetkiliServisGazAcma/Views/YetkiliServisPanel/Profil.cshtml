@@ -8,11 +8,11 @@
 var firma = ViewBag.Firma as YetkiliServisGazAcma.Entities.Ys_Firma;
     var markalar = firma?.FirmaMarkalar?.Where(x => !x.SilindiMi).ToList()
         ?? new List<YetkiliServisGazAcma.Entities.Ys_FirmaMarka>();
-    var sertifikalar = firma?.Sertifikalar?.Where(x => !x.SilindiMi).OrderByDescending(x => x.OlusturmaTarihi).ToList()
-        ?? new List<YetkiliServisGazAcma.Entities.Ys_Sertifika>();
-    var gecerli = sertifikalar.FirstOrDefault(x => x.Durum == 1 && x.SertifikaBitisTarihi > DateTime.Now);
-    var onayli = sertifikalar.FirstOrDefault(x => x.Durum == 1);
-    var sertifika = gecerli ?? onayli ?? sertifikalar.FirstOrDefault();
+    var yetkiBelgeleri = firma?.YetkiBelgeleri?.Where(x => !x.SilindiMi).OrderByDescending(x => x.OlusturmaTarihi).ToList()
+        ?? new List<YetkiliServisGazAcma.Entities.Ys_YetkiBelgesi>();
+    var gecerli = yetkiBelgeleri.FirstOrDefault(x => x.Durum == 1 && x.YetkiBelgesiBitisTarihi > DateTime.Now);
+    var onayli = yetkiBelgeleri.FirstOrDefault(x => x.Durum == 1);
+    var yetkiBelgesi = gecerli ?? onayli ?? yetkiBelgeleri.FirstOrDefault();
     string adSoyad = kullanici?.AdSoyad ?? firma?.YetkiliKisi ?? "Yetkili Servis";
     string basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "Y";
 }
@@ -70,11 +70,11 @@ var firma = ViewBag.Firma as YetkiliServisGazAcma.Entities.Ys_Firma;
         .marka-adi { font-size: 13px; font-weight: bold; color: #333; margin-top: 6px; }
         .marka-bitis { font-size: 11px; color: #888; margin-top: 3px; }
         /* Yetki belgesi durumu */
-        .sertifika-kutu { display: flex; align-items: center; gap: 16px; padding: 16px; background: #f4faf7; border-radius: 10px; border: 1.5px solid #e0f0e8; }
-        .sertifika-icon { font-size: 32px; }
-        .sertifika-bilgi-ad { font-size: 14px; font-weight: bold; color: #333; }
-        .sertifika-bilgi-alt { font-size: 12px; color: #888; margin-top: 3px; }
-        .sertifika-badge { margin-left: auto; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+        .yetki-belgesi-kutu { display: flex; align-items: center; gap: 16px; padding: 16px; background: #f4faf7; border-radius: 10px; border: 1.5px solid #e0f0e8; }
+        .yetki-belgesi-icon { font-size: 32px; }
+        .yetki-belgesi-bilgi-ad { font-size: 14px; font-weight: bold; color: #333; }
+        .yetki-belgesi-bilgi-alt { font-size: 12px; color: #888; margin-top: 3px; }
+        .yetki-belgesi-badge { margin-left: auto; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: bold; }
         /* Şifre güç göstergesi */
         .sifre-guc { height: 4px; border-radius: 2px; margin-top: 6px; transition: all .3s; background: #eee; }
         .sifre-guc-yazi { font-size: 11px; margin-top: 4px; }
@@ -106,7 +106,7 @@ var firma = ViewBag.Firma as YetkiliServisGazAcma.Entities.Ys_Firma;
                         {
                             <span class="hero-badge badge-yesil">✅ Yetki Belgesi Geçerli</span>
                         }
-                        else if (sertifika != null && sertifika.Durum == 0)
+                        else if (yetkiBelgesi != null && yetkiBelgesi.Durum == 0)
                         {
                             <span class="hero-badge badge-sari">Yetki Belgesi Onay Bekliyor</span>
                         }
@@ -194,38 +194,38 @@ var firma = ViewBag.Firma as YetkiliServisGazAcma.Entities.Ys_Firma;
                     <div class="kart-baslik-yazi">Yetki Belgesi Durumu</div>
                 </div>
                 <div class="kart-icerik">
-                    @if (sertifikalar.Count > 0)
+                    @if (yetkiBelgeleri.Count > 0)
                     {
-                        var s = sertifika!;
-                        var kalanGun = (s.SertifikaBitisTarihi.Date - DateTime.Now.Date).Days;
-                        var badgeText = s.Durum == 1 && s.SertifikaBitisTarihi > DateTime.Now
+                        var s = yetkiBelgesi!;
+                        var kalanGun = (s.YetkiBelgesiBitisTarihi.Date - DateTime.Now.Date).Days;
+                        var badgeText = s.Durum == 1 && s.YetkiBelgesiBitisTarihi > DateTime.Now
                             ? "Geçerli - " + Math.Max(kalanGun, 0) + " gün kaldı"
                             : s.Durum == 0 ? "Onay Bekliyor"
                             : "Geçersiz";
-                        <div class="sertifika-kutu" style="margin-bottom:10px;">
-                            <div class="sertifika-icon">
+                        <div class="yetki-belgesi-kutu" style="margin-bottom:10px;">
+                            <div class="yetki-belgesi-icon">
                                 @(s.Durum == 1 ? "✅" : s.Durum == 0 ? "⏳" : "❌")
                             </div>
                             <div>
-                                <div class="sertifika-bilgi-ad">
+                                <div class="yetki-belgesi-bilgi-ad">
                                     @(s.Durum == 1 ? "Onaylı Yetki Belgesi" : s.Durum == 0 ? "Onay Bekliyor" : "Reddedildi")
                                 </div>
-                                <div class="sertifika-bilgi-alt">
+                                <div class="yetki-belgesi-bilgi-alt">
                                     Yükleme: @s.OlusturmaTarihi.ToString("dd.MM.yyyy")
                                     &nbsp;&nbsp;
-                                    Bitiş: @s.SertifikaBitisTarihi.ToString("dd.MM.yyyy")
+                                    Bitiş: @s.YetkiBelgesiBitisTarihi.ToString("dd.MM.yyyy")
                                 </div>
                             </div>
-                            <div class="sertifika-badge"
+                            <div class="yetki-belgesi-badge"
                                  style="padding:6px 16px; border-radius:20px; font-size:12px; font-weight:bold;
-                                        background:@(s.Durum==1 && s.SertifikaBitisTarihi > DateTime.Now ? "#E1F5EE" : s.Durum==0 ? "#FAEEDA" : "#FCEBEB");
-                                        color:@(s.Durum==1 && s.SertifikaBitisTarihi > DateTime.Now ? "#085041" : s.Durum==0 ? "#633806" : "#501313");">
+                                        background:@(s.Durum==1 && s.YetkiBelgesiBitisTarihi > DateTime.Now ? "#E1F5EE" : s.Durum==0 ? "#FAEEDA" : "#FCEBEB");
+                                        color:@(s.Durum==1 && s.YetkiBelgesiBitisTarihi > DateTime.Now ? "#085041" : s.Durum==0 ? "#633806" : "#501313");">
                                 @badgeText
                             </div>
                         </div>
-                        @if (s.Durum == 1 && s.SertifikaBitisTarihi <= DateTime.Now.AddDays(30))
+                        @if (s.Durum == 1 && s.YetkiBelgesiBitisTarihi <= DateTime.Now.AddDays(30))
                         {
-                            var kalan = (s.SertifikaBitisTarihi.Date - DateTime.Now.Date).Days;
+                            var kalan = (s.YetkiBelgesiBitisTarihi.Date - DateTime.Now.Date).Days;
                             if (kalan >= 0)
                             {
                                 <div class="mesaj-hata" style="margin-top:10px; border-left-color:#f0a500;">

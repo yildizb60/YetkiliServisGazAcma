@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using YetkiliServisGazAcma.Entities;
 
 namespace YetkiliServisGazAcma.Business.Services
@@ -27,7 +27,7 @@ namespace YetkiliServisGazAcma.Business.Services
                     Csv(i.SeriNo),
                     Csv(i.CihazKapasite),
                     Csv(i.TeknisyenAdi),
-                    Csv(i.TeknisyenSertifikaNo),
+                    Csv(i.TeknisyenYetkiBelgesiNo),
                     Csv(DurumText(i.Durum)),
                     Csv(i.DevreyeAlmaTarihi.ToString("dd.MM.yyyy HH:mm")),
                     Csv(i.Notlar)

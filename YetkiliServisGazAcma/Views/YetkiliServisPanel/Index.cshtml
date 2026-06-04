@@ -12,18 +12,18 @@
     var buAy = ViewBag.BuAy as int? ?? 0;
     var toplam = ViewBag.Toplam as int? ?? 0;
     var bugun = DateTime.Now.Date;
-    var tumBelgeler = firma?.Sertifikalar?
+    var tumBelgeler = firma?.YetkiBelgeleri?
         .Where(x => !x.SilindiMi)
         .OrderByDescending(x => x.OlusturmaTarihi)
-        .ToList() ?? new List<YetkiliServisGazAcma.Entities.Ys_Sertifika>();
+        .ToList() ?? new List<YetkiliServisGazAcma.Entities.Ys_YetkiBelgesi>();
     var onayliBelgeler = tumBelgeler
         .Where(x => x.Durum == 1)
-        .OrderBy(x => x.SertifikaBitisTarihi)
+        .OrderBy(x => x.YetkiBelgesiBitisTarihi)
         .ToList();
     var gecerliBelgeler = onayliBelgeler
-        .Where(x => (!x.SertifikaBaslangicTarihi.HasValue || x.SertifikaBaslangicTarihi.Value.Date <= bugun)
-            && x.SertifikaBitisTarihi.Date >= bugun)
-        .OrderBy(x => x.SertifikaBitisTarihi)
+        .Where(x => (!x.YetkiBelgesiBaslangicTarihi.HasValue || x.YetkiBelgesiBaslangicTarihi.Value.Date <= bugun)
+            && x.YetkiBelgesiBitisTarihi.Date >= bugun)
+        .OrderBy(x => x.YetkiBelgesiBitisTarihi)
         .ToList();
     var bekleyenBelge = tumBelgeler.Count(x => x.Durum == 0);
     var reddedilenBelge = tumBelgeler.Count(x => x.Durum == 2);
@@ -352,7 +352,7 @@
                                     var durumYazi = belge.Durum == 1 ? "Onaylandı" : belge.Durum == 2 ? "Reddedildi" : "Bekliyor";
                                     <div class="dash-list-item">
                                         <div class="dash-list-title">@durumYazi</div>
-                                        <div class="dash-list-sub">@belge.OlusturmaTarihi.ToString("dd.MM.yyyy") - @belge.SertifikaBitisTarihi.ToString("dd.MM.yyyy")</div>
+                                        <div class="dash-list-sub">@belge.OlusturmaTarihi.ToString("dd.MM.yyyy") - @belge.YetkiBelgesiBitisTarihi.ToString("dd.MM.yyyy")</div>
                                     </div>
                                 }
                             </div>

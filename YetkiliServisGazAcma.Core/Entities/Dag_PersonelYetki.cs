@@ -1,8 +1,8 @@
-﻿namespace YetkiliServisGazAcma.Entities
+namespace YetkiliServisGazAcma.Entities
 {
     public static class YetkiTipleri
     {
-        public const string CERTIFIKA_ONAY = "CERTIFIKA_ONAY";
+        public const string YETKI_BELGESI_ONAY = "YETKI_BELGESI_ONAY";
         public const string RAPOR_GOR = "RAPOR_GOR";
         public const string KULLANICI_YONET = "KULLANICI_YONET";
         public const string DAGITIM_SIRKET_YONET = "DAGITIM_SIRKET_YONET";

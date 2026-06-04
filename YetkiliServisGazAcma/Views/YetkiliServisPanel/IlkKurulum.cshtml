@@ -13,8 +13,8 @@
     var seciliMarkaIds = ViewBag.SeciliMarkaIds as List<int> ?? new List<int>();
     var seciliKategoriIds = ViewBag.SeciliKategoriIds as List<int> ?? new List<int>();
     var aktifSubeSayisi = ViewBag.AktifSubeSayisi as int? ?? 0;
-    var sertifikaVar = ViewBag.SertifikaVar as bool? ?? false;
-    var onayliSertifikaVar = ViewBag.OnayliSertifikaVar as bool? ?? false;
+    var yetkiBelgesiVar = ViewBag.YetkiBelgesiVar as bool? ?? false;
+    var onayliYetkiBelgesiVar = ViewBag.OnayliYetkiBelgesiVar as bool? ?? false;
     var eksikler = ViewBag.IlkKurulumEksikler as List<string> ?? new List<string>();
     string adSoyad = kullanici?.AdSoyad ?? firma?.YetkiliKisi ?? "Yetkili Servis";
     string basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "Y";
@@ -178,12 +178,12 @@
         </div>
         <div class="kart-icerik">
             <div class="durum-kart">
-                @if (!sertifikaVar)
+                @if (!yetkiBelgesiVar)
                 {
                     <span class="durum-badge durum-danger">Henüz yetki belgesi yüklenmedi</span>
                     <div class="alt-bilgi">İlk kurulumun tamamlanması için en az bir yetki belgesi yüklenmelidir.</div>
                 }
-                else if (onayliSertifikaVar)
+                else if (onayliYetkiBelgesiVar)
                 {
                     <span class="durum-badge durum-ok">Yetki belgesi yüklendi ve onaylı</span>
                     <div class="alt-bilgi">Devreye alma adımı için yetki belgesi durumu uygun.</div>

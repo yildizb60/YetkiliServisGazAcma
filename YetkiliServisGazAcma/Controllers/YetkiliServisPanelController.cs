@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -34,23 +34,23 @@ namespace YetkiliServisGazAcma.Controllers
             var firmaId = kullanici.FirmaId ?? 0;
 
             var firma = await _context.Ys_Firmalar
-                .Include(x => x.Sertifikalar)
+                .Include(x => x.YetkiBelgeleri)
                 .FirstOrDefaultAsync(x => x.Id == firmaId);
 
             var bugun = DateTime.Now.Date;
-            var onayli = firma?.Sertifikalar?
+            var onayli = firma?.YetkiBelgeleri?
                 .Where(x => x.Durum == 1
                     && !x.SilindiMi
-                    && (!x.SertifikaBaslangicTarihi.HasValue || x.SertifikaBaslangicTarihi.Value.Date <= bugun)
-                    && x.SertifikaBitisTarihi.Date >= bugun)
-                .OrderBy(x => x.SertifikaBitisTarihi)
+                    && (!x.YetkiBelgesiBaslangicTarihi.HasValue || x.YetkiBelgesiBaslangicTarihi.Value.Date <= bugun)
+                    && x.YetkiBelgesiBitisTarihi.Date >= bugun)
+                .OrderBy(x => x.YetkiBelgesiBitisTarihi)
                 .FirstOrDefault();
 
-            var bekleyenVar = firma?.Sertifikalar?.Any(x => x.Durum == 0 && !x.SilindiMi) ?? false;
+            var bekleyenVar = firma?.YetkiBelgeleri?.Any(x => x.Durum == 0 && !x.SilindiMi) ?? false;
             if (onayli != null)
             {
                 bildirimler.Add("Yetki belgeniz onaylandı. Cihaz devreye alabilirsiniz.");
-                var kalan = (onayli.SertifikaBitisTarihi.Date - bugun).Days;
+                var kalan = (onayli.YetkiBelgesiBitisTarihi.Date - bugun).Days;
                 if (kalan <= 30)
                 {
                     bildirimler.Add($"Yetki belgenizin bitmesine {kalan} gün kaldı. Lütfen yenileyin.");
@@ -133,13 +133,13 @@ namespace YetkiliServisGazAcma.Controllers
             var markaVar = firma?.FirmaMarkalar?.Any(x => !x.SilindiMi) == true;
             var kategoriVar = firma?.FirmaKategoriler?.Any(x => !x.SilindiMi) == true;
             var subeVar = firma?.Subeler?.Any(x => !x.SilindiMi) == true;
-            var sertifikaVar = await _context.Ys_Sertifikalar
+            var yetkiBelgesiVar = await _context.Ys_YetkiBelgeleri
                 .AnyAsync(x => x.FirmaId == kullanici.FirmaId && !x.SilindiMi);
 
             if (!markaVar) eksikler.Add("Marka seçimi");
             if (!kategoriVar) eksikler.Add("Kategori seçimi");
             if (!subeVar) eksikler.Add("Şube kaydı");
-            if (!sertifikaVar) eksikler.Add("Yetki belgesi yükleme");
+            if (!yetkiBelgesiVar) eksikler.Add("Yetki belgesi yükleme");
 
             return (true, eksikler.Count == 0, eksikler);
         }
@@ -157,7 +157,7 @@ namespace YetkiliServisGazAcma.Controllers
             var firma = await _context.Ys_Firmalar
                 .Include(x => x.Sirket)
                 .Include(x => x.FirmaMarkalar!).ThenInclude(x => x.Marka)
-                .Include(x => x.Sertifikalar)
+                .Include(x => x.YetkiBelgeleri)
                 .FirstOrDefaultAsync(x => x.Id == kullanici.FirmaId);
 
             var buAy = await _context.Ys_DevreyeAlmalar
@@ -187,18 +187,18 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.IlkKurulumTamamlandi = kurulum.tamamlandiMi;
             ViewBag.IlkKurulumEksikler = kurulum.eksikler;
             await SetBildirimler(kullanici);
-            if (firma?.Sertifikalar != null)
+            if (firma?.YetkiBelgeleri != null)
             {
-                var onayli = firma.Sertifikalar
+                var onayli = firma.YetkiBelgeleri
                     .Where(x => x.Durum == 1)
                     .OrderByDescending(x => x.OlusturmaTarihi)
                     .FirstOrDefault();
                 if (onayli != null)
                 {
-                    var kalan = (onayli.SertifikaBitisTarihi.Date - DateTime.Now.Date).Days;
+                    var kalan = (onayli.YetkiBelgesiBitisTarihi.Date - DateTime.Now.Date).Days;
                     if (kalan >= 0)
                     {
-                        ViewBag.SertifikaUyariGun = kalan;
+                        ViewBag.YetkiBelgesiUyariGun = kalan;
                     }
                 }
             }
@@ -244,8 +244,8 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.SeciliMarkaIds = await _context.Ys_FirmaMarkalar.Where(x => x.FirmaId == firmaId && !x.SilindiMi).Select(x => x.MarkaId).ToListAsync();
             ViewBag.SeciliKategoriIds = await _context.Ys_FirmaKategoriler.Where(x => x.FirmaId == firmaId && !x.SilindiMi).Select(x => x.KategoriId).ToListAsync();
             ViewBag.AktifSubeSayisi = await _context.Ys_Subeler.Where(x => x.FirmaId == firmaId && !x.SilindiMi).CountAsync();
-            ViewBag.SertifikaVar = await _context.Ys_Sertifikalar.AnyAsync(x => x.FirmaId == firmaId && !x.SilindiMi);
-            ViewBag.OnayliSertifikaVar = await _context.Ys_Sertifikalar.AnyAsync(x => x.FirmaId == firmaId && !x.SilindiMi && x.Durum == 1);
+            ViewBag.YetkiBelgesiVar = await _context.Ys_YetkiBelgeleri.AnyAsync(x => x.FirmaId == firmaId && !x.SilindiMi);
+            ViewBag.OnayliYetkiBelgesiVar = await _context.Ys_YetkiBelgeleri.AnyAsync(x => x.FirmaId == firmaId && !x.SilindiMi && x.Durum == 1);
             ViewBag.IlkKurulumEksikler = kurulum.eksikler;
             await SetBildirimler(kullanici);
             return View("~/Views/YetkiliServisPanel/IlkKurulum.cshtml");
@@ -384,20 +384,20 @@ namespace YetkiliServisGazAcma.Controllers
             var kayitliMarkaSayisi = await _context.Ys_FirmaMarkalar.CountAsync(x => x.FirmaId == firmaId && !x.SilindiMi);
             var kayitliKategoriSayisi = await _context.Ys_FirmaKategoriler.CountAsync(x => x.FirmaId == firmaId && !x.SilindiMi);
             var kayitliSubeSayisi = await _context.Ys_Subeler.CountAsync(x => x.FirmaId == firmaId && !x.SilindiMi);
-            var kayitliSertifikaSayisi = await _context.Ys_Sertifikalar.CountAsync(x => x.FirmaId == firmaId && !x.SilindiMi);
+            var kayitliYetkiBelgesiSayisi = await _context.Ys_YetkiBelgeleri.CountAsync(x => x.FirmaId == firmaId && !x.SilindiMi);
             if (kayitliMarkaSayisi == 0 || kayitliKategoriSayisi == 0 || kayitliSubeSayisi == 0)
             {
                 TempData["Hata"] = "İlk kurulum kayıtları eksik görünüyor. Lütfen tekrar deneyin.";
                 return Redirect("/ys-panel/ilk-kurulum");
             }
 
-            if (kayitliSertifikaSayisi == 0)
+            if (kayitliYetkiBelgesiSayisi == 0)
             {
                 TempData["Hata"] = "Marka, kategori ve şube kaydedildi. İlk kurulumun tamamlanması için lütfen yetki belgenizi yükleyin.";
                 return Redirect("/ys-yetki-belgesi");
             }
 
-            TempData["Basarili"] = $"İlk kurulum tamamlandı. Marka: {kayitliMarkaSayisi}, Kategori: {kayitliKategoriSayisi}, Şube: {kayitliSubeSayisi}, Yetki Belgesi: {kayitliSertifikaSayisi}.";
+            TempData["Basarili"] = $"İlk kurulum tamamlandı. Marka: {kayitliMarkaSayisi}, Kategori: {kayitliKategoriSayisi}, Şube: {kayitliSubeSayisi}, Yetki Belgesi: {kayitliYetkiBelgesiSayisi}.";
             return Redirect("/ys-panel");
         }
 
@@ -413,7 +413,7 @@ namespace YetkiliServisGazAcma.Controllers
                 .Include(x => x.FirmaMarkalar!).ThenInclude(x => x.Marka)
                 .Include(x => x.FirmaKategoriler)
                 .Include(x => x.Subeler)
-                .Include(x => x.Sertifikalar)
+                .Include(x => x.YetkiBelgeleri)
                 .FirstOrDefaultAsync(x => x.Id == kullanici.FirmaId);
 
             ViewBag.Firma = firma;
@@ -852,7 +852,7 @@ namespace YetkiliServisGazAcma.Controllers
                     && x.DevreyeAlmaTarihi >= basTarih
                     && x.DevreyeAlmaTarihi < bitSonrasi);
 
-            var sertifikaTemelQuery = _context.Ys_Sertifikalar
+            var yetkiBelgesiTemelQuery = _context.Ys_YetkiBelgeleri
                 .Where(x => x.FirmaId == firmaId
                     && !x.SilindiMi
                     && x.OlusturmaTarihi >= basTarih
@@ -862,9 +862,9 @@ namespace YetkiliServisGazAcma.Controllers
             var tamamlanan = await devreyeTemelQuery.Where(x => x.Durum == 1).CountAsync();
             var bekleyen = await devreyeTemelQuery.Where(x => x.Durum == 0).CountAsync();
 
-            var sertifikaOnayli = await sertifikaTemelQuery.Where(x => x.Durum == 1).CountAsync();
-            var sertifikaBekleyen = await sertifikaTemelQuery.Where(x => x.Durum == 0).CountAsync();
-            var sertifikaReddedilen = await sertifikaTemelQuery.Where(x => x.Durum == 2).CountAsync();
+            var yetkiBelgesiOnayli = await yetkiBelgesiTemelQuery.Where(x => x.Durum == 1).CountAsync();
+            var yetkiBelgesiBekleyen = await yetkiBelgesiTemelQuery.Where(x => x.Durum == 0).CountAsync();
+            var yetkiBelgesiReddedilen = await yetkiBelgesiTemelQuery.Where(x => x.Durum == 2).CountAsync();
 
             var sonIslemler = await devreyeTemelQuery
                 .OrderByDescending(x => x.DevreyeAlmaTarihi)
@@ -904,13 +904,13 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.DevreyeSayisi = devreyeSayisi;
             ViewBag.Tamamlanan = tamamlanan;
             ViewBag.Bekleyen = bekleyen;
-            ViewBag.SertifikaOnayli = sertifikaOnayli;
-            ViewBag.SertifikaBekleyen = sertifikaBekleyen;
-            ViewBag.SertifikaReddedilen = sertifikaReddedilen;
+            ViewBag.YetkiBelgesiOnayli = yetkiBelgesiOnayli;
+            ViewBag.YetkiBelgesiBekleyen = yetkiBelgesiBekleyen;
+            ViewBag.YetkiBelgesiReddedilen = yetkiBelgesiReddedilen;
             ViewBag.SonIslemler = sonIslemler;
             ViewBag.ChartAylikLabels = chartAylikLabels;
             ViewBag.ChartAylikData = chartAylikData;
-            ViewBag.ChartDurumData = new List<int> { sertifikaOnayli, sertifikaBekleyen, sertifikaReddedilen };
+            ViewBag.ChartDurumData = new List<int> { yetkiBelgesiOnayli, yetkiBelgesiBekleyen, yetkiBelgesiReddedilen };
             ViewBag.ChartMarkaLabels = chartMarka.Select(x => x.Marka).ToList();
             ViewBag.ChartMarkaData = chartMarka.Select(x => x.Sayi).ToList();
             ViewBag.Firma = firma;

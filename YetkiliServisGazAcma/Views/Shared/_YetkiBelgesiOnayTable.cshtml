@@ -1,7 +1,7 @@
 @using YetkiliServisGazAcma.Entities
-@model Tuple<List<Ys_Sertifika>, string, string>
+@model Tuple<List<Ys_YetkiBelgesi>, string, string>
 @{
-    var kayitlar = Model.Item1 ?? new List<Ys_Sertifika>();
+    var kayitlar = Model.Item1 ?? new List<Ys_YetkiBelgesi>();
     var durum = Model.Item2;
     var panel = Model.Item3;
     var bekleyen = durum == "bekleyen";
@@ -44,8 +44,8 @@
             {
                 foreach (var s in kayitlar)
                 {
-                    var baslangic = s.SertifikaBaslangicTarihi ?? s.OlusturmaTarihi;
-                    var kalanGun = (s.SertifikaBitisTarihi.Date - DateTime.Now.Date).Days;
+                    var baslangic = s.YetkiBelgesiBaslangicTarihi ?? s.OlusturmaTarihi;
+                    var kalanGun = (s.YetkiBelgesiBitisTarihi.Date - DateTime.Now.Date).Days;
                     var kalanYazi = kalanGun < 0 ? $"{Math.Abs(kalanGun)} gün geçti" : $"{kalanGun} gün kaldı";
                     var durumClass = s.Durum == 1 ? "df-pill-success" : s.Durum == 2 ? "df-pill-danger" : "df-pill-warning";
                     var durumYazi = s.Durum == 1 ? "Onaylandı" : s.Durum == 2 ? "Reddedildi" : "Onay bekliyor";
@@ -54,7 +54,7 @@
                     var vergiNo = s.Firma?.VergiNo ?? "";
                     var yukleme = s.OlusturmaTarihi.ToString("yyyy-MM-dd");
                     var baslangicFiltre = baslangic.ToString("yyyy-MM-dd");
-                    var bitisFiltre = s.SertifikaBitisTarihi.ToString("yyyy-MM-dd");
+                    var bitisFiltre = s.YetkiBelgesiBitisTarihi.ToString("yyyy-MM-dd");
 
                     <tr data-approval-row="true"
                         data-firma="@firmaAdi"
@@ -72,7 +72,7 @@
                         <td>@s.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</td>
                         <td>@baslangic.ToString("dd.MM.yyyy")</td>
                         <td>
-                            <div class="df-cell-main">@s.SertifikaBitisTarihi.ToString("dd.MM.yyyy")</div>
+                            <div class="df-cell-main">@s.YetkiBelgesiBitisTarihi.ToString("dd.MM.yyyy")</div>
                             <div class="df-cell-sub">@kalanYazi</div>
                         </td>
                         <td><span class="df-pill @durumClass">@durumYazi</span></td>

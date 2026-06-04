@@ -265,8 +265,8 @@ namespace YetkiliServisGazAcma.Business.Services
 
         private class AdminYetkiBelgesiUyariCevap
         {
-            public List<AdminSertifikaCevap> Yaklasan { get; set; } = new();
-            public List<AdminSertifikaCevap> Gecmis { get; set; } = new();
+            public List<AdminYetkiBelgesiCevap> Yaklasan { get; set; } = new();
+            public List<AdminYetkiBelgesiCevap> Gecmis { get; set; } = new();
 
             public AdminYetkiBelgesiUyariSonuc ToSonuc()
             {
@@ -288,9 +288,9 @@ namespace YetkiliServisGazAcma.Business.Services
             public int DevreyeTamamlanan { get; set; }
             public int DevreyeBekleyen { get; set; }
             public int DevreyeIptal { get; set; }
-            public int SertifikaOnayli { get; set; }
-            public int SertifikaBekleyen { get; set; }
-            public int SertifikaReddedilen { get; set; }
+            public int YetkiBelgesiOnayli { get; set; }
+            public int YetkiBelgesiBekleyen { get; set; }
+            public int YetkiBelgesiReddedilen { get; set; }
             public List<string> ChartSirketLabels { get; set; } = new();
             public List<int> ChartSirketData { get; set; } = new();
             public List<string> ChartAylikLabels { get; set; } = new();
@@ -299,7 +299,7 @@ namespace YetkiliServisGazAcma.Business.Services
             public List<string?> ChartMarkaLabels { get; set; } = new();
             public List<int> ChartMarkaData { get; set; } = new();
             public List<AdminDevreyeAlmaCevap> SonIslemler { get; set; } = new();
-            public List<AdminSertifikaCevap> SertifikaIslemler { get; set; } = new();
+            public List<AdminYetkiBelgesiCevap> YetkiBelgesiIslemler { get; set; } = new();
             public List<AdminSirketCevap> Sirketler { get; set; } = new();
 
             public AdminRaporOzetSonuc ToSonuc()
@@ -314,9 +314,9 @@ namespace YetkiliServisGazAcma.Business.Services
                     DevreyeTamamlanan = DevreyeTamamlanan,
                     DevreyeBekleyen = DevreyeBekleyen,
                     DevreyeIptal = DevreyeIptal,
-                    SertifikaOnayli = SertifikaOnayli,
-                    SertifikaBekleyen = SertifikaBekleyen,
-                    SertifikaReddedilen = SertifikaReddedilen,
+                    YetkiBelgesiOnayli = YetkiBelgesiOnayli,
+                    YetkiBelgesiBekleyen = YetkiBelgesiBekleyen,
+                    YetkiBelgesiReddedilen = YetkiBelgesiReddedilen,
                     ChartSirketLabels = ChartSirketLabels,
                     ChartSirketData = ChartSirketData,
                     ChartAylikLabels = ChartAylikLabels,
@@ -325,7 +325,7 @@ namespace YetkiliServisGazAcma.Business.Services
                     ChartMarkaLabels = ChartMarkaLabels,
                     ChartMarkaData = ChartMarkaData,
                     SonIslemler = SonIslemler.Select(x => x.ToEntity()).ToList(),
-                    SertifikaIslemler = SertifikaIslemler.Select(x => x.ToEntity()).ToList(),
+                    YetkiBelgesiIslemler = YetkiBelgesiIslemler.Select(x => x.ToEntity()).ToList(),
                     Sirketler = Sirketler.Select(x => x.ToEntity()).ToList()
                 };
             }
@@ -380,7 +380,7 @@ namespace YetkiliServisGazAcma.Business.Services
             public string? CihazKapasite { get; set; }
             public string? SeriNo { get; set; }
             public string? TeknisyenAdi { get; set; }
-            public string? TeknisyenSertifikaNo { get; set; }
+            public string? TeknisyenYetkiBelgesiNo { get; set; }
             public DateTime DevreyeAlmaTarihi { get; set; }
             public string? Notlar { get; set; }
             public int Durum { get; set; }
@@ -414,7 +414,7 @@ namespace YetkiliServisGazAcma.Business.Services
                     CihazKapasite = CihazKapasite,
                     SeriNo = SeriNo,
                     TeknisyenAdi = TeknisyenAdi,
-                    TeknisyenSertifikaNo = TeknisyenSertifikaNo,
+                    TeknisyenYetkiBelgesiNo = TeknisyenYetkiBelgesiNo,
                     DevreyeAlmaTarihi = DevreyeAlmaTarihi,
                     Notlar = Notlar,
                     Durum = Durum,
@@ -442,7 +442,7 @@ namespace YetkiliServisGazAcma.Business.Services
             }
         }
 
-        private class AdminSertifikaCevap
+        private class AdminYetkiBelgesiCevap
         {
             public int Id { get; set; }
             public int FirmaId { get; set; }
@@ -451,23 +451,23 @@ namespace YetkiliServisGazAcma.Business.Services
             public string? SirketAdi { get; set; }
             public int Durum { get; set; }
             public DateTime OlusturmaTarihi { get; set; }
-            public DateTime? SertifikaBaslangicTarihi { get; set; }
-            public DateTime SertifikaBitisTarihi { get; set; }
+            public DateTime? YetkiBelgesiBaslangicTarihi { get; set; }
+            public DateTime YetkiBelgesiBitisTarihi { get; set; }
             public string? DosyaYolu { get; set; }
             public string? OnaylayanKullanici { get; set; }
             public DateTime? OnayTarihi { get; set; }
             public string? RedGerekce { get; set; }
 
-            public Ys_Sertifika ToEntity()
+            public Ys_YetkiBelgesi ToEntity()
             {
-                return new Ys_Sertifika
+                return new Ys_YetkiBelgesi
                 {
                     Id = Id,
                     FirmaId = FirmaId,
                     Durum = Durum,
                     OlusturmaTarihi = OlusturmaTarihi,
-                    SertifikaBaslangicTarihi = SertifikaBaslangicTarihi,
-                    SertifikaBitisTarihi = SertifikaBitisTarihi,
+                    YetkiBelgesiBaslangicTarihi = YetkiBelgesiBaslangicTarihi,
+                    YetkiBelgesiBitisTarihi = YetkiBelgesiBitisTarihi,
                     DosyaYolu = DosyaYolu,
                     OnaylayanKullanici = OnaylayanKullanici,
                     OnayTarihi = OnayTarihi,
@@ -493,8 +493,8 @@ namespace YetkiliServisGazAcma.Business.Services
 
     public class AdminYetkiBelgesiUyariSonuc
     {
-        public List<Ys_Sertifika> Yaklasan { get; set; } = new();
-        public List<Ys_Sertifika> Gecmis { get; set; } = new();
+        public List<Ys_YetkiBelgesi> Yaklasan { get; set; } = new();
+        public List<Ys_YetkiBelgesi> Gecmis { get; set; } = new();
     }
 
     public class AdminRaporOzetSonuc
@@ -507,9 +507,9 @@ namespace YetkiliServisGazAcma.Business.Services
         public int DevreyeTamamlanan { get; set; }
         public int DevreyeBekleyen { get; set; }
         public int DevreyeIptal { get; set; }
-        public int SertifikaOnayli { get; set; }
-        public int SertifikaBekleyen { get; set; }
-        public int SertifikaReddedilen { get; set; }
+        public int YetkiBelgesiOnayli { get; set; }
+        public int YetkiBelgesiBekleyen { get; set; }
+        public int YetkiBelgesiReddedilen { get; set; }
         public List<string> ChartSirketLabels { get; set; } = new();
         public List<int> ChartSirketData { get; set; } = new();
         public List<string> ChartAylikLabels { get; set; } = new();
@@ -518,7 +518,7 @@ namespace YetkiliServisGazAcma.Business.Services
         public List<string?> ChartMarkaLabels { get; set; } = new();
         public List<int> ChartMarkaData { get; set; } = new();
         public List<Ys_DevreyeAlma> SonIslemler { get; set; } = new();
-        public List<Ys_Sertifika> SertifikaIslemler { get; set; } = new();
+        public List<Ys_YetkiBelgesi> YetkiBelgesiIslemler { get; set; } = new();
         public List<Dag_Sirket> Sirketler { get; set; } = new();
     }
 }

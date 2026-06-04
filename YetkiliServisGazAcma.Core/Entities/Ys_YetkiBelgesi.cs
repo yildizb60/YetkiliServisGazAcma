@@ -1,13 +1,13 @@
-﻿using System;
+using System;
 
 namespace YetkiliServisGazAcma.Entities
 {
-    public class Ys_Sertifika : BaseEntity
+    public class Ys_YetkiBelgesi : BaseEntity
     {
         public int FirmaId { get; set; }
         public string? DosyaYolu { get; set; }
-        public DateTime? SertifikaBaslangicTarihi { get; set; }
-        public DateTime SertifikaBitisTarihi { get; set; }
+        public DateTime? YetkiBelgesiBaslangicTarihi { get; set; }
+        public DateTime YetkiBelgesiBitisTarihi { get; set; }
         public int Durum { get; set; } = 0;
         // 0 = Onayda Bekliyor
         // 1 = Onaylandı

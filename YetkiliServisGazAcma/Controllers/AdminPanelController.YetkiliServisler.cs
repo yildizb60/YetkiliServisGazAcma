@@ -115,7 +115,7 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.Kullanici = kullanici;
             ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
             ViewBag.Servis = sonuc.Servis;
-            ViewBag.Sertifikalar = sonuc.Sertifikalar;
+            ViewBag.YetkiBelgeleri = sonuc.YetkiBelgeleri;
             ViewBag.Subeler = sonuc.Subeler;
             ViewBag.Devreye = sonuc.Devreye;
             return View("~/Views/AdminPanel/YetkiliServisDetay.cshtml");

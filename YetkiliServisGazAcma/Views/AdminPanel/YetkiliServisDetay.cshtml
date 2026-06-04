@@ -8,7 +8,7 @@
 
     var kullanici = ViewBag.Kullanici as AppKullanici;
     var servis = ViewBag.Servis as Ys_Firma;
-    var sertifikalar = ViewBag.Sertifikalar as List<Ys_Sertifika> ?? new();
+    var yetkiBelgeleri = ViewBag.YetkiBelgeleri as List<Ys_YetkiBelgesi> ?? new();
     var subeler = ViewBag.Subeler as List<Ys_Sube> ?? new();
     var devreye = ViewBag.Devreye as List<Ys_DevreyeAlma> ?? new();
     var kategoriler = servis?.FirmaKategoriler?.Where(x => !x.SilindiMi
@@ -111,7 +111,7 @@
         <div class="service-kpis">
             <div class="service-kpi">
                 <div class="service-kpi-label">Yetki Belgesi</div>
-                <div class="service-kpi-value">@sertifikalar.Count</div>
+                <div class="service-kpi-value">@yetkiBelgeleri.Count</div>
             </div>
             <div class="service-kpi">
                 <div class="service-kpi-label">Şube</div>
@@ -184,7 +184,7 @@
 
     <section class="df-detail-card">
         <div class="df-detail-card-title">Yetki Belgeleri</div>
-        @if (sertifikalar.Count == 0)
+        @if (yetkiBelgeleri.Count == 0)
         {
             <div class="service-empty">Yetki belgesi kaydı yok.</div>
         }
@@ -192,12 +192,12 @@
         {
             <div class="service-list">
                 <div class="service-row service-row-head cert"><div>Yükleme</div><div>Başlangıç</div><div>Bitiş</div><div>Durum</div></div>
-                @foreach (var s in sertifikalar)
+                @foreach (var s in yetkiBelgeleri)
                 {
                     <div class="service-row cert">
                         <div>@s.OlusturmaTarihi.ToString("dd.MM.yyyy")</div>
-                        <div>@(s.SertifikaBaslangicTarihi?.ToString("dd.MM.yyyy") ?? "-")</div>
-                        <div>@s.SertifikaBitisTarihi.ToString("dd.MM.yyyy")</div>
+                        <div>@(s.YetkiBelgesiBaslangicTarihi?.ToString("dd.MM.yyyy") ?? "-")</div>
+                        <div>@s.YetkiBelgesiBitisTarihi.ToString("dd.MM.yyyy")</div>
                         <div>
                             @if (s.Durum == 1) { <span class="df-pill df-pill-success">Onaylı</span> }
                             else if (s.Durum == 2) { <span class="df-pill df-pill-danger">Reddedildi</span> }

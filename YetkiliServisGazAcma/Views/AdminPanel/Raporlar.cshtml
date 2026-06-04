@@ -6,7 +6,7 @@
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
     var sonIslemler = ViewBag.SonIslemler as List<YetkiliServisGazAcma.Entities.Ys_DevreyeAlma>;
-    var sertifikaIslemler = ViewBag.SertifikaIslemler as List<YetkiliServisGazAcma.Entities.Ys_Sertifika>;
+    var yetkiBelgesiIslemler = ViewBag.YetkiBelgesiIslemler as List<YetkiliServisGazAcma.Entities.Ys_YetkiBelgesi>;
     var sirketler = ViewBag.Sirketler as List<YetkiliServisGazAcma.Entities.Dag_Sirket>;
     var listeTipi = ViewBag.ListeTipi as string ?? "devreye";
     var raporTipi = ViewBag.RaporTipi as string ?? "devreye";
@@ -247,7 +247,7 @@
             grid-template-columns: .4fr 1.2fr 1.2fr 1fr 1fr;
         }
 
-        .tablo-sertifika {
+        .tablo-yetki-belgesi {
             grid-template-columns: 1.6fr 1fr 1fr .8fr;
         }
 
@@ -330,15 +330,15 @@
     </div>
     <div class="card">
         <div class="card-title">Yetki Belgesi Onaylı</div>
-        <div class="card-value">@ViewBag.SertifikaOnayli</div>
+        <div class="card-value">@ViewBag.YetkiBelgesiOnayli</div>
     </div>
     <div class="card">
         <div class="card-title">Yetki Belgesi Bekleyen</div>
-        <div class="card-value">@ViewBag.SertifikaBekleyen</div>
+        <div class="card-value">@ViewBag.YetkiBelgesiBekleyen</div>
     </div>
     <div class="card">
         <div class="card-title">Yetki Belgesi Reddedilen</div>
-        <div class="card-value">@ViewBag.SertifikaReddedilen</div>
+        <div class="card-value">@ViewBag.YetkiBelgesiReddedilen</div>
     </div>
 </div>
 
@@ -411,18 +411,18 @@
     }
     else
     {
-        <div class="tablo-head tablo-sertifika">
+        <div class="tablo-head tablo-yetki-belgesi">
             <div>Firma</div><div>Şirket</div><div>Tarih</div><div>Durum</div>
         </div>
-        if (sertifikaIslemler == null || sertifikaIslemler.Count == 0)
+        if (yetkiBelgesiIslemler == null || yetkiBelgesiIslemler.Count == 0)
         {
             <div class="empty">Bu aralıkta yetki belgesi kaydı yok</div>
         }
         else
         {
-            foreach (var s in sertifikaIslemler)
+            foreach (var s in yetkiBelgesiIslemler)
             {
-                <div class="tablo-row tablo-sertifika">
+                <div class="tablo-row tablo-yetki-belgesi">
                     <div>@s.Firma?.FirmaAdi</div>
                     <div style="font-size:12px;color:#888">@s.Firma?.Sirket?.SirketAdi</div>
                     <div>@s.OlusturmaTarihi.ToString("dd.MM.yyyy")</div>

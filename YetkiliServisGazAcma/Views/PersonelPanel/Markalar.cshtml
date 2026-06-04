@@ -2,7 +2,7 @@
 @{    ViewData["Title"] = "Markalar";    ViewData["PanelTitle"] = ViewData["Title"];
     ViewData["PanelSubtitle"] = "Personel Paneli";
     ViewData["ActiveMenu"] = "Markalar";
-    Layout = "~/Views/Shared/_PanelLayout.cshtml";    var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;    var q = ViewBag.Query as string ?? "";    bool ySertifika = ViewBag.YetkiSertifika != false;    bool yRapor = ViewBag.YetkiRapor != false;    bool ySirket = ViewBag.YetkiSirket != false;    bool yMarka = ViewBag.YetkiMarka != false;    bool ySirketYonet = ViewBag.YetkiSirketYonet != false;    bool yMarkaYonet = ViewBag.YetkiMarkaYonet != false;    bool yServis = ViewBag.YetkiServis != false;}
+    Layout = "~/Views/Shared/_PanelLayout.cshtml";    var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;    var q = ViewBag.Query as string ?? "";    bool yYetkiBelgesi = ViewBag.YetkiBelgesi != false;    bool yRapor = ViewBag.YetkiRapor != false;    bool ySirket = ViewBag.YetkiSirket != false;    bool yMarka = ViewBag.YetkiMarka != false;    bool ySirketYonet = ViewBag.YetkiSirketYonet != false;    bool yMarkaYonet = ViewBag.YetkiMarkaYonet != false;    bool yServis = ViewBag.YetkiServis != false;}
 
 @section Styles {
     <style>
@@ -47,7 +47,7 @@
 (function () {
     // PERSONEL_YETKI_MENU
     var yetki = {
-        sertifika: @((ViewBag.YetkiSertifika == true).ToString().ToLower()),
+        yetkiBelgesi: @((ViewBag.YetkiBelgesi == true).ToString().ToLower()),
         rapor: @((ViewBag.YetkiRapor == true).ToString().ToLower())
     };
 
@@ -57,8 +57,8 @@
         list.forEach(function (el) { el.style.display = 'none'; });
     }
 
-    hide('a[href="/personel-panel/onay-bekleyenler"]', yetki.sertifika);
-    hide('a[href="/personel-panel/onay-gecmisi"]', yetki.sertifika);
+    hide('a[href="/personel-panel/onay-bekleyenler"]', yetki.yetkiBelgesi);
+    hide('a[href="/personel-panel/onay-gecmisi"]', yetki.yetkiBelgesi);
     hide('a[href="/personel-panel/raporlar"]', yetki.rapor);
 
     var raporSection = Array.from(document.querySelectorAll('.nav-section')).find(function (x) {

@@ -6,8 +6,8 @@
     ViewData["ActiveMenu"] = "Dashboard";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
-    var sonBelgeler = ViewBag.SonSertifikalar as List<YetkiliServisGazAcma.Entities.Ys_Sertifika>
-        ?? new List<YetkiliServisGazAcma.Entities.Ys_Sertifika>();
+    var sonBelgeler = ViewBag.SonYetkiBelgeleri as List<YetkiliServisGazAcma.Entities.Ys_YetkiBelgesi>
+        ?? new List<YetkiliServisGazAcma.Entities.Ys_YetkiBelgesi>();
     var sonDevreyeAlmalar = ViewBag.SonDevreyeAlmalar as List<YetkiliServisGazAcma.Entities.Ys_DevreyeAlma>
         ?? new List<YetkiliServisGazAcma.Entities.Ys_DevreyeAlma>();
     var onayBekleyen = ViewBag.OnayBekleyen is int ob ? ob : 0;

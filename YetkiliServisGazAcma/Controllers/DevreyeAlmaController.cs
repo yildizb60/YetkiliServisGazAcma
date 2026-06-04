@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -79,22 +79,22 @@ namespace YetkiliServisGazAcma.Controllers
             var firmaId = kullanici.FirmaId ?? 0;
 
             var firma = await _context.Ys_Firmalar
-                .Include(x => x.Sertifikalar)
+                .Include(x => x.YetkiBelgeleri)
                 .FirstOrDefaultAsync(x => x.Id == firmaId);
 
             var bugun = DateTime.Now.Date;
-            var onayli = firma?.Sertifikalar?
+            var onayli = firma?.YetkiBelgeleri?
                 .Where(x => x.Durum == 1
                     && !x.SilindiMi
-                    && (!x.SertifikaBaslangicTarihi.HasValue || x.SertifikaBaslangicTarihi.Value.Date <= bugun)
-                    && x.SertifikaBitisTarihi.Date >= bugun)
-                .OrderBy(x => x.SertifikaBitisTarihi)
+                    && (!x.YetkiBelgesiBaslangicTarihi.HasValue || x.YetkiBelgesiBaslangicTarihi.Value.Date <= bugun)
+                    && x.YetkiBelgesiBitisTarihi.Date >= bugun)
+                .OrderBy(x => x.YetkiBelgesiBitisTarihi)
                 .FirstOrDefault();
-            var bekleyenVar = firma?.Sertifikalar?.Any(x => x.Durum == 0 && !x.SilindiMi) ?? false;
+            var bekleyenVar = firma?.YetkiBelgeleri?.Any(x => x.Durum == 0 && !x.SilindiMi) ?? false;
             if (onayli != null)
             {
                 bildirimler.Add("Yetki belgeniz onaylandı. Cihaz devreye alabilirsiniz.");
-                var kalan = (onayli.SertifikaBitisTarihi.Date - bugun).Days;
+                var kalan = (onayli.YetkiBelgesiBitisTarihi.Date - bugun).Days;
                 if (kalan <= 30)
                 {
                     bildirimler.Add($"Yetki belgenizin bitmesine {kalan} gün kaldı. Lütfen yenileyin.");
@@ -146,13 +146,13 @@ namespace YetkiliServisGazAcma.Controllers
             var markaVar = firma?.FirmaMarkalar?.Any(x => !x.SilindiMi) == true;
             var kategoriVar = firma?.FirmaKategoriler?.Any(x => !x.SilindiMi) == true;
             var subeVar = firma?.Subeler?.Any(x => !x.SilindiMi) == true;
-            var sertifikaVar = await _context.Ys_Sertifikalar
+            var yetkiBelgesiVar = await _context.Ys_YetkiBelgeleri
                 .AnyAsync(x => x.FirmaId == kullanici.FirmaId && !x.SilindiMi);
 
             if (!markaVar) eksikler.Add("Marka seçimi");
             if (!kategoriVar) eksikler.Add("Kategori seçimi");
             if (!subeVar) eksikler.Add("Şube kaydı");
-            if (!sertifikaVar) eksikler.Add("Yetki belgesi yükleme");
+            if (!yetkiBelgesiVar) eksikler.Add("Yetki belgesi yükleme");
 
             return (true, eksikler.Count == 0, eksikler);
         }
@@ -173,24 +173,24 @@ namespace YetkiliServisGazAcma.Controllers
 
             var bugun = DateTime.Now.Date;
 
-            var sertifika = await _context.Ys_Sertifikalar
+            var yetkiBelgesi = await _context.Ys_YetkiBelgeleri
                 .Where(x => x.FirmaId == kullanici.FirmaId
                     && !x.SilindiMi
                     && x.Durum == 1
-                    && (!x.SertifikaBaslangicTarihi.HasValue || x.SertifikaBaslangicTarihi.Value.Date <= bugun)
-                    && x.SertifikaBitisTarihi.Date >= bugun)
-                .OrderByDescending(x => x.SertifikaBitisTarihi)
+                    && (!x.YetkiBelgesiBaslangicTarihi.HasValue || x.YetkiBelgesiBaslangicTarihi.Value.Date <= bugun)
+                    && x.YetkiBelgesiBitisTarihi.Date >= bugun)
+                .OrderByDescending(x => x.YetkiBelgesiBitisTarihi)
                 .FirstOrDefaultAsync();
 
-            if (sertifika == null)
+            if (yetkiBelgesi == null)
             {
-                var onayliSertifikaVar = await _context.Ys_Sertifikalar
+                var onayliYetkiBelgesiVar = await _context.Ys_YetkiBelgeleri
                     .AnyAsync(x => x.FirmaId == kullanici.FirmaId && !x.SilindiMi && x.Durum == 1);
 
-                TempData["Hata"] = onayliSertifikaVar
+                TempData["Hata"] = onayliYetkiBelgesiVar
                     ? "Geçerli tarih aralığında onaylı yetki belgeniz bulunmuyor."
                     : "Onaylı yetki belgeniz bulunmuyor.";
-                return Redirect(onayliSertifikaVar ? "/ys-yetki-belgesi" : "/ys-panel");
+                return Redirect(onayliYetkiBelgesiVar ? "/ys-yetki-belgesi" : "/ys-panel");
             }
 
             var markalar = await _context.Ys_FirmaMarkalar
@@ -389,14 +389,14 @@ namespace YetkiliServisGazAcma.Controllers
             }
 
             var bugun = DateTime.Now.Date;
-            var gecerliSertifikaVar = await _context.Ys_Sertifikalar
+            var gecerliYetkiBelgesiVar = await _context.Ys_YetkiBelgeleri
                 .AnyAsync(x => x.FirmaId == kullanici.FirmaId
                     && !x.SilindiMi
                     && x.Durum == 1
-                    && (!x.SertifikaBaslangicTarihi.HasValue || x.SertifikaBaslangicTarihi.Value.Date <= bugun)
-                    && x.SertifikaBitisTarihi.Date >= bugun);
+                    && (!x.YetkiBelgesiBaslangicTarihi.HasValue || x.YetkiBelgesiBaslangicTarihi.Value.Date <= bugun)
+                    && x.YetkiBelgesiBitisTarihi.Date >= bugun);
 
-            if (!gecerliSertifikaVar)
+            if (!gecerliYetkiBelgesiVar)
             {
                 TempData["Hata"] = "Cihaz devreye alma işlemi için geçerli onaylı yetki belgeniz bulunmalıdır.";
                 return Redirect("/ys-yetki-belgesi");

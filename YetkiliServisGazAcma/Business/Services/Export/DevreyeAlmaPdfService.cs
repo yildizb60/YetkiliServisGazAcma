@@ -1,4 +1,4 @@
-﻿using QuestPDF.Fluent;
+using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using YetkiliServisGazAcma.Entities;
@@ -107,7 +107,7 @@ namespace YetkiliServisGazAcma.Business.Services
                         cd.RelativeColumn(); cd.RelativeColumn();
                     });
                     Satir(t, "Teknisyen Adı", i.TeknisyenAdi);
-                    Satir(t, "Yetki Belgesi No", i.TeknisyenSertifikaNo);
+                    Satir(t, "Yetki Belgesi No", i.TeknisyenYetkiBelgesiNo);
                     Satir(t, "Yetkili Servis", i.Firma?.FirmaAdi);
                     Satir(t, "Marka Yetkisi", i.Marka?.MarkaAdi);
                 });

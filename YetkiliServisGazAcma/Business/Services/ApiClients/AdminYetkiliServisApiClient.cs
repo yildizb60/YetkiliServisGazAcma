@@ -410,7 +410,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 return new AdminYetkiliServisDetaySonuc
                 {
                     Servis = Servis?.ToEntity(),
-                    Sertifikalar = YetkiBelgeleri.Select(x => x.ToEntity()).ToList(),
+                    YetkiBelgeleri = YetkiBelgeleri.Select(x => x.ToEntity()).ToList(),
                     Subeler = Subeler.Select(x => x.ToEntity()).ToList(),
                     Devreye = Devreye.Select(x => x.ToEntity()).ToList()
                 };
@@ -433,16 +433,16 @@ namespace YetkiliServisGazAcma.Business.Services
             public DateTime? YetkiBelgesiBaslangicTarihi { get; set; }
             public DateTime YetkiBelgesiBitisTarihi { get; set; }
 
-            public Ys_Sertifika ToEntity()
+            public Ys_YetkiBelgesi ToEntity()
             {
-                return new Ys_Sertifika
+                return new Ys_YetkiBelgesi
                 {
                     Id = Id,
                     FirmaId = FirmaId,
                     Durum = Durum,
                     OlusturmaTarihi = OlusturmaTarihi,
-                    SertifikaBaslangicTarihi = YetkiBelgesiBaslangicTarihi,
-                    SertifikaBitisTarihi = YetkiBelgesiBitisTarihi
+                    YetkiBelgesiBaslangicTarihi = YetkiBelgesiBaslangicTarihi,
+                    YetkiBelgesiBitisTarihi = YetkiBelgesiBitisTarihi
                 };
             }
         }

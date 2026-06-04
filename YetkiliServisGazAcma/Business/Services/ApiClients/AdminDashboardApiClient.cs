@@ -77,7 +77,7 @@ namespace YetkiliServisGazAcma.Business.Services
             public int SuresiBitecek { get; set; }
             public int ToplamSirket { get; set; }
             public int BuAyDevreyeAlma { get; set; }
-            public List<AdminSertifikaOzetCevap> SonSertifikalar { get; set; } = new();
+            public List<AdminYetkiBelgesiOzetCevap> SonYetkiBelgeleri { get; set; } = new();
             public List<AdminDevreyeAlmaOzetCevap> SonDevreyeAlmalar { get; set; } = new();
 
             public AdminDashboardOzet ToOzet()
@@ -90,13 +90,13 @@ namespace YetkiliServisGazAcma.Business.Services
                     SuresiBitecek = SuresiBitecek,
                     ToplamSirket = ToplamSirket,
                     BuAyDevreyeAlma = BuAyDevreyeAlma,
-                    SonSertifikalar = SonSertifikalar.Select(x => x.ToEntity()).ToList(),
+                    SonYetkiBelgeleri = SonYetkiBelgeleri.Select(x => x.ToEntity()).ToList(),
                     SonDevreyeAlmalar = SonDevreyeAlmalar.Select(x => x.ToEntity()).ToList()
                 };
             }
         }
 
-        private class AdminSertifikaOzetCevap
+        private class AdminYetkiBelgesiOzetCevap
         {
             public int Id { get; set; }
             public int FirmaId { get; set; }
@@ -104,17 +104,17 @@ namespace YetkiliServisGazAcma.Business.Services
             public string? SirketAdi { get; set; }
             public int Durum { get; set; }
             public DateTime OlusturmaTarihi { get; set; }
-            public DateTime SertifikaBitisTarihi { get; set; }
+            public DateTime YetkiBelgesiBitisTarihi { get; set; }
 
-            public Ys_Sertifika ToEntity()
+            public Ys_YetkiBelgesi ToEntity()
             {
-                return new Ys_Sertifika
+                return new Ys_YetkiBelgesi
                 {
                     Id = Id,
                     FirmaId = FirmaId,
                     Durum = Durum,
                     OlusturmaTarihi = OlusturmaTarihi,
-                    SertifikaBitisTarihi = SertifikaBitisTarihi,
+                    YetkiBelgesiBitisTarihi = YetkiBelgesiBitisTarihi,
                     Firma = new Ys_Firma
                     {
                         Id = FirmaId,

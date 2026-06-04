@@ -13,11 +13,11 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Ys_Firmalar_FaaliyetIl
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Ys_Subeler_FirmaId_SilindiMi_AktifMi' AND object_id = OBJECT_ID(N'[dbo].[Ys_Subeler]'))
     CREATE INDEX IX_Ys_Subeler_FirmaId_SilindiMi_AktifMi ON dbo.Ys_Subeler (FirmaId, SilindiMi, AktifMi);
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Ys_Sertifikalar_FirmaId_Durum_SilindiMi' AND object_id = OBJECT_ID(N'[dbo].[Ys_Sertifikalar]'))
-    CREATE INDEX IX_Ys_Sertifikalar_FirmaId_Durum_SilindiMi ON dbo.Ys_Sertifikalar (FirmaId, Durum, SilindiMi);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Ys_YetkiBelgeleri_FirmaId_Durum_SilindiMi' AND object_id = OBJECT_ID(N'[dbo].[Ys_YetkiBelgeleri]'))
+    CREATE INDEX IX_Ys_YetkiBelgeleri_FirmaId_Durum_SilindiMi ON dbo.Ys_YetkiBelgeleri (FirmaId, Durum, SilindiMi);
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Ys_Sertifikalar_SertifikaBitisTarihi_SilindiMi' AND object_id = OBJECT_ID(N'[dbo].[Ys_Sertifikalar]'))
-    CREATE INDEX IX_Ys_Sertifikalar_SertifikaBitisTarihi_SilindiMi ON dbo.Ys_Sertifikalar (SertifikaBitisTarihi, SilindiMi);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Ys_YetkiBelgeleri_YetkiBelgesiBitisTarihi_SilindiMi' AND object_id = OBJECT_ID(N'[dbo].[Ys_YetkiBelgeleri]'))
+    CREATE INDEX IX_Ys_YetkiBelgeleri_YetkiBelgesiBitisTarihi_SilindiMi ON dbo.Ys_YetkiBelgeleri (YetkiBelgesiBitisTarihi, SilindiMi);
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Ys_FirmaMarkalar_FirmaId_MarkaId_SilindiMi' AND object_id = OBJECT_ID(N'[dbo].[Ys_FirmaMarkalar]'))
     CREATE INDEX IX_Ys_FirmaMarkalar_FirmaId_MarkaId_SilindiMi ON dbo.Ys_FirmaMarkalar (FirmaId, MarkaId, SilindiMi);

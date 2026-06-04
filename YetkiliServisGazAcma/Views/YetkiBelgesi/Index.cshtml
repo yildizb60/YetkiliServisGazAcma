@@ -1,4 +1,4 @@
-@model List<YetkiliServisGazAcma.Entities.Ys_Sertifika>
+@model List<YetkiliServisGazAcma.Entities.Ys_YetkiBelgesi>
 @{
     ViewData["Title"] = "Yetki Belgem";
     ViewData["PanelTitle"] = "Yetki Belgem";
@@ -117,11 +117,11 @@
             <div class="df-form-row">
                 <div class="df-field">
                     <label>Arama</label>
-                    <input class="df-control" type="text" id="sertifikaSearch" placeholder="Tarih veya durum ara" />
+                    <input class="df-control" type="text" id="yetkiBelgesiSearch" placeholder="Tarih veya durum ara" />
                 </div>
                 <div class="df-field">
                     <label>Durum</label>
-                    <select class="df-control" id="sertifikaDurum">
+                    <select class="df-control" id="yetkiBelgesiDurum">
                         <option value="">T&#252;m&#252;</option>
                         <option value="Onay Bekliyor">Onay Bekliyor</option>
                         <option value="Onaylandı">Onayland&#305;</option>
@@ -154,10 +154,10 @@
                     <tbody>
                         @foreach (var s in Model)
                         {
-                            var baslangic = s.SertifikaBaslangicTarihi ?? s.OlusturmaTarihi;
+                            var baslangic = s.YetkiBelgesiBaslangicTarihi ?? s.OlusturmaTarihi;
                             var durumText = s.Durum == 0 ? "Onay Bekliyor" : s.Durum == 1 ? "Onaylandı" : "Reddedildi";
                             var durumClass = s.Durum == 0 ? "b-yellow" : s.Durum == 1 ? "b-green" : "b-red";
-                            var searchText = $"{s.OlusturmaTarihi:dd.MM.yyyy} {baslangic:dd.MM.yyyy} {s.SertifikaBitisTarihi:dd.MM.yyyy} {durumText}";
+                            var searchText = $"{s.OlusturmaTarihi:dd.MM.yyyy} {baslangic:dd.MM.yyyy} {s.YetkiBelgesiBitisTarihi:dd.MM.yyyy} {durumText}";
                             <tr class="sert-row" data-search="@searchText" data-durum="@durumText">
                                 <td>
                                     <div class="cert-file-cell">
@@ -173,7 +173,7 @@
                                     </div>
                                 </td>
                                 <td>@baslangic.ToString("dd.MM.yyyy")</td>
-                                <td>@s.SertifikaBitisTarihi.ToString("dd.MM.yyyy")</td>
+                                <td>@s.YetkiBelgesiBitisTarihi.ToString("dd.MM.yyyy")</td>
                                 <td><span class="badge @durumClass">@durumText</span></td>
                                 <td>
                                     <div class="df-actions">
@@ -197,8 +197,8 @@
 @section Scripts {
     <script>
         (function () {
-            const searchInput = document.getElementById("sertifikaSearch");
-            const durumSelect = document.getElementById("sertifikaDurum");
+            const searchInput = document.getElementById("yetkiBelgesiSearch");
+            const durumSelect = document.getElementById("yetkiBelgesiDurum");
             const rows = Array.from(document.querySelectorAll(".sert-row"));
 
             if (!searchInput || !durumSelect || rows.length === 0) return;

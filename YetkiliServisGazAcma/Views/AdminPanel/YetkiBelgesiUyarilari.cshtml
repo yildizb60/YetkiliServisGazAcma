@@ -2,11 +2,11 @@
     ViewData["Title"] = "Yetki Belgesi Bitiş Uyarıları";
     ViewData["PanelTitle"] = "Yetki Belgesi Bitiş Uyarıları";
     ViewData["PanelSubtitle"] = "Admin Paneli";
-    ViewData["ActiveMenu"] = "SertifikaUyarilari";
+    ViewData["ActiveMenu"] = "YetkiBelgesiUyarilari";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
-    var yaklasan = ViewBag.Yaklasan as List<YetkiliServisGazAcma.Entities.Ys_Sertifika> ?? new();
-    var gecmis = ViewBag.Gecmis as List<YetkiliServisGazAcma.Entities.Ys_Sertifika> ?? new();
+    var yaklasan = ViewBag.Yaklasan as List<YetkiliServisGazAcma.Entities.Ys_YetkiBelgesi> ?? new();
+    var gecmis = ViewBag.Gecmis as List<YetkiliServisGazAcma.Entities.Ys_YetkiBelgesi> ?? new();
 }
 
 @section Styles {
@@ -110,7 +110,7 @@
                     <tbody>
                         @foreach (var s in yaklasan)
                         {
-                            var kalanGun = (s.SertifikaBitisTarihi.Date - DateTime.Now.Date).Days;
+                            var kalanGun = (s.YetkiBelgesiBitisTarihi.Date - DateTime.Now.Date).Days;
                             <tr class="@(kalanGun <= 7 ? "warning-row-soon" : "")">
                                 <td>
                                     <div class="df-cell-main">@(s.Firma?.FirmaAdi ?? "-")</div>
@@ -118,7 +118,7 @@
                                 <td>
                                     <div class="df-cell-sub">@(s.Firma?.Sirket?.SirketAdi ?? "-")</div>
                                 </td>
-                                <td>@s.SertifikaBitisTarihi.ToString("dd.MM.yyyy")</td>
+                                <td>@s.YetkiBelgesiBitisTarihi.ToString("dd.MM.yyyy")</td>
                                 <td><span class="badge b-yellow">@kalanGun g&#252;n</span></td>
                             </tr>
                         }
@@ -166,7 +166,7 @@
                                 <td>
                                     <div class="df-cell-sub">@(s.Firma?.Sirket?.SirketAdi ?? "-")</div>
                                 </td>
-                                <td>@s.SertifikaBitisTarihi.ToString("dd.MM.yyyy")</td>
+                                <td>@s.YetkiBelgesiBitisTarihi.ToString("dd.MM.yyyy")</td>
                                 <td><span class="badge b-red">S&#252;resi Doldu</span></td>
                             </tr>
                         }

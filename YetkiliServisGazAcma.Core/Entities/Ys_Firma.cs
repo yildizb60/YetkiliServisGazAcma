@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace YetkiliServisGazAcma.Entities
 {
@@ -18,7 +18,7 @@ namespace YetkiliServisGazAcma.Entities
         public int SirketId { get; set; }
         public Dag_Sirket? Sirket { get; set; }
 
-        public ICollection<Ys_Sertifika>? Sertifikalar { get; set; }
+        public ICollection<Ys_YetkiBelgesi>? YetkiBelgeleri { get; set; }
         public ICollection<Ys_FirmaMarka>? FirmaMarkalar { get; set; }
         public ICollection<Ys_FirmaKategori>? FirmaKategoriler { get; set; }
         public ICollection<Ys_Sube>? Subeler { get; set; }

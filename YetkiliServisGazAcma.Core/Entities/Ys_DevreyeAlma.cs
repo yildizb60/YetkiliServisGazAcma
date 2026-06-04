@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace YetkiliServisGazAcma.Entities
 {
@@ -28,7 +28,7 @@ namespace YetkiliServisGazAcma.Entities
 
         // Teknisyen Bilgileri
         public string? TeknisyenAdi { get; set; }
-        public string? TeknisyenSertifikaNo { get; set; }
+        public string? TeknisyenYetkiBelgesiNo { get; set; }
 
         // Diğer
         public DateTime DevreyeAlmaTarihi { get; set; }

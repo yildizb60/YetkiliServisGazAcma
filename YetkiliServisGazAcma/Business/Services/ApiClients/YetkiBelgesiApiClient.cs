@@ -353,9 +353,9 @@ namespace YetkiliServisGazAcma.Business.Services
             public string? OnaylayanKullanici { get; set; }
             public string? RedGerekce { get; set; }
 
-            public Ys_Sertifika ToEntity()
+            public Ys_YetkiBelgesi ToEntity()
             {
-                return new Ys_Sertifika
+                return new Ys_YetkiBelgesi
                 {
                     Id = Id,
                     FirmaId = FirmaId,
@@ -371,8 +371,8 @@ namespace YetkiliServisGazAcma.Business.Services
                     DosyaYolu = DosyaYolu,
                     Durum = Durum,
                     OlusturmaTarihi = OlusturmaTarihi,
-                    SertifikaBaslangicTarihi = YetkiBelgesiBaslangicTarihi,
-                    SertifikaBitisTarihi = YetkiBelgesiBitisTarihi ?? DateTime.MinValue,
+                    YetkiBelgesiBaslangicTarihi = YetkiBelgesiBaslangicTarihi,
+                    YetkiBelgesiBitisTarihi = YetkiBelgesiBitisTarihi ?? DateTime.MinValue,
                     OnayTarihi = OnayTarihi,
                     OnaylayanKullanici = OnaylayanKullanici,
                     RedGerekce = RedGerekce
@@ -390,14 +390,14 @@ namespace YetkiliServisGazAcma.Business.Services
     public class YetkiBelgesiFirmaEkraniSonuc
     {
         public Ys_Firma? Firma { get; set; }
-        public List<Ys_Sertifika> Belgeler { get; set; } = new();
+        public List<Ys_YetkiBelgesi> Belgeler { get; set; } = new();
         public List<string> Bildirimler { get; set; } = new();
     }
 
     public class YetkiBelgesiOnayEkraniSonuc
     {
-        public List<Ys_Sertifika> Bekleyenler { get; set; } = new();
-        public List<Ys_Sertifika> Onaylananlar { get; set; } = new();
-        public List<Ys_Sertifika> Reddedilenler { get; set; } = new();
+        public List<Ys_YetkiBelgesi> Bekleyenler { get; set; } = new();
+        public List<Ys_YetkiBelgesi> Onaylananlar { get; set; } = new();
+        public List<Ys_YetkiBelgesi> Reddedilenler { get; set; } = new();
     }
 }

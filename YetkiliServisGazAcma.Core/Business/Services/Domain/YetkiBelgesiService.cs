@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using YetkiliServisGazAcma.Entities;
@@ -18,18 +18,18 @@ namespace YetkiliServisGazAcma.Business.Services
         }
 
         // Firmaya ait yetki belgelerini getir
-        public async Task<List<Ys_Sertifika>> FirmaninYetkiBelgeleri(int firmaId)
+        public async Task<List<Ys_YetkiBelgesi>> FirmaninYetkiBelgeleri(int firmaId)
         {
-            return await _context.Ys_Sertifikalar
+            return await _context.Ys_YetkiBelgeleri
                 .Where(x => x.FirmaId == firmaId && !x.SilindiMi)
                 .OrderByDescending(x => x.OlusturmaTarihi)
                 .ToListAsync();
         }
 
         // Onay bekleyen tüm yetki belgeleri (ÇEDAŞ personeli için)
-        public async Task<List<Ys_Sertifika>> OnayBekleyenler(int? sirketId = null)
+        public async Task<List<Ys_YetkiBelgesi>> OnayBekleyenler(int? sirketId = null)
         {
-            var sorgu = _context.Ys_Sertifikalar
+            var sorgu = _context.Ys_YetkiBelgeleri
                 .Include(x => x.Firma)
                 .ThenInclude(x => x!.Sirket)
                 .Where(x => !x.SilindiMi && x.Durum == 0);
@@ -71,11 +71,11 @@ namespace YetkiliServisGazAcma.Business.Services
             var webRoot = string.IsNullOrWhiteSpace(_env.WebRootPath)
                 ? Path.Combine(_env.ContentRootPath, "wwwroot")
                 : _env.WebRootPath;
-            var klasor = Path.Combine(webRoot, "sertifikalar");
+            var klasor = Path.Combine(webRoot, "yetki-belgeleri");
             if (!Directory.Exists(klasor))
                 Directory.CreateDirectory(klasor);
 
-            var dosyaAdi = $"sert_{firmaId}_{DateTime.Now:yyyyMMddHHmmss}{uzanti}";
+            var dosyaAdi = $"yb_{firmaId}_{DateTime.Now:yyyyMMddHHmmss}{uzanti}";
             var dosyaYolu = Path.Combine(klasor, dosyaAdi);
 
             using (var stream = new FileStream(dosyaYolu, FileMode.Create))
@@ -84,19 +84,19 @@ namespace YetkiliServisGazAcma.Business.Services
             // Önceki yetki belgelerini silmiyoruz, geçmişte görünmeleri için saklıyoruz.
 
             // Yeni yetki belgesi kaydı
-            var sertifika = new Ys_Sertifika
+            var yetkiBelgesi = new Ys_YetkiBelgesi
             {
                 FirmaId = firmaId,
                 DosyaYolu = BuildDosyaYolu(publicBaseUrl, dosyaAdi),
-                SertifikaBaslangicTarihi = baslangic,
-                SertifikaBitisTarihi = bitis,
+                YetkiBelgesiBaslangicTarihi = baslangic,
+                YetkiBelgesiBitisTarihi = bitis,
                 Durum = 0, // Onayda Bekliyor
                 OlusturmaTarihi = DateTime.Now,
                 OlusturanKullanici = kullanici ?? "sistem",
                 SilindiMi = false
             };
 
-            _context.Ys_Sertifikalar.Add(sertifika);
+            _context.Ys_YetkiBelgeleri.Add(yetkiBelgesi);
             await _context.SaveChangesAsync();
 
             return (true, "Yetki belgeniz başarıyla yüklendi. Onay bekleniyor.");
@@ -104,7 +104,7 @@ namespace YetkiliServisGazAcma.Business.Services
 
         private static string BuildDosyaYolu(string? publicBaseUrl, string dosyaAdi)
         {
-            var relativePath = "/sertifikalar/" + dosyaAdi;
+            var relativePath = "/yetki-belgeleri/" + dosyaAdi;
             if (string.IsNullOrWhiteSpace(publicBaseUrl))
                 return relativePath;
 
@@ -112,38 +112,38 @@ namespace YetkiliServisGazAcma.Business.Services
         }
 
         // Yetki belgesi onayla (ÇEDAŞ personeli)
-        public async Task<bool> Onayla(int sertifikaId, string? kullanici)
+        public async Task<bool> Onayla(int yetkiBelgesiId, string? kullanici)
         {
-            var sertifika = await _context.Ys_Sertifikalar
-                .FirstOrDefaultAsync(x => x.Id == sertifikaId);
+            var yetkiBelgesi = await _context.Ys_YetkiBelgeleri
+                .FirstOrDefaultAsync(x => x.Id == yetkiBelgesiId);
 
-            if (sertifika == null) return false;
+            if (yetkiBelgesi == null) return false;
 
-            sertifika.Durum = 1; // Onaylandı
-            sertifika.RedGerekce = null;
-            sertifika.OnayTarihi = DateTime.Now;
-            sertifika.OnaylayanKullanici = kullanici ?? "sistem";
-            sertifika.GuncellemeTarihi = DateTime.Now;
-            sertifika.GuncelleyenKullanici = kullanici ?? "sistem";
+            yetkiBelgesi.Durum = 1; // Onaylandı
+            yetkiBelgesi.RedGerekce = null;
+            yetkiBelgesi.OnayTarihi = DateTime.Now;
+            yetkiBelgesi.OnaylayanKullanici = kullanici ?? "sistem";
+            yetkiBelgesi.GuncellemeTarihi = DateTime.Now;
+            yetkiBelgesi.GuncelleyenKullanici = kullanici ?? "sistem";
 
             await _context.SaveChangesAsync();
             return true;
         }
 
         // Yetki belgesi reddet (ÇEDAŞ personeli)
-        public async Task<bool> Reddet(int sertifikaId, string? gerekce, string? kullanici)
+        public async Task<bool> Reddet(int yetkiBelgesiId, string? gerekce, string? kullanici)
         {
-            var sertifika = await _context.Ys_Sertifikalar
-                .FirstOrDefaultAsync(x => x.Id == sertifikaId);
+            var yetkiBelgesi = await _context.Ys_YetkiBelgeleri
+                .FirstOrDefaultAsync(x => x.Id == yetkiBelgesiId);
 
-            if (sertifika == null) return false;
+            if (yetkiBelgesi == null) return false;
 
-            sertifika.Durum = 2; // Reddedildi
-            sertifika.RedGerekce = string.IsNullOrWhiteSpace(gerekce) ? "Belirtilmedi." : gerekce.Trim();
-            sertifika.OnayTarihi = DateTime.Now;
-            sertifika.OnaylayanKullanici = kullanici ?? "sistem";
-            sertifika.GuncellemeTarihi = DateTime.Now;
-            sertifika.GuncelleyenKullanici = kullanici ?? "sistem";
+            yetkiBelgesi.Durum = 2; // Reddedildi
+            yetkiBelgesi.RedGerekce = string.IsNullOrWhiteSpace(gerekce) ? "Belirtilmedi." : gerekce.Trim();
+            yetkiBelgesi.OnayTarihi = DateTime.Now;
+            yetkiBelgesi.OnaylayanKullanici = kullanici ?? "sistem";
+            yetkiBelgesi.GuncellemeTarihi = DateTime.Now;
+            yetkiBelgesi.GuncelleyenKullanici = kullanici ?? "sistem";
 
             await _context.SaveChangesAsync();
             return true;

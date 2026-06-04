@@ -225,7 +225,7 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.SuresiBitecek = dashboard.SuresiBitecek;
             ViewBag.ToplamSirket = dashboard.ToplamSirket;
             ViewBag.BuAyDevreyeAlma = dashboard.BuAyDevreyeAlma;
-            ViewBag.SonSertifikalar = dashboard.SonSertifikalar;
+            ViewBag.SonYetkiBelgeleri = dashboard.SonYetkiBelgeleri;
             ViewBag.SonDevreyeAlmalar = dashboard.SonDevreyeAlmalar;
 
             ViewBag.Kullanici = kullanici;
@@ -239,13 +239,13 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null) return Redirect("/giris");
 
             ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
-            ViewBag.SuresiBitecek = await _context.Ys_Sertifikalar
+            ViewBag.SuresiBitecek = await _context.Ys_YetkiBelgeleri
                 .Where(x => !x.SilindiMi
                     && x.Durum == 1
                     && x.Firma != null
                     && !x.Firma.SilindiMi
-                    && x.SertifikaBitisTarihi <= DateTime.Now.AddDays(30)
-                    && x.SertifikaBitisTarihi >= DateTime.Now)
+                    && x.YetkiBelgesiBitisTarihi <= DateTime.Now.AddDays(30)
+                    && x.YetkiBelgesiBitisTarihi >= DateTime.Now)
                 .CountAsync();
             ViewBag.Kullanici = kullanici;
             return View("~/Views/AdminPanel/Profil.cshtml");
@@ -1032,7 +1032,7 @@ namespace YetkiliServisGazAcma.Controllers
 
             var yetkiIsimler = new Dictionary<string, string>
             {
-                [YetkiTipleri.CERTIFIKA_ONAY] = "Yetki Belgesi Onay",
+                [YetkiTipleri.YETKI_BELGESI_ONAY] = "Yetki Belgesi Onay",
                 [YetkiTipleri.RAPOR_GOR] = "Rapor Gör",
                 [YetkiTipleri.KULLANICI_YONET] = "Kullanıcı Yönet",
                 [YetkiTipleri.MARKA_YONET] = "Marka Yönet",

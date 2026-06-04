@@ -96,7 +96,7 @@ namespace YetkiliServisGazAcma.Business.Services
             if (servis == null)
                 return new AdminYetkiliServisDetaySonuc();
 
-            var sertifikalar = await _context.Ys_Sertifikalar
+            var yetkiBelgeleri = await _context.Ys_YetkiBelgeleri
                 .Where(x => !x.SilindiMi && x.FirmaId == id)
                 .OrderByDescending(x => x.OlusturmaTarihi)
                 .Take(8)
@@ -117,7 +117,7 @@ namespace YetkiliServisGazAcma.Business.Services
             return new AdminYetkiliServisDetaySonuc
             {
                 Servis = servis,
-                Sertifikalar = sertifikalar,
+                YetkiBelgeleri = yetkiBelgeleri,
                 Subeler = subeler,
                 Devreye = devreye
             };
@@ -152,7 +152,7 @@ namespace YetkiliServisGazAcma.Business.Services
     public class AdminYetkiliServisDetaySonuc
     {
         public Ys_Firma? Servis { get; set; }
-        public List<Ys_Sertifika> Sertifikalar { get; set; } = new();
+        public List<Ys_YetkiBelgesi> YetkiBelgeleri { get; set; } = new();
         public List<Ys_Sube> Subeler { get; set; } = new();
         public List<Ys_DevreyeAlma> Devreye { get; set; } = new();
     }

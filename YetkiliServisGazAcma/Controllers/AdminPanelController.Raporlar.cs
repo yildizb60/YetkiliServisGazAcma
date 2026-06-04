@@ -148,7 +148,7 @@ namespace YetkiliServisGazAcma.Controllers
                     BasTarih = bas?.Date ?? DateTime.Now.Date.AddDays(-30),
                     BitTarih = bit?.Date ?? DateTime.Now.Date,
                     RaporTipi = string.IsNullOrWhiteSpace(tip) ? "devreye" : tip.Trim().ToLowerInvariant(),
-                    ListeTipi = (tip == "onayli" || tip == "bekleyen" || tip == "reddedilen") ? "sertifika" : "devreye"
+                    ListeTipi = (tip == "onayli" || tip == "bekleyen" || tip == "reddedilen") ? "yetkiBelgesi" : "devreye"
                 };
             }
 
@@ -157,13 +157,13 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.BasTarih = sonuc.BasTarih;
             ViewBag.BitTarih = sonuc.BitTarih;
             ViewBag.DevreyeSayisi = sonuc.DevreyeSayisi;
-            ViewBag.SertifikaOnayli = sonuc.SertifikaOnayli;
-            ViewBag.SertifikaBekleyen = sonuc.SertifikaBekleyen;
-            ViewBag.SertifikaReddedilen = sonuc.SertifikaReddedilen;
+            ViewBag.YetkiBelgesiOnayli = sonuc.YetkiBelgesiOnayli;
+            ViewBag.YetkiBelgesiBekleyen = sonuc.YetkiBelgesiBekleyen;
+            ViewBag.YetkiBelgesiReddedilen = sonuc.YetkiBelgesiReddedilen;
             ViewBag.RaporTipi = sonuc.RaporTipi;
             ViewBag.ListeTipi = sonuc.ListeTipi;
             ViewBag.SonIslemler = sonuc.SonIslemler;
-            ViewBag.SertifikaIslemler = sonuc.SertifikaIslemler;
+            ViewBag.YetkiBelgesiIslemler = sonuc.YetkiBelgesiIslemler;
             ViewBag.SeciliSirketId = sirketId;
             ViewBag.Sirketler = sonuc.Sirketler;
             ViewBag.ChartAylikLabels = sonuc.ChartAylikLabels;
@@ -288,7 +288,7 @@ namespace YetkiliServisGazAcma.Controllers
                                     Bilgi("Seri No", d.SeriNo ?? "-");
                                     Bilgi("Kapasite", d.CihazKapasite ?? "-");
                                     Bilgi("Teknisyen", d.TeknisyenAdi ?? "-");
-                                    Bilgi("Teknisyen Yetki Belgesi No", d.TeknisyenSertifikaNo ?? "-");
+                                    Bilgi("Teknisyen Yetki Belgesi No", d.TeknisyenYetkiBelgesiNo ?? "-");
                                 });
 
                                 if (!string.IsNullOrWhiteSpace(d.Notlar))
@@ -369,7 +369,7 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpGet("yetki-belgesi-uyarilari")]
-        public async Task<IActionResult> SertifikaUyarilari()
+        public async Task<IActionResult> YetkiBelgesiUyarilari()
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
@@ -386,7 +386,7 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
             ViewBag.Yaklasan = sonuc.Yaklasan;
             ViewBag.Gecmis = sonuc.Gecmis;
-            return View("~/Views/AdminPanel/SertifikaUyarilari.cshtml");
+            return View("~/Views/AdminPanel/YetkiBelgesiUyarilari.cshtml");
         }
     }
 }

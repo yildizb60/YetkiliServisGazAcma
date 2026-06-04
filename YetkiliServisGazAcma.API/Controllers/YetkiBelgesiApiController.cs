@@ -34,8 +34,8 @@ namespace YetkiliServisGazAcma.API.Controllers
                 DosyaYolu = x.DosyaYolu,
                 Durum = x.Durum,
                 OlusturmaTarihi = x.OlusturmaTarihi,
-                YetkiBelgesiBaslangicTarihi = x.SertifikaBaslangicTarihi,
-                YetkiBelgesiBitisTarihi = x.SertifikaBitisTarihi,
+                YetkiBelgesiBaslangicTarihi = x.YetkiBelgesiBaslangicTarihi,
+                YetkiBelgesiBitisTarihi = x.YetkiBelgesiBitisTarihi,
                 OnayTarihi = x.OnayTarihi,
                 OnaylayanKullanici = x.OnaylayanKullanici,
                 RedGerekce = x.RedGerekce
@@ -50,7 +50,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return Forbid();
 
             var firma = await _context.Ys_Firmalar
-                .Include(x => x.Sertifikalar)
+                .Include(x => x.YetkiBelgeleri)
                 .FirstOrDefaultAsync(x => x.Id == firmaId && !x.SilindiMi);
 
             if (firma == null)
@@ -109,9 +109,9 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (sirketId.gecersiz)
                 return Forbid();
 
-            var sertifikalar = await _service.OnayBekleyenler(sirketId.sirketId);
+            var yetkiBelgeleri = await _service.OnayBekleyenler(sirketId.sirketId);
 
-            return Ok(sertifikalar.Select(MapYetkiBelgesi));
+            return Ok(yetkiBelgeleri.Select(MapYetkiBelgesi));
         }
 
         [HttpPost("onay-ekrani")]
@@ -121,7 +121,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (sirketId.gecersiz)
                 return Forbid();
 
-            var sorgu = _context.Ys_Sertifikalar
+            var sorgu = _context.Ys_YetkiBelgeleri
                 .Include(x => x.Firma)
                     .ThenInclude(x => x!.Sirket)
                 .Where(x => !x.SilindiMi
@@ -157,25 +157,25 @@ namespace YetkiliServisGazAcma.API.Controllers
         [HttpPost("sil")]
         public async Task<IActionResult> Sil([FromBody] IdDto dto)
         {
-            var sertifika = await _context.Ys_Sertifikalar
+            var yetkiBelgesi = await _context.Ys_YetkiBelgeleri
                 .Include(x => x.Firma)
                 .FirstOrDefaultAsync(x => x.Id == dto.Id && !x.SilindiMi);
 
-            if (sertifika == null)
+            if (yetkiBelgesi == null)
                 return NotFound(new { basarili = false, mesaj = "Yetki belgesi bulunamadi" });
 
-            if (!await FirmaGoruntulemeYetkisiVarMi(sertifika.FirmaId))
+            if (!await FirmaGoruntulemeYetkisiVarMi(yetkiBelgesi.FirmaId))
                 return Forbid();
 
-            sertifika.SilindiMi = true;
-            sertifika.SilinmeTarihi = DateTime.Now;
-            sertifika.SilenKullanici = User.Identity?.Name ?? "sistem";
+            yetkiBelgesi.SilindiMi = true;
+            yetkiBelgesi.SilinmeTarihi = DateTime.Now;
+            yetkiBelgesi.SilenKullanici = User.Identity?.Name ?? "sistem";
             await _context.SaveChangesAsync();
 
             return Ok(new { basarili = true, mesaj = "Yetki belgesi silindi" });
         }
 
-        private static YetkiBelgesiDto MapYetkiBelgesi(Ys_Sertifika x)
+        private static YetkiBelgesiDto MapYetkiBelgesi(Ys_YetkiBelgesi x)
         {
             return new YetkiBelgesiDto
             {
@@ -187,8 +187,8 @@ namespace YetkiliServisGazAcma.API.Controllers
                 DosyaYolu = x.DosyaYolu,
                 Durum = x.Durum,
                 OlusturmaTarihi = x.OlusturmaTarihi,
-                YetkiBelgesiBaslangicTarihi = x.SertifikaBaslangicTarihi,
-                YetkiBelgesiBitisTarihi = x.SertifikaBitisTarihi,
+                YetkiBelgesiBaslangicTarihi = x.YetkiBelgesiBaslangicTarihi,
+                YetkiBelgesiBitisTarihi = x.YetkiBelgesiBitisTarihi,
                 OnayTarihi = x.OnayTarihi,
                 OnaylayanKullanici = x.OnaylayanKullanici,
                 RedGerekce = x.RedGerekce
@@ -198,16 +198,16 @@ namespace YetkiliServisGazAcma.API.Controllers
         private async Task<List<string>> FirmaBildirimleriAsync(int firmaId, Ys_Firma firma)
         {
             var bildirimler = new List<string>();
-            var onayli = firma.Sertifikalar?
+            var onayli = firma.YetkiBelgeleri?
                 .Where(x => x.Durum == 1 && !x.SilindiMi)
                 .OrderByDescending(x => x.OlusturmaTarihi)
                 .FirstOrDefault();
 
-            var bekleyenVar = firma.Sertifikalar?.Any(x => x.Durum == 0 && !x.SilindiMi) ?? false;
+            var bekleyenVar = firma.YetkiBelgeleri?.Any(x => x.Durum == 0 && !x.SilindiMi) ?? false;
             if (onayli != null)
             {
                 bildirimler.Add("Yetki belgeniz onaylandı. Cihaz devreye alabilirsiniz.");
-                var kalan = (onayli.SertifikaBitisTarihi.Date - DateTime.Now.Date).Days;
+                var kalan = (onayli.YetkiBelgesiBitisTarihi.Date - DateTime.Now.Date).Days;
                 if (kalan <= 30)
                     bildirimler.Add($"Yetki belgenizin bitmesine {kalan} gün kaldı. Lütfen yenileyin.");
             }
@@ -299,7 +299,7 @@ namespace YetkiliServisGazAcma.API.Controllers
 
         private async Task<int?> YetkiBelgesiSirketIdAsync(int yetkiBelgesiId)
         {
-            return await _context.Ys_Sertifikalar
+            return await _context.Ys_YetkiBelgeleri
                 .Include(x => x.Firma)
                 .Where(x => x.Id == yetkiBelgesiId && !x.SilindiMi && x.Firma != null)
                 .Select(x => (int?)x.Firma!.SirketId)
@@ -323,7 +323,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 x.KullaniciId == kullanici.Id &&
                 x.SirketId == sirketId &&
                 !x.SilindiMi &&
-                (x.YetkiTipi == YetkiTipleri.TAM_YETKI || x.YetkiTipi == YetkiTipleri.CERTIFIKA_ONAY));
+                (x.YetkiTipi == YetkiTipleri.TAM_YETKI || x.YetkiTipi == YetkiTipleri.YETKI_BELGESI_ONAY));
         }
 
         private async Task<bool> FirmaGoruntulemeYetkisiVarMi(int firmaId)

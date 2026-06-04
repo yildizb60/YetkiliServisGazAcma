@@ -51,7 +51,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 SuresiBitecek = ozet.SuresiBitecek,
                 ToplamSirket = ozet.ToplamSirket,
                 BuAyDevreyeAlma = ozet.BuAyDevreyeAlma,
-                SonSertifikalar = ozet.SonSertifikalar.Select(x => new AdminSertifikaOzetDto
+                SonYetkiBelgeleri = ozet.SonYetkiBelgeleri.Select(x => new AdminYetkiBelgesiOzetDto
                 {
                     Id = x.Id,
                     FirmaId = x.FirmaId,
@@ -59,7 +59,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                     SirketAdi = x.Firma?.Sirket?.SirketAdi,
                     Durum = x.Durum,
                     OlusturmaTarihi = x.OlusturmaTarihi,
-                    SertifikaBitisTarihi = x.SertifikaBitisTarihi
+                    YetkiBelgesiBitisTarihi = x.YetkiBelgesiBitisTarihi
                 }).ToList(),
                 SonDevreyeAlmalar = ozet.SonDevreyeAlmalar.Select(x => new AdminDevreyeAlmaOzetDto
                 {
@@ -394,14 +394,14 @@ namespace YetkiliServisGazAcma.API.Controllers
                         .Select(x => x.First())
                         .ToList() ?? new List<AdminYetkiliServisKategoriDto>()
                 },
-                YetkiBelgeleri = sonuc.Sertifikalar.Select(x => new AdminYetkiliServisYetkiBelgesiDto
+                YetkiBelgeleri = sonuc.YetkiBelgeleri.Select(x => new AdminYetkiliServisYetkiBelgesiDto
                 {
                     Id = x.Id,
                     FirmaId = x.FirmaId,
                     Durum = x.Durum,
                     OlusturmaTarihi = x.OlusturmaTarihi,
-                    YetkiBelgesiBaslangicTarihi = x.SertifikaBaslangicTarihi,
-                    YetkiBelgesiBitisTarihi = x.SertifikaBitisTarihi
+                    YetkiBelgesiBaslangicTarihi = x.YetkiBelgesiBaslangicTarihi,
+                    YetkiBelgesiBitisTarihi = x.YetkiBelgesiBitisTarihi
                 }).ToList(),
                 Subeler = sonuc.Subeler.Select(x => new AdminYetkiliServisSubeDto
                 {
@@ -598,7 +598,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (kapsam.gecersiz)
                 return Forbid();
 
-            var query = _context.Ys_Sertifikalar
+            var query = _context.Ys_YetkiBelgeleri
                 .Include(x => x.Firma).ThenInclude(x => x!.Sirket)
                 .Where(x => !x.SilindiMi
                     && x.Firma != null
@@ -918,17 +918,17 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             var bugun = DateTime.Now.Date;
             var bitisSinir = bugun.AddDays(30);
-            var query = SertifikaTemelQuery(kapsam.sirketId)
+            var query = YetkiBelgesiTemelQuery(kapsam.sirketId)
                 .Where(x => x.Durum == 1);
 
             var yaklasan = await query
-                .Where(x => x.SertifikaBitisTarihi >= bugun && x.SertifikaBitisTarihi <= bitisSinir)
-                .OrderBy(x => x.SertifikaBitisTarihi)
+                .Where(x => x.YetkiBelgesiBitisTarihi >= bugun && x.YetkiBelgesiBitisTarihi <= bitisSinir)
+                .OrderBy(x => x.YetkiBelgesiBitisTarihi)
                 .ToListAsync();
 
             var gecmis = await query
-                .Where(x => x.SertifikaBitisTarihi < bugun)
-                .OrderByDescending(x => x.SertifikaBitisTarihi)
+                .Where(x => x.YetkiBelgesiBitisTarihi < bugun)
+                .OrderByDescending(x => x.YetkiBelgesiBitisTarihi)
                 .ToListAsync();
 
             return Ok(new AdminYetkiBelgesiUyariListeDto
@@ -953,16 +953,16 @@ namespace YetkiliServisGazAcma.API.Controllers
             var devreyeTemelQuery = DevreyeAlmaTemelQuery(kapsam.sirketId)
                 .Where(x => x.OlusturmaTarihi >= basTarih && x.OlusturmaTarihi < bitSonrasi);
 
-            var sertifikaTemelQuery = SertifikaTemelQuery(kapsam.sirketId)
+            var yetkiBelgesiTemelQuery = YetkiBelgesiTemelQuery(kapsam.sirketId)
                 .Where(x => x.OlusturmaTarihi >= basTarih && x.OlusturmaTarihi < bitSonrasi);
 
             var devreyeSayisi = await devreyeTemelQuery.CountAsync();
             var devreyeTamamlanan = await devreyeTemelQuery.Where(x => x.Durum == 1).CountAsync();
             var devreyeBekleyen = await devreyeTemelQuery.Where(x => x.Durum == 0).CountAsync();
             var devreyeIptal = await devreyeTemelQuery.Where(x => x.Durum == 2).CountAsync();
-            var sertifikaOnayli = await sertifikaTemelQuery.Where(x => x.Durum == 1).CountAsync();
-            var sertifikaBekleyen = await sertifikaTemelQuery.Where(x => x.Durum == 0).CountAsync();
-            var sertifikaReddedilen = await sertifikaTemelQuery.Where(x => x.Durum == 2).CountAsync();
+            var yetkiBelgesiOnayli = await yetkiBelgesiTemelQuery.Where(x => x.Durum == 1).CountAsync();
+            var yetkiBelgesiBekleyen = await yetkiBelgesiTemelQuery.Where(x => x.Durum == 0).CountAsync();
+            var yetkiBelgesiReddedilen = await yetkiBelgesiTemelQuery.Where(x => x.Durum == 2).CountAsync();
 
             var aylikBaslangic = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1).AddMonths(-5);
             var aylikEtiketler = Enumerable.Range(0, 6)
@@ -1006,12 +1006,12 @@ namespace YetkiliServisGazAcma.API.Controllers
                 DevreyeTamamlanan = devreyeTamamlanan,
                 DevreyeBekleyen = devreyeBekleyen,
                 DevreyeIptal = devreyeIptal,
-                SertifikaOnayli = sertifikaOnayli,
-                SertifikaBekleyen = sertifikaBekleyen,
-                SertifikaReddedilen = sertifikaReddedilen,
+                YetkiBelgesiOnayli = yetkiBelgesiOnayli,
+                YetkiBelgesiBekleyen = yetkiBelgesiBekleyen,
+                YetkiBelgesiReddedilen = yetkiBelgesiReddedilen,
                 ChartAylikLabels = chartAylikLabels,
                 ChartAylikData = chartAylikData,
-                ChartDurumData = new List<int> { sertifikaOnayli, sertifikaBekleyen, sertifikaReddedilen },
+                ChartDurumData = new List<int> { yetkiBelgesiOnayli, yetkiBelgesiBekleyen, yetkiBelgesiReddedilen },
                 ChartSirketLabels = chartSirket.Select(x => x.Sirket).ToList(),
                 ChartSirketData = chartSirket.Select(x => x.Sayi).ToList(),
                 ChartMarkaLabels = chartMarka.Select(x => x.Marka).ToList(),
@@ -1022,14 +1022,14 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (raporTipi == "onayli" || raporTipi == "bekleyen" || raporTipi == "reddedilen")
             {
                 var durum = raporTipi == "onayli" ? 1 : (raporTipi == "bekleyen" ? 0 : 2);
-                var sertifikaIslemler = await sertifikaTemelQuery
+                var yetkiBelgesiIslemler = await yetkiBelgesiTemelQuery
                     .Where(x => x.Durum == durum)
                     .OrderByDescending(x => x.OlusturmaTarihi)
                     .Take(12)
                     .ToListAsync();
 
-                sonuc.ListeTipi = "sertifika";
-                sonuc.SertifikaIslemler = sertifikaIslemler.Select(AdminYetkiBelgesiOnayDto.FromEntity).ToList();
+                sonuc.ListeTipi = "yetkiBelgesi";
+                sonuc.YetkiBelgesiIslemler = yetkiBelgesiIslemler.Select(AdminYetkiBelgesiOnayDto.FromEntity).ToList();
             }
             else
             {
@@ -1057,9 +1057,9 @@ namespace YetkiliServisGazAcma.API.Controllers
                     && (sirketId == null || x.Firma.SirketId == sirketId));
         }
 
-        private IQueryable<Ys_Sertifika> SertifikaTemelQuery(int? sirketId)
+        private IQueryable<Ys_YetkiBelgesi> YetkiBelgesiTemelQuery(int? sirketId)
         {
-            return _context.Ys_Sertifikalar
+            return _context.Ys_YetkiBelgeleri
                 .Include(x => x.Firma).ThenInclude(x => x!.Sirket)
                 .Where(x => !x.SilindiMi
                     && x.Firma != null
@@ -1591,9 +1591,9 @@ namespace YetkiliServisGazAcma.API.Controllers
         public int DevreyeTamamlanan { get; set; }
         public int DevreyeBekleyen { get; set; }
         public int DevreyeIptal { get; set; }
-        public int SertifikaOnayli { get; set; }
-        public int SertifikaBekleyen { get; set; }
-        public int SertifikaReddedilen { get; set; }
+        public int YetkiBelgesiOnayli { get; set; }
+        public int YetkiBelgesiBekleyen { get; set; }
+        public int YetkiBelgesiReddedilen { get; set; }
         public List<string?> ChartSirketLabels { get; set; } = new();
         public List<int> ChartSirketData { get; set; } = new();
         public List<string> ChartAylikLabels { get; set; } = new();
@@ -1602,7 +1602,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         public List<string?> ChartMarkaLabels { get; set; } = new();
         public List<int> ChartMarkaData { get; set; } = new();
         public List<AdminDevreyeAlmaDto> SonIslemler { get; set; } = new();
-        public List<AdminYetkiBelgesiOnayDto> SertifikaIslemler { get; set; } = new();
+        public List<AdminYetkiBelgesiOnayDto> YetkiBelgesiIslemler { get; set; } = new();
         public List<AdminSirketSecenekDto> Sirketler { get; set; } = new();
     }
 
@@ -1637,7 +1637,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         public string? CihazKapasite { get; set; }
         public string? SeriNo { get; set; }
         public string? TeknisyenAdi { get; set; }
-        public string? TeknisyenSertifikaNo { get; set; }
+        public string? TeknisyenYetkiBelgesiNo { get; set; }
         public DateTime DevreyeAlmaTarihi { get; set; }
         public string? Notlar { get; set; }
         public int Durum { get; set; }
@@ -1671,7 +1671,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 CihazKapasite = devreyeAlma.CihazKapasite,
                 SeriNo = devreyeAlma.SeriNo,
                 TeknisyenAdi = devreyeAlma.TeknisyenAdi,
-                TeknisyenSertifikaNo = devreyeAlma.TeknisyenSertifikaNo,
+                TeknisyenYetkiBelgesiNo = devreyeAlma.TeknisyenYetkiBelgesiNo,
                 DevreyeAlmaTarihi = devreyeAlma.DevreyeAlmaTarihi,
                 Notlar = devreyeAlma.Notlar,
                 Durum = devreyeAlma.Durum,
@@ -1788,30 +1788,30 @@ namespace YetkiliServisGazAcma.API.Controllers
         public string? SirketAdi { get; set; }
         public int Durum { get; set; }
         public DateTime OlusturmaTarihi { get; set; }
-        public DateTime? SertifikaBaslangicTarihi { get; set; }
-        public DateTime SertifikaBitisTarihi { get; set; }
+        public DateTime? YetkiBelgesiBaslangicTarihi { get; set; }
+        public DateTime YetkiBelgesiBitisTarihi { get; set; }
         public string? DosyaYolu { get; set; }
         public string? OnaylayanKullanici { get; set; }
         public DateTime? OnayTarihi { get; set; }
         public string? RedGerekce { get; set; }
 
-        public static AdminYetkiBelgesiOnayDto FromEntity(Ys_Sertifika sertifika)
+        public static AdminYetkiBelgesiOnayDto FromEntity(Ys_YetkiBelgesi yetkiBelgesi)
         {
             return new AdminYetkiBelgesiOnayDto
             {
-                Id = sertifika.Id,
-                FirmaId = sertifika.FirmaId,
-                FirmaAdi = sertifika.Firma?.FirmaAdi,
-                VergiNo = sertifika.Firma?.VergiNo,
-                SirketAdi = sertifika.Firma?.Sirket?.SirketAdi,
-                Durum = sertifika.Durum,
-                OlusturmaTarihi = sertifika.OlusturmaTarihi,
-                SertifikaBaslangicTarihi = sertifika.SertifikaBaslangicTarihi,
-                SertifikaBitisTarihi = sertifika.SertifikaBitisTarihi,
-                DosyaYolu = sertifika.DosyaYolu,
-                OnaylayanKullanici = sertifika.OnaylayanKullanici,
-                OnayTarihi = sertifika.OnayTarihi,
-                RedGerekce = sertifika.RedGerekce
+                Id = yetkiBelgesi.Id,
+                FirmaId = yetkiBelgesi.FirmaId,
+                FirmaAdi = yetkiBelgesi.Firma?.FirmaAdi,
+                VergiNo = yetkiBelgesi.Firma?.VergiNo,
+                SirketAdi = yetkiBelgesi.Firma?.Sirket?.SirketAdi,
+                Durum = yetkiBelgesi.Durum,
+                OlusturmaTarihi = yetkiBelgesi.OlusturmaTarihi,
+                YetkiBelgesiBaslangicTarihi = yetkiBelgesi.YetkiBelgesiBaslangicTarihi,
+                YetkiBelgesiBitisTarihi = yetkiBelgesi.YetkiBelgesiBitisTarihi,
+                DosyaYolu = yetkiBelgesi.DosyaYolu,
+                OnaylayanKullanici = yetkiBelgesi.OnaylayanKullanici,
+                OnayTarihi = yetkiBelgesi.OnayTarihi,
+                RedGerekce = yetkiBelgesi.RedGerekce
             };
         }
     }
@@ -1824,11 +1824,11 @@ namespace YetkiliServisGazAcma.API.Controllers
         public int SuresiBitecek { get; set; }
         public int ToplamSirket { get; set; }
         public int BuAyDevreyeAlma { get; set; }
-        public List<AdminSertifikaOzetDto> SonSertifikalar { get; set; } = new();
+        public List<AdminYetkiBelgesiOzetDto> SonYetkiBelgeleri { get; set; } = new();
         public List<AdminDevreyeAlmaOzetDto> SonDevreyeAlmalar { get; set; } = new();
     }
 
-    public class AdminSertifikaOzetDto
+    public class AdminYetkiBelgesiOzetDto
     {
         public int Id { get; set; }
         public int FirmaId { get; set; }
@@ -1836,7 +1836,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         public string? SirketAdi { get; set; }
         public int Durum { get; set; }
         public DateTime OlusturmaTarihi { get; set; }
-        public DateTime SertifikaBitisTarihi { get; set; }
+        public DateTime YetkiBelgesiBitisTarihi { get; set; }
     }
 
     public class AdminDevreyeAlmaOzetDto

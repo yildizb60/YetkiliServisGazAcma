@@ -1,4 +1,4 @@
-@model List<YetkiliServisGazAcma.Entities.Ys_Sertifika>
+@model List<YetkiliServisGazAcma.Entities.Ys_YetkiBelgesi>
 @using YetkiliServisGazAcma.Entities
 @{
     ViewData["Title"] = "Yetki Belgesi Onayları";
@@ -7,9 +7,9 @@
     ViewData["ActiveMenu"] = "OnayBekleyenler";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
-    var bekleyenler = Model ?? new List<Ys_Sertifika>();
-    var onaylananlar = ViewBag.Onaylananlar as List<Ys_Sertifika> ?? new List<Ys_Sertifika>();
-    var reddedilenler = ViewBag.Reddedilenler as List<Ys_Sertifika> ?? new List<Ys_Sertifika>();
+    var bekleyenler = Model ?? new List<Ys_YetkiBelgesi>();
+    var onaylananlar = ViewBag.Onaylananlar as List<Ys_YetkiBelgesi> ?? new List<Ys_YetkiBelgesi>();
+    var reddedilenler = ViewBag.Reddedilenler as List<Ys_YetkiBelgesi> ?? new List<Ys_YetkiBelgesi>();
 }
 
 @if (TempData["Basarili"] != null)
@@ -40,13 +40,13 @@
     </div>
 
     <div data-panel="bekleyen" class="active">
-        @await Html.PartialAsync("~/Views/Shared/_SertifikaOnayTable.cshtml", new Tuple<List<Ys_Sertifika>, string, string>(bekleyenler, "bekleyen", "admin"))
+        @await Html.PartialAsync("~/Views/Shared/_YetkiBelgesiOnayTable.cshtml", new Tuple<List<Ys_YetkiBelgesi>, string, string>(bekleyenler, "bekleyen", "admin"))
     </div>
     <div data-panel="onaylanan">
-        @await Html.PartialAsync("~/Views/Shared/_SertifikaOnayTable.cshtml", new Tuple<List<Ys_Sertifika>, string, string>(onaylananlar, "onaylanan", "admin"))
+        @await Html.PartialAsync("~/Views/Shared/_YetkiBelgesiOnayTable.cshtml", new Tuple<List<Ys_YetkiBelgesi>, string, string>(onaylananlar, "onaylanan", "admin"))
     </div>
     <div data-panel="reddedilen">
-        @await Html.PartialAsync("~/Views/Shared/_SertifikaOnayTable.cshtml", new Tuple<List<Ys_Sertifika>, string, string>(reddedilenler, "reddedilen", "admin"))
+        @await Html.PartialAsync("~/Views/Shared/_YetkiBelgesiOnayTable.cshtml", new Tuple<List<Ys_YetkiBelgesi>, string, string>(reddedilenler, "reddedilen", "admin"))
     </div>
 </div>
 

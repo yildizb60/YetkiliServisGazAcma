@@ -95,23 +95,23 @@ namespace YetkiliServisGazAcma.Business.Services
             public string? SirketAdi { get; set; }
             public int Durum { get; set; }
             public DateTime OlusturmaTarihi { get; set; }
-            public DateTime? SertifikaBaslangicTarihi { get; set; }
-            public DateTime SertifikaBitisTarihi { get; set; }
+            public DateTime? YetkiBelgesiBaslangicTarihi { get; set; }
+            public DateTime YetkiBelgesiBitisTarihi { get; set; }
             public string? DosyaYolu { get; set; }
             public string? OnaylayanKullanici { get; set; }
             public DateTime? OnayTarihi { get; set; }
             public string? RedGerekce { get; set; }
 
-            public Ys_Sertifika ToEntity()
+            public Ys_YetkiBelgesi ToEntity()
             {
-                return new Ys_Sertifika
+                return new Ys_YetkiBelgesi
                 {
                     Id = Id,
                     FirmaId = FirmaId,
                     Durum = Durum,
                     OlusturmaTarihi = OlusturmaTarihi,
-                    SertifikaBaslangicTarihi = SertifikaBaslangicTarihi,
-                    SertifikaBitisTarihi = SertifikaBitisTarihi,
+                    YetkiBelgesiBaslangicTarihi = YetkiBelgesiBaslangicTarihi,
+                    YetkiBelgesiBitisTarihi = YetkiBelgesiBitisTarihi,
                     DosyaYolu = DosyaYolu,
                     OnaylayanKullanici = OnaylayanKullanici,
                     OnayTarihi = OnayTarihi,
@@ -130,8 +130,8 @@ namespace YetkiliServisGazAcma.Business.Services
 
     public class AdminYetkiBelgesiOnaySonuc
     {
-        public List<Ys_Sertifika> Bekleyenler { get; set; } = new();
-        public List<Ys_Sertifika> Onaylananlar { get; set; } = new();
-        public List<Ys_Sertifika> Reddedilenler { get; set; } = new();
+        public List<Ys_YetkiBelgesi> Bekleyenler { get; set; } = new();
+        public List<Ys_YetkiBelgesi> Onaylananlar { get; set; } = new();
+        public List<Ys_YetkiBelgesi> Reddedilenler { get; set; } = new();
     }
 }

@@ -5,7 +5,7 @@
     var tr = new CultureInfo("tr-TR");
     var servisCount = (long)(ViewBag.ServisCount ?? 0L);
     var devreyeCount = (long)(ViewBag.DevreyeCount ?? 0L);
-    var sertifikaCount = (long)(ViewBag.SertifikaCount ?? 0L);
+    var yetkiBelgesiCount = (long)(ViewBag.YetkiBelgesiCount ?? 0L);
     var zamaninda = (double)(ViewBag.ZamanindaOran ?? 0d);
 }
 @section Styles {
@@ -689,7 +689,7 @@
             </div>
             <div class="stat-card">
                 <div class="stat-icon">&#128203;</div>
-                <div class="stat-value">@sertifikaCount.ToString("N0", tr)</div>
+                <div class="stat-value">@yetkiBelgesiCount.ToString("N0", tr)</div>
                 <div class="stat-label">Onaylı Yetki Belgesi</div>
             </div>
             <div class="stat-card">

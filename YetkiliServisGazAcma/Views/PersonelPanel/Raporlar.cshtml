@@ -6,12 +6,12 @@
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
     var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
     var sonIslemler = ViewBag.SonIslemler as List<YetkiliServisGazAcma.Entities.Ys_DevreyeAlma>;
-    var sertifikaIslemler = ViewBag.SertifikaIslemler as List<YetkiliServisGazAcma.Entities.Ys_Sertifika>;
+    var yetkiBelgesiIslemler = ViewBag.YetkiBelgesiIslemler as List<YetkiliServisGazAcma.Entities.Ys_YetkiBelgesi>;
     var listeTipi = ViewBag.ListeTipi as string ?? "devreye";
     var raporTipi = ViewBag.RaporTipi as string ?? "devreye";
     DateTime basTarih = ViewBag.BasTarih ?? DateTime.Now.Date.AddDays(-30);
     DateTime bitTarih = ViewBag.BitTarih ?? DateTime.Now.Date;
-    bool ySertifika = ViewBag.YetkiSertifika != false;
+    bool yYetkiBelgesi = ViewBag.YetkiBelgesi != false;
     bool yRapor = ViewBag.YetkiRapor != false;
     var raporAylarJson = System.Text.Json.JsonSerializer.Serialize(ViewBag.RaporAylar ?? new List<string>());
     var raporAylikJson = System.Text.Json.JsonSerializer.Serialize(ViewBag.RaporAylik ?? new List<int>());
@@ -53,7 +53,7 @@
         .tablo-head { padding: 10px 20px; background: #f8f8f6; font-size: 11px; color: #888; font-weight: 700; display: grid; }
         .tablo-row { padding: 12px 20px; border-top: 1px solid #f0f0ee; font-size: 13px; color: #333; display: grid; align-items: center; }
         .tablo-devreye { grid-template-columns: 1.3fr 1.3fr 1fr 1fr; }
-        .tablo-sertifika { grid-template-columns: 1.6fr 1fr 1fr 0.8fr; }
+        .tablo-yetki-belgesi { grid-template-columns: 1.6fr 1fr 1fr 0.8fr; }
         .badge { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 11px; font-weight: bold; }
         .b-yellow { background: #FAEEDA; color: #633806; }
         .b-green { background: #E1F5EE; color: #085041; }
@@ -143,16 +143,16 @@
     }
     else
     {
-        <div class="tablo-head tablo-sertifika"><div>Firma</div><div>Şirket</div><div>Tarih</div><div>Durum</div></div>
-        if (sertifikaIslemler == null || sertifikaIslemler.Count == 0)
+        <div class="tablo-head tablo-yetki-belgesi"><div>Firma</div><div>Şirket</div><div>Tarih</div><div>Durum</div></div>
+        if (yetkiBelgesiIslemler == null || yetkiBelgesiIslemler.Count == 0)
         {
             <div class="empty">Bu aralıkta yetki belgesi kaydı yok</div>
         }
         else
         {
-            foreach (var s in sertifikaIslemler)
+            foreach (var s in yetkiBelgesiIslemler)
             {
-                <div class="tablo-row tablo-sertifika">
+                <div class="tablo-row tablo-yetki-belgesi">
                     <div>@s.Firma?.FirmaAdi</div>
                     <div>@s.Firma?.Sirket?.SirketAdi</div>
                     <div>@s.OlusturmaTarihi.ToString("dd.MM.yyyy")</div>
@@ -213,7 +213,7 @@
 (function () {
     // PERSONEL_YETKI_MENU
     var yetki = {
-        sertifika: @((ViewBag.YetkiSertifika == true).ToString().ToLower()),
+        yetkiBelgesi: @((ViewBag.YetkiBelgesi == true).ToString().ToLower()),
         rapor: @((ViewBag.YetkiRapor == true).ToString().ToLower())
     };
 
@@ -223,8 +223,8 @@
         list.forEach(function (el) { el.style.display = 'none'; });
     }
 
-    hide('a[href="/personel-panel/onay-bekleyenler"]', yetki.sertifika);
-    hide('a[href="/personel-panel/onay-gecmisi"]', yetki.sertifika);
+    hide('a[href="/personel-panel/onay-bekleyenler"]', yetki.yetkiBelgesi);
+    hide('a[href="/personel-panel/onay-gecmisi"]', yetki.yetkiBelgesi);
     hide('a[href="/personel-panel/raporlar"]', yetki.rapor);
 
     var raporSection = Array.from(document.querySelectorAll('.nav-section')).find(function (x) {

@@ -86,7 +86,7 @@ namespace YetkiliServisGazAcma.Infrastructure
                 {
                     KullaniciId = personel.Id,
                     SirketId = surmeligaz.Id,
-                    YetkiTipi = YetkiTipleri.CERTIFIKA_ONAY,
+                    YetkiTipi = YetkiTipleri.YETKI_BELGESI_ONAY,
                     OlusturanKullanici = "demo-seed"
                 });
 
@@ -228,27 +228,27 @@ namespace YetkiliServisGazAcma.Infrastructure
             }
 
             var bugun = DateTime.Now.Date;
-            var gecerliSertifika = await context.Ys_Sertifikalar.FirstOrDefaultAsync(x =>
+            var gecerliYetkiBelgesi = await context.Ys_YetkiBelgeleri.FirstOrDefaultAsync(x =>
                 x.FirmaId == firma.Id &&
                 !x.SilindiMi &&
                 x.Durum == 1 &&
-                (!x.SertifikaBaslangicTarihi.HasValue || x.SertifikaBaslangicTarihi.Value.Date <= bugun) &&
-                x.SertifikaBitisTarihi.Date >= bugun);
+                (!x.YetkiBelgesiBaslangicTarihi.HasValue || x.YetkiBelgesiBaslangicTarihi.Value.Date <= bugun) &&
+                x.YetkiBelgesiBitisTarihi.Date >= bugun);
 
-            if (gecerliSertifika != null)
+            if (gecerliYetkiBelgesi != null)
             {
-                gecerliSertifika.DosyaYolu = "/uploads/demo-yetki-belgesi.html";
-                gecerliSertifika.GuncellemeTarihi = DateTime.Now;
-                gecerliSertifika.GuncelleyenKullanici = "demo-seed";
+                gecerliYetkiBelgesi.DosyaYolu = "/uploads/demo-yetki-belgesi.html";
+                gecerliYetkiBelgesi.GuncellemeTarihi = DateTime.Now;
+                gecerliYetkiBelgesi.GuncelleyenKullanici = "demo-seed";
             }
             else
             {
-                context.Ys_Sertifikalar.Add(new Ys_Sertifika
+                context.Ys_YetkiBelgeleri.Add(new Ys_YetkiBelgesi
                 {
                     FirmaId = firma.Id,
                     DosyaYolu = "/uploads/demo-yetki-belgesi.html",
-                    SertifikaBaslangicTarihi = bugun.AddDays(-7),
-                    SertifikaBitisTarihi = bugun.AddYears(1),
+                    YetkiBelgesiBaslangicTarihi = bugun.AddDays(-7),
+                    YetkiBelgesiBitisTarihi = bugun.AddYears(1),
                     Durum = 1,
                     OnayTarihi = DateTime.Now,
                     OnaylayanKullanici = "demo-seed",

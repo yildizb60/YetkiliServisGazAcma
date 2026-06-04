@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using YetkiliServisGazAcma.Entities;
@@ -16,7 +16,7 @@ namespace YetkiliServisGazAcma.Models
         public DbSet<Ys_FirmaMarka> Ys_FirmaMarkalar { get; set; }
         public DbSet<UrunKategori> UrunKategoriler { get; set; }
         public DbSet<Ys_FirmaKategori> Ys_FirmaKategoriler { get; set; }
-        public DbSet<Ys_Sertifika> Ys_Sertifikalar { get; set; }
+        public DbSet<Ys_YetkiBelgesi> Ys_YetkiBelgeleri { get; set; }
         public DbSet<Ys_DevreyeAlma> Ys_DevreyeAlmalar { get; set; }
         public DbSet<Dag_PersonelYetki> Dag_PersonelYetkiler { get; set; }
         public DbSet<Ys_Sube> Ys_Subeler { get; set; }
@@ -43,7 +43,7 @@ namespace YetkiliServisGazAcma.Models
             modelBuilder.Entity<Ys_Marka>().ToTable("Ys_Markalar");
             modelBuilder.Entity<Ys_FirmaMarka>().ToTable("Ys_FirmaMarkalar");
             modelBuilder.Entity<Ys_FirmaKategori>().ToTable("Ys_FirmaKategoriler");
-            modelBuilder.Entity<Ys_Sertifika>().ToTable("Ys_Sertifikalar");
+            modelBuilder.Entity<Ys_YetkiBelgesi>().ToTable("Ys_YetkiBelgeleri");
             modelBuilder.Entity<Ys_DevreyeAlma>().ToTable("Ys_DevreyeAlmalar");
             modelBuilder.Entity<Ys_Sube>().ToTable("Ys_Subeler");
             modelBuilder.Entity<SmsDogrulamaKodu>().ToTable("Ys_SmsDogrulamaKodlari");
@@ -64,11 +64,11 @@ namespace YetkiliServisGazAcma.Models
             modelBuilder.Entity<Ys_Sube>()
                 .HasIndex(x => new { x.FirmaId, x.SilindiMi, x.AktifMi });
 
-            modelBuilder.Entity<Ys_Sertifika>()
+            modelBuilder.Entity<Ys_YetkiBelgesi>()
                 .HasIndex(x => new { x.FirmaId, x.Durum, x.SilindiMi });
 
-            modelBuilder.Entity<Ys_Sertifika>()
-                .HasIndex(x => new { x.SertifikaBitisTarihi, x.SilindiMi });
+            modelBuilder.Entity<Ys_YetkiBelgesi>()
+                .HasIndex(x => new { x.YetkiBelgesiBitisTarihi, x.SilindiMi });
 
             modelBuilder.Entity<Ys_FirmaMarka>()
                 .HasIndex(x => new { x.FirmaId, x.MarkaId, x.SilindiMi });

@@ -6,8 +6,8 @@
     ViewData["ActiveMenu"] = "Dashboard";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
-    var sonBekleyenler = ViewBag.SonBekleyenler as List<YetkiliServisGazAcma.Entities.Ys_Sertifika>
-        ?? new List<YetkiliServisGazAcma.Entities.Ys_Sertifika>();
+    var sonBekleyenler = ViewBag.SonBekleyenler as List<YetkiliServisGazAcma.Entities.Ys_YetkiBelgesi>
+        ?? new List<YetkiliServisGazAcma.Entities.Ys_YetkiBelgesi>();
     var sonIslemler = ViewBag.SonIslemler as List<YetkiliServisGazAcma.Entities.Ys_DevreyeAlma>
         ?? new List<YetkiliServisGazAcma.Entities.Ys_DevreyeAlma>();
     var yetkilerim = ViewBag.Yetkilerim as List<string> ?? new List<string>();
@@ -21,7 +21,7 @@
     var tamamlananIslem = sonIslemler.Count(x => x.Durum == 1);
     var belgeToplam = Math.Max(onayBekleyen + sonBekleyenler.Count, onayBekleyen);
     var sonucBelge = Math.Max(belgeToplam - onayBekleyen, 0);
-    var belgeYetkisi = ViewBag.YetkiSertifika == true;
+    var belgeYetkisi = ViewBag.YetkiBelgesi == true;
     var raporYetkisi = ViewBag.YetkiRapor == true;
     var sirketYetkisi = ViewBag.YetkiSirket == true;
     var markaYetkisi = ViewBag.YetkiMarka == true;

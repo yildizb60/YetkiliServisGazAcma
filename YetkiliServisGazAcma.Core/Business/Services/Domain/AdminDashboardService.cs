@@ -16,7 +16,7 @@ namespace YetkiliServisGazAcma.Business.Services
         public async Task<AdminDashboardOzet> GetirAsync(int? sirketId)
         {
             var devreyeQuery = DevreyeAlmaTemelQuery(sirketId);
-            var sertifikaQuery = SertifikaTemelQuery(sirketId);
+            var yetkiBelgesiQuery = YetkiBelgesiTemelQuery(sirketId);
             var firmaQuery = FirmaTemelQuery(sirketId);
             var now = DateTime.Now;
 
@@ -24,11 +24,11 @@ namespace YetkiliServisGazAcma.Business.Services
             {
                 ToplamDevreyeAlma = await devreyeQuery.CountAsync(),
                 ToplamFirma = await firmaQuery.CountAsync(),
-                OnayBekleyen = await sertifikaQuery.Where(x => x.Durum == 0).CountAsync(),
-                SuresiBitecek = await sertifikaQuery
+                OnayBekleyen = await yetkiBelgesiQuery.Where(x => x.Durum == 0).CountAsync(),
+                SuresiBitecek = await yetkiBelgesiQuery
                     .Where(x => x.Durum == 1
-                        && x.SertifikaBitisTarihi <= now.AddDays(30)
-                        && x.SertifikaBitisTarihi >= now)
+                        && x.YetkiBelgesiBitisTarihi <= now.AddDays(30)
+                        && x.YetkiBelgesiBitisTarihi >= now)
                     .CountAsync(),
                 ToplamSirket = sirketId.HasValue
                     ? 1
@@ -37,7 +37,7 @@ namespace YetkiliServisGazAcma.Business.Services
                     .Where(x => x.OlusturmaTarihi.Month == now.Month
                         && x.OlusturmaTarihi.Year == now.Year)
                     .CountAsync(),
-                SonSertifikalar = await sertifikaQuery
+                SonYetkiBelgeleri = await yetkiBelgesiQuery
                     .Include(x => x.Firma)
                         .ThenInclude(x => x!.Sirket)
                     .OrderByDescending(x => x.OlusturmaTarihi)
@@ -54,7 +54,7 @@ namespace YetkiliServisGazAcma.Business.Services
 
         public async Task<int> OnayBekleyenSayisiAsync(int? sirketId)
         {
-            return await SertifikaTemelQuery(sirketId)
+            return await YetkiBelgesiTemelQuery(sirketId)
                 .Where(x => x.Durum == 0)
                 .CountAsync();
         }
@@ -62,10 +62,10 @@ namespace YetkiliServisGazAcma.Business.Services
         public async Task<int> SuresiBitecekSayisiAsync(int? sirketId)
         {
             var now = DateTime.Now;
-            return await SertifikaTemelQuery(sirketId)
+            return await YetkiBelgesiTemelQuery(sirketId)
                 .Where(x => x.Durum == 1
-                    && x.SertifikaBitisTarihi <= now.AddDays(30)
-                    && x.SertifikaBitisTarihi >= now)
+                    && x.YetkiBelgesiBitisTarihi <= now.AddDays(30)
+                    && x.YetkiBelgesiBitisTarihi >= now)
                 .CountAsync();
         }
 
@@ -78,9 +78,9 @@ namespace YetkiliServisGazAcma.Business.Services
                     && (sirketId == null || x.Firma.SirketId == sirketId));
         }
 
-        private IQueryable<Ys_Sertifika> SertifikaTemelQuery(int? sirketId)
+        private IQueryable<Ys_YetkiBelgesi> YetkiBelgesiTemelQuery(int? sirketId)
         {
-            return _context.Ys_Sertifikalar
+            return _context.Ys_YetkiBelgeleri
                 .Where(x => !x.SilindiMi
                     && x.Firma != null
                     && !x.Firma.SilindiMi
@@ -103,7 +103,7 @@ namespace YetkiliServisGazAcma.Business.Services
         public int SuresiBitecek { get; set; }
         public int ToplamSirket { get; set; }
         public int BuAyDevreyeAlma { get; set; }
-        public List<Ys_Sertifika> SonSertifikalar { get; set; } = new();
+        public List<Ys_YetkiBelgesi> SonYetkiBelgeleri { get; set; } = new();
         public List<Ys_DevreyeAlma> SonDevreyeAlmalar { get; set; } = new();
     }
 }

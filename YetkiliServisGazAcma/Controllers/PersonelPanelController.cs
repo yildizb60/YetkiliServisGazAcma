@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -105,13 +105,13 @@ namespace YetkiliServisGazAcma.Controllers
 
         private async Task SetPersonelYetkiViewBags(AppKullanici kullanici)
         {
-            var ySertifika = await KullaniciYetkiliMi(kullanici, YetkiTipleri.CERTIFIKA_ONAY);
+            var yYetkiBelgesi = await KullaniciYetkiliMi(kullanici, YetkiTipleri.YETKI_BELGESI_ONAY);
             var yRapor = await KullaniciYetkiliMi(kullanici, YetkiTipleri.RAPOR_GOR);
             var yServis = await KullaniciYetkiliMi(kullanici, YetkiTipleri.KULLANICI_YONET);
             var ySirketYonet = await KullaniciYetkiliMi(kullanici, YetkiTipleri.DAGITIM_SIRKET_YONET);
             var yMarkaYonet = await KullaniciYetkiliMi(kullanici, YetkiTipleri.MARKA_YONET);
 
-            ViewBag.YetkiSertifika = ySertifika;
+            ViewBag.YetkiBelgesi = yYetkiBelgesi;
             ViewBag.YetkiRapor = yRapor;
             ViewBag.YetkiServis = yServis;
             ViewBag.YetkiSirket = ySirketYonet;
@@ -147,7 +147,7 @@ namespace YetkiliServisGazAcma.Controllers
 
                 var yetkiAdlari = new Dictionary<string, string>
                 {
-                    [YetkiTipleri.CERTIFIKA_ONAY] = "Yetki Belgesi Onay",
+                    [YetkiTipleri.YETKI_BELGESI_ONAY] = "Yetki Belgesi Onay",
                     [YetkiTipleri.RAPOR_GOR] = "Rapor Gör",
                     [YetkiTipleri.KULLANICI_YONET] = "Kullanıcı Yönet",
                     [YetkiTipleri.MARKA_YONET] = "Marka Yönet",
@@ -167,15 +167,15 @@ namespace YetkiliServisGazAcma.Controllers
         {
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
 
-            ViewBag.OnayBekleyen = await _context.Ys_Sertifikalar.Include(x => x.Firma)
+            ViewBag.OnayBekleyen = await _context.Ys_YetkiBelgeleri.Include(x => x.Firma)
                 .Where(x => !x.SilindiMi && x.Durum == 0
                     && x.Firma != null
                     && !x.Firma.SilindiMi
                     && (sirketId == null || x.Firma.SirketId == sirketId))
                 .CountAsync();
 
-            ViewBag.SuresiBitecek = await _context.Ys_Sertifikalar.Include(x => x.Firma)
-                .Where(x => !x.SilindiMi && x.Durum == 1 && x.SertifikaBitisTarihi <= DateTime.Now.AddDays(30) && x.SertifikaBitisTarihi >= DateTime.Now
+            ViewBag.SuresiBitecek = await _context.Ys_YetkiBelgeleri.Include(x => x.Firma)
+                .Where(x => !x.SilindiMi && x.Durum == 1 && x.YetkiBelgesiBitisTarihi <= DateTime.Now.AddDays(30) && x.YetkiBelgesiBitisTarihi >= DateTime.Now
                     && x.Firma != null
                     && !x.Firma.SilindiMi
                     && (sirketId == null || x.Firma.SirketId == sirketId))
@@ -206,7 +206,7 @@ namespace YetkiliServisGazAcma.Controllers
 
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
 
-            ViewBag.OnayBekleyen = await _context.Ys_Sertifikalar.Include(x => x.Firma)
+            ViewBag.OnayBekleyen = await _context.Ys_YetkiBelgeleri.Include(x => x.Firma)
                 .Where(x => !x.SilindiMi
                     && x.Durum == 0
                     && x.Firma != null
@@ -240,14 +240,14 @@ namespace YetkiliServisGazAcma.Controllers
                     && (sirketId == null || x.Firma.SirketId == sirketId))
                 .CountAsync();
 
-            ViewBag.SuresiBitecek = await _context.Ys_Sertifikalar.Include(x => x.Firma)
-                .Where(x => !x.SilindiMi && x.Durum == 1 && x.SertifikaBitisTarihi <= DateTime.Now.AddDays(30) && x.SertifikaBitisTarihi >= DateTime.Now
+            ViewBag.SuresiBitecek = await _context.Ys_YetkiBelgeleri.Include(x => x.Firma)
+                .Where(x => !x.SilindiMi && x.Durum == 1 && x.YetkiBelgesiBitisTarihi <= DateTime.Now.AddDays(30) && x.YetkiBelgesiBitisTarihi >= DateTime.Now
                     && x.Firma != null
                     && !x.Firma.SilindiMi
                     && (sirketId == null || x.Firma.SirketId == sirketId))
                 .CountAsync();
 
-            ViewBag.SonBekleyenler = await _context.Ys_Sertifikalar.Include(x => x.Firma).ThenInclude(x => x!.Sirket)
+            ViewBag.SonBekleyenler = await _context.Ys_YetkiBelgeleri.Include(x => x.Firma).ThenInclude(x => x!.Sirket)
                 .Where(x => !x.SilindiMi
                     && x.Durum == 0
                     && x.Firma != null
@@ -430,7 +430,7 @@ namespace YetkiliServisGazAcma.Controllers
         [HttpGet("onay-bekleyenler")]
         public async Task<IActionResult> OnayBekleyenler()
         {
-            var yetkiResult = await YetkiKontrol(YetkiTipleri.CERTIFIKA_ONAY);
+            var yetkiResult = await YetkiKontrol(YetkiTipleri.YETKI_BELGESI_ONAY);
             if (yetkiResult != null) return yetkiResult;
 
             var kullanici = await _userManager.GetUserAsync(User);
@@ -472,7 +472,7 @@ namespace YetkiliServisGazAcma.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Onayla(int id)
         {
-            var yetkiResult = await YetkiKontrol(YetkiTipleri.CERTIFIKA_ONAY);
+            var yetkiResult = await YetkiKontrol(YetkiTipleri.YETKI_BELGESI_ONAY);
             if (yetkiResult != null) return yetkiResult;
 
             var kullanici = await _userManager.GetUserAsync(User);
@@ -498,7 +498,7 @@ namespace YetkiliServisGazAcma.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Reddet(int id, string? gerekce)
         {
-            var yetkiResult = await YetkiKontrol(YetkiTipleri.CERTIFIKA_ONAY);
+            var yetkiResult = await YetkiKontrol(YetkiTipleri.YETKI_BELGESI_ONAY);
             if (yetkiResult != null) return yetkiResult;
 
             var kullanici = await _userManager.GetUserAsync(User);
@@ -523,14 +523,14 @@ namespace YetkiliServisGazAcma.Controllers
         [HttpGet("onay-gecmisi")]
         public async Task<IActionResult> OnayGecmisi(DateTime? bas, DateTime? bit, string? q, string? durum)
         {
-            var yetkiResult = await YetkiKontrol(YetkiTipleri.CERTIFIKA_ONAY);
+            var yetkiResult = await YetkiKontrol(YetkiTipleri.YETKI_BELGESI_ONAY);
             if (yetkiResult != null) return yetkiResult;
 
             var kullanici = await _userManager.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            var query = _context.Ys_Sertifikalar
+            var query = _context.Ys_YetkiBelgeleri
                 .Include(x => x.Firma).ThenInclude(x => x!.Sirket)
                 .Where(x => !x.SilindiMi
                     && x.Durum != 0
@@ -1127,20 +1127,20 @@ namespace YetkiliServisGazAcma.Controllers
                     BasTarih = bas?.Date ?? DateTime.Now.Date.AddDays(-30),
                     BitTarih = bit?.Date ?? DateTime.Now.Date,
                     RaporTipi = string.IsNullOrWhiteSpace(tip) ? "devreye" : tip.Trim().ToLowerInvariant(),
-                    ListeTipi = (tip == "onayli" || tip == "bekleyen" || tip == "reddedilen") ? "sertifika" : "devreye"
+                    ListeTipi = (tip == "onayli" || tip == "bekleyen" || tip == "reddedilen") ? "yetkiBelgesi" : "devreye"
                 };
             }
 
             ViewBag.SonIslemler = sonuc.SonIslemler;
-            ViewBag.SertifikaIslemler = sonuc.SertifikaIslemler;
+            ViewBag.YetkiBelgesiIslemler = sonuc.YetkiBelgesiIslemler;
             ViewBag.ListeTipi = sonuc.ListeTipi;
             ViewBag.RaporToplam = sonuc.DevreyeSayisi;
             ViewBag.RaporTamam = sonuc.DevreyeTamamlanan;
             ViewBag.RaporBekleyen = sonuc.DevreyeBekleyen;
             ViewBag.RaporIptal = sonuc.DevreyeIptal;
-            ViewBag.SertifikaOnayli = sonuc.SertifikaOnayli;
-            ViewBag.SertifikaBekleyen = sonuc.SertifikaBekleyen;
-            ViewBag.SertifikaReddedilen = sonuc.SertifikaReddedilen;
+            ViewBag.YetkiBelgesiOnayli = sonuc.YetkiBelgesiOnayli;
+            ViewBag.YetkiBelgesiBekleyen = sonuc.YetkiBelgesiBekleyen;
+            ViewBag.YetkiBelgesiReddedilen = sonuc.YetkiBelgesiReddedilen;
             ViewBag.RaporAylar = sonuc.ChartAylikLabels;
             ViewBag.RaporAylik = sonuc.ChartAylikData;
             ViewBag.RaporMarka = sonuc.ChartMarkaLabels;
