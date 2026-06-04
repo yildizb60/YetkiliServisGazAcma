@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Microsoft.EntityFrameworkCore;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
@@ -30,6 +29,8 @@ namespace YetkiliServisGazAcma.Controllers
         private readonly AdminYetkiBelgesiOnayApiClient _adminYetkiBelgesiOnayApiClient;
         private readonly AdminSubeApiClient _adminSubeApiClient;
         private readonly AdminRaporApiClient _adminRaporApiClient;
+        private readonly MarkaApiClient _markaApiClient;
+        private readonly UrunKategoriApiClient _urunKategoriApiClient;
 
         public AdminPanelController(
             UserManager<AppKullanici> userManager,
@@ -41,7 +42,9 @@ namespace YetkiliServisGazAcma.Controllers
             AdminYetkiliServisApiClient adminYetkiliServisApiClient,
             AdminYetkiBelgesiOnayApiClient adminYetkiBelgesiOnayApiClient,
             AdminSubeApiClient adminSubeApiClient,
-            AdminRaporApiClient adminRaporApiClient)
+            AdminRaporApiClient adminRaporApiClient,
+            MarkaApiClient markaApiClient,
+            UrunKategoriApiClient urunKategoriApiClient)
         {
             _userManager = userManager;
             _context = context;
@@ -53,6 +56,8 @@ namespace YetkiliServisGazAcma.Controllers
             _adminYetkiBelgesiOnayApiClient = adminYetkiBelgesiOnayApiClient;
             _adminSubeApiClient = adminSubeApiClient;
             _adminRaporApiClient = adminRaporApiClient;
+            _markaApiClient = markaApiClient;
+            _urunKategoriApiClient = urunKategoriApiClient;
         }
 
         private static bool KullanilanKategoriMi(string? ad)
@@ -86,11 +91,7 @@ namespace YetkiliServisGazAcma.Controllers
 
         private async Task<List<UrunKategori>> KullanilanKategorileriGetir()
         {
-            return (await _context.UrunKategoriler
-                    .Where(x => !x.SilindiMi)
-                    .OrderBy(x => x.SiraNo)
-                    .ThenBy(x => x.Ad)
-                    .ToListAsync())
+            return (await _urunKategoriApiClient.ListeAsync() ?? new List<UrunKategori>())
                 .Where(x => KullanilanKategoriMi(x.Ad))
                 .GroupBy(x => NormalizeKategori(x.Ad))
                 .Select(g => g

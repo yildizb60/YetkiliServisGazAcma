@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
 
@@ -45,10 +44,7 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
             ViewBag.Sehirler = _sehirFirmaKoduService.Sehirler();
             ViewBag.Kategoriler = await KullanilanKategorileriGetir();
-            ViewBag.Markalar = await _context.Ys_Markalar
-                .Where(x => !x.SilindiMi && x.AktifMi)
-                .OrderBy(x => x.MarkaAdi)
-                .ToListAsync();
+            ViewBag.Markalar = await _markaApiClient.TumunuGetirAsync() ?? new List<Ys_Marka>();
             return View("~/Views/AdminPanel/YetkiliServisEkle.cshtml");
         }
 
