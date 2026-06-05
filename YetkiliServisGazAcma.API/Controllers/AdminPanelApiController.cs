@@ -22,6 +22,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         private readonly SehirFirmaKoduService _sehirFirmaKoduService;
         private readonly AdminSubeApiService _adminSubeApiService;
         private readonly AdminRaporApiService _adminRaporApiService;
+        private readonly AdminYetkiBelgesiOnayApiService _adminYetkiBelgesiOnayApiService;
 
         public AdminPanelApiController(
             AppDbContext context,
@@ -30,7 +31,8 @@ namespace YetkiliServisGazAcma.API.Controllers
             AdminYetkiliServisListeService yetkiliServisListeService,
             SehirFirmaKoduService sehirFirmaKoduService,
             AdminSubeApiService adminSubeApiService,
-            AdminRaporApiService adminRaporApiService)
+            AdminRaporApiService adminRaporApiService,
+            AdminYetkiBelgesiOnayApiService adminYetkiBelgesiOnayApiService)
         {
             _context = context;
             _userManager = userManager;
@@ -39,6 +41,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             _sehirFirmaKoduService = sehirFirmaKoduService;
             _adminSubeApiService = adminSubeApiService;
             _adminRaporApiService = adminRaporApiService;
+            _adminYetkiBelgesiOnayApiService = adminYetkiBelgesiOnayApiService;
         }
 
         [HttpPost("dashboard")]
@@ -1156,37 +1159,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (kapsam.gecersiz)
                 return Forbid();
 
-            var query = _context.Ys_YetkiBelgeleri
-                .Include(x => x.Firma).ThenInclude(x => x!.Sirket)
-                .Where(x => !x.SilindiMi
-                    && x.Firma != null
-                    && !x.Firma.SilindiMi
-                    && (kapsam.sirketId == null || x.Firma.SirketId == kapsam.sirketId))
-                .AsQueryable();
-
-            var bekleyenler = await query
-                .Where(x => x.Durum == 0)
-                .OrderByDescending(x => x.OlusturmaTarihi)
-                .ToListAsync();
-
-            var onaylananlar = await query
-                .Where(x => x.Durum == 1)
-                .OrderByDescending(x => x.OnayTarihi ?? x.OlusturmaTarihi)
-                .Take(100)
-                .ToListAsync();
-
-            var reddedilenler = await query
-                .Where(x => x.Durum == 2)
-                .OrderByDescending(x => x.OnayTarihi ?? x.OlusturmaTarihi)
-                .Take(100)
-                .ToListAsync();
-
-            return Ok(new AdminYetkiBelgesiOnayListeDto
-            {
-                Bekleyenler = bekleyenler.Select(AdminYetkiBelgesiOnayDto.FromEntity).ToList(),
-                Onaylananlar = onaylananlar.Select(AdminYetkiBelgesiOnayDto.FromEntity).ToList(),
-                Reddedilenler = reddedilenler.Select(AdminYetkiBelgesiOnayDto.FromEntity).ToList()
-            });
+            return Ok(await _adminYetkiBelgesiOnayApiService.ListeleAsync(kapsam.sirketId));
         }
 
         [HttpPost("yetki-belgeleri/onay-gecmisi")]
@@ -1196,47 +1169,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (kapsam.gecersiz)
                 return Forbid();
 
-            var query = _context.Ys_YetkiBelgeleri
-                .Include(x => x.Firma).ThenInclude(x => x!.Sirket)
-                .Where(x => !x.SilindiMi
-                    && x.Durum != 0
-                    && x.Firma != null
-                    && !x.Firma.SilindiMi
-                    && (kapsam.sirketId == null || x.Firma.SirketId == kapsam.sirketId))
-                .AsQueryable();
-
-            if (dto?.BaslangicTarihi.HasValue == true)
-            {
-                var baslangic = dto.BaslangicTarihi.Value.Date;
-                query = query.Where(x => x.OnayTarihi.HasValue && x.OnayTarihi.Value >= baslangic);
-            }
-
-            if (dto?.BitisTarihi.HasValue == true)
-            {
-                var bitis = dto.BitisTarihi.Value.Date.AddDays(1);
-                query = query.Where(x => x.OnayTarihi.HasValue && x.OnayTarihi.Value < bitis);
-            }
-
-            if (dto?.Durum.HasValue == true && (dto.Durum.Value == 1 || dto.Durum.Value == 2))
-                query = query.Where(x => x.Durum == dto.Durum.Value);
-
-            if (!string.IsNullOrWhiteSpace(dto?.Q))
-            {
-                var q = dto.Q.Trim();
-                query = query.Where(x =>
-                    (x.Firma != null && x.Firma.FirmaAdi != null && x.Firma.FirmaAdi.Contains(q)) ||
-                    (x.Firma != null && x.Firma.Sirket != null && x.Firma.Sirket.SirketAdi != null && x.Firma.Sirket.SirketAdi.Contains(q)) ||
-                    (x.OnaylayanKullanici != null && x.OnaylayanKullanici.Contains(q)));
-            }
-
-            var islemler = await query
-                .OrderByDescending(x => x.OnayTarihi ?? x.OlusturmaTarihi)
-                .ToListAsync();
-
-            return Ok(new AdminYetkiBelgesiOnayGecmisiListeDto
-            {
-                Islemler = islemler.Select(AdminYetkiBelgesiOnayDto.FromEntity).ToList()
-            });
+            return Ok(await _adminYetkiBelgesiOnayApiService.GecmisAsync(dto, kapsam.sirketId));
         }
 
         [HttpPost("subeler/liste")]
