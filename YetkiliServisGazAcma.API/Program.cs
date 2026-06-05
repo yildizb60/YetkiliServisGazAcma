@@ -11,6 +11,7 @@ using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Business.Services.Online;
+using YetkiliServisGazAcma.API.Services;
 using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -31,7 +32,12 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(defaultConnection));
 
 // Identity
-builder.Services.AddIdentity<AppKullanici, IdentityRole>()
+builder.Services.AddIdentity<AppKullanici, IdentityRole>(options =>
+{
+    options.Lockout.AllowedForNewUsers = true;
+    options.Lockout.MaxFailedAccessAttempts = 5;
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+})
     .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
 
@@ -42,6 +48,7 @@ builder.Services.AddScoped<YetkiBelgesiService>();
 builder.Services.AddScoped<AdminDashboardService>();
 builder.Services.AddScoped<AdminYetkiliServisListeService>();
 builder.Services.AddScoped<SehirFirmaKoduService>();
+builder.Services.AddScoped<AdminSubeApiService>();
 builder.Services.Configure<OnlineServiceOptions>(builder.Configuration.GetSection("OnlineService"));
 builder.Services.AddHttpClient<OnlineCihazBilgileriClient>((serviceProvider, client) =>
 {

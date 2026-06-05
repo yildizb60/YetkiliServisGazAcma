@@ -41,7 +41,10 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             // Şifre kontrolü
             var sonuc = await _signInManager
-                .CheckPasswordSignInAsync(kullanici, dto.Sifre, false);
+                .CheckPasswordSignInAsync(kullanici, dto.Sifre, true);
+
+            if (sonuc.IsLockedOut)
+                return Unauthorized(new { mesaj = "Cok fazla hatali giris denemesi yapildi. Lutfen 15 dakika sonra tekrar deneyin." });
 
             if (!sonuc.Succeeded)
                 return Unauthorized(new { mesaj = "Şifre hatalı" });

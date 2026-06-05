@@ -69,7 +69,7 @@ namespace YetkiliServisGazAcma.Controllers
                 return View();
             }
 
-            var sonuc = await _signInManager.CheckPasswordSignInAsync(kullanici, sifre, false);
+            var sonuc = await _signInManager.CheckPasswordSignInAsync(kullanici, sifre, true);
 
             if (sonuc.Succeeded)
             {
@@ -92,6 +92,12 @@ namespace YetkiliServisGazAcma.Controllers
 
                 await _signInManager.SignInAsync(kullanici, false);
                 return await GirisSonrasiYonlendir(kullanici);
+            }
+
+            if (sonuc.IsLockedOut)
+            {
+                ViewBag.Hata = "Cok fazla hatali giris denemesi yapildi. Lutfen 15 dakika sonra tekrar deneyin.";
+                return View();
             }
 
             ViewBag.Hata = "Kullanıcı adı veya şifre hatalı.";
