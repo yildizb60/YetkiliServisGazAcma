@@ -1,12 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.Globalization;
-using System.Text;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
-using YetkiliServisGazAcma.Models;
 
 namespace YetkiliServisGazAcma.Controllers
 {
@@ -16,78 +12,49 @@ namespace YetkiliServisGazAcma.Controllers
     public class PersonelPanelController : Controller
     {
         private readonly UserManager<AppKullanici> _userManager;
-        private readonly AppDbContext _context;
         private readonly SehirFirmaKoduService _sehirFirmaKoduService;
         private readonly AktifSirketService _aktifSirketService;
+        private readonly AdminDashboardApiClient _adminDashboardApiClient;
+        private readonly PersonelPanelApiClient _personelPanelApiClient;
         private readonly AdminYetkiBelgesiOnayApiClient _yetkiBelgesiOnayApiClient;
         private readonly AdminRaporApiClient _adminRaporApiClient;
         private readonly YetkiBelgesiApiClient _yetkiBelgesiApiClient;
+        private readonly DagitimSirketApiClient _dagitimSirketApiClient;
+        private readonly MarkaApiClient _markaApiClient;
+        private readonly UrunKategoriApiClient _urunKategoriApiClient;
+        private readonly AdminYetkiliServisApiClient _adminYetkiliServisApiClient;
 
         public PersonelPanelController(
             UserManager<AppKullanici> userManager,
-            AppDbContext context,
             SehirFirmaKoduService sehirFirmaKoduService,
             AktifSirketService aktifSirketService,
+            AdminDashboardApiClient adminDashboardApiClient,
+            PersonelPanelApiClient personelPanelApiClient,
             AdminYetkiBelgesiOnayApiClient yetkiBelgesiOnayApiClient,
             AdminRaporApiClient adminRaporApiClient,
-            YetkiBelgesiApiClient yetkiBelgesiApiClient)
+            YetkiBelgesiApiClient yetkiBelgesiApiClient,
+            DagitimSirketApiClient dagitimSirketApiClient,
+            MarkaApiClient markaApiClient,
+            UrunKategoriApiClient urunKategoriApiClient,
+            AdminYetkiliServisApiClient adminYetkiliServisApiClient)
         {
             _userManager = userManager;
-            _context = context;
             _sehirFirmaKoduService = sehirFirmaKoduService;
             _aktifSirketService = aktifSirketService;
+            _adminDashboardApiClient = adminDashboardApiClient;
+            _personelPanelApiClient = personelPanelApiClient;
             _yetkiBelgesiOnayApiClient = yetkiBelgesiOnayApiClient;
             _adminRaporApiClient = adminRaporApiClient;
             _yetkiBelgesiApiClient = yetkiBelgesiApiClient;
-        }
-
-        private static bool KullanilanKategoriMi(string? ad)
-        {
-            var key = NormalizeKategori(ad);
-
-            return key == "kombi"
-                || key.Contains("merkezikazan")
-                || key.Contains("sofben")
-                || key.Contains("sohben");
-        }
-
-        private static string NormalizeKategori(string? ad)
-        {
-            if (string.IsNullOrWhiteSpace(ad))
-                return string.Empty;
-
-            var normalized = ad.Trim().ToLower(new CultureInfo("tr-TR")).Normalize(NormalizationForm.FormD);
-            var chars = normalized
-                .Where(ch => CharUnicodeInfo.GetUnicodeCategory(ch) != UnicodeCategory.NonSpacingMark && char.IsLetterOrDigit(ch))
-                .ToArray();
-
-            return new string(chars)
-                .Replace("ı", "i")
-                .Replace("ş", "s")
-                .Replace("ğ", "g")
-                .Replace("ü", "u")
-                .Replace("ö", "o")
-                .Replace("ç", "c");
+            _dagitimSirketApiClient = dagitimSirketApiClient;
+            _markaApiClient = markaApiClient;
+            _urunKategoriApiClient = urunKategoriApiClient;
+            _adminYetkiliServisApiClient = adminYetkiliServisApiClient;
         }
 
         private async Task<List<UrunKategori>> KullanilanKategorileriGetir()
         {
-            return (await _context.UrunKategoriler
-                    .Where(x => !x.SilindiMi)
-                    .OrderBy(x => x.SiraNo)
-                    .ThenBy(x => x.Ad)
-                    .ToListAsync())
-                .Where(x => KullanilanKategoriMi(x.Ad))
-                .GroupBy(x => NormalizeKategori(x.Ad))
-                .Select(g => g
-                    .OrderByDescending(x => x.AktifMi)
-                    .ThenBy(x => string.IsNullOrWhiteSpace(x.IconUrl) ? 1 : 0)
-                    .ThenBy(x => x.SiraNo)
-                    .ThenBy(x => x.Ad)
-                    .First())
-                .OrderBy(x => x.SiraNo)
-                .ThenBy(x => x.Ad)
-                .ToList();
+            return await _urunKategoriApiClient.ListeAsync() ?? new List<UrunKategori>();
         }
 
         private async Task<bool> KullaniciYetkiliMi(AppKullanici kullanici, string yetki)
@@ -95,12 +62,55 @@ namespace YetkiliServisGazAcma.Controllers
             if (await _aktifSirketService.GenelSistemAdminMi(kullanici) || await _aktifSirketService.SirketAdminMi(kullanici))
                 return true;
 
+            var mevcutYetkiler = await GetPersonelYetkileriAsync(kullanici);
+            return mevcutYetkiler.Contains(YetkiTipleri.TAM_YETKI) || mevcutYetkiler.Contains(yetki);
+        }
+
+        private async Task<List<string>> GetPersonelYetkileriAsync(AppKullanici kullanici)
+        {
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            return await _context.Dag_PersonelYetkiler.AnyAsync(x =>
-                x.KullaniciId == kullanici.Id &&
-                !x.SilindiMi &&
-                (aktifSirketId == null || x.SirketId == aktifSirketId) &&
-                (x.YetkiTipi == YetkiTipleri.TAM_YETKI || x.YetkiTipi == yetki));
+            var cacheKey = $"PersonelYetkileri:{kullanici.Id}:{aktifSirketId?.ToString() ?? "tum"}";
+            if (HttpContext.Items.TryGetValue(cacheKey, out var cached) && cached is List<string> cachedYetkiler)
+                return cachedYetkiler;
+
+            try
+            {
+                var yetkiler = await _personelPanelApiClient.YetkilerimAsync(kullanici, aktifSirketId)
+                    ?? new List<string>();
+
+                if (yetkiler.Contains(YetkiTipleri.TAM_YETKI))
+                    yetkiler = new List<string> { YetkiTipleri.TAM_YETKI };
+
+                HttpContext.Items[cacheKey] = yetkiler;
+                return yetkiler;
+            }
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
+                return new List<string>();
+            }
+        }
+
+        private async Task<AdminDashboardOzet?> GetPersonelDashboardOzetAsync(AppKullanici kullanici)
+        {
+            var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
+            var cacheKey = $"PersonelDashboard:{sirketId?.ToString() ?? "tum"}";
+            if (HttpContext.Items.TryGetValue(cacheKey, out var cached))
+                return cached as AdminDashboardOzet;
+
+            try
+            {
+                var dashboard = await _adminDashboardApiClient.GetirAsync(kullanici, sirketId);
+                if (dashboard != null)
+                    HttpContext.Items[cacheKey] = dashboard;
+
+                return dashboard;
+            }
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
+                return null;
+            }
         }
 
         private async Task SetPersonelYetkiViewBags(AppKullanici kullanici)
@@ -133,17 +143,7 @@ namespace YetkiliServisGazAcma.Controllers
             }
             else
             {
-                var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-                var mevcutYetkiler = await _context.Dag_PersonelYetkiler
-                    .Where(x => x.KullaniciId == kullanici.Id
-                        && !x.SilindiMi
-                        && (aktifSirketId == null || x.SirketId == aktifSirketId))
-                    .Select(x => x.YetkiTipi)
-                    .Distinct()
-                    .ToListAsync();
-
-                if (mevcutYetkiler.Contains(YetkiTipleri.TAM_YETKI))
-                    mevcutYetkiler = new List<string> { YetkiTipleri.TAM_YETKI };
+                var mevcutYetkiler = await GetPersonelYetkileriAsync(kullanici);
 
                 var yetkiAdlari = new Dictionary<string, string>
                 {
@@ -165,21 +165,9 @@ namespace YetkiliServisGazAcma.Controllers
 
         private async Task SetPersonelNotifViewBags(AppKullanici kullanici)
         {
-            var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-
-            ViewBag.OnayBekleyen = await _context.Ys_YetkiBelgeleri.Include(x => x.Firma)
-                .Where(x => !x.SilindiMi && x.Durum == 0
-                    && x.Firma != null
-                    && !x.Firma.SilindiMi
-                    && (sirketId == null || x.Firma.SirketId == sirketId))
-                .CountAsync();
-
-            ViewBag.SuresiBitecek = await _context.Ys_YetkiBelgeleri.Include(x => x.Firma)
-                .Where(x => !x.SilindiMi && x.Durum == 1 && x.YetkiBelgesiBitisTarihi <= DateTime.Now.AddDays(30) && x.YetkiBelgesiBitisTarihi >= DateTime.Now
-                    && x.Firma != null
-                    && !x.Firma.SilindiMi
-                    && (sirketId == null || x.Firma.SirketId == sirketId))
-                .CountAsync();
+            var dashboard = await GetPersonelDashboardOzetAsync(kullanici);
+            ViewBag.OnayBekleyen = dashboard?.OnayBekleyen ?? 0;
+            ViewBag.SuresiBitecek = dashboard?.SuresiBitecek ?? 0;
         }
 
         private async Task<IActionResult?> YetkiKontrol(string yetki)
@@ -204,63 +192,18 @@ namespace YetkiliServisGazAcma.Controllers
             // Panel ana sayfasi personel icin goruntulenebilir olsun
             // Yetki yoksa onay islemleri gibi aksiyonlar zaten ilgili sayfalarda kontrol edilir.
 
-            var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
+            var dashboard = await GetPersonelDashboardOzetAsync(kullanici) ?? new AdminDashboardOzet();
+            var markalar = await _markaApiClient.TumunuGetirAsync() ?? new List<Ys_Marka>();
 
-            ViewBag.OnayBekleyen = await _context.Ys_YetkiBelgeleri.Include(x => x.Firma)
-                .Where(x => !x.SilindiMi
-                    && x.Durum == 0
-                    && x.Firma != null
-                    && !x.Firma.SilindiMi
-                    && (sirketId == null || x.Firma.SirketId == sirketId))
-                .CountAsync();
-
-            ViewBag.ToplamFirma = await _context.Ys_Firmalar
-                .Where(x => !x.SilindiMi && (sirketId == null || x.SirketId == sirketId))
-                .CountAsync();
-
-            ViewBag.ToplamDevreyeAlma = await _context.Ys_DevreyeAlmalar.Include(x => x.Firma)
-                .Where(x => !x.SilindiMi
-                    && x.Firma != null
-                    && !x.Firma.SilindiMi
-                    && (sirketId == null || x.Firma.SirketId == sirketId))
-                .CountAsync();
-
-            ViewBag.ToplamMarka = await _context.Ys_Markalar
-                .Where(x => !x.SilindiMi)
-                .CountAsync();
-
-            ViewBag.ToplamSirket = await _context.Set<Dag_Sirket>()
-                .Where(x => !x.SilindiMi)
-                .CountAsync();
-
-            ViewBag.BuAy = await _context.Ys_DevreyeAlmalar.Include(x => x.Firma)
-                .Where(x => !x.SilindiMi && x.OlusturmaTarihi.Month == DateTime.Now.Month && x.OlusturmaTarihi.Year == DateTime.Now.Year
-                    && x.Firma != null
-                    && !x.Firma.SilindiMi
-                    && (sirketId == null || x.Firma.SirketId == sirketId))
-                .CountAsync();
-
-            ViewBag.SuresiBitecek = await _context.Ys_YetkiBelgeleri.Include(x => x.Firma)
-                .Where(x => !x.SilindiMi && x.Durum == 1 && x.YetkiBelgesiBitisTarihi <= DateTime.Now.AddDays(30) && x.YetkiBelgesiBitisTarihi >= DateTime.Now
-                    && x.Firma != null
-                    && !x.Firma.SilindiMi
-                    && (sirketId == null || x.Firma.SirketId == sirketId))
-                .CountAsync();
-
-            ViewBag.SonBekleyenler = await _context.Ys_YetkiBelgeleri.Include(x => x.Firma).ThenInclude(x => x!.Sirket)
-                .Where(x => !x.SilindiMi
-                    && x.Durum == 0
-                    && x.Firma != null
-                    && !x.Firma.SilindiMi
-                    && (sirketId == null || x.Firma.SirketId == sirketId))
-                .OrderByDescending(x => x.OlusturmaTarihi).Take(5).ToListAsync();
-
-            ViewBag.SonIslemler = await _context.Ys_DevreyeAlmalar.Include(x => x.Firma).Include(x => x.Marka)
-                .Where(x => !x.SilindiMi
-                    && x.Firma != null
-                    && !x.Firma.SilindiMi
-                    && (sirketId == null || x.Firma.SirketId == sirketId))
-                .OrderByDescending(x => x.OlusturmaTarihi).Take(8).ToListAsync();
+            ViewBag.OnayBekleyen = dashboard.OnayBekleyen;
+            ViewBag.ToplamFirma = dashboard.ToplamFirma;
+            ViewBag.ToplamDevreyeAlma = dashboard.ToplamDevreyeAlma;
+            ViewBag.ToplamMarka = markalar.Count;
+            ViewBag.ToplamSirket = dashboard.ToplamSirket;
+            ViewBag.BuAy = dashboard.BuAyDevreyeAlma;
+            ViewBag.SuresiBitecek = dashboard.SuresiBitecek;
+            ViewBag.SonBekleyenler = dashboard.SonYetkiBelgeleri;
+            ViewBag.SonIslemler = dashboard.SonDevreyeAlmalar;
 
             ViewBag.Kullanici = kullanici;
             await SetPersonelYetkiViewBags(kullanici);
@@ -275,7 +218,18 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null) return Redirect("/giris");
 
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            var sirket = await _context.Set<Dag_Sirket>().FirstOrDefaultAsync(x => x.Id == sirketId);
+            Dag_Sirket? sirket = null;
+            if (sirketId.HasValue)
+            {
+                try
+                {
+                    sirket = await _dagitimSirketApiClient.GetirAsync(kullanici, sirketId.Value);
+                }
+                catch (ApiIntegrationException ex)
+                {
+                    TempData["Hata"] = ex.Message;
+                }
+            }
 
             ViewBag.Kullanici = kullanici;
             ViewBag.Sirket = sirket;
@@ -324,7 +278,7 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpGet("devreyealmalar")]
-        public async Task<IActionResult> DevreyeAlmalar(string? marka, string? servis, string? durum, DateTime? bas, DateTime? bit)
+        public async Task<IActionResult> DevreyeAlmalar(string? tesisat, string? marka, string? servis, string? il, string? ilce, string? durum, DateTime? bas, DateTime? bit)
         {
             var kullanici = await _userManager.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
@@ -335,7 +289,17 @@ namespace YetkiliServisGazAcma.Controllers
             AdminDevreyeAlmaListeSonuc sonuc;
             try
             {
-                sonuc = await _adminRaporApiClient.DevreyeAlmalarAsync(kullanici, sirketId, marka, servis, null, durum, bas, bit)
+                sonuc = await _adminRaporApiClient.DevreyeAlmalarAsync(
+                        kullanici,
+                        sirketId,
+                        marka,
+                        servis,
+                        il,
+                        durum,
+                        bas,
+                        bit,
+                        tesisatNo: tesisat,
+                        ilce: ilce)
                     ?? new AdminDevreyeAlmaListeSonuc();
             }
             catch (ApiIntegrationException ex)
@@ -345,6 +309,8 @@ namespace YetkiliServisGazAcma.Controllers
             }
 
             ViewBag.Markalar = sonuc.Markalar;
+            ViewBag.FirmaIlceleri = sonuc.FirmaIlceleri;
+            ViewBag.Sehirler = _sehirFirmaKoduService.Sehirler();
             ViewBag.Kullanici = kullanici;
             await SetPersonelYetkiViewBags(kullanici);
             await SetPersonelNotifViewBags(kullanici);
@@ -530,44 +496,17 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null) return Redirect("/giris");
 
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            var query = _context.Ys_YetkiBelgeleri
-                .Include(x => x.Firma).ThenInclude(x => x!.Sirket)
-                .Where(x => !x.SilindiMi
-                    && x.Durum != 0
-                    && x.Firma != null
-                    && !x.Firma.SilindiMi
-                    && (sirketId == null || x.Firma.SirketId == sirketId))
-                .AsQueryable();
-
-            if (bas.HasValue)
+            List<Ys_YetkiBelgesi> onaylar;
+            try
             {
-                var baslangic = bas.Value.Date;
-                query = query.Where(x => x.OnayTarihi.HasValue && x.OnayTarihi.Value >= baslangic);
+                onaylar = await _yetkiBelgesiOnayApiClient.OnayGecmisiAsync(kullanici, sirketId, bas, bit, q, durum)
+                    ?? new List<Ys_YetkiBelgesi>();
             }
-
-            if (bit.HasValue)
+            catch (ApiIntegrationException ex)
             {
-                var bitis = bit.Value.Date.AddDays(1);
-                query = query.Where(x => x.OnayTarihi.HasValue && x.OnayTarihi.Value < bitis);
+                TempData["Hata"] = ex.Message;
+                onaylar = new List<Ys_YetkiBelgesi>();
             }
-
-            if (!string.IsNullOrWhiteSpace(durum) && int.TryParse(durum, out var durumNo) && (durumNo == 1 || durumNo == 2))
-            {
-                query = query.Where(x => x.Durum == durumNo);
-            }
-
-            if (!string.IsNullOrWhiteSpace(q))
-            {
-                var aranacak = q.Trim();
-                query = query.Where(x =>
-                    (x.Firma != null && x.Firma.FirmaAdi != null && x.Firma.FirmaAdi.Contains(aranacak)) ||
-                    (x.Firma != null && x.Firma.Sirket != null && x.Firma.Sirket.SirketAdi != null && x.Firma.Sirket.SirketAdi.Contains(aranacak)) ||
-                    (x.OnaylayanKullanici != null && x.OnaylayanKullanici.Contains(aranacak)));
-            }
-
-            var onaylar = await query
-                .OrderByDescending(x => x.OnayTarihi ?? x.OlusturmaTarihi)
-                .ToListAsync();
 
             ViewBag.Kullanici = kullanici;
             ViewBag.Bas = bas;
@@ -588,10 +527,16 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await _userManager.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
-            var sirketler = await _context.Set<Dag_Sirket>()
-                .Where(x => !x.SilindiMi)
-                .OrderBy(x => x.SirketAdi)
-                .ToListAsync();
+            List<Dag_Sirket> sirketler;
+            try
+            {
+                sirketler = await _dagitimSirketApiClient.TumunuGetirAsync() ?? new List<Dag_Sirket>();
+            }
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
+                sirketler = new List<Dag_Sirket>();
+            }
 
             ViewBag.Kullanici = kullanici;
             await SetPersonelYetkiViewBags(kullanici);
@@ -606,9 +551,11 @@ namespace YetkiliServisGazAcma.Controllers
             if (yetkiResult != null) return yetkiResult;
 
             var kullanici = await _userManager.GetUserAsync(User);
+            if (kullanici == null) return Redirect("/giris");
+
             ViewBag.Kullanici = kullanici;
-            await SetPersonelYetkiViewBags(kullanici!);
-            await SetPersonelNotifViewBags(kullanici!);
+            await SetPersonelYetkiViewBags(kullanici);
+            await SetPersonelNotifViewBags(kullanici);
             return View("~/Views/PersonelPanel/SirketEkle.cshtml");
         }
 
@@ -620,12 +567,21 @@ namespace YetkiliServisGazAcma.Controllers
             if (yetkiResult != null) return yetkiResult;
 
             var kullanici = await _userManager.GetUserAsync(User);
-            sirket.OlusturmaTarihi = DateTime.Now;
-            sirket.OlusturanKullanici = kullanici?.UserName ?? "sistem";
+            if (kullanici == null) return Redirect("/giris");
 
-            _context.Set<Dag_Sirket>().Add(sirket);
-            await _context.SaveChangesAsync();
-            TempData["Basarili"] = "Şirket başarıyla eklendi.";
+            try
+            {
+                var sonuc = await _dagitimSirketApiClient.EkleAsync(kullanici, sirket);
+                TempData[sonuc?.Basarili == true ? "Basarili" : "Hata"] =
+                    sonuc?.Basarili == true
+                        ? "Şirket başarıyla eklendi."
+                        : sonuc?.Mesaj ?? "Şirket eklenemedi.";
+            }
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
+            }
+
             return RedirectToAction(nameof(Sirketler));
         }
 
@@ -636,12 +592,24 @@ namespace YetkiliServisGazAcma.Controllers
             if (yetkiResult != null) return yetkiResult;
 
             var kullanici = await _userManager.GetUserAsync(User);
-            var sirket = await _context.Set<Dag_Sirket>().FirstOrDefaultAsync(x => x.Id == id && !x.SilindiMi);
+            if (kullanici == null) return Redirect("/giris");
+
+            Dag_Sirket? sirket;
+            try
+            {
+                sirket = await _dagitimSirketApiClient.GetirAsync(kullanici, id);
+            }
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
+                return RedirectToAction(nameof(Sirketler));
+            }
+
             if (sirket == null) return RedirectToAction(nameof(Sirketler));
 
             ViewBag.Kullanici = kullanici;
-            await SetPersonelYetkiViewBags(kullanici!);
-            await SetPersonelNotifViewBags(kullanici!);
+            await SetPersonelYetkiViewBags(kullanici);
+            await SetPersonelNotifViewBags(kullanici);
             return View("~/Views/PersonelPanel/SirketDuzenle.cshtml", sirket);
         }
 
@@ -653,20 +621,22 @@ namespace YetkiliServisGazAcma.Controllers
             if (yetkiResult != null) return yetkiResult;
 
             var kullanici = await _userManager.GetUserAsync(User);
-            var sirket = await _context.Set<Dag_Sirket>().FirstOrDefaultAsync(x => x.Id == id && !x.SilindiMi);
-            if (sirket == null) return RedirectToAction(nameof(Sirketler));
+            if (kullanici == null) return Redirect("/giris");
 
-            sirket.SirketAdi = model.SirketAdi;
-            sirket.Il = model.Il;
-            sirket.Telefon = model.Telefon;
-            sirket.Email = model.Email;
-            sirket.Adres = model.Adres;
-            sirket.AktifMi = model.AktifMi;
-            sirket.GuncellemeTarihi = DateTime.Now;
-            sirket.GuncelleyenKullanici = kullanici?.UserName ?? "sistem";
+            model.Id = id;
+            try
+            {
+                var sonuc = await _dagitimSirketApiClient.GuncelleAsync(kullanici, model);
+                TempData[sonuc?.Basarili == true ? "Basarili" : "Hata"] =
+                    sonuc?.Basarili == true
+                        ? "Şirket başarıyla güncellendi."
+                        : sonuc?.Mesaj ?? "Şirket güncellenemedi.";
+            }
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
+            }
 
-            await _context.SaveChangesAsync();
-            TempData["Basarili"] = "Şirket başarıyla güncellendi.";
             return RedirectToAction(nameof(Sirketler));
         }
 
@@ -678,14 +648,21 @@ namespace YetkiliServisGazAcma.Controllers
             if (yetkiResult != null) return yetkiResult;
 
             var kullanici = await _userManager.GetUserAsync(User);
-            var sirket = await _context.Set<Dag_Sirket>().FirstOrDefaultAsync(x => x.Id == id && !x.SilindiMi);
-            if (sirket == null) return RedirectToAction(nameof(Sirketler));
+            if (kullanici == null) return Redirect("/giris");
 
-            sirket.SilindiMi = true;
-            sirket.SilinmeTarihi = DateTime.Now;
-            sirket.SilenKullanici = kullanici?.UserName ?? "sistem";
-            await _context.SaveChangesAsync();
-            TempData["Basarili"] = "Şirket silindi.";
+            try
+            {
+                var sonuc = await _dagitimSirketApiClient.SilAsync(kullanici, id);
+                TempData[sonuc?.Basarili == true ? "Basarili" : "Hata"] =
+                    sonuc?.Basarili == true
+                        ? "Şirket silindi."
+                        : sonuc?.Mesaj ?? "Şirket silinemedi.";
+            }
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
+            }
+
             return RedirectToAction(nameof(Sirketler));
         }
 
@@ -695,10 +672,16 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await _userManager.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
-            var markalar = await _context.Ys_Markalar
-                .Where(x => !x.SilindiMi)
-                .OrderBy(x => x.MarkaAdi)
-                .ToListAsync();
+            List<Ys_Marka> markalar;
+            try
+            {
+                markalar = await _markaApiClient.TumunuGetirAsync() ?? new List<Ys_Marka>();
+            }
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
+                markalar = new List<Ys_Marka>();
+            }
 
             ViewBag.Kullanici = kullanici;
             await SetPersonelYetkiViewBags(kullanici);
@@ -713,9 +696,11 @@ namespace YetkiliServisGazAcma.Controllers
             if (yetkiResult != null) return yetkiResult;
 
             var kullanici = await _userManager.GetUserAsync(User);
+            if (kullanici == null) return Redirect("/giris");
+
             ViewBag.Kullanici = kullanici;
-            await SetPersonelYetkiViewBags(kullanici!);
-            await SetPersonelNotifViewBags(kullanici!);
+            await SetPersonelYetkiViewBags(kullanici);
+            await SetPersonelNotifViewBags(kullanici);
             return View("~/Views/PersonelPanel/MarkaEkle.cshtml");
         }
 
@@ -727,12 +712,21 @@ namespace YetkiliServisGazAcma.Controllers
             if (yetkiResult != null) return yetkiResult;
 
             var kullanici = await _userManager.GetUserAsync(User);
-            marka.OlusturmaTarihi = DateTime.Now;
-            marka.OlusturanKullanici = kullanici?.UserName ?? "sistem";
+            if (kullanici == null) return Redirect("/giris");
 
-            _context.Ys_Markalar.Add(marka);
-            await _context.SaveChangesAsync();
-            TempData["Basarili"] = "Marka başarıyla eklendi.";
+            try
+            {
+                var sonuc = await _markaApiClient.EkleAsync(kullanici, marka);
+                TempData[sonuc?.Basarili == true ? "Basarili" : "Hata"] =
+                    sonuc?.Basarili == true
+                        ? "Marka başarıyla eklendi."
+                        : sonuc?.Mesaj ?? "Marka eklenemedi.";
+            }
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
+            }
+
             return RedirectToAction(nameof(Markalar));
         }
 
@@ -743,12 +737,24 @@ namespace YetkiliServisGazAcma.Controllers
             if (yetkiResult != null) return yetkiResult;
 
             var kullanici = await _userManager.GetUserAsync(User);
-            var marka = await _context.Ys_Markalar.FirstOrDefaultAsync(x => x.Id == id && !x.SilindiMi);
+            if (kullanici == null) return Redirect("/giris");
+
+            Ys_Marka? marka;
+            try
+            {
+                marka = await _markaApiClient.GetirAsync(kullanici, id);
+            }
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
+                return RedirectToAction(nameof(Markalar));
+            }
+
             if (marka == null) return RedirectToAction(nameof(Markalar));
 
             ViewBag.Kullanici = kullanici;
-            await SetPersonelYetkiViewBags(kullanici!);
-            await SetPersonelNotifViewBags(kullanici!);
+            await SetPersonelYetkiViewBags(kullanici);
+            await SetPersonelNotifViewBags(kullanici);
             return View("~/Views/PersonelPanel/MarkaDuzenle.cshtml", marka);
         }
 
@@ -760,17 +766,22 @@ namespace YetkiliServisGazAcma.Controllers
             if (yetkiResult != null) return yetkiResult;
 
             var kullanici = await _userManager.GetUserAsync(User);
-            var marka = await _context.Ys_Markalar.FirstOrDefaultAsync(x => x.Id == id && !x.SilindiMi);
-            if (marka == null) return RedirectToAction(nameof(Markalar));
+            if (kullanici == null) return Redirect("/giris");
 
-            marka.MarkaAdi = model.MarkaAdi;
-            marka.Aciklama = model.Aciklama;
-            marka.AktifMi = model.AktifMi;
-            marka.GuncellemeTarihi = DateTime.Now;
-            marka.GuncelleyenKullanici = kullanici?.UserName ?? "sistem";
+            model.Id = id;
+            try
+            {
+                var sonuc = await _markaApiClient.GuncelleAsync(kullanici, model);
+                TempData[sonuc?.Basarili == true ? "Basarili" : "Hata"] =
+                    sonuc?.Basarili == true
+                        ? "Marka başarıyla güncellendi."
+                        : sonuc?.Mesaj ?? "Marka güncellenemedi.";
+            }
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
+            }
 
-            await _context.SaveChangesAsync();
-            TempData["Basarili"] = "Marka başarıyla güncellendi.";
             return RedirectToAction(nameof(Markalar));
         }
 
@@ -782,23 +793,21 @@ namespace YetkiliServisGazAcma.Controllers
             if (yetkiResult != null) return yetkiResult;
 
             var kullanici = await _userManager.GetUserAsync(User);
-            var marka = await _context.Ys_Markalar.FirstOrDefaultAsync(x => x.Id == id && !x.SilindiMi);
-            if (marka == null) return RedirectToAction(nameof(Markalar));
+            if (kullanici == null) return Redirect("/giris");
 
-            var kullanimVar = await _context.Ys_DevreyeAlmalar.AnyAsync(x => !x.SilindiMi && x.MarkaId == id)
-                || await _context.Ys_FirmaMarkalar.AnyAsync(x => !x.SilindiMi && x.MarkaId == id);
-
-            if (kullanimVar)
+            try
             {
-                TempData["Hata"] = "Bu marka üzerinde devreye alma veya yetkili servis kaydı olduğu için silinemez.";
-                return RedirectToAction(nameof(Markalar));
+                var sonuc = await _markaApiClient.SilAsync(kullanici, id);
+                TempData[sonuc?.Basarili == true ? "Basarili" : "Hata"] =
+                    sonuc?.Basarili == true
+                        ? "Marka silindi."
+                        : sonuc?.Mesaj ?? "Marka silinemedi.";
+            }
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
             }
 
-            marka.SilindiMi = true;
-            marka.SilinmeTarihi = DateTime.Now;
-            marka.SilenKullanici = kullanici?.UserName ?? "sistem";
-            await _context.SaveChangesAsync();
-            TempData["Basarili"] = "Marka silindi.";
             return RedirectToAction(nameof(Markalar));
         }
 
@@ -808,29 +817,23 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await _userManager.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
-            var query = _context.Ys_Firmalar
-                .Include(x => x.Sirket)
-                .Where(x => !x.SilindiMi)
-                .AsQueryable();
-
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            if (sirketId.HasValue)
-                query = query.Where(x => x.SirketId == sirketId.Value);
-
-            if (!string.IsNullOrWhiteSpace(q))
+            AdminYetkiliServisListeSonuc? listeSonuc;
+            try
             {
-                query = query.Where(x =>
-                    (x.FirmaAdi != null && x.FirmaAdi.Contains(q)) ||
-                    (x.VergiNo != null && x.VergiNo.Contains(q)) ||
-                    (x.Sirket != null && x.Sirket.SirketAdi != null && x.Sirket.SirketAdi.Contains(q)));
+                listeSonuc = await _adminYetkiliServisApiClient.ListeleAsync(kullanici, sirketId, q, null, null, null);
+            }
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
+                listeSonuc = null;
             }
 
-            var servisler = await query.OrderBy(x => x.FirmaAdi).ToListAsync();
-            var devreyeSayilari = await _context.Ys_DevreyeAlmalar
-                .Where(x => !x.SilindiMi)
-                .GroupBy(x => x.FirmaId)
-                .Select(x => new { FirmaId = x.Key, Sayisi = x.Count() })
-                .ToDictionaryAsync(x => x.FirmaId, x => x.Sayisi);
+            var servisler = listeSonuc?.Servisler ?? new List<Ys_Firma>();
+            var devreyeSayilari = listeSonuc?.DevreyeSayilari ?? new Dictionary<int, int>();
+
+            if (listeSonuc == null)
+                TempData["Hata"] = "Yetkili servis listesi API üzerinden alınamadı.";
 
             ViewBag.Kullanici = kullanici;
             ViewBag.Query = q ?? "";
@@ -847,15 +850,20 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null) return Redirect("/giris");
 
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            var firma = await _context.Ys_Firmalar
-                .Include(x => x.Sirket)
-                .Include(x => x.Subeler)
-                .Include(x => x.FirmaMarkalar!).ThenInclude(x => x.Marka)
-                .Include(x => x.FirmaKategoriler!).ThenInclude(x => x.Kategori)
-                .FirstOrDefaultAsync(x => x.Id == id && !x.SilindiMi
-                    && (!sirketId.HasValue || x.SirketId == sirketId.Value));
+            AdminYetkiliServisDetaySonuc? detay;
+            try
+            {
+                detay = await _adminYetkiliServisApiClient.DetayAsync(kullanici, id, sirketId);
+            }
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
+                return RedirectToAction(nameof(YetkiliServisler));
+            }
 
+            var firma = detay?.Servis;
             if (firma == null) return RedirectToAction(nameof(YetkiliServisler));
+            firma.Subeler = detay!.Subeler;
 
             ViewBag.Kullanici = kullanici;
             await SetPersonelYetkiViewBags(kullanici);
@@ -870,13 +878,15 @@ namespace YetkiliServisGazAcma.Controllers
             if (yetkiResult != null) return yetkiResult;
 
             var kullanici = await _userManager.GetUserAsync(User);
+            if (kullanici == null) return Redirect("/giris");
+
             ViewBag.Kullanici = kullanici;
             ViewBag.Sehirler = _sehirFirmaKoduService.Sehirler();
             ViewBag.Kategoriler = await KullanilanKategorileriGetir();
-            ViewBag.Markalar = await _context.Ys_Markalar.Where(x => !x.SilindiMi).OrderBy(x => x.MarkaAdi).ToListAsync();
+            ViewBag.Markalar = await _markaApiClient.TumunuGetirAsync() ?? new List<Ys_Marka>();
 
-            await SetPersonelYetkiViewBags(kullanici!);
-            await SetPersonelNotifViewBags(kullanici!);
+            await SetPersonelYetkiViewBags(kullanici);
+            await SetPersonelNotifViewBags(kullanici);
             return View("~/Views/PersonelPanel/YetkiliServisEkle.cshtml");
         }
 
@@ -888,6 +898,7 @@ namespace YetkiliServisGazAcma.Controllers
             if (yetkiResult != null) return yetkiResult;
 
             var kullanici = await _userManager.GetUserAsync(User);
+            if (kullanici == null) return Redirect("/giris");
 
             if (string.IsNullOrWhiteSpace(firmaAdi))
             {
@@ -895,68 +906,33 @@ namespace YetkiliServisGazAcma.Controllers
                 return Redirect("/personel-panel/yetkiliservisler/ekle");
             }
 
-            var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici)
-                ?? await _sehirFirmaKoduService.SirketIdBulVeyaOlustur(
+            var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
+            try
+            {
+                var sonuc = await _adminYetkiliServisApiClient.EkleAsync(
+                    kullanici,
+                    sirketId,
+                    firmaAdi,
+                    yetkiliKisi,
+                    telefon,
+                    email,
+                    adres,
                     faaliyetIli,
-                    kullanici?.UserName ?? "sistem");
-            var kullanilanKategoriIds = (await KullanilanKategorileriGetir())
-                .Select(x => x.Id)
-                .ToHashSet();
-            kategoriIds = kategoriIds?
-                .Where(kullanilanKategoriIds.Contains)
-                .Distinct()
-                .ToList() ?? new List<int>();
+                    vergiNo,
+                    vergiDairesi,
+                    kategoriIds,
+                    markaIds);
 
-            var yeni = new Ys_Firma
+                TempData[sonuc?.Basarili == true ? "Basarili" : "Hata"] =
+                    sonuc?.Basarili == true
+                        ? "Yetkili servis başarıyla eklendi."
+                        : sonuc?.Mesaj ?? "Yetkili servis eklenemedi.";
+            }
+            catch (ApiIntegrationException ex)
             {
-                FirmaAdi = firmaAdi,
-                YetkiliKisi = yetkiliKisi,
-                Telefon = telefon,
-                Email = email,
-                Adres = adres,
-                FaaliyetIli = faaliyetIli,
-                VergiNo = vergiNo,
-                VergiDairesi = vergiDairesi,
-                SirketId = sirketId,
-                OlusturmaTarihi = DateTime.Now,
-                OlusturanKullanici = kullanici?.UserName ?? "sistem"
-            };
-
-            _context.Ys_Firmalar.Add(yeni);
-            await _context.SaveChangesAsync();
-
-            if (kategoriIds != null && kategoriIds.Count > 0)
-            {
-                foreach (var kid in kategoriIds.Distinct())
-                {
-                    _context.Ys_FirmaKategoriler.Add(new Ys_FirmaKategori
-                    {
-                        FirmaId = yeni.Id,
-                        KategoriId = kid,
-                        YetkiBitisTarihi = DateTime.Now.AddYears(5),
-                        OlusturmaTarihi = DateTime.Now,
-                        OlusturanKullanici = kullanici?.UserName ?? "sistem"
-                    });
-                }
+                TempData["Hata"] = ex.Message;
             }
 
-            if (markaIds != null && markaIds.Count > 0)
-            {
-                foreach (var mid in markaIds.Distinct())
-                {
-                    _context.Ys_FirmaMarkalar.Add(new Ys_FirmaMarka
-                    {
-                        FirmaId = yeni.Id,
-                        MarkaId = mid,
-                        YetkiBitisTarihi = DateTime.Now.AddYears(5),
-                        OlusturmaTarihi = DateTime.Now,
-                        OlusturanKullanici = kullanici?.UserName ?? "sistem"
-                    });
-                }
-            }
-
-            await _context.SaveChangesAsync();
-            TempData["Basarili"] = "Yetkili servis başarıyla eklendi.";
             return RedirectToAction(nameof(YetkiliServisler));
         }
 
@@ -967,23 +943,33 @@ namespace YetkiliServisGazAcma.Controllers
             if (yetkiResult != null) return yetkiResult;
 
             var kullanici = await _userManager.GetUserAsync(User);
+            if (kullanici == null) return Redirect("/giris");
+
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            var servis = await _context.Ys_Firmalar
-                .Include(x => x.Sirket)
-                .FirstOrDefaultAsync(x => x.Id == id && !x.SilindiMi
-                    && (!sirketId.HasValue || x.SirketId == sirketId.Value));
+            AdminYetkiliServisDetaySonuc? detay;
+            try
+            {
+                detay = await _adminYetkiliServisApiClient.DetayAsync(kullanici, id, sirketId);
+            }
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
+                return RedirectToAction(nameof(YetkiliServisler));
+            }
+
+            var servis = detay?.Servis;
             if (servis == null) return RedirectToAction(nameof(YetkiliServisler));
 
             ViewBag.Kullanici = kullanici;
             ViewBag.Servis = servis;
             ViewBag.Sehirler = _sehirFirmaKoduService.Sehirler();
             ViewBag.Kategoriler = await KullanilanKategorileriGetir();
-            ViewBag.Markalar = await _context.Ys_Markalar.Where(x => !x.SilindiMi).OrderBy(x => x.MarkaAdi).ToListAsync();
-            ViewBag.SeciliKategoriler = await _context.Ys_FirmaKategoriler.Where(x => x.FirmaId == servis.Id).Select(x => x.KategoriId).ToListAsync();
-            ViewBag.SeciliMarkalar = await _context.Ys_FirmaMarkalar.Where(x => x.FirmaId == servis.Id).Select(x => x.MarkaId).ToListAsync();
+            ViewBag.Markalar = await _markaApiClient.TumunuGetirAsync() ?? new List<Ys_Marka>();
+            ViewBag.SeciliKategoriler = servis.FirmaKategoriler?.Where(x => !x.SilindiMi).Select(x => x.KategoriId).ToList() ?? new List<int>();
+            ViewBag.SeciliMarkalar = servis.FirmaMarkalar?.Where(x => !x.SilindiMi).Select(x => x.MarkaId).ToList() ?? new List<int>();
 
-            await SetPersonelYetkiViewBags(kullanici!);
-            await SetPersonelNotifViewBags(kullanici!);
+            await SetPersonelYetkiViewBags(kullanici);
+            await SetPersonelNotifViewBags(kullanici);
             return View("~/Views/PersonelPanel/YetkiliServisDuzenle.cshtml", servis);
         }
 
@@ -995,74 +981,37 @@ namespace YetkiliServisGazAcma.Controllers
             if (yetkiResult != null) return yetkiResult;
 
             var kullanici = await _userManager.GetUserAsync(User);
+            if (kullanici == null) return Redirect("/giris");
+
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            var servis = await _context.Ys_Firmalar.FirstOrDefaultAsync(x => x.Id == id && !x.SilindiMi
-                && (!sirketId.HasValue || x.SirketId == sirketId.Value));
-            if (servis == null) return RedirectToAction(nameof(YetkiliServisler));
-
-            var hedefSirketId = sirketId
-                ?? await _sehirFirmaKoduService.SirketIdBulVeyaOlustur(
+            try
+            {
+                var sonuc = await _adminYetkiliServisApiClient.GuncelleAsync(
+                    kullanici,
+                    id,
+                    sirketId,
+                    firmaAdi,
+                    yetkiliKisi,
+                    telefon,
+                    email,
+                    adres,
                     faaliyetIli,
-                    kullanici?.UserName ?? "sistem");
-            var kullanilanKategoriIds = (await KullanilanKategorileriGetir())
-                .Select(x => x.Id)
-                .ToHashSet();
-            kategoriIds = kategoriIds?
-                .Where(kullanilanKategoriIds.Contains)
-                .Distinct()
-                .ToList() ?? new List<int>();
+                    vergiNo,
+                    vergiDairesi,
+                    aktifMi,
+                    kategoriIds,
+                    markaIds?.Count > 0 ? markaIds : null);
 
-            servis.FirmaAdi = firmaAdi;
-            servis.YetkiliKisi = yetkiliKisi;
-            servis.Telefon = telefon;
-            servis.Email = email;
-            servis.Adres = adres;
-            servis.FaaliyetIli = faaliyetIli;
-            servis.VergiNo = vergiNo;
-            servis.VergiDairesi = vergiDairesi;
-            servis.SirketId = hedefSirketId;
-            servis.AktifMi = aktifMi;
-            servis.GuncellemeTarihi = DateTime.Now;
-            servis.GuncelleyenKullanici = kullanici?.UserName ?? "sistem";
-
-            var mevcutKat = await _context.Ys_FirmaKategoriler.Where(x => x.FirmaId == servis.Id).ToListAsync();
-            _context.Ys_FirmaKategoriler.RemoveRange(mevcutKat);
-
-            if (kategoriIds != null && kategoriIds.Count > 0)
+                TempData[sonuc?.Basarili == true ? "Basarili" : "Hata"] =
+                    sonuc?.Basarili == true
+                        ? "Yetkili servis güncellendi."
+                        : sonuc?.Mesaj ?? "Yetkili servis güncellenemedi.";
+            }
+            catch (ApiIntegrationException ex)
             {
-                foreach (var kid in kategoriIds.Distinct())
-                {
-                    _context.Ys_FirmaKategoriler.Add(new Ys_FirmaKategori
-                    {
-                        FirmaId = servis.Id,
-                        KategoriId = kid,
-                        YetkiBitisTarihi = DateTime.Now.AddYears(5),
-                        OlusturmaTarihi = DateTime.Now,
-                        OlusturanKullanici = kullanici?.UserName ?? "sistem"
-                    });
-                }
+                TempData["Hata"] = ex.Message;
             }
 
-            var mevcutMarka = await _context.Ys_FirmaMarkalar.Where(x => x.FirmaId == servis.Id).ToListAsync();
-            _context.Ys_FirmaMarkalar.RemoveRange(mevcutMarka);
-
-            if (markaIds != null && markaIds.Count > 0)
-            {
-                foreach (var mid in markaIds.Distinct())
-                {
-                    _context.Ys_FirmaMarkalar.Add(new Ys_FirmaMarka
-                    {
-                        FirmaId = servis.Id,
-                        MarkaId = mid,
-                        YetkiBitisTarihi = DateTime.Now.AddYears(5),
-                        OlusturmaTarihi = DateTime.Now,
-                        OlusturanKullanici = kullanici?.UserName ?? "sistem"
-                    });
-                }
-            }
-
-            await _context.SaveChangesAsync();
-            TempData["Basarili"] = "Yetkili servis güncellendi.";
             return RedirectToAction(nameof(YetkiliServisler));
         }
 
@@ -1074,27 +1023,22 @@ namespace YetkiliServisGazAcma.Controllers
             if (yetkiResult != null) return yetkiResult;
 
             var kullanici = await _userManager.GetUserAsync(User);
+            if (kullanici == null) return Redirect("/giris");
+
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            var servis = await _context.Ys_Firmalar.FirstOrDefaultAsync(x => x.Id == id && !x.SilindiMi
-                && (!sirketId.HasValue || x.SirketId == sirketId.Value));
-            if (servis == null) return RedirectToAction(nameof(YetkiliServisler));
-
-            var devreyeAlmaVar = await _context.Ys_DevreyeAlmalar
-                .AnyAsync(x => !x.SilindiMi && x.FirmaId == id);
-
-            if (devreyeAlmaVar)
+            try
             {
-                TempData.Remove("Basarili");
-                TempData["Hata"] = "Bu yetkili servis üzerinde devreye alma işlemi olduğu için silinemez.";
-                return RedirectToAction(nameof(YetkiliServisler));
+                var sonuc = await _adminYetkiliServisApiClient.SilAsync(kullanici, id, sirketId);
+                TempData[sonuc?.Basarili == true ? "Basarili" : "Hata"] =
+                    sonuc?.Basarili == true
+                        ? "Yetkili servis silindi."
+                        : sonuc?.Mesaj ?? "Yetkili servis silinemedi.";
+            }
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
             }
 
-            servis.SilindiMi = true;
-            servis.SilinmeTarihi = DateTime.Now;
-            servis.SilenKullanici = kullanici?.UserName ?? "sistem";
-            await _context.SaveChangesAsync();
-            TempData.Remove("Hata");
-            TempData["Basarili"] = "Yetkili servis silindi.";
             return RedirectToAction(nameof(YetkiliServisler));
         }
 

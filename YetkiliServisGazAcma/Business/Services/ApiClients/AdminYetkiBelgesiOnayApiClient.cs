@@ -64,9 +64,76 @@ namespace YetkiliServisGazAcma.Business.Services
             }
         }
 
+        public async Task<List<Ys_YetkiBelgesi>?> OnayGecmisiAsync(
+            AppKullanici kullanici,
+            int? sirketId,
+            DateTime? bas,
+            DateTime? bit,
+            string? q,
+            string? durum)
+        {
+            if (!_options.Enabled)
+            {
+                ApiClientFallback.EnsureAllowed(_options, "Admin yetki belgesi onay gecmisi");
+                return null;
+            }
+
+            try
+            {
+                var token = await _tokenService.OlusturAsync(kullanici);
+                if (string.IsNullOrWhiteSpace(token))
+                {
+                    ApiClientFallback.EnsureAllowed(_options, "Admin yetki belgesi onay gecmisi token");
+                    return null;
+                }
+
+                using var request = new HttpRequestMessage(HttpMethod.Post, "api/admin-panel/yetki-belgeleri/onay-gecmisi");
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                request.Content = JsonContent.Create(new AdminYetkiBelgesiOnayGecmisiFiltreIstek
+                {
+                    SirketId = sirketId,
+                    BaslangicTarihi = bas,
+                    BitisTarihi = bit,
+                    Q = q,
+                    Durum = int.TryParse(durum, out var durumNo) ? durumNo : null
+                });
+
+                using var response = await _httpClient.SendAsync(request);
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("Admin yetki belgesi onay gecmisi API cagrisinda basarisiz yanit dondu. StatusCode: {StatusCode}", response.StatusCode);
+                    ApiClientFallback.EnsureAllowed(_options, "Admin yetki belgesi onay gecmisi");
+                    return null;
+                }
+
+                var sonuc = await response.Content.ReadFromJsonAsync<AdminYetkiBelgesiOnayGecmisiListeCevap>();
+                return sonuc?.Islemler.Select(x => x.ToEntity()).ToList() ?? new List<Ys_YetkiBelgesi>();
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
+            {
+                _logger.LogWarning(ex, "Admin yetki belgesi onay gecmisi API cagrisina ulasilamadi.");
+                ApiClientFallback.EnsureAllowed(_options, "Admin yetki belgesi onay gecmisi");
+                return null;
+            }
+        }
+
         private class AdminYetkiBelgesiOnayFiltreIstek
         {
             public int? SirketId { get; set; }
+        }
+
+        private class AdminYetkiBelgesiOnayGecmisiFiltreIstek
+        {
+            public int? SirketId { get; set; }
+            public DateTime? BaslangicTarihi { get; set; }
+            public DateTime? BitisTarihi { get; set; }
+            public string? Q { get; set; }
+            public int? Durum { get; set; }
+        }
+
+        private class AdminYetkiBelgesiOnayGecmisiListeCevap
+        {
+            public List<AdminYetkiBelgesiOnayCevap> Islemler { get; set; } = new();
         }
 
         private class AdminYetkiBelgesiOnayListeCevap

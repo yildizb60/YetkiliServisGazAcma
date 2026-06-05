@@ -169,7 +169,7 @@ Local API adresi:
 http://localhost:5057
 ```
 
-Development ortaminda API projesinde HTTPS yonlendirmesi kapatildi. Bunun nedeni local MVC -> API cagrisinda sertifika sorununa takilmamak. Production ortaminda HTTPS yonlendirmesi calismaya devam eder.
+Development ortaminda API projesinde HTTPS yonlendirmesi kapatildi. Bunun nedeni local MVC -> API cagrisinda TLS dogrulama sorununa takilmamak. Production ortaminda HTTPS yonlendirmesi calismaya devam eder.
 
 ## Ikinci baglanan MVC ekrani
 
@@ -372,7 +372,7 @@ Akis:
 AdminPanelController.YetkiliServisDetay -> AdminYetkiliServisApiClient -> POST /api/admin-panel/yetkili-servisler/getir -> AdminYetkiliServisListeService.GetirAsync -> veritabani
 ```
 
-Bu endpoint admin detay ekraninin ihtiyaci olan firma bilgisi, hizmet turleri, son sertifikalar, subeler ve son devreye alma kayitlarini tek cevapta dondurur.
+Bu endpoint admin detay ekraninin ihtiyaci olan firma bilgisi, hizmet turleri, son yetki belgeleri, subeler ve son devreye alma kayitlarini tek cevapta dondurur.
 
 Fallback sadece `ApiIntegration:AllowDatabaseFallback=true` ise vardir:
 
@@ -602,7 +602,7 @@ Views/AdminPanel/PersonelEkle.cshtml
 Views/AdminPanel/Personeller.cshtml
 Views/AdminPanel/Profil.cshtml
 Views/AdminPanel/Raporlar.cshtml
-Views/AdminPanel/SertifikaUyarilari.cshtml
+Views/AdminPanel/YetkiBelgesiUyarilari.cshtml
 Views/AdminPanel/SubeDuzenle.cshtml
 Views/AdminPanel/Subeler.cshtml
 Views/AdminPanel/YetkiDuzenle.cshtml
@@ -644,7 +644,7 @@ Views/Home/Index.cshtml
 Views/Panel/SirketSec.cshtml
 Views/YetkiliServisler/Index.cshtml
 Views/DevreyeAlma/*
-Views/Sertifika/*
+Views/YetkiBelgesi/*
 ```
 
 Bu sayfalar panel layout'a degil, ayri bir public/auth layout duzenine alinmali.

@@ -10,6 +10,8 @@ using System.Text;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
 using YetkiliServisGazAcma.Business.Services;
+using YetkiliServisGazAcma.Business.Services.Online;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
@@ -40,6 +42,12 @@ builder.Services.AddScoped<YetkiBelgesiService>();
 builder.Services.AddScoped<AdminDashboardService>();
 builder.Services.AddScoped<AdminYetkiliServisListeService>();
 builder.Services.AddScoped<SehirFirmaKoduService>();
+builder.Services.Configure<OnlineServiceOptions>(builder.Configuration.GetSection("OnlineService"));
+builder.Services.AddHttpClient<OnlineCihazBilgileriClient>((serviceProvider, client) =>
+{
+    var options = serviceProvider.GetRequiredService<IOptions<OnlineServiceOptions>>().Value;
+    client.Timeout = TimeSpan.FromSeconds(Math.Max(1, options.TimeoutSeconds));
+});
 
 // JWT
 var jwtKey = builder.Configuration["Jwt:Key"]!;

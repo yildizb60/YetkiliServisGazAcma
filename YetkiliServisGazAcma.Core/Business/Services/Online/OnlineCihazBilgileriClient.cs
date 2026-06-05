@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Xml.Linq;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace YetkiliServisGazAcma.Business.Services.Online
@@ -31,7 +32,7 @@ namespace YetkiliServisGazAcma.Business.Services.Online
             CancellationToken cancellationToken = default)
         {
             if (!_options.Enabled)
-                return OnlineCihazBilgileriSonuc.Basarisiz("Online cihaz servisi kapalı.");
+                return OnlineCihazBilgileriSonuc.Basarisiz("Online cihaz servisi kapali.");
 
             var endpoint = string.IsNullOrWhiteSpace(_options.Endpoint)
                 ? "http://onlinesvc.marmaragaz.com.tr/Test/Online.svc"
@@ -39,7 +40,7 @@ namespace YetkiliServisGazAcma.Business.Services.Online
 
             var firmaKodu = string.IsNullOrWhiteSpace(firma) ? _options.Firma : firma;
             if (string.IsNullOrWhiteSpace(firmaKodu))
-                return OnlineCihazBilgileriSonuc.Basarisiz("Firma kodu bulunamadı.");
+                return OnlineCihazBilgileriSonuc.Basarisiz("Firma kodu bulunamadi.");
 
             try
             {
@@ -58,23 +59,23 @@ namespace YetkiliServisGazAcma.Business.Services.Online
                 if (!response.IsSuccessStatusCode)
                 {
                     _logger.LogWarning(
-                        "Online cihaz servisi HTTP {StatusCode} döndü. Body: {Body}",
+                        "Online cihaz servisi HTTP {StatusCode} dondu. Body: {Body}",
                         (int)response.StatusCode,
                         responseXml);
 
-                    return OnlineCihazBilgileriSonuc.Basarisiz("Online cihaz servisi yanıt vermedi.");
+                    return OnlineCihazBilgileriSonuc.Basarisiz("Online cihaz servisi yanit vermedi.");
                 }
 
                 return ParseResponse(responseXml);
             }
             catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
-                return OnlineCihazBilgileriSonuc.Basarisiz("Online cihaz servisi zaman aşımına uğradı.");
+                return OnlineCihazBilgileriSonuc.Basarisiz("Online cihaz servisi zaman asimina ugradi.");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Online cihaz servisi çağrılırken hata oluştu.");
-                return OnlineCihazBilgileriSonuc.Basarisiz("Online cihaz servisine bağlanılamadı.");
+                _logger.LogError(ex, "Online cihaz servisi cagrilirken hata olustu.");
+                return OnlineCihazBilgileriSonuc.Basarisiz("Online cihaz servisine baglanilamadi.");
             }
         }
 
@@ -100,13 +101,13 @@ namespace YetkiliServisGazAcma.Business.Services.Online
             var document = XDocument.Parse(responseXml);
             var fault = document.Descendants().FirstOrDefault(x => x.Name.LocalName == "Fault");
             if (fault != null)
-                return OnlineCihazBilgileriSonuc.Basarisiz(ReadDescendant(fault, "faultstring") ?? "SOAP servisi hata döndü.");
+                return OnlineCihazBilgileriSonuc.Basarisiz(ReadDescendant(fault, "faultstring") ?? "SOAP servisi hata dondu.");
 
             var result = document.Descendants()
                 .FirstOrDefault(x => x.Name.LocalName == "YS_CihazBilgileriGetirResult");
 
             if (result == null)
-                return OnlineCihazBilgileriSonuc.Basarisiz("Online cihaz servisi beklenen formatta yanıt döndürmedi.");
+                return OnlineCihazBilgileriSonuc.Basarisiz("Online cihaz servisi beklenen formatta yanit dondurmedi.");
 
             var hataKodu = ReadInt(result, "HataKodu") ?? 0;
             var hataMesaji = ReadChild(result, "HataMesaji");

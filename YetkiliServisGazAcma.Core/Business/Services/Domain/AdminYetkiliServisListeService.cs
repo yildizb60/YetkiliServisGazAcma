@@ -87,6 +87,8 @@ namespace YetkiliServisGazAcma.Business.Services
                 .Include(x => x.Sirket)
                 .Include(x => x.FirmaKategoriler!)
                     .ThenInclude(x => x.Kategori)
+                .Include(x => x.FirmaMarkalar!)
+                    .ThenInclude(x => x.Marka)
                 .Where(x => x.Id == id && !x.SilindiMi);
 
             if (sirketId.HasValue)

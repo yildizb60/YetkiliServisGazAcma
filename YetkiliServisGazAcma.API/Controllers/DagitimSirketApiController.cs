@@ -77,7 +77,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         }
 
         [HttpPost("ekle")]
-        [Authorize(Roles = "GenelSistemAdmin,SuperAdmin")]
+        [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel")]
         public async Task<IActionResult> Ekle([FromBody] DagitimSirketKaydetDto dto)
         {
             if (!await GenelSistemYonetebilirMi())
@@ -129,7 +129,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         }
 
         [HttpPost("sil")]
-        [Authorize(Roles = "GenelSistemAdmin,SuperAdmin")]
+        [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel")]
         public async Task<IActionResult> Sil([FromBody] IdDto dto)
         {
             if (!await GenelSistemYonetebilirMi())
@@ -144,11 +144,22 @@ namespace YetkiliServisGazAcma.API.Controllers
 
         private async Task<bool> GenelSistemYonetebilirMi()
         {
-            if (User.IsInRole("GenelSistemAdmin") || User.IsInRole("SuperAdmin"))
+            if (User.IsInRole("GenelSistemAdmin")
+                || User.IsInRole("SuperAdmin")
+                || User.IsInRole("SirketAdmin"))
                 return true;
 
             var kullanici = await AktifKullaniciAsync();
-            return kullanici?.KullaniciTipi == 4;
+            if (kullanici == null)
+                return false;
+
+            if (kullanici.KullaniciTipi == 4 || kullanici.KullaniciTipi == 3)
+                return true;
+
+            return await _context.Dag_PersonelYetkiler.AnyAsync(x =>
+                x.KullaniciId == kullanici.Id &&
+                !x.SilindiMi &&
+                (x.YetkiTipi == YetkiTipleri.TAM_YETKI || x.YetkiTipi == YetkiTipleri.DAGITIM_SIRKET_YONET));
         }
 
         private async Task<bool> DagitimSirketYonetebilirMi(int sirketId)

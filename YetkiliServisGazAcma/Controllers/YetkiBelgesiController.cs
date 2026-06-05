@@ -35,10 +35,22 @@ namespace YetkiliServisGazAcma.Controllers
                 return Redirect("/giris");
 
             var firmaId = kullanici.FirmaId ?? 0;
-            var ekran = await _yetkiBelgesiApiClient.FirmaEkraniAsync(kullanici, firmaId);
+            YetkiBelgesiFirmaEkraniSonuc? ekran;
+            try
+            {
+                ekran = await _yetkiBelgesiApiClient.FirmaEkraniAsync(kullanici, firmaId);
+            }
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
+                ekran = null;
+            }
+
             if (ekran == null)
             {
-                TempData["Hata"] = "Yetki belgesi bilgileri API uzerinden alinamadi.";
+                if (!TempData.ContainsKey("Hata"))
+                    TempData["Hata"] = "Yetki belgesi bilgileri API uzerinden alinamadi.";
+
                 ekran = new YetkiBelgesiFirmaEkraniSonuc();
             }
 
@@ -68,9 +80,17 @@ namespace YetkiliServisGazAcma.Controllers
             }
 
             var firmaId = kullanici.FirmaId ?? 0;
-            var sonuc = await _yetkiBelgesiApiClient.YukleAsync(
-                kullanici, firmaId, dosya, bitisTarihi, baslangicTarihi);
-            SetYetkiBelgesiIslemMesaji(sonuc, "Yetki belgesi yüklendi. Onay bekleniyor.", "Basarili");
+            try
+            {
+                var sonuc = await _yetkiBelgesiApiClient.YukleAsync(
+                    kullanici, firmaId, dosya, bitisTarihi, baslangicTarihi);
+                SetYetkiBelgesiIslemMesaji(sonuc, "Yetki belgesi yüklendi. Onay bekleniyor.", "Basarili");
+            }
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
+            }
+
             return Redirect("/ys-yetki-belgesi");
         }
 
@@ -83,8 +103,16 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null)
                 return Redirect("/giris");
 
-            var sonuc = await _yetkiBelgesiApiClient.SilAsync(kullanici, id);
-            SetYetkiBelgesiIslemMesaji(sonuc, "Yetki belgesi silindi.", basariKey: "Basarili");
+            try
+            {
+                var sonuc = await _yetkiBelgesiApiClient.SilAsync(kullanici, id);
+                SetYetkiBelgesiIslemMesaji(sonuc, "Yetki belgesi silindi.", basariKey: "Basarili");
+            }
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
+            }
+
             return Redirect("/ys-yetki-belgesi");
         }
 
@@ -97,7 +125,17 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null) return Redirect("/giris");
 
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            var ekran = await _yetkiBelgesiApiClient.OnayEkraniAsync(kullanici, sirketId);
+            YetkiBelgesiOnayEkraniSonuc? ekran;
+            try
+            {
+                ekran = await _yetkiBelgesiApiClient.OnayEkraniAsync(kullanici, sirketId);
+            }
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
+                return Redirect("/personel-panel");
+            }
+
             if (ekran == null)
             {
                 TempData["Hata"] = "Yetki belgesi onay bilgileri API uzerinden alinamadi veya yetkiniz yok.";
@@ -119,8 +157,16 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await _userManager.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
-            var sonuc = await _yetkiBelgesiApiClient.OnaylaAsync(kullanici, id);
-            SetYetkiBelgesiIslemMesaji(sonuc, "Yetki belgesi onaylandi.", basariKey: "Basarili");
+            try
+            {
+                var sonuc = await _yetkiBelgesiApiClient.OnaylaAsync(kullanici, id);
+                SetYetkiBelgesiIslemMesaji(sonuc, "Yetki belgesi onaylandi.", basariKey: "Basarili");
+            }
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
+            }
+
             return Redirect("/ys-yetki-belgesi/onay-bekleyenler");
         }
 
@@ -132,8 +178,16 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await _userManager.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
-            var sonuc = await _yetkiBelgesiApiClient.ReddetAsync(kullanici, id, gerekce);
-            SetYetkiBelgesiIslemMesaji(sonuc, "Yetki belgesi reddedildi.", basariKey: "Hata");
+            try
+            {
+                var sonuc = await _yetkiBelgesiApiClient.ReddetAsync(kullanici, id, gerekce);
+                SetYetkiBelgesiIslemMesaji(sonuc, "Yetki belgesi reddedildi.", basariKey: "Hata");
+            }
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
+            }
+
             return Redirect("/ys-yetki-belgesi/onay-bekleyenler");
         }
 

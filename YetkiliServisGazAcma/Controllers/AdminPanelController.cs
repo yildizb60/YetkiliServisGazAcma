@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
-using YetkiliServisGazAcma.Models;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -20,7 +19,6 @@ namespace YetkiliServisGazAcma.Controllers
     public partial class AdminPanelController : Controller
     {
         private readonly UserManager<AppKullanici> _userManager;
-        private readonly AppDbContext _context;
         private readonly SehirFirmaKoduService _sehirFirmaKoduService;
         private readonly AktifSirketService _aktifSirketService;
         private readonly AdminDashboardApiClient _adminDashboardApiClient;
@@ -34,7 +32,6 @@ namespace YetkiliServisGazAcma.Controllers
 
         public AdminPanelController(
             UserManager<AppKullanici> userManager,
-            AppDbContext context,
             SehirFirmaKoduService sehirFirmaKoduService,
             AktifSirketService aktifSirketService,
             AdminDashboardApiClient adminDashboardApiClient,
@@ -47,7 +44,6 @@ namespace YetkiliServisGazAcma.Controllers
             UrunKategoriApiClient urunKategoriApiClient)
         {
             _userManager = userManager;
-            _context = context;
             _sehirFirmaKoduService = sehirFirmaKoduService;
             _aktifSirketService = aktifSirketService;
             _adminDashboardApiClient = adminDashboardApiClient;
@@ -125,7 +121,17 @@ namespace YetkiliServisGazAcma.Controllers
             if (HttpContext.Items.TryGetValue(cacheKey, out var cached))
                 return cached as AdminDashboardOzet;
 
-            var dashboard = await _adminDashboardApiClient.GetirAsync(kullanici, sirketId);
+            AdminDashboardOzet? dashboard;
+            try
+            {
+                dashboard = await _adminDashboardApiClient.GetirAsync(kullanici, sirketId);
+            }
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
+                return null;
+            }
+
             if (dashboard != null)
                 HttpContext.Items[cacheKey] = dashboard;
 

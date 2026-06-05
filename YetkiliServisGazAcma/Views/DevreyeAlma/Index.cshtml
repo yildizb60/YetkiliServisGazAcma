@@ -3,7 +3,6 @@
     Layout = "_PanelLayout";
     ViewData["ActiveMenu"] = "DevreyeAl";
     ViewData["PanelArea"] = "YetkiliServis";
-    var markalar = ViewBag.Markalar as List<YetkiliServisGazAcma.Entities.Ys_Marka>;
     var firma = ViewBag.Firma as YetkiliServisGazAcma.Entities.Ys_Firma;
     string adSoyad = firma?.YetkiliKisi ?? "Yetkili Servis";
     string basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "Y";
@@ -45,20 +44,10 @@
         .cihaz-listesi { display: grid; gap: 8px; }
         .cihaz-listesi .cihaz-satir { padding: 8px 10px; border: 1px solid #edf3f8; border-radius: 8px; background: #fff; }
         .cihaz-secim { cursor: pointer; transition: border-color .15s, background .15s, box-shadow .15s; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-        .cihaz-secim::after { content: "Seç"; flex: 0 0 auto; border-radius: 999px; background: #E6F1FB; color: #0d7faa; font-size: 11px; font-weight: 800; padding: 4px 10px; }
+        .cihaz-secim::after { content: "\2713"; flex: 0 0 auto; width: 24px; height: 24px; border-radius: 999px; background: #E6F1FB; color: #0d7faa; font-size: 14px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; opacity: .55; }
         .cihaz-secim:hover { border-color: #1B9FD4; background: #f4fbff; }
         .cihaz-secim.secili { border-color: #1B9FD4; background: #E6F1FB; box-shadow: 0 0 0 2px rgba(27,159,212,.10); }
-        .cihaz-secim.secili::after { content: "Seçildi"; background: #4CAF7D; color: #fff; }
-
-        /* Marka seçimi */
-        .marka-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-        .marka-kart { border: 2px solid #eee; border-radius: 8px; padding: 14px; text-align: center; cursor: pointer; transition: all .15s; position: relative; min-height: 86px; }
-        .marka-kart:hover { border-color: #1B9FD4; }
-        .marka-kart.secili { border-color: #0d7faa; background: #E6F1FB; box-shadow: 0 0 0 3px rgba(27,159,212,.16), 0 10px 22px rgba(13,127,170,.12); transform: translateY(-2px); }
-        .marka-kart.secili::after { content: "Seçili"; position: absolute; top: 8px; right: 8px; border-radius: 999px; background: #0d7faa; color: #fff; font-size: 10px; font-weight: 800; padding: 3px 8px; }
-        .marka-kart.secili .marka-adi { color: #0d5f7f; }
-        .marka-kart.yetkisiz { border-color: #F09595; background: #FCEBEB; cursor: not-allowed; opacity: .6; }
-        .marka-adi { font-size: 13px; font-weight: bold; color: #333; margin-top: 4px; }
+        .cihaz-secim.secili::after { content: "\2713"; background: #4CAF7D; color: #fff; opacity: 1; }
 
         /* Form alanlari */
         .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
@@ -98,16 +87,11 @@
                 <div class="adim-cizgi" id="cizgi1"></div>
                 <div class="adim" id="adim2">
                     <div class="adim-no">2</div>
-                    <span>Marka Se&#231;</span>
+                    <span>Devreye Alma Bilgileri</span>
                 </div>
                 <div class="adim-cizgi" id="cizgi2"></div>
                 <div class="adim" id="adim3">
                     <div class="adim-no">3</div>
-                    <span>Form Doldur</span>
-                </div>
-                <div class="adim-cizgi" id="cizgi3"></div>
-                <div class="adim" id="adim4">
-                    <div class="adim-no">4</div>
                     <span>Tamamla</span>
                 </div>
             </div>
@@ -159,14 +143,6 @@
                         <div class="bilgi-label">Saya&#231; No</div>
                         <div class="bilgi-deger" id="b-sayacNo"></div>
                     </div>
-                    <div class="bilgi-alan">
-                        <div class="bilgi-label">Uygunluk Belge No</div>
-                        <div class="bilgi-deger" id="b-uygunlukBelgeNo"></div>
-                    </div>
-                    <div class="bilgi-alan">
-                        <div class="bilgi-label">Uygunluk Tarihi</div>
-                        <div class="bilgi-deger" id="b-uygunlukTarihi"></div>
-                    </div>
                     <div class="bilgi-alan" style="grid-column:span 2">
                         <div class="bilgi-label">Adres</div>
                         <div class="bilgi-deger" id="b-adres"></div>
@@ -185,26 +161,9 @@
             </div>
 
             <!-- Marka Seçimi -->
-            <div class="kart musteri-bilgi" id="markaKart">
-                <div class="kart-baslik">Ad&#305;m 2  Marka Se&#231;imi</div>
-                <div class="marka-grid">
-    @if (markalar != null)
-    {
-        @foreach(var m in markalar)
-        {
-            <div class="marka-kart" data-marka-id="@m.Id" data-marka-adi="@m.MarkaAdi" onclick="markaSec(@m.Id, '@m.MarkaAdi', this)">
-                <div style="font-size:28px;">*</div>
-                <div class="marka-adi">@m.MarkaAdi</div>
-            </div>
-        }
-    }
-</div>
-                <div class="marka-uyari" id="markaUyari">&#10060; Bu marka i&#231;in yetkiniz bulunmamaktad&#305;r!</div>
-            </div>
-
             <!-- Devreye Alma Formu -->
             <div class="kart musteri-bilgi" id="formKart">
-                <div class="kart-baslik">Ad&#305;m 3  Cihaz Bilgileri</div>
+                <div class="kart-baslik">Ad&#305;m 2  Devreye Alma Bilgileri</div>
                 <form method="post" action="/ys-devreyeal/kaydet" id="devreyeAlmaForm">
                     @Html.AntiForgeryToken()
 
@@ -275,7 +234,7 @@
     let seciliServisCihazIndex = -1;
 
     function setAdim(aktif) {
-        for (let i = 1; i <= 4; i++) {
+        for (let i = 1; i <= 3; i++) {
             const adim = document.getElementById("adim" + i);
             if (!adim) continue;
             adim.classList.remove("aktif");
@@ -284,7 +243,7 @@
             if (i === aktif) adim.classList.add("aktif");
         }
 
-        for (let i = 1; i <= 3; i++) {
+        for (let i = 1; i <= 2; i++) {
             const cizgi = document.getElementById("cizgi" + i);
             if (!cizgi) continue;
             if (i < aktif) cizgi.classList.add("tamamlandi");
@@ -294,33 +253,13 @@
 
     function temizleSonrakiAdimlar() {
         document.getElementById("musteriBilgiKart")?.classList.remove("goster");
-        document.getElementById("markaKart")?.classList.remove("goster");
         document.getElementById("formKart")?.classList.remove("goster");
-        document.getElementById("markaUyari")?.classList.remove("goster");
         seciliMarkaId = 0;
         seciliMarkaAdi = "";
         servisCihazlari = [];
         seciliServisCihazIndex = -1;
-        document.querySelectorAll(".marka-kart").forEach(x => x.classList.remove("secili"));
         document.querySelectorAll(".cihaz-secim").forEach(x => x.classList.remove("secili"));
         setAdim(1);
-    }
-
-    function normalizeMarka(value) {
-        return (value || "")
-            .toLocaleLowerCase("tr-TR")
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .replace(/[^a-z0-9]/g, "");
-    }
-
-    function markaKartiBul(markaAdi) {
-        const aranan = normalizeMarka(markaAdi);
-        if (!aranan) return null;
-
-        return Array.from(document.querySelectorAll(".marka-kart")).find(function (kart) {
-            return normalizeMarka(kart.dataset.markaAdi) === aranan;
-        }) || null;
     }
 
     function cihazAlanlariniTemizle() {
@@ -341,7 +280,6 @@
         document.getElementById("f-markaid").value = "";
         document.getElementById("f-cihazMarka").value = "";
         document.querySelectorAll(".cihaz-secim").forEach(x => x.classList.remove("secili"));
-        document.querySelectorAll(".marka-kart").forEach(x => x.classList.remove("secili"));
         cihazAlanlariniTemizle();
         document.getElementById("formKart")?.classList.remove("goster");
         setAdim(2);
@@ -391,8 +329,6 @@
             document.getElementById("b-aboneNo").textContent = data.aboneNo || "-";
             document.getElementById("b-sozlesmeNo").textContent = data.sozlesmeNo || sozlesmeNo || "-";
             document.getElementById("b-sayacNo").textContent = data.sayacNo || "-";
-            document.getElementById("b-uygunlukBelgeNo").textContent = data.uygunlukBelgeNo || "-";
-            document.getElementById("b-uygunlukTarihi").textContent = data.uygunlukTarihi || "-";
             document.getElementById("b-adres").textContent = data.adres || "-";
             document.getElementById("b-durum").textContent = data.durum || "-";
 
@@ -408,14 +344,11 @@
                         const marka = cihaz.cihazMarka || "-";
                         const tip = cihaz.cihazTipi || "-";
                         const kapasite = cihaz.cihazKapasite || "-";
-                        const proje = cihaz.projeNo || "-";
                         const satir = document.createElement("div");
                         satir.className = "cihaz-satir cihaz-secim";
                         satir.setAttribute("role", "button");
                         satir.setAttribute("tabindex", "0");
-                        const tipKodu = cihaz.cihazTipKodu ? " - Tip Kod: " + cihaz.cihazTipKodu : "";
-                        const cihazTesisat = cihaz.tesisatNo ? " - Tesisat: " + cihaz.tesisatNo : "";
-                        satir.textContent = marka + " / " + tip + " / " + kapasite + " kcal - Proje: " + proje + tipKodu + cihazTesisat;
+                        satir.textContent = marka + " / " + tip + " / " + kapasite + " kcal";
                         satir.addEventListener("click", function () { cihazSec(index); });
                         satir.addEventListener("keydown", function (event) {
                             if (event.key === "Enter" || event.key === " ") {
@@ -430,15 +363,14 @@
 
             document.getElementById("f-tesistatNo").value = data.tesistatNo || "";
             document.getElementById("f-aboneNo").value = data.aboneNo || data.sozlesmeNo || "";
-            document.getElementById("f-uygunlukBelgeNo").value = data.uygunlukBelgeNo || "";
-            document.getElementById("f-uygunlukTarihi").value = data.uygunlukTarihi || "";
+            document.getElementById("f-uygunlukBelgeNo").value = "";
+            document.getElementById("f-uygunlukTarihi").value = "";
             document.getElementById("f-musteriAdi").value = data.musteriAdi || "";
             document.getElementById("f-musteriTcNo").value = data.musteriTcNo || data.aboneNo || "";
             document.getElementById("f-musteriTelefon").value = data.musteriTelefon || "";
             document.getElementById("f-adres").value = data.adres || "";
 
             document.getElementById("musteriBilgiKart")?.classList.add("goster");
-            document.getElementById("markaKart")?.classList.add("goster");
             setAdim(2);
         } catch (e) {
             alert("Bağlantı hatası oluştu. Lütfen tekrar deneyiniz.");
@@ -477,35 +409,21 @@
         if (modelInput && cihaz.cihazModeli) modelInput.value = cihaz.cihazModeli;
 
         document.getElementById("f-cihazMarka").value = cihaz.cihazMarka || "";
-        document.getElementById("markaUyari")?.classList.remove("goster");
-        const markaKarti = markaKartiBul(cihaz.cihazMarka);
-        if (markaKarti) {
-            await markaSec(parseInt(markaKarti.dataset.markaId || "0", 10), markaKarti.dataset.markaAdi || cihaz.cihazMarka || "", markaKarti, true);
-            return;
-        }
-
-        seciliMarkaId = 0;
-        seciliMarkaAdi = "";
-        document.getElementById("f-markaid").value = "";
-        document.querySelectorAll(".marka-kart").forEach(x => x.classList.remove("secili"));
-        document.getElementById("formKart")?.classList.remove("goster");
-        setAdim(2);
+        await markaKontrolEt(cihaz);
     }
 
-    async function markaSec(markaId, markaAdi, el, servisCihazindan) {
+    async function markaKontrolEt(cihaz) {
         const tesistatNo = (document.getElementById("f-tesistatNo")?.value || "").trim();
         if (!tesistatNo) {
             alert("Önce tesisat sorgulaması yapınız.");
             return;
         }
 
-        document.getElementById("markaUyari")?.classList.remove("goster");
-
         try {
             const response = await fetch("/ys-devreyeal/marka-kontrol", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ markaId: markaId })
+                body: JSON.stringify({ cihazMarka: cihaz?.cihazMarka || "" })
             });
 
             if (!response.ok) {
@@ -515,33 +433,18 @@
 
             const data = await response.json();
             if (!data.yetkili) {
-                const uyari = document.getElementById("markaUyari");
-                if (uyari) {
-                    uyari.textContent = data.mesaj || "Bu marka için yetkiniz bulunmamaktadır.";
-                    uyari.classList.add("goster");
-                }
+                secimleriTemizle();
+                alert(data.mesaj || "Bu marka için yetkiniz bulunmamaktadır.");
                 return;
             }
 
-            document.querySelectorAll(".marka-kart").forEach(x => x.classList.remove("secili"));
-            if (el) el.classList.add("secili");
-
-            seciliMarkaId = markaId;
-            seciliMarkaAdi = markaAdi;
-            document.getElementById("f-markaid").value = String(markaId);
-            if (servisCihazindan) {
-                const cihaz = servisCihazlari[seciliServisCihazIndex];
-                document.getElementById("f-cihazMarka").value = cihaz?.cihazMarka || markaAdi;
-            } else {
-                const cihaz = servisCihazlari[seciliServisCihazIndex];
-                if (!cihaz) {
-                    cihazAlanlariniTemizle();
-                }
-                document.getElementById("f-cihazMarka").value = markaAdi;
-            }
+            seciliMarkaId = data.markaId || 0;
+            seciliMarkaAdi = data.markaAdi || cihaz?.cihazMarka || "";
+            document.getElementById("f-markaid").value = String(seciliMarkaId);
+            document.getElementById("f-cihazMarka").value = seciliMarkaAdi;
 
             document.getElementById("formKart")?.classList.add("goster");
-            setAdim(3);
+            setAdim(2);
         } catch (e) {
             alert("Bağlantı hatası oluştu. Lütfen tekrar deneyiniz.");
         }
@@ -553,11 +456,11 @@
             alert("Önce tesisat sorgulaması yapınız.");
             return;
         }
-        if (!document.getElementById("f-markaid").value) {
+        if (!document.getElementById("f-markaid").value || !document.getElementById("f-cihazMarka").value) {
             e.preventDefault();
-            alert("Lütfen marka seçiniz.");
+            alert("Lütfen servisten gelen cihazlardan birini seçiniz.");
             return;
         }
-        setAdim(4);
+        setAdim(3);
     });
 </script>

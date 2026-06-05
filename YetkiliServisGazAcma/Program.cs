@@ -4,7 +4,6 @@ using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
 using YetkiliServisGazAcma.Infrastructure;
 using YetkiliServisGazAcma.Business.Services;
-using YetkiliServisGazAcma.Business.Services.Online;
 using Microsoft.Extensions.Options;
 using QuestPDF.Infrastructure;
 QuestPDF.Settings.License = LicenseType.Community;
@@ -26,6 +25,7 @@ builder.Services.AddSession(options =>
 
 builder.Services.AddControllersWithViews(options =>
 {
+    options.Filters.AddService<ApiIntegrationExceptionFilter>();
     options.Filters.AddService<PanelKimlikActionFilter>();
 });
 
@@ -45,14 +45,10 @@ builder.Services.AddScoped<SehirFirmaKoduService>();
 builder.Services.AddScoped<AktifSirketService>();
 builder.Services.AddScoped<PanelKimlikService>();
 builder.Services.AddScoped<PanelKimlikActionFilter>();
-builder.Services.Configure<OnlineServiceOptions>(builder.Configuration.GetSection("OnlineService"));
-builder.Services.AddHttpClient<OnlineCihazBilgileriClient>((serviceProvider, client) =>
-{
-    var options = serviceProvider.GetRequiredService<IOptions<OnlineServiceOptions>>().Value;
-    client.Timeout = TimeSpan.FromSeconds(Math.Max(1, options.TimeoutSeconds));
-});
+builder.Services.AddScoped<ApiIntegrationExceptionFilter>();
 builder.Services.AddScoped<ApiJwtTokenService>();
 builder.Services.Configure<ApiIntegrationOptions>(builder.Configuration.GetSection("ApiIntegration"));
+builder.Services.AddHostedService<LocalApiProcessService>();
 AddApiClient<AdminDashboardApiClient>();
 AddApiClient<AdminKullaniciApiClient>();
 AddApiClient<AdminYetkiliServisApiClient>();
@@ -64,6 +60,10 @@ AddApiClient<MarkaApiClient>();
 AddApiClient<DagitimSirketApiClient>();
 AddApiClient<YetkiliServisApiClient>();
 AddApiClient<UrunKategoriApiClient>();
+AddApiClient<PersonelPanelApiClient>();
+AddApiClient<YetkiliServisDevreyeAlmaApiClient>();
+AddApiClient<YetkiliServisPanelApiClient>();
+AddApiClient<HomeOzetApiClient>();
 builder.Services.Configure<SmsOptions>(builder.Configuration.GetSection("Sms"));
 builder.Services.AddHttpClient<AhlatciSmsProvider>((serviceProvider, client) =>
 {
@@ -85,7 +85,32 @@ void AddApiClient<TClient>() where TClient : class
         var options = serviceProvider.GetRequiredService<IOptions<ApiIntegrationOptions>>().Value;
         client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/");
         client.Timeout = TimeSpan.FromSeconds(Math.Max(1, options.TimeoutSeconds));
+    })
+    .ConfigurePrimaryHttpMessageHandler(serviceProvider =>
+    {
+        var options = serviceProvider.GetRequiredService<IOptions<ApiIntegrationOptions>>().Value;
+        var environment = serviceProvider.GetRequiredService<IWebHostEnvironment>();
+
+        if (environment.IsDevelopment()
+            && Uri.TryCreate(options.BaseUrl, UriKind.Absolute, out var uri)
+            && string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
+            && IsLocalApiHost(uri.Host))
+        {
+            return new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+            };
+        }
+
+        return new HttpClientHandler();
     });
+}
+
+static bool IsLocalApiHost(string host)
+{
+    return string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(host, "127.0.0.1", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(host, "::1", StringComparison.OrdinalIgnoreCase);
 }
 
 builder.Services.AddIdentity<AppKullanici, IdentityRole>(options =>

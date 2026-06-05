@@ -358,6 +358,7 @@ namespace YetkiliServisGazAcma.Business.Services
             public int SirketId { get; set; }
             public string? SirketAdi { get; set; }
             public List<AdminKategoriCevap> Kategoriler { get; set; } = new();
+            public List<AdminMarkaCevap> Markalar { get; set; } = new();
 
             public Ys_Firma ToEntity()
             {
@@ -393,6 +394,20 @@ namespace YetkiliServisGazAcma.Business.Services
                             },
                             SilindiMi = false
                         })
+                        .ToList(),
+                    FirmaMarkalar = Markalar
+                        .Select(x => new Ys_FirmaMarka
+                        {
+                            FirmaId = Id,
+                            MarkaId = x.Id,
+                            Marka = new Ys_Marka
+                            {
+                                Id = x.Id,
+                                MarkaAdi = x.MarkaAdi,
+                                AktifMi = true
+                            },
+                            SilindiMi = false
+                        })
                         .ToList()
                 };
             }
@@ -422,6 +437,12 @@ namespace YetkiliServisGazAcma.Business.Services
             public int Id { get; set; }
             public string? Ad { get; set; }
             public string? IconUrl { get; set; }
+        }
+
+        private class AdminMarkaCevap
+        {
+            public int Id { get; set; }
+            public string? MarkaAdi { get; set; }
         }
 
         private class AdminYetkiBelgesiCevap

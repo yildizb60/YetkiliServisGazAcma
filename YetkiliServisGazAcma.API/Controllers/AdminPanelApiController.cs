@@ -220,6 +220,305 @@ namespace YetkiliServisGazAcma.API.Controllers
             return Ok(AdminIslemSonucDto.BasariliSonuc("Yetkili servis kullanicilari senkronize edildi."));
         }
 
+        [HttpPost("kullanicilar/yonetim-yetkisi")]
+        public async Task<IActionResult> KullaniciYonetimYetkisi([FromBody] AdminKullaniciYonetimYetkiDto? dto)
+        {
+            var kullanici = await AktifKullaniciAsync();
+            if (kullanici == null)
+                return Unauthorized();
+
+            var kapsam = await KapsamSirketIdAsync(dto?.SirketId);
+            if (kapsam.gecersiz)
+                return Forbid();
+
+            return Ok(new AdminKullaniciYonetimYetkiSonucDto
+            {
+                YetkiliMi = await KullaniciYonetebilirMi(kullanici, kapsam.sirketId)
+            });
+        }
+
+        [HttpPost("kullanicilar/getir")]
+        public async Task<IActionResult> KullaniciGetir([FromBody] AdminKullaniciGetirDto? dto)
+        {
+            var kullanici = await AktifKullaniciAsync();
+            if (kullanici == null)
+                return Unauthorized();
+
+            var kapsam = await KapsamSirketIdAsync(dto?.SirketId);
+            if (kapsam.gecersiz)
+                return Forbid();
+
+            if (!await KullaniciYonetebilirMi(kullanici, kapsam.sirketId))
+                return Forbid();
+
+            if (dto == null || string.IsNullOrWhiteSpace(dto.Id))
+                return NotFound();
+
+            var hedef = await _context.Users
+                .Include(x => x.Sirket)
+                .Include(x => x.Firma)
+                .FirstOrDefaultAsync(x => x.Id == dto.Id);
+
+            if (hedef == null)
+                return NotFound();
+
+            if (!await KullaniciKapsamindaMi(kullanici, hedef, kapsam.sirketId))
+                return Forbid();
+
+            return Ok(MapKullanici(hedef));
+        }
+
+        [HttpPost("kullanicilar/guncelle")]
+        public async Task<IActionResult> KullaniciGuncelle([FromBody] AdminKullaniciGuncelleDto? dto)
+        {
+            var kullanici = await AktifKullaniciAsync();
+            if (kullanici == null)
+                return Unauthorized();
+
+            var kapsam = await KapsamSirketIdAsync(dto?.KapsamSirketId);
+            if (kapsam.gecersiz)
+                return Forbid();
+
+            if (!await KullaniciYonetebilirMi(kullanici, kapsam.sirketId))
+                return Forbid();
+
+            if (dto == null || string.IsNullOrWhiteSpace(dto.Id))
+                return Ok(AdminIslemSonucDto.Basarisiz("Kullanici id zorunludur."));
+
+            var hedef = await _context.Users.FirstOrDefaultAsync(x => x.Id == dto.Id);
+            if (hedef == null)
+                return Ok(AdminIslemSonucDto.Basarisiz("Kullanici bulunamadi."));
+
+            if (!await KullaniciKapsamindaMi(kullanici, hedef, kapsam.sirketId))
+                return Forbid();
+
+            if ((hedef.KullaniciTipi == 3 || hedef.KullaniciTipi == 2) && (!dto.SirketId.HasValue || dto.SirketId.Value <= 0))
+            {
+                return Ok(AdminIslemSonucDto.Basarisiz(hedef.KullaniciTipi == 2
+                    ? "Personel icin sirket secilmelidir."
+                    : "Sirket admini icin sirket secilmelidir."));
+            }
+
+            if (hedef.KullaniciTipi == 3 || hedef.KullaniciTipi == 2)
+            {
+                if (!await SirketYonetimKapsamindaMi(kullanici, dto.SirketId!.Value, kapsam.sirketId))
+                    return Forbid();
+
+                hedef.SirketId = dto.SirketId;
+                hedef.FirmaId = null;
+            }
+            else if (hedef.KullaniciTipi == 1)
+            {
+                if (!dto.FirmaId.HasValue || dto.FirmaId.Value <= 0)
+                    return Ok(AdminIslemSonucDto.Basarisiz("Yetkili servis kullanicisi icin firma secilmelidir."));
+
+                var firma = await _context.Ys_Firmalar
+                    .FirstOrDefaultAsync(x => x.Id == dto.FirmaId.Value && !x.SilindiMi);
+                if (firma == null)
+                    return Ok(AdminIslemSonucDto.Basarisiz("Secilen firma bulunamadi."));
+
+                if (!await SirketYonetimKapsamindaMi(kullanici, firma.SirketId, kapsam.sirketId))
+                    return Forbid();
+
+                hedef.FirmaId = firma.Id;
+                hedef.SirketId = firma.SirketId;
+            }
+            else
+            {
+                hedef.SirketId = null;
+                hedef.FirmaId = null;
+            }
+
+            hedef.AdSoyad = dto.AdSoyad;
+            hedef.Email = dto.Email;
+            hedef.UserName = dto.Email;
+            hedef.PhoneNumber = dto.Telefon;
+            hedef.AktifMi = dto.AktifMi;
+
+            var sonuc = await _userManager.UpdateAsync(hedef);
+            if (!sonuc.Succeeded)
+                return Ok(AdminIslemSonucDto.Basarisiz(string.Join(", ", sonuc.Errors.Select(x => x.Description))));
+
+            if (!string.IsNullOrWhiteSpace(dto.YeniSifre) || !string.IsNullOrWhiteSpace(dto.YeniSifreTekrar))
+            {
+                if (dto.YeniSifre != dto.YeniSifreTekrar)
+                    return Ok(AdminIslemSonucDto.Basarisiz("Yeni sifreler eslesmiyor."));
+
+                var sifreHatalari = ValidatePassword(dto.YeniSifre);
+                if (sifreHatalari.Count > 0)
+                    return Ok(AdminIslemSonucDto.Basarisiz(string.Join(" ", sifreHatalari)));
+
+                var token = await _userManager.GeneratePasswordResetTokenAsync(hedef);
+                var sifreSonuc = await _userManager.ResetPasswordAsync(hedef, token, dto.YeniSifre ?? "");
+                if (!sifreSonuc.Succeeded)
+                    return Ok(AdminIslemSonucDto.Basarisiz(string.Join(", ", sifreSonuc.Errors.Select(x => x.Description))));
+            }
+
+            return Ok(AdminIslemSonucDto.BasariliSonuc("Kullanici guncellendi."));
+        }
+
+        [HttpPost("kullanicilar/ekle")]
+        public async Task<IActionResult> KullaniciEkle([FromBody] AdminKullaniciKaydetDto? dto)
+        {
+            var kullanici = await AktifKullaniciAsync();
+            if (kullanici == null)
+                return Unauthorized();
+
+            var kapsam = await KapsamSirketIdAsync(dto?.KapsamSirketId);
+            if (kapsam.gecersiz)
+                return Forbid();
+
+            if (!await KullaniciYonetebilirMi(kullanici, kapsam.sirketId))
+                return Forbid();
+
+            if (dto == null)
+                return Ok(AdminIslemSonucDto.Basarisiz("Kullanici bilgileri zorunludur."));
+
+            var rol = (dto.Rol ?? "").Trim();
+            if (string.Equals(rol, "Servis", StringComparison.OrdinalIgnoreCase))
+                rol = "YetkiliServis";
+            if (string.Equals(rol, "SuperAdmin", StringComparison.OrdinalIgnoreCase))
+                rol = "SirketAdmin";
+
+            var gecerliRoller = new[] { "GenelSistemAdmin", "SirketAdmin", "Personel", "YetkiliServis" };
+            if (!gecerliRoller.Any(x => string.Equals(x, rol, StringComparison.OrdinalIgnoreCase)))
+                return Ok(AdminIslemSonucDto.Basarisiz("Rol secilmelidir."));
+
+            rol = gecerliRoller.First(x => string.Equals(x, rol, StringComparison.OrdinalIgnoreCase));
+
+            var genelSistemAdmin = User.IsInRole("GenelSistemAdmin")
+                || User.IsInRole("SuperAdmin")
+                || kullanici.KullaniciTipi == 4;
+            if (rol == "GenelSistemAdmin" && !genelSistemAdmin)
+                return Ok(AdminIslemSonucDto.Basarisiz("Genel Sistem Admini sadece genel sistem admini tarafindan olusturulabilir."));
+
+            var sifreHatalari = ValidatePassword(dto.Sifre);
+            if (sifreHatalari.Count > 0)
+                return Ok(AdminIslemSonucDto.Basarisiz(string.Join(" ", sifreHatalari)));
+
+            var kullaniciTipi = rol == "GenelSistemAdmin" ? 4 : rol == "SirketAdmin" ? 3 : rol == "Personel" ? 2 : 1;
+            if ((kullaniciTipi == 3 || kullaniciTipi == 2 || kullaniciTipi == 1) && (!dto.SirketId.HasValue || dto.SirketId.Value <= 0))
+            {
+                var mesaj = kullaniciTipi == 1
+                    ? "Yetkili servis icin bagli dagitim sirketi secilmelidir."
+                    : kullaniciTipi == 2
+                        ? "Personel icin sirket secilmelidir."
+                        : "Sirket admini icin sirket secilmelidir.";
+                return Ok(AdminIslemSonucDto.Basarisiz(mesaj));
+            }
+
+            if (kullaniciTipi == 3 || kullaniciTipi == 2 || kullaniciTipi == 1)
+            {
+                if (!await SirketYonetimKapsamindaMi(kullanici, dto.SirketId!.Value, kapsam.sirketId))
+                    return Forbid();
+            }
+
+            var email = (dto.Email ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(email))
+                return Ok(AdminIslemSonucDto.Basarisiz("E-posta zorunludur."));
+
+            var mevcut = await _userManager.FindByEmailAsync(email);
+            if (mevcut != null)
+                return Ok(AdminIslemSonucDto.Basarisiz("Bu e-posta ile kayitli bir kullanici zaten var."));
+
+            var yeni = new AppKullanici
+            {
+                UserName = email,
+                Email = email,
+                PhoneNumber = dto.Telefon,
+                AdSoyad = dto.AdSoyad,
+                KullaniciTipi = kullaniciTipi,
+                SirketId = (kullaniciTipi == 3 || kullaniciTipi == 2 || kullaniciTipi == 1) ? dto.SirketId : null,
+                FirmaId = null,
+                AktifMi = true,
+                EmailConfirmed = true
+            };
+
+            var createSonuc = await _userManager.CreateAsync(yeni, dto.Sifre ?? string.Empty);
+            if (!createSonuc.Succeeded)
+                return Ok(AdminIslemSonucDto.Basarisiz(string.Join(", ", createSonuc.Errors.Select(x => x.Description))));
+
+            Ys_Firma? firma = null;
+            if (kullaniciTipi == 1)
+            {
+                try
+                {
+                    firma = new Ys_Firma
+                    {
+                        FirmaAdi = dto.AdSoyad,
+                        YetkiliKisi = dto.AdSoyad,
+                        Telefon = dto.Telefon,
+                        Email = email,
+                        SirketId = dto.SirketId!.Value,
+                        AktifMi = true
+                    };
+
+                    _context.Ys_Firmalar.Add(firma);
+                    await _context.SaveChangesAsync();
+
+                    yeni.FirmaId = firma.Id;
+                    yeni.SirketId = firma.SirketId;
+                    await _userManager.UpdateAsync(yeni);
+                }
+                catch
+                {
+                    await _userManager.DeleteAsync(yeni);
+                    return Ok(AdminIslemSonucDto.Basarisiz("Yetkili servis kaydi olusturulurken hata olustu. Lutfen tekrar deneyin."));
+                }
+            }
+
+            var atanacakRol = rol;
+            if (rol == "YetkiliServis")
+            {
+                var ysRol = await YetkiliServisRolAdiAsync();
+                if (string.IsNullOrWhiteSpace(ysRol))
+                {
+                    await _userManager.DeleteAsync(yeni);
+                    if (firma != null)
+                    {
+                        _context.Ys_Firmalar.Remove(firma);
+                        await _context.SaveChangesAsync();
+                    }
+
+                    return Ok(AdminIslemSonucDto.Basarisiz("Yetkili Servis rolu sistemde bulunamadi."));
+                }
+
+                atanacakRol = ysRol!;
+            }
+
+            var rolVarMi = await _context.Set<IdentityRole>()
+                .AnyAsync(r => r.Name != null && r.Name.ToLower() == atanacakRol.ToLower());
+            if (!rolVarMi)
+            {
+                await _userManager.DeleteAsync(yeni);
+                if (firma != null)
+                {
+                    _context.Ys_Firmalar.Remove(firma);
+                    await _context.SaveChangesAsync();
+                }
+
+                return Ok(AdminIslemSonucDto.Basarisiz($"Rol bulunamadi: {atanacakRol}"));
+            }
+
+            var rolSonuc = await _userManager.AddToRoleAsync(yeni, atanacakRol);
+            if (!rolSonuc.Succeeded)
+            {
+                await _userManager.DeleteAsync(yeni);
+                if (firma != null)
+                {
+                    _context.Ys_Firmalar.Remove(firma);
+                    await _context.SaveChangesAsync();
+                }
+
+                return Ok(AdminIslemSonucDto.Basarisiz(string.Join(", ", rolSonuc.Errors.Select(x => x.Description))));
+            }
+
+            if (rol == "GenelSistemAdmin")
+                await _userManager.AddToRoleAsync(yeni, KullaniciRolAdlari.EskiSuperAdmin);
+
+            return Ok(AdminIslemSonucDto.BasariliSonuc("Kullanici basariyla olusturuldu."));
+        }
+
         [HttpPost("personeller/ekle")]
         public async Task<IActionResult> PersonelEkle([FromBody] AdminPersonelKaydetDto? dto)
         {
@@ -350,6 +649,213 @@ namespace YetkiliServisGazAcma.API.Controllers
             return Ok(AdminIslemSonucDto.BasariliSonuc(dto.SadecePersonel ? "Personel silindi." : "Kullanici silindi."));
         }
 
+        [HttpPost("yetkiler/liste")]
+        public async Task<IActionResult> YetkilerListe([FromBody] AdminYetkiListeFiltreDto? dto)
+        {
+            var kullanici = await AktifKullaniciAsync();
+            if (kullanici == null)
+                return Unauthorized();
+
+            var kapsam = await KapsamSirketIdAsync(dto?.SirketId);
+            if (kapsam.gecersiz)
+                return Forbid();
+
+            if (!await KullaniciYonetebilirMi(kullanici, kapsam.sirketId))
+                return Forbid();
+
+            var genelSistemAdmin = User.IsInRole("GenelSistemAdmin")
+                || User.IsInRole("SuperAdmin")
+                || kullanici.KullaniciTipi == 4
+                || (kullanici.KullaniciTipi == 3 && !kullanici.SirketId.HasValue);
+
+            var personelQuery = _context.Users
+                .Include(x => x.Sirket)
+                .Where(x => x.KullaniciTipi == 2)
+                .AsQueryable();
+
+            if (!(genelSistemAdmin && !kapsam.sirketId.HasValue))
+            {
+                if (!kapsam.sirketId.HasValue)
+                    return Ok(new AdminYetkiListeDto());
+
+                personelQuery = personelQuery.Where(x =>
+                    x.SirketId == kapsam.sirketId.Value ||
+                    _context.Dag_PersonelYetkiler.Any(y =>
+                        y.KullaniciId == x.Id &&
+                        y.SirketId == kapsam.sirketId.Value &&
+                        !y.SilindiMi));
+            }
+
+            var personeller = await personelQuery
+                .OrderBy(x => x.AdSoyad)
+                .ToListAsync();
+
+            var personelIds = personeller.Select(x => x.Id).ToList();
+            var yetkiQuery = _context.Dag_PersonelYetkiler
+                .Include(x => x.Sirket)
+                .Where(x => personelIds.Contains(x.KullaniciId) && !x.SilindiMi)
+                .AsQueryable();
+
+            if (kapsam.sirketId.HasValue)
+                yetkiQuery = yetkiQuery.Where(x => x.SirketId == kapsam.sirketId.Value);
+
+            var yetkiKayitlari = await yetkiQuery.ToListAsync();
+            var yetkiMap = yetkiKayitlari
+                .GroupBy(x => x.KullaniciId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => NormalizeYetkiListesi(g.Select(x => x.YetkiTipi)));
+
+            var yetkiSirketAdlariMap = yetkiKayitlari
+                .Where(x => x.Sirket != null && !string.IsNullOrWhiteSpace(x.Sirket.SirketAdi))
+                .GroupBy(x => x.KullaniciId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Select(x => x.Sirket!.SirketAdi!)
+                        .Distinct()
+                        .OrderBy(x => x)
+                        .ToList());
+
+            foreach (var personel in personeller)
+            {
+                if (!yetkiSirketAdlariMap.ContainsKey(personel.Id)
+                    && personel.Sirket != null
+                    && !string.IsNullOrWhiteSpace(personel.Sirket.SirketAdi))
+                {
+                    yetkiSirketAdlariMap[personel.Id] = new List<string> { personel.Sirket.SirketAdi };
+                }
+            }
+
+            return Ok(new AdminYetkiListeDto
+            {
+                Personeller = personeller.Select(MapKullanici).ToList(),
+                YetkiMap = yetkiMap,
+                YetkiSirketAdlariMap = yetkiSirketAdlariMap
+            });
+        }
+
+        [HttpPost("yetkiler/getir")]
+        public async Task<IActionResult> YetkiGetir([FromBody] AdminYetkiGetirDto? dto)
+        {
+            var kullanici = await AktifKullaniciAsync();
+            if (kullanici == null)
+                return Unauthorized();
+
+            var kapsam = await KapsamSirketIdAsync(dto?.SirketId);
+            if (kapsam.gecersiz)
+                return Forbid();
+
+            if (!await KullaniciYonetebilirMi(kullanici, kapsam.sirketId))
+                return Forbid();
+
+            if (dto == null || string.IsNullOrWhiteSpace(dto.Id))
+                return Ok(new AdminYetkiDuzenleDto());
+
+            var personel = await _context.Users
+                .Include(x => x.Sirket)
+                .FirstOrDefaultAsync(x => x.Id == dto.Id && x.KullaniciTipi == 2);
+
+            if (personel == null || !await KullaniciKapsamindaMi(kullanici, personel, kapsam.sirketId))
+                return Ok(new AdminYetkiDuzenleDto());
+
+            var sirketler = await YonetilebilirSirketlerAsync(kullanici, kapsam.sirketId);
+            var sirketIds = sirketler.Select(x => x.Id).ToHashSet();
+            var mevcutKayitlar = await _context.Dag_PersonelYetkiler
+                .Where(x => x.KullaniciId == personel.Id)
+                .Where(x => sirketIds.Contains(x.SirketId))
+                .ToListAsync();
+
+            var yetkiSirketMap = mevcutKayitlar
+                .GroupBy(x => x.SirketId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => NormalizeYetkiListesi(g.Select(x => x.YetkiTipi)));
+
+            var mevcut = NormalizeYetkiListesi(mevcutKayitlar.Select(x => x.YetkiTipi));
+            var seciliSirketIds = mevcutKayitlar
+                .Select(x => x.SirketId)
+                .Distinct()
+                .ToList();
+
+            if (seciliSirketIds.Count == 0 && personel.SirketId.HasValue && sirketIds.Contains(personel.SirketId.Value))
+                seciliSirketIds.Add(personel.SirketId.Value);
+
+            return Ok(new AdminYetkiDuzenleDto
+            {
+                Personel = MapKullanici(personel),
+                Sirketler = sirketler,
+                MevcutYetkiler = mevcut,
+                YetkiSirketMap = yetkiSirketMap,
+                SeciliSirketIds = seciliSirketIds
+            });
+        }
+
+        [HttpPost("yetkiler/guncelle")]
+        public async Task<IActionResult> YetkiGuncelle([FromBody] AdminYetkiGuncelleDto? dto)
+        {
+            var kullanici = await AktifKullaniciAsync();
+            if (kullanici == null)
+                return Unauthorized();
+
+            var kapsam = await KapsamSirketIdAsync(dto?.SirketId);
+            if (kapsam.gecersiz)
+                return Forbid();
+
+            if (!await KullaniciYonetebilirMi(kullanici, kapsam.sirketId))
+                return Forbid();
+
+            if (dto == null || string.IsNullOrWhiteSpace(dto.Id))
+                return Ok(AdminIslemSonucDto.Basarisiz("Personel id zorunludur."));
+
+            var personel = await _context.Users.FirstOrDefaultAsync(x => x.Id == dto.Id && x.KullaniciTipi == 2);
+            if (personel == null)
+                return Ok(AdminIslemSonucDto.Basarisiz("Personel bulunamadi."));
+
+            if (!await KullaniciKapsamindaMi(kullanici, personel, kapsam.sirketId))
+                return Forbid();
+
+            var yonetilebilirSirketIds = (await YonetilebilirSirketlerAsync(kullanici, kapsam.sirketId))
+                .Select(x => x.Id)
+                .ToHashSet();
+
+            var secilenSirketIds = (dto.SirketIds ?? new List<int>())
+                .Where(yonetilebilirSirketIds.Contains)
+                .Distinct()
+                .ToList();
+
+            if (secilenSirketIds.Count == 0 && personel.SirketId.HasValue && yonetilebilirSirketIds.Contains(personel.SirketId.Value))
+                secilenSirketIds.Add(personel.SirketId.Value);
+
+            var mevcut = await _context.Dag_PersonelYetkiler
+                .Where(x => x.KullaniciId == personel.Id)
+                .Where(x => yonetilebilirSirketIds.Contains(x.SirketId))
+                .ToListAsync();
+
+            _context.Dag_PersonelYetkiler.RemoveRange(mevcut);
+
+            foreach (var sirketId in secilenSirketIds)
+            {
+                dto.Yetkiler.TryGetValue(sirketId, out var secilenYetkiler);
+                secilenYetkiler = NormalizeYetkiListesi(secilenYetkiler ?? new List<string>());
+
+                foreach (var yetki in secilenYetkiler)
+                {
+                    _context.Dag_PersonelYetkiler.Add(new Dag_PersonelYetki
+                    {
+                        KullaniciId = personel.Id,
+                        SirketId = sirketId,
+                        YetkiTipi = yetki,
+                        OlusturmaTarihi = DateTime.Now,
+                        OlusturanKullanici = kullanici.UserName ?? "api",
+                        SilindiMi = false
+                    });
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok(AdminIslemSonucDto.BasariliSonuc("Yetkiler guncellendi."));
+        }
+
         [HttpPost("yetkili-servisler/liste")]
         public async Task<IActionResult> YetkiliServisler([FromBody] AdminYetkiliServisListeFiltreDto? dto)
         {
@@ -427,7 +933,17 @@ namespace YetkiliServisGazAcma.API.Controllers
                         })
                         .GroupBy(x => x.Id)
                         .Select(x => x.First())
-                        .ToList() ?? new List<AdminYetkiliServisKategoriDto>()
+                        .ToList() ?? new List<AdminYetkiliServisKategoriDto>(),
+                    Markalar = sonuc.Servis.FirmaMarkalar?
+                        .Where(x => !x.SilindiMi && x.Marka != null)
+                        .Select(x => new AdminYetkiliServisMarkaDto
+                        {
+                            Id = x.Marka!.Id,
+                            MarkaAdi = x.Marka.MarkaAdi
+                        })
+                        .GroupBy(x => x.Id)
+                        .Select(x => x.First())
+                        .ToList() ?? new List<AdminYetkiliServisMarkaDto>()
                 },
                 YetkiBelgeleri = sonuc.YetkiBelgeleri.Select(x => new AdminYetkiliServisYetkiBelgesiDto
                 {
@@ -666,6 +1182,56 @@ namespace YetkiliServisGazAcma.API.Controllers
             });
         }
 
+        [HttpPost("yetki-belgeleri/onay-gecmisi")]
+        public async Task<IActionResult> YetkiBelgesiOnayGecmisi([FromBody] AdminYetkiBelgesiOnayGecmisiFiltreDto? dto)
+        {
+            var kapsam = await KapsamSirketIdAsync(dto?.SirketId);
+            if (kapsam.gecersiz)
+                return Forbid();
+
+            var query = _context.Ys_YetkiBelgeleri
+                .Include(x => x.Firma).ThenInclude(x => x!.Sirket)
+                .Where(x => !x.SilindiMi
+                    && x.Durum != 0
+                    && x.Firma != null
+                    && !x.Firma.SilindiMi
+                    && (kapsam.sirketId == null || x.Firma.SirketId == kapsam.sirketId))
+                .AsQueryable();
+
+            if (dto?.BaslangicTarihi.HasValue == true)
+            {
+                var baslangic = dto.BaslangicTarihi.Value.Date;
+                query = query.Where(x => x.OnayTarihi.HasValue && x.OnayTarihi.Value >= baslangic);
+            }
+
+            if (dto?.BitisTarihi.HasValue == true)
+            {
+                var bitis = dto.BitisTarihi.Value.Date.AddDays(1);
+                query = query.Where(x => x.OnayTarihi.HasValue && x.OnayTarihi.Value < bitis);
+            }
+
+            if (dto?.Durum.HasValue == true && (dto.Durum.Value == 1 || dto.Durum.Value == 2))
+                query = query.Where(x => x.Durum == dto.Durum.Value);
+
+            if (!string.IsNullOrWhiteSpace(dto?.Q))
+            {
+                var q = dto.Q.Trim();
+                query = query.Where(x =>
+                    (x.Firma != null && x.Firma.FirmaAdi != null && x.Firma.FirmaAdi.Contains(q)) ||
+                    (x.Firma != null && x.Firma.Sirket != null && x.Firma.Sirket.SirketAdi != null && x.Firma.Sirket.SirketAdi.Contains(q)) ||
+                    (x.OnaylayanKullanici != null && x.OnaylayanKullanici.Contains(q)));
+            }
+
+            var islemler = await query
+                .OrderByDescending(x => x.OnayTarihi ?? x.OlusturmaTarihi)
+                .ToListAsync();
+
+            return Ok(new AdminYetkiBelgesiOnayGecmisiListeDto
+            {
+                Islemler = islemler.Select(AdminYetkiBelgesiOnayDto.FromEntity).ToList()
+            });
+        }
+
         [HttpPost("subeler/liste")]
         public async Task<IActionResult> Subeler([FromBody] AdminSubeListeFiltreDto? dto)
         {
@@ -883,12 +1449,18 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             var query = DevreyeAlmaTemelQuery(kapsam.sirketId);
 
+            if (!string.IsNullOrWhiteSpace(dto?.TesisatNo))
+                query = query.Where(x => x.TesistatNo != null && x.TesistatNo.Contains(dto.TesisatNo));
             if (!string.IsNullOrWhiteSpace(dto?.Marka))
-                query = query.Where(x => x.Marka != null && x.Marka.MarkaAdi != null && x.Marka.MarkaAdi.Contains(dto.Marka));
+                query = query.Where(x =>
+                    (x.CihazMarka != null && x.CihazMarka.Contains(dto.Marka)) ||
+                    (x.Marka != null && x.Marka.MarkaAdi != null && x.Marka.MarkaAdi.Contains(dto.Marka)));
             if (!string.IsNullOrWhiteSpace(dto?.Servis))
                 query = query.Where(x => x.Firma != null && x.Firma.FirmaAdi != null && x.Firma.FirmaAdi.Contains(dto.Servis));
             if (!string.IsNullOrWhiteSpace(dto?.Il))
                 query = query.Where(x => x.Firma != null && x.Firma.FaaliyetIli != null && x.Firma.FaaliyetIli.Contains(dto.Il));
+            if (!string.IsNullOrWhiteSpace(dto?.Ilce))
+                query = query.Where(x => _context.Ys_Subeler.Any(s => !s.SilindiMi && s.FirmaId == x.FirmaId && s.Ilce != null && s.Ilce.Contains(dto.Ilce)));
             if (dto?.Durum.HasValue == true)
                 query = query.Where(x => x.Durum == dto.Durum.Value);
             if (dto?.BaslangicTarihi.HasValue == true)
@@ -1344,6 +1916,82 @@ namespace YetkiliServisGazAcma.API.Controllers
             return await _context.Users.FirstOrDefaultAsync(x => x.Id == kullaniciId);
         }
 
+        private async Task<List<AdminSirketSecenekDto>> YonetilebilirSirketlerAsync(AppKullanici kullanici, int? kapsamSirketId)
+        {
+            var genelSistemAdminMi = User.IsInRole("GenelSistemAdmin")
+                || User.IsInRole("SuperAdmin")
+                || kullanici.KullaniciTipi == 4
+                || (kullanici.KullaniciTipi == 3 && !kullanici.SirketId.HasValue);
+
+            var query = _context.Dag_Sirketler
+                .Where(x => !x.SilindiMi)
+                .AsQueryable();
+
+            if (!(genelSistemAdminMi && !kapsamSirketId.HasValue))
+            {
+                if (kapsamSirketId.HasValue)
+                {
+                    query = query.Where(x => x.Id == kapsamSirketId.Value);
+                }
+                else if (kullanici.SirketId.HasValue)
+                {
+                    query = query.Where(x => x.Id == kullanici.SirketId.Value);
+                }
+                else
+                {
+                    var yetkiliSirketIds = await _context.Dag_PersonelYetkiler
+                        .Where(x => x.KullaniciId == kullanici.Id && !x.SilindiMi)
+                        .Select(x => x.SirketId)
+                        .Distinct()
+                        .ToListAsync();
+
+                    query = query.Where(x => yetkiliSirketIds.Contains(x.Id));
+                }
+            }
+
+            return await query
+                .OrderBy(x => x.SirketAdi)
+                .Select(x => new AdminSirketSecenekDto
+                {
+                    Id = x.Id,
+                    SirketAdi = x.SirketAdi
+                })
+                .ToListAsync();
+        }
+
+        private static List<string> NormalizeYetkiListesi(IEnumerable<string?> yetkiler)
+        {
+            var liste = yetkiler
+                .Where(x => !string.IsNullOrWhiteSpace(x) && x != YetkiTipleri.DAGITIM_SIRKET_YONET)
+                .Select(x => x!)
+                .Distinct()
+                .ToList();
+
+            return liste.Contains(YetkiTipleri.TAM_YETKI)
+                ? new List<string> { YetkiTipleri.TAM_YETKI }
+                : liste;
+        }
+
+        private static AdminKullaniciListeDto MapKullanici(AppKullanici kullanici)
+        {
+            return new AdminKullaniciListeDto
+            {
+                Id = kullanici.Id,
+                AdSoyad = kullanici.AdSoyad,
+                Email = kullanici.Email,
+                PhoneNumber = kullanici.PhoneNumber,
+                KullaniciTipi = kullanici.KullaniciTipi,
+                AktifMi = kullanici.AktifMi,
+                SirketId = kullanici.SirketId,
+                SirketAdi = kullanici.Sirket?.SirketAdi,
+                FirmaId = kullanici.FirmaId,
+                FirmaAdi = kullanici.Firma?.FirmaAdi,
+                FirmaYetkiliKisi = kullanici.Firma?.YetkiliKisi,
+                FirmaEmail = kullanici.Firma?.Email,
+                FirmaTelefon = kullanici.Firma?.Telefon
+            };
+        }
+
         private async Task<bool> KullaniciYonetebilirMi(AppKullanici kullanici, int? sirketId)
         {
             if (User.IsInRole("GenelSistemAdmin")
@@ -1530,6 +2178,48 @@ namespace YetkiliServisGazAcma.API.Controllers
         public int? SirketId { get; set; }
     }
 
+    public class AdminKullaniciYonetimYetkiDto
+    {
+        public int? SirketId { get; set; }
+    }
+
+    public class AdminKullaniciYonetimYetkiSonucDto
+    {
+        public bool YetkiliMi { get; set; }
+    }
+
+    public class AdminKullaniciGetirDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public int? SirketId { get; set; }
+    }
+
+    public class AdminKullaniciGuncelleDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public int? KapsamSirketId { get; set; }
+        public string? AdSoyad { get; set; }
+        public string? Email { get; set; }
+        public string? Telefon { get; set; }
+        public bool AktifMi { get; set; }
+        public int? SirketId { get; set; }
+        public int? FirmaId { get; set; }
+        public string? YeniSifre { get; set; }
+        public string? YeniSifreTekrar { get; set; }
+    }
+
+    public class AdminKullaniciKaydetDto
+    {
+        public int? KapsamSirketId { get; set; }
+        public string? AdSoyad { get; set; }
+        public string? Email { get; set; }
+        public string? Telefon { get; set; }
+        public string? Sifre { get; set; }
+        public string? Rol { get; set; }
+        public int? SirketId { get; set; }
+        public int? FirmaId { get; set; }
+    }
+
     public class AdminPersonelKaydetDto
     {
         public int? KapsamSirketId { get; set; }
@@ -1553,6 +2243,25 @@ namespace YetkiliServisGazAcma.API.Controllers
         public string Id { get; set; } = string.Empty;
         public int? SirketId { get; set; }
         public bool SadecePersonel { get; set; }
+    }
+
+    public class AdminYetkiListeFiltreDto
+    {
+        public int? SirketId { get; set; }
+    }
+
+    public class AdminYetkiGetirDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public int? SirketId { get; set; }
+    }
+
+    public class AdminYetkiGuncelleDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public int? SirketId { get; set; }
+        public List<int> SirketIds { get; set; } = new();
+        public Dictionary<int, List<string>> Yetkiler { get; set; } = new();
     }
 
     public class AdminYetkiliServisListeFiltreDto
@@ -1598,12 +2307,23 @@ namespace YetkiliServisGazAcma.API.Controllers
         public int? SirketId { get; set; }
     }
 
+    public class AdminYetkiBelgesiOnayGecmisiFiltreDto
+    {
+        public int? SirketId { get; set; }
+        public DateTime? BaslangicTarihi { get; set; }
+        public DateTime? BitisTarihi { get; set; }
+        public string? Q { get; set; }
+        public int? Durum { get; set; }
+    }
+
     public class AdminDevreyeAlmaListeFiltreDto
     {
         public int? SirketId { get; set; }
+        public string? TesisatNo { get; set; }
         public string? Marka { get; set; }
         public string? Servis { get; set; }
         public string? Il { get; set; }
+        public string? Ilce { get; set; }
         public int? Durum { get; set; }
         public DateTime? BaslangicTarihi { get; set; }
         public DateTime? BitisTarihi { get; set; }
@@ -1757,6 +2477,27 @@ namespace YetkiliServisGazAcma.API.Controllers
         public List<AdminYetkiBelgesiOnayDto> Gecmis { get; set; } = new();
     }
 
+    public class AdminYetkiListeDto
+    {
+        public List<AdminKullaniciListeDto> Personeller { get; set; } = new();
+        public Dictionary<string, List<string>> YetkiMap { get; set; } = new();
+        public Dictionary<string, List<string>> YetkiSirketAdlariMap { get; set; } = new();
+    }
+
+    public class AdminYetkiDuzenleDto
+    {
+        public AdminKullaniciListeDto? Personel { get; set; }
+        public List<AdminSirketSecenekDto> Sirketler { get; set; } = new();
+        public List<string> MevcutYetkiler { get; set; } = new();
+        public Dictionary<int, List<string>> YetkiSirketMap { get; set; } = new();
+        public List<int> SeciliSirketIds { get; set; } = new();
+    }
+
+    public class AdminYetkiBelgesiOnayGecmisiListeDto
+    {
+        public List<AdminYetkiBelgesiOnayDto> Islemler { get; set; } = new();
+    }
+
     public class AdminRaporOzetDto
     {
         public DateTime BasTarih { get; set; }
@@ -1900,6 +2641,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         public int SirketId { get; set; }
         public string? SirketAdi { get; set; }
         public List<AdminYetkiliServisKategoriDto> Kategoriler { get; set; } = new();
+        public List<AdminYetkiliServisMarkaDto> Markalar { get; set; } = new();
     }
 
     public class AdminYetkiliServisKategoriDto
@@ -1907,6 +2649,12 @@ namespace YetkiliServisGazAcma.API.Controllers
         public int Id { get; set; }
         public string? Ad { get; set; }
         public string? IconUrl { get; set; }
+    }
+
+    public class AdminYetkiliServisMarkaDto
+    {
+        public int Id { get; set; }
+        public string? MarkaAdi { get; set; }
     }
 
     public class AdminYetkiliServisYetkiBelgesiDto

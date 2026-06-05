@@ -1,31 +1,27 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
+using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Models;
-using System.Globalization;
 
 namespace YetkiliServisGazAcma.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly AppDbContext _db;
+        private readonly HomeOzetApiClient _homeOzetApiClient;
 
-        public HomeController(AppDbContext db)
+        public HomeController(HomeOzetApiClient homeOzetApiClient)
         {
-            _db = db;
+            _homeOzetApiClient = homeOzetApiClient;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
-            var servisCount = _db.Ys_Firmalar.Count(x => !x.SilindiMi && x.AktifMi);
-            var devreyeCount = _db.Ys_DevreyeAlmalar.Count(x => !x.SilindiMi && x.Durum == 1);
-            var yetkiBelgesiCount = _db.Ys_YetkiBelgeleri.Count(x => !x.SilindiMi && x.Durum == 1);
-            var toplamIslem = _db.Ys_DevreyeAlmalar.Count(x => !x.SilindiMi);
-            var zamaninda = toplamIslem == 0 ? 100.0 : Math.Round(100.0 * devreyeCount / toplamIslem, 1);
+            var ozet = await _homeOzetApiClient.GetirAsync();
 
-            ViewBag.ServisCount = servisCount;
-            ViewBag.DevreyeCount = devreyeCount;
-            ViewBag.YetkiBelgesiCount = yetkiBelgesiCount;
-            ViewBag.ZamanindaOran = zamaninda;
+            ViewBag.ServisCount = ozet?.ServisCount ?? 0;
+            ViewBag.DevreyeCount = ozet?.DevreyeCount ?? 0;
+            ViewBag.YetkiBelgesiCount = ozet?.YetkiBelgesiCount ?? 0;
+            ViewBag.ZamanindaOran = ozet?.ZamanindaOran ?? 0;
 
             return View();
         }

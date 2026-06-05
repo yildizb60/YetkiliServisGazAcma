@@ -32,24 +32,26 @@ namespace YetkiliServisGazAcma.Business.Services
             return PostAsync<IdIstek>("api/yetki-belgesi/onayla", kullanici, new IdIstek { Id = id });
         }
 
-        public Task<YetkiBelgesiFirmaEkraniSonuc?> FirmaEkraniAsync(AppKullanici kullanici, int firmaId)
+        public async Task<YetkiBelgesiFirmaEkraniSonuc?> FirmaEkraniAsync(AppKullanici kullanici, int firmaId)
         {
-            return PostForResponseAsync<IdIstek, YetkiBelgesiFirmaEkraniCevap>(
+            var cevap = await PostForResponseAsync<IdIstek, YetkiBelgesiFirmaEkraniCevap>(
                 "api/yetki-belgesi/firma-ekrani",
                 kullanici,
                 new IdIstek { Id = firmaId },
-                "Yetki belgesi firma ekrani")
-                .ContinueWith(t => t.Result?.ToSonuc());
+                "Yetki belgesi firma ekrani");
+
+            return cevap?.ToSonuc();
         }
 
-        public Task<YetkiBelgesiOnayEkraniSonuc?> OnayEkraniAsync(AppKullanici kullanici, int? sirketId)
+        public async Task<YetkiBelgesiOnayEkraniSonuc?> OnayEkraniAsync(AppKullanici kullanici, int? sirketId)
         {
-            return PostForResponseAsync<YetkiBelgesiFiltreIstek, YetkiBelgesiOnayEkraniCevap>(
+            var cevap = await PostForResponseAsync<YetkiBelgesiFiltreIstek, YetkiBelgesiOnayEkraniCevap>(
                 "api/yetki-belgesi/onay-ekrani",
                 kullanici,
                 new YetkiBelgesiFiltreIstek { SirketId = sirketId },
-                "Yetki belgesi onay ekrani")
-                .ContinueWith(t => t.Result?.ToSonuc());
+                "Yetki belgesi onay ekrani");
+
+            return cevap?.ToSonuc();
         }
 
         public Task<YetkiBelgesiIslemSonuc?> SilAsync(AppKullanici kullanici, int id)

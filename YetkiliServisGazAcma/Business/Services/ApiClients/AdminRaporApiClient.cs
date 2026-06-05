@@ -32,7 +32,9 @@ namespace YetkiliServisGazAcma.Business.Services
             string? il,
             string? durum,
             DateTime? bas,
-            DateTime? bit)
+            DateTime? bit,
+            string? tesisatNo = null,
+            string? ilce = null)
         {
             if (!_options.Enabled)
             {
@@ -57,6 +59,8 @@ namespace YetkiliServisGazAcma.Business.Services
                     Marka = marka,
                     Servis = servis,
                     Il = il,
+                    Ilce = ilce,
+                    TesisatNo = tesisatNo,
                     Durum = int.TryParse(durum, out var durumNo) ? durumNo : null,
                     BaslangicTarihi = bas,
                     BitisTarihi = bit
@@ -219,9 +223,11 @@ namespace YetkiliServisGazAcma.Business.Services
         private class AdminDevreyeAlmaListeIstek
         {
             public int? SirketId { get; set; }
+            public string? TesisatNo { get; set; }
             public string? Marka { get; set; }
             public string? Servis { get; set; }
             public string? Il { get; set; }
+            public string? Ilce { get; set; }
             public int? Durum { get; set; }
             public DateTime? BaslangicTarihi { get; set; }
             public DateTime? BitisTarihi { get; set; }

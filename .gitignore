@@ -41,6 +41,8 @@ Thumbs.db
 *.tmp
 *.temp
 .cache/
+_verify/
+**/_verify/
 tree.txt
 
 # Archives and local backups

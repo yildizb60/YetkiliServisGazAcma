@@ -6,5 +6,6 @@ namespace YetkiliServisGazAcma.Business.Services
         public string BaseUrl { get; set; } = "http://localhost:5057";
         public int TimeoutSeconds { get; set; } = 5;
         public bool AllowDatabaseFallback { get; set; }
+        public bool AutoStartLocalApiInDevelopment { get; set; }
     }
 }
