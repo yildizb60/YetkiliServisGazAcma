@@ -351,6 +351,8 @@ namespace YetkiliServisGazAcma.Infrastructure
 
             var token = await userManager.GeneratePasswordResetTokenAsync(kullanici);
             await userManager.ResetPasswordAsync(kullanici, token, DemoSifre);
+            await userManager.SetLockoutEndDateAsync(kullanici, null);
+            await userManager.ResetAccessFailedCountAsync(kullanici);
 
             foreach (var rol in roller)
             {

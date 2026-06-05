@@ -350,22 +350,18 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null) return Redirect("/giris");
 
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            Ys_DevreyeAlma? kayit;
             try
             {
-                kayit = await _adminRaporApiClient.DevreyeAlmaDetayAsync(kullanici, id, sirketId);
+                var dosya = await _adminRaporApiClient.DevreyeAlmaPdfAsync(kullanici, id, sirketId);
+                if (dosya == null) return NotFound();
+
+                return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
             }
             catch (ApiIntegrationException ex)
             {
                 TempData["Hata"] = ex.Message;
                 return RedirectToAction(nameof(DevreyeAlmalar));
             }
-
-            if (kayit == null) return NotFound();
-
-            var pdf = DevreyeAlmaPdfService.Olustur(kayit);
-            return File(pdf, "application/pdf",
-                $"DevreyeAlma_{kayit.TesistatNo ?? id.ToString()}_{id}.pdf");
         }
 
         [HttpGet("devreyealma-excel/{id}")]
@@ -375,22 +371,18 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null) return Redirect("/giris");
 
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            Ys_DevreyeAlma? kayit;
             try
             {
-                kayit = await _adminRaporApiClient.DevreyeAlmaDetayAsync(kullanici, id, sirketId);
+                var dosya = await _adminRaporApiClient.DevreyeAlmaExcelAsync(kullanici, id, sirketId);
+                if (dosya == null) return NotFound();
+
+                return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
             }
             catch (ApiIntegrationException ex)
             {
                 TempData["Hata"] = ex.Message;
                 return RedirectToAction(nameof(DevreyeAlmalar));
             }
-
-            if (kayit == null) return NotFound();
-
-            var bytes = DevreyeAlmaExcelService.Olustur(new[] { kayit });
-            return File(bytes, "text/csv; charset=windows-1254",
-                $"DevreyeAlma_{kayit.TesistatNo ?? id.ToString()}_{id}.csv");
         }
 
         [HttpGet("onay-bekleyenler")]

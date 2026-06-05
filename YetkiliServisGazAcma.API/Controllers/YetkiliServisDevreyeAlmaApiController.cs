@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 using System.Text;
+using YetkiliServisGazAcma.API.Services;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Business.Services.Online;
 using YetkiliServisGazAcma.Entities;
@@ -20,17 +21,20 @@ namespace YetkiliServisGazAcma.API.Controllers
         private readonly UserManager<AppKullanici> _userManager;
         private readonly OnlineCihazBilgileriClient _onlineCihazBilgileriClient;
         private readonly SehirFirmaKoduService _sehirFirmaKoduService;
+        private readonly DevreyeAlmaExportApiService _devreyeAlmaExportApiService;
 
         public YetkiliServisDevreyeAlmaApiController(
             AppDbContext context,
             UserManager<AppKullanici> userManager,
             OnlineCihazBilgileriClient onlineCihazBilgileriClient,
-            SehirFirmaKoduService sehirFirmaKoduService)
+            SehirFirmaKoduService sehirFirmaKoduService,
+            DevreyeAlmaExportApiService devreyeAlmaExportApiService)
         {
             _context = context;
             _userManager = userManager;
             _onlineCihazBilgileriClient = onlineCihazBilgileriClient;
             _sehirFirmaKoduService = sehirFirmaKoduService;
+            _devreyeAlmaExportApiService = devreyeAlmaExportApiService;
         }
 
         [HttpPost("gecmis")]
@@ -111,6 +115,40 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return NotFound();
 
             return Ok(YsDevreyeAlmaDto.FromEntity(islem));
+        }
+
+        [HttpPost("pdf")]
+        public async Task<IActionResult> Pdf([FromBody] YsDevreyeAlmaGetirDto? dto)
+        {
+            var kullanici = await _userManager.GetUserAsync(User);
+            if (kullanici?.FirmaId == null)
+                return Unauthorized();
+
+            if (dto == null || dto.Id <= 0)
+                return NotFound();
+
+            var dosya = await _devreyeAlmaExportApiService.YetkiliServisPdfAsync(dto.Id, kullanici.FirmaId.Value);
+            if (dosya == null)
+                return NotFound();
+
+            return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+        }
+
+        [HttpPost("excel")]
+        public async Task<IActionResult> Excel([FromBody] YsDevreyeAlmaGetirDto? dto)
+        {
+            var kullanici = await _userManager.GetUserAsync(User);
+            if (kullanici?.FirmaId == null)
+                return Unauthorized();
+
+            if (dto == null || dto.Id <= 0)
+                return NotFound();
+
+            var dosya = await _devreyeAlmaExportApiService.YetkiliServisExcelAsync(dto.Id, kullanici.FirmaId.Value);
+            if (dosya == null)
+                return NotFound();
+
+            return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
         }
 
         [HttpPost("ekran")]

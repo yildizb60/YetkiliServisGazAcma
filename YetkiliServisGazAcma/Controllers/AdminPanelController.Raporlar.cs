@@ -65,12 +65,10 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null) return Redirect("/giris");
 
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            var kayit = await AdminDevreyeAlmaKaydiBul(kullanici, id, aktifSirketId);
-            if (kayit == null) return NotFound();
+            var dosya = await _adminRaporApiClient.DevreyeAlmaPdfAsync(kullanici, id, aktifSirketId);
+            if (dosya == null) return NotFound();
 
-            var pdf = DevreyeAlmaPdfService.Olustur(kayit);
-            return File(pdf, "application/pdf",
-                $"DevreyeAlma_{kayit.TesistatNo ?? id.ToString()}_{id}.pdf");
+            return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
         }
 
         [HttpGet("devreyealmalar/excel/{id:int}")]
@@ -80,12 +78,10 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null) return Redirect("/giris");
 
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            var kayit = await AdminDevreyeAlmaKaydiBul(kullanici, id, aktifSirketId);
-            if (kayit == null) return NotFound();
+            var dosya = await _adminRaporApiClient.DevreyeAlmaExcelAsync(kullanici, id, aktifSirketId);
+            if (dosya == null) return NotFound();
 
-            var bytes = DevreyeAlmaExcelService.Olustur(new[] { kayit });
-            return File(bytes, "text/csv; charset=windows-1254",
-                $"DevreyeAlma_{kayit.TesistatNo ?? id.ToString()}_{id}.csv");
+            return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
         }
 
         private async Task<Ys_DevreyeAlma?> AdminDevreyeAlmaKaydiBul(AppKullanici kullanici, int id, int? aktifSirketId)

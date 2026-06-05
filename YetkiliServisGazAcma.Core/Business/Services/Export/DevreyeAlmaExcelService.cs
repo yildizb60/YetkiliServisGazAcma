@@ -8,7 +8,7 @@ namespace YetkiliServisGazAcma.Business.Services
         public static byte[] Olustur(IEnumerable<Ys_DevreyeAlma> islemler)
         {
             var sb = new StringBuilder();
-            sb.AppendLine("Tesisat No;Yetkili Servis;Firma Kodu;Müşteri;Telefon;TC;Adres;Cihaz Tipi;Marka;Model;Seri No;Kapasite;Teknisyen;Teknisyen Yetki Belgesi No;Durum;Tarih;Notlar");
+            sb.AppendLine("Tesisat No;Yetkili Servis;Firma Kodu;M\u00fc\u015fteri;Telefon;TC;Adres;Cihaz Tipi;Marka;Model;Seri No;Kapasite;Teknisyen;Teknisyen Yetki Belgesi No;Durum;Tarih;Notlar");
 
             foreach (var i in islemler)
             {
@@ -39,7 +39,7 @@ namespace YetkiliServisGazAcma.Business.Services
 
         private static string DurumText(int durum)
         {
-            return durum == 1 ? "Tamamlandı" : durum == 2 ? "İptal" : "Bekliyor";
+            return durum == 1 ? "Tamamland\u0131" : durum == 2 ? "\u0130ptal" : "Bekliyor";
         }
 
         private static string Csv(string? value)
@@ -67,24 +67,24 @@ namespace YetkiliServisGazAcma.Business.Services
 
                 bytes.Add(ch switch
                 {
-                    'Ç' => 0xC7,
-                    'ç' => 0xE7,
-                    'Ğ' => 0xD0,
-                    'ğ' => 0xF0,
-                    'İ' => 0xDD,
-                    'ı' => 0xFD,
-                    'Ö' => 0xD6,
-                    'ö' => 0xF6,
-                    'Ş' => 0xDE,
-                    'ş' => 0xFE,
-                    'Ü' => 0xDC,
-                    'ü' => 0xFC,
-                    '’' => 0x92,
-                    '“' => 0x93,
-                    '”' => 0x94,
-                    '–' => 0x96,
-                    '—' => 0x97,
-                    '€' => 0x80,
+                    '\u00c7' => 0xC7,
+                    '\u00e7' => 0xE7,
+                    '\u011e' => 0xD0,
+                    '\u011f' => 0xF0,
+                    '\u0130' => 0xDD,
+                    '\u0131' => 0xFD,
+                    '\u00d6' => 0xD6,
+                    '\u00f6' => 0xF6,
+                    '\u015e' => 0xDE,
+                    '\u015f' => 0xFE,
+                    '\u00dc' => 0xDC,
+                    '\u00fc' => 0xFC,
+                    '\u2019' => 0x92,
+                    '\u201c' => 0x93,
+                    '\u201d' => 0x94,
+                    '\u2013' => 0x96,
+                    '\u2014' => 0x97,
+                    '\u20ac' => 0x80,
                     _ => (byte)'?'
                 });
             }
@@ -93,4 +93,3 @@ namespace YetkiliServisGazAcma.Business.Services
         }
     }
 }
-

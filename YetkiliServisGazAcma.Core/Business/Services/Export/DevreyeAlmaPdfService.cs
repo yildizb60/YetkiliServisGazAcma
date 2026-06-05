@@ -9,6 +9,8 @@ namespace YetkiliServisGazAcma.Business.Services
     {
         public static byte[] Olustur(Ys_DevreyeAlma i)
         {
+            QuestPDF.Settings.License = LicenseType.Community;
+
             return Document.Create(container =>
             {
                 container.Page(page =>
@@ -32,9 +34,9 @@ namespace YetkiliServisGazAcma.Business.Services
                 {
                     row.RelativeItem().Column(inner =>
                     {
-                        inner.Item().Text("CİHAZ DEVREYE ALMA BELGESİ")
+                        inner.Item().Text("CÄ°HAZ DEVREYE ALMA BELGESÄ°")
                             .FontSize(16).Bold().FontColor("#1B9FD4");
-                        inner.Item().Text("Doğalgaz Yetkili Servis Yönetim Sistemi")
+                        inner.Item().Text("DoÄŸalgaz Yetkili Servis YÃ¶netim Sistemi")
                             .FontSize(10).FontColor("#888888");
                     });
                     row.ConstantItem(120).AlignRight().Column(inner =>
@@ -54,7 +56,7 @@ namespace YetkiliServisGazAcma.Business.Services
             {
                 col.Spacing(10);
 
-                col.Item().Element(x => Bolum(x, "TESİSAT BİLGİLERİ", "#1B9FD4"));
+                col.Item().Element(x => Bolum(x, "TESÄ°SAT BÄ°LGÄ°LERÄ°", "#1B9FD4"));
                 col.Item().Table(t =>
                 {
                     t.ColumnsDefinition(cd =>
@@ -68,7 +70,7 @@ namespace YetkiliServisGazAcma.Business.Services
                     Satir(t, "Uygunluk Tarihi", i.UygunlukTarihi?.ToString("dd.MM.yyyy"));
                 });
 
-                col.Item().Element(x => Bolum(x, "MÜŞTERİ BİLGİLERİ", "#1B9FD4"));
+                col.Item().Element(x => Bolum(x, "MÃœÅTERÄ° BÄ°LGÄ°LERÄ°", "#1B9FD4"));
                 col.Item().Table(t =>
                 {
                     t.ColumnsDefinition(cd =>
@@ -76,13 +78,13 @@ namespace YetkiliServisGazAcma.Business.Services
                         cd.RelativeColumn(); cd.RelativeColumn();
                         cd.RelativeColumn(); cd.RelativeColumn();
                     });
-                    Satir(t, "Müşteri Adı", i.MusteriAdi);
+                    Satir(t, "MÃ¼ÅŸteri AdÄ±", i.MusteriAdi);
                     Satir(t, "TC Kimlik No", i.MusteriTcNo);
                     Satir(t, "Telefon", i.MusteriTelefon);
                     SatirGenis(t, "Adres", i.Adres);
                 });
 
-                col.Item().Element(x => Bolum(x, "CİHAZ BİLGİLERİ", "#1B9FD4"));
+                col.Item().Element(x => Bolum(x, "CÄ°HAZ BÄ°LGÄ°LERÄ°", "#1B9FD4"));
                 col.Item().Table(t =>
                 {
                     t.ColumnsDefinition(cd =>
@@ -98,7 +100,7 @@ namespace YetkiliServisGazAcma.Business.Services
                     Satir(t, "Devreye Alma Tarihi", i.DevreyeAlmaTarihi.ToString("dd.MM.yyyy"));
                 });
 
-                col.Item().Element(x => Bolum(x, "TEKNİSYEN BİLGİLERİ", "#1B9FD4"));
+                col.Item().Element(x => Bolum(x, "TEKNÄ°SYEN BÄ°LGÄ°LERÄ°", "#1B9FD4"));
                 col.Item().Table(t =>
                 {
                     t.ColumnsDefinition(cd =>
@@ -106,7 +108,7 @@ namespace YetkiliServisGazAcma.Business.Services
                         cd.RelativeColumn(); cd.RelativeColumn();
                         cd.RelativeColumn(); cd.RelativeColumn();
                     });
-                    Satir(t, "Teknisyen Adı", i.TeknisyenAdi);
+                    Satir(t, "Teknisyen AdÄ±", i.TeknisyenAdi);
                     Satir(t, "Yetki Belgesi No", i.TeknisyenYetkiBelgesiNo);
                     Satir(t, "Yetkili Servis", i.Firma?.FirmaAdi);
                     Satir(t, "Marka Yetkisi", i.Marka?.MarkaAdi);
@@ -125,19 +127,19 @@ namespace YetkiliServisGazAcma.Business.Services
                     row.RelativeItem().Column(inner =>
                     {
                         inner.Item().BorderBottom(1).BorderColor("#ccc").Height(40).Text("");
-                        inner.Item().PaddingTop(4).Text("Teknisyen İmzası").FontSize(9).FontColor("#888");
+                        inner.Item().PaddingTop(4).Text("Teknisyen Ä°mzasÄ±").FontSize(9).FontColor("#888");
                     });
                     row.ConstantItem(30);
                     row.RelativeItem().Column(inner =>
                     {
                         inner.Item().BorderBottom(1).BorderColor("#ccc").Height(40).Text("");
-                        inner.Item().PaddingTop(4).Text("Müşteri İmzası").FontSize(9).FontColor("#888");
+                        inner.Item().PaddingTop(4).Text("MÃ¼ÅŸteri Ä°mzasÄ±").FontSize(9).FontColor("#888");
                     });
                     row.ConstantItem(30);
                     row.RelativeItem().Column(inner =>
                     {
                         inner.Item().BorderBottom(1).BorderColor("#ccc").Height(40).Text("");
-                        inner.Item().PaddingTop(4).Text("Yetkili Servis Kaşe/İmza").FontSize(9).FontColor("#888");
+                        inner.Item().PaddingTop(4).Text("Yetkili Servis KaÅŸe/Ä°mza").FontSize(9).FontColor("#888");
                     });
                 });
             });
@@ -154,16 +156,15 @@ namespace YetkiliServisGazAcma.Business.Services
             t.Cell().Background("#f4f4f4").Padding(5).PaddingLeft(8)
                 .Text(label).FontSize(9).FontColor("#555").Bold();
             t.Cell().Padding(5).PaddingLeft(8)
-                .Text(deger ?? "—").FontSize(10);
+                .Text(deger ?? "â€”").FontSize(10);
         }
 
-        // Adres gibi geniş alanlar için 4 sütunun tamamını kullanır
         static void SatirGenis(TableDescriptor t, string label, string? deger)
         {
             t.Cell().Background("#f4f4f4").Padding(5).PaddingLeft(8)
                 .Text(label).FontSize(9).FontColor("#555").Bold();
             t.Cell().ColumnSpan(3).Padding(5).PaddingLeft(8)
-                .Text(deger ?? "—").FontSize(10);
+                .Text(deger ?? "â€”").FontSize(10);
         }
 
         static void Footer(IContainer c)
@@ -172,7 +173,7 @@ namespace YetkiliServisGazAcma.Business.Services
             {
                 row.RelativeItem().Text(x =>
                 {
-                    x.Span("Bu belge yetkili servis yönetim sistemi tarafından otomatik oluşturulmuştur.")
+                    x.Span("Bu belge yetkili servis yÃ¶netim sistemi tarafÄ±ndan otomatik oluÅŸturulmuÅŸtur.")
                         .FontSize(8).FontColor("#aaa");
                 });
                 row.ConstantItem(100).AlignRight().Text(x =>

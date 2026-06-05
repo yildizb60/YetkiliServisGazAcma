@@ -129,6 +129,77 @@ namespace YetkiliServisGazAcma.Business.Services
             }
         }
 
+        public Task<ApiDosyaSonuc?> DevreyeAlmaPdfAsync(AppKullanici kullanici, int id, int? sirketId)
+        {
+            return DevreyeAlmaDosyaAsync(
+                kullanici,
+                id,
+                sirketId,
+                "api/admin-panel/devreye-almalar/pdf",
+                $"DevreyeAlma_{id}.pdf",
+                "Admin devreye alma PDF");
+        }
+
+        public Task<ApiDosyaSonuc?> DevreyeAlmaExcelAsync(AppKullanici kullanici, int id, int? sirketId)
+        {
+            return DevreyeAlmaDosyaAsync(
+                kullanici,
+                id,
+                sirketId,
+                "api/admin-panel/devreye-almalar/excel",
+                $"DevreyeAlma_{id}.csv",
+                "Admin devreye alma Excel");
+        }
+
+        private async Task<ApiDosyaSonuc?> DevreyeAlmaDosyaAsync(
+            AppKullanici kullanici,
+            int id,
+            int? sirketId,
+            string url,
+            string varsayilanDosyaAdi,
+            string operasyon)
+        {
+            if (!_options.Enabled)
+            {
+                ApiClientFallback.EnsureAllowed(_options, operasyon);
+                return null;
+            }
+
+            try
+            {
+                var token = await _tokenService.OlusturAsync(kullanici);
+                if (string.IsNullOrWhiteSpace(token))
+                {
+                    ApiClientFallback.EnsureAllowed(_options, $"{operasyon} token");
+                    return null;
+                }
+
+                using var request = new HttpRequestMessage(HttpMethod.Post, url);
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                request.Content = JsonContent.Create(new AdminDevreyeAlmaGetirIstek
+                {
+                    Id = id,
+                    SirketId = sirketId
+                });
+
+                using var response = await _httpClient.SendAsync(request);
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("{Operasyon} API cagrisinda basarisiz yanit dondu. StatusCode: {StatusCode}", operasyon, response.StatusCode);
+                    ApiClientFallback.EnsureAllowed(_options, operasyon);
+                    return null;
+                }
+
+                return await ApiDosyaSonuc.FromResponseAsync(response, varsayilanDosyaAdi);
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
+            {
+                _logger.LogWarning(ex, "{Operasyon} API cagrisina ulasilamadi.", operasyon);
+                ApiClientFallback.EnsureAllowed(_options, operasyon);
+                return null;
+            }
+        }
+
         public async Task<AdminYetkiBelgesiUyariSonuc?> YetkiBelgesiUyarilariAsync(AppKullanici kullanici, int? sirketId)
         {
             if (!_options.Enabled)

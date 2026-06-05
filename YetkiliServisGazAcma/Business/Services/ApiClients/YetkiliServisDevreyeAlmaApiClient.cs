@@ -59,6 +59,26 @@ namespace YetkiliServisGazAcma.Business.Services
             return cevap?.ToEntity();
         }
 
+        public Task<ApiDosyaSonuc?> PdfAsync(AppKullanici kullanici, int id)
+        {
+            return PostFileAsync(
+                kullanici,
+                "api/ys-devreyeal/pdf",
+                new YsDevreyeAlmaGetirIstek { Id = id },
+                $"DevreyeAlma_{id}.pdf",
+                "Yetkili servis devreye alma PDF");
+        }
+
+        public Task<ApiDosyaSonuc?> ExcelAsync(AppKullanici kullanici, int id)
+        {
+            return PostFileAsync(
+                kullanici,
+                "api/ys-devreyeal/excel",
+                new YsDevreyeAlmaGetirIstek { Id = id },
+                $"DevreyeAlma_{id}.csv",
+                "Yetkili servis devreye alma Excel");
+        }
+
         public async Task<YsDevreyeAlmaEkranSonuc?> EkranAsync(AppKullanici kullanici)
         {
             var cevap = await PostAsync<YsDevreyeAlmaBosIstek, YsDevreyeAlmaEkranCevap>(
@@ -144,6 +164,50 @@ namespace YetkiliServisGazAcma.Business.Services
                 }
 
                 return await response.Content.ReadFromJsonAsync<TResponse>();
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
+            {
+                _logger.LogWarning(ex, "{Operasyon} API cagrisina ulasilamadi. Url: {Url}", operasyon, url);
+                ApiClientFallback.EnsureAllowed(_options, operasyon);
+                return default;
+            }
+        }
+
+        private async Task<ApiDosyaSonuc?> PostFileAsync<TRequest>(
+            AppKullanici kullanici,
+            string url,
+            TRequest istek,
+            string varsayilanDosyaAdi,
+            string operasyon)
+        {
+            if (!_options.Enabled)
+            {
+                ApiClientFallback.EnsureAllowed(_options, operasyon);
+                return default;
+            }
+
+            try
+            {
+                var token = await _tokenService.OlusturAsync(kullanici);
+                if (string.IsNullOrWhiteSpace(token))
+                {
+                    ApiClientFallback.EnsureAllowed(_options, $"{operasyon} token");
+                    return default;
+                }
+
+                using var request = new HttpRequestMessage(HttpMethod.Post, url);
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                request.Content = JsonContent.Create(istek);
+
+                using var response = await _httpClient.SendAsync(request);
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("{Operasyon} API cagrisinda basarisiz yanit dondu. Url: {Url}, StatusCode: {StatusCode}", operasyon, url, response.StatusCode);
+                    ApiClientFallback.EnsureAllowed(_options, operasyon);
+                    return default;
+                }
+
+                return await ApiDosyaSonuc.FromResponseAsync(response, varsayilanDosyaAdi);
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
             {

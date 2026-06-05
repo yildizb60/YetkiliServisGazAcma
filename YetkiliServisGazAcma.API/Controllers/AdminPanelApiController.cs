@@ -24,6 +24,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         private readonly AdminRaporApiService _adminRaporApiService;
         private readonly AdminYetkiBelgesiOnayApiService _adminYetkiBelgesiOnayApiService;
         private readonly AdminPersonelYetkiApiService _adminPersonelYetkiApiService;
+        private readonly DevreyeAlmaExportApiService _devreyeAlmaExportApiService;
 
         public AdminPanelApiController(
             AppDbContext context,
@@ -34,7 +35,8 @@ namespace YetkiliServisGazAcma.API.Controllers
             AdminSubeApiService adminSubeApiService,
             AdminRaporApiService adminRaporApiService,
             AdminYetkiBelgesiOnayApiService adminYetkiBelgesiOnayApiService,
-            AdminPersonelYetkiApiService adminPersonelYetkiApiService)
+            AdminPersonelYetkiApiService adminPersonelYetkiApiService,
+            DevreyeAlmaExportApiService devreyeAlmaExportApiService)
         {
             _context = context;
             _userManager = userManager;
@@ -45,6 +47,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             _adminRaporApiService = adminRaporApiService;
             _adminYetkiBelgesiOnayApiService = adminYetkiBelgesiOnayApiService;
             _adminPersonelYetkiApiService = adminPersonelYetkiApiService;
+            _devreyeAlmaExportApiService = devreyeAlmaExportApiService;
         }
 
         [HttpPost("dashboard")]
@@ -1015,6 +1018,40 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return NotFound(new { basarili = false, mesaj = "Devreye alma kaydi bulunamadi" });
 
             return Ok(kayit);
+        }
+
+        [HttpPost("devreye-almalar/pdf")]
+        public async Task<IActionResult> DevreyeAlmaPdf([FromBody] AdminDevreyeAlmaGetirFiltreDto? dto)
+        {
+            if (dto == null || dto.Id <= 0)
+                return BadRequest(new { basarili = false, mesaj = "Devreye alma id zorunludur" });
+
+            var kapsam = await KapsamSirketIdAsync(dto.SirketId);
+            if (kapsam.gecersiz)
+                return Forbid();
+
+            var dosya = await _devreyeAlmaExportApiService.AdminPdfAsync(dto.Id, kapsam.sirketId);
+            if (dosya == null)
+                return NotFound(new { basarili = false, mesaj = "Devreye alma kaydi bulunamadi" });
+
+            return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+        }
+
+        [HttpPost("devreye-almalar/excel")]
+        public async Task<IActionResult> DevreyeAlmaExcel([FromBody] AdminDevreyeAlmaGetirFiltreDto? dto)
+        {
+            if (dto == null || dto.Id <= 0)
+                return BadRequest(new { basarili = false, mesaj = "Devreye alma id zorunludur" });
+
+            var kapsam = await KapsamSirketIdAsync(dto.SirketId);
+            if (kapsam.gecersiz)
+                return Forbid();
+
+            var dosya = await _devreyeAlmaExportApiService.AdminExcelAsync(dto.Id, kapsam.sirketId);
+            if (dosya == null)
+                return NotFound(new { basarili = false, mesaj = "Devreye alma kaydi bulunamadi" });
+
+            return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
         }
 
         [HttpPost("yetki-belgeleri/uyarilar")]

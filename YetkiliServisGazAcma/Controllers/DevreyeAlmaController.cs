@@ -139,13 +139,10 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await _userManager.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
-            var islem = await _devreyeAlmaApiClient.DetayAsync(kullanici, id);
+            var dosya = await _devreyeAlmaApiClient.PdfAsync(kullanici, id);
+            if (dosya == null) return NotFound();
 
-            if (islem == null) return NotFound();
-
-            var pdf = DevreyeAlmaPdfService.Olustur(islem);
-            return File(pdf, "application/pdf",
-                $"DevreyeAlma_{islem.TesistatNo ?? id.ToString()}_{id}.pdf");
+            return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
         }
 
         [HttpGet]
@@ -155,13 +152,10 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await _userManager.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
-            var islem = await _devreyeAlmaApiClient.DetayAsync(kullanici, id);
+            var dosya = await _devreyeAlmaApiClient.ExcelAsync(kullanici, id);
+            if (dosya == null) return NotFound();
 
-            if (islem == null) return NotFound();
-
-            var bytes = DevreyeAlmaExcelService.Olustur(new[] { islem });
-            return File(bytes, "text/csv; charset=windows-1254",
-                $"DevreyeAlma_{islem.TesistatNo ?? id.ToString()}_{id}.csv");
+            return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
         }
 
         [HttpPost]
