@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using YetkiliServisGazAcma.API.Services;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
 
@@ -14,11 +15,16 @@ namespace YetkiliServisGazAcma.API.Controllers
     {
         private readonly AppDbContext _context;
         private readonly UserManager<AppKullanici> _userManager;
+        private readonly YetkiliServisPanelYonetimApiService _yonetimApiService;
 
-        public YetkiliServisPanelApiController(AppDbContext context, UserManager<AppKullanici> userManager)
+        public YetkiliServisPanelApiController(
+            AppDbContext context,
+            UserManager<AppKullanici> userManager,
+            YetkiliServisPanelYonetimApiService yonetimApiService)
         {
             _context = context;
             _userManager = userManager;
+            _yonetimApiService = yonetimApiService;
         }
 
         [HttpPost("dashboard")]
@@ -388,45 +394,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (kullanici?.FirmaId == null)
                 return Unauthorized();
 
-            if (dto == null)
-                return Ok(YsPanelIslemSonucDto.Basarisiz("Sube bilgileri zorunludur."));
-
-            if (string.IsNullOrWhiteSpace(dto.SubeAdi))
-                return Ok(YsPanelIslemSonucDto.Basarisiz("Sube adi zorunludur."));
-
-            var firmaId = kullanici.FirmaId.Value;
-            var sube = dto.Id > 0
-                ? await _context.Ys_Subeler.FirstOrDefaultAsync(x => x.Id == dto.Id && x.FirmaId == firmaId)
-                : null;
-
-            if (dto.Id > 0 && sube == null)
-                return Ok(YsPanelIslemSonucDto.Basarisiz("Sube bulunamadi."));
-
-            if (sube == null)
-            {
-                sube = new Ys_Sube
-                {
-                    FirmaId = firmaId,
-                    OlusturanKullanici = kullanici.UserName ?? "sistem"
-                };
-                _context.Ys_Subeler.Add(sube);
-            }
-            else
-            {
-                sube.GuncellemeTarihi = DateTime.Now;
-                sube.GuncelleyenKullanici = kullanici.UserName ?? "sistem";
-            }
-
-            sube.SubeAdi = dto.SubeAdi;
-            sube.Il = dto.Il;
-            sube.Ilce = dto.Ilce;
-            sube.Telefon = dto.Telefon;
-            sube.Adres = dto.Adres;
-            sube.AktifMi = dto.AktifMi;
-            sube.SilindiMi = false;
-
-            await _context.SaveChangesAsync();
-            return Ok(YsPanelIslemSonucDto.BasariliSonuc(dto.Id > 0 ? "Sube guncellendi." : "Sube kaydi eklendi."));
+            return Ok(await _yonetimApiService.SubeKaydetAsync(dto, kullanici));
         }
 
         [HttpPost("subeler/durum")]
@@ -436,21 +404,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (kullanici?.FirmaId == null)
                 return Unauthorized();
 
-            if (dto == null || dto.Id <= 0)
-                return Ok(YsPanelIslemSonucDto.Basarisiz("Sube id zorunludur."));
-
-            var sube = await _context.Ys_Subeler
-                .FirstOrDefaultAsync(x => x.Id == dto.Id && x.FirmaId == kullanici.FirmaId.Value);
-
-            if (sube == null)
-                return Ok(YsPanelIslemSonucDto.Basarisiz("Sube bulunamadi."));
-
-            sube.AktifMi = !sube.AktifMi;
-            sube.GuncellemeTarihi = DateTime.Now;
-            sube.GuncelleyenKullanici = kullanici.UserName ?? "sistem";
-            await _context.SaveChangesAsync();
-
-            return Ok(YsPanelIslemSonucDto.BasariliSonuc("Sube durumu guncellendi."));
+            return Ok(await _yonetimApiService.SubeDurumAsync(dto, kullanici));
         }
 
         [HttpPost("subeler/sil")]
@@ -460,21 +414,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (kullanici?.FirmaId == null)
                 return Unauthorized();
 
-            if (dto == null || dto.Id <= 0)
-                return Ok(YsPanelIslemSonucDto.Basarisiz("Sube id zorunludur."));
-
-            var sube = await _context.Ys_Subeler
-                .FirstOrDefaultAsync(x => x.Id == dto.Id && x.FirmaId == kullanici.FirmaId.Value);
-
-            if (sube == null)
-                return Ok(YsPanelIslemSonucDto.Basarisiz("Sube bulunamadi."));
-
-            sube.SilindiMi = true;
-            sube.SilinmeTarihi = DateTime.Now;
-            sube.SilenKullanici = kullanici.UserName ?? "sistem";
-            await _context.SaveChangesAsync();
-
-            return Ok(YsPanelIslemSonucDto.BasariliSonuc("Sube kaydi silindi."));
+            return Ok(await _yonetimApiService.SubeSilAsync(dto, kullanici));
         }
 
         [HttpPost("markalar/guncelle")]
@@ -484,35 +424,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (kullanici?.FirmaId == null)
                 return Unauthorized();
 
-            var firmaId = kullanici.FirmaId.Value;
-            var mevcut = await _context.Ys_FirmaMarkalar
-                .Where(x => x.FirmaId == firmaId)
-                .ToListAsync();
-            _context.Ys_FirmaMarkalar.RemoveRange(mevcut);
-
-            if (dto?.MarkaIds?.Count > 0)
-            {
-                var gecerliMarkaIds = await _context.Ys_Markalar
-                    .Where(x => !x.SilindiMi && x.AktifMi && dto.MarkaIds.Contains(x.Id))
-                    .Select(x => x.Id)
-                    .ToListAsync();
-
-                foreach (var markaId in gecerliMarkaIds.Distinct())
-                {
-                    _context.Ys_FirmaMarkalar.Add(new Ys_FirmaMarka
-                    {
-                        FirmaId = firmaId,
-                        MarkaId = markaId,
-                        YetkiBitisTarihi = DateTime.Now.AddYears(5),
-                        OlusturmaTarihi = DateTime.Now,
-                        OlusturanKullanici = kullanici.UserName ?? "sistem",
-                        SilindiMi = false
-                    });
-                }
-            }
-
-            await _context.SaveChangesAsync();
-            return Ok(YsPanelIslemSonucDto.BasariliSonuc("Marka yetkileri guncellendi."));
+            return Ok(await _yonetimApiService.MarkaGuncelleAsync(dto, kullanici));
         }
 
         [HttpPost("markalar/ekle")]
@@ -522,50 +434,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (kullanici?.FirmaId == null)
                 return Unauthorized();
 
-            if (dto == null || string.IsNullOrWhiteSpace(dto.MarkaAdi))
-                return Ok(YsPanelIslemSonucDto.Basarisiz("Marka adi zorunludur."));
-
-            var temizAdi = dto.MarkaAdi.Trim();
-            var mevcutMarka = await _context.Ys_Markalar
-                .FirstOrDefaultAsync(x => !x.SilindiMi && x.MarkaAdi != null && x.MarkaAdi.ToLower() == temizAdi.ToLower());
-
-            if (mevcutMarka == null)
-            {
-                mevcutMarka = new Ys_Marka
-                {
-                    MarkaAdi = temizAdi,
-                    Aciklama = dto.Aciklama,
-                    AktifMi = true,
-                    OlusturanKullanici = kullanici.UserName ?? "sistem"
-                };
-                _context.Ys_Markalar.Add(mevcutMarka);
-                await _context.SaveChangesAsync();
-            }
-
-            var firmaId = kullanici.FirmaId.Value;
-            var bag = await _context.Ys_FirmaMarkalar
-                .FirstOrDefaultAsync(x => x.FirmaId == firmaId && x.MarkaId == mevcutMarka.Id);
-            if (bag == null)
-            {
-                _context.Ys_FirmaMarkalar.Add(new Ys_FirmaMarka
-                {
-                    FirmaId = firmaId,
-                    MarkaId = mevcutMarka.Id,
-                    YetkiBitisTarihi = DateTime.Now.AddYears(5),
-                    OlusturmaTarihi = DateTime.Now,
-                    OlusturanKullanici = kullanici.UserName ?? "sistem",
-                    SilindiMi = false
-                });
-            }
-            else
-            {
-                bag.SilindiMi = false;
-                bag.SilinmeTarihi = null;
-                bag.SilenKullanici = null;
-            }
-
-            await _context.SaveChangesAsync();
-            return Ok(YsPanelIslemSonucDto.BasariliSonuc("Marka eklendi."));
+            return Ok(await _yonetimApiService.MarkaEkleAsync(dto, kullanici));
         }
 
         [HttpPost("markalar/duzenle")]
@@ -575,26 +444,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (kullanici?.FirmaId == null)
                 return Unauthorized();
 
-            if (dto == null || dto.Id <= 0)
-                return Ok(YsPanelIslemSonucDto.Basarisiz("Marka id zorunludur."));
-
-            var firmaId = kullanici.FirmaId.Value;
-            var bag = await _context.Ys_FirmaMarkalar
-                .Include(x => x.Marka)
-                .FirstOrDefaultAsync(x => x.FirmaId == firmaId && x.MarkaId == dto.Id && !x.SilindiMi);
-
-            if (bag?.Marka == null)
-                return Ok(YsPanelIslemSonucDto.Basarisiz("Marka bulunamadi."));
-
-            if (!string.IsNullOrWhiteSpace(dto.MarkaAdi))
-                bag.Marka.MarkaAdi = dto.MarkaAdi.Trim();
-
-            bag.Marka.Aciklama = dto.Aciklama;
-            bag.Marka.GuncellemeTarihi = DateTime.Now;
-            bag.Marka.GuncelleyenKullanici = kullanici.UserName ?? "sistem";
-            await _context.SaveChangesAsync();
-
-            return Ok(YsPanelIslemSonucDto.BasariliSonuc("Marka guncellendi."));
+            return Ok(await _yonetimApiService.MarkaDuzenleAsync(dto, kullanici));
         }
 
         [HttpPost("markalar/sil")]
@@ -604,22 +454,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (kullanici?.FirmaId == null)
                 return Unauthorized();
 
-            if (dto == null || dto.Id <= 0)
-                return Ok(YsPanelIslemSonucDto.Basarisiz("Marka id zorunludur."));
-
-            var firmaId = kullanici.FirmaId.Value;
-            var bag = await _context.Ys_FirmaMarkalar
-                .FirstOrDefaultAsync(x => x.FirmaId == firmaId && x.MarkaId == dto.Id && !x.SilindiMi);
-
-            if (bag != null)
-            {
-                bag.SilindiMi = true;
-                bag.SilinmeTarihi = DateTime.Now;
-                bag.SilenKullanici = kullanici.UserName ?? "sistem";
-                await _context.SaveChangesAsync();
-            }
-
-            return Ok(YsPanelIslemSonucDto.BasariliSonuc("Marka yetkisi kaldirildi."));
+            return Ok(await _yonetimApiService.MarkaSilAsync(dto, kullanici));
         }
 
         private async Task<AppKullanici?> AktifYetkiliServisKullaniciAsync()
