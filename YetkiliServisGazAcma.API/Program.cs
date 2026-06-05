@@ -48,6 +48,7 @@ builder.Services.AddScoped<YetkiBelgesiService>();
 builder.Services.AddScoped<AdminDashboardService>();
 builder.Services.AddScoped<AdminYetkiliServisListeService>();
 builder.Services.AddScoped<SehirFirmaKoduService>();
+builder.Services.AddScoped<AdminYetkiliServisYonetimApiService>();
 builder.Services.AddScoped<AdminSubeApiService>();
 builder.Services.AddScoped<AdminRaporApiService>();
 builder.Services.AddScoped<AdminYetkiBelgesiOnayApiService>();
