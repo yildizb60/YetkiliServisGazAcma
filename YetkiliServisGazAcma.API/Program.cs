@@ -51,6 +51,7 @@ builder.Services.AddScoped<SehirFirmaKoduService>();
 builder.Services.AddScoped<AdminSubeApiService>();
 builder.Services.AddScoped<AdminRaporApiService>();
 builder.Services.AddScoped<AdminYetkiBelgesiOnayApiService>();
+builder.Services.AddScoped<AdminPersonelYetkiApiService>();
 builder.Services.Configure<OnlineServiceOptions>(builder.Configuration.GetSection("OnlineService"));
 builder.Services.AddHttpClient<OnlineCihazBilgileriClient>((serviceProvider, client) =>
 {

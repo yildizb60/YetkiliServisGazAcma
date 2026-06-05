@@ -23,6 +23,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         private readonly AdminSubeApiService _adminSubeApiService;
         private readonly AdminRaporApiService _adminRaporApiService;
         private readonly AdminYetkiBelgesiOnayApiService _adminYetkiBelgesiOnayApiService;
+        private readonly AdminPersonelYetkiApiService _adminPersonelYetkiApiService;
 
         public AdminPanelApiController(
             AppDbContext context,
@@ -32,7 +33,8 @@ namespace YetkiliServisGazAcma.API.Controllers
             SehirFirmaKoduService sehirFirmaKoduService,
             AdminSubeApiService adminSubeApiService,
             AdminRaporApiService adminRaporApiService,
-            AdminYetkiBelgesiOnayApiService adminYetkiBelgesiOnayApiService)
+            AdminYetkiBelgesiOnayApiService adminYetkiBelgesiOnayApiService,
+            AdminPersonelYetkiApiService adminPersonelYetkiApiService)
         {
             _context = context;
             _userManager = userManager;
@@ -42,6 +44,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             _adminSubeApiService = adminSubeApiService;
             _adminRaporApiService = adminRaporApiService;
             _adminYetkiBelgesiOnayApiService = adminYetkiBelgesiOnayApiService;
+            _adminPersonelYetkiApiService = adminPersonelYetkiApiService;
         }
 
         [HttpPost("dashboard")]
@@ -673,75 +676,10 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (!await KullaniciYonetebilirMi(kullanici, kapsam.sirketId))
                 return Forbid();
 
-            var genelSistemAdmin = User.IsInRole("GenelSistemAdmin")
-                || User.IsInRole("SuperAdmin")
-                || kullanici.KullaniciTipi == 4
-                || (kullanici.KullaniciTipi == 3 && !kullanici.SirketId.HasValue);
-
-            var personelQuery = _context.Users
-                .Include(x => x.Sirket)
-                .Where(x => x.KullaniciTipi == 2)
-                .AsQueryable();
-
-            if (!(genelSistemAdmin && !kapsam.sirketId.HasValue))
-            {
-                if (!kapsam.sirketId.HasValue)
-                    return Ok(new AdminYetkiListeDto());
-
-                personelQuery = personelQuery.Where(x =>
-                    x.SirketId == kapsam.sirketId.Value ||
-                    _context.Dag_PersonelYetkiler.Any(y =>
-                        y.KullaniciId == x.Id &&
-                        y.SirketId == kapsam.sirketId.Value &&
-                        !y.SilindiMi));
-            }
-
-            var personeller = await personelQuery
-                .OrderBy(x => x.AdSoyad)
-                .ToListAsync();
-
-            var personelIds = personeller.Select(x => x.Id).ToList();
-            var yetkiQuery = _context.Dag_PersonelYetkiler
-                .Include(x => x.Sirket)
-                .Where(x => personelIds.Contains(x.KullaniciId) && !x.SilindiMi)
-                .AsQueryable();
-
-            if (kapsam.sirketId.HasValue)
-                yetkiQuery = yetkiQuery.Where(x => x.SirketId == kapsam.sirketId.Value);
-
-            var yetkiKayitlari = await yetkiQuery.ToListAsync();
-            var yetkiMap = yetkiKayitlari
-                .GroupBy(x => x.KullaniciId)
-                .ToDictionary(
-                    g => g.Key,
-                    g => NormalizeYetkiListesi(g.Select(x => x.YetkiTipi)));
-
-            var yetkiSirketAdlariMap = yetkiKayitlari
-                .Where(x => x.Sirket != null && !string.IsNullOrWhiteSpace(x.Sirket.SirketAdi))
-                .GroupBy(x => x.KullaniciId)
-                .ToDictionary(
-                    g => g.Key,
-                    g => g.Select(x => x.Sirket!.SirketAdi!)
-                        .Distinct()
-                        .OrderBy(x => x)
-                        .ToList());
-
-            foreach (var personel in personeller)
-            {
-                if (!yetkiSirketAdlariMap.ContainsKey(personel.Id)
-                    && personel.Sirket != null
-                    && !string.IsNullOrWhiteSpace(personel.Sirket.SirketAdi))
-                {
-                    yetkiSirketAdlariMap[personel.Id] = new List<string> { personel.Sirket.SirketAdi };
-                }
-            }
-
-            return Ok(new AdminYetkiListeDto
-            {
-                Personeller = personeller.Select(MapKullanici).ToList(),
-                YetkiMap = yetkiMap,
-                YetkiSirketAdlariMap = yetkiSirketAdlariMap
-            });
+            return Ok(await _adminPersonelYetkiApiService.ListeleAsync(
+                kullanici,
+                kapsam.sirketId,
+                GenelSistemAdminMi(kullanici)));
         }
 
         [HttpPost("yetkiler/getir")]
@@ -758,46 +696,11 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (!await KullaniciYonetebilirMi(kullanici, kapsam.sirketId))
                 return Forbid();
 
-            if (dto == null || string.IsNullOrWhiteSpace(dto.Id))
-                return Ok(new AdminYetkiDuzenleDto());
-
-            var personel = await _context.Users
-                .Include(x => x.Sirket)
-                .FirstOrDefaultAsync(x => x.Id == dto.Id && x.KullaniciTipi == 2);
-
-            if (personel == null || !await KullaniciKapsamindaMi(kullanici, personel, kapsam.sirketId))
-                return Ok(new AdminYetkiDuzenleDto());
-
-            var sirketler = await YonetilebilirSirketlerAsync(kullanici, kapsam.sirketId);
-            var sirketIds = sirketler.Select(x => x.Id).ToHashSet();
-            var mevcutKayitlar = await _context.Dag_PersonelYetkiler
-                .Where(x => x.KullaniciId == personel.Id)
-                .Where(x => sirketIds.Contains(x.SirketId))
-                .ToListAsync();
-
-            var yetkiSirketMap = mevcutKayitlar
-                .GroupBy(x => x.SirketId)
-                .ToDictionary(
-                    g => g.Key,
-                    g => NormalizeYetkiListesi(g.Select(x => x.YetkiTipi)));
-
-            var mevcut = NormalizeYetkiListesi(mevcutKayitlar.Select(x => x.YetkiTipi));
-            var seciliSirketIds = mevcutKayitlar
-                .Select(x => x.SirketId)
-                .Distinct()
-                .ToList();
-
-            if (seciliSirketIds.Count == 0 && personel.SirketId.HasValue && sirketIds.Contains(personel.SirketId.Value))
-                seciliSirketIds.Add(personel.SirketId.Value);
-
-            return Ok(new AdminYetkiDuzenleDto
-            {
-                Personel = MapKullanici(personel),
-                Sirketler = sirketler,
-                MevcutYetkiler = mevcut,
-                YetkiSirketMap = yetkiSirketMap,
-                SeciliSirketIds = seciliSirketIds
-            });
+            return Ok(await _adminPersonelYetkiApiService.GetirAsync(
+                dto,
+                kullanici,
+                kapsam.sirketId,
+                GenelSistemAdminMi(kullanici)));
         }
 
         [HttpPost("yetkiler/guncelle")]
@@ -814,56 +717,11 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (!await KullaniciYonetebilirMi(kullanici, kapsam.sirketId))
                 return Forbid();
 
-            if (dto == null || string.IsNullOrWhiteSpace(dto.Id))
-                return Ok(AdminIslemSonucDto.Basarisiz("Personel id zorunludur."));
-
-            var personel = await _context.Users.FirstOrDefaultAsync(x => x.Id == dto.Id && x.KullaniciTipi == 2);
-            if (personel == null)
-                return Ok(AdminIslemSonucDto.Basarisiz("Personel bulunamadi."));
-
-            if (!await KullaniciKapsamindaMi(kullanici, personel, kapsam.sirketId))
-                return Forbid();
-
-            var yonetilebilirSirketIds = (await YonetilebilirSirketlerAsync(kullanici, kapsam.sirketId))
-                .Select(x => x.Id)
-                .ToHashSet();
-
-            var secilenSirketIds = (dto.SirketIds ?? new List<int>())
-                .Where(yonetilebilirSirketIds.Contains)
-                .Distinct()
-                .ToList();
-
-            if (secilenSirketIds.Count == 0 && personel.SirketId.HasValue && yonetilebilirSirketIds.Contains(personel.SirketId.Value))
-                secilenSirketIds.Add(personel.SirketId.Value);
-
-            var mevcut = await _context.Dag_PersonelYetkiler
-                .Where(x => x.KullaniciId == personel.Id)
-                .Where(x => yonetilebilirSirketIds.Contains(x.SirketId))
-                .ToListAsync();
-
-            _context.Dag_PersonelYetkiler.RemoveRange(mevcut);
-
-            foreach (var sirketId in secilenSirketIds)
-            {
-                dto.Yetkiler.TryGetValue(sirketId, out var secilenYetkiler);
-                secilenYetkiler = NormalizeYetkiListesi(secilenYetkiler ?? new List<string>());
-
-                foreach (var yetki in secilenYetkiler)
-                {
-                    _context.Dag_PersonelYetkiler.Add(new Dag_PersonelYetki
-                    {
-                        KullaniciId = personel.Id,
-                        SirketId = sirketId,
-                        YetkiTipi = yetki,
-                        OlusturmaTarihi = DateTime.Now,
-                        OlusturanKullanici = kullanici.UserName ?? "api",
-                        SilindiMi = false
-                    });
-                }
-            }
-
-            await _context.SaveChangesAsync();
-            return Ok(AdminIslemSonucDto.BasariliSonuc("Yetkiler guncellendi."));
+            return Ok(await _adminPersonelYetkiApiService.GuncelleAsync(
+                dto,
+                kullanici,
+                kapsam.sirketId,
+                GenelSistemAdminMi(kullanici)));
         }
 
         [HttpPost("yetkili-servisler/liste")]
@@ -1500,60 +1358,12 @@ namespace YetkiliServisGazAcma.API.Controllers
             return await _context.Users.FirstOrDefaultAsync(x => x.Id == kullaniciId);
         }
 
-        private async Task<List<AdminSirketSecenekDto>> YonetilebilirSirketlerAsync(AppKullanici kullanici, int? kapsamSirketId)
+        private bool GenelSistemAdminMi(AppKullanici kullanici)
         {
-            var genelSistemAdminMi = User.IsInRole("GenelSistemAdmin")
+            return User.IsInRole("GenelSistemAdmin")
                 || User.IsInRole("SuperAdmin")
                 || kullanici.KullaniciTipi == 4
                 || (kullanici.KullaniciTipi == 3 && !kullanici.SirketId.HasValue);
-
-            var query = _context.Dag_Sirketler
-                .Where(x => !x.SilindiMi)
-                .AsQueryable();
-
-            if (!(genelSistemAdminMi && !kapsamSirketId.HasValue))
-            {
-                if (kapsamSirketId.HasValue)
-                {
-                    query = query.Where(x => x.Id == kapsamSirketId.Value);
-                }
-                else if (kullanici.SirketId.HasValue)
-                {
-                    query = query.Where(x => x.Id == kullanici.SirketId.Value);
-                }
-                else
-                {
-                    var yetkiliSirketIds = await _context.Dag_PersonelYetkiler
-                        .Where(x => x.KullaniciId == kullanici.Id && !x.SilindiMi)
-                        .Select(x => x.SirketId)
-                        .Distinct()
-                        .ToListAsync();
-
-                    query = query.Where(x => yetkiliSirketIds.Contains(x.Id));
-                }
-            }
-
-            return await query
-                .OrderBy(x => x.SirketAdi)
-                .Select(x => new AdminSirketSecenekDto
-                {
-                    Id = x.Id,
-                    SirketAdi = x.SirketAdi
-                })
-                .ToListAsync();
-        }
-
-        private static List<string> NormalizeYetkiListesi(IEnumerable<string?> yetkiler)
-        {
-            var liste = yetkiler
-                .Where(x => !string.IsNullOrWhiteSpace(x) && x != YetkiTipleri.DAGITIM_SIRKET_YONET)
-                .Select(x => x!)
-                .Distinct()
-                .ToList();
-
-            return liste.Contains(YetkiTipleri.TAM_YETKI)
-                ? new List<string> { YetkiTipleri.TAM_YETKI }
-                : liste;
         }
 
         private static AdminKullaniciListeDto MapKullanici(AppKullanici kullanici)
