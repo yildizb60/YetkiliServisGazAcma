@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using YetkiliServisGazAcma.Entities;
-using YetkiliServisGazAcma.Models;
 
 namespace YetkiliServisGazAcma.Business.Services
 {
@@ -10,17 +8,17 @@ namespace YetkiliServisGazAcma.Business.Services
         private const string SessionPrefix = "AktifSirketId:";
 
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly AppDbContext _context;
         private readonly UserManager<AppKullanici> _userManager;
+        private readonly PanelKapsamApiClient _panelKapsamApiClient;
 
         public AktifSirketService(
             IHttpContextAccessor httpContextAccessor,
-            AppDbContext context,
-            UserManager<AppKullanici> userManager)
+            UserManager<AppKullanici> userManager,
+            PanelKapsamApiClient panelKapsamApiClient)
         {
             _httpContextAccessor = httpContextAccessor;
-            _context = context;
             _userManager = userManager;
+            _panelKapsamApiClient = panelKapsamApiClient;
         }
 
         public static bool GenelSistemAdminTipi(AppKullanici? kullanici)
@@ -59,46 +57,8 @@ namespace YetkiliServisGazAcma.Business.Services
             if (kullanici == null)
                 return new List<Dag_Sirket>();
 
-            if (await GenelSistemAdminMi(kullanici))
-            {
-                return await _context.Dag_Sirketler
-                    .Where(x => !x.SilindiMi && x.AktifMi)
-                    .OrderBy(x => x.SirketAdi)
-                    .ToListAsync();
-            }
-
-            var sirketIds = new HashSet<int>();
-
-            if (kullanici.SirketId.HasValue)
-                sirketIds.Add(kullanici.SirketId.Value);
-
-            if (kullanici.FirmaId.HasValue)
-            {
-                var firmaSirketId = await _context.Ys_Firmalar
-                    .Where(x => x.Id == kullanici.FirmaId.Value && !x.SilindiMi)
-                    .Select(x => x.SirketId)
-                    .FirstOrDefaultAsync();
-
-                if (firmaSirketId > 0)
-                    sirketIds.Add(firmaSirketId);
-            }
-
-            var yetkiSirketleri = await _context.Dag_PersonelYetkiler
-                .Where(x => x.KullaniciId == kullanici.Id && !x.SilindiMi)
-                .Select(x => x.SirketId)
-                .Distinct()
-                .ToListAsync();
-
-            foreach (var id in yetkiSirketleri.Where(x => x > 0))
-                sirketIds.Add(id);
-
-            if (sirketIds.Count == 0)
-                return new List<Dag_Sirket>();
-
-            return await _context.Dag_Sirketler
-                .Where(x => sirketIds.Contains(x.Id) && !x.SilindiMi && x.AktifMi)
-                .OrderBy(x => x.SirketAdi)
-                .ToListAsync();
+            return await _panelKapsamApiClient.KullaniciSirketleriAsync(kullanici)
+                ?? new List<Dag_Sirket>();
         }
 
         public async Task<int?> AktifSirketIdAsync(AppKullanici? kullanici)

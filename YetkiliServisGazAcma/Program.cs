@@ -64,6 +64,7 @@ AddApiClient<PersonelPanelApiClient>();
 AddApiClient<YetkiliServisDevreyeAlmaApiClient>();
 AddApiClient<YetkiliServisPanelApiClient>();
 AddApiClient<HomeOzetApiClient>();
+AddApiClient<PanelKapsamApiClient>();
 builder.Services.Configure<SmsOptions>(builder.Configuration.GetSection("Sms"));
 builder.Services.AddHttpClient<AhlatciSmsProvider>((serviceProvider, client) =>
 {

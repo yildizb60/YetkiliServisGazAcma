@@ -1,7 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 using YetkiliServisGazAcma.Entities;
-using YetkiliServisGazAcma.Models;
 
 namespace YetkiliServisGazAcma.Business.Services
 {
@@ -17,20 +15,17 @@ namespace YetkiliServisGazAcma.Business.Services
         private const string MarmaraLogo = "/images/company/marmaragaz-logo.png";
 
         private readonly IConfiguration _configuration;
-        private readonly AppDbContext _context;
-        private readonly SehirFirmaKoduService _sehirFirmaKoduService;
         private readonly AktifSirketService _aktifSirketService;
+        private readonly PanelKapsamApiClient _panelKapsamApiClient;
 
         public PanelKimlikService(
             IConfiguration configuration,
-            AppDbContext context,
-            SehirFirmaKoduService sehirFirmaKoduService,
-            AktifSirketService aktifSirketService)
+            AktifSirketService aktifSirketService,
+            PanelKapsamApiClient panelKapsamApiClient)
         {
             _configuration = configuration;
-            _context = context;
-            _sehirFirmaKoduService = sehirFirmaKoduService;
             _aktifSirketService = aktifSirketService;
+            _panelKapsamApiClient = panelKapsamApiClient;
         }
 
         public async Task<PanelKimlikBilgisi> KullaniciIcinOlustur(AppKullanici? kullanici)
@@ -38,45 +33,18 @@ namespace YetkiliServisGazAcma.Business.Services
             if (kullanici == null)
                 return new PanelKimlikBilgisi();
 
-            string? sirketAdi = null;
-            string? sehir = null;
-
-            if (kullanici.FirmaId.HasValue)
-            {
-                var firma = await _context.Ys_Firmalar
-                    .Include(x => x.Sirket)
-                    .FirstOrDefaultAsync(x => x.Id == kullanici.FirmaId.Value && !x.SilindiMi);
-
-                sirketAdi = firma?.Sirket?.SirketAdi;
-                sehir = firma?.FaaliyetIli ?? firma?.Sirket?.Il;
-            }
-
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            if (string.IsNullOrWhiteSpace(sirketAdi) && aktifSirketId.HasValue)
-            {
-                var sirket = await _context.Dag_Sirketler
-                    .FirstOrDefaultAsync(x => x.Id == aktifSirketId.Value && !x.SilindiMi);
+            var kimlik = await _panelKapsamApiClient.PanelKimlikAsync(kullanici, aktifSirketId);
 
-                sirketAdi = sirket?.SirketAdi;
-                sehir = sirket?.Il;
-            }
-
-            if (string.IsNullOrWhiteSpace(sirketAdi) && kullanici.SirketId.HasValue)
-            {
-                var sirket = await _context.Dag_Sirketler
-                    .FirstOrDefaultAsync(x => x.Id == kullanici.SirketId.Value && !x.SilindiMi);
-
-                sirketAdi = sirket?.SirketAdi;
-                sehir = sirket?.Il;
-            }
+            var sirketAdi = kimlik?.SirketAdi;
+            var firmaKodu = kimlik?.FirmaKodu;
 
             if (string.IsNullOrWhiteSpace(sirketAdi))
-                sirketAdi = _sehirFirmaKoduService.FirmaKodu(sehir);
+                sirketAdi = firmaKodu;
 
             if (string.IsNullOrWhiteSpace(sirketAdi))
                 return new PanelKimlikBilgisi();
 
-            var firmaKodu = _sehirFirmaKoduService.FirmaKodu(sehir);
             return new PanelKimlikBilgisi
             {
                 SirketAdi = GorunenAd(sirketAdi),
@@ -137,4 +105,3 @@ namespace YetkiliServisGazAcma.Business.Services
         }
     }
 }
-
