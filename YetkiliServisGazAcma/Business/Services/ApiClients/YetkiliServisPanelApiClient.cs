@@ -206,6 +206,44 @@ namespace YetkiliServisGazAcma.Business.Services
             return cevap?.ToSonuc();
         }
 
+        public Task<ApiDosyaSonuc?> RaporlarPdfAsync(
+            AppKullanici kullanici,
+            DateTime? bas,
+            DateTime? bit,
+            List<int>? ids = null)
+        {
+            return PostFileAsync(
+                kullanici,
+                "api/ys-panel/raporlar/pdf",
+                new YsPanelRaporFiltreIstek
+                {
+                    Bas = bas,
+                    Bit = bit,
+                    Ids = ids
+                },
+                "raporlar.pdf",
+                "Yetkili servis panel rapor PDF");
+        }
+
+        public Task<ApiDosyaSonuc?> RaporlarExcelAsync(
+            AppKullanici kullanici,
+            DateTime? bas,
+            DateTime? bit,
+            List<int>? ids = null)
+        {
+            return PostFileAsync(
+                kullanici,
+                "api/ys-panel/raporlar/excel",
+                new YsPanelRaporFiltreIstek
+                {
+                    Bas = bas,
+                    Bit = bit,
+                    Ids = ids
+                },
+                "raporlar.csv",
+                "Yetkili servis panel rapor Excel");
+        }
+
         private async Task<TResponse?> PostAsync<TRequest, TResponse>(
             AppKullanici kullanici,
             string url,
@@ -248,6 +286,68 @@ namespace YetkiliServisGazAcma.Business.Services
                     }
 
                     return await response.Content.ReadFromJsonAsync<TResponse>();
+                }
+                catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
+                {
+                    if (attempt < 3)
+                    {
+                        await Task.Delay(TimeSpan.FromMilliseconds(500 * attempt));
+                        continue;
+                    }
+
+                    _logger.LogWarning(ex, "{Operasyon} API cagrisina ulasilamadi. Url: {Url}", operasyon, url);
+                    ApiClientFallback.EnsureAllowed(_options, operasyon);
+                    return default;
+                }
+            }
+
+            ApiClientFallback.EnsureAllowed(_options, operasyon);
+            return default;
+        }
+
+        private async Task<ApiDosyaSonuc?> PostFileAsync<TRequest>(
+            AppKullanici kullanici,
+            string url,
+            TRequest istek,
+            string varsayilanDosyaAdi,
+            string operasyon)
+        {
+            if (!_options.Enabled)
+            {
+                ApiClientFallback.EnsureAllowed(_options, operasyon);
+                return default;
+            }
+
+            var token = await _tokenService.OlusturAsync(kullanici);
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                ApiClientFallback.EnsureAllowed(_options, $"{operasyon} token");
+                return default;
+            }
+
+            for (var attempt = 1; attempt <= 3; attempt++)
+            {
+                try
+                {
+                    using var request = new HttpRequestMessage(HttpMethod.Post, url);
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                    request.Content = JsonContent.Create(istek);
+
+                    using var response = await _httpClient.SendAsync(request);
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        if ((int)response.StatusCode >= 500 && attempt < 3)
+                        {
+                            await Task.Delay(TimeSpan.FromMilliseconds(500 * attempt));
+                            continue;
+                        }
+
+                        _logger.LogWarning("{Operasyon} API cagrisinda basarisiz yanit dondu. Url: {Url}, StatusCode: {StatusCode}", operasyon, url, response.StatusCode);
+                        ApiClientFallback.EnsureAllowed(_options, operasyon);
+                        return default;
+                    }
+
+                    return await ApiDosyaSonuc.FromResponseAsync(response, varsayilanDosyaAdi);
                 }
                 catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
                 {

@@ -3,9 +3,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
-using QuestPDF.Fluent;
-using QuestPDF.Helpers;
-using QuestPDF.Infrastructure;
 
 namespace YetkiliServisGazAcma.Controllers
 {
@@ -410,13 +407,13 @@ namespace YetkiliServisGazAcma.Controllers
 
             if (yeniSifre != yeniSifreTekrar)
             {
-                TempData["SifreHata"] = "Yeni ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€¦Ã‚Â¸ifreler eÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€¦Ã‚Â¸leÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€¦Ã‚Â¸miyor.";
+                TempData["SifreHata"] = "Yeni \u015fifreler e\u015fle\u015fmiyor.";
                 return Redirect("/ys-panel/profil");
             }
 
             if (yeniSifre.Length < 6)
             {
-                TempData["SifreHata"] = "ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Âifre en az 6 karakter olmalÃƒÆ’Ã¢â‚¬ÂÃƒâ€šÃ‚Â±dÃƒÆ’Ã¢â‚¬ÂÃƒâ€šÃ‚Â±r.";
+                TempData["SifreHata"] = "\u015eifre en az 6 karakter olmal\u0131d\u0131r.";
                 return Redirect("/ys-panel/profil");
             }
 
@@ -424,9 +421,9 @@ namespace YetkiliServisGazAcma.Controllers
                 kullanici, mevcutSifre, yeniSifre);
 
             if (sonuc.Succeeded)
-                TempData["SifreBasarili"] = "ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Âifreniz baÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€¦Ã‚Â¸arÃƒÆ’Ã¢â‚¬ÂÃƒâ€šÃ‚Â±yla deÃƒÆ’Ã¢â‚¬ÂÃƒâ€¦Ã‚Â¸iÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€¦Ã‚Â¸tirildi.";
+                TempData["SifreBasarili"] = "\u015eifreniz ba\u015far\u0131yla de\u011fi\u015ftirildi.";
             else
-                TempData["SifreHata"] = "Mevcut ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€¦Ã‚Â¸ifre hatalÃƒÆ’Ã¢â‚¬ÂÃƒâ€šÃ‚Â±.";
+                TempData["SifreHata"] = "Mevcut \u015fifre hatal\u0131.";
 
             return Redirect("/ys-panel/profil");
         }
@@ -472,115 +469,14 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await GetYetkiliServisKullanici();
             if (kullanici == null) return Redirect("/giris");
 
-            var rapor = await _yetkiliServisPanelApiClient.RaporlarAsync(
-                kullanici,
-                bas,
-                bit,
-                ids,
-                ids != null && ids.Count > 0 ? null : 10);
-            if (rapor == null)
+            var dosya = await _yetkiliServisPanelApiClient.RaporlarPdfAsync(kullanici, bas, bit, ids);
+            if (dosya == null)
             {
-                TempData["Hata"] = "PDF raporu icin API yaniti alinamadi.";
+                TempData["Hata"] = "PDF raporu API uzerinden alinamadi.";
                 return Redirect("/ys-panel/raporlar");
             }
 
-            var sonIslemler = rapor.SonIslemler;
-            var basTarih = rapor.BasTarih;
-            var bitTarih = rapor.BitTarih;
-            var devreyeSayisi = sonIslemler.Count;
-            var tamamlanan = sonIslemler.Count(x => x.Durum == 1);
-            var bekleyen = sonIslemler.Count(x => x.Durum == 0);
-
-            QuestPDF.Settings.License = LicenseType.Community;
-
-            var document = Document.Create(container =>
-            {
-                container.Page(page =>
-                {
-                    page.Size(PageSizes.A4);
-                    page.Margin(30);
-                    page.DefaultTextStyle(x => x.FontSize(11).FontFamily("Arial"));
-
-                    page.Header().Row(row =>
-                    {
-                        row.RelativeItem().Column(col =>
-                        {
-                            col.Item().Text("Yetkili Servis Raporlari").FontSize(16).SemiBold();
-                            col.Item().Text($"Rapor Araligi: {basTarih:dd.MM.yyyy} - {bitTarih:dd.MM.yyyy}")
-                                .FontSize(10).FontColor("#555555");
-                        });
-                        row.ConstantItem(160).AlignRight().Text(DateTime.Now.ToString("dd.MM.yyyy HH:mm"))
-                            .FontSize(10).FontColor("#777777");
-                    });
-
-                    page.Content().Column(col =>
-                    {
-                        col.Spacing(12);
-
-                        col.Item().Table(table =>
-                        {
-                            table.ColumnsDefinition(c =>
-                            {
-                                c.RelativeColumn();
-                                c.RelativeColumn();
-                                c.RelativeColumn();
-                            });
-
-                            void Cell(string title, string value)
-                            {
-                                table.Cell().Element(cell =>
-                                {
-                                    cell.Border(1).BorderColor("#E5E7EB").Padding(8).Background("#F8FAFC")
-                                        .Column(column =>
-                                        {
-                                            column.Item().Text(title).FontSize(9).FontColor("#6B7280");
-                                            column.Item().Text(value).FontSize(14).SemiBold().FontColor("#111827");
-                                        });
-                                });
-                            }
-
-                            Cell("Toplam Islem", devreyeSayisi.ToString());
-                            Cell("Tamamlanan", tamamlanan.ToString());
-                            Cell("Bekleyen", bekleyen.ToString());
-                        });
-
-                        col.Item().Text("Son Islemler").FontSize(12).SemiBold();
-
-                        col.Item().Table(table =>
-                        {
-                            table.ColumnsDefinition(c =>
-                            {
-                                c.RelativeColumn(1.2f);
-                                c.RelativeColumn(1.2f);
-                                c.RelativeColumn(1f);
-                                c.RelativeColumn(1f);
-                            });
-
-                            table.Header(header =>
-                            {
-                                header.Cell().Background("#F3F4F6").Padding(6).Text("Tesisat No").SemiBold().FontSize(10);
-                                header.Cell().Background("#F3F4F6").Padding(6).Text("Musteri").SemiBold().FontSize(10);
-                                header.Cell().Background("#F3F4F6").Padding(6).Text("Marka").SemiBold().FontSize(10);
-                                header.Cell().Background("#F3F4F6").Padding(6).Text("Tarih").SemiBold().FontSize(10);
-                            });
-
-                            foreach (var d in sonIslemler)
-                            {
-                                table.Cell().Padding(6).Text(d.TesistatNo ?? "-").FontSize(10);
-                                table.Cell().Padding(6).Text(d.MusteriAdi ?? "-").FontSize(10);
-                                table.Cell().Padding(6).Text(d.Marka?.MarkaAdi ?? d.CihazMarka ?? "-").FontSize(10);
-                                table.Cell().Padding(6).Text(d.DevreyeAlmaTarihi.ToString("dd.MM.yyyy")).FontSize(10);
-                            }
-                        });
-                    });
-
-                    page.Footer().AlignCenter().Text("Yetkili Servis Gaz Acma Sistemi").FontSize(9).FontColor("#888888");
-                });
-            });
-
-            var pdfBytes = document.GeneratePdf();
-            var dosyaAdi = $"raporlar_{basTarih:yyyyMMdd}_{bitTarih:yyyyMMdd}.pdf";
-            return File(pdfBytes, "application/pdf", dosyaAdi);
+            return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
         }
 
         [HttpGet]
@@ -599,16 +495,14 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await GetYetkiliServisKullanici();
             if (kullanici == null) return Redirect("/giris");
 
-            var rapor = await _yetkiliServisPanelApiClient.RaporlarAsync(kullanici, bas, bit, ids);
-            if (rapor == null)
+            var dosya = await _yetkiliServisPanelApiClient.RaporlarExcelAsync(kullanici, bas, bit, ids);
+            if (dosya == null)
             {
-                TempData["Hata"] = "Excel raporu icin API yaniti alinamadi.";
+                TempData["Hata"] = "Excel raporu API uzerinden alinamadi.";
                 return Redirect("/ys-panel/raporlar");
             }
 
-            var bytes = DevreyeAlmaExcelService.Olustur(rapor.SonIslemler);
-            var dosyaAdi = $"raporlar_{rapor.BasTarih:yyyyMMdd}_{rapor.BitTarih:yyyyMMdd}.csv";
-            return File(bytes, "text/csv; charset=windows-1254", dosyaAdi);
+            return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
         }
 
         [HttpGet]

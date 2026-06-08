@@ -1054,6 +1054,38 @@ namespace YetkiliServisGazAcma.API.Controllers
             return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
         }
 
+        [HttpPost("devreye-almalar/rapor/pdf")]
+        public async Task<IActionResult> DevreyeAlmaRaporPdf([FromBody] AdminDevreyeAlmaRaporExportFiltreDto? dto)
+        {
+            var kapsam = await KapsamSirketIdAsync(dto?.SirketId);
+            if (kapsam.gecersiz)
+                return Forbid();
+
+            var dosya = await _devreyeAlmaExportApiService.AdminRaporPdfAsync(
+                kapsam.sirketId,
+                dto?.BaslangicTarihi,
+                dto?.BitisTarihi,
+                dto?.Ids);
+
+            return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+        }
+
+        [HttpPost("devreye-almalar/rapor/excel")]
+        public async Task<IActionResult> DevreyeAlmaRaporExcel([FromBody] AdminDevreyeAlmaRaporExportFiltreDto? dto)
+        {
+            var kapsam = await KapsamSirketIdAsync(dto?.SirketId);
+            if (kapsam.gecersiz)
+                return Forbid();
+
+            var dosya = await _devreyeAlmaExportApiService.AdminRaporExcelAsync(
+                kapsam.sirketId,
+                dto?.BaslangicTarihi,
+                dto?.BitisTarihi,
+                dto?.Ids);
+
+            return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+        }
+
         [HttpPost("yetki-belgeleri/uyarilar")]
         public async Task<IActionResult> YetkiBelgesiUyarilari([FromBody] AdminYetkiBelgesiUyariFiltreDto? dto)
         {
@@ -1586,6 +1618,14 @@ namespace YetkiliServisGazAcma.API.Controllers
     {
         public int Id { get; set; }
         public int? SirketId { get; set; }
+    }
+
+    public class AdminDevreyeAlmaRaporExportFiltreDto
+    {
+        public int? SirketId { get; set; }
+        public DateTime? BaslangicTarihi { get; set; }
+        public DateTime? BitisTarihi { get; set; }
+        public List<int>? Ids { get; set; }
     }
 
     public class AdminYetkiBelgesiUyariFiltreDto

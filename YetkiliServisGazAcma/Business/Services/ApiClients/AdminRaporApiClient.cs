@@ -151,6 +151,42 @@ namespace YetkiliServisGazAcma.Business.Services
                 "Admin devreye alma Excel");
         }
 
+        public Task<ApiDosyaSonuc?> RaporlarPdfAsync(
+            AppKullanici kullanici,
+            int? sirketId,
+            DateTime? bas,
+            DateTime? bit,
+            List<int>? ids)
+        {
+            return RaporDosyaAsync(
+                kullanici,
+                "api/admin-panel/devreye-almalar/rapor/pdf",
+                sirketId,
+                bas,
+                bit,
+                ids,
+                "raporlar.pdf",
+                "Admin devreye alma rapor PDF");
+        }
+
+        public Task<ApiDosyaSonuc?> RaporlarExcelAsync(
+            AppKullanici kullanici,
+            int? sirketId,
+            DateTime? bas,
+            DateTime? bit,
+            List<int>? ids)
+        {
+            return RaporDosyaAsync(
+                kullanici,
+                "api/admin-panel/devreye-almalar/rapor/excel",
+                sirketId,
+                bas,
+                bit,
+                ids,
+                "raporlar.csv",
+                "Admin devreye alma rapor Excel");
+        }
+
         private async Task<ApiDosyaSonuc?> DevreyeAlmaDosyaAsync(
             AppKullanici kullanici,
             int id,
@@ -180,6 +216,59 @@ namespace YetkiliServisGazAcma.Business.Services
                 {
                     Id = id,
                     SirketId = sirketId
+                });
+
+                using var response = await _httpClient.SendAsync(request);
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("{Operasyon} API cagrisinda basarisiz yanit dondu. StatusCode: {StatusCode}", operasyon, response.StatusCode);
+                    ApiClientFallback.EnsureAllowed(_options, operasyon);
+                    return null;
+                }
+
+                return await ApiDosyaSonuc.FromResponseAsync(response, varsayilanDosyaAdi);
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
+            {
+                _logger.LogWarning(ex, "{Operasyon} API cagrisina ulasilamadi.", operasyon);
+                ApiClientFallback.EnsureAllowed(_options, operasyon);
+                return null;
+            }
+        }
+
+        private async Task<ApiDosyaSonuc?> RaporDosyaAsync(
+            AppKullanici kullanici,
+            string url,
+            int? sirketId,
+            DateTime? bas,
+            DateTime? bit,
+            List<int>? ids,
+            string varsayilanDosyaAdi,
+            string operasyon)
+        {
+            if (!_options.Enabled)
+            {
+                ApiClientFallback.EnsureAllowed(_options, operasyon);
+                return null;
+            }
+
+            try
+            {
+                var token = await _tokenService.OlusturAsync(kullanici);
+                if (string.IsNullOrWhiteSpace(token))
+                {
+                    ApiClientFallback.EnsureAllowed(_options, $"{operasyon} token");
+                    return null;
+                }
+
+                using var request = new HttpRequestMessage(HttpMethod.Post, url);
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                request.Content = JsonContent.Create(new AdminDevreyeAlmaRaporExportIstek
+                {
+                    SirketId = sirketId,
+                    BaslangicTarihi = bas,
+                    BitisTarihi = bit,
+                    Ids = ids
                 });
 
                 using var response = await _httpClient.SendAsync(request);
@@ -308,6 +397,14 @@ namespace YetkiliServisGazAcma.Business.Services
         {
             public int Id { get; set; }
             public int? SirketId { get; set; }
+        }
+
+        private class AdminDevreyeAlmaRaporExportIstek
+        {
+            public int? SirketId { get; set; }
+            public DateTime? BaslangicTarihi { get; set; }
+            public DateTime? BitisTarihi { get; set; }
+            public List<int>? Ids { get; set; }
         }
 
         private class AdminYetkiBelgesiUyariIstek

@@ -16,15 +16,18 @@ namespace YetkiliServisGazAcma.API.Controllers
         private readonly AppDbContext _context;
         private readonly UserManager<AppKullanici> _userManager;
         private readonly YetkiliServisPanelYonetimApiService _yonetimApiService;
+        private readonly DevreyeAlmaExportApiService _devreyeAlmaExportApiService;
 
         public YetkiliServisPanelApiController(
             AppDbContext context,
             UserManager<AppKullanici> userManager,
-            YetkiliServisPanelYonetimApiService yonetimApiService)
+            YetkiliServisPanelYonetimApiService yonetimApiService,
+            DevreyeAlmaExportApiService devreyeAlmaExportApiService)
         {
             _context = context;
             _userManager = userManager;
             _yonetimApiService = yonetimApiService;
+            _devreyeAlmaExportApiService = devreyeAlmaExportApiService;
         }
 
         [HttpPost("dashboard")]
@@ -385,6 +388,38 @@ namespace YetkiliServisGazAcma.API.Controllers
                 ChartMarkaLabels = chartMarka.Select(x => x.Marka ?? "-").ToList(),
                 ChartMarkaData = chartMarka.Select(x => x.Sayi).ToList()
             });
+        }
+
+        [HttpPost("raporlar/pdf")]
+        public async Task<IActionResult> RaporlarPdf([FromBody] YsPanelRaporFiltreDto? dto)
+        {
+            var kullanici = await AktifYetkiliServisKullaniciAsync();
+            if (kullanici?.FirmaId == null)
+                return Unauthorized();
+
+            var dosya = await _devreyeAlmaExportApiService.YetkiliServisRaporPdfAsync(
+                kullanici.FirmaId.Value,
+                dto?.Bas,
+                dto?.Bit,
+                dto?.Ids);
+
+            return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+        }
+
+        [HttpPost("raporlar/excel")]
+        public async Task<IActionResult> RaporlarExcel([FromBody] YsPanelRaporFiltreDto? dto)
+        {
+            var kullanici = await AktifYetkiliServisKullaniciAsync();
+            if (kullanici?.FirmaId == null)
+                return Unauthorized();
+
+            var dosya = await _devreyeAlmaExportApiService.YetkiliServisRaporExcelAsync(
+                kullanici.FirmaId.Value,
+                dto?.Bas,
+                dto?.Bit,
+                dto?.Ids);
+
+            return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
         }
 
         [HttpPost("subeler/kaydet")]
