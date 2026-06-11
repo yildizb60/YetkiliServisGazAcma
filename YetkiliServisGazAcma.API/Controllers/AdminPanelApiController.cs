@@ -25,6 +25,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         private readonly AdminYetkiBelgesiOnayApiService _adminYetkiBelgesiOnayApiService;
         private readonly AdminPersonelYetkiApiService _adminPersonelYetkiApiService;
         private readonly DevreyeAlmaExportApiService _devreyeAlmaExportApiService;
+        private readonly ILogger<AdminPanelApiController> _logger;
 
         public AdminPanelApiController(
             AppDbContext context,
@@ -36,7 +37,8 @@ namespace YetkiliServisGazAcma.API.Controllers
             AdminRaporApiService adminRaporApiService,
             AdminYetkiBelgesiOnayApiService adminYetkiBelgesiOnayApiService,
             AdminPersonelYetkiApiService adminPersonelYetkiApiService,
-            DevreyeAlmaExportApiService devreyeAlmaExportApiService)
+            DevreyeAlmaExportApiService devreyeAlmaExportApiService,
+            ILogger<AdminPanelApiController> logger)
         {
             _context = context;
             _userManager = userManager;
@@ -48,6 +50,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             _adminYetkiBelgesiOnayApiService = adminYetkiBelgesiOnayApiService;
             _adminPersonelYetkiApiService = adminPersonelYetkiApiService;
             _devreyeAlmaExportApiService = devreyeAlmaExportApiService;
+            _logger = logger;
         }
 
         [HttpPost("dashboard")]
@@ -370,6 +373,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                     return Ok(AdminIslemSonucDto.Basarisiz(string.Join(", ", sifreSonuc.Errors.Select(x => x.Description))));
             }
 
+            _logger.LogInformation("Admin kullanici guncelledi. YapanId: {YapanId}, HedefId: {HedefId}", kullanici.Id, hedef.Id);
             return Ok(AdminIslemSonucDto.BasariliSonuc("Kullanici guncellendi."));
         }
 
@@ -538,6 +542,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (rol == "GenelSistemAdmin")
                 await _userManager.AddToRoleAsync(yeni, KullaniciRolAdlari.EskiSuperAdmin);
 
+            _logger.LogInformation("Admin kullanici olusturdu. YapanId: {YapanId}, YeniKullaniciId: {YeniKullaniciId}, Rol: {Rol}", kullanici.Id, yeni.Id, rol);
             return Ok(AdminIslemSonucDto.BasariliSonuc("Kullanici basariyla olusturuldu."));
         }
 
@@ -602,6 +607,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return Ok(AdminIslemSonucDto.Basarisiz(string.Join(", ", rolSonuc.Errors.Select(x => x.Description))));
             }
 
+            _logger.LogInformation("Admin personel olusturdu. YapanId: {YapanId}, YeniKullaniciId: {YeniKullaniciId}", kullanici.Id, yeni.Id);
             return Ok(AdminIslemSonucDto.BasariliSonuc("Personel basariyla olusturuldu."));
         }
 
@@ -634,6 +640,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (!sonuc.Succeeded)
                 return Ok(AdminIslemSonucDto.Basarisiz(string.Join(", ", sonuc.Errors.Select(x => x.Description))));
 
+            _logger.LogInformation("Admin kullanici durumunu degistirdi. YapanId: {YapanId}, HedefId: {HedefId}, AktifMi: {AktifMi}", kullanici.Id, hedef.Id, dto.AktifMi);
             return Ok(AdminIslemSonucDto.BasariliSonuc(dto.AktifMi ? "Kullanici aktif edildi." : "Kullanici pasiflestirildi."));
         }
 
@@ -668,6 +675,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (!sonuc.Succeeded)
                 return Ok(AdminIslemSonucDto.Basarisiz(string.Join(", ", sonuc.Errors.Select(x => x.Description))));
 
+            _logger.LogInformation("Admin kullanici sildi. YapanId: {YapanId}, HedefId: {HedefId}, SadecePersonel: {SadecePersonel}", kullanici.Id, hedef.Id, dto.SadecePersonel);
             return Ok(AdminIslemSonucDto.BasariliSonuc(dto.SadecePersonel ? "Personel silindi." : "Kullanici silindi."));
         }
 

@@ -34,6 +34,19 @@ namespace YetkiliServisGazAcma.API.Controllers
         [EnableRateLimiting("PublicApi")]
         public async Task<IActionResult> Liste([FromBody] YetkiliServisFiltreDto? dto)
         {
+            return Ok(await ListeleAsync(dto));
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        [EnableRateLimiting("PublicApi")]
+        public async Task<IActionResult> ListeGet([FromQuery] YetkiliServisFiltreDto? dto)
+        {
+            return Ok(await ListeleAsync(dto));
+        }
+
+        private async Task<List<YetkiliServisDto>> ListeleAsync(YetkiliServisFiltreDto? dto)
+        {
             var il = dto?.Il;
             var ilce = dto?.Ilce;
             var markaId = dto?.MarkaId;
@@ -74,7 +87,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (sirketId.HasValue)
                 query = query.Where(x => x.SirketId == sirketId.Value);
 
-            var list = await query
+            return await query
                 .OrderBy(x => x.FirmaAdi)
                 .Select(x => new YetkiliServisDto
                 {
@@ -111,8 +124,6 @@ namespace YetkiliServisGazAcma.API.Controllers
                         .ToList()
                 })
                 .ToListAsync();
-
-            return Ok(list);
         }
 
         [HttpPost("filtre-secenekleri")]

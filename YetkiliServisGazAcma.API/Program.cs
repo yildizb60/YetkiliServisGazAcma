@@ -97,6 +97,7 @@ builder.Services.AddScoped<AdminYetkiBelgesiOnayApiService>();
 builder.Services.AddScoped<AdminPersonelYetkiApiService>();
 builder.Services.AddScoped<YetkiliServisPanelYonetimApiService>();
 builder.Services.AddScoped<DevreyeAlmaExportApiService>();
+builder.Services.AddSmsServices(builder.Configuration);
 builder.Services.Configure<OnlineServiceOptions>(builder.Configuration.GetSection("OnlineService"));
 builder.Services.AddHttpClient<OnlineCihazBilgileriClient>((serviceProvider, client) =>
 {

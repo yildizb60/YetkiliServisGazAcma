@@ -15,11 +15,16 @@ namespace YetkiliServisGazAcma.API.Controllers
     {
         private readonly AppDbContext _context;
         private readonly YetkiBelgesiService _service;
+        private readonly ILogger<YetkiBelgesiApiController> _logger;
 
-        public YetkiBelgesiApiController(AppDbContext context, YetkiBelgesiService service)
+        public YetkiBelgesiApiController(
+            AppDbContext context,
+            YetkiBelgesiService service,
+            ILogger<YetkiBelgesiApiController> logger)
         {
             _context = context;
             _service = service;
+            _logger = logger;
         }
 
         [HttpPost("firma-liste")]
@@ -243,8 +248,12 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             var sonuc = await _service.Onayla(dto.Id, User.Identity?.Name);
             if (!sonuc)
+            {
+                _logger.LogWarning("Yetki belgesi onaylanamadi. BelgeId: {BelgeId}, Kullanici: {Kullanici}", dto.Id, User.Identity?.Name);
                 return NotFound(new { basarili = false, mesaj = "Yetki belgesi bulunamadi" });
+            }
 
+            _logger.LogInformation("Yetki belgesi onaylandi. BelgeId: {BelgeId}, Kullanici: {Kullanici}", dto.Id, User.Identity?.Name);
             return Ok(new { basarili = true, mesaj = "Yetki belgesi onaylandi" });
         }
 
@@ -260,8 +269,12 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             var sonuc = await _service.Reddet(dto.Id, dto.Gerekce, User.Identity?.Name);
             if (!sonuc)
+            {
+                _logger.LogWarning("Yetki belgesi reddedilemedi. BelgeId: {BelgeId}, Kullanici: {Kullanici}", dto.Id, User.Identity?.Name);
                 return NotFound(new { basarili = false, mesaj = "Yetki belgesi bulunamadi" });
+            }
 
+            _logger.LogInformation("Yetki belgesi reddedildi. BelgeId: {BelgeId}, Kullanici: {Kullanici}", dto.Id, User.Identity?.Name);
             return Ok(new { basarili = true, mesaj = "Yetki belgesi reddedildi" });
         }
 

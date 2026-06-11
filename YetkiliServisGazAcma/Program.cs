@@ -65,27 +65,7 @@ AddApiClient<YetkiliServisDevreyeAlmaApiClient>();
 AddApiClient<YetkiliServisPanelApiClient>();
 AddApiClient<HomeOzetApiClient>();
 AddApiClient<PanelKapsamApiClient>();
-builder.Services.Configure<SmsOptions>(builder.Configuration.GetSection("Sms"));
-builder.Services.AddHttpClient<AhlatciSmsProvider>((serviceProvider, client) =>
-{
-    var options = serviceProvider.GetRequiredService<IOptions<SmsOptions>>().Value;
-    var baseUrl = string.IsNullOrWhiteSpace(options.BaseUrl)
-        ? "https://smsnviapi.ahlatci.com.tr"
-        : options.BaseUrl.TrimEnd('/');
-
-    client.BaseAddress = new Uri(baseUrl + "/");
-    client.Timeout = TimeSpan.FromSeconds(Math.Max(1, options.TimeoutSeconds));
-});
-builder.Services.AddScoped<NullSmsProvider>();
-builder.Services.AddScoped<ISmsProvider>(serviceProvider =>
-{
-    var options = serviceProvider.GetRequiredService<IOptions<SmsOptions>>().Value;
-
-    return string.Equals(options.Provider, "AhlatciSms", StringComparison.OrdinalIgnoreCase)
-        ? serviceProvider.GetRequiredService<AhlatciSmsProvider>()
-        : serviceProvider.GetRequiredService<NullSmsProvider>();
-});
-builder.Services.AddScoped<SmsDogrulamaService>();
+builder.Services.AddSmsServices(builder.Configuration);
 
 void AddApiClient<TClient>() where TClient : class
 {

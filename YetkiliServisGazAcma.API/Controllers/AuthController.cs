@@ -15,15 +15,18 @@ namespace YetkiliServisGazAcma.API.Controllers
         private readonly UserManager<AppKullanici> _userManager;
         private readonly SignInManager<AppKullanici> _signInManager;
         private readonly IConfiguration _config;
+        private readonly ILogger<AuthController> _logger;
 
         public AuthController(
             UserManager<AppKullanici> userManager,
             SignInManager<AppKullanici> signInManager,
-            IConfiguration config)
+            IConfiguration config,
+            ILogger<AuthController> logger)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _config = config;
+            _logger = logger;
         }
 
         [HttpPost("token")]
@@ -34,26 +37,39 @@ namespace YetkiliServisGazAcma.API.Controllers
                          ?? await _userManager.FindByNameAsync(dto.Email);
 
             if (kullanici == null)
+            {
+                _logger.LogWarning("API token istegi basarisiz. Kullanici bulunamadi: {Email}", dto.Email);
                 return Unauthorized(new { mesaj = "Kullanici bulunamadı" });
+            }
 
             if (!kullanici.AktifMi)
+            {
+                _logger.LogWarning("API token istegi pasif hesap nedeniyle reddedildi. KullaniciId: {KullaniciId}", kullanici.Id);
                 return Unauthorized(new { mesaj = "Hesabınız aktif değil" });
+            }
 
             // Şifre kontrolü
             var sonuc = await _signInManager
                 .CheckPasswordSignInAsync(kullanici, dto.Sifre, true);
 
             if (sonuc.IsLockedOut)
+            {
+                _logger.LogWarning("API token istegi kilitli hesap nedeniyle reddedildi. KullaniciId: {KullaniciId}", kullanici.Id);
                 return Unauthorized(new { mesaj = "Cok fazla hatali giris denemesi yapildi. Lutfen 15 dakika sonra tekrar deneyin." });
+            }
 
             if (!sonuc.Succeeded)
+            {
+                _logger.LogWarning("API token istegi hatali sifre nedeniyle reddedildi. KullaniciId: {KullaniciId}", kullanici.Id);
                 return Unauthorized(new { mesaj = "Şifre hatalı" });
+            }
 
             // Rolleri al
             var roller = await _userManager.GetRolesAsync(kullanici);
 
             // Token oluştur
             var token = TokenOlustur(kullanici, roller);
+            _logger.LogInformation("API token olusturuldu. KullaniciId: {KullaniciId}, Roller: {Roller}", kullanici.Id, string.Join(",", roller));
 
             return Ok(new
             {

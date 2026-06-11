@@ -22,6 +22,7 @@ Yetkili servis listesi:
 
 ```http
 POST /api/yetkili-servisler/liste
+GET /api/yetkili-servisler?il=Corum&ilce=&markaId=&kategoriId=&q=
 ```
 
 Ornek body:
@@ -64,11 +65,14 @@ Swagger development ortaminda aciktir. Canlida varsayilan olarak kapali gelir. G
 
 SMS dogrulama su an Web/MVC projesindedir. Bunun sebebi giris akisinin session kullanmasidir. API stateless calistigi icin kullanici girisindeki bekleyen SMS kullanici bilgisi Web tarafinda tutulur.
 
+SMS altyapisi Core katmanindadir ve hem Web hem API ayni servis kaydini kullanir. API tarafinda SMS gonderimi gerektiren yeni bir endpoint acilirsa ayni `AhlatciSmsProvider` ve ayni appsettings yapisi kullanilacaktir.
+
 Kullanilan siniflar:
 
 - `SmsDogrulamaService`: kod uretir, dogrular, DB'ye kaydeder.
 - `AhlatciSmsProvider`: Ahlatci SMS API'ye istek atar.
 - `NullSmsProvider`: test/kapali modda gercek SMS gondermez.
+- `SmsServiceCollectionExtensions`: Web ve API icin ortak SMS DI kaydini yapar.
 - `SmsDogrulamaKodlari`: dogrulama kodu hash kaydi.
 - `SmsGonderimLoglari`: SMS gonderim log kaydi.
 
