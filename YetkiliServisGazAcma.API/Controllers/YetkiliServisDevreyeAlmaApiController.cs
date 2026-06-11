@@ -72,9 +72,9 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (!string.IsNullOrWhiteSpace(dto?.Durum))
             {
                 if (string.Equals(dto.Durum, "tamamlandi", StringComparison.OrdinalIgnoreCase))
-                    query = query.Where(x => x.Durum == 1);
+                    query = query.Where(x => x.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi);
                 else if (string.Equals(dto.Durum, "bekliyor", StringComparison.OrdinalIgnoreCase))
-                    query = query.Where(x => x.Durum == 0);
+                    query = query.Where(x => x.Durum == DevreyeAlmaDurumDegerleri.Bekliyor);
             }
 
             var islemler = await query
@@ -290,14 +290,14 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             var bugun = DateTime.Now.Date;
             var onayli = firma?.YetkiBelgeleri?
-                .Where(x => x.Durum == 1
+                .Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi
                     && !x.SilindiMi
                     && (!x.YetkiBelgesiBaslangicTarihi.HasValue || x.YetkiBelgesiBaslangicTarihi.Value.Date <= bugun)
                     && x.YetkiBelgesiBitisTarihi.Date >= bugun)
                 .OrderBy(x => x.YetkiBelgesiBitisTarihi)
                 .FirstOrDefault();
 
-            var bekleyenVar = firma?.YetkiBelgeleri?.Any(x => x.Durum == 0 && !x.SilindiMi) ?? false;
+            var bekleyenVar = firma?.YetkiBelgeleri?.Any(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor && !x.SilindiMi) ?? false;
             if (onayli != null)
             {
                 bildirimler.Add("Yetki belgeniz onaylandi. Cihaz devreye alabilirsiniz.");
@@ -446,7 +446,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 TeknisyenYetkiBelgesiNo = dto.TeknisyenYetkiBelgesiNo,
                 DevreyeAlmaTarihi = DateTime.Now,
                 Notlar = dto.Notlar,
-                Durum = 1,
+                Durum = DevreyeAlmaDurumDegerleri.Tamamlandi,
                 OlusturmaTarihi = DateTime.Now,
                 OlusturanKullanici = kullanici.UserName ?? "",
                 SilindiMi = false
@@ -556,7 +556,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             return await _context.Ys_YetkiBelgeleri
                 .AnyAsync(x => x.FirmaId == firmaId
                     && !x.SilindiMi
-                    && x.Durum == 1
+                    && x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi
                     && (!x.YetkiBelgesiBaslangicTarihi.HasValue || x.YetkiBelgesiBaslangicTarihi.Value.Date <= bugun)
                     && x.YetkiBelgesiBitisTarihi.Date >= bugun);
         }
@@ -566,7 +566,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             return await _context.Ys_YetkiBelgeleri
                 .AnyAsync(x => x.FirmaId == firmaId
                     && !x.SilindiMi
-                    && x.Durum == 1);
+                    && x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi);
         }
 
         private async Task<bool> FirmaMarkaYetkisiVarAsync(int firmaId, int markaId)

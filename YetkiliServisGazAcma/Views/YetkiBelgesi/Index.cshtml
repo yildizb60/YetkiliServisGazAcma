@@ -155,8 +155,8 @@
                         @foreach (var s in Model)
                         {
                             var baslangic = s.YetkiBelgesiBaslangicTarihi ?? s.OlusturmaTarihi;
-                            var durumText = s.Durum == 0 ? "Onay Bekliyor" : s.Durum == 1 ? "Onaylandı" : "Reddedildi";
-                            var durumClass = s.Durum == 0 ? "b-yellow" : s.Durum == 1 ? "b-green" : "b-red";
+                            var durumText = s.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor ? "Onay Bekliyor" : s.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "Onaylandı" : "Reddedildi";
+                            var durumClass = s.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor ? "b-yellow" : s.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "b-green" : "b-red";
                             var searchText = $"{s.OlusturmaTarihi:dd.MM.yyyy} {baslangic:dd.MM.yyyy} {s.YetkiBelgesiBitisTarihi:dd.MM.yyyy} {durumText}";
                             <tr class="sert-row" data-search="@searchText" data-durum="@durumText">
                                 <td>

@@ -47,8 +47,8 @@
                     var baslangic = s.YetkiBelgesiBaslangicTarihi ?? s.OlusturmaTarihi;
                     var kalanGun = (s.YetkiBelgesiBitisTarihi.Date - DateTime.Now.Date).Days;
                     var kalanYazi = kalanGun < 0 ? $"{Math.Abs(kalanGun)} gün geçti" : $"{kalanGun} gün kaldı";
-                    var durumClass = s.Durum == 1 ? "df-pill-success" : s.Durum == 2 ? "df-pill-danger" : "df-pill-warning";
-                    var durumYazi = s.Durum == 1 ? "Onaylandı" : s.Durum == 2 ? "Reddedildi" : "Onay bekliyor";
+                    var durumClass = s.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "df-pill-success" : s.Durum == YetkiBelgesiDurumDegerleri.Reddedildi ? "df-pill-danger" : "df-pill-warning";
+                    var durumYazi = s.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "Onaylandı" : s.Durum == YetkiBelgesiDurumDegerleri.Reddedildi ? "Reddedildi" : "Onay bekliyor";
                     var firmaAdi = s.Firma?.FirmaAdi ?? "";
                     var sirketAdi = s.Firma?.Sirket?.SirketAdi ?? "";
                     var vergiNo = s.Firma?.VergiNo ?? "";
@@ -109,7 +109,7 @@
                                 <div class="df-cell-sub">
                                     @(s.OnayTarihi.HasValue ? s.OnayTarihi.Value.ToString("dd.MM.yyyy HH:mm") : "-")
                                 </div>
-                                @if (s.Durum == 2 && !string.IsNullOrWhiteSpace(s.RedGerekce))
+                                @if (s.Durum == YetkiBelgesiDurumDegerleri.Reddedildi && !string.IsNullOrWhiteSpace(s.RedGerekce))
                                 {
                                     <div class="df-cell-sub">@s.RedGerekce</div>
                                 }

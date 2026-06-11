@@ -18,7 +18,7 @@
     var toplamSirket = ViewBag.ToplamSirket is int ts ? ts : 0;
     var buAy = ViewBag.BuAy is int ba ? ba : 0;
     var suresiBitecek = ViewBag.SuresiBitecek is int sb ? sb : 0;
-    var tamamlananIslem = sonIslemler.Count(x => x.Durum == 1);
+    var tamamlananIslem = sonIslemler.Count(x => x.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi);
     var belgeToplam = Math.Max(onayBekleyen + sonBekleyenler.Count, onayBekleyen);
     var sonucBelge = Math.Max(belgeToplam - onayBekleyen, 0);
     var belgeYetkisi = ViewBag.YetkiBelgesi == true;

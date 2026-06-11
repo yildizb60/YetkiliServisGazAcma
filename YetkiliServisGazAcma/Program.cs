@@ -76,7 +76,15 @@ builder.Services.AddHttpClient<AhlatciSmsProvider>((serviceProvider, client) =>
     client.BaseAddress = new Uri(baseUrl + "/");
     client.Timeout = TimeSpan.FromSeconds(Math.Max(1, options.TimeoutSeconds));
 });
-builder.Services.AddScoped<ISmsProvider, AhlatciSmsProvider>();
+builder.Services.AddScoped<NullSmsProvider>();
+builder.Services.AddScoped<ISmsProvider>(serviceProvider =>
+{
+    var options = serviceProvider.GetRequiredService<IOptions<SmsOptions>>().Value;
+
+    return string.Equals(options.Provider, "AhlatciSms", StringComparison.OrdinalIgnoreCase)
+        ? serviceProvider.GetRequiredService<AhlatciSmsProvider>()
+        : serviceProvider.GetRequiredService<NullSmsProvider>();
+});
 builder.Services.AddScoped<SmsDogrulamaService>();
 
 void AddApiClient<TClient>() where TClient : class

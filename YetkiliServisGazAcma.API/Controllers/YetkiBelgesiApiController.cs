@@ -130,18 +130,18 @@ namespace YetkiliServisGazAcma.API.Controllers
                     && (sirketId.sirketId == null || x.Firma.SirketId == sirketId.sirketId));
 
             var bekleyenler = await sorgu
-                .Where(x => x.Durum == 0)
+                .Where(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor)
                 .OrderByDescending(x => x.OlusturmaTarihi)
                 .ToListAsync();
 
             var onaylananlar = await sorgu
-                .Where(x => x.Durum == 1)
+                .Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi)
                 .OrderByDescending(x => x.OnayTarihi ?? x.OlusturmaTarihi)
                 .Take(100)
                 .ToListAsync();
 
             var reddedilenler = await sorgu
-                .Where(x => x.Durum == 2)
+                .Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Reddedildi)
                 .OrderByDescending(x => x.OnayTarihi ?? x.OlusturmaTarihi)
                 .Take(100)
                 .ToListAsync();
@@ -199,11 +199,11 @@ namespace YetkiliServisGazAcma.API.Controllers
         {
             var bildirimler = new List<string>();
             var onayli = firma.YetkiBelgeleri?
-                .Where(x => x.Durum == 1 && !x.SilindiMi)
+                .Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi && !x.SilindiMi)
                 .OrderByDescending(x => x.OlusturmaTarihi)
                 .FirstOrDefault();
 
-            var bekleyenVar = firma.YetkiBelgeleri?.Any(x => x.Durum == 0 && !x.SilindiMi) ?? false;
+            var bekleyenVar = firma.YetkiBelgeleri?.Any(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor && !x.SilindiMi) ?? false;
             if (onayli != null)
             {
                 bildirimler.Add("Yetki belgeniz onaylandı. Cihaz devreye alabilirsiniz.");

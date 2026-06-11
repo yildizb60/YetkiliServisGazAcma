@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using YetkiliServisGazAcma.API.Controllers;
+using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
 
@@ -79,7 +80,7 @@ namespace YetkiliServisGazAcma.API.Services
             var bugun = DateTime.Now.Date;
             var bitisSinir = bugun.AddDays(30);
             var query = YetkiBelgesiTemelQuery(sirketId)
-                .Where(x => x.Durum == 1);
+                .Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi);
 
             var yaklasan = await query
                 .Where(x => x.YetkiBelgesiBitisTarihi >= bugun && x.YetkiBelgesiBitisTarihi <= bitisSinir)
@@ -112,12 +113,12 @@ namespace YetkiliServisGazAcma.API.Services
                 .Where(x => x.OlusturmaTarihi >= basTarih && x.OlusturmaTarihi < bitSonrasi);
 
             var devreyeSayisi = await devreyeTemelQuery.CountAsync();
-            var devreyeTamamlanan = await devreyeTemelQuery.Where(x => x.Durum == 1).CountAsync();
-            var devreyeBekleyen = await devreyeTemelQuery.Where(x => x.Durum == 0).CountAsync();
-            var devreyeIptal = await devreyeTemelQuery.Where(x => x.Durum == 2).CountAsync();
-            var yetkiBelgesiOnayli = await yetkiBelgesiTemelQuery.Where(x => x.Durum == 1).CountAsync();
-            var yetkiBelgesiBekleyen = await yetkiBelgesiTemelQuery.Where(x => x.Durum == 0).CountAsync();
-            var yetkiBelgesiReddedilen = await yetkiBelgesiTemelQuery.Where(x => x.Durum == 2).CountAsync();
+            var devreyeTamamlanan = await devreyeTemelQuery.Where(x => x.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi).CountAsync();
+            var devreyeBekleyen = await devreyeTemelQuery.Where(x => x.Durum == DevreyeAlmaDurumDegerleri.Bekliyor).CountAsync();
+            var devreyeIptal = await devreyeTemelQuery.Where(x => x.Durum == DevreyeAlmaDurumDegerleri.Iptal).CountAsync();
+            var yetkiBelgesiOnayli = await yetkiBelgesiTemelQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi).CountAsync();
+            var yetkiBelgesiBekleyen = await yetkiBelgesiTemelQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor).CountAsync();
+            var yetkiBelgesiReddedilen = await yetkiBelgesiTemelQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Reddedildi).CountAsync();
 
             var aylikBaslangic = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1).AddMonths(-5);
             var aylikEtiketler = Enumerable.Range(0, 6)

@@ -7,8 +7,8 @@
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
     var marka = Model.Marka?.MarkaAdi ?? Model.CihazMarka ?? "-";
-    var durumClass = Model.Durum == 1 ? "df-pill-success" : Model.Durum == 2 ? "df-pill-danger" : "df-pill-warning";
-    var durumYazi = Model.Durum == 1 ? "Tamamlandı" : Model.Durum == 2 ? "İptal" : "Bekliyor";
+    var durumClass = Model.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? "df-pill-success" : Model.Durum == DevreyeAlmaDurumDegerleri.Iptal ? "df-pill-danger" : "df-pill-warning";
+    var durumYazi = Model.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? "Tamamlandı" : Model.Durum == DevreyeAlmaDurumDegerleri.Iptal ? "İptal" : "Bekliyor";
 }
 
 @functions {

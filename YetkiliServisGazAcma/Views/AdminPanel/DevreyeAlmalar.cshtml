@@ -220,8 +220,8 @@
 
 <div class="istat-row">
     <div class="istat-kart"><div class="istat-icon mavi">📊</div><div><div class="istat-sayi">@Model.Count</div><div class="istat-label">Toplam işlem</div></div></div>
-    <div class="istat-kart"><div class="istat-icon yesil">✅</div><div><div class="istat-sayi">@Model.Count(x => x.Durum == 1)</div><div class="istat-label">Tamamlanan</div></div></div>
-    <div class="istat-kart"><div class="istat-icon sari">⏳</div><div><div class="istat-sayi">@Model.Count(x => x.Durum == 0)</div><div class="istat-label">Bekleyen</div></div></div>
+    <div class="istat-kart"><div class="istat-icon yesil">✅</div><div><div class="istat-sayi">@Model.Count(x => x.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi)</div><div class="istat-label">Tamamlanan</div></div></div>
+    <div class="istat-kart"><div class="istat-icon sari">⏳</div><div><div class="istat-sayi">@Model.Count(x => x.Durum == DevreyeAlmaDurumDegerleri.Bekliyor)</div><div class="istat-label">Bekleyen</div></div></div>
     <div class="istat-kart"><div class="istat-icon mor">🏢</div><div><div class="istat-sayi">@Model.Select(x => x.FirmaId).Distinct().Count()</div><div class="istat-label">Farklı Servis</div></div></div>
 </div>
 
@@ -303,7 +303,7 @@
                 <div class="cell-overflow" title="@d.TeknisyenAdi">@d.TeknisyenAdi</div>
                 <div>@d.OlusturmaTarihi.ToString("dd.MM.yyyy")</div>
                 <div>
-                    <span class="badge @(d.Durum == 1 ? "b-green" : d.Durum == 2 ? "b-red" : "b-yellow")">@(d.Durum == 1 ? "Tamam" : d.Durum == 2 ? "İptal" : "Bekliyor")</span>
+                    <span class="badge @(d.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? "b-green" : d.Durum == DevreyeAlmaDurumDegerleri.Iptal ? "b-red" : "b-yellow")">@(d.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? "Tamam" : d.Durum == DevreyeAlmaDurumDegerleri.Iptal ? "İptal" : "Bekliyor")</span>
                 </div>
                 <div>
                     <a class="detay-btn" href="/AdminPanel/devreyealmalar/detay/@d.Id">Detay</a>

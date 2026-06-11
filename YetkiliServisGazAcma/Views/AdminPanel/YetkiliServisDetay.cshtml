@@ -199,8 +199,8 @@
                         <div>@(s.YetkiBelgesiBaslangicTarihi?.ToString("dd.MM.yyyy") ?? "-")</div>
                         <div>@s.YetkiBelgesiBitisTarihi.ToString("dd.MM.yyyy")</div>
                         <div>
-                            @if (s.Durum == 1) { <span class="df-pill df-pill-success">Onaylı</span> }
-                            else if (s.Durum == 2) { <span class="df-pill df-pill-danger">Reddedildi</span> }
+                            @if (s.Durum == YetkiBelgesiDurumDegerleri.Onaylandi) { <span class="df-pill df-pill-success">Onaylı</span> }
+                            else if (s.Durum == YetkiBelgesiDurumDegerleri.Reddedildi) { <span class="df-pill df-pill-danger">Reddedildi</span> }
                             else { <span class="df-pill df-pill-warning">Bekliyor</span> }
                         </div>
                     </div>
@@ -248,8 +248,8 @@
                         <div>@Deger(d.Marka?.MarkaAdi ?? d.CihazMarka)</div>
                         <div>@d.OlusturmaTarihi.ToString("dd.MM.yyyy")</div>
                         <div>
-                            @if (d.Durum == 1) { <span class="df-pill df-pill-success">Tamamlandı</span> }
-                            else if (d.Durum == 2) { <span class="df-pill df-pill-danger">İptal</span> }
+                            @if (d.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi) { <span class="df-pill df-pill-success">Tamamlandı</span> }
+                            else if (d.Durum == DevreyeAlmaDurumDegerleri.Iptal) { <span class="df-pill df-pill-danger">İptal</span> }
                             else { <span class="df-pill df-pill-warning">Bekliyor</span> }
                         </div>
                     </div>

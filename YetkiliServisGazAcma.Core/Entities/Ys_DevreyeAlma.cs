@@ -1,4 +1,5 @@
 using System;
+using YetkiliServisGazAcma.Business.Services;
 
 namespace YetkiliServisGazAcma.Entities
 {
@@ -33,7 +34,7 @@ namespace YetkiliServisGazAcma.Entities
         // Diğer
         public DateTime DevreyeAlmaTarihi { get; set; }
         public string? Notlar { get; set; }
-        public int Durum { get; set; } = 0;
+        public int Durum { get; set; } = DevreyeAlmaDurumDegerleri.Bekliyor;
         // 0=Bekliyor, 1=Tamamlandı, 2=İptal
         public string? PdfYolu { get; set; }
 

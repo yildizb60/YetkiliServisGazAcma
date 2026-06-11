@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
+using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
 
@@ -32,7 +33,7 @@ namespace YetkiliServisGazAcma.Business.Services
             var sorgu = _context.Ys_YetkiBelgeleri
                 .Include(x => x.Firma)
                 .ThenInclude(x => x!.Sirket)
-                .Where(x => !x.SilindiMi && x.Durum == 0);
+                .Where(x => !x.SilindiMi && x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor);
 
             if (sirketId.HasValue)
                 sorgu = sorgu.Where(x => x.Firma!.SirketId == sirketId.Value);
@@ -90,7 +91,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 DosyaYolu = BuildDosyaYolu(publicBaseUrl, dosyaAdi),
                 YetkiBelgesiBaslangicTarihi = baslangic,
                 YetkiBelgesiBitisTarihi = bitis,
-                Durum = 0, // Onayda Bekliyor
+                Durum = YetkiBelgesiDurumDegerleri.OnaydaBekliyor, // Onayda Bekliyor
                 OlusturmaTarihi = DateTime.Now,
                 OlusturanKullanici = kullanici ?? "sistem",
                 SilindiMi = false
@@ -119,7 +120,7 @@ namespace YetkiliServisGazAcma.Business.Services
 
             if (yetkiBelgesi == null) return false;
 
-            yetkiBelgesi.Durum = 1; // Onaylandı
+            yetkiBelgesi.Durum = YetkiBelgesiDurumDegerleri.Onaylandi; // Onaylandı
             yetkiBelgesi.RedGerekce = null;
             yetkiBelgesi.OnayTarihi = DateTime.Now;
             yetkiBelgesi.OnaylayanKullanici = kullanici ?? "sistem";
@@ -138,7 +139,7 @@ namespace YetkiliServisGazAcma.Business.Services
 
             if (yetkiBelgesi == null) return false;
 
-            yetkiBelgesi.Durum = 2; // Reddedildi
+            yetkiBelgesi.Durum = YetkiBelgesiDurumDegerleri.Reddedildi; // Reddedildi
             yetkiBelgesi.RedGerekce = string.IsNullOrWhiteSpace(gerekce) ? "Belirtilmedi." : gerekce.Trim();
             yetkiBelgesi.OnayTarihi = DateTime.Now;
             yetkiBelgesi.OnaylayanKullanici = kullanici ?? "sistem";

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Models;
 
 namespace YetkiliServisGazAcma.API.Controllers
@@ -21,8 +22,8 @@ namespace YetkiliServisGazAcma.API.Controllers
         public async Task<IActionResult> Ozet()
         {
             var servisCount = await _context.Ys_Firmalar.CountAsync(x => !x.SilindiMi && x.AktifMi);
-            var devreyeCount = await _context.Ys_DevreyeAlmalar.CountAsync(x => !x.SilindiMi && x.Durum == 1);
-            var yetkiBelgesiCount = await _context.Ys_YetkiBelgeleri.CountAsync(x => !x.SilindiMi && x.Durum == 1);
+            var devreyeCount = await _context.Ys_DevreyeAlmalar.CountAsync(x => !x.SilindiMi && x.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi);
+            var yetkiBelgesiCount = await _context.Ys_YetkiBelgeleri.CountAsync(x => !x.SilindiMi && x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi);
             var toplamIslem = await _context.Ys_DevreyeAlmalar.CountAsync(x => !x.SilindiMi);
             var zamaninda = toplamIslem == 0 ? 100.0 : Math.Round(100.0 * devreyeCount / toplamIslem, 1);
 

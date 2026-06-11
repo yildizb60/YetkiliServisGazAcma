@@ -10,8 +10,8 @@ var firma = ViewBag.Firma as YetkiliServisGazAcma.Entities.Ys_Firma;
         ?? new List<YetkiliServisGazAcma.Entities.Ys_FirmaMarka>();
     var yetkiBelgeleri = firma?.YetkiBelgeleri?.Where(x => !x.SilindiMi).OrderByDescending(x => x.OlusturmaTarihi).ToList()
         ?? new List<YetkiliServisGazAcma.Entities.Ys_YetkiBelgesi>();
-    var gecerli = yetkiBelgeleri.FirstOrDefault(x => x.Durum == 1 && x.YetkiBelgesiBitisTarihi > DateTime.Now);
-    var onayli = yetkiBelgeleri.FirstOrDefault(x => x.Durum == 1);
+    var gecerli = yetkiBelgeleri.FirstOrDefault(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi && x.YetkiBelgesiBitisTarihi > DateTime.Now);
+    var onayli = yetkiBelgeleri.FirstOrDefault(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi);
     var yetkiBelgesi = gecerli ?? onayli ?? yetkiBelgeleri.FirstOrDefault();
     string adSoyad = kullanici?.AdSoyad ?? firma?.YetkiliKisi ?? "Yetkili Servis";
     string basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "Y";
@@ -106,7 +106,7 @@ var firma = ViewBag.Firma as YetkiliServisGazAcma.Entities.Ys_Firma;
                         {
                             <span class="hero-badge badge-yesil">✅ Yetki Belgesi Geçerli</span>
                         }
-                        else if (yetkiBelgesi != null && yetkiBelgesi.Durum == 0)
+                        else if (yetkiBelgesi != null && yetkiBelgesi.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor)
                         {
                             <span class="hero-badge badge-sari">Yetki Belgesi Onay Bekliyor</span>
                         }
@@ -198,17 +198,17 @@ var firma = ViewBag.Firma as YetkiliServisGazAcma.Entities.Ys_Firma;
                     {
                         var s = yetkiBelgesi!;
                         var kalanGun = (s.YetkiBelgesiBitisTarihi.Date - DateTime.Now.Date).Days;
-                        var badgeText = s.Durum == 1 && s.YetkiBelgesiBitisTarihi > DateTime.Now
+                        var badgeText = s.Durum == YetkiBelgesiDurumDegerleri.Onaylandi && s.YetkiBelgesiBitisTarihi > DateTime.Now
                             ? "Geçerli - " + Math.Max(kalanGun, 0) + " gün kaldı"
-                            : s.Durum == 0 ? "Onay Bekliyor"
+                            : s.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor ? "Onay Bekliyor"
                             : "Geçersiz";
                         <div class="yetki-belgesi-kutu" style="margin-bottom:10px;">
                             <div class="yetki-belgesi-icon">
-                                @(s.Durum == 1 ? "✅" : s.Durum == 0 ? "⏳" : "❌")
+                                @(s.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "✅" : s.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor ? "⏳" : "❌")
                             </div>
                             <div>
                                 <div class="yetki-belgesi-bilgi-ad">
-                                    @(s.Durum == 1 ? "Onaylı Yetki Belgesi" : s.Durum == 0 ? "Onay Bekliyor" : "Reddedildi")
+                                    @(s.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "Onaylı Yetki Belgesi" : s.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor ? "Onay Bekliyor" : "Reddedildi")
                                 </div>
                                 <div class="yetki-belgesi-bilgi-alt">
                                     Yükleme: @s.OlusturmaTarihi.ToString("dd.MM.yyyy")
@@ -218,12 +218,12 @@ var firma = ViewBag.Firma as YetkiliServisGazAcma.Entities.Ys_Firma;
                             </div>
                             <div class="yetki-belgesi-badge"
                                  style="padding:6px 16px; border-radius:20px; font-size:12px; font-weight:bold;
-                                        background:@(s.Durum==1 && s.YetkiBelgesiBitisTarihi > DateTime.Now ? "#E1F5EE" : s.Durum==0 ? "#FAEEDA" : "#FCEBEB");
-                                        color:@(s.Durum==1 && s.YetkiBelgesiBitisTarihi > DateTime.Now ? "#085041" : s.Durum==0 ? "#633806" : "#501313");">
+                                        background:@(s.Durum==YetkiBelgesiDurumDegerleri.Onaylandi && s.YetkiBelgesiBitisTarihi > DateTime.Now ? "#E1F5EE" : s.Durum==YetkiBelgesiDurumDegerleri.OnaydaBekliyor ? "#FAEEDA" : "#FCEBEB");
+                                        color:@(s.Durum==YetkiBelgesiDurumDegerleri.Onaylandi && s.YetkiBelgesiBitisTarihi > DateTime.Now ? "#085041" : s.Durum==YetkiBelgesiDurumDegerleri.OnaydaBekliyor ? "#633806" : "#501313");">
                                 @badgeText
                             </div>
                         </div>
-                        @if (s.Durum == 1 && s.YetkiBelgesiBitisTarihi <= DateTime.Now.AddDays(30))
+                        @if (s.Durum == YetkiBelgesiDurumDegerleri.Onaylandi && s.YetkiBelgesiBitisTarihi <= DateTime.Now.AddDays(30))
                         {
                             var kalan = (s.YetkiBelgesiBitisTarihi.Date - DateTime.Now.Date).Days;
                             if (kalan >= 0)

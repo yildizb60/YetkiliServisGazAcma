@@ -64,14 +64,14 @@
                 <div class="istat-kart">
                     <div class="istat-icon yesil">&#9989;</div>
                     <div>
-                        <div class="istat-sayi">@Model.Count(x => x.Durum == 1)</div>
+                        <div class="istat-sayi">@Model.Count(x => x.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi)</div>
                         <div class="istat-label">Tamamlanan İşlem</div>
                     </div>
                 </div>
                 <div class="istat-kart">
                     <div class="istat-icon sari">&#9203;</div>
                     <div>
-                        <div class="istat-sayi">@Model.Count(x => x.Durum == 0)</div>
+                        <div class="istat-sayi">@Model.Count(x => x.Durum == DevreyeAlmaDurumDegerleri.Bekliyor)</div>
                         <div class="istat-label">Bekleyen İşlem</div>
                     </div>
                 </div>
@@ -178,8 +178,8 @@
                             <div>@i.TeknisyenAdi</div>
                             <div>@i.DevreyeAlmaTarihi.ToString("dd.MM.yyyy")</div>
                             <div>
-                                <span class="badge @(i.Durum == 1 ? "b-green" : "b-yellow")">
-                                    @(i.Durum == 1 ? "Tamamlandı" : "Bekliyor")
+                                <span class="badge @(i.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? "b-green" : "b-yellow")">
+                                    @(i.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? "Tamamlandı" : "Bekliyor")
                                 </span>
                             </div>
                             <div>

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using YetkiliServisGazAcma.API.Controllers;
+using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
 
@@ -19,18 +20,18 @@ namespace YetkiliServisGazAcma.API.Services
             var query = YetkiBelgesiTemelQuery(sirketId);
 
             var bekleyenler = await query
-                .Where(x => x.Durum == 0)
+                .Where(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor)
                 .OrderByDescending(x => x.OlusturmaTarihi)
                 .ToListAsync();
 
             var onaylananlar = await query
-                .Where(x => x.Durum == 1)
+                .Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi)
                 .OrderByDescending(x => x.OnayTarihi ?? x.OlusturmaTarihi)
                 .Take(100)
                 .ToListAsync();
 
             var reddedilenler = await query
-                .Where(x => x.Durum == 2)
+                .Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Reddedildi)
                 .OrderByDescending(x => x.OnayTarihi ?? x.OlusturmaTarihi)
                 .Take(100)
                 .ToListAsync();
@@ -46,7 +47,7 @@ namespace YetkiliServisGazAcma.API.Services
         public async Task<AdminYetkiBelgesiOnayGecmisiListeDto> GecmisAsync(AdminYetkiBelgesiOnayGecmisiFiltreDto? dto, int? sirketId)
         {
             var query = YetkiBelgesiTemelQuery(sirketId)
-                .Where(x => x.Durum != 0);
+                .Where(x => x.Durum != YetkiBelgesiDurumDegerleri.OnaydaBekliyor);
 
             if (dto?.BaslangicTarihi.HasValue == true)
             {

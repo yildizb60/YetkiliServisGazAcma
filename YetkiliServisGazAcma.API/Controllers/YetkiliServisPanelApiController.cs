@@ -64,7 +64,7 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             int? uyariGun = null;
             var onayli = firma?.YetkiBelgeleri?
-                .Where(x => x.Durum == 1)
+                .Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi)
                 .OrderByDescending(x => x.OlusturmaTarihi)
                 .FirstOrDefault();
             if (onayli != null)
@@ -219,7 +219,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 .Any(x => !x.SilindiMi) ?? false;
 
             var onayliYetkiBelgesiVar = firma.YetkiBelgeleri?
-                .Any(x => !x.SilindiMi && x.Durum == 1) ?? false;
+                .Any(x => !x.SilindiMi && x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi) ?? false;
 
             return Ok(new YsPanelIlkKurulumDto
             {
@@ -336,12 +336,12 @@ namespace YetkiliServisGazAcma.API.Controllers
                     && x.OlusturmaTarihi < bitSonrasiRapor);
 
             var devreyeSayisi = await devreyeTemelQuery.CountAsync();
-            var tamamlanan = await devreyeTemelQuery.Where(x => x.Durum == 1).CountAsync();
-            var bekleyen = await devreyeTemelQuery.Where(x => x.Durum == 0).CountAsync();
+            var tamamlanan = await devreyeTemelQuery.Where(x => x.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi).CountAsync();
+            var bekleyen = await devreyeTemelQuery.Where(x => x.Durum == DevreyeAlmaDurumDegerleri.Bekliyor).CountAsync();
 
-            var yetkiBelgesiOnayli = await yetkiBelgesiTemelQuery.Where(x => x.Durum == 1).CountAsync();
-            var yetkiBelgesiBekleyen = await yetkiBelgesiTemelQuery.Where(x => x.Durum == 0).CountAsync();
-            var yetkiBelgesiReddedilen = await yetkiBelgesiTemelQuery.Where(x => x.Durum == 2).CountAsync();
+            var yetkiBelgesiOnayli = await yetkiBelgesiTemelQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi).CountAsync();
+            var yetkiBelgesiBekleyen = await yetkiBelgesiTemelQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor).CountAsync();
+            var yetkiBelgesiReddedilen = await yetkiBelgesiTemelQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Reddedildi).CountAsync();
 
             var aylikBaslangic = new DateTime(basTarih.Year, basTarih.Month, 1);
             var aylikBitis = new DateTime(bitTarih.Year, bitTarih.Month, 1);
@@ -578,14 +578,14 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             var bugun = DateTime.Now.Date;
             var onayli = firma?.YetkiBelgeleri?
-                .Where(x => x.Durum == 1
+                .Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi
                     && !x.SilindiMi
                     && (!x.YetkiBelgesiBaslangicTarihi.HasValue || x.YetkiBelgesiBaslangicTarihi.Value.Date <= bugun)
                     && x.YetkiBelgesiBitisTarihi.Date >= bugun)
                 .OrderBy(x => x.YetkiBelgesiBitisTarihi)
                 .FirstOrDefault();
 
-            var bekleyenVar = firma?.YetkiBelgeleri?.Any(x => x.Durum == 0 && !x.SilindiMi) ?? false;
+            var bekleyenVar = firma?.YetkiBelgeleri?.Any(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor && !x.SilindiMi) ?? false;
             if (onayli != null)
             {
                 bildirimler.Add("Yetki belgeniz onaylandi. Cihaz devreye alabilirsiniz.");

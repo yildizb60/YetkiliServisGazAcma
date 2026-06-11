@@ -1,4 +1,5 @@
 using System;
+using YetkiliServisGazAcma.Business.Services;
 
 namespace YetkiliServisGazAcma.Entities
 {
@@ -8,7 +9,7 @@ namespace YetkiliServisGazAcma.Entities
         public string? DosyaYolu { get; set; }
         public DateTime? YetkiBelgesiBaslangicTarihi { get; set; }
         public DateTime YetkiBelgesiBitisTarihi { get; set; }
-        public int Durum { get; set; } = 0;
+        public int Durum { get; set; } = YetkiBelgesiDurumDegerleri.OnaydaBekliyor;
         // 0 = Onayda Bekliyor
         // 1 = Onaylandı
         // 2 = Reddedildi

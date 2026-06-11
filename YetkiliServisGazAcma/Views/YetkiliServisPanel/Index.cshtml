@@ -17,7 +17,7 @@
         .OrderByDescending(x => x.OlusturmaTarihi)
         .ToList() ?? new List<YetkiliServisGazAcma.Entities.Ys_YetkiBelgesi>();
     var onayliBelgeler = tumBelgeler
-        .Where(x => x.Durum == 1)
+        .Where(x => x.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi)
         .OrderBy(x => x.YetkiBelgesiBitisTarihi)
         .ToList();
     var gecerliBelgeler = onayliBelgeler
@@ -25,13 +25,13 @@
             && x.YetkiBelgesiBitisTarihi.Date >= bugun)
         .OrderBy(x => x.YetkiBelgesiBitisTarihi)
         .ToList();
-    var bekleyenBelge = tumBelgeler.Count(x => x.Durum == 0);
-    var reddedilenBelge = tumBelgeler.Count(x => x.Durum == 2);
+    var bekleyenBelge = tumBelgeler.Count(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor);
+    var reddedilenBelge = tumBelgeler.Count(x => x.Durum == YetkiBelgesiDurumDegerleri.Reddedildi);
     var markaSayisi = firma?.FirmaMarkalar?.Count(x => !x.SilindiMi) ?? 0;
     var kategoriSayisi = firma?.FirmaKategoriler?.Count(x => !x.SilindiMi) ?? 0;
     var subeSayisi = firma?.Subeler?.Count(x => !x.SilindiMi) ?? 0;
-    var tamamlananSon = sonIslemler.Count(x => x.Durum == 1);
-    var bekleyenSon = sonIslemler.Count(x => x.Durum != 1);
+    var tamamlananSon = sonIslemler.Count(x => x.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi);
+    var bekleyenSon = sonIslemler.Count(x => x.Durum != DevreyeAlmaDurumDegerleri.Tamamlandi);
     var ilkKurulumZorunlu = ViewBag.IlkKurulumZorunlu as bool? ?? false;
     var ilkKurulumTamamlandi = ViewBag.IlkKurulumTamamlandi as bool? ?? true;
     var ilkKurulumEksikler = ViewBag.IlkKurulumEksikler as List<string> ?? new List<string>();
@@ -306,7 +306,7 @@
                             <div class="dash-list">
                                 @foreach (var islem in sonIslemler.Take(4))
                                 {
-                                    var durumYazi = islem.Durum == 1 ? "Tamamlandı" : islem.Durum == 2 ? "İptal" : "Bekliyor";
+                                    var durumYazi = islem.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? "Tamamlandı" : islem.Durum == DevreyeAlmaDurumDegerleri.Iptal ? "İptal" : "Bekliyor";
                                     <div class="dash-list-item">
                                         <div class="dash-list-title">@(islem.MusteriAdi ?? islem.TesistatNo ?? "-")</div>
                                         <div class="dash-list-sub">@durumYazi - @(islem.Marka?.MarkaAdi ?? islem.CihazMarka ?? "-")</div>
@@ -349,7 +349,7 @@
                             <div class="dash-list">
                                 @foreach (var belge in tumBelgeler.Take(4))
                                 {
-                                    var durumYazi = belge.Durum == 1 ? "Onaylandı" : belge.Durum == 2 ? "Reddedildi" : "Bekliyor";
+                                    var durumYazi = belge.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "Onaylandı" : belge.Durum == YetkiBelgesiDurumDegerleri.Reddedildi ? "Reddedildi" : "Bekliyor";
                                     <div class="dash-list-item">
                                         <div class="dash-list-title">@durumYazi</div>
                                         <div class="dash-list-sub">@belge.OlusturmaTarihi.ToString("dd.MM.yyyy") - @belge.YetkiBelgesiBitisTarihi.ToString("dd.MM.yyyy")</div>

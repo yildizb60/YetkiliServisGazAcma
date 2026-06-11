@@ -427,11 +427,11 @@
                     <div style="font-size:12px;color:#888">@s.Firma?.Sirket?.SirketAdi</div>
                     <div>@s.OlusturmaTarihi.ToString("dd.MM.yyyy")</div>
                     <div>
-                        @if (s.Durum == 1)
+                        @if (s.Durum == YetkiBelgesiDurumDegerleri.Onaylandi)
                         {
                             <span class="badge b-green">Onaylandı</span>
                         }
-                        else if (s.Durum == 0)
+                        else if (s.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor)
                         {
                             <span class="badge b-yellow">Bekliyor</span>
                         }

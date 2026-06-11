@@ -56,7 +56,9 @@ namespace YetkiliServisGazAcma.Business.Services
             _context.SmsDogrulamaKodlari.Add(dogrulama);
 
             var firmaKodu = await FirmaKoduBulAsync(kullanici);
-            var sonuc = await _smsProvider.GonderAsync(telefon, mesaj, firmaKodu);
+            var sonuc = _options.TestMode
+                ? new SmsGonderimSonucu(true, MesajId: $"TEST-{DateTime.Now:yyyyMMddHHmmss}")
+                : await _smsProvider.GonderAsync(telefon, mesaj, firmaKodu);
             _context.SmsGonderimLoglari.Add(new SmsGonderimLog
             {
                 KullaniciId = kullanici.Id,

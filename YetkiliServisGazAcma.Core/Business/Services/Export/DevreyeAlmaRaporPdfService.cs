@@ -41,8 +41,8 @@ namespace YetkiliServisGazAcma.Business.Services
 
             var liste = islemler.ToList();
             var devreyeSayisi = liste.Count;
-            var tamamlanan = liste.Count(x => x.Durum == 1);
-            var bekleyen = liste.Count(x => x.Durum == 0);
+            var tamamlanan = liste.Count(x => x.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi);
+            var bekleyen = liste.Count(x => x.Durum == DevreyeAlmaDurumDegerleri.Bekliyor);
 
             var document = Document.Create(container =>
             {
@@ -118,8 +118,8 @@ namespace YetkiliServisGazAcma.Business.Services
             foreach (var d in liste)
             {
                 var durumText = DurumText(d.Durum);
-                var durumColor = d.Durum == 1 ? "#0f766e" : d.Durum == 2 ? "#b42318" : "#9a6700";
-                var satirBg = d.Durum == 1 ? "#ecfdf3" : d.Durum == 2 ? "#fff1f2" : "#fffbeb";
+                var durumColor = d.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? "#0f766e" : d.Durum == DevreyeAlmaDurumDegerleri.Iptal ? "#b42318" : "#9a6700";
+                var satirBg = d.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? "#ecfdf3" : d.Durum == DevreyeAlmaDurumDegerleri.Iptal ? "#fff1f2" : "#fffbeb";
 
                 col.Item().PaddingBottom(8).Border(1).BorderColor("#E5E7EB").Background("#FFFFFF").Column(detail =>
                 {
@@ -196,7 +196,7 @@ namespace YetkiliServisGazAcma.Business.Services
 
         private static string DurumText(int durum)
         {
-            return durum == 1 ? "Tamamland\u0131" : durum == 2 ? "\u0130ptal" : "Bekliyor";
+            return durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? "Tamamland\u0131" : durum == DevreyeAlmaDurumDegerleri.Iptal ? "\u0130ptal" : "Bekliyor";
         }
 
         private static string Deger(string? value)

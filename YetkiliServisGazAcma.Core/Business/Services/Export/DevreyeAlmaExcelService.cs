@@ -39,7 +39,7 @@ namespace YetkiliServisGazAcma.Business.Services
 
         private static string DurumText(int durum)
         {
-            return durum == 1 ? "Tamamland\u0131" : durum == 2 ? "\u0130ptal" : "Bekliyor";
+            return durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? "Tamamland\u0131" : durum == DevreyeAlmaDurumDegerleri.Iptal ? "\u0130ptal" : "Bekliyor";
         }
 
         private static string Csv(string? value)

@@ -16,7 +16,7 @@
     var toplamSirket = ViewBag.ToplamSirket is int ts ? ts : 0;
     var toplamDevreyeAlma = ViewBag.ToplamDevreyeAlma is int td ? td : 0;
     var buAyDevreyeAlma = ViewBag.BuAyDevreyeAlma is int ba ? ba : 0;
-    var sonBelgeOnaylanan = sonBelgeler.Count(x => x.Durum == 1);
+    var sonBelgeOnaylanan = sonBelgeler.Count(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi);
     var belgeToplam = Math.Max(onayBekleyen + sonBelgeler.Count, onayBekleyen);
     var belgeGuncel = Math.Max(toplamFirma - suresiBitecek, 0);
     var adSoyad = kullanici?.AdSoyad ?? kullanici?.UserName ?? "Admin";
@@ -239,7 +239,7 @@
                             <div class="dash-list">
                                 @foreach (var belge in sonBelgeler.Take(4))
                                 {
-                                    var durumYazi = belge.Durum == 1 ? "Onaylandı" : belge.Durum == 2 ? "Reddedildi" : "Bekliyor";
+                                    var durumYazi = belge.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "Onaylandı" : belge.Durum == YetkiBelgesiDurumDegerleri.Reddedildi ? "Reddedildi" : "Bekliyor";
                                     <div class="dash-list-item">
                                         <div class="dash-list-title">@(belge.Firma?.FirmaAdi ?? "-")</div>
                                         <div class="dash-list-sub">@durumYazi - @belge.OlusturmaTarihi.ToString("dd.MM.yyyy")</div>
@@ -282,7 +282,7 @@
                             <div class="dash-list">
                                 @foreach (var islem in sonDevreyeAlmalar.Take(4))
                                 {
-                                    var durumYazi = islem.Durum == 1 ? "Tamamlandı" : islem.Durum == 2 ? "İptal" : "Bekliyor";
+                                    var durumYazi = islem.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? "Tamamlandı" : islem.Durum == DevreyeAlmaDurumDegerleri.Iptal ? "İptal" : "Bekliyor";
                                     <div class="dash-list-item">
                                         <div class="dash-list-title">@(islem.TesistatNo ?? "-")</div>
                                         <div class="dash-list-sub">@durumYazi - @(islem.Firma?.FirmaAdi ?? "-")</div>

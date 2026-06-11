@@ -231,7 +231,7 @@ namespace YetkiliServisGazAcma.Infrastructure
             var gecerliYetkiBelgesi = await context.Ys_YetkiBelgeleri.FirstOrDefaultAsync(x =>
                 x.FirmaId == firma.Id &&
                 !x.SilindiMi &&
-                x.Durum == 1 &&
+                x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi &&
                 (!x.YetkiBelgesiBaslangicTarihi.HasValue || x.YetkiBelgesiBaslangicTarihi.Value.Date <= bugun) &&
                 x.YetkiBelgesiBitisTarihi.Date >= bugun);
 
@@ -249,7 +249,7 @@ namespace YetkiliServisGazAcma.Infrastructure
                     DosyaYolu = "/uploads/demo-yetki-belgesi.html",
                     YetkiBelgesiBaslangicTarihi = bugun.AddDays(-7),
                     YetkiBelgesiBitisTarihi = bugun.AddYears(1),
-                    Durum = 1,
+                    Durum = YetkiBelgesiDurumDegerleri.Onaylandi,
                     OnayTarihi = DateTime.Now,
                     OnaylayanKullanici = "demo-seed",
                     OlusturanKullanici = "demo-seed"
