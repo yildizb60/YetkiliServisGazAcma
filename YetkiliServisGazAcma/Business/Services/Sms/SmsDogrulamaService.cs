@@ -34,11 +34,14 @@ namespace YetkiliServisGazAcma.Business.Services
             if (string.IsNullOrWhiteSpace(telefon))
                 return (false, "SMS doğrulama için kullanıcı telefon numarası tanımlı olmalıdır.");
 
+            if (!_options.TestMode && string.Equals(_options.Provider, "Development", StringComparison.OrdinalIgnoreCase))
+                return (false, "Canlı SMS için Provider AhlatciSms ve API bilgileri yapılandırılmalıdır.");
+
             amac = string.IsNullOrWhiteSpace(amac) ? "GIRIS" : amac.Trim().ToUpperInvariant();
             var kod = KodUret(_options.CodeLength);
             var mesaj = amac == "SIFRE_SIFIRLA"
-                ? $"Yetkili Servis Gaz Acma sifre sifirlama kodunuz: {kod}"
-                : $"Yetkili Servis Gaz Acma giris dogrulama kodunuz: {kod}";
+                ? $"Yetkili Servis Devreye Alma şifre sıfırlama kodunuz: {kod}"
+                : $"Yetkili Servis Devreye Alma giriş doğrulama kodunuz: {kod}";
 
             var dogrulama = new SmsDogrulamaKodu
             {
@@ -71,7 +74,7 @@ namespace YetkiliServisGazAcma.Business.Services
             if (!sonuc.Basarili)
                 return (false, sonuc.Hata ?? "SMS gönderilemedi.");
 
-            if (string.Equals(_options.Provider, "Development", StringComparison.OrdinalIgnoreCase))
+            if (_options.TestMode)
                 return (true, $"Test SMS modu: doğrulama kodu {kod}");
 
             return (true, "Doğrulama kodu SMS olarak gönderildi.");

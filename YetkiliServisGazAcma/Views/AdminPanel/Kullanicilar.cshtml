@@ -162,14 +162,14 @@
     {
         foreach (var k in kullanicilar)
         {
-            var tip = k.KullaniciTipi == 1
+            var tip = k.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis
                 ? "Yetkili Servis"
-                : k.KullaniciTipi == 2
+                : k.KullaniciTipi == KullaniciTipiDegerleri.Personel
                     ? "Personel"
-                    : k.KullaniciTipi == 3
+                    : k.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin
                         ? "Şirket Admini"
                         : "Süper Admin";
-            var bagli = k.KullaniciTipi == 1 ? k.Firma?.FirmaAdi : k.Sirket?.SirketAdi;
+            var bagli = k.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis ? k.Firma?.FirmaAdi : k.Sirket?.SirketAdi;
 
             <div class="tablo-row">
                 <div>@(k.AdSoyad ?? "-")</div>

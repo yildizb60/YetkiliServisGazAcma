@@ -50,7 +50,7 @@ namespace YetkiliServisGazAcma.Controllers
         {
             if (string.IsNullOrEmpty(kullaniciAdi) || string.IsNullOrEmpty(sifre))
             {
-                ViewBag.Hata = "KullanÄ±cÄ± adÄ± ve ÅŸifre zorunludur.";
+                ViewBag.Hata = "Kullanıcı adı ve şifre zorunludur.";
                 return View();
             }
 
@@ -59,13 +59,13 @@ namespace YetkiliServisGazAcma.Controllers
 
             if (kullanici == null)
             {
-                ViewBag.Hata = "KullanÄ±cÄ± bulunamadÄ±.";
+                ViewBag.Hata = "Kullanıcı bulunamadı.";
                 return View();
             }
 
             if (!kullanici.AktifMi)
             {
-                ViewBag.Hata = "HesabÄ±nÄ±z aktif deÄŸil.";
+                ViewBag.Hata = "Hesabınız aktif değil.";
                 return View();
             }
 
@@ -96,11 +96,11 @@ namespace YetkiliServisGazAcma.Controllers
 
             if (sonuc.IsLockedOut)
             {
-                ViewBag.Hata = "Cok fazla hatali giris denemesi yapildi. Lutfen 15 dakika sonra tekrar deneyin.";
+                ViewBag.Hata = "Çok fazla hatalı giriş denemesi yapıldı. Lütfen 15 dakika sonra tekrar deneyin.";
                 return View();
             }
 
-            ViewBag.Hata = "KullanÄ±cÄ± adÄ± veya ÅŸifre hatalÄ±.";
+            ViewBag.Hata = "Kullanıcı adı veya şifre hatalı.";
             return View();
         }
 
@@ -166,7 +166,7 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null || !kullanici.AktifMi)
             {
                 ViewBag.SifreUnuttum = true;
-                ViewBag.Hata = "KullanÄ±cÄ± bulunamadÄ± veya aktif deÄŸil.";
+                ViewBag.Hata = "Kullanıcı bulunamadı veya aktif değil.";
                 return View("~/Views/Giris/Index.cshtml");
             }
 
@@ -196,7 +196,7 @@ namespace YetkiliServisGazAcma.Controllers
             if (yeniSifre != yeniSifreTekrar)
             {
                 ViewBag.SifreSifirlaKodBekleniyor = true;
-                ViewBag.Hata = "Yeni ÅŸifreler eÅŸleÅŸmiyor.";
+                ViewBag.Hata = "Yeni şifreler eşleşmiyor.";
                 return View("~/Views/Giris/Index.cshtml");
             }
 
@@ -222,7 +222,7 @@ namespace YetkiliServisGazAcma.Controllers
             }
 
             HttpContext.Session.Remove(SifreSifirlaKullaniciIdKey);
-            ViewBag.Bilgi = "Åifreniz deÄŸiÅŸtirildi. Yeni ÅŸifrenizle giriÅŸ yapabilirsiniz.";
+            ViewBag.Bilgi = "Şifreniz değiştirildi. Yeni şifrenizle giriş yapabilirsiniz.";
             return View("~/Views/Giris/Index.cshtml");
         }
 
