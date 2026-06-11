@@ -69,10 +69,10 @@ namespace YetkiliServisGazAcma.Controllers
         {
             return kullanici.KullaniciTipi switch
             {
-                1 => "/ys-panel",
-                2 => "/personel-panel",
-                3 => "/AdminPanel",
-                4 => "/AdminPanel",
+                KullaniciTipiDegerleri.YetkiliServis => "/ys-panel",
+                KullaniciTipiDegerleri.Personel => "/personel-panel",
+                KullaniciTipiDegerleri.SirketAdmin => "/AdminPanel",
+                KullaniciTipiDegerleri.GenelSistemAdmin => "/AdminPanel",
                 _ => "/giris"
             };
         }

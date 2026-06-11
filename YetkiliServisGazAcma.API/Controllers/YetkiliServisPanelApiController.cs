@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using YetkiliServisGazAcma.API.Services;
+using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
 
@@ -495,7 +496,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         private async Task<AppKullanici?> AktifYetkiliServisKullaniciAsync()
         {
             var kullanici = await _userManager.GetUserAsync(User);
-            if (kullanici == null || kullanici.KullaniciTipi != 1)
+            if (kullanici == null || kullanici.KullaniciTipi != KullaniciTipiDegerleri.YetkiliServis)
                 return null;
 
             return kullanici;

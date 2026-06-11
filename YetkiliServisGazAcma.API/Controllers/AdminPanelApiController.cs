@@ -114,8 +114,8 @@ namespace YetkiliServisGazAcma.API.Controllers
             {
                 kullaniciQuery = kullaniciQuery.Where(x =>
                     x.Id == yapan.Id ||
-                    ((x.KullaniciTipi == 2 || x.KullaniciTipi == 3) && kapsam.sirketId.HasValue && x.SirketId == kapsam.sirketId.Value) ||
-                    (x.KullaniciTipi == 1 && x.Firma != null && kapsam.sirketId.HasValue && x.Firma.SirketId == kapsam.sirketId.Value));
+                    ((x.KullaniciTipi == KullaniciTipiDegerleri.Personel || x.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin) && kapsam.sirketId.HasValue && x.SirketId == kapsam.sirketId.Value) ||
+                    (x.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis && x.Firma != null && kapsam.sirketId.HasValue && x.Firma.SirketId == kapsam.sirketId.Value));
             }
 
             var kullanicilar = await kullaniciQuery
@@ -137,11 +137,11 @@ namespace YetkiliServisGazAcma.API.Controllers
             {
                 kullanicilar = dto.Tip switch
                 {
-                    "GenelSistemAdmin" => kullanicilar.Where(x => x.KullaniciTipi == 4).ToList(),
-                    "SirketAdmin" => kullanicilar.Where(x => x.KullaniciTipi == 3).ToList(),
-                    "SuperAdmin" => kullanicilar.Where(x => x.KullaniciTipi == 4).ToList(),
-                    "Personel" => kullanicilar.Where(x => x.KullaniciTipi == 2).ToList(),
-                    "Servis" => kullanicilar.Where(x => x.KullaniciTipi == 1).ToList(),
+                    "GenelSistemAdmin" => kullanicilar.Where(x => x.KullaniciTipi == KullaniciTipiDegerleri.GenelSistemAdmin).ToList(),
+                    "SirketAdmin" => kullanicilar.Where(x => x.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin).ToList(),
+                    "SuperAdmin" => kullanicilar.Where(x => x.KullaniciTipi == KullaniciTipiDegerleri.GenelSistemAdmin).ToList(),
+                    "Personel" => kullanicilar.Where(x => x.KullaniciTipi == KullaniciTipiDegerleri.Personel).ToList(),
+                    "Servis" => kullanicilar.Where(x => x.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis).ToList(),
                     _ => kullanicilar
                 };
             }
@@ -157,9 +157,9 @@ namespace YetkiliServisGazAcma.API.Controllers
                 var aranacak = dto.Bagli.Trim();
                 kullanicilar = kullanicilar
                     .Where(x =>
-                        (x.KullaniciTipi == 1 && x.Firma != null && !string.IsNullOrWhiteSpace(x.Firma.FirmaAdi) &&
+                        (x.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis && x.Firma != null && !string.IsNullOrWhiteSpace(x.Firma.FirmaAdi) &&
                          x.Firma.FirmaAdi.StartsWith(aranacak, StringComparison.CurrentCultureIgnoreCase)) ||
-                        ((x.KullaniciTipi == 2 || x.KullaniciTipi == 3) && x.Sirket != null && !string.IsNullOrWhiteSpace(x.Sirket.SirketAdi) &&
+                        ((x.KullaniciTipi == KullaniciTipiDegerleri.Personel || x.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin) && x.Sirket != null && !string.IsNullOrWhiteSpace(x.Sirket.SirketAdi) &&
                          x.Sirket.SirketAdi.StartsWith(aranacak, StringComparison.CurrentCultureIgnoreCase)))
                     .ToList();
             }
@@ -308,14 +308,14 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (!await KullaniciKapsamindaMi(kullanici, hedef, kapsam.sirketId))
                 return Forbid();
 
-            if ((hedef.KullaniciTipi == 3 || hedef.KullaniciTipi == 2) && (!dto.SirketId.HasValue || dto.SirketId.Value <= 0))
+            if ((hedef.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin || hedef.KullaniciTipi == KullaniciTipiDegerleri.Personel) && (!dto.SirketId.HasValue || dto.SirketId.Value <= 0))
             {
-                return Ok(AdminIslemSonucDto.Basarisiz(hedef.KullaniciTipi == 2
+                return Ok(AdminIslemSonucDto.Basarisiz(hedef.KullaniciTipi == KullaniciTipiDegerleri.Personel
                     ? "Personel icin sirket secilmelidir."
                     : "Sirket admini icin sirket secilmelidir."));
             }
 
-            if (hedef.KullaniciTipi == 3 || hedef.KullaniciTipi == 2)
+            if (hedef.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin || hedef.KullaniciTipi == KullaniciTipiDegerleri.Personel)
             {
                 if (!await SirketYonetimKapsamindaMi(kullanici, dto.SirketId!.Value, kapsam.sirketId))
                     return Forbid();
@@ -323,7 +323,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 hedef.SirketId = dto.SirketId;
                 hedef.FirmaId = null;
             }
-            else if (hedef.KullaniciTipi == 1)
+            else if (hedef.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis)
             {
                 if (!dto.FirmaId.HasValue || dto.FirmaId.Value <= 0)
                     return Ok(AdminIslemSonucDto.Basarisiz("Yetkili servis kullanicisi icin firma secilmelidir."));
@@ -404,7 +404,7 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             var genelSistemAdmin = User.IsInRole("GenelSistemAdmin")
                 || User.IsInRole("SuperAdmin")
-                || kullanici.KullaniciTipi == 4;
+                || kullanici.KullaniciTipi == KullaniciTipiDegerleri.GenelSistemAdmin;
             if (rol == "GenelSistemAdmin" && !genelSistemAdmin)
                 return Ok(AdminIslemSonucDto.Basarisiz("Genel Sistem Admini sadece genel sistem admini tarafindan olusturulabilir."));
 
@@ -412,18 +412,24 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (sifreHatalari.Count > 0)
                 return Ok(AdminIslemSonucDto.Basarisiz(string.Join(" ", sifreHatalari)));
 
-            var kullaniciTipi = rol == "GenelSistemAdmin" ? 4 : rol == "SirketAdmin" ? 3 : rol == "Personel" ? 2 : 1;
-            if ((kullaniciTipi == 3 || kullaniciTipi == 2 || kullaniciTipi == 1) && (!dto.SirketId.HasValue || dto.SirketId.Value <= 0))
+            var kullaniciTipi = rol == "GenelSistemAdmin"
+                ? KullaniciTipiDegerleri.GenelSistemAdmin
+                : rol == "SirketAdmin"
+                    ? KullaniciTipiDegerleri.SirketAdmin
+                    : rol == "Personel"
+                        ? KullaniciTipiDegerleri.Personel
+                        : KullaniciTipiDegerleri.YetkiliServis;
+            if ((kullaniciTipi == KullaniciTipiDegerleri.SirketAdmin || kullaniciTipi == KullaniciTipiDegerleri.Personel || kullaniciTipi == KullaniciTipiDegerleri.YetkiliServis) && (!dto.SirketId.HasValue || dto.SirketId.Value <= 0))
             {
-                var mesaj = kullaniciTipi == 1
+                var mesaj = kullaniciTipi == KullaniciTipiDegerleri.YetkiliServis
                     ? "Yetkili servis icin bagli dagitim sirketi secilmelidir."
-                    : kullaniciTipi == 2
+                    : kullaniciTipi == KullaniciTipiDegerleri.Personel
                         ? "Personel icin sirket secilmelidir."
                         : "Sirket admini icin sirket secilmelidir.";
                 return Ok(AdminIslemSonucDto.Basarisiz(mesaj));
             }
 
-            if (kullaniciTipi == 3 || kullaniciTipi == 2 || kullaniciTipi == 1)
+            if (kullaniciTipi == KullaniciTipiDegerleri.SirketAdmin || kullaniciTipi == KullaniciTipiDegerleri.Personel || kullaniciTipi == KullaniciTipiDegerleri.YetkiliServis)
             {
                 if (!await SirketYonetimKapsamindaMi(kullanici, dto.SirketId!.Value, kapsam.sirketId))
                     return Forbid();
@@ -444,7 +450,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 PhoneNumber = dto.Telefon,
                 AdSoyad = dto.AdSoyad,
                 KullaniciTipi = kullaniciTipi,
-                SirketId = (kullaniciTipi == 3 || kullaniciTipi == 2 || kullaniciTipi == 1) ? dto.SirketId : null,
+                SirketId = (kullaniciTipi == KullaniciTipiDegerleri.SirketAdmin || kullaniciTipi == KullaniciTipiDegerleri.Personel || kullaniciTipi == KullaniciTipiDegerleri.YetkiliServis) ? dto.SirketId : null,
                 FirmaId = null,
                 AktifMi = true,
                 EmailConfirmed = true
@@ -455,7 +461,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return Ok(AdminIslemSonucDto.Basarisiz(string.Join(", ", createSonuc.Errors.Select(x => x.Description))));
 
             Ys_Firma? firma = null;
-            if (kullaniciTipi == 1)
+            if (kullaniciTipi == KullaniciTipiDegerleri.YetkiliServis)
             {
                 try
                 {
@@ -579,7 +585,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 Email = email,
                 PhoneNumber = dto.Telefon,
                 AdSoyad = dto.AdSoyad.Trim(),
-                KullaniciTipi = 2,
+                KullaniciTipi = KullaniciTipiDegerleri.Personel,
                 SirketId = dto.SirketId,
                 AktifMi = true,
                 EmailConfirmed = true
@@ -617,7 +623,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return Ok(AdminIslemSonucDto.Basarisiz("Kullanici id zorunludur."));
 
             var hedef = await _context.Users.FirstOrDefaultAsync(x => x.Id == dto.Id);
-            if (hedef == null || (dto.SadecePersonel && hedef.KullaniciTipi != 2))
+            if (hedef == null || (dto.SadecePersonel && hedef.KullaniciTipi != KullaniciTipiDegerleri.Personel))
                 return Ok(AdminIslemSonucDto.Basarisiz(dto.SadecePersonel ? "Personel bulunamadi." : "Kullanici bulunamadi."));
 
             if (!await KullaniciKapsamindaMi(kullanici, hedef, kapsam.sirketId))
@@ -649,7 +655,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return Ok(AdminIslemSonucDto.Basarisiz("Kullanici id zorunludur."));
 
             var hedef = await _context.Users.FirstOrDefaultAsync(x => x.Id == dto.Id);
-            if (hedef == null || (dto.SadecePersonel && hedef.KullaniciTipi != 2))
+            if (hedef == null || (dto.SadecePersonel && hedef.KullaniciTipi != KullaniciTipiDegerleri.Personel))
                 return Ok(AdminIslemSonucDto.Basarisiz(dto.SadecePersonel ? "Personel bulunamadi." : "Kullanici bulunamadi."));
 
             if (!await KullaniciKapsamindaMi(kullanici, hedef, kapsam.sirketId))
@@ -1210,7 +1216,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                         EmailConfirmed = true,
                         AdSoyad = adSoyad,
                         PhoneNumber = firma.Telefon,
-                        KullaniciTipi = 1,
+                        KullaniciTipi = KullaniciTipiDegerleri.YetkiliServis,
                         FirmaId = firma.Id,
                         SirketId = firma.SirketId,
                         AktifMi = firma.AktifMi
@@ -1225,7 +1231,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                     continue;
                 }
 
-                servisKullanicisi.KullaniciTipi = 1;
+                servisKullanicisi.KullaniciTipi = KullaniciTipiDegerleri.YetkiliServis;
                 servisKullanicisi.FirmaId = firma.Id;
                 servisKullanicisi.SirketId = firma.SirketId;
                 servisKullanicisi.AktifMi = firma.AktifMi;
@@ -1265,14 +1271,14 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             var genelSistemAdminMi = User.IsInRole("GenelSistemAdmin")
                 || User.IsInRole("SuperAdmin")
-                || kullanici.KullaniciTipi == 4
-                || (kullanici.KullaniciTipi == 3 && !kullanici.SirketId.HasValue);
+                || kullanici.KullaniciTipi == KullaniciTipiDegerleri.GenelSistemAdmin
+                || (kullanici.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin && !kullanici.SirketId.HasValue);
 
             if (genelSistemAdminMi)
                 return (istenenSirketId, false);
 
             var sirketAdminMi = User.IsInRole("SirketAdmin")
-                || (kullanici.KullaniciTipi == 3 && kullanici.SirketId.HasValue);
+                || (kullanici.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin && kullanici.SirketId.HasValue);
 
             if (sirketAdminMi)
             {
@@ -1315,8 +1321,8 @@ namespace YetkiliServisGazAcma.API.Controllers
         {
             return User.IsInRole("GenelSistemAdmin")
                 || User.IsInRole("SuperAdmin")
-                || kullanici.KullaniciTipi == 4
-                || (kullanici.KullaniciTipi == 3 && !kullanici.SirketId.HasValue);
+                || kullanici.KullaniciTipi == KullaniciTipiDegerleri.GenelSistemAdmin
+                || (kullanici.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin && !kullanici.SirketId.HasValue);
         }
 
         private static AdminKullaniciListeDto MapKullanici(AppKullanici kullanici)
@@ -1344,8 +1350,8 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (User.IsInRole("GenelSistemAdmin")
                 || User.IsInRole("SuperAdmin")
                 || User.IsInRole("SirketAdmin")
-                || kullanici.KullaniciTipi == 4
-                || kullanici.KullaniciTipi == 3)
+                || kullanici.KullaniciTipi == KullaniciTipiDegerleri.GenelSistemAdmin
+                || kullanici.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin)
                 return true;
 
             if (sirketId == null)
@@ -1368,8 +1374,8 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             var genelSistemAdminMi = User.IsInRole("GenelSistemAdmin")
                 || User.IsInRole("SuperAdmin")
-                || yapan.KullaniciTipi == 4
-                || (yapan.KullaniciTipi == 3 && !yapan.SirketId.HasValue);
+                || yapan.KullaniciTipi == KullaniciTipiDegerleri.GenelSistemAdmin
+                || (yapan.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin && !yapan.SirketId.HasValue);
 
             if (genelSistemAdminMi && !sirketId.HasValue)
                 return true;
@@ -1377,7 +1383,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (!sirketId.HasValue)
                 return false;
 
-            if (hedef.KullaniciTipi == 1 && hedef.FirmaId.HasValue)
+            if (hedef.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis && hedef.FirmaId.HasValue)
             {
                 return await _context.Ys_Firmalar.AnyAsync(x =>
                     x.Id == hedef.FirmaId.Value &&
@@ -1385,15 +1391,15 @@ namespace YetkiliServisGazAcma.API.Controllers
                     x.SirketId == sirketId.Value);
             }
 
-            return (hedef.KullaniciTipi == 2 || hedef.KullaniciTipi == 3) && hedef.SirketId == sirketId.Value;
+            return (hedef.KullaniciTipi == KullaniciTipiDegerleri.Personel || hedef.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin) && hedef.SirketId == sirketId.Value;
         }
 
         private async Task<bool> SirketYonetimKapsamindaMi(AppKullanici yapan, int hedefSirketId, int? kapsamSirketId)
         {
             var genelSistemAdminMi = User.IsInRole("GenelSistemAdmin")
                 || User.IsInRole("SuperAdmin")
-                || yapan.KullaniciTipi == 4
-                || (yapan.KullaniciTipi == 3 && !yapan.SirketId.HasValue);
+                || yapan.KullaniciTipi == KullaniciTipiDegerleri.GenelSistemAdmin
+                || (yapan.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin && !yapan.SirketId.HasValue);
 
             if (genelSistemAdminMi && !kapsamSirketId.HasValue)
                 return true;

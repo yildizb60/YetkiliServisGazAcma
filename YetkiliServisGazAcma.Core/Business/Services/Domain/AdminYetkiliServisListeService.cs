@@ -19,7 +19,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 .Include(x => x.Sirket)
                 .Where(x => !x.SilindiMi
                     && _context.Users.Any(u =>
-                        u.KullaniciTipi == 1 &&
+                        u.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis &&
                         u.FirmaId == x.Id));
 
             if (filtre.SirketId.HasValue)

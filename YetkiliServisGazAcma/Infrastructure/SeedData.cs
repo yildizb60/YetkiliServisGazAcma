@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
+using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
 
 namespace YetkiliServisGazAcma.Infrastructure
@@ -27,7 +28,7 @@ namespace YetkiliServisGazAcma.Infrastructure
                     UserName = adminEmail,
                     Email = adminEmail,
                     AdSoyad = "Sistem Yöneticisi",
-                    KullaniciTipi = 4,
+                    KullaniciTipi = KullaniciTipiDegerleri.GenelSistemAdmin,
                     AktifMi = true,
                     EmailConfirmed = true
                 };
@@ -38,9 +39,9 @@ namespace YetkiliServisGazAcma.Infrastructure
                     await userManager.AddToRoleAsync(admin, "SuperAdmin");
                 }
             }
-            else if (mevcutAdmin.KullaniciTipi == 3 && !mevcutAdmin.SirketId.HasValue)
+            else if (mevcutAdmin.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin && !mevcutAdmin.SirketId.HasValue)
             {
-                mevcutAdmin.KullaniciTipi = 4;
+                mevcutAdmin.KullaniciTipi = KullaniciTipiDegerleri.GenelSistemAdmin;
                 await userManager.UpdateAsync(mevcutAdmin);
 
                 if (!await userManager.IsInRoleAsync(mevcutAdmin, "GenelSistemAdmin"))
@@ -58,7 +59,7 @@ namespace YetkiliServisGazAcma.Infrastructure
                     UserName = personelEmail,
                     Email = personelEmail,
                     AdSoyad = "Test Personel",
-                    KullaniciTipi = 2,
+                    KullaniciTipi = KullaniciTipiDegerleri.Personel,
                     SirketId = 3, // Kargaz (Id=3)
                     AktifMi = true,
                     EmailConfirmed = true
@@ -70,4 +71,3 @@ namespace YetkiliServisGazAcma.Infrastructure
         }
     }
 }
-

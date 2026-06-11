@@ -22,18 +22,18 @@ namespace YetkiliServisGazAcma.Controllers
             var hatalar = new List<string>();
             if (string.IsNullOrWhiteSpace(sifre))
             {
-                hatalar.Add("Şifre zorunludur.");
+                hatalar.Add("Åifre zorunludur.");
                 return hatalar;
             }
 
             if (sifre.Length < 6)
-                hatalar.Add("Şifre en az 6 karakter olmalıdır.");
+                hatalar.Add("Åifre en az 6 karakter olmalÄ±dÄ±r.");
 
             if (!sifre.Any(char.IsLower))
-                hatalar.Add("Şifre en az bir küçük harf içermelidir.");
+                hatalar.Add("Åifre en az bir kÃ¼Ã§Ã¼k harf iÃ§ermelidir.");
 
             if (!sifre.Any(char.IsDigit))
-                hatalar.Add("Şifre en az bir rakam içermelidir.");
+                hatalar.Add("Åifre en az bir rakam iÃ§ermelidir.");
 
             return hatalar;
         }
@@ -75,7 +75,7 @@ namespace YetkiliServisGazAcma.Controllers
 
             if (dashboard == null)
             {
-                TempData["Hata"] = "Dashboard verisi API üzerinden alınamadı.";
+                TempData["Hata"] = "Dashboard verisi API Ã¼zerinden alÄ±namadÄ±.";
                 dashboard = new AdminDashboardOzet();
             }
 
@@ -119,8 +119,8 @@ namespace YetkiliServisGazAcma.Controllers
             kullanici.PhoneNumber = telefon;
 
             var sonuc = await _userManager.UpdateAsync(kullanici);
-            if (sonuc.Succeeded) TempData["Basarili"] = "Profil bilgileriniz başarıyla güncellendi.";
-            else TempData["Hata"] = "Güncelleme sırasında hata oluştu.";
+            if (sonuc.Succeeded) TempData["Basarili"] = "Profil bilgileriniz baÅŸarÄ±yla gÃ¼ncellendi.";
+            else TempData["Hata"] = "GÃ¼ncelleme sÄ±rasÄ±nda hata oluÅŸtu.";
 
             return RedirectToAction(nameof(Profil));
         }
@@ -134,13 +134,13 @@ namespace YetkiliServisGazAcma.Controllers
 
             if (yeniSifre != yeniSifreTekrar)
             {
-                TempData["SifreHata"] = "Yeni şifreler eşleşmiyor.";
+                TempData["SifreHata"] = "Yeni ÅŸifreler eÅŸleÅŸmiyor.";
                 return RedirectToAction(nameof(Profil));
             }
 
             var sonuc = await _userManager.ChangePasswordAsync(kullanici, mevcutSifre, yeniSifre);
-            if (sonuc.Succeeded) TempData["SifreBasarili"] = "Şifreniz başarıyla değiştirildi.";
-            else TempData["SifreHata"] = "Mevcut şifreniz yanlış.";
+            if (sonuc.Succeeded) TempData["SifreBasarili"] = "Åifreniz baÅŸarÄ±yla deÄŸiÅŸtirildi.";
+            else TempData["SifreHata"] = "Mevcut ÅŸifreniz yanlÄ±ÅŸ.";
 
             return RedirectToAction(nameof(Profil));
         }
@@ -273,12 +273,12 @@ namespace YetkiliServisGazAcma.Controllers
 
             if (kullanicilar == null)
             {
-                TempData["Hata"] = "Kullanıcı listesi API üzerinden alınamadı.";
+                TempData["Hata"] = "KullanÄ±cÄ± listesi API Ã¼zerinden alÄ±namadÄ±.";
                 kullanicilar = new List<AppKullanici>();
             }
 
-            // Yetkili servis kullanıcılarında boş kalan alanları, bağlı firma bilgisinden gösterim amaçlı tamamla
-            foreach (var k in kullanicilar.Where(x => x.KullaniciTipi == 1 && x.Firma != null))
+            // Yetkili servis kullanÄ±cÄ±larÄ±nda boÅŸ kalan alanlarÄ±, baÄŸlÄ± firma bilgisinden gÃ¶sterim amaÃ§lÄ± tamamla
+            foreach (var k in kullanicilar.Where(x => x.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis && x.Firma != null))
             {
                 if (string.IsNullOrWhiteSpace(k.AdSoyad))
                     k.AdSoyad = !string.IsNullOrWhiteSpace(k.Firma!.YetkiliKisi) ? k.Firma.YetkiliKisi : k.Firma.FirmaAdi;
@@ -356,7 +356,7 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpGet("kullanicilar/duzenle/{id}")]
-        [HttpGet("kullanicilar/Düzenle/{id}")]
+        [HttpGet("kullanicilar/DÃ¼zenle/{id}")]
         public async Task<IActionResult> KullaniciDuzenle(string id, string? returnUrl)
         {
             var kullanici = await GetCurrentUser();
@@ -376,7 +376,7 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpPost("kullanicilar/duzenle/{id}")]
-        [HttpPost("kullanicilar/Düzenle/{id}")]
+        [HttpPost("kullanicilar/DÃ¼zenle/{id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> KullaniciDuzenle(string id, string adSoyad, string email, string telefon, bool aktifMi, int? sirketId, int? firmaId, string? yeniSifre, string? yeniSifreTekrar, string? returnUrl)
         {
@@ -531,7 +531,7 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpGet("yetkiler/duzenle/{id}")]
-        [HttpGet("yetkiler/Düzenle/{id}")]
+        [HttpGet("yetkiler/DÃ¼zenle/{id}")]
         public async Task<IActionResult> YetkiDuzenle(string id)
         {
             var kullanici = await GetCurrentUser();
@@ -566,7 +566,7 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpPost("yetkiler/duzenle/{id}")]
-        [HttpPost("yetkiler/Düzenle/{id}")]
+        [HttpPost("yetkiler/DÃ¼zenle/{id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> YetkiDuzenle(string id, List<int> sirketIds, Microsoft.AspNetCore.Http.IFormCollection form)
         {

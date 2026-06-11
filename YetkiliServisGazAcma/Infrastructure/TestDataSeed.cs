@@ -25,7 +25,7 @@ namespace YetkiliServisGazAcma.Infrastructure
                 "test.geneladmin@demo.com",
                 "Demo Genel Sistem Admini",
                 "905551000001",
-                4,
+                KullaniciTipiDegerleri.GenelSistemAdmin,
                 null,
                 null,
                 new[] { KullaniciRolAdlari.GenelSistemAdmin, KullaniciRolAdlari.EskiSuperAdmin });
@@ -35,7 +35,7 @@ namespace YetkiliServisGazAcma.Infrastructure
                 "test.sirketadmin@demo.com",
                 "Demo Çorumgaz Şirket Admini",
                 "905551000002",
-                3,
+                KullaniciTipiDegerleri.SirketAdmin,
                 corumgaz.Id,
                 null,
                 new[] { KullaniciRolAdlari.SirketAdmin });
@@ -45,7 +45,7 @@ namespace YetkiliServisGazAcma.Infrastructure
                 "test.personel@demo.com",
                 "Demo Çok Şirketli Personel",
                 "905551000003",
-                2,
+                KullaniciTipiDegerleri.Personel,
                 corumgaz.Id,
                 null,
                 new[] { KullaniciRolAdlari.Personel });
@@ -57,7 +57,7 @@ namespace YetkiliServisGazAcma.Infrastructure
                 "test.servis@demo.com",
                 "Demo Yetkili Servis",
                 "905551000004",
-                1,
+                KullaniciTipiDegerleri.YetkiliServis,
                 corumgaz.Id,
                 firma.Id,
                 new[] { KullaniciRolAdlari.YetkiliServis });

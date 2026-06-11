@@ -153,7 +153,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (kullanici == null)
                 return false;
 
-            if (kullanici.KullaniciTipi == 4 || kullanici.KullaniciTipi == 3)
+            if (kullanici.KullaniciTipi == KullaniciTipiDegerleri.GenelSistemAdmin || kullanici.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin)
                 return true;
 
             return await _context.Dag_PersonelYetkiler.AnyAsync(x =>
@@ -171,7 +171,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (kullanici == null)
                 return false;
 
-            if ((User.IsInRole("SirketAdmin") || kullanici.KullaniciTipi == 3)
+            if ((User.IsInRole("SirketAdmin") || kullanici.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin)
                 && kullanici.SirketId == sirketId)
                 return true;
 

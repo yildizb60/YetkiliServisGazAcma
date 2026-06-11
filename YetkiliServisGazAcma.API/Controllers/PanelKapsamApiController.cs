@@ -146,7 +146,7 @@ namespace YetkiliServisGazAcma.API.Controllers
 
         private async Task<bool> GenelSistemAdminMi(AppKullanici kullanici)
         {
-            if (kullanici.KullaniciTipi == 4 || (kullanici.KullaniciTipi == 3 && !kullanici.SirketId.HasValue))
+            if (kullanici.KullaniciTipi == KullaniciTipiDegerleri.GenelSistemAdmin || (kullanici.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin && !kullanici.SirketId.HasValue))
                 return true;
 
             return User.IsInRole(KullaniciRolAdlari.GenelSistemAdmin)

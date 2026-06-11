@@ -7,6 +7,9 @@
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
     var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
     var q = ViewBag.Query as string ?? "";
+    var secilenIl = ViewBag.Il as string ?? "";
+    var secilenDurum = ViewBag.Durum as string ?? "";
+    var secilenSiralama = ViewBag.Siralama as string ?? "";
     var devreyeSayilari = ViewBag.DevreyeSayilari as Dictionary<int, int> ?? new Dictionary<int, int>();
     bool yYetkiBelgesi = ViewBag.YetkiBelgesi != false;
     bool yRapor = ViewBag.YetkiRapor != false;
@@ -16,9 +19,16 @@
 @section Styles {
     <style>
 .content { padding: 28px 32px; }
-        .filter { background: #fff; border: 1px solid #e6eef4; border-radius: 10px; padding: 16px 20px; margin-bottom: 16px; display: flex; gap: 10px; align-items: center; }
-        .filter input { flex: 1; padding: 10px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 13px; background: #fafafa; }
-        .filter button { padding: 9px 16px; border-radius: 8px; border: none; background: #1B9FD4; color: #fff; font-weight: bold; cursor: pointer; }
+        .filtre-kart { background: #fff; border-radius: 12px; border: 1px solid #eee; padding: 20px 24px; margin-bottom: 18px; }
+        .filtre-baslik { font-size: 14px; font-weight: 800; color: #333; margin-bottom: 16px; border-bottom: 1px solid #f0f0ee; padding-bottom: 12px; }
+        .filtre-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; align-items: end; }
+        .filtre-alan { display: flex; flex-direction: column; gap: 6px; }
+        .filtre-alan label { font-size: 11px; color: #555; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+        .filtre-alan input, .filtre-alan select { padding: 10px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 13px; outline: none; color: #333; background: #fafafa; }
+        .filtre-alan input:focus, .filtre-alan select:focus { border-color: #4CAF7D; background: #fff; }
+        .filtre-butonlar { display: flex; gap: 10px; margin-top: 16px; }
+        .btn-filtre { padding: 10px 22px; background: #1B9FD4; color: #fff; border: none; border-radius: 8px; font-size: 13px; cursor: pointer; font-weight: 800; }
+        .btn-temizle { padding: 10px 16px; background: #fff; color: #777; border: 1.5px solid #ddd; border-radius: 8px; font-size: 13px; text-decoration: none; }
         .btn-ekle { display:inline-flex; align-items:center; gap:8px; background:#4CAF7D; color:#fff; font-weight:700; padding:8px 14px; border-radius:8px; text-decoration:none; margin-bottom:12px; }
         .section { background: #fff; border-radius: 12px; border: 1px solid #e6eef4; overflow: hidden; box-shadow: 0 10px 24px rgba(20,40,60,.06); }
         .alert { padding: 11px 14px; border-radius: 10px; margin-bottom: 12px; font-size: 13px; font-weight: 700; border: 1px solid transparent; }
@@ -41,8 +51,12 @@
         @@media (max-width: 980px) {
             .sidebar { position: static; width: 100%; height: auto; }
             .main { margin-left: 0; }
+            .filtre-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .tablo-head { display:none; }
             .tablo-row { grid-template-columns: 1fr; gap: 8px; }
+        }
+        @@media (max-width: 640px) {
+            .filtre-grid { grid-template-columns: 1fr; }
         }
     </style>
 }
@@ -53,13 +67,44 @@
 }
 @if (TempData["Basarili"] != null) { <div class="alert alert-success">@TempData["Basarili"]</div> }
 @if (TempData["Hata"] != null) { <div class="alert alert-danger">@TempData["Hata"]</div> }
-<form class="filter" method="get" action="/personel-panel/yetkiliservisler">
-    <input type="text" name="q" placeholder="Firma, vergi no veya şirket ara..." value="@q" />
-    <button type="submit">Filtrele</button>
-</form>
+<div class="filtre-kart">
+    <div class="filtre-baslik">Filtrele</div>
+    <form method="get" action="/personel-panel/yetkiliservisler">
+        <div class="filtre-grid">
+            <div class="filtre-alan">
+                <label>Firma / Yetkili</label>
+                <input type="text" name="q" placeholder="Firma, VKN veya yetkili..." value="@q" />
+            </div>
+            <div class="filtre-alan">
+                <label>İl</label>
+                <input type="text" name="il" placeholder="Faaliyet ili..." value="@secilenIl" />
+            </div>
+            <div class="filtre-alan">
+                <label>Durum</label>
+                <select name="durum">
+                    <option value="">Tüm</option>
+                    <option value="1" selected="@(secilenDurum == "1" ? "selected" : null)">Aktif</option>
+                    <option value="0" selected="@(secilenDurum == "0" ? "selected" : null)">Pasif</option>
+                </select>
+            </div>
+            <div class="filtre-alan">
+                <label>İşlem Sayısı</label>
+                <select name="siralama">
+                    <option value="">Varsayılan</option>
+                    <option value="azalan" selected="@(secilenSiralama == "azalan" ? "selected" : null)">Çoktan aza</option>
+                    <option value="artan" selected="@(secilenSiralama == "artan" ? "selected" : null)">Azdan çoğa</option>
+                </select>
+            </div>
+        </div>
+        <div class="filtre-butonlar">
+            <button type="submit" class="btn-filtre">Filtrele</button>
+            <a class="btn-temizle" href="/personel-panel/yetkiliservisler">Temizle</a>
+        </div>
+    </form>
+</div>
 <div class="section">
     <div class="tablo-head">
-        <div>Firma</div><div>Şirket</div><div>Vergi No</div><div>Devreye</div><div>Durum</div><div>İşlem</div>
+        <div>Firma</div><div>Şirket</div><div>Vergi No</div><div>İşlem Sayısı</div><div>Durum</div><div>İşlem</div>
     </div>
     @if (Model == null || Model.Count == 0)
     {

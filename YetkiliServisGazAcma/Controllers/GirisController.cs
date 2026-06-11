@@ -50,7 +50,7 @@ namespace YetkiliServisGazAcma.Controllers
         {
             if (string.IsNullOrEmpty(kullaniciAdi) || string.IsNullOrEmpty(sifre))
             {
-                ViewBag.Hata = "Kullanıcı adı ve şifre zorunludur.";
+                ViewBag.Hata = "KullanÄ±cÄ± adÄ± ve ÅŸifre zorunludur.";
                 return View();
             }
 
@@ -59,13 +59,13 @@ namespace YetkiliServisGazAcma.Controllers
 
             if (kullanici == null)
             {
-                ViewBag.Hata = "Kullanıcı bulunamadı.";
+                ViewBag.Hata = "KullanÄ±cÄ± bulunamadÄ±.";
                 return View();
             }
 
             if (!kullanici.AktifMi)
             {
-                ViewBag.Hata = "Hesabınız aktif değil.";
+                ViewBag.Hata = "HesabÄ±nÄ±z aktif deÄŸil.";
                 return View();
             }
 
@@ -100,7 +100,7 @@ namespace YetkiliServisGazAcma.Controllers
                 return View();
             }
 
-            ViewBag.Hata = "Kullanıcı adı veya şifre hatalı.";
+            ViewBag.Hata = "KullanÄ±cÄ± adÄ± veya ÅŸifre hatalÄ±.";
             return View();
         }
 
@@ -166,7 +166,7 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null || !kullanici.AktifMi)
             {
                 ViewBag.SifreUnuttum = true;
-                ViewBag.Hata = "Kullanıcı bulunamadı veya aktif değil.";
+                ViewBag.Hata = "KullanÄ±cÄ± bulunamadÄ± veya aktif deÄŸil.";
                 return View("~/Views/Giris/Index.cshtml");
             }
 
@@ -196,7 +196,7 @@ namespace YetkiliServisGazAcma.Controllers
             if (yeniSifre != yeniSifreTekrar)
             {
                 ViewBag.SifreSifirlaKodBekleniyor = true;
-                ViewBag.Hata = "Yeni şifreler eşleşmiyor.";
+                ViewBag.Hata = "Yeni ÅŸifreler eÅŸleÅŸmiyor.";
                 return View("~/Views/Giris/Index.cshtml");
             }
 
@@ -222,7 +222,7 @@ namespace YetkiliServisGazAcma.Controllers
             }
 
             HttpContext.Session.Remove(SifreSifirlaKullaniciIdKey);
-            ViewBag.Bilgi = "Şifreniz değiştirildi. Yeni şifrenizle giriş yapabilirsiniz.";
+            ViewBag.Bilgi = "Åifreniz deÄŸiÅŸtirildi. Yeni ÅŸifrenizle giriÅŸ yapabilirsiniz.";
             return View("~/Views/Giris/Index.cshtml");
         }
 
@@ -243,10 +243,10 @@ namespace YetkiliServisGazAcma.Controllers
 
             var hedefRol = kullanici.KullaniciTipi switch
             {
-                1 => KullaniciRolAdlari.YetkiliServis,
-                2 => KullaniciRolAdlari.Personel,
-                3 => sirketAdmin ? KullaniciRolAdlari.SirketAdmin : KullaniciRolAdlari.GenelSistemAdmin,
-                4 => KullaniciRolAdlari.GenelSistemAdmin,
+                KullaniciTipiDegerleri.YetkiliServis => KullaniciRolAdlari.YetkiliServis,
+                KullaniciTipiDegerleri.Personel => KullaniciRolAdlari.Personel,
+                KullaniciTipiDegerleri.SirketAdmin => sirketAdmin ? KullaniciRolAdlari.SirketAdmin : KullaniciRolAdlari.GenelSistemAdmin,
+                KullaniciTipiDegerleri.GenelSistemAdmin => KullaniciRolAdlari.GenelSistemAdmin,
                 _ => null
             };
 
@@ -262,7 +262,7 @@ namespace YetkiliServisGazAcma.Controllers
 
         private async Task<IActionResult> GirisSonrasiYonlendir(AppKullanici kullanici)
         {
-            if (kullanici.KullaniciTipi == 2 || kullanici.KullaniciTipi == 3)
+            if (kullanici.KullaniciTipi == KullaniciTipiDegerleri.Personel || kullanici.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin)
             {
                 var sirketler = await _aktifSirketService.KullaniciSirketleriAsync(kullanici);
                 if (sirketler.Count > 1)
@@ -273,10 +273,10 @@ namespace YetkiliServisGazAcma.Controllers
 
             return kullanici.KullaniciTipi switch
             {
-                1 => Redirect("/ys-panel"),
-                2 => Redirect("/personel-panel"),
-                3 => Redirect("/AdminPanel"),
-                4 => Redirect("/AdminPanel"),
+                KullaniciTipiDegerleri.YetkiliServis => Redirect("/ys-panel"),
+                KullaniciTipiDegerleri.Personel => Redirect("/personel-panel"),
+                KullaniciTipiDegerleri.SirketAdmin => Redirect("/AdminPanel"),
+                KullaniciTipiDegerleri.GenelSistemAdmin => Redirect("/AdminPanel"),
                 _ => Redirect("/giris")
             };
         }

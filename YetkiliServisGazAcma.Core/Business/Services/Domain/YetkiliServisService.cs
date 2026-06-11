@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
@@ -76,7 +76,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 UserName = firma.VergiNo,
                 Email = firma.Email,
                 AdSoyad = firma.YetkiliKisi,
-                KullaniciTipi = 1, // Yetkili Servis
+                KullaniciTipi = KullaniciTipiDegerleri.YetkiliServis, // Yetkili Servis
                 FirmaId = firma.Id,
                 SirketId = firma.SirketId,
                 AktifMi = true,
@@ -130,4 +130,3 @@ namespace YetkiliServisGazAcma.Business.Services
         }
     }
 }
-

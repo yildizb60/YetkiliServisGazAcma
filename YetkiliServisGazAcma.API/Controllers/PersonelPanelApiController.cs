@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
 
@@ -32,8 +33,8 @@ namespace YetkiliServisGazAcma.API.Controllers
             var tamYetkili = roller.Contains("GenelSistemAdmin")
                 || roller.Contains("SuperAdmin")
                 || roller.Contains("SirketAdmin")
-                || kullanici.KullaniciTipi == 3
-                || kullanici.KullaniciTipi == 4;
+                || kullanici.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin
+                || kullanici.KullaniciTipi == KullaniciTipiDegerleri.GenelSistemAdmin;
 
             if (tamYetkili)
             {

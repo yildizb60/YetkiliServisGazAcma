@@ -124,10 +124,6 @@
                         <div class="bilgi-deger" id="b-musteriAdi"></div>
                     </div>
                     <div class="bilgi-alan">
-                        <div class="bilgi-label">TC Kimlik No</div>
-                        <div class="bilgi-deger" id="b-musteriTcNo"></div>
-                    </div>
-                    <div class="bilgi-alan">
                         <div class="bilgi-label">Telefon</div>
                         <div class="bilgi-deger" id="b-musteriTelefon"></div>
                     </div>
@@ -324,7 +320,6 @@
             }
 
             document.getElementById("b-musteriAdi").textContent = data.musteriAdi || "-";
-            document.getElementById("b-musteriTcNo").textContent = data.musteriTcNo || data.aboneNo || "-";
             document.getElementById("b-musteriTelefon").textContent = data.musteriTelefon || "-";
             document.getElementById("b-aboneNo").textContent = data.aboneNo || "-";
             document.getElementById("b-sozlesmeNo").textContent = data.sozlesmeNo || sozlesmeNo || "-";

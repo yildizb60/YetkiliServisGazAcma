@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using YetkiliServisGazAcma.API.Controllers;
+using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
 
@@ -179,7 +180,7 @@ namespace YetkiliServisGazAcma.API.Services
         private IQueryable<int> AktifYetkiliServisFirmaIdsQuery()
         {
             return _context.Users
-                .Where(u => u.KullaniciTipi == 1 && u.AktifMi && u.FirmaId.HasValue)
+                .Where(u => u.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis && u.AktifMi && u.FirmaId.HasValue)
                 .Select(u => u.FirmaId!.Value)
                 .Distinct();
         }

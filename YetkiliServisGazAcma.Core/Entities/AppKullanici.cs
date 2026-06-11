@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 
 namespace YetkiliServisGazAcma.Entities
 {
@@ -6,10 +6,7 @@ namespace YetkiliServisGazAcma.Entities
     {
         public string? AdSoyad { get; set; }
 
-        // 1 = Yetkili Servis
-        // 2 = Dağıtım Şirketi Personeli
-        // 3 = Şirket Admini
-        // 4 = Genel Sistem Admini
+        // Değerler: Business.Services.KullaniciTipi enum'u ile tutulur.
         public int KullaniciTipi { get; set; }
 
         public bool AktifMi { get; set; } = true;

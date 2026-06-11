@@ -43,7 +43,7 @@ namespace YetkiliServisGazAcma.Controllers
         {
             var kullanici = await _userManager.GetUserAsync(User);
             if (kullanici == null) return null;
-            if (kullanici.KullaniciTipi != 1) return null;
+            if (kullanici.KullaniciTipi != KullaniciTipiDegerleri.YetkiliServis) return null;
             return kullanici;
         }
 
@@ -515,5 +515,3 @@ namespace YetkiliServisGazAcma.Controllers
         }
     }
 }
-
-

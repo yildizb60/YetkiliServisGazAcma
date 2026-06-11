@@ -24,12 +24,12 @@ namespace YetkiliServisGazAcma.Business.Services
         public static bool GenelSistemAdminTipi(AppKullanici? kullanici)
         {
             return kullanici != null
-                && (kullanici.KullaniciTipi == 4 || (kullanici.KullaniciTipi == 3 && !kullanici.SirketId.HasValue));
+                && (kullanici.KullaniciTipi == KullaniciTipiDegerleri.GenelSistemAdmin || (kullanici.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin && !kullanici.SirketId.HasValue));
         }
 
         public static bool SirketAdminTipi(AppKullanici? kullanici)
         {
-            return kullanici != null && kullanici.KullaniciTipi == 3 && kullanici.SirketId.HasValue;
+            return kullanici != null && kullanici.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin && kullanici.SirketId.HasValue;
         }
 
         public async Task<bool> GenelSistemAdminMi(AppKullanici? kullanici)

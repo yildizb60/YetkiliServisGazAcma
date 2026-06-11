@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using YetkiliServisGazAcma.API.Controllers;
+using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
 
@@ -18,7 +19,7 @@ namespace YetkiliServisGazAcma.API.Services
         {
             var personelQuery = _context.Users
                 .Include(x => x.Sirket)
-                .Where(x => x.KullaniciTipi == 2)
+                .Where(x => x.KullaniciTipi == KullaniciTipiDegerleri.Personel)
                 .AsQueryable();
 
             if (!(genelSistemAdminMi && !sirketId.HasValue))
@@ -89,7 +90,7 @@ namespace YetkiliServisGazAcma.API.Services
 
             var personel = await _context.Users
                 .Include(x => x.Sirket)
-                .FirstOrDefaultAsync(x => x.Id == dto.Id && x.KullaniciTipi == 2);
+                .FirstOrDefaultAsync(x => x.Id == dto.Id && x.KullaniciTipi == KullaniciTipiDegerleri.Personel);
 
             if (personel == null || !await KullaniciKapsamindaMi(kullanici, personel, sirketId, genelSistemAdminMi))
                 return new AdminYetkiDuzenleDto();
@@ -131,7 +132,7 @@ namespace YetkiliServisGazAcma.API.Services
             if (dto == null || string.IsNullOrWhiteSpace(dto.Id))
                 return AdminIslemSonucDto.Basarisiz("Personel id zorunludur.");
 
-            var personel = await _context.Users.FirstOrDefaultAsync(x => x.Id == dto.Id && x.KullaniciTipi == 2);
+            var personel = await _context.Users.FirstOrDefaultAsync(x => x.Id == dto.Id && x.KullaniciTipi == KullaniciTipiDegerleri.Personel);
             if (personel == null)
                 return AdminIslemSonucDto.Basarisiz("Personel bulunamadi.");
 
@@ -229,7 +230,7 @@ namespace YetkiliServisGazAcma.API.Services
             if (!sirketId.HasValue)
                 return false;
 
-            if (hedef.KullaniciTipi == 1 && hedef.FirmaId.HasValue)
+            if (hedef.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis && hedef.FirmaId.HasValue)
             {
                 return await _context.Ys_Firmalar.AnyAsync(x =>
                     x.Id == hedef.FirmaId.Value &&
@@ -237,7 +238,7 @@ namespace YetkiliServisGazAcma.API.Services
                     x.SirketId == sirketId.Value);
             }
 
-            return (hedef.KullaniciTipi == 2 || hedef.KullaniciTipi == 3) && hedef.SirketId == sirketId.Value;
+            return (hedef.KullaniciTipi == KullaniciTipiDegerleri.Personel || hedef.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin) && hedef.SirketId == sirketId.Value;
         }
 
         private static List<string> NormalizeYetkiListesi(IEnumerable<string?> yetkiler)

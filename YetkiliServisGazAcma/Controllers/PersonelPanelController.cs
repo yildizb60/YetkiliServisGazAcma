@@ -804,16 +804,17 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpGet("yetkiliservisler")]
-        public async Task<IActionResult> YetkiliServisler(string? q)
+        public async Task<IActionResult> YetkiliServisler(string? q, string? il, string? durum, string? siralama)
         {
             var kullanici = await _userManager.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
+            int? durumDegeri = int.TryParse(durum, out var parsedDurum) ? parsedDurum : null;
             AdminYetkiliServisListeSonuc? listeSonuc;
             try
             {
-                listeSonuc = await _adminYetkiliServisApiClient.ListeleAsync(kullanici, sirketId, q, null, null, null);
+                listeSonuc = await _adminYetkiliServisApiClient.ListeleAsync(kullanici, sirketId, q, il, durumDegeri, siralama);
             }
             catch (ApiIntegrationException ex)
             {
@@ -829,6 +830,9 @@ namespace YetkiliServisGazAcma.Controllers
 
             ViewBag.Kullanici = kullanici;
             ViewBag.Query = q ?? "";
+            ViewBag.Il = il ?? "";
+            ViewBag.Durum = durum ?? "";
+            ViewBag.Siralama = siralama ?? "";
             ViewBag.DevreyeSayilari = devreyeSayilari;
             await SetPersonelYetkiViewBags(kullanici);
             await SetPersonelNotifViewBags(kullanici);
