@@ -3,9 +3,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.Threading.RateLimiting;
 using System.Text;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
@@ -22,6 +24,46 @@ builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
 builder.Services.AddControllers();
+
+var publicCorsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("PublicApiCors", policy =>
+    {
+        if (publicCorsOrigins.Length > 0)
+        {
+            policy.WithOrigins(publicCorsOrigins)
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+            return;
+        }
+
+        if (builder.Environment.IsDevelopment())
+        {
+            policy.SetIsOriginAllowed(origin =>
+                Uri.TryCreate(origin, UriKind.Absolute, out var uri)
+                && (uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
+                    || uri.Host.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase)
+                    || uri.Host.Equals("::1", StringComparison.OrdinalIgnoreCase)))
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        }
+    });
+});
+
+var publicPermitLimit = Math.Max(1, builder.Configuration.GetValue<int?>("RateLimiting:PublicPermitLimit") ?? 120);
+var publicQueueLimit = Math.Max(0, builder.Configuration.GetValue<int?>("RateLimiting:PublicQueueLimit") ?? 20);
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddFixedWindowLimiter("PublicApi", limiter =>
+    {
+        limiter.PermitLimit = publicPermitLimit;
+        limiter.Window = TimeSpan.FromMinutes(1);
+        limiter.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        limiter.QueueLimit = publicQueueLimit;
+    });
+});
 
 // Veritabanı
 var defaultConnection = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -201,18 +243,25 @@ if (!app.Environment.IsDevelopment())
     });
 }
 
-app.UseSwagger();
-app.UseSwaggerUI(c =>
+var swaggerEnabled = app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Swagger:Enabled");
+if (swaggerEnabled)
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Yetkili Servis API v1");
-    c.RoutePrefix = string.Empty;
-});
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Yetkili Servis API v1");
+        c.RoutePrefix = string.Empty;
+    });
+}
 
 if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
 app.UseStaticFiles();
+app.UseRouting();
+app.UseCors("PublicApiCors");
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

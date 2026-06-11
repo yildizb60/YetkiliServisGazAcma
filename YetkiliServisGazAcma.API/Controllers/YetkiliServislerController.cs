@@ -1,6 +1,7 @@
 using System.Globalization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
@@ -29,6 +30,8 @@ namespace YetkiliServisGazAcma.API.Controllers
         }
 
         [HttpPost("liste")]
+        [AllowAnonymous]
+        [EnableRateLimiting("PublicApi")]
         public async Task<IActionResult> Liste([FromBody] YetkiliServisFiltreDto? dto)
         {
             var il = dto?.Il;
@@ -114,6 +117,7 @@ namespace YetkiliServisGazAcma.API.Controllers
 
         [HttpPost("filtre-secenekleri")]
         [AllowAnonymous]
+        [EnableRateLimiting("PublicApi")]
         public async Task<IActionResult> FiltreSecenekleri([FromBody] YetkiliServisFiltreSecenekleriIstek? dto)
         {
             var markalar = await _context.Ys_Markalar
@@ -199,6 +203,7 @@ namespace YetkiliServisGazAcma.API.Controllers
 
         [HttpPost("kayit")]
         [AllowAnonymous]
+        [EnableRateLimiting("PublicApi")]
         public async Task<IActionResult> Kayit([FromBody] YetkiliServisBasvuruDto dto)
         {
             if (string.IsNullOrWhiteSpace(dto.FirmaAdi))
