@@ -1,13 +1,18 @@
+SET NOCOUNT ON;
+
+DECLARE @Ocak NVARCHAR(100) = N'Ocak';
+DECLARE @GazKullaniciCihazlar NVARCHAR(100) = N'Gaz Kullan' + NCHAR(305) + N'c' + NCHAR(305) + N' Cihazlar';
+
 IF NOT EXISTS (
     SELECT 1
     FROM dbo.Ys_UrunKategoriler
-    WHERE SilindiMi = 0 AND Ad = N'Ocak'
+    WHERE SilindiMi = 0 AND Ad = @Ocak
 )
 BEGIN
     INSERT INTO dbo.Ys_UrunKategoriler
         (Ad, IconUrl, SiraNo, AktifMi, OlusturmaTarihi, OlusturanKullanici, SilindiMi)
     VALUES
-        (N'Ocak', N'/images/icons/category-ocak.svg', 9, 1, GETDATE(), N'kategori-script', 0);
+        (@Ocak, N'/images/icons/category-ocak.svg', 9, 1, GETDATE(), N'kategori-script', 0);
 END
 ELSE
 BEGIN
@@ -17,19 +22,19 @@ BEGIN
         AktifMi = 1,
         GuncellemeTarihi = GETDATE(),
         GuncelleyenKullanici = N'kategori-script'
-    WHERE SilindiMi = 0 AND Ad = N'Ocak';
+    WHERE SilindiMi = 0 AND Ad = @Ocak;
 END
 
 IF NOT EXISTS (
     SELECT 1
     FROM dbo.Ys_UrunKategoriler
-    WHERE SilindiMi = 0 AND Ad = N'Gaz Kullanıcı Cihazlar'
+    WHERE SilindiMi = 0 AND Ad = @GazKullaniciCihazlar
 )
 BEGIN
     INSERT INTO dbo.Ys_UrunKategoriler
         (Ad, IconUrl, SiraNo, AktifMi, OlusturmaTarihi, OlusturanKullanici, SilindiMi)
     VALUES
-        (N'Gaz Kullanıcı Cihazlar', N'/images/icons/category-gaz-kullanici-cihazlar.svg', 10, 1, GETDATE(), N'kategori-script', 0);
+        (@GazKullaniciCihazlar, N'/images/icons/category-gaz-kullanici-cihazlar.svg', 10, 1, GETDATE(), N'kategori-script', 0);
 END
 ELSE
 BEGIN
@@ -39,5 +44,5 @@ BEGIN
         AktifMi = 1,
         GuncellemeTarihi = GETDATE(),
         GuncelleyenKullanici = N'kategori-script'
-    WHERE SilindiMi = 0 AND Ad = N'Gaz Kullanıcı Cihazlar';
+    WHERE SilindiMi = 0 AND Ad = @GazKullaniciCihazlar;
 END

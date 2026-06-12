@@ -683,11 +683,15 @@ table tbody tr:hover,
 }
 
 .df-dashboard .df-approval-grid {
-    grid-template-columns: repeat(5, minmax(180px, 1fr)) !important;
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) !important;
+    gap: 10px !important;
+    align-items: stretch !important;
 }
 
 .df-dashboard .df-atile {
-    min-height: 218px;
+    min-height: 244px !important;
+    padding: 12px 13px 11px !important;
 }
 
 .df-dashboard .df-atile-name,
@@ -759,7 +763,13 @@ td {
 
 @media (max-width: 1280px) {
     .df-dashboard .df-approval-grid {
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) !important;
+    }
+}
+
+@media (max-width: 900px) {
+    .df-dashboard .df-approval-grid {
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)) !important;
     }
 }
 
