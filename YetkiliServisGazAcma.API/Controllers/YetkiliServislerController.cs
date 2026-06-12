@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -45,7 +46,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             return Ok(await ListeleAsync(dto));
         }
 
-        private async Task<List<YetkiliServisDto>> ListeleAsync(YetkiliServisFiltreDto? dto)
+        private async Task<YetkiliServisSayfaliDto> ListeleAsync(YetkiliServisFiltreDto? dto)
         {
             var il = dto?.Il;
             var ilce = dto?.Ilce;
@@ -53,6 +54,8 @@ namespace YetkiliServisGazAcma.API.Controllers
             var kategoriId = dto?.KategoriId;
             var sirketId = dto?.SirketId;
             var q = dto?.Q;
+            var page = Math.Max(dto?.Page ?? 1, 1);
+            var pageSize = Math.Clamp(dto?.PageSize ?? 20, 1, 100);
 
             var query = _context.Ys_Firmalar
                 .Include(x => x.FirmaMarkalar!)
@@ -87,8 +90,11 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (sirketId.HasValue)
                 query = query.Where(x => x.SirketId == sirketId.Value);
 
-            return await query
+            var totalCount = await query.CountAsync();
+            var items = await query
                 .OrderBy(x => x.FirmaAdi)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .Select(x => new YetkiliServisDto
                 {
                     Id = x.Id,
@@ -124,6 +130,14 @@ namespace YetkiliServisGazAcma.API.Controllers
                         .ToList()
                 })
                 .ToListAsync();
+
+            return new YetkiliServisSayfaliDto
+            {
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                Items = items
+            };
         }
 
         [HttpPost("filtre-secenekleri")]
@@ -217,14 +231,33 @@ namespace YetkiliServisGazAcma.API.Controllers
         [EnableRateLimiting("PublicApi")]
         public async Task<IActionResult> Kayit([FromBody] YetkiliServisBasvuruDto dto)
         {
+            if (dto == null)
+                return BadRequest(new { basarili = false, mesaj = "Kayit bilgileri zorunludur" });
+
             if (string.IsNullOrWhiteSpace(dto.FirmaAdi))
                 return BadRequest(new { basarili = false, mesaj = "Firma adi zorunludur" });
 
             if (string.IsNullOrWhiteSpace(dto.VergiNo))
                 return BadRequest(new { basarili = false, mesaj = "VKN zorunludur" });
 
+            var vergiNoDigits = new string(dto.VergiNo.Where(char.IsDigit).ToArray());
+            if (vergiNoDigits.Length is not (10 or 11))
+                return BadRequest(new { basarili = false, mesaj = "VKN/TCKN 10 veya 11 haneli olmalidir" });
+
             if (string.IsNullOrWhiteSpace(dto.Sifre))
                 return BadRequest(new { basarili = false, mesaj = "Sifre zorunludur" });
+
+            if (dto.Sifre.Length < 6)
+                return BadRequest(new { basarili = false, mesaj = "Sifre en az 6 karakter olmalidir" });
+
+            if (string.IsNullOrWhiteSpace(dto.FaaliyetIli))
+                return BadRequest(new { basarili = false, mesaj = "Il bilgisi zorunludur" });
+
+            if (!string.IsNullOrWhiteSpace(dto.Email) && !new EmailAddressAttribute().IsValid(dto.Email))
+                return BadRequest(new { basarili = false, mesaj = "E-posta formati gecersiz" });
+
+            if (!string.IsNullOrWhiteSpace(dto.Telefon) && !TelefonFormatiGecerliMi(dto.Telefon))
+                return BadRequest(new { basarili = false, mesaj = "Telefon numarasi 05XXXXXXXXX veya 90XXXXXXXXXX formatinda olmalidir" });
 
             var firma = new Ys_Firma
             {
@@ -251,6 +284,14 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return BadRequest(new { basarili = false, mesaj = sonuc.mesaj });
 
             return Ok(new { basarili = true, mesaj = sonuc.mesaj, firmaId = firma.Id });
+        }
+
+        private static bool TelefonFormatiGecerliMi(string telefon)
+        {
+            var digits = new string(telefon.Where(char.IsDigit).ToArray());
+            return digits.Length == 10 && digits.StartsWith("5", StringComparison.Ordinal)
+                || digits.Length == 11 && digits.StartsWith("05", StringComparison.Ordinal)
+                || digits.Length == 12 && digits.StartsWith("90", StringComparison.Ordinal);
         }
 
         [HttpPost("getir")]
@@ -442,6 +483,15 @@ namespace YetkiliServisGazAcma.API.Controllers
         public List<KategoriDto> Kategoriler { get; set; } = new();
     }
 
+    public class YetkiliServisSayfaliDto
+    {
+        public int Page { get; set; }
+        public int PageSize { get; set; }
+        public int TotalCount { get; set; }
+        public int TotalPages => PageSize <= 0 ? 0 : (int)Math.Ceiling(TotalCount / (double)PageSize);
+        public List<YetkiliServisDto> Items { get; set; } = new();
+    }
+
     public class KategoriDto
     {
         public int Id { get; set; }
@@ -478,6 +528,8 @@ namespace YetkiliServisGazAcma.API.Controllers
         public int? MarkaId { get; set; }
         public int? KategoriId { get; set; }
         public string? Q { get; set; }
+        public int Page { get; set; } = 1;
+        public int PageSize { get; set; } = 20;
     }
 
     public class YetkiliServisDetayDto : YetkiliServisDto

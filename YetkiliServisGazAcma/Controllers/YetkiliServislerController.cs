@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Text;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
+using YetkiliServisGazAcma.Models.ViewModels;
 
 namespace YetkiliServisGazAcma.Controllers
 {
@@ -14,7 +15,9 @@ namespace YetkiliServisGazAcma.Controllers
         {
             "merkezikazan",
             "kombi",
-            "sofben"
+            "sofben",
+            "ocak",
+            "gazkullanicicihazlar"
         };
 
         private readonly YetkiliServisApiClient _yetkiliServisApiClient;
@@ -26,11 +29,14 @@ namespace YetkiliServisGazAcma.Controllers
 
         [HttpGet("")]
         [HttpGet("index")]
-        public async Task<IActionResult> Index(string? il, string? ilce, int? markaId, int? kategoriId, string? q)
+        public async Task<IActionResult> Index(string? il, string? ilce, int? markaId, int? kategoriId, string? q, int page = 1, int pageSize = 20)
         {
             var firmalar = new List<Ys_Firma>();
             var filtreSecenekleri = new YetkiliServisApiClient.YetkiliServisFiltreSecenekleri();
-            ViewBag.YetkiliServisVeriKaynagi = "API";
+            var veriKaynagi = "API";
+            var totalCount = 0;
+            page = Math.Max(page, 1);
+            pageSize = Math.Clamp(pageSize, 1, 100);
 
             try
             {
@@ -57,34 +63,48 @@ namespace YetkiliServisGazAcma.Controllers
                         kategoriId = null;
                 }
 
-                firmalar = await _yetkiliServisApiClient.ListeAsync(new YetkiliServisApiClient.YetkiliServisListeIstek
+                var sayfaliSonuc = await _yetkiliServisApiClient.ListeSayfaliAsync(new YetkiliServisApiClient.YetkiliServisListeIstek
                 {
                     Il = il,
                     Ilce = ilce,
                     MarkaId = markaId,
                     KategoriId = kategoriId,
-                    Q = q
-                }) ?? new List<Ys_Firma>();
+                    Q = q,
+                    Page = page,
+                    PageSize = pageSize
+                });
+
+                firmalar = sayfaliSonuc?.Items ?? new List<Ys_Firma>();
+                totalCount = sayfaliSonuc?.TotalCount ?? firmalar.Count;
+                page = sayfaliSonuc?.Page ?? page;
+                pageSize = sayfaliSonuc?.PageSize ?? pageSize;
             }
             catch (ApiIntegrationException ex)
             {
                 TempData["Hata"] = ex.Message;
-                ViewBag.YetkiliServisVeriKaynagi = "API kullanilamadi";
+                veriKaynagi = "API kullanilamadi";
                 kategoriId = null;
             }
 
-            ViewBag.Markalar = filtreSecenekleri.Markalar;
-            ViewBag.Iller = filtreSecenekleri.Iller;
-            ViewBag.Ilceler = filtreSecenekleri.Ilceler;
-            ViewBag.Kategoriler = filtreSecenekleri.Kategoriler;
-            ViewBag.SeciliIl = il ?? "";
-            ViewBag.SeciliIlce = ilce ?? "";
-            ViewBag.SeciliMarkaId = markaId;
-            ViewBag.SeciliKategoriId = kategoriId;
-            ViewBag.Q = q ?? "";
-            ViewBag.KullanilanKategoriAnahtarlari = KullanilanKategoriAnahtarlari.ToList();
+            var model = new YetkiliServislerIndexViewModel
+            {
+                Firmalar = firmalar,
+                Markalar = filtreSecenekleri.Markalar,
+                Iller = filtreSecenekleri.Iller,
+                Ilceler = filtreSecenekleri.Ilceler,
+                Kategoriler = filtreSecenekleri.Kategoriler,
+                SeciliIl = il ?? "",
+                SeciliIlce = ilce ?? "",
+                SeciliMarkaId = markaId,
+                SeciliKategoriId = kategoriId,
+                Q = q ?? "",
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                VeriKaynagi = veriKaynagi
+            };
 
-            return View("~/Views/YetkiliServisler/Index.cshtml", firmalar);
+            return View("~/Views/YetkiliServisler/Index.cshtml", model);
         }
 
         private static bool KullanilanKategoriMi(string? ad)
@@ -94,7 +114,9 @@ namespace YetkiliServisGazAcma.Controllers
             return anahtar == "kombi"
                 || anahtar.Contains("merkezikazan")
                 || anahtar.Contains("sofben")
-                || anahtar.Contains("sohben");
+                || anahtar.Contains("sohben")
+                || anahtar == "ocak"
+                || anahtar.Contains("gazkullanicicihaz");
         }
 
         private static string NormalizeKategori(string? ad)

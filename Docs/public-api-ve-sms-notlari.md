@@ -22,7 +22,7 @@ Yetkili servis listesi:
 
 ```http
 POST /api/yetkili-servisler/liste
-GET /api/yetkili-servisler?il=Corum&ilce=&markaId=&kategoriId=&q=
+GET /api/yetkili-servisler?il=Corum&ilce=&markaId=&kategoriId=&q=&page=1&pageSize=20
 ```
 
 Ornek body:
@@ -34,9 +34,25 @@ Ornek body:
   "sirketId": null,
   "markaId": null,
   "kategoriId": null,
-  "q": null
+  "q": null,
+  "page": 1,
+  "pageSize": 20
 }
 ```
+
+Ornek cevap:
+
+```json
+{
+  "page": 1,
+  "pageSize": 20,
+  "totalCount": 125,
+  "totalPages": 7,
+  "items": []
+}
+```
+
+`pageSize` en fazla 100 kayit olacak sekilde sinirlanir. Bu sayede dis site tum yetkili servisleri tek istekte cekmek yerine sayfali olarak tuketir.
 
 Bu iki uc token istemez. Canli ortamda tam adres localhost degil, API'nin yayinlandigi domain olmalidir. Ornek:
 
@@ -45,6 +61,16 @@ https://api.firma.com/api/yetkili-servisler/liste
 ```
 
 Farkli bir web sitesi tarayicidan bu API'yi cagiracaksa, API projesindeki `Cors:AllowedOrigins` listesine o sitenin domaini eklenmelidir.
+
+MVC/Web projesi API'ye `ApiIntegration:BaseUrl` ayariyla baglanir. Development ortaminda bu adres `localhost` olabilir; canlida mutlaka API sunucusunun domaini kullanilmalidir. Ornek:
+
+```json
+{
+  "ApiIntegration": {
+    "BaseUrl": "https://api.firma.com/"
+  }
+}
+```
 
 ## Guvenlik notlari
 

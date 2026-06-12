@@ -195,6 +195,8 @@ namespace YetkiliServisGazAcma.Infrastructure
             }
 
             var kategori = await KategoriBulVeyaOlustur(context, "Kombi", 1);
+            await KategoriBulVeyaOlustur(context, "Ocak", 9, "/images/icons/category-ocak.svg");
+            await KategoriBulVeyaOlustur(context, "Gaz Kullanıcı Cihazlar", 10, "/images/icons/category-gaz-kullanici-cihazlar.svg");
             var kategoriBagVar = await context.Ys_FirmaKategoriler.AnyAsync(x =>
                 x.FirmaId == firma.Id &&
                 x.KategoriId == kategori.Id &&
@@ -285,7 +287,11 @@ namespace YetkiliServisGazAcma.Infrastructure
             return marka;
         }
 
-        private static async Task<UrunKategori> KategoriBulVeyaOlustur(AppDbContext context, string kategoriAdi, int siraNo)
+        private static async Task<UrunKategori> KategoriBulVeyaOlustur(
+            AppDbContext context,
+            string kategoriAdi,
+            int siraNo,
+            string? iconUrl = null)
         {
             var normalized = Normalize(kategoriAdi);
             var kategori = (await context.UrunKategoriler
@@ -296,6 +302,9 @@ namespace YetkiliServisGazAcma.Infrastructure
             if (kategori != null)
             {
                 kategori.AktifMi = true;
+                kategori.SiraNo = siraNo;
+                if (!string.IsNullOrWhiteSpace(iconUrl))
+                    kategori.IconUrl = iconUrl;
                 await context.SaveChangesAsync();
                 return kategori;
             }
@@ -303,6 +312,7 @@ namespace YetkiliServisGazAcma.Infrastructure
             kategori = new UrunKategori
             {
                 Ad = kategoriAdi,
+                IconUrl = iconUrl,
                 SiraNo = siraNo,
                 AktifMi = true,
                 OlusturanKullanici = "demo-seed"

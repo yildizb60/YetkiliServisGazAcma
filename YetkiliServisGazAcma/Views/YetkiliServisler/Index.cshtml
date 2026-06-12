@@ -1,16 +1,17 @@
-@model List<YetkiliServisGazAcma.Entities.Ys_Firma>
+@model YetkiliServisGazAcma.Models.ViewModels.YetkiliServislerIndexViewModel
 @{
     ViewData["Title"] = "Yetkili Servisler";
     Layout = "_PublicLayout";
-    var markalar = ViewBag.Markalar as List<YetkiliServisGazAcma.Entities.Ys_Marka> ?? new();
-    var iller = ViewBag.Iller as List<string> ?? new();
-    var seciliIl = ViewBag.SeciliIl as string ?? "";
-    var ilceler = ViewBag.Ilceler as List<string> ?? new();
-    var seciliIlce = ViewBag.SeciliIlce as string ?? "";
-    int? seciliMarkaId = ViewBag.SeciliMarkaId as int?;
-    int? seciliKategoriId = ViewBag.SeciliKategoriId as int?;
-    var q = ViewBag.Q as string ?? "";
-    var kategoriler = ViewBag.Kategoriler as List<YetkiliServisGazAcma.Entities.UrunKategori> ?? new();
+    var markalar = Model.Markalar;
+    var iller = Model.Iller;
+    var seciliIl = Model.SeciliIl;
+    var ilceler = Model.Ilceler;
+    var seciliIlce = Model.SeciliIlce;
+    int? seciliMarkaId = Model.SeciliMarkaId;
+    int? seciliKategoriId = Model.SeciliKategoriId;
+    var q = Model.Q;
+    var kategoriler = Model.Kategoriler;
+    var pageSize = Model.PageSize;
     var tr = new System.Globalization.CultureInfo("tr-TR");
 
     string NormalizeKey(string? value)
@@ -36,13 +37,30 @@
         return key == "kombi"
             || key.Contains("merkezikazan")
             || key.Contains("sofben")
-            || key.Contains("sohben");
+            || key.Contains("sohben")
+            || key == "ocak"
+            || key.Contains("gazkullanicicihaz");
     }
 
     string TelLink(string? tel)
     {
         if (string.IsNullOrWhiteSpace(tel)) return "";
         return new string(tel.Where(ch => char.IsDigit(ch) || ch == '+').ToArray());
+    }
+
+    string ListeUrl(int? kategoriId, int sayfa)
+    {
+        var parts = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(seciliIl)) parts.Add("il=" + System.Net.WebUtility.UrlEncode(seciliIl));
+        if (!string.IsNullOrWhiteSpace(seciliIlce)) parts.Add("ilce=" + System.Net.WebUtility.UrlEncode(seciliIlce));
+        if (seciliMarkaId.HasValue) parts.Add("markaId=" + seciliMarkaId.Value);
+        if (kategoriId.HasValue) parts.Add("kategoriId=" + kategoriId.Value);
+        if (!string.IsNullOrWhiteSpace(q)) parts.Add("q=" + System.Net.WebUtility.UrlEncode(q));
+        if (sayfa > 1) parts.Add("page=" + sayfa);
+        if (pageSize != 20) parts.Add("pageSize=" + pageSize);
+
+        return "/yetkili-servisler" + (parts.Any() ? "?" + string.Join("&", parts) : "");
     }
 }
 @section Styles {
@@ -120,6 +138,10 @@
         .category-chip { display:inline-flex; align-items:center; gap:9px; border:1px solid #dce8f1; border-radius:999px; background:#fff; color:#263d4c; padding:9px 13px; font-size:13px; font-weight:800; }
         .category-chip.active { border-color:#90d0ac; background:#f3fbf6; color:#236b43; }
         .category-chip img { width:22px; height:22px; object-fit:contain; }
+        .pagination-row { display:flex; justify-content:center; align-items:center; gap:8px; flex-wrap:wrap; margin:22px 0 6px; }
+        .page-btn { min-width:36px; height:36px; display:inline-flex; align-items:center; justify-content:center; padding:0 12px; border:1px solid #dce8f1; border-radius:10px; background:#fff; color:#344c5d; font-size:13px; font-weight:800; }
+        .page-btn.active { border-color:#90d0ac; background:#f3fbf6; color:#236b43; }
+        .page-btn.disabled { pointer-events:none; opacity:.45; background:#f7fafc; }
 
         .list-wrap { max-width: 1320px; margin: 26px auto 0; }
         .list-head { display:flex; justify-content:space-between; align-items:flex-end; gap:18px; margin-bottom:14px; }
@@ -246,9 +268,9 @@
             <div class="search-title-row">
                 <div>
                     <div class="search-title">Servis Arama</div>
-                    <div class="search-desc">Resmi listede yalnızca kullanılan hizmet türleri gösterilir: merkezi kazan, kombi ve şofben.</div>
+                    <div class="search-desc">Resmi listede kullanılan hizmet türleri gösterilir: merkezi kazan, kombi, şofben, ocak ve gaz kullanıcı cihazlar.</div>
                 </div>
-                <div class="result-count">@Model.Count kayıt listeleniyor</div>
+                <div class="result-count">@Model.TotalCount kayıt listeleniyor</div>
             </div>
             <form method="get" action="/yetkili-servisler">
                 <div class="filter-grid">
@@ -294,6 +316,10 @@
                         {
                             <input type="hidden" name="kategoriId" value="@seciliKategoriId.Value" />
                         }
+                        @if (pageSize != 20)
+                        {
+                            <input type="hidden" name="pageSize" value="@pageSize" />
+                        }
                         <button class="btn-search" type="submit">Ara</button>
                         <a class="btn-clear" href="/yetkili-servisler">Temizle</a>
                     </div>
@@ -305,7 +331,7 @@
                     var aktifKat = seciliKategoriId.HasValue && seciliKategoriId.Value == k.Id;
                     if (k.Id > 0)
                     {
-                        <a class="category-chip @(aktifKat ? "active" : "")" href="/yetkili-servisler?kategoriId=@k.Id&il=@seciliIl&ilce=@seciliIlce&q=@q&markaId=@seciliMarkaId">
+                        <a class="category-chip @(aktifKat ? "active" : "")" href="@ListeUrl(k.Id, 1)">
                             @if (!string.IsNullOrWhiteSpace(k.IconUrl))
                             {
                                 <img src="@k.IconUrl" alt="@k.Ad" />
@@ -325,7 +351,7 @@
                 </div>
             </div>
 
-            @if (!Model.Any())
+            @if (!Model.Firmalar.Any())
             {
                 <div class="empty">
                     <strong>Uygun servis bulunamadı.</strong>
@@ -335,7 +361,7 @@
             else
             {
                 <div class="service-list">
-                    @foreach (var f in Model)
+                    @foreach (var f in Model.Firmalar)
                     {
                         var markaListesi = f.FirmaMarkalar?
                             .Where(x => !x.SilindiMi)
@@ -430,6 +456,22 @@
                         </article>
                     }
                 </div>
+                @if (Model.TotalPages > 1)
+                {
+                    var oncekiSayfa = Math.Max(Model.Page - 1, 1);
+                    var sonrakiSayfa = Math.Min(Model.Page + 1, Model.TotalPages);
+                    var ilkSayfa = Math.Max(1, Model.Page - 2);
+                    var sonSayfa = Math.Min(Model.TotalPages, Model.Page + 2);
+
+                    <nav class="pagination-row" aria-label="Servis sayfalari">
+                        <a class="page-btn @(Model.Page <= 1 ? "disabled" : "")" href="@ListeUrl(seciliKategoriId, oncekiSayfa)">Önceki</a>
+                        @for (var p = ilkSayfa; p <= sonSayfa; p++)
+                        {
+                            <a class="page-btn @(p == Model.Page ? "active" : "")" href="@ListeUrl(seciliKategoriId, p)">@p</a>
+                        }
+                        <a class="page-btn @(Model.Page >= Model.TotalPages ? "disabled" : "")" href="@ListeUrl(seciliKategoriId, sonrakiSayfa)">Sonraki</a>
+                    </nav>
+                }
             }
         </section>
         <div class="emergency-strip">

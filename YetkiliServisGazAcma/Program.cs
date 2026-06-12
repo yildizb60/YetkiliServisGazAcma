@@ -121,7 +121,7 @@ builder.Services.ConfigureApplicationCookie(options =>
 {
     options.LoginPath = "/giris";
     options.LogoutPath = "/cikis";
-    options.AccessDeniedPath = "/giris";
+    options.AccessDeniedPath = "/yetkisiz-erisim";
     options.ExpireTimeSpan = TimeSpan.FromHours(8);
     options.SlidingExpiration = true;
 
@@ -133,7 +133,7 @@ builder.Services.ConfigureApplicationCookie(options =>
 
     options.Events.OnRedirectToAccessDenied = context =>
     {
-        context.Response.Redirect("/giris");
+        context.Response.Redirect("/yetkisiz-erisim");
         return System.Threading.Tasks.Task.CompletedTask;
     };
 });

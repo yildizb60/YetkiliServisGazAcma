@@ -31,6 +31,12 @@ namespace YetkiliServisGazAcma.Controllers
             return View();
         }
 
+        [HttpGet("yetkisiz-erisim")]
+        public IActionResult YetkisizErisim()
+        {
+            return View("~/Views/Shared/YetkisizErisim.cshtml");
+        }
+
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {

@@ -22,6 +22,12 @@ namespace YetkiliServisGazAcma.Business.Services
 
         public async Task<List<Ys_Firma>?> ListeAsync(YetkiliServisListeIstek istek)
         {
+            var sonuc = await ListeSayfaliAsync(istek);
+            return sonuc?.Items;
+        }
+
+        public async Task<YetkiliServisSayfaliSonuc?> ListeSayfaliAsync(YetkiliServisListeIstek istek)
+        {
             if (!_options.Enabled)
             {
                 ApiClientFallback.EnsureAllowed(_options, "Yetkili servis liste");
@@ -38,11 +44,8 @@ namespace YetkiliServisGazAcma.Business.Services
                     return null;
                 }
 
-                var servisler = await response.Content.ReadFromJsonAsync<List<YetkiliServisApiDto>>();
-                return servisler?
-                    .Select(MapToFirma)
-                    .OrderBy(x => x.FirmaAdi)
-                    .ToList();
+                var sonuc = await response.Content.ReadFromJsonAsync<YetkiliServisSayfaliCevap>();
+                return sonuc?.ToModel();
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
             {
@@ -184,6 +187,17 @@ namespace YetkiliServisGazAcma.Business.Services
             public int? MarkaId { get; set; }
             public int? KategoriId { get; set; }
             public string? Q { get; set; }
+            public int Page { get; set; } = 1;
+            public int PageSize { get; set; } = 20;
+        }
+
+        public class YetkiliServisSayfaliSonuc
+        {
+            public List<Ys_Firma> Items { get; set; } = new();
+            public int Page { get; set; }
+            public int PageSize { get; set; }
+            public int TotalCount { get; set; }
+            public int TotalPages { get; set; }
         }
 
         public class YetkiliServisFiltreSecenekleri
@@ -235,6 +249,30 @@ namespace YetkiliServisGazAcma.Business.Services
             public string? SirketAdi { get; set; }
             public List<string> Markalar { get; set; } = new();
             public List<KategoriApiDto> Kategoriler { get; set; } = new();
+        }
+
+        private class YetkiliServisSayfaliCevap
+        {
+            public int Page { get; set; }
+            public int PageSize { get; set; }
+            public int TotalCount { get; set; }
+            public int TotalPages { get; set; }
+            public List<YetkiliServisApiDto> Items { get; set; } = new();
+
+            public YetkiliServisSayfaliSonuc ToModel()
+            {
+                return new YetkiliServisSayfaliSonuc
+                {
+                    Page = Page,
+                    PageSize = PageSize,
+                    TotalCount = TotalCount,
+                    TotalPages = TotalPages,
+                    Items = Items
+                        .Select(MapToFirma)
+                        .OrderBy(x => x.FirmaAdi)
+                        .ToList()
+                };
+            }
         }
 
         private class KategoriApiDto
