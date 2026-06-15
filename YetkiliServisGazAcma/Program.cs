@@ -194,7 +194,8 @@ using (var scope = app.Services.CreateScope())
     var dbContext = scope.ServiceProvider
         .GetRequiredService<AppDbContext>();
 
-    await SeedData.Initialize(userManager, roleManager);
+    var createDefaultUsers = app.Configuration.GetValue<bool>("Seed:CreateDefaultUsers");
+    await SeedData.Initialize(userManager, roleManager, createDefaultUsers);
 
     if (app.Environment.IsDevelopment() && app.Configuration.GetValue<bool>("TestData:SeedDemoUsers"))
         await TestDataSeed.Initialize(dbContext, userManager);

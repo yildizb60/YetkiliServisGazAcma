@@ -43,33 +43,25 @@ namespace YetkiliServisGazAcma.Business.Services
                 ? $"Yetkili Servis Devreye Alma şifre sıfırlama kodunuz: {kod}"
                 : $"Yetkili Servis Devreye Alma giriş doğrulama kodunuz: {kod}";
 
-            var dogrulama = new SmsDogrulamaKodu
-            {
-                KullaniciId = kullanici.Id,
-                Telefon = telefon,
-                KodHash = Hashle(kullanici.Id, kod),
-                Amac = amac,
-                GecerlilikTarihi = DateTime.Now.AddMinutes(Math.Max(1, _options.CodeExpireMinutes)),
-                OlusturanKullanici = kullanici.UserName
-            };
-
-            _context.SmsDogrulamaKodlari.Add(dogrulama);
-
             var firmaKodu = await FirmaKoduBulAsync(kullanici);
             var sonuc = _options.TestMode
                 ? new SmsGonderimSonucu(true, MesajId: $"TEST-{DateTime.Now:yyyyMMddHHmmss}")
                 : await _smsProvider.GonderAsync(telefon, mesaj, firmaKodu);
-            _context.SmsGonderimLoglari.Add(new SmsGonderimLog
+
+            if (sonuc.Basarili)
             {
-                KullaniciId = kullanici.Id,
-                Telefon = telefon,
-                Mesaj = mesaj,
-                Saglayici = string.IsNullOrWhiteSpace(_options.Provider) ? _smsProvider.ProviderName : _options.Provider,
-                BasariliMi = sonuc.Basarili,
-                SaglayiciMesajId = sonuc.MesajId,
-                HataMesaji = sonuc.Hata,
-                OlusturanKullanici = kullanici.UserName
-            });
+                var dogrulama = new SmsDogrulamaKodu
+                {
+                    KullaniciId = kullanici.Id,
+                    Telefon = telefon,
+                    KodHash = Hashle(kullanici.Id, kod, _options.HashSecret),
+                    Amac = amac,
+                    GecerlilikTarihi = DateTime.Now.AddMinutes(Math.Max(1, _options.CodeExpireMinutes)),
+                    OlusturanKullanici = kullanici.UserName
+                };
+
+                _context.SmsDogrulamaKodlari.Add(dogrulama);
+            }
 
             await _context.SaveChangesAsync();
 
@@ -112,7 +104,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 return (false, "Çok fazla hatalı deneme yapıldı. Lütfen yeniden giriş yapın.");
             }
 
-            if (!string.Equals(kayit.KodHash, Hashle(kullaniciId, kod.Trim()), StringComparison.Ordinal))
+            if (!string.Equals(kayit.KodHash, Hashle(kullaniciId, kod.Trim(), _options.HashSecret), StringComparison.Ordinal))
             {
                 await _context.SaveChangesAsync();
                 return (false, "Doğrulama kodu hatalı.");
@@ -162,9 +154,12 @@ namespace YetkiliServisGazAcma.Business.Services
             return RandomNumberGenerator.GetInt32(min, max).ToString();
         }
 
-        private static string Hashle(string kullaniciId, string kod)
+        private static string Hashle(string kullaniciId, string kod, string? secret)
         {
-            var bytes = SHA256.HashData(Encoding.UTF8.GetBytes($"{kullaniciId}:{kod}"));
+            var value = $"{kullaniciId}:{kod}";
+            var bytes = string.IsNullOrWhiteSpace(secret)
+                ? SHA256.HashData(Encoding.UTF8.GetBytes(value))
+                : HMACSHA256.HashData(Encoding.UTF8.GetBytes(secret), Encoding.UTF8.GetBytes(value));
             return Convert.ToHexString(bytes);
         }
 

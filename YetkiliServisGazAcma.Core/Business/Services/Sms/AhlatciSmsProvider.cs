@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -22,17 +23,19 @@ namespace YetkiliServisGazAcma.Business.Services
         private readonly HttpClient _httpClient;
         private readonly SmsOptions _options;
         private readonly ILogger<AhlatciSmsProvider> _logger;
-        private string? _cachedToken;
-        private DateTime _cachedTokenExpiresUtc;
+        private readonly IMemoryCache _cache;
+        private const string TokenCacheKey = "AhlatciSmsProvider.Token";
 
         public AhlatciSmsProvider(
             HttpClient httpClient,
             IOptions<SmsOptions> options,
-            ILogger<AhlatciSmsProvider> logger)
+            ILogger<AhlatciSmsProvider> logger,
+            IMemoryCache cache)
         {
             _httpClient = httpClient;
             _options = options.Value;
             _logger = logger;
+            _cache = cache;
         }
 
         public string ProviderName => "AhlatciSms";
@@ -102,9 +105,9 @@ namespace YetkiliServisGazAcma.Business.Services
             if (!string.IsNullOrWhiteSpace(_options.BearerToken))
                 return _options.BearerToken.Trim();
 
-            if (!string.IsNullOrWhiteSpace(_cachedToken) &&
-                _cachedTokenExpiresUtc > DateTime.UtcNow.AddMinutes(1))
-                return _cachedToken;
+            if (_cache.TryGetValue<string>(TokenCacheKey, out var cachedToken) &&
+                !string.IsNullOrWhiteSpace(cachedToken))
+                return cachedToken;
 
             if (string.IsNullOrWhiteSpace(_options.Username) || string.IsNullOrWhiteSpace(_options.Password))
                 return null;
@@ -134,9 +137,13 @@ namespace YetkiliServisGazAcma.Business.Services
                 if (string.IsNullOrWhiteSpace(token))
                     return null;
 
-                _cachedToken = token;
-                _cachedTokenExpiresUtc = TokenSonKullanmaUtc(body, token) ?? DateTime.UtcNow.AddMinutes(30);
-                return _cachedToken;
+                var expiresUtc = TokenSonKullanmaUtc(body, token) ?? DateTime.UtcNow.AddMinutes(30);
+                var cacheFor = expiresUtc - DateTime.UtcNow - TimeSpan.FromMinutes(1);
+                if (cacheFor <= TimeSpan.Zero)
+                    cacheFor = TimeSpan.FromMinutes(5);
+
+                _cache.Set(TokenCacheKey, token, cacheFor);
+                return token;
             }
             catch (Exception ex)
             {

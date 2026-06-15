@@ -17,6 +17,7 @@ namespace YetkiliServisGazAcma.Business.Services
         public string GrantType { get; set; } = "password";
         public string Scope { get; set; } = "SMSApiLocal";
         public string BearerToken { get; set; } = "";
+        public string HashSecret { get; set; } = "";
         public string DefaultHeader { get; set; } = "CORUMGAZ";
         public string CountryCode { get; set; } = "90";
         public string InfoCompany { get; set; } = "SCADA";

@@ -1,6 +1,7 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
+using System.ComponentModel.DataAnnotations;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -12,6 +13,8 @@ namespace YetkiliServisGazAcma.API.Controllers
     [Route("api/auth")]
     public class AuthController : ControllerBase
     {
+        private const string GenelGirisHatasi = "Kullanici adi veya sifre hatali.";
+
         private readonly UserManager<AppKullanici> _userManager;
         private readonly SignInManager<AppKullanici> _signInManager;
         private readonly IConfiguration _config;
@@ -30,27 +33,27 @@ namespace YetkiliServisGazAcma.API.Controllers
         }
 
         [HttpPost("token")]
-        public async Task<IActionResult> Token([FromBody] LoginDto dto)
+        public async Task<IActionResult> Token([FromBody] LoginDto? dto)
         {
-            // Kullaniciyı bul
+            if (dto == null || !ModelState.IsValid)
+                return Unauthorized(new { mesaj = GenelGirisHatasi });
+
             var kullanici = await _userManager.FindByEmailAsync(dto.Email)
                          ?? await _userManager.FindByNameAsync(dto.Email);
 
             if (kullanici == null)
             {
                 _logger.LogWarning("API token istegi basarisiz. Kullanici bulunamadi: {Email}", dto.Email);
-                return Unauthorized(new { mesaj = "Kullanici bulunamadı" });
+                return Unauthorized(new { mesaj = GenelGirisHatasi });
             }
 
             if (!kullanici.AktifMi)
             {
                 _logger.LogWarning("API token istegi pasif hesap nedeniyle reddedildi. KullaniciId: {KullaniciId}", kullanici.Id);
-                return Unauthorized(new { mesaj = "Hesabınız aktif değil" });
+                return Unauthorized(new { mesaj = "Hesabiniz aktif degil." });
             }
 
-            // Şifre kontrolü
-            var sonuc = await _signInManager
-                .CheckPasswordSignInAsync(kullanici, dto.Sifre, true);
+            var sonuc = await _signInManager.CheckPasswordSignInAsync(kullanici, dto.Sifre, true);
 
             if (sonuc.IsLockedOut)
             {
@@ -61,42 +64,41 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (!sonuc.Succeeded)
             {
                 _logger.LogWarning("API token istegi hatali sifre nedeniyle reddedildi. KullaniciId: {KullaniciId}", kullanici.Id);
-                return Unauthorized(new { mesaj = "Şifre hatalı" });
+                return Unauthorized(new { mesaj = GenelGirisHatasi });
             }
 
-            // Rolleri al
             var roller = await _userManager.GetRolesAsync(kullanici);
-
-            // Token oluştur
             var token = TokenOlustur(kullanici, roller);
+
             _logger.LogInformation("API token olusturuldu. KullaniciId: {KullaniciId}, Roller: {Roller}", kullanici.Id, string.Join(",", roller));
 
             return Ok(new
             {
-                token = token,
+                token,
                 email = kullanici.Email,
                 adSoyad = kullanici.AdSoyad,
                 tip = kullanici.KullaniciTipi,
-                roller = roller
+                roller
             });
         }
 
         private string TokenOlustur(AppKullanici kullanici, IList<string> roller)
         {
-            var key = new SymmetricSecurityKey(
-                              Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
-            var krediler = new SigningCredentials(
-                              key, SecurityAlgorithms.HmacSha256);
+            var expireDays = int.TryParse(_config["Jwt:ExpireDays"], out var parsedExpireDays) && parsedExpireDays > 0
+                ? parsedExpireDays
+                : 1;
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
+            var krediler = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var talepler = new List<Claim>
             {
-                new Claim(ClaimTypes.NameIdentifier, kullanici.Id),
-                new Claim(ClaimTypes.Email,          kullanici.Email!),
-                new Claim(ClaimTypes.Name,           kullanici.AdSoyad ?? ""),
-                new Claim("KullaniciTipi",           kullanici.KullaniciTipi.ToString())
+                new(ClaimTypes.NameIdentifier, kullanici.Id),
+                new(ClaimTypes.Email, kullanici.Email!),
+                new(ClaimTypes.Name, kullanici.AdSoyad ?? ""),
+                new("KullaniciTipi", kullanici.KullaniciTipi.ToString())
             };
 
-            // Rolleri ekle
             foreach (var rol in roller)
                 talepler.Add(new Claim(ClaimTypes.Role, rol));
 
@@ -104,10 +106,8 @@ namespace YetkiliServisGazAcma.API.Controllers
                 issuer: _config["Jwt:Issuer"],
                 audience: _config["Jwt:Audience"],
                 claims: talepler,
-                expires: DateTime.Now.AddDays(
-                                        int.Parse(_config["Jwt:ExpireDays"]!)),
-                signingCredentials: krediler
-            );
+                expires: DateTime.UtcNow.AddDays(expireDays),
+                signingCredentials: krediler);
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
@@ -115,7 +115,10 @@ namespace YetkiliServisGazAcma.API.Controllers
 
     public class LoginDto
     {
+        [Required]
         public string Email { get; set; } = string.Empty;
+
+        [Required]
         public string Sifre { get; set; } = string.Empty;
     }
 }

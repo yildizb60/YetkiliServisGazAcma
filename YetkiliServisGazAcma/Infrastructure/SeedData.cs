@@ -8,7 +8,8 @@ namespace YetkiliServisGazAcma.Infrastructure
     {
         public static async Task Initialize(
             UserManager<AppKullanici> userManager,
-            RoleManager<IdentityRole> roleManager)
+            RoleManager<IdentityRole> roleManager,
+            bool createDefaultUsers)
         {
             // 1. Rolleri oluştur
             string[] roller = { "GenelSistemAdmin", "SirketAdmin", "SuperAdmin", "Personel", "YetkiliServis" };
@@ -19,6 +20,9 @@ namespace YetkiliServisGazAcma.Infrastructure
             }
 
             // 2. Süper Admin
+            if (!createDefaultUsers)
+                return;
+
             string adminEmail = "admin@corumgaz.com";
             var mevcutAdmin = await userManager.FindByEmailAsync(adminEmail);
             if (mevcutAdmin == null)

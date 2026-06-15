@@ -403,6 +403,17 @@ namespace YetkiliServisGazAcma.API.Controllers
                 });
             }
 
+            var zorunluAlanHatasi = ZorunluAlanlariKontrolEt(dto);
+            if (!string.IsNullOrWhiteSpace(zorunluAlanHatasi))
+            {
+                return Ok(new YsDevreyeAlmaIslemSonucDto
+                {
+                    Basarili = false,
+                    Mesaj = zorunluAlanHatasi,
+                    RedirectUrl = "/ys-devreyeal"
+                });
+            }
+
             var marka = await MarkaBulAsync(dto.CihazMarka);
             if (marka == null)
             {
@@ -571,10 +582,42 @@ namespace YetkiliServisGazAcma.API.Controllers
 
         private async Task<bool> FirmaMarkaYetkisiVarAsync(int firmaId, int markaId)
         {
+            var bugun = DateTime.Now.Date;
             return await _context.Ys_FirmaMarkalar
+                .Include(x => x.Marka)
                 .AnyAsync(x => x.FirmaId == firmaId
                     && x.MarkaId == markaId
-                    && !x.SilindiMi);
+                    && !x.SilindiMi
+                    && x.YetkiBitisTarihi.Date >= bugun
+                    && x.Marka != null
+                    && x.Marka.AktifMi
+                    && !x.Marka.SilindiMi);
+        }
+
+        private static string? ZorunluAlanlariKontrolEt(YsDevreyeAlmaKaydetDto dto)
+        {
+            var eksikler = new List<string>();
+
+            if (string.IsNullOrWhiteSpace(dto.TesistatNo))
+                eksikler.Add("tesisat no");
+            if (string.IsNullOrWhiteSpace(dto.AboneNo) && string.IsNullOrWhiteSpace(dto.SozlesmeNo))
+                eksikler.Add("abone veya sozlesme no");
+            if (string.IsNullOrWhiteSpace(dto.MusteriAdi))
+                eksikler.Add("musteri adi");
+            if (string.IsNullOrWhiteSpace(dto.Adres))
+                eksikler.Add("adres");
+            if (string.IsNullOrWhiteSpace(dto.CihazTipi))
+                eksikler.Add("cihaz tipi");
+            if (string.IsNullOrWhiteSpace(dto.CihazMarka))
+                eksikler.Add("cihaz markasi");
+            if (string.IsNullOrWhiteSpace(dto.SeriNo))
+                eksikler.Add("seri no");
+            if (string.IsNullOrWhiteSpace(dto.TeknisyenAdi))
+                eksikler.Add("teknisyen adi");
+
+            return eksikler.Count == 0
+                ? null
+                : "Devreye alma kaydi icin zorunlu alanlar eksik: " + string.Join(", ", eksikler) + ".";
         }
 
         private async Task<Ys_Marka?> MarkaBulAsync(string? cihazMarka)
@@ -689,6 +732,7 @@ namespace YetkiliServisGazAcma.API.Controllers
     public class YsDevreyeAlmaKaydetDto
     {
         public string? TesistatNo { get; set; }
+        public string? SozlesmeNo { get; set; }
         public string? AboneNo { get; set; }
         public string? UygunlukBelgeNo { get; set; }
         public DateTime? UygunlukTarihi { get; set; }

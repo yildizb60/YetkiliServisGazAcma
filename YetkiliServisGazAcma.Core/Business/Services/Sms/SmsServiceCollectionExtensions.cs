@@ -9,6 +9,7 @@ namespace YetkiliServisGazAcma.Business.Services
         public static IServiceCollection AddSmsServices(this IServiceCollection services, IConfiguration configuration)
         {
             services.Configure<SmsOptions>(configuration.GetSection("Sms"));
+            services.AddMemoryCache();
 
             services.AddHttpClient<AhlatciSmsProvider>((serviceProvider, client) =>
             {
