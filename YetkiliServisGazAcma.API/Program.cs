@@ -87,6 +87,7 @@ builder.Services.AddScoped<DagitimSirketService>();
 builder.Services.AddScoped<MarkaService>();
 builder.Services.AddScoped<YetkiliServisService>();
 builder.Services.AddScoped<YetkiBelgesiService>();
+builder.Services.AddScoped<YkcTalepService>();
 builder.Services.AddScoped<AdminDashboardService>();
 builder.Services.AddScoped<AdminYetkiliServisListeService>();
 builder.Services.AddScoped<SehirFirmaKoduService>();
@@ -97,6 +98,7 @@ builder.Services.AddScoped<AdminYetkiBelgesiOnayApiService>();
 builder.Services.AddScoped<AdminPersonelYetkiApiService>();
 builder.Services.AddScoped<YetkiliServisPanelYonetimApiService>();
 builder.Services.AddScoped<DevreyeAlmaExportApiService>();
+builder.Services.AddScoped<YkcFr265FormService>();
 builder.Services.AddSmsServices(builder.Configuration);
 builder.Services.Configure<OnlineServiceOptions>(builder.Configuration.GetSection("OnlineService"));
 builder.Services.AddHttpClient<OnlineCihazBilgileriClient>((serviceProvider, client) =>

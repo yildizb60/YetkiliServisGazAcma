@@ -12,6 +12,7 @@
     int sureBitecek = ViewBag.SuresiBitecek is int sure ? sure : 0;
     var seciliQ = ViewBag.SeciliQ as string ?? "";
     var seciliDurum = ViewBag.SeciliDurum as string ?? "tumu";
+    var genelSistemAdminMi = ViewBag.GenelSistemAdminMi as bool? ?? false;
 }
 
 @section Styles {
@@ -83,8 +84,11 @@
 
 <div class="section">
     <div class="section-head">
-        <div class="section-title">&#350;irket Listesi</div>
-        <a class="btn-add" href="/DagitimSirket/Ekle">+ Yeni &#350;irket Ekle</a>
+        <div class="section-title">@(genelSistemAdminMi ? "Şirket Listesi" : "Şirket Bilgilerim")</div>
+        @if (genelSistemAdminMi)
+        {
+            <a class="btn-add" href="/DagitimSirket/Ekle">+ Yeni Şirket Ekle</a>
+        }
     </div>
     <div class="tablo">
         <div class="tablo-head">
@@ -111,8 +115,11 @@
                 </div>
                 <div class="aksiyon">
                     <a class="btn-edit" href="/DagitimSirket/Duzenle/@s.Id">D&#252;zenle</a>
-                    <a class="btn-del" href="/DagitimSirket/Sil/@s.Id"
-                       onclick="return confirm('Silmek istedi?"inize emin misiniz?')">Sil</a>
+                    @if (genelSistemAdminMi)
+                    {
+                        <a class="btn-del" href="/DagitimSirket/Sil/@s.Id"
+                           onclick="return confirm('Silmek istediğinize emin misiniz?')">Sil</a>
+                    }
                 </div>
             </div>
         }

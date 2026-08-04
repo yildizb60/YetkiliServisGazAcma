@@ -9,6 +9,9 @@
     int onayBekleyen = ViewBag.OnayBekleyen is int v ? v : 0;
     string adSoyad = kullanici?.AdSoyad ?? "Sistem Y\u00F6neticisi";
     string basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "A";
+    var genelSistemAdminMi = ViewBag.GenelSistemAdminMi as bool? ?? false;
+    var kilitliAlan = genelSistemAdminMi ? "" : "readonly";
+    var kilitliSecim = genelSistemAdminMi ? null : "disabled";
 }
 
 @section Styles {
@@ -40,13 +43,17 @@
         @Html.AntiForgeryToken()
         <input type="hidden" name="Id" value="@Model.Id" />
         <div class="info-grid">
-            <div class="info-item"><div class="info-label">&#350;irket Ad&#305; *</div><input class="info-input" name="SirketAdi" value="@(Model?.SirketAdi ?? "")" required /></div>
-            <div class="info-item"><div class="info-label">&#304;l *</div><input class="info-input" name="Il" value="@(Model?.Il ?? "")" required /></div>
+            <div class="info-item"><div class="info-label">&#350;irket Ad&#305; *</div><input class="info-input" name="SirketAdi" value="@(Model?.SirketAdi ?? "")" required @kilitliAlan /></div>
+            <div class="info-item"><div class="info-label">&#304;l *</div><input class="info-input" name="Il" value="@(Model?.Il ?? "")" required @kilitliAlan /></div>
             <div class="info-item"><div class="info-label">Telefon</div><input class="info-input" name="Telefon" value="@(Model?.Telefon ?? "")" /></div>
             <div class="info-item"><div class="info-label">Email</div><input class="info-input" name="Email" value="@(Model?.Email ?? "")" /></div>
             <div class="info-item" style="grid-column: span 2;"><div class="info-label">Adres</div><input class="info-input" name="Adres" value="@(Model?.Adres ?? "")" /></div>
             <div class="info-item"><div class="info-label">Durum</div>
-                <select class="info-input" name="AktifMi">
+                @if (!genelSistemAdminMi)
+                {
+                    <input type="hidden" name="AktifMi" value="@((Model?.AktifMi == true).ToString().ToLowerInvariant())" />
+                }
+                <select class="info-input" name="AktifMi" disabled="@kilitliSecim">
                     @if (Model?.AktifMi == true)
                     {
                         <option value="true" selected="selected">Aktif</option>

@@ -13,4 +13,8 @@
     <PackageReference Include="QuestPDF" Version="2026.2.3" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="Templates\Ykc\FR265_Yakici_Cihaz_Degisim_Formu.docx" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

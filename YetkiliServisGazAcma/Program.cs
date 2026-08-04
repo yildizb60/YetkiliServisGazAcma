@@ -62,6 +62,7 @@ AddApiClient<YetkiliServisApiClient>();
 AddApiClient<UrunKategoriApiClient>();
 AddApiClient<PersonelPanelApiClient>();
 AddApiClient<YetkiliServisDevreyeAlmaApiClient>();
+AddApiClient<YkcApiClient>();
 AddApiClient<YetkiliServisPanelApiClient>();
 AddApiClient<HomeOzetApiClient>();
 AddApiClient<PanelKapsamApiClient>();

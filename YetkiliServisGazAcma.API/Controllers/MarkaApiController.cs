@@ -136,8 +136,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         private async Task<bool> MarkaYonetebilirMi()
         {
             if (User.IsInRole("GenelSistemAdmin")
-                || User.IsInRole("SuperAdmin")
-                || User.IsInRole("SirketAdmin"))
+                || User.IsInRole("SuperAdmin"))
                 return true;
 
             var kullaniciId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -148,7 +147,8 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (kullanici == null)
                 return false;
 
-            if (kullanici.KullaniciTipi == KullaniciTipiDegerleri.GenelSistemAdmin || kullanici.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin)
+            if (kullanici.KullaniciTipi == KullaniciTipiDegerleri.GenelSistemAdmin ||
+                (kullanici.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin && !kullanici.SirketId.HasValue))
                 return true;
 
             return await _context.Dag_PersonelYetkiler.AnyAsync(x =>

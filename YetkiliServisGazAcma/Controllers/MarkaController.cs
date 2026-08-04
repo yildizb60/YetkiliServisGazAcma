@@ -14,15 +14,18 @@ namespace YetkiliServisGazAcma.Controllers
         private readonly MarkaApiClient _markaApiClient;
         private readonly AdminDashboardApiClient _adminDashboardApiClient;
         private readonly UserManager<AppKullanici> _userManager;
+        private readonly AktifSirketService _aktifSirketService;
 
         public MarkaController(
             MarkaApiClient markaApiClient,
             AdminDashboardApiClient adminDashboardApiClient,
-            UserManager<AppKullanici> userManager)
+            UserManager<AppKullanici> userManager,
+            AktifSirketService aktifSirketService)
         {
             _markaApiClient = markaApiClient;
             _adminDashboardApiClient = adminDashboardApiClient;
             _userManager = userManager;
+            _aktifSirketService = aktifSirketService;
         }
 
         private async Task<int> GetOnayBekleyenCount()
@@ -36,6 +39,8 @@ namespace YetkiliServisGazAcma.Controllers
             var dashboard = await GetDashboardOzetAsync();
             ViewBag.OnayBekleyen = dashboard?.OnayBekleyen ?? 0;
             ViewBag.SuresiBitecek = dashboard?.SuresiBitecek ?? 0;
+            var kullanici = await GetCurrentUser();
+            ViewBag.GenelSistemAdminMi = kullanici != null && await _aktifSirketService.GenelSistemAdminMi(kullanici);
             await next();
         }
 
@@ -92,15 +97,22 @@ namespace YetkiliServisGazAcma.Controllers
             var dashboard = await GetDashboardOzetAsync();
             ViewBag.OnayBekleyen = dashboard?.OnayBekleyen ?? 0;
             ViewBag.SuresiBitecek = dashboard?.SuresiBitecek ?? 0;
-            ViewBag.Kullanici = await GetCurrentUser();
+            var kullanici = await GetCurrentUser();
+            ViewBag.Kullanici = kullanici;
+            ViewBag.GenelSistemAdminMi = kullanici != null && await _aktifSirketService.GenelSistemAdminMi(kullanici);
             return View(markalar);
         }
 
         [HttpGet]
         public async Task<IActionResult> Ekle()
         {
+            var kullanici = await GetCurrentUser();
+            if (kullanici == null) return Redirect("/giris");
+            if (!await _aktifSirketService.GenelSistemAdminMi(kullanici)) return RedirectToAction(nameof(Index));
+
             ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
-            ViewBag.Kullanici = await GetCurrentUser();
+            ViewBag.Kullanici = kullanici;
+            ViewBag.GenelSistemAdminMi = true;
             return View();
         }
 
@@ -109,6 +121,7 @@ namespace YetkiliServisGazAcma.Controllers
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
+            if (!await _aktifSirketService.GenelSistemAdminMi(kullanici)) return RedirectToAction(nameof(Index));
 
             var sonuc = await _markaApiClient.EkleAsync(kullanici, marka);
             SetMarkaIslemMesaji(sonuc, "Marka basariyla eklendi.");
@@ -120,6 +133,7 @@ namespace YetkiliServisGazAcma.Controllers
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
+            if (!await _aktifSirketService.GenelSistemAdminMi(kullanici)) return RedirectToAction(nameof(Index));
 
             var marka = await _markaApiClient.GetirAsync(kullanici, id);
             if (marka == null)
@@ -129,6 +143,7 @@ namespace YetkiliServisGazAcma.Controllers
             }
             ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
             ViewBag.Kullanici = kullanici;
+            ViewBag.GenelSistemAdminMi = true;
             return View(marka);
         }
 
@@ -137,6 +152,7 @@ namespace YetkiliServisGazAcma.Controllers
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
+            if (!await _aktifSirketService.GenelSistemAdminMi(kullanici)) return RedirectToAction(nameof(Index));
 
             var sonuc = await _markaApiClient.GuncelleAsync(kullanici, marka);
             SetMarkaIslemMesaji(sonuc, "Marka basariyla guncellendi.");
@@ -147,6 +163,7 @@ namespace YetkiliServisGazAcma.Controllers
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
+            if (!await _aktifSirketService.GenelSistemAdminMi(kullanici)) return RedirectToAction(nameof(Index));
 
             var sonuc = await _markaApiClient.SilAsync(kullanici, id);
             SetMarkaIslemMesaji(

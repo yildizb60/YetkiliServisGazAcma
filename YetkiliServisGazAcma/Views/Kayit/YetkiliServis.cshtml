@@ -3,6 +3,7 @@
     ViewData["Title"] = "Yetkili Servis Kaydı";
     Layout = "~/Views/Shared/_PublicLayout.cshtml";
     var sehirler = ViewBag.Sehirler as List<string> ?? new();
+    var sehirFirmaKodlari = ViewBag.SehirFirmaKodlari as Dictionary<string, string> ?? new();
     var tumKategoriler = ViewBag.Kategoriler as List<YetkiliServisGazAcma.Entities.UrunKategori> ?? new();
 
     string NormalizeKategori(string? value)
@@ -304,6 +305,18 @@
             background: #fff;
             box-shadow: 0 0 0 4px rgba(27,159,212,.13);
         }
+        .firma-kodu-hint {
+            display: none;
+            margin-top: 2px;
+            padding: 8px 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(27,159,212,.22);
+            background: rgba(27,159,212,.08);
+            color: #174760;
+            font-size: 12px;
+            font-weight: 800;
+        }
+        .firma-kodu-hint.is-visible { display: block; }
         .info-text { font-size: 13px; color: #7f93a8; margin-top: 2px; }
 
         .info-box {
@@ -575,20 +588,22 @@
                     </div>
                     <div class="alan">
                         <label>Şehir <span class="req">*</span></label>
-                        <select name="FaaliyetIli" id="FaaliyetIli" required>
+                        <select name="FaaliyetIli" id="FaaliyetIli" data-firma-kodu-select required>
                             <option value="">-- Seçiniz --</option>
                             @foreach (var sehir in sehirler)
                             {
+                                var firmaKodu = sehirFirmaKodlari.TryGetValue(sehir, out var kod) ? kod : "";
                                 if (string.Equals(Model?.FaaliyetIli, sehir, StringComparison.CurrentCultureIgnoreCase))
                                 {
-                                    <option value="@sehir" selected="selected">@sehir</option>
+                                    <option value="@sehir" data-firma-kodu="@firmaKodu" selected="selected">@sehir</option>
                                 }
                                 else
                                 {
-                                    <option value="@sehir">@sehir</option>
+                                    <option value="@sehir" data-firma-kodu="@firmaKodu">@sehir</option>
                                 }
                             }
                         </select>
+                        <div class="firma-kodu-hint" data-firma-kodu-target></div>
                     </div>
                     <div class="alan">
                         <label>Adres <span class="req">*</span></label>
@@ -680,6 +695,22 @@
 </form>
 
 <script>
+function firmaKoduBilgisiniGuncelle() {
+        const select = document.querySelector('[data-firma-kodu-select]');
+        const target = document.querySelector('[data-firma-kodu-target]');
+        if (!select || !target) return;
+
+        const option = select.options[select.selectedIndex];
+        const firmaKodu = option ? option.getAttribute('data-firma-kodu') : '';
+        if (firmaKodu) {
+            target.textContent = 'Bağlı firma kodu: ' + firmaKodu;
+            target.classList.add('is-visible');
+        } else {
+            target.textContent = '';
+            target.classList.remove('is-visible');
+        }
+    }
+
 function markaFiltrele(q) {
         const query = (q || '').toLowerCase();
         document.querySelectorAll('.marka-item').forEach(item => {
@@ -703,5 +734,13 @@ function markaFiltrele(q) {
             tum.checked = hepsi.length > 0 && secili.length === hepsi.length;
         }
     }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const select = document.querySelector('[data-firma-kodu-select]');
+        if (select) {
+            select.addEventListener('change', firmaKoduBilgisiniGuncelle);
+            firmaKoduBilgisiniGuncelle();
+        }
+    });
 </script>
 

@@ -9,6 +9,7 @@
     var seciliQ = ViewBag.SeciliQ as string;
     var seciliTip = ViewBag.SeciliTip as string;
     var seciliDurum = ViewBag.SeciliDurum as string;
+    var genelSistemAdminMi = ViewBag.GenelSistemAdminMi as bool? ?? false;
 }
 
 @section Styles {
@@ -114,7 +115,11 @@
         <label>Tip</label>
         <select name="tip">
             <option value="" selected="@(string.IsNullOrEmpty(seciliTip) ? "selected" : null)">Tümü</option>
-            <option value="SuperAdmin" selected="@(seciliTip == "SuperAdmin" ? "selected" : null)">Süper Admin</option>
+            @if (genelSistemAdminMi)
+            {
+                <option value="GenelSistemAdmin" selected="@(seciliTip == "GenelSistemAdmin" || seciliTip == "SuperAdmin" ? "selected" : null)">Genel Sistem Admini</option>
+                <option value="SirketAdmin" selected="@(seciliTip == "SirketAdmin" ? "selected" : null)">Şirket Admini</option>
+            }
             <option value="Personel" selected="@(seciliTip == "Personel" ? "selected" : null)">Personel</option>
             <option value="Servis" selected="@(seciliTip == "Servis" ? "selected" : null)">Yetkili Servis</option>
         </select>
@@ -170,6 +175,9 @@
                         ? "Şirket Admini"
                         : "Süper Admin";
             var bagli = k.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis ? k.Firma?.FirmaAdi : k.Sirket?.SirketAdi;
+            var kullaniciIslemYapilabilir = genelSistemAdminMi ||
+                (k.KullaniciTipi != KullaniciTipiDegerleri.GenelSistemAdmin &&
+                 k.KullaniciTipi != KullaniciTipiDegerleri.SirketAdmin);
 
             <div class="tablo-row">
                 <div>@(k.AdSoyad ?? "-")</div>
@@ -187,18 +195,25 @@
                     }
                 </div>
                 <div class="action-cell df-actions">
-                    <a class="df-btn df-btn-secondary df-btn-sm" href="/AdminPanel/Kullanicilar/Duzenle/@k.Id">Düzenle</a>
-                    <form method="post" action="/AdminPanel/Kullanicilar/durum/@k.Id">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="aktif" value='@(k.AktifMi ? "false" : "true")' />
-                        <button type="submit" class="df-btn @(k.AktifMi ? "df-btn-warning" : "df-btn-success") df-btn-sm">
-                            @(k.AktifMi ? "Pasifleştir" : "Aktifleştir")
-                        </button>
-                    </form>
-                    <form method="post" action="/AdminPanel/kullanicilar/sil/@k.Id" onsubmit="return confirm('Kullanıcıyı silmek istediğinize emin misiniz?');">
-                        @Html.AntiForgeryToken()
-                        <button type="submit" class="df-btn df-btn-danger df-btn-sm">Sil</button>
-                    </form>
+                    @if (kullaniciIslemYapilabilir)
+                    {
+                        <a class="df-btn df-btn-secondary df-btn-sm" href="/AdminPanel/Kullanicilar/Duzenle/@k.Id">Düzenle</a>
+                        <form method="post" action="/AdminPanel/Kullanicilar/durum/@k.Id">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="aktif" value='@(k.AktifMi ? "false" : "true")' />
+                            <button type="submit" class="df-btn @(k.AktifMi ? "df-btn-warning" : "df-btn-success") df-btn-sm">
+                                @(k.AktifMi ? "Pasifleştir" : "Aktifleştir")
+                            </button>
+                        </form>
+                        <form method="post" action="/AdminPanel/kullanicilar/sil/@k.Id" onsubmit="return confirm('Kullanıcıyı silmek istediğinize emin misiniz?');">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="df-btn df-btn-danger df-btn-sm">Sil</button>
+                        </form>
+                    }
+                    else
+                    {
+                        <span class="df-pill df-pill-muted">Yetki yok</span>
+                    }
                 </div>
             </div>
         }

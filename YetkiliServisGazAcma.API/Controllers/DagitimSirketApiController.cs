@@ -56,6 +56,9 @@ namespace YetkiliServisGazAcma.API.Controllers
         [Authorize]
         public async Task<IActionResult> Getir([FromBody] IdDto dto)
         {
+            if (!await DagitimSirketYonetebilirMi(dto.Id))
+                return Forbid();
+
             var sirket = await _context.Dag_Sirketler
                 .Where(x => x.Id == dto.Id && !x.SilindiMi)
                 .Select(x => new
@@ -107,8 +110,23 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (!dto.Id.HasValue)
                 return BadRequest(new { basarili = false, mesaj = "Id zorunludur" });
 
-            if (!await DagitimSirketYonetebilirMi(dto.Id.Value))
+            var genelSistemYoneticisi = await GenelSistemYonetebilirMi();
+            if (!genelSistemYoneticisi && !await DagitimSirketYonetebilirMi(dto.Id.Value))
                 return Forbid();
+
+            if (!genelSistemYoneticisi)
+            {
+                var mevcut = await _context.Dag_Sirketler
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.Id == dto.Id.Value && !x.SilindiMi);
+
+                if (mevcut == null)
+                    return NotFound(new { basarili = false, mesaj = "Sirket bulunamadi" });
+
+                dto.SirketAdi = mevcut.SirketAdi;
+                dto.Il = mevcut.Il;
+                dto.AktifMi = mevcut.AktifMi;
+            }
 
             var sirket = new Dag_Sirket
             {
@@ -144,22 +162,17 @@ namespace YetkiliServisGazAcma.API.Controllers
 
         private async Task<bool> GenelSistemYonetebilirMi()
         {
-            if (User.IsInRole("GenelSistemAdmin")
-                || User.IsInRole("SuperAdmin")
-                || User.IsInRole("SirketAdmin"))
-                return true;
-
             var kullanici = await AktifKullaniciAsync();
             if (kullanici == null)
                 return false;
 
-            if (kullanici.KullaniciTipi == KullaniciTipiDegerleri.GenelSistemAdmin || kullanici.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin)
+            if (User.IsInRole("GenelSistemAdmin")
+                || User.IsInRole("SuperAdmin")
+                || kullanici.KullaniciTipi == KullaniciTipiDegerleri.GenelSistemAdmin
+                || (kullanici.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin && !kullanici.SirketId.HasValue))
                 return true;
 
-            return await _context.Dag_PersonelYetkiler.AnyAsync(x =>
-                x.KullaniciId == kullanici.Id &&
-                !x.SilindiMi &&
-                (x.YetkiTipi == YetkiTipleri.TAM_YETKI || x.YetkiTipi == YetkiTipleri.DAGITIM_SIRKET_YONET));
+            return false;
         }
 
         private async Task<bool> DagitimSirketYonetebilirMi(int sirketId)

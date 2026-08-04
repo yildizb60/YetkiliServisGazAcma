@@ -103,6 +103,7 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.OnayBekleyen = dashboard?.OnayBekleyen ?? 0;
             ViewBag.SuresiBitecek = dashboard?.SuresiBitecek ?? 0;
             ViewBag.Kullanici = kullanici;
+            ViewBag.GenelSistemAdminMi = kullanici != null && await _aktifSirketService.GenelSistemAdminMi(kullanici);
             return View(sirketler);
         }
 
@@ -116,6 +117,7 @@ namespace YetkiliServisGazAcma.Controllers
 
             ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
             ViewBag.Kullanici = kullanici;
+            ViewBag.GenelSistemAdminMi = true;
             return View();
         }
 
@@ -152,6 +154,7 @@ namespace YetkiliServisGazAcma.Controllers
 
             ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
             ViewBag.Kullanici = kullanici;
+            ViewBag.GenelSistemAdminMi = await _aktifSirketService.GenelSistemAdminMi(kullanici);
             return View(sirket);
         }
 

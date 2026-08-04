@@ -22,6 +22,10 @@ namespace YetkiliServisGazAcma.Models
         public DbSet<Ys_Sube> Ys_Subeler { get; set; }
         public DbSet<SmsDogrulamaKodu> SmsDogrulamaKodlari { get; set; }
         public DbSet<SmsGonderimLog> SmsGonderimLoglari { get; set; }
+        public DbSet<Ykc_Talep> Ykc_Talepler { get; set; }
+        public DbSet<Ykc_FormDosya> Ykc_FormDosyalari { get; set; }
+        public DbSet<Ykc_Atama> Ykc_Atamalar { get; set; }
+        public DbSet<Ykc_IslemGecmisi> Ykc_IslemGecmisi { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -48,6 +52,10 @@ namespace YetkiliServisGazAcma.Models
             modelBuilder.Entity<Ys_Sube>().ToTable("Ys_Subeler");
             modelBuilder.Entity<SmsDogrulamaKodu>().ToTable("Ys_SmsDogrulamaKodlari");
             modelBuilder.Entity<SmsGonderimLog>().ToTable("Ys_SmsGonderimLoglari");
+            modelBuilder.Entity<Ykc_Talep>().ToTable("Ykc_Talepler");
+            modelBuilder.Entity<Ykc_FormDosya>().ToTable("Ykc_FormDosyalari");
+            modelBuilder.Entity<Ykc_Atama>().ToTable("Ykc_Atamalar");
+            modelBuilder.Entity<Ykc_IslemGecmisi>().ToTable("Ykc_IslemGecmisi");
 
             modelBuilder.Entity<AppKullanici>()
                 .HasIndex(x => new { x.KullaniciTipi, x.AktifMi, x.FirmaId });
@@ -84,6 +92,66 @@ namespace YetkiliServisGazAcma.Models
 
             modelBuilder.Entity<SmsDogrulamaKodu>()
                 .HasIndex(x => new { x.KullaniciId, x.Amac, x.KullanildiMi, x.SilindiMi, x.GecerlilikTarihi });
+
+            modelBuilder.Entity<Ykc_Talep>()
+                .HasIndex(x => new { x.FirmaId, x.TalepTarihi, x.SilindiMi });
+
+            modelBuilder.Entity<Ykc_Talep>()
+                .HasIndex(x => new { x.SirketId, x.Durum, x.SilindiMi });
+
+            modelBuilder.Entity<Ykc_Talep>()
+                .HasIndex(x => new { x.TesisatNo, x.SilindiMi });
+
+            modelBuilder.Entity<Ykc_Talep>()
+                .HasOne(x => x.Firma)
+                .WithMany()
+                .HasForeignKey(x => x.FirmaId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Ykc_Talep>()
+                .HasOne(x => x.Sirket)
+                .WithMany()
+                .HasForeignKey(x => x.SirketId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Ykc_Talep>()
+                .HasOne(x => x.AtananKullanici)
+                .WithMany()
+                .HasForeignKey(x => x.AtananKullaniciId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Ykc_FormDosya>()
+                .HasIndex(x => new { x.TalepId, x.DosyaTuru, x.SilindiMi });
+
+            modelBuilder.Entity<Ykc_FormDosya>()
+                .HasOne(x => x.Talep)
+                .WithMany(x => x.FormDosyalari)
+                .HasForeignKey(x => x.TalepId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Ykc_Atama>()
+                .HasIndex(x => new { x.TalepId, x.OlusturmaTarihi, x.SilindiMi });
+
+            modelBuilder.Entity<Ykc_Atama>()
+                .HasOne(x => x.Talep)
+                .WithMany(x => x.Atamalar)
+                .HasForeignKey(x => x.TalepId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Ykc_Atama>()
+                .HasOne(x => x.AtananKullanici)
+                .WithMany()
+                .HasForeignKey(x => x.AtananKullaniciId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Ykc_IslemGecmisi>()
+                .HasIndex(x => new { x.TalepId, x.OlusturmaTarihi, x.SilindiMi });
+
+            modelBuilder.Entity<Ykc_IslemGecmisi>()
+                .HasOne(x => x.Talep)
+                .WithMany(x => x.IslemGecmisi)
+                .HasForeignKey(x => x.TalepId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

@@ -6,12 +6,13 @@
     ViewData["ActiveMenu"] = "Markalar";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
     var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
-    string adSoyad = kullanici?.AdSoyad ?? "Sistem YÃƒ¶neticisi";
+    string adSoyad = kullanici?.AdSoyad ?? "Sistem Yöneticisi";
     string basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "A";
     int onayBekleyen = ViewBag.OnayBekleyen is int v ? v : 0;
     int sureBitecek = ViewBag.SuresiBitecek is int s ? s : 0;
     var seciliQ = ViewBag.SeciliQ as string ?? "";
     var seciliDurum = ViewBag.SeciliDurum as string ?? "tumu";
+    var genelSistemAdminMi = ViewBag.GenelSistemAdminMi as bool? ?? false;
 }
 
 @section Styles {
@@ -89,7 +90,10 @@
 <div class="section">
     <div class="section-head">
         <div class="section-title">Marka Listesi</div>
-        <a class="btn-add" href="/Marka/Ekle">+ Yeni Marka Ekle</a>
+        @if (genelSistemAdminMi)
+        {
+            <a class="btn-add" href="/Marka/Ekle">+ Yeni Marka Ekle</a>
+        }
     </div>
     <div class="tablo">
         <div class="tablo-head">
@@ -113,9 +117,16 @@
                     </span>
                 </div>
                 <div class="aksiyon">
-                    <a class="btn-edit" href="/Marka/Duzenle/@m.Id">D&#252;zenle</a>
-                    <a class="btn-del" href="/Marka/Sil/@m.Id"
-                       onclick="return confirm('Silmek istedi?"inize emin misiniz?')">Sil</a>
+                    @if (genelSistemAdminMi)
+                    {
+                        <a class="btn-edit" href="/Marka/Duzenle/@m.Id">D&#252;zenle</a>
+                        <a class="btn-del" href="/Marka/Sil/@m.Id"
+                           onclick="return confirm('Silmek istediğinize emin misiniz?')">Sil</a>
+                    }
+                    else
+                    {
+                        <span>-</span>
+                    }
                 </div>
             </div>
         }

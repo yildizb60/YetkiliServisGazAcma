@@ -1794,7 +1794,7 @@ textarea {
 
 .df-dashboard .df-approval-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    grid-template-columns: repeat(5, minmax(180px, 1fr));
     gap: 10px;
     margin-bottom: 18px;
     align-items: stretch;
@@ -2301,13 +2301,13 @@ textarea {
     }
 
     .df-dashboard .df-approval-grid {
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        grid-template-columns: repeat(3, minmax(180px, 1fr));
     }
 }
 
 @media (max-width: 900px) {
     .df-dashboard .df-approval-grid {
-        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        grid-template-columns: repeat(2, minmax(210px, 1fr));
     }
 
     .df-dashboard .stats-card-header {
@@ -2338,6 +2338,12 @@ textarea {
     }
 
     .approval-reference-footer {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 560px) {
+    .df-dashboard .df-approval-grid {
         grid-template-columns: 1fr;
     }
 }

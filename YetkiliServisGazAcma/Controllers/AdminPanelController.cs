@@ -146,6 +146,7 @@ namespace YetkiliServisGazAcma.Controllers
 
             ViewBag.OnayBekleyen = dashboard?.OnayBekleyen ?? 0;
             ViewBag.SuresiBitecek = dashboard?.SuresiBitecek ?? 0;
+            ViewBag.GenelSistemAdminMi = kullanici != null && await _aktifSirketService.GenelSistemAdminMi(kullanici);
             await next();
         }
 

@@ -684,7 +684,7 @@ table tbody tr:hover,
 
 .df-dashboard .df-approval-grid {
     display: grid !important;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) !important;
+    grid-template-columns: repeat(5, minmax(180px, 1fr)) !important;
     gap: 10px !important;
     align-items: stretch !important;
 }
@@ -763,13 +763,19 @@ td {
 
 @media (max-width: 1280px) {
     .df-dashboard .df-approval-grid {
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) !important;
+        grid-template-columns: repeat(3, minmax(180px, 1fr)) !important;
     }
 }
 
 @media (max-width: 900px) {
     .df-dashboard .df-approval-grid {
-        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)) !important;
+        grid-template-columns: repeat(2, minmax(210px, 1fr)) !important;
+    }
+}
+
+@media (max-width: 560px) {
+    .df-dashboard .df-approval-grid {
+        grid-template-columns: 1fr !important;
     }
 }
 

@@ -9,6 +9,7 @@
             path.StartsWith("/ys-panel", StringComparison.OrdinalIgnoreCase) ||
             path.StartsWith("/ys-devreyeal", StringComparison.OrdinalIgnoreCase) ||
             path.StartsWith("/ys-yetki-belgesi", StringComparison.OrdinalIgnoreCase)));
+    var genelSistemAdminMi = ViewBag.GenelSistemAdminMi as bool? ?? false;
 
     var panelAltBaslik = (ViewData["PanelSubtitle"] ?? ViewBag.PanelSubtitle)?.ToString();
     if (string.IsNullOrWhiteSpace(panelAltBaslik))
@@ -69,6 +70,9 @@
             <a class="@("nav-item" + ActiveExact("DevreyeAl", "/ys-devreyeal"))" href="/ys-devreyeal">
                 <span class="nav-ico">&#128295;</span> Cihaz Devreye Al
             </a>
+            <a class="@("nav-item" + Active("YkcTalepler", "/ykc"))" href="/ykc/talepler">
+                <span class="nav-ico">&#128293;</span> Cihaz Değişim Talebi
+            </a>
             <a class="@("nav-item" + Active("DevreyeGecmis", "/ys-devreyeal/gecmis", "/ys-devreyeal/detay"))" href="/ys-devreyeal/gecmis">
                 <span class="nav-ico">&#128221;</span> İşlem Geçmişim
             </a>
@@ -108,6 +112,9 @@
             <a class="@("nav-item" + Active("DevreyeAlmalar", "/personel-panel/devreyealmalar"))" href="/personel-panel/devreyealmalar">
                 <span class="nav-ico">&#128295;</span> Devreye Almalar
             </a>
+            <a class="@("nav-item" + Active("YkcTalepler", "/ykc"))" href="/ykc/talepler">
+                <span class="nav-ico">&#128293;</span> Cihaz Değişim Talepleri
+            </a>
             <a class="@("nav-item" + Active("Markalar", "/personel-panel/markalar"))" href="/personel-panel/markalar">
                 <span class="nav-ico">&#127991;</span> Markalar
             </a>
@@ -135,9 +142,12 @@
             </a>
 
             <div class="nav-section">Yönetim</div>
-            <a class="@("nav-item" + Active("Markalar", "/Marka"))" href="/Marka">
-                <span class="nav-ico">&#127991;</span> Markalar
-            </a>
+            @if (genelSistemAdminMi)
+            {
+                <a class="@("nav-item" + Active("Markalar", "/Marka"))" href="/Marka">
+                    <span class="nav-ico">&#127991;</span> Markalar
+                </a>
+            }
             <a class="@("nav-item" + Active("OnayBekleyenler", "/AdminPanel/onay-bekleyenler"))" href="/AdminPanel/onay-bekleyenler">
                 <span class="nav-ico">&#9989;</span> Yetki Belgesi Onay
                 @if (ViewBag.OnayBekleyen > 0)
@@ -150,6 +160,9 @@
             </a>
             <a class="@("nav-item" + Active("DevreyeAlmalar", "/AdminPanel/devreyealmalar"))" href="/AdminPanel/devreyealmalar">
                 <span class="nav-ico">&#128295;</span> Devreye Almalar
+            </a>
+            <a class="@("nav-item" + Active("YkcTalepler", "/ykc"))" href="/ykc/talepler">
+                <span class="nav-ico">&#128293;</span> Cihaz Değişim Talepleri
             </a>
             <a class="@("nav-item" + Active("Raporlar", "/AdminPanel/raporlar"))" href="/AdminPanel/raporlar">
                 <span class="nav-ico">&#128202;</span> Raporlar

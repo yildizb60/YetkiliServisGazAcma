@@ -8,7 +8,12 @@
     string formAdSoyad = ViewBag.FormAdSoyad ?? "";
     string formEmail = ViewBag.FormEmail ?? "";
     string formTelefon = ViewBag.FormTelefon ?? "";
-    string formRol = ViewBag.FormRol ?? "SirketAdmin";
+    var genelSistemAdminMi = ViewBag.GenelSistemAdminMi as bool? ?? false;
+    string formRol = ViewBag.FormRol ?? (genelSistemAdminMi ? "SirketAdmin" : "Personel");
+    if (!genelSistemAdminMi && (formRol == "GenelSistemAdmin" || formRol == "SirketAdmin" || formRol == "SuperAdmin"))
+    {
+        formRol = "Personel";
+    }
     int formSirketId = ViewBag.FormSirketId is int s ? s : 0;
     int formFirmaId = ViewBag.FormFirmaId is int f ? f : 0;
     var sirketler = ViewBag.Sirketler as List<YetkiliServisGazAcma.Entities.Dag_Sirket>;
@@ -48,8 +53,11 @@
                 <div class="form-group">
                     <label>Rol</label>
                     <select class="form-control" name="rol" id="rolSelect">
-                        <option value="GenelSistemAdmin" selected="@(formRol == "GenelSistemAdmin" ? "selected" : null)">Genel Sistem Admini</option>
-                        <option value="SirketAdmin" selected="@((formRol == "SirketAdmin" || formRol == "SuperAdmin") ? "selected" : null)">Şirket Admini</option>
+                        @if (genelSistemAdminMi)
+                        {
+                            <option value="GenelSistemAdmin" selected="@(formRol == "GenelSistemAdmin" ? "selected" : null)">Genel Sistem Admini</option>
+                            <option value="SirketAdmin" selected="@((formRol == "SirketAdmin" || formRol == "SuperAdmin") ? "selected" : null)">Şirket Admini</option>
+                        }
                         <option value="Personel" selected="@(formRol == "Personel" ? "selected" : null)">Personel</option>
                         <option value="YetkiliServis" selected="@(formRol == "YetkiliServis" ? "selected" : null)">Yetkili Servis</option>
                     </select>

@@ -22,16 +22,21 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (!await KullaniciYonetebilirMi(yapan, kapsam.sirketId))
                 return Forbid();
 
-            var genelSistemAdmin = User.IsInRole("GenelSistemAdmin") || User.IsInRole("SuperAdmin");
+            var genelSistemAdmin = GenelSistemAdminMi(yapan);
             var kullaniciQuery = _context.Users
                 .Include(x => x.Sirket)
                 .Include(x => x.Firma)
                 .AsQueryable();
 
-            if (!genelSistemAdmin || kapsam.sirketId.HasValue)
+            if (!genelSistemAdmin)
             {
                 kullaniciQuery = kullaniciQuery.Where(x =>
-                    x.Id == yapan.Id ||
+                    ((x.KullaniciTipi == KullaniciTipiDegerleri.Personel) && kapsam.sirketId.HasValue && x.SirketId == kapsam.sirketId.Value) ||
+                    (x.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis && x.Firma != null && kapsam.sirketId.HasValue && x.Firma.SirketId == kapsam.sirketId.Value));
+            }
+            else if (kapsam.sirketId.HasValue)
+            {
+                kullaniciQuery = kullaniciQuery.Where(x =>
                     ((x.KullaniciTipi == KullaniciTipiDegerleri.Personel || x.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin) && kapsam.sirketId.HasValue && x.SirketId == kapsam.sirketId.Value) ||
                     (x.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis && x.Firma != null && kapsam.sirketId.HasValue && x.Firma.SirketId == kapsam.sirketId.Value));
             }
@@ -226,6 +231,10 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (!await KullaniciKapsamindaMi(kullanici, hedef, kapsam.sirketId))
                 return Forbid();
 
+            if (!GenelSistemAdminMi(kullanici) &&
+                (hedef.KullaniciTipi == KullaniciTipiDegerleri.GenelSistemAdmin || hedef.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin))
+                return Ok(AdminIslemSonucDto.Basarisiz("Sirket admini genel sistem admini veya sirket admini hesabini duzenleyemez."));
+
             if ((hedef.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin || hedef.KullaniciTipi == KullaniciTipiDegerleri.Personel) && (!dto.SirketId.HasValue || dto.SirketId.Value <= 0))
             {
                 return Ok(AdminIslemSonucDto.Basarisiz(hedef.KullaniciTipi == KullaniciTipiDegerleri.Personel
@@ -321,11 +330,9 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             rol = gecerliRoller.First(x => string.Equals(x, rol, StringComparison.OrdinalIgnoreCase));
 
-            var genelSistemAdmin = User.IsInRole("GenelSistemAdmin")
-                || User.IsInRole("SuperAdmin")
-                || kullanici.KullaniciTipi == KullaniciTipiDegerleri.GenelSistemAdmin;
-            if (rol == "GenelSistemAdmin" && !genelSistemAdmin)
-                return Ok(AdminIslemSonucDto.Basarisiz("Genel Sistem Admini sadece genel sistem admini tarafindan olusturulabilir."));
+            var genelSistemAdmin = GenelSistemAdminMi(kullanici);
+            if (!genelSistemAdmin && (rol == "GenelSistemAdmin" || rol == "SirketAdmin"))
+                return Ok(AdminIslemSonucDto.Basarisiz("Sirket admini sadece kendi sirketine bagli personel ve yetkili servis kullanicisi olusturabilir."));
 
             var sifreHatalari = ValidatePassword(dto.Sifre);
             if (sifreHatalari.Count > 0)
@@ -485,6 +492,10 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (!await KullaniciKapsamindaMi(kullanici, hedef, kapsam.sirketId))
                 return Forbid();
 
+            if (!GenelSistemAdminMi(kullanici) &&
+                (hedef.KullaniciTipi == KullaniciTipiDegerleri.GenelSistemAdmin || hedef.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin))
+                return Ok(AdminIslemSonucDto.Basarisiz("Sirket admini genel sistem admini veya sirket admini hesabinin durumunu degistiremez."));
+
             hedef.AktifMi = dto.AktifMi;
             var sonuc = await _userManager.UpdateAsync(hedef);
             if (!sonuc.Succeeded)
@@ -517,6 +528,10 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             if (!await KullaniciKapsamindaMi(kullanici, hedef, kapsam.sirketId))
                 return Forbid();
+
+            if (!GenelSistemAdminMi(kullanici) &&
+                (hedef.KullaniciTipi == KullaniciTipiDegerleri.GenelSistemAdmin || hedef.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin))
+                return Ok(AdminIslemSonucDto.Basarisiz("Sirket admini genel sistem admini veya sirket admini hesabini silemez."));
 
             if (kullanici.Id == hedef.Id)
                 return Ok(AdminIslemSonucDto.Basarisiz("Kendi hesabinizi silemezsiniz."));

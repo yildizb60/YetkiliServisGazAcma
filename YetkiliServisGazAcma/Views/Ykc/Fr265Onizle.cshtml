@@ -1,0 +1,114 @@
+@model YkcTalepDetayDto
+@{
+    Layout = "~/Views/Shared/_PanelLayout.cshtml";
+}
+
+@functions {
+    private static string Deger(string? value) => string.IsNullOrWhiteSpace(value) ? "" : value.Trim();
+}
+
+@section Styles {
+    <style>
+        .fr265-toolbar { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 14px; }
+        .fr265-paper { max-width: 920px; margin: 0 auto; background: #fff; border: 1px solid var(--df-border); border-radius: 8px; box-shadow: var(--df-shadow-soft); padding: 34px 38px; color: #111827; }
+        .fr265-head { display: grid; grid-template-columns: 1fr auto; gap: 18px; align-items: start; border-bottom: 2px solid #111827; padding-bottom: 14px; margin-bottom: 18px; }
+        .fr265-title { font-size: 18px; font-weight: 900; text-transform: uppercase; line-height: 1.35; }
+        .fr265-date { font-size: 13px; font-weight: 800; white-space: nowrap; }
+        .fr265-table { width: 100%; border-collapse: collapse; margin: 12px 0 18px; table-layout: fixed; }
+        .fr265-table th, .fr265-table td { border: 1px solid #111827; padding: 9px 10px; vertical-align: middle; font-size: 13px; min-height: 36px; }
+        .fr265-table th { background: #f3f4f6; font-weight: 900; text-align: left; }
+        .fr265-label { width: 34%; font-weight: 850; background: #f9fafb; }
+        .fr265-section-title { font-size: 13px; font-weight: 900; text-transform: uppercase; margin: 18px 0 8px; color: #1f2937; }
+        .fr265-text { font-size: 13px; line-height: 1.55; margin: 10px 0; text-align: justify; }
+        .fr265-sign-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 22px; }
+        .fr265-sign { border: 1px solid #111827; min-height: 138px; padding: 12px; font-size: 13px; }
+        .fr265-sign-title { font-weight: 900; margin-bottom: 14px; }
+        .fr265-line { margin-top: 10px; }
+        .fr265-note { color: var(--df-muted); font-size: 12px; margin-top: 12px; }
+        @@media print {
+            body { background: #fff !important; }
+            .df-sidebar, .df-topbar, .fr265-toolbar { display: none !important; }
+            .df-main, .df-content { margin: 0 !important; padding: 0 !important; }
+            .fr265-paper { border: none; box-shadow: none; max-width: none; padding: 0; }
+        }
+        @@media (max-width: 760px) {
+            .fr265-paper { padding: 22px 18px; }
+            .fr265-head, .fr265-sign-grid { grid-template-columns: 1fr; }
+            .fr265-toolbar { flex-direction: column; align-items: stretch; }
+        }
+    </style>
+}
+
+<div class="fr265-toolbar">
+    <div>
+        <h2 class="df-panel-title" style="margin:0;">FR265 Form Önizleme</h2>
+        <div class="df-panel-subtitle">Cihaz değişim talebi #@Model.Id için imza öncesi dijital form.</div>
+    </div>
+    <div class="df-actions">
+        <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/detay/@Model.Id">Detaya Dön</a>
+        <a class="df-btn df-btn-success df-btn-sm" href="/ykc/fr265/indir/@Model.Id">Word İndir</a>
+        <button class="df-btn df-btn-primary df-btn-sm" type="button" onclick="window.print()">Yazdır</button>
+    </div>
+</div>
+
+<section class="fr265-paper">
+    <div class="fr265-head">
+        <div class="fr265-title">FR265 Proje Tadilatı Gerektirmeyen Yakıcı Cihaz Değişim Formu</div>
+        <div class="fr265-date">Tarih: @DateTime.Now.ToString("dd.MM.yyyy")</div>
+    </div>
+
+    <table class="fr265-table">
+        <tbody>
+            <tr><td class="fr265-label">Sertifikalı Firma Unvanı</td><td>@Deger(Model.FirmaAdi)</td></tr>
+            <tr><td class="fr265-label">Sertifika Numarası</td><td>@Deger(Model.YetkiBelgesiNo)</td></tr>
+        </tbody>
+    </table>
+
+    <div class="fr265-section-title">Abone / Tesisat Bilgileri</div>
+    <table class="fr265-table">
+        <tbody>
+            <tr><td class="fr265-label">Adı Soyadı</td><td>@Deger(Model.MusteriAdi)</td></tr>
+            <tr><td class="fr265-label">Tesisat Numarası (Kapı Numarası)</td><td>@Deger(Model.TesisatNo)</td></tr>
+            <tr><td class="fr265-label">Tüketim Noktası (Daire/İş Yeri Numarası)</td><td>@Deger(Model.TuketimNoktasi)</td></tr>
+            <tr><td class="fr265-label">Bağlantı Nesnesi (Bina Numarası)</td><td>@Deger(Model.BaglantiNesnesi)</td></tr>
+            <tr><td class="fr265-label">Adres</td><td>@Deger(Model.Adres)</td></tr>
+        </tbody>
+    </table>
+
+    <div class="fr265-section-title">Cihaz Karşılaştırması</div>
+    <table class="fr265-table">
+        <thead>
+            <tr>
+                <th></th>
+                <th>Projedeki Cihaz</th>
+                <th>Yeni Kullanılan Cihaz</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td class="fr265-label">Yakıcı Cihaz Tipi</td><td>@Deger(Model.EskiCihazTipi)</td><td>@Deger(Model.YeniCihazTipi)</td></tr>
+            <tr><td class="fr265-label">Marka</td><td>@Deger(Model.EskiMarka)</td><td>@Deger(Model.YeniMarka)</td></tr>
+            <tr><td class="fr265-label">Baca Tipi</td><td>@Deger(Model.EskiBacaTipi)</td><td>@Deger(Model.YeniBacaTipi)</td></tr>
+            <tr><td class="fr265-label">Kapasite (kcal/h)</td><td>@Deger(Model.EskiKapasite)</td><td>@Deger(Model.YeniKapasite)</td></tr>
+        </tbody>
+    </table>
+
+    <p class="fr265-text">Yukarıda bilgileri verilen abonenin(tesisatın), mevcut onaylı projesinde bulunan yakıcı cihazın tip, yerleşim ve kapasite değişikliği yapılmamıştır.</p>
+    <p class="fr265-text">Aynı yerde, aynı tip ve kapasitedeki yeni yakıcı cihaz, tesisat üzerindeki cihaz vanasına, cihaz bağlantı parçaları ve atık sistemleri ile tesis edilmiş olup, değişimle ilgili tüm idari ve teknik sorumluluk tarafımıza aittir. Mevcut onaylı projesine göre yerinde gerekli tesisat kontrollerinin yapılması sonrası, yakıcı cihaz ile cihaz bağlantı hattı ve atık sistemleri devreye alma işlemleri tarafımızca yapılacak olup, sorumluluğu tarafımıza aittir.</p>
+
+    <div class="fr265-sign-grid">
+        <div class="fr265-sign">
+            <div class="fr265-sign-title">Sertifikalı Firma Yetkilisi</div>
+            <div class="fr265-line">Adı ve Soyadı: @Deger(Model.FirmaYetkiliKisi)</div>
+            <div class="fr265-line">Tarih: @DateTime.Now.ToString("dd.MM.yyyy")</div>
+            <div class="fr265-line">İmza:</div>
+        </div>
+        <div class="fr265-sign">
+            <div class="fr265-sign-title">İşlemi Yapan Gaz Dağıtım Şirketi Yetkilisi</div>
+            <div class="fr265-line">Adı ve Soyadı:</div>
+            <div class="fr265-line">Tarih:</div>
+            <div class="fr265-line">İmza:</div>
+        </div>
+    </div>
+
+    <div class="fr265-note">Not: Tüketim noktası, bağlantı nesnesi ve gerçek sertifika numarası alanları ilgili servis/veri alanı netleştiğinde otomatik doldurulacaktır.</div>
+</section>

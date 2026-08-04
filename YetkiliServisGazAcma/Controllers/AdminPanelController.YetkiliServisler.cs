@@ -43,6 +43,7 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.Kullanici = kullanici;
             ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
             ViewBag.Sehirler = _sehirFirmaKoduService.Sehirler();
+            ViewBag.SehirFirmaKodlari = _sehirFirmaKoduService.TumKodlar();
             ViewBag.Kategoriler = await KullanilanKategorileriGetir();
             ViewBag.Markalar = await _markaApiClient.TumunuGetirAsync() ?? new List<Ys_Marka>();
             return View("~/Views/AdminPanel/YetkiliServisEkle.cshtml");
@@ -140,6 +141,7 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
             ViewBag.Servis = sonuc.Servis;
             ViewBag.Sehirler = _sehirFirmaKoduService.Sehirler();
+            ViewBag.SehirFirmaKodlari = _sehirFirmaKoduService.TumKodlar();
             ViewBag.Kategoriler = await KullanilanKategorileriGetir();
             ViewBag.SeciliKategoriler = sonuc.Servis.FirmaKategoriler?
                 .Where(x => !x.SilindiMi)

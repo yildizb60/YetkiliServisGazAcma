@@ -89,6 +89,17 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.SonDevreyeAlmalar = dashboard.SonDevreyeAlmalar;
 
             ViewBag.Kullanici = kullanici;
+            var genelSistemAdminMi = await _aktifSirketService.GenelSistemAdminMi(kullanici);
+            var sirketler = await _aktifSirketService.KullaniciSirketleriAsync(kullanici);
+            var aktifSirketAdi = sirketId.HasValue
+                ? sirketler.FirstOrDefault(x => x.Id == sirketId.Value)?.SirketAdi
+                : null;
+            ViewBag.AdminDashboardBaslik = genelSistemAdminMi && !sirketId.HasValue
+                ? "Tüm Şirketler Genel Bakış"
+                : $"{(string.IsNullOrWhiteSpace(aktifSirketAdi) ? "Şirket" : aktifSirketAdi)} Yönetim Özeti";
+            ViewBag.AdminDashboardAltBaslik = genelSistemAdminMi && !sirketId.HasValue
+                ? "Genel Sistem Admini"
+                : "Şirket Admini";
             return View("~/Views/AdminPanel/Index.cshtml");
         }
 

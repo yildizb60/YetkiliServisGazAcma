@@ -6,6 +6,7 @@
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
     var Kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
     var sehirler = ViewBag.Sehirler as List<string> ?? new();
+    var sehirFirmaKodlari = ViewBag.SehirFirmaKodlari as Dictionary<string, string> ?? new();
     var kategoriler = ViewBag.Kategoriler as List<YetkiliServisGazAcma.Entities.UrunKategori> ?? new();
     var markalar = ViewBag.Markalar as List<YetkiliServisGazAcma.Entities.Ys_Marka> ?? new();
     string adSoyad = Kullanici?.AdSoyad ?? "S\u00FCper Admin";
@@ -31,6 +32,8 @@
 .info-label { font-size: 11px; color: #6f7b86; margin-bottom: 4px; font-weight: 700; }
 .info-input { width: 100%; padding: 9px 11px; border: 1.5px solid #e0e0e0; border-radius: 8px; font-size: 13px; color: #333; outline: none; background: #fff; }
 .info-input:focus { border-color: #4CAF7D; }
+.firma-kodu-hint { display: none; margin-top: 7px; padding: 7px 9px; border-radius: 8px; border: 1px solid #cfe8f5; background: #eef8fd; color: #15506d; font-size: 12px; font-weight: 800; }
+.firma-kodu-hint.is-visible { display: block; }
 .info-item.tam { grid-column: span 8; }
 .actions { display: flex; gap: 10px; margin-top: 16px; }
 .btn-kaydet { padding: 10px 24px; background: #1B9FD4; color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; }
@@ -101,13 +104,15 @@
             <div class="info-item"><div class="info-label">E-Posta</div><input class="info-input" type="email" name="email" /></div>
             <div class="info-item">
                 <div class="info-label">&#350;ehir</div>
-                <select class="info-input" name="faaliyetIli" required>
+                <select class="info-input" name="faaliyetIli" data-firma-kodu-select required>
                     <option value="">-- Se&#231;iniz --</option>
                     @foreach (var sehir in sehirler)
                     {
-                        <option value="@sehir">@sehir</option>
+                        var firmaKodu = sehirFirmaKodlari.TryGetValue(sehir, out var kod) ? kod : "";
+                        <option value="@sehir" data-firma-kodu="@firmaKodu">@sehir</option>
                     }
                 </select>
+                <div class="firma-kodu-hint" data-firma-kodu-target></div>
             </div>
             <div class="info-item"><div class="info-label">Vergi No</div><input class="info-input" type="text" name="vergiNo" /></div>
             <div class="info-item"><div class="info-label">Vergi Dairesi</div><input class="info-input" type="text" name="vergiDairesi" /></div>
@@ -157,9 +162,27 @@
 @section Scripts {
 <script>
     (function () {
+        var sehirSelect = document.querySelector("[data-firma-kodu-select]");
+        var firmaTarget = document.querySelector("[data-firma-kodu-target]");
         var search = document.getElementById("markaSearch");
         var list = document.getElementById("markaList");
         var selectAll = document.getElementById("markaSelectAll");
+        function firmaKoduGuncelle() {
+            if (!sehirSelect || !firmaTarget) return;
+            var option = sehirSelect.options[sehirSelect.selectedIndex];
+            var firmaKodu = option ? option.getAttribute("data-firma-kodu") : "";
+            if (firmaKodu) {
+                firmaTarget.textContent = "Bağlı firma kodu: " + firmaKodu;
+                firmaTarget.classList.add("is-visible");
+            } else {
+                firmaTarget.textContent = "";
+                firmaTarget.classList.remove("is-visible");
+            }
+        }
+        if (sehirSelect) {
+            sehirSelect.addEventListener("change", firmaKoduGuncelle);
+            firmaKoduGuncelle();
+        }
         if (search && list) {
             search.addEventListener("input", function () {
                 var q = search.value.toLowerCase();

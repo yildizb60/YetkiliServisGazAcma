@@ -1,8 +1,8 @@
 @{
     var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
     ViewData["Title"] = "Admin Panel";
-    ViewData["PanelTitle"] = "Genel Bakış";
-    ViewData["PanelSubtitle"] = "Admin Paneli";
+    ViewData["PanelTitle"] = ViewBag.AdminDashboardBaslik as string ?? "Genel Bakış";
+    ViewData["PanelSubtitle"] = ViewBag.AdminDashboardAltBaslik as string ?? "Admin Paneli";
     ViewData["ActiveMenu"] = "Dashboard";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 

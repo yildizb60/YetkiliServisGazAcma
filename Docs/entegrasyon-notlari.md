@@ -23,6 +23,31 @@
 
 Firma kodu yetkili servisin bagli oldugu il/sirket bilgisinden uretilir. Yalova ve Corlu icin online servis tarafinda `MARMARAGAZ_YALOVA` ve `MARMARAGAZ_CORLU` kodlari kullanilir.
 
+## Online proje bilgileri kesfi
+
+YKC / cihaz degisim talebi icin baca tipi kaynaginin bulunmasi amaciyla mevcut SOAP servisinde su metotlar denendi:
+
+- `YS_CihazBilgileriGetir`
+- `CihazBilgileriAl`
+- `ProjeBilgileriAl`
+- `ProjeGenelBilgileriAl`
+
+Ornek deneme verisi:
+
+- Firma: `CORUMGAZ`
+- Tesisat no: `1000132`
+- Sozlesme no: `432237`
+- Proje no: `216195`
+
+Sonuc:
+
+- `YS_CihazBilgileriGetir` cihaz listesini basarili dondurdu. Donen cihaz alanlari: `cihazkapasite`, `cihazmarka`, `cihaztipi`, `cihaztipkodu`, `projeno`, `tesisatno`.
+- `CihazBilgileriAl` ayni parametrelerle `Liste Bos` dondu.
+- `ProjeBilgileriAl` proje ust bilgilerini dondurdu: `projeno`, `firmaadi`, `kontroledenmuhendisad`, `kontroltarihi`, `projetarihi`, `projetipi`, `daireprojetipi`, `durum`, `sayactipi`, `alan`, `basinc`, `debi`, `tesisatno`.
+- `ProjeGenelBilgileriAl` proje ust bilgisi dondurdu; cihaz listesi veya baca tipi alani gorulmedi.
+
+Bu denemeye gore cihaz degisim talebi ekraninda ilk otomatik doldurma icin en guvenli kaynak `YS_CihazBilgileriGetir` metodudur. Baca tipi icin mevcut cevaplarda acik bir `bacaTipi` / `bacaTipiKodu` alani gorunmedi. Mudurun dokumaninda gecen `Z*EP*cihazdeg*listeleme` ve `Z*EP*cihazdeg*initial` servisleri netlestiginde baca tipi secenekleri ve kontrolu bu yeni servislerle tamamlanmalidir.
+
 ## SMS OTP servisi
 
 - Servis tipi: REST/JSON

@@ -28,6 +28,7 @@ namespace YetkiliServisGazAcma.Controllers
         private async Task BasvuruListeleriniYukle()
         {
             ViewBag.Sehirler = _sehirFirmaKoduService.Sehirler();
+            ViewBag.SehirFirmaKodlari = _sehirFirmaKoduService.TumKodlar();
 
             var markalar = await _markaApiClient.TumunuGetirAsync();
             ViewBag.Markalar = markalar == null
