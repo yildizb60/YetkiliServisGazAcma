@@ -130,6 +130,10 @@ Atama iki sekilde kullanilabilir:
 - Eski projede ilgili alan bos ise kontrol atlanir. Bu, eski/migrasyon kayitlari icin gereklidir.
 - Yeni cihaz icin cihaz tipi, marka, baca tipi ve kapasite zorunludur.
 - Ic tesisat onayi/atamasi icin randevu tarihi, randevu saati, bolge ve ekip zorunludur.
+- Randevu/atama yapilabilmesi icin talep once `AtamaBekliyor` yani "Ic tesisat incelemesinde" durumuna alinmalidir.
+- Tamamlanan, reddedilen veya iptal edilen talepler tekrar atanamaz.
+- Form yuklemede sadece PDF, JPG/JPEG ve PNG dosyalari kabul edilir.
+- Yetkili servis kullanicisi sadece `FIRMA_FORMU` yukleyebilir; `SAHA_ISLAK_IMZALI_FORM` yalnizca ic operasyon rolleri icindir.
 - Baca tipi secenekleri mudurden netlestikten sonra liste/initial servislerine eklenecektir.
 
 ## Siradaki guvenli adim

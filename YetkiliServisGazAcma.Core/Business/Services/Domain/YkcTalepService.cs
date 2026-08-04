@@ -169,6 +169,12 @@ namespace YetkiliServisGazAcma.Business.Services
             if (DurumTerminalMi(talep.Durum))
                 return YkcIslemSonuc.HataliSonuc("Tamamlanan, reddedilen veya iptal edilen talep icin atama yapilamaz.");
 
+            if (talep.Durum == YkcDurumDegerleri.TalepAlindi)
+                return YkcIslemSonuc.HataliSonuc("Randevu ve atama icin talep once Ic Tesisat Incelemesinde durumuna alinmalidir.");
+
+            if (!AtamaYapilabilirMi(talep.Durum))
+                return YkcIslemSonuc.HataliSonuc("Bu durumdaki talep icin randevu ve atama yapilamaz.");
+
             if (string.IsNullOrWhiteSpace(dto.AtananEkip))
                 return YkcIslemSonuc.HataliSonuc("Randevu icin ekip secimi zorunludur.");
 
@@ -192,7 +198,9 @@ namespace YetkiliServisGazAcma.Business.Services
             talep.RandevuTarihi = dto.RandevuTarihi;
             talep.RandevuSaati = dto.RandevuSaati?.Trim();
             talep.CallCenterTetiklenecekMi = dto.CallCenterTetiklenecekMi || hedef == YkcHedefUygulamaDegerleri.Crm187;
-            talep.Durum = YkcDurumDegerleri.Atandi;
+            talep.Durum = talep.Durum == YkcDurumDegerleri.SahaIsleminde
+                ? YkcDurumDegerleri.SahaIsleminde
+                : YkcDurumDegerleri.Atandi;
             talep.GuncellemeTarihi = DateTime.Now;
             talep.GuncelleyenKullanici = kullanici.UserName;
 
@@ -352,6 +360,13 @@ namespace YetkiliServisGazAcma.Business.Services
             return durum == YkcDurumDegerleri.Tamamlandi
                 || durum == YkcDurumDegerleri.Reddedildi
                 || durum == YkcDurumDegerleri.Iptal;
+        }
+
+        private static bool AtamaYapilabilirMi(int durum)
+        {
+            return durum == YkcDurumDegerleri.AtamaBekliyor
+                || durum == YkcDurumDegerleri.Atandi
+                || durum == YkcDurumDegerleri.SahaIsleminde;
         }
 
         private static bool DurumGecisiGecerliMi(int eskiDurum, int yeniDurum)

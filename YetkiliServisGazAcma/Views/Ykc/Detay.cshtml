@@ -3,6 +3,7 @@
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
     var yonetebilir = User.IsInRole("GenelSistemAdmin") || User.IsInRole("SuperAdmin") || User.IsInRole("SirketAdmin") || User.IsInRole("Personel");
     var icOperasyonGorsun = !User.IsInRole("YetkiliServis");
+    var atamaYapilabilir = Model.Durum == YkcDurumDegerleri.AtamaBekliyor || Model.Durum == YkcDurumDegerleri.Atandi || Model.Durum == YkcDurumDegerleri.SahaIsleminde;
 }
 
 @functions {
@@ -10,6 +11,7 @@
     private static string Tarih(DateTime? value) => value.HasValue ? value.Value.ToString("dd.MM.yyyy") : "-";
     private static string? Secili(bool kosul) => kosul ? "selected" : null;
     private static string? Isaretli(bool kosul) => kosul ? "checked" : null;
+    private static string? Pasif(bool kosul) => kosul ? "disabled" : null;
     private static string KontrolYazi(string? eskiDeger, string? yeniDeger)
     {
         if (string.IsNullOrWhiteSpace(eskiDeger))
@@ -233,6 +235,12 @@
         <div class="ykc-grid">
             <section class="ykc-card">
                 <div class="ykc-card-head"><div class="ykc-card-title">Onay, Randevu ve Ekip Ataması</div></div>
+                @if (!atamaYapilabilir)
+                {
+                    <div class="df-alert" style="margin:16px 18px 0; background:var(--df-warning-soft); border-color:#f5d999; color:#8a5a00;">
+                        Randevu ve atama için talebi önce Red / Durum Güncelle alanından İç Tesisat İncelemesinde durumuna alın.
+                    </div>
+                }
                 <form method="post" action="/ykc/atama-yap">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="TalepId" value="@Model.Id" />
@@ -277,7 +285,7 @@
                         </div>
                     </div>
                     <div class="ykc-actions">
-                        <button class="df-btn df-btn-primary" type="submit">Randevu ve Atamayı Kaydet</button>
+                        <button class="df-btn df-btn-primary" type="submit" @Pasif(!atamaYapilabilir)>Randevu ve Atamayı Kaydet</button>
                     </div>
                 </form>
             </section>

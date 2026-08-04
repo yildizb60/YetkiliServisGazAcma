@@ -246,6 +246,9 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (dto == null || dto.TalepId <= 0)
                 return BadRequest(YkcIslemSonuc.HataliSonuc("Dosya kaydi icin talep id zorunludur."));
 
+            if (!YkcFormDosyasiGecerliMi(dto.DosyaAdi ?? dto.DosyaYolu, dto.IcerikTipi, icerikTipiZorunlu: false))
+                return BadRequest(YkcIslemSonuc.HataliSonuc("Sadece PDF, JPG veya PNG form dosyasi kaydedilebilir."));
+
             var roller = await _userManager.GetRolesAsync(kullanici);
             var dosyaTuru = string.IsNullOrWhiteSpace(dto.DosyaTuru)
                 ? YkcFormDosyaTuruDegerleri.FirmaFormu
@@ -272,6 +275,9 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             if (istek.Dosya == null || istek.Dosya.Length == 0)
                 return BadRequest(YkcIslemSonuc.HataliSonuc("Yüklenecek form dosyası zorunludur."));
+
+            if (!YkcFormDosyasiGecerliMi(istek.Dosya.FileName, istek.Dosya.ContentType, icerikTipiZorunlu: true))
+                return BadRequest(YkcIslemSonuc.HataliSonuc("Sadece PDF, JPG veya PNG form dosyasi yuklenebilir."));
 
             var roller = await _userManager.GetRolesAsync(kullanici);
             var dosyaTuru = string.IsNullOrWhiteSpace(istek.DosyaTuru)
@@ -329,6 +335,26 @@ namespace YetkiliServisGazAcma.API.Controllers
                 sadeceAd = sadeceAd.Replace(karakter, '_');
 
             return string.IsNullOrWhiteSpace(sadeceAd) ? "ykc-form" : sadeceAd;
+        }
+
+        private static bool YkcFormDosyasiGecerliMi(string? dosyaAdi, string? icerikTipi, bool icerikTipiZorunlu)
+        {
+            var uzanti = Path.GetExtension(dosyaAdi ?? string.Empty).ToLowerInvariant();
+            var izinliTipler = uzanti switch
+            {
+                ".pdf" => new[] { "application/pdf" },
+                ".jpg" or ".jpeg" => new[] { "image/jpeg" },
+                ".png" => new[] { "image/png" },
+                _ => Array.Empty<string>()
+            };
+
+            if (izinliTipler.Length == 0)
+                return false;
+
+            if (string.IsNullOrWhiteSpace(icerikTipi))
+                return !icerikTipiZorunlu;
+
+            return izinliTipler.Contains(icerikTipi.Trim(), StringComparer.OrdinalIgnoreCase);
         }
 
         private string? OnlineFirmaKodu(Ys_Firma? firma, Dag_Sirket? sirket)
