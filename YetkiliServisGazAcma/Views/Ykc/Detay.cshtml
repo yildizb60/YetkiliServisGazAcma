@@ -4,6 +4,9 @@
     var yonetebilir = User.IsInRole("GenelSistemAdmin") || User.IsInRole("SuperAdmin") || User.IsInRole("SirketAdmin") || User.IsInRole("Personel");
     var icOperasyonGorsun = !User.IsInRole("YetkiliServis");
     var atamaYapilabilir = Model.Durum == YkcDurumDegerleri.AtamaBekliyor || Model.Durum == YkcDurumDegerleri.Atandi || Model.Durum == YkcDurumDegerleri.SahaIsleminde;
+    var formYardimMetni = icOperasyonGorsun
+        ? "Firma formu ve saha ıslak imzalı formu bu alandan izlenir. Saha ekibi işlem sonrası fotoğraf/PDF yükleyebilir."
+        : "FR265 formunu önizleyip Word olarak indirin, firma yetkilisine imzalatın ve imzalı PDF ya da fotoğrafı Firma Formu olarak buradan yükleyin.";
 }
 
 @functions {
@@ -60,6 +63,28 @@
             _ => "df-pill-warning"
         };
     }
+
+    private static string HedefYazi(string? hedef)
+    {
+        return hedef switch
+        {
+            YkcHedefUygulamaDegerleri.YonetimPaneli => "Yönetim Paneli",
+            YkcHedefUygulamaDegerleri.DogalgazMobileApp => "Doğalgaz Mobile App",
+            YkcHedefUygulamaDegerleri.Crm187 => "CRM187",
+            _ => Deger(hedef)
+        };
+    }
+
+    private static string AkisClass(int durum, int adim)
+    {
+        if (durum == YkcDurumDegerleri.Reddedildi || durum == YkcDurumDegerleri.Iptal)
+            return adim == 4 ? "is-stopped" : "is-done";
+
+        if (durum == YkcDurumDegerleri.Tamamlandi)
+            return "is-done";
+
+        return durum >= adim ? "is-done" : string.Empty;
+    }
 }
 
 @section Styles {
@@ -95,13 +120,56 @@
         .ykc-upload .ykc-field { gap: 5px; }
         .ykc-muted { color: var(--df-muted); font-size: 12px; }
         .ykc-empty { color: var(--df-muted); background: #fbfcfe; border: 1px dashed #dbe3ee; border-radius: 8px; padding: 18px; text-align: center; font-size: 13px; }
+        .ykc-hero { overflow: hidden; border-color: #dfe6f2; }
+        .ykc-hero .df-panel-head { align-items: flex-start; background: linear-gradient(180deg, #ffffff 0%, #f7f9fd 100%); }
+        .ykc-hero .df-panel-title { font-size: 20px; }
+        .ykc-hero .df-panel-subtitle { margin-top: 5px; color: var(--df-muted); }
+        .ykc-summary-grid { padding-top: 4px; }
+        .ykc-summary { position: relative; background: #fff; box-shadow: 0 10px 24px rgba(13, 34, 112, .045); }
+        .ykc-summary::before { content: ""; position: absolute; left: 0; top: 12px; bottom: 12px; width: 3px; border-radius: 999px; background: var(--df-primary); }
+        .ykc-summary:nth-child(2)::before { background: #1dbb7a; }
+        .ykc-summary:nth-child(3)::before { background: #dc8e0d; }
+        .ykc-summary:nth-child(4)::before { background: #7056d8; }
+        .ykc-flow-strip { display: grid; grid-template-columns: repeat(4, minmax(210px, 1fr)); gap: 12px; padding: 0 24px 22px; }
+        .ykc-flow-step { position: relative; border: 1px solid #e2e8f2; background: linear-gradient(180deg, #fff 0%, #fbfcff 100%); border-radius: 8px; padding: 15px 16px; display: grid; grid-template-columns: 36px 1fr; gap: 4px 12px; align-items: start; min-width: 0; min-height: 106px; box-shadow: 0 12px 24px rgba(13, 34, 112, .045); }
+        .ykc-flow-step::after { content: ""; position: absolute; left: 16px; right: 16px; bottom: 0; height: 3px; border-radius: 999px 999px 0 0; background: var(--df-primary); opacity: .55; }
+        .ykc-flow-no { width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; background: #eef3ff; color: var(--df-primary); font-weight: 900; font-size: 12px; grid-row: 1 / span 2; }
+        .ykc-flow-title { color: var(--df-text); font-size: 13px; font-weight: 900; line-height: 1.25; }
+        .ykc-flow-text { color: var(--df-muted); font-size: 12px; margin-top: 2px; line-height: 1.45; max-width: 34ch; }
+        .ykc-flow-step.is-done { border-color: #c9eadb; background: #f4fcf8; }
+        .ykc-flow-step.is-done::after { background: #1dbb7a; opacity: .9; }
+        .ykc-flow-step.is-done .ykc-flow-no { background: #1dbb7a; color: #fff; }
+        .ykc-flow-step.is-stopped { border-color: #f2c8c8; background: #fff7f7; }
+        .ykc-flow-step.is-stopped::after { background: #d42828; opacity: .9; }
+        .ykc-flow-step.is-stopped .ykc-flow-no { background: #d42828; color: #fff; }
+        .ykc-card { box-shadow: 0 10px 26px rgba(13, 34, 112, .045); }
+        .ykc-card-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; background: #fff; }
+        .ykc-card-title { display: flex; align-items: center; gap: 9px; }
+        .ykc-card-title::before { content: ""; width: 7px; height: 20px; border-radius: 999px; background: var(--df-primary); }
+        .ykc-grid .ykc-card:nth-child(2) .ykc-card-title::before { background: #1dbb7a; }
+        .ykc-item { background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%); }
+        .ykc-label { color: #6d7890; }
+        .ykc-value { font-weight: 650; line-height: 1.45; }
+        .ykc-check { background: #fff; }
+        .ykc-check .df-pill { justify-self: start; }
+        .ykc-form-tools { padding: 0 18px 14px; display: flex; flex-wrap: wrap; gap: 10px; }
+        .ykc-form-hint { border: 1px solid #dbe7ff; background: #f4f7ff; }
+        .ykc-upload { margin-top: 0; }
+        .ykc-picker-field { display: grid; grid-template-columns: 1fr 42px; gap: 8px; align-items: center; }
+        .ykc-picker-field input { min-width: 0; }
+        .ykc-picker-btn { width: 42px; height: 42px; border: 1.5px solid #dfe5ee; border-radius: 8px; background: #fff; color: var(--df-primary); display: grid; place-items: center; cursor: pointer; }
+        .ykc-picker-btn:hover { background: var(--df-primary-soft); border-color: var(--df-primary); }
+        .ykc-randevu-card { border: 1px solid #dbe7ff; background: linear-gradient(180deg, #fff 0%, #f6f8ff 100%); }
+        .ykc-randevu-card .ykc-card-title::before { background: #7056d8; }
+        .ykc-randevu-note { color: var(--df-muted); font-size: 12px; line-height: 1.5; padding: 0 18px 16px; }
         @@media (max-width: 1100px) {
             .ykc-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .ykc-grid { grid-template-columns: 1fr; }
             .ykc-form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .ykc-flow-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
         @@media (max-width: 720px) {
-            .ykc-summary-grid, .ykc-info, .ykc-form-grid, .ykc-upload, .ykc-check-grid { grid-template-columns: 1fr; }
+            .ykc-summary-grid, .ykc-info, .ykc-form-grid, .ykc-upload, .ykc-check-grid, .ykc-flow-strip { grid-template-columns: 1fr; }
             .ykc-actions, .df-actions { flex-direction: column; align-items: stretch; }
         }
     </style>
@@ -117,7 +185,7 @@
         <div class="df-alert df-alert-danger">@TempData["Hata"]</div>
     }
 
-    <section class="df-page-panel">
+    <section class="df-page-panel ykc-hero">
         <div class="df-panel-head">
             <div>
                 <h2 class="df-panel-title">Cihaz Değişim Talebi #@Model.Id</h2>
@@ -134,7 +202,7 @@
             <div class="ykc-summary"><div class="ykc-summary-label">Tesisat</div><div class="ykc-summary-value">@Deger(Model.TesisatNo)</div></div>
             @if (icOperasyonGorsun)
             {
-                <div class="ykc-summary"><div class="ykc-summary-label">Hedef</div><div class="ykc-summary-value">@Deger(Model.HedefUygulama)</div></div>
+                <div class="ykc-summary"><div class="ykc-summary-label">Hedef</div><div class="ykc-summary-value">@HedefYazi(Model.HedefUygulama)</div></div>
             }
             else
             {
@@ -142,6 +210,39 @@
             }
             <div class="ykc-summary"><div class="ykc-summary-label">Bölge / Ekip</div><div class="ykc-summary-value">@Deger(Model.Bolge) / @Deger(Model.AtananEkip)</div></div>
             <div class="ykc-summary"><div class="ykc-summary-label">Randevu</div><div class="ykc-summary-value">@Tarih(Model.RandevuTarihi) @Deger(Model.RandevuSaati)</div></div>
+        </div>
+        <div class="ykc-flow-strip">
+            <div class="ykc-flow-step @AkisClass(Model.Durum, YkcDurumDegerleri.TalepAlindi)">
+                <div class="ykc-flow-no">1</div>
+                <div><div class="ykc-flow-title">Talep Alındı</div><div class="ykc-flow-text">Firma cihazı seçer ve yeni cihaz bilgilerini girer.</div></div>
+            </div>
+            <div class="ykc-flow-step @AkisClass(Model.Durum, YkcDurumDegerleri.AtamaBekliyor)">
+                <div class="ykc-flow-no">2</div>
+                <div><div class="ykc-flow-title">İç Tesisat İncelemesi</div><div class="ykc-flow-text">Mühendis form ve cihaz karşılaştırmasını inceler.</div></div>
+            </div>
+            <div class="ykc-flow-step @AkisClass(Model.Durum, YkcDurumDegerleri.Atandi)">
+                <div class="ykc-flow-no">3</div>
+                <div><div class="ykc-flow-title">Randevu ve Ekip</div><div class="ykc-flow-text">Tarih, bölge ve ekip ataması yapılır.</div></div>
+            </div>
+            <div class="ykc-flow-step @AkisClass(Model.Durum, YkcDurumDegerleri.SahaIsleminde)">
+                <div class="ykc-flow-no">4</div>
+                <div><div class="ykc-flow-title">Saha Sonucu</div><div class="ykc-flow-text">Islak imzalı form yüklenir, işlem tamamlanır ya da reddedilir.</div></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="ykc-card ykc-randevu-card">
+        <div class="ykc-card-head"><div class="ykc-card-title">Randevu ve Saha Planı</div></div>
+        <div class="ykc-info">
+            <div class="ykc-item"><div class="ykc-label">Randevu Tarihi</div><div class="ykc-value">@Tarih(Model.RandevuTarihi)</div></div>
+            <div class="ykc-item"><div class="ykc-label">Randevu Saati</div><div class="ykc-value">@Deger(Model.RandevuSaati)</div></div>
+            <div class="ykc-item"><div class="ykc-label">Ekip</div><div class="ykc-value">@Deger(Model.AtananEkip)</div></div>
+            <div class="ykc-item"><div class="ykc-label">Bölge</div><div class="ykc-value">@Deger(Model.Bolge)</div></div>
+            <div class="ykc-item"><div class="ykc-label">Hedef Uygulama</div><div class="ykc-value">@HedefYazi(Model.HedefUygulama)</div></div>
+            <div class="ykc-item"><div class="ykc-label">Saha Durumu</div><div class="ykc-value">@DurumYazi(Model.Durum)</div></div>
+        </div>
+        <div class="ykc-randevu-note">
+            Randevu kaydedildiğinde bu alan ve /ykc/talepler listesindeki Randevu kolonu güncellenir. Saha sonucu adımı yetkili servisin değil, iç operasyon veya sahaya yönlendirilen ekibin işlemidir; ıslak imzalı form yüklenip talep tamamlanır ya da gerekçeyle reddedilir.
         </div>
     </section>
 
@@ -267,11 +368,17 @@
                         </div>
                         <div class="ykc-field">
                             <label>Randevu Tarihi</label>
-                            <input type="date" name="RandevuTarihi" value="@Model.RandevuTarihi?.ToString("yyyy-MM-dd")" required />
+                            <div class="ykc-picker-field">
+                                <input id="randevuTarihi" type="date" name="RandevuTarihi" value="@Model.RandevuTarihi?.ToString("yyyy-MM-dd")" required />
+                                <button type="button" class="ykc-picker-btn" data-picker="#randevuTarihi" aria-label="Takvimi aç"><i class="bi bi-calendar3"></i></button>
+                            </div>
                         </div>
                         <div class="ykc-field">
                             <label>Randevu Saati</label>
-                            <input name="RandevuSaati" value="@Model.RandevuSaati" placeholder="09:30" required />
+                            <div class="ykc-picker-field">
+                                <input id="randevuSaati" type="time" name="RandevuSaati" value="@Model.RandevuSaati" required />
+                                <button type="button" class="ykc-picker-btn" data-picker="#randevuSaati" aria-label="Saati seç"><i class="bi bi-clock"></i></button>
+                            </div>
                         </div>
                         <div class="ykc-field full">
                             <label>Açıklama</label>
@@ -325,10 +432,14 @@
         <section class="ykc-card">
             <div class="ykc-card-head"><div class="ykc-card-title">Form Dosyaları</div></div>
             <div class="ykc-info full">
-                <div class="ykc-item">
+                <div class="ykc-item ykc-form-hint">
                     <div class="ykc-label">FR265 Akışı</div>
-                    <div class="ykc-value">Sistem bu talepteki bilgilerle FR265 formunu doldurur. Firma formu önizleyip Word olarak indirir, imzalı halini bu alandan geri yükler.</div>
+                    <div class="ykc-value">@formYardimMetni</div>
                 </div>
+            </div>
+            <div class="ykc-form-tools">
+                <a class="df-btn df-btn-primary df-btn-sm" href="/ykc/fr265/onizle/@Model.Id" target="_blank">FR265 Önizle</a>
+                <a class="df-btn df-btn-success df-btn-sm" href="/ykc/fr265/indir/@Model.Id">Word İndir</a>
             </div>
             <form method="post" action="/ykc/form-yukle" enctype="multipart/form-data" class="ykc-upload">
                 @Html.AntiForgeryToken()
@@ -417,3 +528,25 @@
         </section>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('click', function (event) {
+            const button = event.target.closest('[data-picker]');
+            if (!button) {
+                return;
+            }
+
+            const input = document.querySelector(button.dataset.picker);
+            if (!input) {
+                return;
+            }
+
+            if (typeof input.showPicker === 'function') {
+                input.showPicker();
+            } else {
+                input.focus();
+            }
+        });
+    </script>
+}

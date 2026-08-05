@@ -65,6 +65,48 @@ namespace YetkiliServisGazAcma.Controllers
             return View("~/Views/Ykc/Talepler.cshtml", sonuc);
         }
 
+        [HttpGet("raporlar")]
+        public async Task<IActionResult> Raporlar(
+            string? tesisatNo,
+            string? firma,
+            string? il,
+            string? ilce,
+            string? bolge,
+            string? ekip,
+            string? marka,
+            string? hedefUygulama,
+            int? durum,
+            DateTime? bas,
+            DateTime? bit)
+        {
+            var kullanici = await _userManager.GetUserAsync(User);
+            if (kullanici == null)
+                return Redirect("/giris");
+
+            PanelViewBag(kullanici, "YkcRaporlar", "Cihaz Değişim Raporları", "Firma, ekip, tesisat ve tarih aralığına göre cihaz değişim süreci");
+
+            var filtre = new YkcTalepListeFiltre
+            {
+                TesisatNo = tesisatNo,
+                Firma = firma,
+                Il = il,
+                Ilce = ilce,
+                Bolge = bolge,
+                Ekip = ekip,
+                Marka = marka,
+                HedefUygulama = hedefUygulama,
+                Durum = durum,
+                BaslangicTarihi = bas,
+                BitisTarihi = bit,
+                Sayfa = 1,
+                SayfaBoyutu = 500
+            };
+
+            var sonuc = await _ykcApiClient.RaporAsync(kullanici, filtre) ?? new YkcRaporSonuc();
+            ViewBag.Filtre = filtre;
+            return View("~/Views/Ykc/Raporlar.cshtml", sonuc);
+        }
+
         [HttpGet("yeni")]
         public async Task<IActionResult> Yeni()
         {

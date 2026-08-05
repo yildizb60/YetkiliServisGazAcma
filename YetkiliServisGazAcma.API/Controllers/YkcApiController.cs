@@ -133,6 +133,21 @@ namespace YetkiliServisGazAcma.API.Controllers
             return Ok(sonuc);
         }
 
+        [HttpPost("talepler/rapor")]
+        public async Task<IActionResult> TaleplerRapor([FromBody] YkcTalepListeFiltre? filtre)
+        {
+            var kullanici = await AktifKullaniciAsync();
+            if (kullanici == null)
+                return Unauthorized(new { basarili = false, mesaj = "Oturum bulunamadı." });
+
+            var sonuc = await _ykcTalepService.RaporAsync(
+                filtre ?? new YkcTalepListeFiltre(),
+                kullanici,
+                await GenelYetkiliMiAsync(kullanici));
+
+            return Ok(sonuc);
+        }
+
         [HttpPost("talepler/fr265-word")]
         public async Task<IActionResult> Fr265Word([FromBody] YkcTalepGetirIstek? istek)
         {

@@ -72,33 +72,52 @@
             _ => "df-pill-warning"
         };
     }
+
+    private static string HedefYazi(string? hedef)
+    {
+        return hedef switch
+        {
+            YkcHedefUygulamaDegerleri.YonetimPaneli => "Yönetim Paneli",
+            YkcHedefUygulamaDegerleri.DogalgazMobileApp => "Doğalgaz Mobile App",
+            YkcHedefUygulamaDegerleri.Crm187 => "CRM187",
+            _ => Deger(hedef)
+        };
+    }
 }
 
 @section Styles {
     <style>
         .ykc-stack { display: grid; gap: 16px; }
-        .ykc-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; padding: 0 24px 20px; }
-        .ykc-metric { background: #f8fafc; border: 1px solid #edf2f7; border-radius: 8px; padding: 14px 16px; }
-        .ykc-metric-label { color: #697386; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
-        .ykc-metric-value { color: #172033; font-size: 24px; font-weight: 900; line-height: 1; margin-top: 8px; }
-        .ykc-flow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
-        .ykc-flow-step { border: 1px solid var(--df-border); background: var(--df-surface); border-radius: 8px; padding: 12px; display: grid; gap: 6px; }
-        .ykc-flow-no { width: 26px; height: 26px; border-radius: 999px; display: grid; place-items: center; background: var(--df-primary-soft); color: var(--df-primary); font-weight: 900; font-size: 12px; }
-        .ykc-flow-title { color: var(--df-text); font-size: 13px; font-weight: 850; }
-        .ykc-flow-text { color: var(--df-muted); font-size: 12px; line-height: 1.45; }
-        .filtre-kart { background: #fff; border-radius: 12px; border: 1px solid #eee; padding: 20px 24px; }
-        .filtre-baslik { font-size: 14px; font-weight: 800; color: #333; margin-bottom: 16px; border-bottom: 1px solid #f0f0ee; padding-bottom: 12px; }
+        .ykc-list-hero { overflow: hidden; border-color: #dfe6f2; }
+        .ykc-list-hero .df-panel-head { background: linear-gradient(180deg, #ffffff 0%, #f7f9fd 100%); align-items: flex-start; }
+        .ykc-list-hero .df-panel-title { font-size: 20px; }
+        .ykc-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; padding: 4px 24px 22px; }
+        .ykc-metric { position: relative; background: #fff; border: 1px solid #e5ebf4; border-radius: 8px; padding: 15px 17px; min-width: 0; box-shadow: 0 10px 24px rgba(13, 34, 112, .045); }
+        .ykc-metric::before { content: ""; position: absolute; left: 0; top: 12px; bottom: 12px; width: 3px; border-radius: 999px; background: var(--df-primary); }
+        .ykc-metric:nth-child(2)::before { background: #dc8e0d; }
+        .ykc-metric:nth-child(3)::before { background: #1dbb7a; }
+        .ykc-metric:nth-child(4)::before { background: #7056d8; }
+        .ykc-metric-label { color: #6d7890; font-size: 11px; font-weight: 850; text-transform: uppercase; letter-spacing: .04em; }
+        .ykc-metric-value { color: #172033; font-size: 25px; font-weight: 900; line-height: 1; margin-top: 9px; }
+        .ykc-flow { display: grid; grid-template-columns: repeat(4, minmax(210px, 1fr)); gap: 12px; }
+        .ykc-flow-step { position: relative; border: 1px solid #e2e8f2; background: linear-gradient(180deg, #fff 0%, #fbfcff 100%); border-radius: 8px; padding: 15px 16px; display: grid; grid-template-columns: 36px 1fr; grid-template-areas: "no title" "no text"; gap: 4px 12px; align-items: start; min-width: 0; min-height: 108px; box-shadow: 0 12px 24px rgba(13, 34, 112, .045); }
+        .ykc-flow-step::after { content: ""; position: absolute; left: 16px; right: 16px; bottom: 0; height: 3px; border-radius: 999px 999px 0 0; background: var(--df-primary); opacity: .75; }
+        .ykc-flow-no { grid-area: no; width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; background: var(--df-primary-soft); color: var(--df-primary); font-weight: 900; font-size: 12px; }
+        .ykc-flow-title { grid-area: title; color: var(--df-text); font-size: 13px; font-weight: 900; line-height: 1.25; }
+        .ykc-flow-text { grid-area: text; color: var(--df-muted); font-size: 12px; line-height: 1.45; max-width: 32ch; }
+        .filtre-kart { background: #fff; border-radius: 8px; border: 1px solid var(--df-border); padding: 20px 24px; box-shadow: 0 10px 26px rgba(13, 34, 112, .045); }
+        .filtre-baslik { font-size: 14px; font-weight: 900; color: var(--df-text); margin-bottom: 16px; border-bottom: 1px solid var(--df-border); padding-bottom: 12px; }
         .filtre-grid { display: grid; grid-template-columns: repeat(6, minmax(130px, 1fr)); gap: 14px; align-items: end; }
         .filtre-alan { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-        .filtre-alan label { font-size: 11px; color: #555; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
-        .filtre-alan input, .filtre-alan select { padding: 10px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 13px; outline: none; color: #333; background: #fafafa; width: 100%; min-width: 0; }
-        .filtre-alan input:focus, .filtre-alan select:focus { border-color: #4CAF7D; background: #fff; }
+        .filtre-alan label { font-size: 11px; color: #68758c; font-weight: 850; text-transform: uppercase; letter-spacing: .04em; }
+        .filtre-alan input, .filtre-alan select { padding: 10px 12px; border: 1.5px solid #dfe5ee; border-radius: 8px; font-size: 13px; outline: none; color: var(--df-text); background: #fafbfc; width: 100%; min-width: 0; }
+        .filtre-alan input:focus, .filtre-alan select:focus { border-color: var(--df-primary); background: #fff; box-shadow: 0 0 0 3px rgba(46, 78, 200, .08); }
         .filtre-butonlar { display: flex; gap: 10px; margin-top: 16px; }
         .ykc-table-head, .ykc-table-row { display: grid; grid-template-columns: .85fr .9fr .9fr 1.2fr 1.2fr .95fr .75fr; align-items: center; gap: 10px; }
         .ykc-table-head.ykc-table-internal, .ykc-table-row.ykc-table-internal { grid-template-columns: .75fr 1fr .8fr .85fr 1.05fr 1.05fr .8fr .9fr .75fr; }
         .ykc-table-head { padding: 12px 20px; background: #f4f7fb; color: #566280; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--df-border); }
-        .ykc-table-row { padding: 14px 20px; border-top: 1px solid var(--df-border); color: var(--df-text-soft); font-size: 13px; }
-        .ykc-table-row:hover { background: var(--df-neutral-50); }
+        .ykc-table-row { margin: 10px 12px; padding: 14px 14px; border: 1px solid #e8edf5; border-radius: 8px; color: var(--df-text-soft); font-size: 13px; background: #fff; box-shadow: 0 8px 18px rgba(13, 34, 112, .035); }
+        .ykc-table-row:hover { border-color: #d6def0; background: #fbfcff; }
         .ykc-code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; color: var(--df-primary); font-weight: 850; }
         .ykc-muted { color: var(--df-muted); font-size: 12px; }
         .ykc-empty { padding: 42px; text-align: center; color: var(--df-muted); }
@@ -130,7 +149,7 @@
         <div class="df-alert df-alert-danger">@TempData["Hata"]</div>
     }
 
-    <section class="df-page-panel">
+    <section class="df-page-panel ykc-list-hero">
         <div class="df-panel-head">
             <div>
                 <h2 class="df-panel-title">@(yetkiliServisMi ? "Cihaz Değişim Talepleri" : "İç Tesisat Cihaz Değişim Kuyruğu")</h2>
@@ -308,7 +327,7 @@
                     <div data-label="Yeni Cihaz" class="ykc-device" title="@talep.YeniCihaz">@Deger(talep.YeniCihaz)</div>
                     @if (icOperasyonGorsun)
                     {
-                        <div data-label="Hedef">@Deger(talep.HedefUygulama)</div>
+                        <div data-label="Hedef">@HedefYazi(talep.HedefUygulama)</div>
                     }
                     <div data-label="Durum"><span class="df-pill @DurumClass(talep.Durum)">@DurumYazi(talep.Durum)</span></div>
                     <div data-label="İşlem"><a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/detay/@talep.Id">Görüntüle</a></div>

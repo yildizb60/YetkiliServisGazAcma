@@ -1,0 +1,334 @@
+@model YkcRaporSonuc
+@{
+    Layout = "~/Views/Shared/_PanelLayout.cshtml";
+    var filtre = ViewBag.Filtre as YkcTalepListeFiltre ?? new YkcTalepListeFiltre();
+    var yetkiliServisMi = User.IsInRole("YetkiliServis");
+    var icOperasyonGorsun = !yetkiliServisMi;
+    var listelenen = Model.Kayitlar.Count;
+}
+
+@functions {
+    private static string Deger(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+    private static string? Secili(bool kosul) => kosul ? "selected" : null;
+
+    private static int DurumToplam(IEnumerable<YkcRaporDurumOzetDto> ozetler, params int[] durumlar)
+    {
+        return ozetler.Where(x => durumlar.Contains(x.Durum)).Sum(x => x.Sayi);
+    }
+
+    private static string RandevuYazi(DateTime? tarih, string? saat)
+    {
+        if (!tarih.HasValue && string.IsNullOrWhiteSpace(saat))
+            return "-";
+
+        return string.Join(" ", new[]
+        {
+            tarih?.ToString("dd.MM.yyyy"),
+            string.IsNullOrWhiteSpace(saat) ? null : saat
+        }.Where(x => !string.IsNullOrWhiteSpace(x)));
+    }
+
+    private static string DurumYazi(int durum)
+    {
+        return durum switch
+        {
+            YkcDurumDegerleri.TalepAlindi => "Beklemede",
+            YkcDurumDegerleri.AtamaBekliyor => "İncelemede",
+            YkcDurumDegerleri.Atandi => "Randevu Verildi",
+            YkcDurumDegerleri.SahaIsleminde => "Saha İşleminde",
+            YkcDurumDegerleri.Reddedildi => "Reddedildi",
+            YkcDurumDegerleri.Tamamlandi => "Tamamlandı",
+            YkcDurumDegerleri.Iptal => "İptal",
+            _ => "Bilinmiyor"
+        };
+    }
+
+    private static string DurumClass(int durum)
+    {
+        return durum switch
+        {
+            YkcDurumDegerleri.Tamamlandi => "df-pill-success",
+            YkcDurumDegerleri.Reddedildi or YkcDurumDegerleri.Iptal => "df-pill-danger",
+            YkcDurumDegerleri.Atandi or YkcDurumDegerleri.SahaIsleminde => "df-pill-primary",
+            _ => "df-pill-warning"
+        };
+    }
+
+    private static string HedefYazi(string? hedef)
+    {
+        return hedef switch
+        {
+            YkcHedefUygulamaDegerleri.YonetimPaneli => "Yönetim Paneli",
+            YkcHedefUygulamaDegerleri.DogalgazMobileApp => "Doğalgaz Mobile App",
+            YkcHedefUygulamaDegerleri.Crm187 => "CRM187",
+            _ => Deger(hedef)
+        };
+    }
+}
+
+@section Styles {
+    <style>
+        .ykc-report-stack { display: grid; gap: 16px; }
+        .ykc-report-hero { overflow: hidden; border-color: #dfe6f2; }
+        .ykc-report-hero .df-panel-head { align-items: flex-start; background: linear-gradient(180deg, #fff 0%, #f7f9fd 100%); }
+        .ykc-report-hero .df-panel-title { font-size: 20px; }
+        .ykc-report-metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; padding: 4px 24px 22px; }
+        .ykc-report-metric { position: relative; min-width: 0; border: 1px solid #e5ebf4; border-radius: 8px; background: #fff; padding: 15px 17px; box-shadow: 0 10px 24px rgba(13, 34, 112, .045); }
+        .ykc-report-metric::before { content: ""; position: absolute; left: 0; top: 12px; bottom: 12px; width: 3px; border-radius: 999px; background: var(--df-primary); }
+        .ykc-report-metric:nth-child(2)::before { background: #dc8e0d; }
+        .ykc-report-metric:nth-child(3)::before { background: #7056d8; }
+        .ykc-report-metric:nth-child(4)::before { background: #1dbb7a; }
+        .ykc-report-metric:nth-child(5)::before { background: #d42828; }
+        .ykc-report-label { color: #6d7890; font-size: 11px; font-weight: 850; text-transform: uppercase; letter-spacing: .04em; }
+        .ykc-report-value { color: #172033; font-size: 25px; font-weight: 900; line-height: 1; margin-top: 9px; }
+        .filtre-kart { background: #fff; border-radius: 8px; border: 1px solid var(--df-border); padding: 20px 24px; box-shadow: 0 10px 26px rgba(13, 34, 112, .045); }
+        .filtre-baslik { font-size: 14px; font-weight: 900; color: var(--df-text); margin-bottom: 16px; border-bottom: 1px solid var(--df-border); padding-bottom: 12px; }
+        .filtre-grid { display: grid; grid-template-columns: repeat(6, minmax(135px, 1fr)); gap: 14px; align-items: end; }
+        .filtre-alan { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+        .filtre-alan label { font-size: 11px; color: #68758c; font-weight: 850; text-transform: uppercase; letter-spacing: .04em; }
+        .filtre-alan input, .filtre-alan select { padding: 10px 12px; border: 1.5px solid #dfe5ee; border-radius: 8px; font-size: 13px; outline: none; color: var(--df-text); background: #fafbfc; width: 100%; min-width: 0; }
+        .filtre-alan input:focus, .filtre-alan select:focus { border-color: var(--df-primary); background: #fff; box-shadow: 0 0 0 3px rgba(46, 78, 200, .08); }
+        .filtre-butonlar { display: flex; gap: 10px; margin-top: 16px; }
+        .ykc-report-grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 16px; }
+        .ykc-summary-card { background: #fff; border: 1px solid var(--df-border); border-radius: 8px; box-shadow: 0 10px 26px rgba(13, 34, 112, .045); overflow: hidden; }
+        .ykc-summary-head { padding: 15px 18px; border-bottom: 1px solid var(--df-border); color: var(--df-text); font-size: 14px; font-weight: 900; }
+        .ykc-summary-list { display: grid; gap: 8px; padding: 14px 18px; }
+        .ykc-summary-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; border: 1px solid #edf2f7; background: #fbfcfe; border-radius: 8px; padding: 10px 12px; color: var(--df-text-soft); font-size: 13px; }
+        .ykc-report-head, .ykc-report-row { display: grid; grid-template-columns: .6fr 1fr 1fr .85fr .85fr 1.25fr 1.15fr 1fr .95fr .85fr .75fr; gap: 10px; align-items: center; }
+        .ykc-report-head { padding: 12px 18px; background: #f4f7fb; color: #566280; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--df-border); }
+        .ykc-report-row { margin: 10px 12px; padding: 14px; border: 1px solid #e8edf5; border-radius: 8px; background: #fff; color: var(--df-text-soft); font-size: 13px; box-shadow: 0 8px 18px rgba(13, 34, 112, .035); }
+        .ykc-report-row:hover { border-color: #d6def0; background: #fbfcff; }
+        .ykc-code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; color: var(--df-primary); font-weight: 850; }
+        .ykc-muted { color: var(--df-muted); font-size: 12px; margin-top: 3px; }
+        .ykc-device { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ykc-file-pills { display: flex; flex-wrap: wrap; gap: 5px; }
+        .ykc-empty { padding: 42px; text-align: center; color: var(--df-muted); }
+        .ykc-limit-note { color: var(--df-muted); font-size: 12px; padding: 0 18px 15px; }
+        @@media (max-width: 1320px) {
+            .filtre-grid { grid-template-columns: repeat(3, minmax(160px, 1fr)); }
+            .ykc-report-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+            .ykc-report-grid { grid-template-columns: 1fr; }
+            .ykc-report-head { display: none; }
+            .ykc-report-row { grid-template-columns: 1fr; align-items: stretch; }
+            .ykc-report-row > div::before { content: attr(data-label); display: block; color: var(--df-muted); font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 3px; }
+        }
+        @@media (max-width: 760px) {
+            .filtre-grid, .ykc-report-metrics { grid-template-columns: 1fr; }
+            .filtre-butonlar, .df-actions { flex-direction: column; align-items: stretch; }
+        }
+    </style>
+}
+
+<div class="ykc-report-stack">
+    <section class="df-page-panel ykc-report-hero">
+        <div class="df-panel-head">
+            <div>
+                <h2 class="df-panel-title">Cihaz Değişim Raporları</h2>
+                <div class="df-panel-subtitle">Firma, ekip, tesisat, marka ve tarih aralığına göre cihaz değişim kayıtlarını izleyin.</div>
+            </div>
+            <div class="df-actions">
+                <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/talepler">Talep Listesi</a>
+            </div>
+        </div>
+        <div class="ykc-report-metrics">
+            <div class="ykc-report-metric"><div class="ykc-report-label">Toplam</div><div class="ykc-report-value">@Model.Toplam</div></div>
+            <div class="ykc-report-metric"><div class="ykc-report-label">İncelemede</div><div class="ykc-report-value">@DurumToplam(Model.DurumOzetleri, YkcDurumDegerleri.TalepAlindi, YkcDurumDegerleri.AtamaBekliyor)</div></div>
+            <div class="ykc-report-metric"><div class="ykc-report-label">Randevu / Saha</div><div class="ykc-report-value">@DurumToplam(Model.DurumOzetleri, YkcDurumDegerleri.Atandi, YkcDurumDegerleri.SahaIsleminde)</div></div>
+            <div class="ykc-report-metric"><div class="ykc-report-label">Tamamlanan</div><div class="ykc-report-value">@DurumToplam(Model.DurumOzetleri, YkcDurumDegerleri.Tamamlandi)</div></div>
+            <div class="ykc-report-metric"><div class="ykc-report-label">Red / İptal</div><div class="ykc-report-value">@DurumToplam(Model.DurumOzetleri, YkcDurumDegerleri.Reddedildi, YkcDurumDegerleri.Iptal)</div></div>
+        </div>
+    </section>
+
+    <section class="filtre-kart">
+        <div class="filtre-baslik">Filtrele</div>
+        <form method="get" action="/ykc/raporlar">
+            <div class="filtre-grid">
+                <div class="filtre-alan">
+                    <label>Tesisat</label>
+                    <input type="text" name="tesisatNo" value="@filtre.TesisatNo" placeholder="Tesisat no" />
+                </div>
+                @if (icOperasyonGorsun)
+                {
+                    <div class="filtre-alan">
+                        <label>Firma</label>
+                        <input type="text" name="firma" value="@filtre.Firma" placeholder="Firma adı" />
+                    </div>
+                    <div class="filtre-alan">
+                        <label>Ekip</label>
+                        <input type="text" name="ekip" value="@filtre.Ekip" placeholder="Ekip adı" />
+                    </div>
+                }
+                <div class="filtre-alan">
+                    <label>Marka</label>
+                    <input type="text" name="marka" value="@filtre.Marka" placeholder="Marka" />
+                </div>
+                <div class="filtre-alan">
+                    <label>İl</label>
+                    <input type="text" name="il" value="@filtre.Il" placeholder="İl" />
+                </div>
+                <div class="filtre-alan">
+                    <label>İlçe</label>
+                    <input type="text" name="ilce" value="@filtre.Ilce" placeholder="İlçe" />
+                </div>
+                <div class="filtre-alan">
+                    <label>Bölge</label>
+                    <input type="text" name="bolge" value="@filtre.Bolge" placeholder="Bölge" />
+                </div>
+                @if (icOperasyonGorsun)
+                {
+                    <div class="filtre-alan">
+                        <label>Hedef</label>
+                        <select name="hedefUygulama">
+                            <option value="">Tümü</option>
+                            <option value="@YkcHedefUygulamaDegerleri.YonetimPaneli" selected="@Secili(filtre.HedefUygulama == YkcHedefUygulamaDegerleri.YonetimPaneli)">Yönetim Paneli</option>
+                            <option value="@YkcHedefUygulamaDegerleri.DogalgazMobileApp" selected="@Secili(filtre.HedefUygulama == YkcHedefUygulamaDegerleri.DogalgazMobileApp)">Doğalgaz Mobile App</option>
+                            <option value="@YkcHedefUygulamaDegerleri.Crm187" selected="@Secili(filtre.HedefUygulama == YkcHedefUygulamaDegerleri.Crm187)">CRM187</option>
+                        </select>
+                    </div>
+                }
+                <div class="filtre-alan">
+                    <label>Durum</label>
+                    <select name="durum">
+                        <option value="">Tümü</option>
+                        @foreach (var item in new[] {
+                            new { Id = YkcDurumDegerleri.TalepAlindi, Ad = "Beklemede" },
+                            new { Id = YkcDurumDegerleri.AtamaBekliyor, Ad = "İç Tesisat İncelemesinde" },
+                            new { Id = YkcDurumDegerleri.Atandi, Ad = "Randevu Verildi" },
+                            new { Id = YkcDurumDegerleri.SahaIsleminde, Ad = "Saha İşleminde" },
+                            new { Id = YkcDurumDegerleri.Reddedildi, Ad = "Reddedildi" },
+                            new { Id = YkcDurumDegerleri.Tamamlandi, Ad = "Tamamlandı" },
+                            new { Id = YkcDurumDegerleri.Iptal, Ad = "İptal" }
+                        })
+                        {
+                            <option value="@item.Id" selected="@Secili(filtre.Durum == item.Id)">@item.Ad</option>
+                        }
+                    </select>
+                </div>
+                <div class="filtre-alan">
+                    <label>Başlangıç</label>
+                    <input type="date" name="bas" value="@filtre.BaslangicTarihi?.ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="filtre-alan">
+                    <label>Bitiş</label>
+                    <input type="date" name="bit" value="@filtre.BitisTarihi?.ToString("yyyy-MM-dd")" />
+                </div>
+            </div>
+            <div class="filtre-butonlar">
+                <button class="df-btn df-btn-primary" type="submit">Raporla</button>
+                <a class="df-btn df-btn-secondary" href="/ykc/raporlar">Temizle</a>
+            </div>
+        </form>
+    </section>
+
+    <div class="ykc-report-grid">
+        <section class="ykc-summary-card">
+            <div class="ykc-summary-head">Durum Dağılımı</div>
+            <div class="ykc-summary-list">
+                @foreach (var durum in Model.DurumOzetleri.OrderBy(x => x.Durum))
+                {
+                    <div class="ykc-summary-row">
+                        <span>@DurumYazi(durum.Durum)</span>
+                        <span class="df-pill @DurumClass(durum.Durum)">@durum.Sayi</span>
+                    </div>
+                }
+                @if (!Model.DurumOzetleri.Any())
+                {
+                    <div class="ykc-empty">Veri bulunamadı.</div>
+                }
+            </div>
+        </section>
+
+        <section class="ykc-summary-card">
+            <div class="ykc-summary-head">Ekip ve Hedef Özeti</div>
+            <div class="ykc-summary-list">
+                @foreach (var hedef in Model.HedefOzetleri.OrderByDescending(x => x.Sayi))
+                {
+                    <div class="ykc-summary-row">
+                        <span>@HedefYazi(hedef.Ad)</span>
+                        <strong>@hedef.Sayi</strong>
+                    </div>
+                }
+                @foreach (var ekip in Model.EkipOzetleri)
+                {
+                    <div class="ykc-summary-row">
+                        <span>@Deger(ekip.Ad)</span>
+                        <strong>@ekip.Sayi</strong>
+                    </div>
+                }
+                @if (!Model.HedefOzetleri.Any() && !Model.EkipOzetleri.Any())
+                {
+                    <div class="ykc-empty">Veri bulunamadı.</div>
+                }
+            </div>
+        </section>
+    </div>
+
+    <section class="section">
+        <div class="section-head">
+            <div class="section-title">Cihaz Değişim Kayıtları</div>
+            <span class="section-sayi">@listelenen / @Model.Toplam kayıt</span>
+        </div>
+        <div class="ykc-limit-note">Rapor ekranında filtreye uyan ilk @Model.KayitLimiti kayıt listelenir. Daha dar sonuç için tarih, firma, ekip veya tesisat filtresi kullanabilirsiniz.</div>
+        <div class="ykc-report-head">
+            <div>Form ID</div>
+            <div>Firma</div>
+            <div>Müşteri</div>
+            <div>Tesisat</div>
+            <div>Proje / Sayaç</div>
+            <div>Cihaz</div>
+            <div>Marka / Model</div>
+            <div>Kayıt</div>
+            <div>Randevu / Ekip</div>
+            <div>Durum</div>
+            <div>İşlem</div>
+        </div>
+        @if (!Model.Kayitlar.Any())
+        {
+            <div class="ykc-empty">Filtreye uygun cihaz değişim kaydı bulunamadı.</div>
+        }
+        else
+        {
+            foreach (var kayit in Model.Kayitlar)
+            {
+                <div class="ykc-report-row">
+                    <div data-label="Form ID"><span class="ykc-code">#@kayit.Id</span></div>
+                    <div data-label="Firma">
+                        @Deger(kayit.FirmaAdi)
+                        <div class="ykc-muted">@Deger(kayit.SirketAdi)</div>
+                    </div>
+                    <div data-label="Müşteri">@Deger(kayit.MusteriAdi)</div>
+                    <div data-label="Tesisat">
+                        <span class="ykc-code">@Deger(kayit.TesisatNo)</span>
+                    </div>
+                    <div data-label="Proje / Sayaç">
+                        @Deger(kayit.ProjeNo)
+                        <div class="ykc-muted">@Deger(kayit.SayacNo)</div>
+                    </div>
+                    <div data-label="Cihaz" class="ykc-device" title="@($"{kayit.EskiCihazTipi} -> {kayit.YeniCihazTipi}")">
+                        @Deger(kayit.EskiCihazTipi) → @Deger(kayit.YeniCihazTipi)
+                        <div class="ykc-muted">@Deger(kayit.YeniKapasite)</div>
+                    </div>
+                    <div data-label="Marka / Model" class="ykc-device" title="@($"{kayit.EskiMarka} -> {kayit.YeniMarka} / {kayit.YeniModel}")">
+                        @Deger(kayit.EskiMarka) → @Deger(kayit.YeniMarka)
+                        <div class="ykc-muted">@Deger(kayit.YeniModel)</div>
+                    </div>
+                    <div data-label="Kayıt">@kayit.TalepTarihi.ToString("dd.MM.yyyy HH:mm")</div>
+                    <div data-label="Randevu / Ekip">
+                        @RandevuYazi(kayit.RandevuTarihi, kayit.RandevuSaati)
+                        <div class="ykc-muted">@Deger(kayit.AtananEkip) / @Deger(kayit.Bolge)</div>
+                    </div>
+                    <div data-label="Durum">
+                        <span class="df-pill @DurumClass(kayit.Durum)">@DurumYazi(kayit.Durum)</span>
+                        <div class="ykc-file-pills" style="margin-top:6px;">
+                            <span class="df-pill @(kayit.FirmaFormuVar ? "df-pill-success" : "df-pill-warning")">Firma Formu</span>
+                            <span class="df-pill @(kayit.SahaFormuVar ? "df-pill-success" : "df-pill-warning")">Saha Formu</span>
+                        </div>
+                    </div>
+                    <div data-label="İşlem">
+                        <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/detay/@kayit.Id">Detay</a>
+                    </div>
+                </div>
+            }
+        }
+    </section>
+</div>

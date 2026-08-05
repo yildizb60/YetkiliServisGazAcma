@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Microsoft.Extensions.Options;
 using YetkiliServisGazAcma.Entities;
 
@@ -31,6 +32,15 @@ namespace YetkiliServisGazAcma.Business.Services
                 "api/ykc/talepler/liste",
                 filtre,
                 "Cihaz değişim talep listesi");
+        }
+
+        public Task<YkcRaporSonuc?> RaporAsync(AppKullanici kullanici, YkcTalepListeFiltre filtre)
+        {
+            return PostAsync<YkcTalepListeFiltre, YkcRaporSonuc>(
+                kullanici,
+                "api/ykc/talepler/rapor",
+                filtre,
+                "Cihaz değişim raporu");
         }
 
         public Task<YkcTalepListeSonuc?> DogalgazMobileTaleplerAsync(AppKullanici kullanici, YkcTalepListeFiltre filtre)
@@ -187,7 +197,12 @@ namespace YetkiliServisGazAcma.Business.Services
                 using var response = await _httpClient.SendAsync(request);
                 if (!response.IsSuccessStatusCode)
                 {
-                    _logger.LogWarning("{Operasyon} API cagrisinda basarisiz yanit dondu. Url: {Url}, StatusCode: {StatusCode}", operasyon, url, response.StatusCode);
+                    var hataCevabi = await TryReadResponseAsync<TResponse>(response);
+                    if (hataCevabi != null)
+                        return hataCevabi;
+
+                    var hataMetni = await SafeReadBodyAsync(response);
+                    _logger.LogWarning("{Operasyon} API cagrisinda basarisiz yanit dondu. Url: {Url}, StatusCode: {StatusCode}, Body: {Body}", operasyon, url, response.StatusCode, hataMetni);
                     ApiClientFallback.EnsureAllowed(_options, operasyon);
                     return default;
                 }
@@ -243,6 +258,37 @@ namespace YetkiliServisGazAcma.Business.Services
                 _logger.LogWarning(ex, "{Operasyon} API cagrisina ulasilamadi. Url: {Url}", operasyon, url);
                 ApiClientFallback.EnsureAllowed(_options, operasyon);
                 return default;
+            }
+        }
+
+        private static async Task<TResponse?> TryReadResponseAsync<TResponse>(HttpResponseMessage response)
+        {
+            try
+            {
+                if (response.Content.Headers.ContentLength == 0)
+                    return default;
+
+                return await response.Content.ReadFromJsonAsync<TResponse>();
+            }
+            catch (JsonException)
+            {
+                return default;
+            }
+            catch (NotSupportedException)
+            {
+                return default;
+            }
+        }
+
+        private static async Task<string?> SafeReadBodyAsync(HttpResponseMessage response)
+        {
+            try
+            {
+                return await response.Content.ReadAsStringAsync();
+            }
+            catch
+            {
+                return null;
             }
         }
     }

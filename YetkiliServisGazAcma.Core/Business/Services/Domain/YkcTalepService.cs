@@ -19,40 +19,7 @@ namespace YetkiliServisGazAcma.Business.Services
             bool genelYetkili)
         {
             var query = TalepQuery();
-            query = YetkiKapsamiUygula(query, kullanici, genelYetkili);
-
-            if (filtre.SirketId.HasValue && genelYetkili)
-                query = query.Where(x => x.SirketId == filtre.SirketId.Value);
-
-            if (filtre.FirmaId.HasValue && genelYetkili)
-                query = query.Where(x => x.FirmaId == filtre.FirmaId.Value);
-
-            if (!string.IsNullOrWhiteSpace(filtre.TesisatNo))
-                query = query.Where(x => x.TesisatNo != null && x.TesisatNo.Contains(filtre.TesisatNo.Trim()));
-
-            if (!string.IsNullOrWhiteSpace(filtre.Firma))
-                query = query.Where(x => x.Firma != null && x.Firma.FirmaAdi != null && x.Firma.FirmaAdi.Contains(filtre.Firma.Trim()));
-
-            if (!string.IsNullOrWhiteSpace(filtre.Il))
-                query = query.Where(x => x.Il != null && x.Il.Contains(filtre.Il.Trim()));
-
-            if (!string.IsNullOrWhiteSpace(filtre.Ilce))
-                query = query.Where(x => x.Ilce != null && x.Ilce.Contains(filtre.Ilce.Trim()));
-
-            if (!string.IsNullOrWhiteSpace(filtre.Bolge))
-                query = query.Where(x => x.Bolge != null && x.Bolge.Contains(filtre.Bolge.Trim()));
-
-            if (!string.IsNullOrWhiteSpace(filtre.HedefUygulama))
-                query = query.Where(x => x.HedefUygulama == filtre.HedefUygulama);
-
-            if (filtre.Durum.HasValue)
-                query = query.Where(x => x.Durum == filtre.Durum.Value);
-
-            if (filtre.BaslangicTarihi.HasValue)
-                query = query.Where(x => x.TalepTarihi >= filtre.BaslangicTarihi.Value.Date);
-
-            if (filtre.BitisTarihi.HasValue)
-                query = query.Where(x => x.TalepTarihi < filtre.BitisTarihi.Value.Date.AddDays(1));
+            query = FiltreleriUygula(query, filtre, kullanici, genelYetkili);
 
             var toplam = await query.CountAsync();
             var sayfa = Math.Max(filtre.Sayfa, 1);
@@ -71,6 +38,58 @@ namespace YetkiliServisGazAcma.Business.Services
                 Sayfa = sayfa,
                 SayfaBoyutu = sayfaBoyutu,
                 Talepler = talepler.Select(YkcTalepDto.FromEntity).ToList()
+            };
+        }
+
+        public async Task<YkcRaporSonuc> RaporAsync(
+            YkcTalepListeFiltre filtre,
+            AppKullanici kullanici,
+            bool genelYetkili)
+        {
+            var query = FiltreleriUygula(TalepQuery(), filtre, kullanici, genelYetkili);
+
+            var toplam = await query.CountAsync();
+            var durumOzetleri = await query
+                .GroupBy(x => x.Durum)
+                .Select(x => new YkcRaporDurumOzetDto { Durum = x.Key, Sayi = x.Count() })
+                .ToListAsync();
+
+            var hedefOzetleri = await query
+                .GroupBy(x => x.HedefUygulama ?? "")
+                .Select(x => new YkcRaporMetinOzetDto { Ad = x.Key, Sayi = x.Count() })
+                .ToListAsync();
+
+            var ekipOzetleri = await query
+                .Where(x => x.AtananEkip != null && x.AtananEkip != "")
+                .GroupBy(x => x.AtananEkip!)
+                .Select(x => new YkcRaporMetinOzetDto { Ad = x.Key, Sayi = x.Count() })
+                .OrderByDescending(x => x.Sayi)
+                .Take(8)
+                .ToListAsync();
+
+            var firmaOzetleri = await query
+                .Where(x => x.Firma != null && x.Firma.FirmaAdi != null)
+                .GroupBy(x => x.Firma!.FirmaAdi!)
+                .Select(x => new YkcRaporMetinOzetDto { Ad = x.Key, Sayi = x.Count() })
+                .OrderByDescending(x => x.Sayi)
+                .Take(8)
+                .ToListAsync();
+
+            var kayitlar = await query
+                .OrderByDescending(x => x.TalepTarihi)
+                .ThenByDescending(x => x.Id)
+                .Take(500)
+                .ToListAsync();
+
+            return new YkcRaporSonuc
+            {
+                Toplam = toplam,
+                KayitLimiti = 500,
+                DurumOzetleri = durumOzetleri,
+                HedefOzetleri = hedefOzetleri,
+                EkipOzetleri = ekipOzetleri,
+                FirmaOzetleri = firmaOzetleri,
+                Kayitlar = kayitlar.Select(YkcRaporKayitDto.FromEntity).ToList()
             };
         }
 
@@ -254,6 +273,9 @@ namespace YetkiliServisGazAcma.Business.Services
                 return YkcIslemSonuc.HataliSonuc("Iptal islemi icin aciklama zorunludur.");
 
             var eskiDurum = talep.Durum;
+            if (eskiDurum == dto.Durum)
+                return YkcIslemSonuc.BasariliSonuc("Talep zaten secilen durumda.", talep.Id);
+
             if (!DurumGecisiGecerliMi(eskiDurum, dto.Durum))
                 return YkcIslemSonuc.HataliSonuc("Bu durum gecisi icin onceki adimlar tamamlanmalidir.");
 
@@ -402,6 +424,61 @@ namespace YetkiliServisGazAcma.Business.Services
                 .Where(x => !x.SilindiMi);
         }
 
+        private static IQueryable<Ykc_Talep> FiltreleriUygula(
+            IQueryable<Ykc_Talep> query,
+            YkcTalepListeFiltre filtre,
+            AppKullanici kullanici,
+            bool genelYetkili)
+        {
+            query = YetkiKapsamiUygula(query, kullanici, genelYetkili);
+
+            if (filtre.SirketId.HasValue && genelYetkili)
+                query = query.Where(x => x.SirketId == filtre.SirketId.Value);
+
+            if (filtre.FirmaId.HasValue && genelYetkili)
+                query = query.Where(x => x.FirmaId == filtre.FirmaId.Value);
+
+            if (!string.IsNullOrWhiteSpace(filtre.TesisatNo))
+                query = query.Where(x => x.TesisatNo != null && x.TesisatNo.Contains(filtre.TesisatNo.Trim()));
+
+            if (!string.IsNullOrWhiteSpace(filtre.Firma))
+                query = query.Where(x => x.Firma != null && x.Firma.FirmaAdi != null && x.Firma.FirmaAdi.Contains(filtre.Firma.Trim()));
+
+            if (!string.IsNullOrWhiteSpace(filtre.Il))
+                query = query.Where(x => x.Il != null && x.Il.Contains(filtre.Il.Trim()));
+
+            if (!string.IsNullOrWhiteSpace(filtre.Ilce))
+                query = query.Where(x => x.Ilce != null && x.Ilce.Contains(filtre.Ilce.Trim()));
+
+            if (!string.IsNullOrWhiteSpace(filtre.Bolge))
+                query = query.Where(x => x.Bolge != null && x.Bolge.Contains(filtre.Bolge.Trim()));
+
+            if (!string.IsNullOrWhiteSpace(filtre.Ekip))
+                query = query.Where(x => x.AtananEkip != null && x.AtananEkip.Contains(filtre.Ekip.Trim()));
+
+            if (!string.IsNullOrWhiteSpace(filtre.Marka))
+            {
+                var marka = filtre.Marka.Trim();
+                query = query.Where(x =>
+                    (x.EskiMarka != null && x.EskiMarka.Contains(marka)) ||
+                    (x.YeniMarka != null && x.YeniMarka.Contains(marka)));
+            }
+
+            if (!string.IsNullOrWhiteSpace(filtre.HedefUygulama))
+                query = query.Where(x => x.HedefUygulama == filtre.HedefUygulama);
+
+            if (filtre.Durum.HasValue)
+                query = query.Where(x => x.Durum == filtre.Durum.Value);
+
+            if (filtre.BaslangicTarihi.HasValue)
+                query = query.Where(x => x.TalepTarihi >= filtre.BaslangicTarihi.Value.Date);
+
+            if (filtre.BitisTarihi.HasValue)
+                query = query.Where(x => x.TalepTarihi < filtre.BitisTarihi.Value.Date.AddDays(1));
+
+            return query;
+        }
+
         private static IQueryable<Ykc_Talep> YetkiKapsamiUygula(
             IQueryable<Ykc_Talep> query,
             AppKullanici kullanici,
@@ -440,7 +517,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 || !BosVeyaAyni(dto.EskiBacaTipiKodu, dto.YeniBacaTipiKodu)
                 || !BosVeyaAyni(dto.EskiKapasite, dto.YeniKapasite))
             {
-                return YkcIslemSonuc.HataliSonuc("Eski cihaz ile yeni cihaz tipi, baca tipi veya kapasite uyusmuyor. Proje tadilati gerekebilir.");
+                return YkcIslemSonuc.HataliSonuc("Eski cihaz ile yeni cihaz tipi, baca tipi veya kapasite uyumlu değil. Proje tadilatı gerekebilir.");
             }
 
             return YkcIslemSonuc.BasariliSonuc("Uygun.");
@@ -496,6 +573,8 @@ namespace YetkiliServisGazAcma.Business.Services
         public string? Il { get; set; }
         public string? Ilce { get; set; }
         public string? Bolge { get; set; }
+        public string? Ekip { get; set; }
+        public string? Marka { get; set; }
         public string? HedefUygulama { get; set; }
         public int? Durum { get; set; }
         public DateTime? BaslangicTarihi { get; set; }
@@ -510,6 +589,29 @@ namespace YetkiliServisGazAcma.Business.Services
         public int Sayfa { get; set; }
         public int SayfaBoyutu { get; set; }
         public List<YkcTalepDto> Talepler { get; set; } = new();
+    }
+
+    public class YkcRaporSonuc
+    {
+        public int Toplam { get; set; }
+        public int KayitLimiti { get; set; }
+        public List<YkcRaporDurumOzetDto> DurumOzetleri { get; set; } = new();
+        public List<YkcRaporMetinOzetDto> HedefOzetleri { get; set; } = new();
+        public List<YkcRaporMetinOzetDto> EkipOzetleri { get; set; } = new();
+        public List<YkcRaporMetinOzetDto> FirmaOzetleri { get; set; } = new();
+        public List<YkcRaporKayitDto> Kayitlar { get; set; } = new();
+    }
+
+    public class YkcRaporDurumOzetDto
+    {
+        public int Durum { get; set; }
+        public int Sayi { get; set; }
+    }
+
+    public class YkcRaporMetinOzetDto
+    {
+        public string? Ad { get; set; }
+        public int Sayi { get; set; }
     }
 
     public class YkcTalepKaydetDto
@@ -693,6 +795,61 @@ namespace YetkiliServisGazAcma.Business.Services
         }
     }
 
+    public class YkcRaporKayitDto
+    {
+        public int Id { get; set; }
+        public string? FirmaAdi { get; set; }
+        public string? SirketAdi { get; set; }
+        public string? MusteriAdi { get; set; }
+        public string? TesisatNo { get; set; }
+        public string? ProjeNo { get; set; }
+        public string? SayacNo { get; set; }
+        public string? EskiCihazTipi { get; set; }
+        public string? EskiMarka { get; set; }
+        public string? YeniCihazTipi { get; set; }
+        public string? YeniMarka { get; set; }
+        public string? YeniModel { get; set; }
+        public string? YeniKapasite { get; set; }
+        public string? Bolge { get; set; }
+        public string? AtananEkip { get; set; }
+        public string? HedefUygulama { get; set; }
+        public DateTime TalepTarihi { get; set; }
+        public DateTime? RandevuTarihi { get; set; }
+        public string? RandevuSaati { get; set; }
+        public int Durum { get; set; }
+        public bool FirmaFormuVar { get; set; }
+        public bool SahaFormuVar { get; set; }
+
+        public static YkcRaporKayitDto FromEntity(Ykc_Talep talep)
+        {
+            return new YkcRaporKayitDto
+            {
+                Id = talep.Id,
+                FirmaAdi = talep.Firma?.FirmaAdi,
+                SirketAdi = talep.Sirket?.SirketAdi,
+                MusteriAdi = talep.MusteriAdi,
+                TesisatNo = talep.TesisatNo,
+                ProjeNo = talep.ProjeNo,
+                SayacNo = talep.SayacNo,
+                EskiCihazTipi = talep.EskiCihazTipi,
+                EskiMarka = talep.EskiMarka,
+                YeniCihazTipi = talep.YeniCihazTipi,
+                YeniMarka = talep.YeniMarka,
+                YeniModel = talep.YeniModel,
+                YeniKapasite = talep.YeniKapasite,
+                Bolge = talep.Bolge,
+                AtananEkip = talep.AtananEkip,
+                HedefUygulama = talep.HedefUygulama,
+                TalepTarihi = talep.TalepTarihi,
+                RandevuTarihi = talep.RandevuTarihi,
+                RandevuSaati = talep.RandevuSaati,
+                Durum = talep.Durum,
+                FirmaFormuVar = talep.FormDosyalari.Any(x => !x.SilindiMi && x.DosyaTuru == YkcFormDosyaTuruDegerleri.FirmaFormu),
+                SahaFormuVar = talep.FormDosyalari.Any(x => !x.SilindiMi && x.DosyaTuru == YkcFormDosyaTuruDegerleri.SahaIslakImzaliForm)
+            };
+        }
+    }
+
     public class YkcTalepDetayDto : YkcTalepDto
     {
         public string? SozlesmeNo { get; set; }
@@ -796,7 +953,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 CallCenterTetiklendiMi = talep.CallCenterTetiklendiMi,
                 Dosyalar = talep.FormDosyalari.OrderByDescending(x => x.OlusturmaTarihi).Select(YkcDosyaDto.FromEntity).ToList(),
                 Atamalar = talep.Atamalar.OrderByDescending(x => x.OlusturmaTarihi).Select(YkcAtamaDto.FromEntity).ToList(),
-                Gecmis = talep.IslemGecmisi.OrderByDescending(x => x.OlusturmaTarihi).Select(YkcGecmisDto.FromEntity).ToList()
+                Gecmis = TekilGecmis(talep.IslemGecmisi)
             };
 
             return dto;
@@ -811,6 +968,33 @@ namespace YetkiliServisGazAcma.Business.Services
                 .FirstOrDefault();
 
             return yetkiBelgesi?.Id.ToString();
+        }
+
+        private static List<YkcGecmisDto> TekilGecmis(IEnumerable<Ykc_IslemGecmisi> gecmisler)
+        {
+            return gecmisler
+                .OrderByDescending(x => x.OlusturmaTarihi)
+                .ThenByDescending(x => x.Id)
+                .GroupBy(x => new
+                {
+                    x.IslemTipi,
+                    x.EskiDurum,
+                    x.YeniDurum,
+                    Aciklama = x.Aciklama?.Trim() ?? "",
+                    KullaniciAdi = x.KullaniciAdi?.Trim() ?? "",
+                    Dakika = new DateTime(
+                        x.OlusturmaTarihi.Year,
+                        x.OlusturmaTarihi.Month,
+                        x.OlusturmaTarihi.Day,
+                        x.OlusturmaTarihi.Hour,
+                        x.OlusturmaTarihi.Minute,
+                        0)
+                })
+                .Select(x => x.First())
+                .OrderByDescending(x => x.OlusturmaTarihi)
+                .ThenByDescending(x => x.Id)
+                .Select(YkcGecmisDto.FromEntity)
+                .ToList();
         }
     }
 
