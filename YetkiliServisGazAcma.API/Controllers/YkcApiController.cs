@@ -174,6 +174,59 @@ namespace YetkiliServisGazAcma.API.Controllers
             return File(belge.Bytes, belge.ContentType, belge.DosyaAdi);
         }
 
+        [HttpPost("talepler/dosya-indir")]
+        public async Task<IActionResult> DosyaIndir([FromBody] YkcDosyaGetirIstek? istek)
+        {
+            var kullanici = await AktifKullaniciAsync();
+            if (kullanici == null)
+                return Unauthorized(new { basarili = false, mesaj = "Oturum bulunamadi." });
+
+            if (istek == null || istek.Id <= 0)
+                return BadRequest(new { basarili = false, mesaj = "Dosya id zorunludur." });
+
+            var dosya = await _context.Ykc_FormDosyalari
+                .Include(x => x.Talep)
+                .FirstOrDefaultAsync(x => x.Id == istek.Id && !x.SilindiMi && x.Talep != null && !x.Talep.SilindiMi);
+
+            if (dosya?.Talep == null)
+                return NotFound(new { basarili = false, mesaj = "Cihaz degisim form dosyasi bulunamadi." });
+
+            if (!await TalepDosyasinaYetkiliMiAsync(dosya.Talep, kullanici))
+                return Forbid();
+
+            if (string.IsNullOrWhiteSpace(dosya.DosyaYolu))
+                return NotFound(new { basarili = false, mesaj = "Dosya yolu bulunamadi." });
+
+            var webRoot = _environment.WebRootPath;
+            if (string.IsNullOrWhiteSpace(webRoot))
+                webRoot = Path.Combine(_environment.ContentRootPath, "wwwroot");
+
+            var goreliYol = dosya.DosyaYolu.Trim().Replace('\\', '/').TrimStart('/');
+            if (!goreliYol.StartsWith("uploads/ykc/", StringComparison.OrdinalIgnoreCase))
+                return NotFound(new { basarili = false, mesaj = "Dosya yolu gecersiz." });
+
+            var fizikselYol = Path.GetFullPath(Path.Combine(
+                webRoot,
+                goreliYol.Replace('/', Path.DirectorySeparatorChar)));
+            var kokYol = Path.GetFullPath(webRoot);
+
+            if (!fizikselYol.StartsWith(kokYol + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                return Forbid();
+
+            if (!System.IO.File.Exists(fizikselYol))
+                return NotFound(new { basarili = false, mesaj = "Dosya fiziksel olarak bulunamadi." });
+
+            var bytes = await System.IO.File.ReadAllBytesAsync(fizikselYol, HttpContext.RequestAborted);
+            var contentType = string.IsNullOrWhiteSpace(dosya.IcerikTipi)
+                ? "application/octet-stream"
+                : dosya.IcerikTipi.Trim();
+            var dosyaAdi = string.IsNullOrWhiteSpace(dosya.DosyaAdi)
+                ? Path.GetFileName(fizikselYol)
+                : dosya.DosyaAdi.Trim();
+
+            return File(bytes, contentType, dosyaAdi);
+        }
+
         [HttpPost("dogalgaz-mobile/talepler/liste")]
         public async Task<IActionResult> DogalgazMobileTaleplerListe([FromBody] YkcTalepListeFiltre? filtre)
         {
@@ -343,6 +396,20 @@ namespace YetkiliServisGazAcma.API.Controllers
             return roller.Contains("GenelSistemAdmin") || roller.Contains("SuperAdmin");
         }
 
+        private async Task<bool> TalepDosyasinaYetkiliMiAsync(Ykc_Talep talep, AppKullanici kullanici)
+        {
+            if (await GenelYetkiliMiAsync(kullanici))
+                return true;
+
+            if (kullanici.FirmaId.HasValue && talep.FirmaId == kullanici.FirmaId.Value)
+                return true;
+
+            if (kullanici.SirketId.HasValue && talep.SirketId == kullanici.SirketId.Value)
+                return true;
+
+            return false;
+        }
+
         private static string GuvenliDosyaAdi(string dosyaAdi)
         {
             var sadeceAd = Path.GetFileName(dosyaAdi);
@@ -422,6 +489,11 @@ namespace YetkiliServisGazAcma.API.Controllers
     }
 
     public class YkcTalepGetirIstek
+    {
+        public int Id { get; set; }
+    }
+
+    public class YkcDosyaGetirIstek
     {
         public int Id { get; set; }
     }

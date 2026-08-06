@@ -236,6 +236,23 @@ namespace YetkiliServisGazAcma.Controllers
             return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
         }
 
+        [HttpGet("dosya/{id:int}")]
+        public async Task<IActionResult> DosyaAc(int id)
+        {
+            var kullanici = await _userManager.GetUserAsync(User);
+            if (kullanici == null)
+                return Redirect("/giris");
+
+            var dosya = await _ykcApiClient.DosyaIndirAsync(kullanici, id);
+            if (dosya == null || dosya.Bytes.Length == 0)
+            {
+                TempData["Hata"] = "Cihaz değişim form dosyası açılamadı.";
+                return RedirectToAction(nameof(Talepler));
+            }
+
+            return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+        }
+
         [HttpPost("atama-yap")]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel")]

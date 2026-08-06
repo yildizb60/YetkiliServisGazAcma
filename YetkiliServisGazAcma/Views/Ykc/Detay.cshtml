@@ -481,11 +481,11 @@
                             <div>
                                 <strong>@Deger(dosya.DosyaAdi)</strong>
                                 <div class="ykc-muted">@Deger(dosya.DosyaTuru) / @dosya.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</div>
-                                <div class="ykc-muted">@Deger(dosya.DosyaYolu)</div>
+                                <div class="ykc-muted">/ykc/dosya/@dosya.Id</div>
                             </div>
                             @if (!string.IsNullOrWhiteSpace(dosya.DosyaYolu))
                             {
-                                <a class="df-btn df-btn-secondary df-btn-sm" href="@dosya.DosyaYolu" target="_blank">Dosyayı Aç</a>
+                                <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/dosya/@dosya.Id" target="_blank">Dosyayı Aç</a>
                             }
                             else
                             {

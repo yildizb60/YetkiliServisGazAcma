@@ -89,6 +89,16 @@ namespace YetkiliServisGazAcma.Business.Services
                 "FR265 cihaz degisim formu Word");
         }
 
+        public Task<ApiDosyaSonuc?> DosyaIndirAsync(AppKullanici kullanici, int dosyaId)
+        {
+            return PostFileAsync(
+                kullanici,
+                "api/ykc/talepler/dosya-indir",
+                new YkcDosyaGetirIstek { Id = dosyaId },
+                $"YKC_Form_Dosyasi_{dosyaId}",
+                "Cihaz degisim form dosyasi indir");
+        }
+
         public Task<YkcIslemSonuc?> OlusturAsync(AppKullanici kullanici, YkcTalepKaydetDto dto)
         {
             return PostAsync<YkcTalepKaydetDto, YkcIslemSonuc>(
@@ -294,6 +304,11 @@ namespace YetkiliServisGazAcma.Business.Services
     }
 
     public class YkcTalepGetirIstek
+    {
+        public int Id { get; set; }
+    }
+
+    public class YkcDosyaGetirIstek
     {
         public int Id { get; set; }
     }

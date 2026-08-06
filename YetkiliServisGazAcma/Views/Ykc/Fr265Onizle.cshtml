@@ -5,6 +5,14 @@
 
 @functions {
     private static string Deger(string? value) => string.IsNullOrWhiteSpace(value) ? "" : value.Trim();
+
+    private static string LogoUrl(YkcTalepDetayDto model)
+    {
+        var anahtar = $"{model.FirmaKodu} {model.SirketAdi}".ToUpperInvariant();
+        return anahtar.Contains("MARMARA") || anahtar.Contains("YALOVA") || anahtar.Contains("CORLU")
+            ? "/images/company/marmaragaz-logo.png"
+            : "/images/company/corumgaz-kargaz-surmeligaz-logo.png";
+    }
 }
 
 @section Styles {
@@ -12,6 +20,8 @@
         .fr265-toolbar { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 14px; }
         .fr265-paper { max-width: 920px; margin: 0 auto; background: #fff; border: 1px solid var(--df-border); border-radius: 8px; box-shadow: var(--df-shadow-soft); padding: 34px 38px; color: #111827; }
         .fr265-head { display: grid; grid-template-columns: 1fr auto; gap: 18px; align-items: start; border-bottom: 2px solid #111827; padding-bottom: 14px; margin-bottom: 18px; }
+        .fr265-brand { display: flex; align-items: center; gap: 16px; min-width: 0; }
+        .fr265-logo { width: 172px; max-height: 58px; object-fit: contain; flex: 0 0 auto; }
         .fr265-title { font-size: 18px; font-weight: 900; text-transform: uppercase; line-height: 1.35; }
         .fr265-date { font-size: 13px; font-weight: 800; white-space: nowrap; }
         .fr265-table { width: 100%; border-collapse: collapse; margin: 12px 0 18px; table-layout: fixed; }
@@ -34,6 +44,8 @@
         @@media (max-width: 760px) {
             .fr265-paper { padding: 22px 18px; }
             .fr265-head, .fr265-sign-grid { grid-template-columns: 1fr; }
+            .fr265-brand { align-items: flex-start; flex-direction: column; }
+            .fr265-logo { width: 150px; }
             .fr265-toolbar { flex-direction: column; align-items: stretch; }
         }
     </style>
@@ -53,7 +65,10 @@
 
 <section class="fr265-paper">
     <div class="fr265-head">
-        <div class="fr265-title">FR265 Proje Tadilatı Gerektirmeyen Yakıcı Cihaz Değişim Formu</div>
+        <div class="fr265-brand">
+            <img class="fr265-logo" src="@LogoUrl(Model)" alt="Sirket logosu" />
+            <div class="fr265-title">FR265 Proje Tadilatı Gerektirmeyen Yakıcı Cihaz Değişim Formu</div>
+        </div>
         <div class="fr265-date">Tarih: @DateTime.Now.ToString("dd.MM.yyyy")</div>
     </div>
 
