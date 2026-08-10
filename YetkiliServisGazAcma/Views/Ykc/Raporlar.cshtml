@@ -89,9 +89,11 @@
         .filtre-alan input, .filtre-alan select { padding: 10px 12px; border: 1.5px solid #dfe5ee; border-radius: 8px; font-size: 13px; outline: none; color: var(--df-text); background: #fafbfc; width: 100%; min-width: 0; }
         .filtre-alan input:focus, .filtre-alan select:focus { border-color: var(--df-primary); background: #fff; box-shadow: 0 0 0 3px rgba(46, 78, 200, .08); }
         .filtre-butonlar { display: flex; gap: 10px; margin-top: 16px; }
-        .ykc-report-grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 16px; }
+        .ykc-report-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
         .ykc-summary-card { background: #fff; border: 1px solid var(--df-border); border-radius: 8px; box-shadow: 0 10px 26px rgba(13, 34, 112, .045); overflow: hidden; }
         .ykc-summary-head { padding: 15px 18px; border-bottom: 1px solid var(--df-border); color: var(--df-text); font-size: 14px; font-weight: 900; }
+        .ykc-report-grid .ykc-summary-card:nth-child(2) .ykc-summary-head { font-size: 0; }
+        .ykc-report-grid .ykc-summary-card:nth-child(2) .ykc-summary-head::after { content: "Hedef Uygulama \00D6 zeti"; font-size: 14px; }
         .ykc-summary-list { display: grid; gap: 8px; padding: 14px 18px; }
         .ykc-summary-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; border: 1px solid #edf2f7; background: #fbfcfe; border-radius: 8px; padding: 10px 12px; color: var(--df-text-soft); font-size: 13px; }
         .ykc-report-head, .ykc-report-row { display: grid; grid-template-columns: .6fr 1fr 1fr .85fr .85fr 1.25fr 1.15fr 1fr .95fr .85fr .75fr; gap: 10px; align-items: center; }
@@ -248,6 +250,16 @@
                         <strong>@hedef.Sayi</strong>
                     </div>
                 }
+                @if (!Model.HedefOzetleri.Any())
+                {
+                    <div class="ykc-empty">Veri bulunamad&#305;.</div>
+                }
+            </div>
+        </section>
+
+        <section class="ykc-summary-card">
+            <div class="ykc-summary-head">Ekip &Ouml;zeti</div>
+            <div class="ykc-summary-list">
                 @foreach (var ekip in Model.EkipOzetleri)
                 {
                     <div class="ykc-summary-row">
@@ -255,7 +267,7 @@
                         <strong>@ekip.Sayi</strong>
                     </div>
                 }
-                @if (!Model.HedefOzetleri.Any() && !Model.EkipOzetleri.Any())
+                @if (!Model.EkipOzetleri.Any())
                 {
                     <div class="ykc-empty">Veri bulunamadı.</div>
                 }

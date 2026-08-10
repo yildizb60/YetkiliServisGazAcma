@@ -421,7 +421,10 @@ namespace YetkiliServisGazAcma.Business.Services
                 .Include(x => x.FormDosyalari.Where(d => !d.SilindiMi))
                 .Include(x => x.Atamalar.Where(a => !a.SilindiMi))
                 .Include(x => x.IslemGecmisi.Where(g => !g.SilindiMi))
-                .Where(x => !x.SilindiMi);
+                .Where(x => !x.SilindiMi)
+                .Where(x =>
+                    (x.TesisatNo == null || x.TesisatNo != "string") &&
+                    (x.MusteriAdi == null || x.MusteriAdi != "string"));
         }
 
         private static IQueryable<Ykc_Talep> FiltreleriUygula(
@@ -513,6 +516,27 @@ namespace YetkiliServisGazAcma.Business.Services
             if (string.IsNullOrWhiteSpace(dto.YeniKapasite))
                 return YkcIslemSonuc.HataliSonuc("Yeni kapasite zorunludur.");
 
+            if (PlaceholderDegerVar(
+                    dto.TesisatNo,
+                    dto.SozlesmeNo,
+                    dto.AboneNo,
+                    dto.ProjeNo,
+                    dto.SayacNo,
+                    dto.MusteriAdi,
+                    dto.EskiCihazTipi,
+                    dto.EskiMarka,
+                    dto.EskiBacaTipi,
+                    dto.EskiKapasite,
+                    dto.YeniCihazTipi,
+                    dto.YeniMarka,
+                    dto.YeniBacaTipi,
+                    dto.YeniKapasite,
+                    dto.YeniModel,
+                    dto.YeniSeriNo))
+            {
+                return YkcIslemSonuc.HataliSonuc("Test amacli placeholder degerlerle cihaz degisim talebi olusturulamaz. Lutfen gercek tesisat ve cihaz bilgilerini giriniz.");
+            }
+
             if (!BosVeyaAyni(dto.EskiCihazTipiKodu, dto.YeniCihazTipiKodu)
                 || !BosVeyaAyni(dto.EskiBacaTipiKodu, dto.YeniBacaTipiKodu)
                 || !BosVeyaAyni(dto.EskiKapasite, dto.YeniKapasite))
@@ -532,6 +556,16 @@ namespace YetkiliServisGazAcma.Business.Services
                 return false;
 
             return string.Equals(eskiDeger.Trim(), yeniDeger.Trim(), StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool PlaceholderDegerVar(params string?[] degerler)
+        {
+            return degerler.Any(PlaceholderDegerMi);
+        }
+
+        private static bool PlaceholderDegerMi(string? deger)
+        {
+            return string.Equals(deger?.Trim(), "string", StringComparison.OrdinalIgnoreCase);
         }
 
         private static string HedefUygulamaBelirle(string? kullaniciTipi, string? hedefUygulama, bool callCenterTetiklenecekMi)

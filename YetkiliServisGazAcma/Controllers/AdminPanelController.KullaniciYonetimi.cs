@@ -367,6 +367,7 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpGet("kullanicilar/duzenle/{id}")]
+        [HttpGet("kullanicilar/Düzenle/{id}")]
         [HttpGet("kullanicilar/DÃ¼zenle/{id}")]
         public async Task<IActionResult> KullaniciDuzenle(string id, string? returnUrl)
         {
@@ -387,6 +388,7 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpPost("kullanicilar/duzenle/{id}")]
+        [HttpPost("kullanicilar/Düzenle/{id}")]
         [HttpPost("kullanicilar/DÃ¼zenle/{id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> KullaniciDuzenle(string id, string adSoyad, string email, string telefon, bool aktifMi, int? sirketId, int? firmaId, string? yeniSifre, string? yeniSifreTekrar, string? returnUrl)
@@ -542,6 +544,7 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpGet("yetkiler/duzenle/{id}")]
+        [HttpGet("yetkiler/Düzenle/{id}")]
         [HttpGet("yetkiler/DÃ¼zenle/{id}")]
         public async Task<IActionResult> YetkiDuzenle(string id)
         {
@@ -577,6 +580,7 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpPost("yetkiler/duzenle/{id}")]
+        [HttpPost("yetkiler/Düzenle/{id}")]
         [HttpPost("yetkiler/DÃ¼zenle/{id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> YetkiDuzenle(string id, List<int> sirketIds, Microsoft.AspNetCore.Http.IFormCollection form)

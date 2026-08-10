@@ -9,17 +9,22 @@
             path.StartsWith("/ys-panel", StringComparison.OrdinalIgnoreCase) ||
             path.StartsWith("/ys-devreyeal", StringComparison.OrdinalIgnoreCase) ||
             path.StartsWith("/ys-yetki-belgesi", StringComparison.OrdinalIgnoreCase)));
-    var genelSistemAdminMi = ViewBag.GenelSistemAdminMi as bool? ?? false;
+    var genelSistemAdminMi = (ViewBag.GenelSistemAdminMi as bool?)
+        ?? (User.IsInRole("GenelSistemAdmin") || User.IsInRole("SuperAdmin"));
+    var sirketAdminMi = User.IsInRole("SirketAdmin");
+    var personelMi = User.IsInRole("Personel");
 
-    var panelAltBaslik = (ViewData["PanelSubtitle"] ?? ViewBag.PanelSubtitle)?.ToString();
-    if (string.IsNullOrWhiteSpace(panelAltBaslik))
-    {
-        panelAltBaslik = isYetkiliServisPanel
-            ? "Yetkili Servis"
-            : isPersonelPanel
-                ? "Personel Paneli"
-                : "Admin Paneli";
-    }
+    var panelAltBaslik = isYetkiliServisPanel
+        ? "Yetkili Servis"
+        : isPersonelPanel
+            ? "Personel Paneli"
+            : genelSistemAdminMi
+                ? "Genel Sistem Admini"
+                : sirketAdminMi
+                    ? "Şirket Admini"
+                    : personelMi
+                        ? "Personel Paneli"
+                        : "Admin Paneli";
 
     string Active(string key, params string[] prefixes)
     {
