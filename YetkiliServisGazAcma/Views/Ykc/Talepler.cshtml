@@ -124,6 +124,83 @@
         .ykc-device { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .ykc-pager { display: flex; justify-content: space-between; gap: 12px; align-items: center; border-top: 1px solid var(--df-border); padding: 14px 20px; color: var(--df-muted); font-size: 12px; }
         .ykc-pager-actions { display: flex; gap: 8px; align-items: center; }
+        .ykc-stack > .df-page-panel,
+        .filtre-kart {
+            border-color: #dfe6f2;
+            box-shadow: 0 14px 32px rgba(13, 34, 112, .055);
+        }
+        .ykc-list-hero .df-panel-head {
+            border-bottom-color: #e6edf7;
+        }
+        .ykc-metric {
+            background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
+        }
+        .ykc-metric-value {
+            letter-spacing: 0;
+        }
+        .ykc-flow-step {
+            background: #fff;
+            border-color: #dfe6f2;
+        }
+        .ykc-flow-step:nth-child(2)::after { background: #1dbb7a; }
+        .ykc-flow-step:nth-child(3)::after { background: #dc8e0d; }
+        .ykc-flow-step:nth-child(4)::after { background: #7056d8; }
+        .ykc-flow-step:nth-child(2) .ykc-flow-no { background: #edfaf4; color: #16875b; }
+        .ykc-flow-step:nth-child(3) .ykc-flow-no { background: #fff9ec; color: #a76308; }
+        .ykc-flow-step:nth-child(4) .ykc-flow-no { background: #f2f0ff; color: #5940bd; }
+        .filtre-kart {
+            padding: 0;
+            overflow: hidden;
+        }
+        .filtre-baslik {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            margin: 0;
+            padding: 15px 20px;
+            background: #fff;
+        }
+        .filtre-baslik::before {
+            content: "";
+            width: 7px;
+            height: 20px;
+            border-radius: 999px;
+            background: var(--df-primary);
+        }
+        .filtre-kart form {
+            padding: 18px 20px 20px;
+        }
+        .filtre-alan input,
+        .filtre-alan select {
+            background: #fff;
+            transition: border-color .16s ease, box-shadow .16s ease;
+        }
+        .ykc-table-head {
+            background: #f7f9fd;
+        }
+        .ykc-table-row {
+            position: relative;
+            background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
+        }
+        .ykc-table-row::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 12px;
+            bottom: 12px;
+            width: 3px;
+            border-radius: 999px;
+            background: #dbe4f2;
+        }
+        .ykc-table-row:hover::before {
+            background: var(--df-primary);
+        }
+        .ykc-empty {
+            margin: 12px;
+            border: 1px dashed #dbe3ee;
+            border-radius: 8px;
+            background: #fbfcff;
+        }
         @@media (max-width: 1250px) {
             .filtre-grid { grid-template-columns: repeat(3, minmax(160px, 1fr)); }
             .ykc-metrics, .ykc-flow { grid-template-columns: repeat(2, minmax(0, 1fr)); }

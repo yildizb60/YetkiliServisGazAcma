@@ -167,6 +167,23 @@ app.Use(async (context, next) =>
 });
 app.UseRouting();
 app.UseSession();
+app.Use(async (context, next) =>
+{
+    await next();
+
+    var girisDogrulamaIstekMi =
+        context.Request.Path.Equals("/giris/sms-dogrula", StringComparison.OrdinalIgnoreCase)
+        || context.Request.Path.Equals("/giris/sifre-yenile", StringComparison.OrdinalIgnoreCase);
+
+    if (!context.Response.HasStarted
+        && context.Response.StatusCode == StatusCodes.Status400BadRequest
+        && girisDogrulamaIstekMi)
+    {
+        context.Session.Clear();
+        context.Response.Clear();
+        context.Response.Redirect("/giris?temizle=true");
+    }
+});
 app.UseAuthentication();
 app.UseAuthorization();
 

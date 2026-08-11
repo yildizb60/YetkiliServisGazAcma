@@ -788,3 +788,194 @@ td {
         align-items: stretch !important;
     }
 }
+
+.ykc-stack > .df-page-panel,
+.ykc-form-stack > .df-page-panel,
+.ykc-detail-stack > .df-page-panel,
+.ykc-report-stack > .df-page-panel,
+.ykc-stack .filtre-kart,
+.ykc-report-stack .filtre-kart,
+.ykc-card,
+.ykc-summary-card {
+    background: #ffffff !important;
+    border: 1px solid #dfe6f2 !important;
+    border-top: 1px solid #dfe6f2 !important;
+    border-radius: 8px !important;
+    box-shadow: 0 14px 32px rgba(13, 34, 112, .055) !important;
+}
+
+.ykc-list-hero .df-panel-head,
+.ykc-report-hero .df-panel-head,
+.ykc-hero .df-panel-head,
+.ykc-card-head,
+.ykc-summary-head,
+.ykc-stack .filtre-baslik,
+.ykc-report-stack .filtre-baslik {
+    background: linear-gradient(180deg, #ffffff 0%, #f7f9fd 100%) !important;
+    border-color: #e6edf7 !important;
+}
+
+.ykc-metric,
+.ykc-report-metric,
+.ykc-summary,
+.ykc-item,
+.ykc-check,
+.ykc-list-row,
+.ykc-table-row,
+.ykc-report-row,
+.ykc-summary-row {
+    background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%) !important;
+    border-color: #e6edf7 !important;
+    border-top: 1px solid #e6edf7 !important;
+    border-radius: 8px !important;
+}
+
+.ykc-metric,
+.ykc-report-metric,
+.ykc-list-row,
+.ykc-table-row,
+.ykc-report-row,
+.ykc-check {
+    box-shadow: 0 8px 18px rgba(13, 34, 112, .035) !important;
+}
+
+.ykc-flow-step,
+.ykc-step {
+    background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%) !important;
+    border: 1px solid #dfe6f2 !important;
+    border-top: 1px solid #dfe6f2 !important;
+    border-radius: 8px !important;
+    box-shadow: 0 12px 24px rgba(13, 34, 112, .045) !important;
+}
+
+.ykc-flow-text {
+    max-width: none !important;
+    color: var(--df-muted) !important;
+}
+
+.ykc-card-title,
+.ykc-flow-title,
+.ykc-step-title {
+    color: var(--df-text) !important;
+    font-weight: 800 !important;
+}
+
+.ykc-value,
+.ykc-summary-value,
+.ykc-metric-value,
+.ykc-report-value {
+    color: var(--df-text) !important;
+    letter-spacing: 0 !important;
+}
+
+.ykc-stack .filtre-kart,
+.ykc-report-stack .filtre-kart {
+    padding: 0 !important;
+    overflow: hidden !important;
+}
+
+.ykc-stack .filtre-kart form,
+.ykc-report-stack .filtre-kart form {
+    padding: 18px 20px 20px !important;
+}
+
+.ykc-stack .filtre-baslik,
+.ykc-report-stack .filtre-baslik,
+.ykc-card-title,
+.ykc-summary-head {
+    display: flex !important;
+    align-items: center !important;
+    gap: 9px !important;
+}
+
+.ykc-stack .filtre-baslik::before,
+.ykc-report-stack .filtre-baslik::before,
+.ykc-card-title::before,
+.ykc-summary-head::before {
+    content: "" !important;
+    width: 7px !important;
+    height: 20px !important;
+    border-radius: 999px !important;
+    background: var(--df-primary) !important;
+    flex: 0 0 auto !important;
+}
+
+.ykc-field input,
+.ykc-field select,
+.ykc-field textarea,
+.ykc-stack .filtre-alan input,
+.ykc-stack .filtre-alan select,
+.ykc-report-stack .filtre-alan input,
+.ykc-report-stack .filtre-alan select {
+    background: #ffffff !important;
+    border-color: #dfe5ee !important;
+    box-shadow: 0 1px 0 rgba(13, 34, 112, .03) !important;
+    transition: border-color .16s ease, box-shadow .16s ease, background .16s ease !important;
+}
+
+.ykc-field input:focus,
+.ykc-field select:focus,
+.ykc-field textarea:focus,
+.ykc-stack .filtre-alan input:focus,
+.ykc-stack .filtre-alan select:focus,
+.ykc-report-stack .filtre-alan input:focus,
+.ykc-report-stack .filtre-alan select:focus {
+    border-color: var(--df-primary) !important;
+    box-shadow: 0 0 0 3px rgba(46, 78, 200, .10) !important;
+}
+
+.ykc-field input[readonly],
+.ykc-field textarea[readonly] {
+    background: #f5f7fb !important;
+    border-color: #e4eaf3 !important;
+    color: var(--df-muted) !important;
+}
+
+.ykc-field input[type="file"],
+.ykc-upload input[type="file"] {
+    background: #fbfcff !important;
+    border-style: dashed !important;
+}
+
+.ykc-field input[type="file"]::file-selector-button,
+.ykc-upload input[type="file"]::file-selector-button {
+    border: 1px solid #dbe3ef !important;
+    border-radius: 8px !important;
+    background: #ffffff !important;
+    color: var(--df-primary) !important;
+    font-weight: 800 !important;
+    padding: 8px 12px !important;
+    margin-right: 10px !important;
+    cursor: pointer !important;
+}
+
+.ykc-table-row,
+.ykc-report-row {
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+.ykc-table-row::before,
+.ykc-report-row::before {
+    content: "" !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 12px !important;
+    bottom: 12px !important;
+    width: 3px !important;
+    border-radius: 999px !important;
+    background: #dbe4f2 !important;
+}
+
+.ykc-table-row:hover,
+.ykc-report-row:hover,
+.ykc-list-row:hover,
+.ykc-item:hover {
+    border-color: #d8e1ef !important;
+    background: #ffffff !important;
+}
+
+.ykc-table-row:hover::before,
+.ykc-report-row:hover::before {
+    background: var(--df-primary) !important;
+}

@@ -34,7 +34,7 @@
             max-width: 1480px; border: 1px solid #e6eef4;
         }
         .site-header-top { display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--c-border); padding:12px 0; }
-        .site-header-top-buttons { display:flex; gap:24px; font-size:14px; font-weight:800; text-transform:uppercase; margin-left:-8px; }
+        .site-header-top-buttons { display:flex; flex-wrap:wrap; gap:18px; font-size:13px; font-weight:800; text-transform:uppercase; margin-left:-8px; }
         .site-header-top-buttons a { padding:8px 6px; }
         .site-header-top-buttons a.active { color: #0e1a24; }
         .site-header-top-action { display:flex; align-items:center; gap:12px; }
@@ -563,6 +563,7 @@
                 <div class="site-header-top-buttons">
                     <a class="active" href="/">ANASAYFA</a>
                     <a href="/yetkili-servisler">YETKİLİ SERVİSLER</a>
+                    <a href="/cihaz-degisim-formu">CİHAZ DEĞİŞİMİ</a>
                     <a href="/kayit/yetkili-servis">YETKİLİ SERVİS KAYDI</a>
                     <a href="/giris">GİRİŞ</a>
                 </div>
@@ -726,6 +727,12 @@
         <a href="/giris" title="Panele Giriş">
             <span class="qa-icon">&#128196;</span>
             <span class="qa-label">Panele Giriş</span>
+        </a>
+    </div>
+    <div class="quick-action">
+        <a href="/cihaz-degisim-formu" title="Cihaz Değişim Formu">
+            <span class="qa-icon">&#128293;</span>
+            <span class="qa-label">Cihaz Değişim Formu</span>
         </a>
     </div>
     <div class="quick-action">

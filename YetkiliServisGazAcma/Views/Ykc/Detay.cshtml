@@ -162,6 +162,83 @@
         .ykc-randevu-card { border: 1px solid #dbe7ff; background: linear-gradient(180deg, #fff 0%, #f6f8ff 100%); }
         .ykc-randevu-card .ykc-card-title::before { background: #7056d8; }
         .ykc-randevu-note { color: var(--df-muted); font-size: 12px; line-height: 1.5; padding: 0 18px 16px; }
+        .ykc-detail-stack > .df-page-panel,
+        .ykc-card {
+            border-color: #dfe6f2;
+            box-shadow: 0 14px 32px rgba(13, 34, 112, .055);
+        }
+        .ykc-summary {
+            background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
+        }
+        .ykc-summary-label,
+        .ykc-label,
+        .ykc-field label {
+            letter-spacing: .035em;
+        }
+        .ykc-grid {
+            align-items: start;
+        }
+        .ykc-card-head {
+            border-bottom-color: #e6edf7;
+        }
+        .ykc-info {
+            background: #fff;
+        }
+        .ykc-item {
+            border-color: #e6edf7;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .75);
+        }
+        .ykc-item:hover {
+            border-color: #d8e1ef;
+            background: #fff;
+        }
+        .ykc-field input,
+        .ykc-field select,
+        .ykc-field textarea {
+            background: #fff;
+            transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
+        }
+        .ykc-field input:focus,
+        .ykc-field select:focus,
+        .ykc-field textarea:focus {
+            border-color: var(--df-primary);
+            box-shadow: 0 0 0 3px rgba(46, 78, 200, .10);
+            background: #fff;
+        }
+        .ykc-check {
+            border-color: #e3ebf6;
+            box-shadow: 0 8px 18px rgba(13, 34, 112, .035);
+        }
+        .ykc-upload {
+            border-color: #cbd8ee;
+            background: linear-gradient(180deg, #fbfcff 0%, #f6f9ff 100%);
+        }
+        .ykc-upload input[type="file"] {
+            border-style: dashed;
+            background: #fff;
+        }
+        .ykc-upload input[type="file"]::file-selector-button {
+            border: 1px solid #dbe3ef;
+            border-radius: 8px;
+            background: #fff;
+            color: var(--df-primary);
+            font-weight: 800;
+            padding: 8px 12px;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+        .ykc-list-row {
+            border-color: #e3ebf6;
+            background: #fff;
+            box-shadow: 0 8px 18px rgba(13, 34, 112, .035);
+        }
+        .ykc-list-row:hover {
+            border-color: #d8e1ef;
+            background: #fbfcff;
+        }
+        .ykc-randevu-card {
+            box-shadow: 0 14px 32px rgba(112, 86, 216, .075);
+        }
         @@media (max-width: 1100px) {
             .ykc-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .ykc-grid { grid-template-columns: 1fr; }
@@ -234,11 +311,11 @@
     <section class="ykc-card ykc-randevu-card">
         <div class="ykc-card-head"><div class="ykc-card-title">Randevu ve Saha Planı</div></div>
         <div class="ykc-info">
-            <div class="ykc-item"><div class="ykc-label">Randevu Tarihi</div><div class="ykc-value">@Tarih(Model.RandevuTarihi)</div></div>
-            <div class="ykc-item"><div class="ykc-label">Randevu Saati</div><div class="ykc-value">@Deger(Model.RandevuSaati)</div></div>
-            <div class="ykc-item"><div class="ykc-label">Ekip</div><div class="ykc-value">@Deger(Model.AtananEkip)</div></div>
-            <div class="ykc-item"><div class="ykc-label">Bölge</div><div class="ykc-value">@Deger(Model.Bolge)</div></div>
-            <div class="ykc-item"><div class="ykc-label">Hedef Uygulama</div><div class="ykc-value">@HedefYazi(Model.HedefUygulama)</div></div>
+            <div class="ykc-item"><div class="ykc-label">Randevu Tarihi</div><div class="ykc-value" id="ykcPlanTarih">@Tarih(Model.RandevuTarihi)</div></div>
+            <div class="ykc-item"><div class="ykc-label">Randevu Saati</div><div class="ykc-value" id="ykcPlanSaat">@Deger(Model.RandevuSaati)</div></div>
+            <div class="ykc-item"><div class="ykc-label">Ekip</div><div class="ykc-value" id="ykcPlanEkip">@Deger(Model.AtananEkip)</div></div>
+            <div class="ykc-item"><div class="ykc-label">Bölge</div><div class="ykc-value" id="ykcPlanBolge">@Deger(Model.Bolge)</div></div>
+            <div class="ykc-item"><div class="ykc-label">Hedef Uygulama</div><div class="ykc-value" id="ykcPlanHedef">@HedefYazi(Model.HedefUygulama)</div></div>
             <div class="ykc-item"><div class="ykc-label">Saha Durumu</div><div class="ykc-value">@DurumYazi(Model.Durum)</div></div>
         </div>
         <div class="ykc-randevu-note">
@@ -348,7 +425,7 @@
                     <div class="ykc-form-grid">
                         <div class="ykc-field">
                             <label>Hedef Uygulama</label>
-                            <select name="HedefUygulama">
+                            <select name="HedefUygulama" id="ykcHedefUygulamaSecim">
                                 <option value="@YkcHedefUygulamaDegerleri.YonetimPaneli" selected="@Secili(Model.HedefUygulama == YkcHedefUygulamaDegerleri.YonetimPaneli)">Yönetim Paneli</option>
                                 <option value="@YkcHedefUygulamaDegerleri.DogalgazMobileApp" selected="@Secili(Model.HedefUygulama == YkcHedefUygulamaDegerleri.DogalgazMobileApp)">Doğalgaz Mobile App</option>
                                 <option value="@YkcHedefUygulamaDegerleri.Crm187" selected="@Secili(Model.HedefUygulama == YkcHedefUygulamaDegerleri.Crm187)">CRM187</option>
@@ -386,9 +463,10 @@
                         </div>
                         <div class="ykc-field full">
                             <label>
-                                <input type="checkbox" name="CallCenterTetiklenecekMi" value="true" checked="@Isaretli(Model.CallCenterTetiklenecekMi)" style="width:auto; margin-right:8px;" />
+                                <input type="checkbox" id="ykcCallCenterTetik" name="CallCenterTetiklenecekMi" value="true" checked="@Isaretli(Model.CallCenterTetiklenecekMi)" style="width:auto; margin-right:8px;" />
                                 CRM187 / Callcenter tetikleme gerektiriyor
                             </label>
+                            <div class="ykc-muted">Bu seçenek yalnızca hedef uygulama CRM187 seçildiğinde kullanılır.</div>
                         </div>
                     </div>
                     <div class="ykc-actions">
@@ -548,5 +626,85 @@
                 input.focus();
             }
         });
+
+        (function () {
+            const hedef = document.getElementById('ykcHedefUygulamaSecim');
+            const callCenter = document.getElementById('ykcCallCenterTetik');
+            const randevuTarihi = document.getElementById('randevuTarihi');
+            const randevuSaati = document.getElementById('randevuSaati');
+            const ekip = document.querySelector('input[name="AtananEkip"]');
+            const bolge = document.querySelector('input[name="Bolge"]');
+            const planTarih = document.getElementById('ykcPlanTarih');
+            const planSaat = document.getElementById('ykcPlanSaat');
+            const planEkip = document.getElementById('ykcPlanEkip');
+            const planBolge = document.getElementById('ykcPlanBolge');
+            const planHedef = document.getElementById('ykcPlanHedef');
+
+            if (!hedef || !callCenter) {
+                return;
+            }
+
+            function planDeger(value) {
+                const temiz = (value || '').trim();
+                return temiz.length > 0 ? temiz : '-';
+            }
+
+            function tarihYaz(value) {
+                if (!value) {
+                    return '-';
+                }
+
+                const parcalar = value.split('-');
+                if (parcalar.length !== 3) {
+                    return value;
+                }
+
+                return parcalar[2] + '.' + parcalar[1] + '.' + parcalar[0];
+            }
+
+            function planOnizlemeGuncelle() {
+                if (planTarih && randevuTarihi) {
+                    planTarih.textContent = tarihYaz(randevuTarihi.value);
+                }
+
+                if (planSaat && randevuSaati) {
+                    planSaat.textContent = planDeger(randevuSaati.value);
+                }
+
+                if (planEkip && ekip) {
+                    planEkip.textContent = planDeger(ekip.value);
+                }
+
+                if (planBolge && bolge) {
+                    planBolge.textContent = planDeger(bolge.value);
+                }
+
+                if (planHedef && hedef) {
+                    const secili = hedef.options[hedef.selectedIndex];
+                    planHedef.textContent = secili ? planDeger(secili.textContent) : '-';
+                }
+            }
+
+            function callCenterDurumunuGuncelle() {
+                const crm187Secili = hedef.value === '@YkcHedefUygulamaDegerleri.Crm187';
+                callCenter.disabled = !crm187Secili;
+                if (crm187Secili) {
+                    callCenter.checked = true;
+                } else {
+                    callCenter.checked = false;
+                }
+            }
+
+            hedef.addEventListener('change', callCenterDurumunuGuncelle);
+            [hedef, randevuTarihi, randevuSaati, ekip, bolge]
+                .filter(Boolean)
+                .forEach(function (alan) {
+                    alan.addEventListener('input', planOnizlemeGuncelle);
+                    alan.addEventListener('change', planOnizlemeGuncelle);
+                });
+
+            callCenterDurumunuGuncelle();
+            planOnizlemeGuncelle();
+        })();
     </script>
 }

@@ -72,17 +72,52 @@ namespace YetkiliServisGazAcma.API.Controllers
                     .FirstOrDefaultAsync(x => x.Id == kullanici.SirketId.Value && !x.SilindiMi)
                 : firma?.Sirket;
 
+            var roller = await _userManager.GetRolesAsync(kullanici);
             var firmaKodu = OnlineFirmaKodu(firma, sirket);
-            var servisSonuc = await _onlineCihazBilgileriClient.YSCihazBilgileriGetirAsync(
+            var firmaKoduAdaylari = FirmaKoduAdaylari(
                 firmaKodu,
-                tesisatNo,
-                sozlesmeNo,
-                HttpContext.RequestAborted);
+                roller.Contains("GenelSistemAdmin") || roller.Contains("SuperAdmin"));
 
-            if (!servisSonuc.Basarili)
+            if (firmaKoduAdaylari.Count == 0)
+                return Ok(YkcTesisatSorguSonuc.Basarisiz("Online servis firma kodu belirlenemedi. Lütfen aktif şirket/firma bağlamını kontrol edin."));
+
+            OnlineCihazBilgileriSonuc? servisSonuc = null;
+            string? kullanilanFirmaKodu = null;
+            OnlineCihazBilgileriSonuc? ilkBasariliSonuc = null;
+            string? ilkBasariliFirmaKodu = null;
+
+            foreach (var adayFirmaKodu in firmaKoduAdaylari)
+            {
+                var adaySonuc = await _onlineCihazBilgileriClient.YSCihazBilgileriGetirAsync(
+                    adayFirmaKodu,
+                    tesisatNo,
+                    sozlesmeNo,
+                    HttpContext.RequestAborted);
+
+                servisSonuc = adaySonuc;
+                kullanilanFirmaKodu = adayFirmaKodu;
+
+                if (adaySonuc.Basarili && ilkBasariliSonuc == null)
+                {
+                    ilkBasariliSonuc = adaySonuc;
+                    ilkBasariliFirmaKodu = adayFirmaKodu;
+                }
+
+                if (adaySonuc.Basarili && adaySonuc.Cihazlar.Count > 0)
+                    break;
+            }
+
+            if ((servisSonuc == null || !servisSonuc.Basarili || servisSonuc.Cihazlar.Count == 0)
+                && ilkBasariliSonuc != null)
+            {
+                servisSonuc = ilkBasariliSonuc;
+                kullanilanFirmaKodu = ilkBasariliFirmaKodu;
+            }
+
+            if (servisSonuc == null || !servisSonuc.Basarili)
             {
                 return Ok(YkcTesisatSorguSonuc.Basarisiz(
-                    servisSonuc.HataMesaji ?? "Servisten bilgi alinamadi. Manuel giris yapabilirsiniz."));
+                    servisSonuc?.HataMesaji ?? "Servisten bilgi alinamadi. Manuel giris yapabilirsiniz."));
             }
 
             var cihazlar = servisSonuc.Cihazlar.Select(c => new YkcTesisatCihazDto
@@ -102,14 +137,14 @@ namespace YetkiliServisGazAcma.API.Controllers
                 Mesaj = cihazlar.Count > 0
                     ? "Tesisat ve cihaz bilgileri alindi."
                     : "Tesisat bulundu ancak cihaz listesi bos geldi. Manuel giris yapabilirsiniz.",
-                FirmaKodu = firmaKodu,
+                FirmaKodu = kullanilanFirmaKodu,
                 TesisatNo = (servisSonuc.TesisatNo ?? tesisatNo).ToString(CultureInfo.InvariantCulture),
                 SozlesmeNo = (servisSonuc.SozlesmeNo ?? sozlesmeNo).ToString(CultureInfo.InvariantCulture),
                 AboneNo = servisSonuc.CariKod?.ToString(CultureInfo.InvariantCulture) ?? "",
                 SayacNo = servisSonuc.SayacNo?.ToString(CultureInfo.InvariantCulture) ?? "",
                 MusteriAdi = servisSonuc.CariAd ?? "",
                 MusteriTelefon = "",
-                Il = firma?.FaaliyetIli ?? sirket?.Il,
+                Il = firma?.FaaliyetIli ?? sirket?.Il ?? IlFromFirmaKodu(kullanilanFirmaKodu),
                 Ilce = "",
                 Bolge = "",
                 Adres = servisSonuc.Adres ?? "",
@@ -446,6 +481,38 @@ namespace YetkiliServisGazAcma.API.Controllers
                 ?? _sehirFirmaKoduService.FirmaKodu(sirket?.Il)
                 ?? FirmaKoduFromSirketAdi(firma?.Sirket?.SirketAdi)
                 ?? FirmaKoduFromSirketAdi(sirket?.SirketAdi);
+        }
+
+        private List<string> FirmaKoduAdaylari(string? tercihliFirmaKodu, bool genelYetkili)
+        {
+            var adaylar = new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(tercihliFirmaKodu))
+                adaylar.Add(tercihliFirmaKodu.Trim());
+
+            if (genelYetkili && adaylar.Count == 0)
+            {
+                adaylar.AddRange(_sehirFirmaKoduService
+                    .TumKodlar()
+                    .Values
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .Select(x => x.Trim()));
+            }
+
+            return adaylar
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private string? IlFromFirmaKodu(string? firmaKodu)
+        {
+            if (string.IsNullOrWhiteSpace(firmaKodu))
+                return null;
+
+            return _sehirFirmaKoduService
+                .TumKodlar()
+                .FirstOrDefault(x => string.Equals(x.Value, firmaKodu.Trim(), StringComparison.OrdinalIgnoreCase))
+                .Key;
         }
 
         private static string? FirmaKoduFromSirketAdi(string? sirketAdi)

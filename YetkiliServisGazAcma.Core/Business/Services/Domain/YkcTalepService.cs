@@ -194,6 +194,10 @@ namespace YetkiliServisGazAcma.Business.Services
             if (!AtamaYapilabilirMi(talep.Durum))
                 return YkcIslemSonuc.HataliSonuc("Bu durumdaki talep icin randevu ve atama yapilamaz.");
 
+            var firmaFormuVar = await FormDosyasiVarMiAsync(talep.Id, YkcFormDosyaTuruDegerleri.FirmaFormu);
+            if (!firmaFormuVar)
+                return YkcIslemSonuc.HataliSonuc("Randevu ve atama icin once firma imzali FR265 formu yuklenmelidir.");
+
             if (string.IsNullOrWhiteSpace(dto.AtananEkip))
                 return YkcIslemSonuc.HataliSonuc("Randevu icin ekip secimi zorunludur.");
 
@@ -276,7 +280,15 @@ namespace YetkiliServisGazAcma.Business.Services
             if (eskiDurum == dto.Durum)
                 return YkcIslemSonuc.BasariliSonuc("Talep zaten secilen durumda.", talep.Id);
 
-            if (!DurumGecisiGecerliMi(eskiDurum, dto.Durum))
+            var sahaFormuVar = await FormDosyasiVarMiAsync(talep.Id, YkcFormDosyaTuruDegerleri.SahaIslakImzaliForm);
+
+            if (dto.Durum == YkcDurumDegerleri.Tamamlandi && !sahaFormuVar)
+                return YkcIslemSonuc.HataliSonuc("Talebi tamamlamak icin once saha islak imzali formu yuklenmelidir.");
+
+            if (dto.Durum == YkcDurumDegerleri.Tamamlandi && !RandevuZamaniGeldiMi(talep.RandevuTarihi, talep.RandevuSaati))
+                return YkcIslemSonuc.HataliSonuc("Randevu zamani gelmeden talep tamamlandi durumuna alinamaz.");
+
+            if (!DurumGecisiGecerliMi(eskiDurum, dto.Durum, sahaFormuVar))
                 return YkcIslemSonuc.HataliSonuc("Bu durum gecisi icin onceki adimlar tamamlanmalidir.");
 
             talep.Durum = dto.Durum;
@@ -321,10 +333,14 @@ namespace YetkiliServisGazAcma.Business.Services
             if (string.IsNullOrWhiteSpace(dto.DosyaYolu))
                 return YkcIslemSonuc.HataliSonuc("Dosya yolu zorunludur.");
 
+            var dosyaTuru = string.IsNullOrWhiteSpace(dto.DosyaTuru)
+                ? YkcFormDosyaTuruDegerleri.FirmaFormu
+                : dto.DosyaTuru.Trim();
+
             _context.Ykc_FormDosyalari.Add(new Ykc_FormDosya
             {
                 TalepId = talep.Id,
-                DosyaTuru = string.IsNullOrWhiteSpace(dto.DosyaTuru) ? YkcFormDosyaTuruDegerleri.FirmaFormu : dto.DosyaTuru.Trim(),
+                DosyaTuru = dosyaTuru,
                 DosyaAdi = dto.DosyaAdi?.Trim(),
                 DosyaYolu = dto.DosyaYolu.Trim(),
                 IcerikTipi = dto.IcerikTipi?.Trim(),
@@ -333,11 +349,33 @@ namespace YetkiliServisGazAcma.Business.Services
                 OlusturanKullanici = kullanici.UserName
             });
 
+            if (dosyaTuru == YkcFormDosyaTuruDegerleri.SahaIslakImzaliForm
+                && talep.Durum == YkcDurumDegerleri.Atandi)
+            {
+                var eskiDurum = talep.Durum;
+                talep.Durum = YkcDurumDegerleri.SahaIsleminde;
+                talep.GuncellemeTarihi = DateTime.Now;
+                talep.GuncelleyenKullanici = kullanici.UserName;
+
+                _context.Ykc_IslemGecmisi.Add(new Ykc_IslemGecmisi
+                {
+                    TalepId = talep.Id,
+                    IslemTipi = "DurumGuncellendi",
+                    EskiDurum = eskiDurum,
+                    YeniDurum = talep.Durum,
+                    Aciklama = "Saha islak imzali form yuklendigi icin saha islemi baslatildi.",
+                    KullaniciId = kullanici.Id,
+                    KullaniciAdi = kullanici.UserName,
+                    OlusturmaTarihi = DateTime.Now,
+                    OlusturanKullanici = kullanici.UserName
+                });
+            }
+
             _context.Ykc_IslemGecmisi.Add(new Ykc_IslemGecmisi
             {
                 TalepId = talep.Id,
                 IslemTipi = "DosyaEklendi",
-                Aciklama = dto.DosyaTuru,
+                Aciklama = dosyaTuru,
                 KullaniciId = kullanici.Id,
                 KullaniciAdi = kullanici.UserName,
                 OlusturmaTarihi = DateTime.Now,
@@ -391,7 +429,26 @@ namespace YetkiliServisGazAcma.Business.Services
                 || durum == YkcDurumDegerleri.SahaIsleminde;
         }
 
-        private static bool DurumGecisiGecerliMi(int eskiDurum, int yeniDurum)
+        private Task<bool> FormDosyasiVarMiAsync(int talepId, string dosyaTuru)
+        {
+            return _context.Ykc_FormDosyalari.AnyAsync(x =>
+                x.TalepId == talepId &&
+                !x.SilindiMi &&
+                x.DosyaTuru == dosyaTuru);
+        }
+
+        private static bool RandevuZamaniGeldiMi(DateTime? randevuTarihi, string? randevuSaati)
+        {
+            if (!randevuTarihi.HasValue || string.IsNullOrWhiteSpace(randevuSaati))
+                return false;
+
+            if (!TimeSpan.TryParse(randevuSaati.Trim(), out var saat))
+                return false;
+
+            return randevuTarihi.Value.Date.Add(saat) <= DateTime.Now;
+        }
+
+        private static bool DurumGecisiGecerliMi(int eskiDurum, int yeniDurum, bool sahaFormuVar)
         {
             if (eskiDurum == yeniDurum)
                 return true;
@@ -406,7 +463,8 @@ namespace YetkiliServisGazAcma.Business.Services
             {
                 YkcDurumDegerleri.TalepAlindi => yeniDurum == YkcDurumDegerleri.AtamaBekliyor,
                 YkcDurumDegerleri.AtamaBekliyor => yeniDurum == YkcDurumDegerleri.Atandi,
-                YkcDurumDegerleri.Atandi => yeniDurum == YkcDurumDegerleri.SahaIsleminde,
+                YkcDurumDegerleri.Atandi => yeniDurum == YkcDurumDegerleri.SahaIsleminde
+                    || (sahaFormuVar && yeniDurum == YkcDurumDegerleri.Tamamlandi),
                 YkcDurumDegerleri.SahaIsleminde => yeniDurum == YkcDurumDegerleri.Tamamlandi,
                 _ => false
             };

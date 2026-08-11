@@ -106,6 +106,96 @@
         .ykc-file-pills { display: flex; flex-wrap: wrap; gap: 5px; }
         .ykc-empty { padding: 42px; text-align: center; color: var(--df-muted); }
         .ykc-limit-note { color: var(--df-muted); font-size: 12px; padding: 0 18px 15px; }
+        .ykc-report-stack > .df-page-panel,
+        .filtre-kart,
+        .ykc-summary-card {
+            border-color: #dfe6f2;
+            box-shadow: 0 14px 32px rgba(13, 34, 112, .055);
+        }
+        .ykc-report-hero .df-panel-head {
+            border-bottom-color: #e6edf7;
+        }
+        .ykc-report-metric {
+            background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
+        }
+        .ykc-report-value {
+            letter-spacing: 0;
+        }
+        .filtre-kart {
+            padding: 0;
+            overflow: hidden;
+        }
+        .filtre-baslik {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            margin: 0;
+            padding: 15px 20px;
+            background: #fff;
+        }
+        .filtre-baslik::before {
+            content: "";
+            width: 7px;
+            height: 20px;
+            border-radius: 999px;
+            background: var(--df-primary);
+        }
+        .filtre-kart form {
+            padding: 18px 20px 20px;
+        }
+        .filtre-alan input,
+        .filtre-alan select {
+            background: #fff;
+            transition: border-color .16s ease, box-shadow .16s ease;
+        }
+        .ykc-summary-card {
+            background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
+        }
+        .ykc-summary-head {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            background: #fff;
+        }
+        .ykc-summary-head::before {
+            content: "";
+            width: 7px;
+            height: 20px;
+            border-radius: 999px;
+            background: var(--df-primary);
+        }
+        .ykc-summary-card:nth-child(2) .ykc-summary-head::before { background: #1dbb7a; }
+        .ykc-summary-card:nth-child(3) .ykc-summary-head::before { background: #7056d8; }
+        .ykc-summary-row {
+            background: #fff;
+            border-color: #e6edf7;
+        }
+        .ykc-report-head {
+            background: #f7f9fd;
+        }
+        .ykc-report-row {
+            position: relative;
+            background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
+        }
+        .ykc-report-row::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 12px;
+            bottom: 12px;
+            width: 3px;
+            border-radius: 999px;
+            background: #dbe4f2;
+        }
+        .ykc-report-row:hover::before {
+            background: var(--df-primary);
+        }
+        .ykc-empty {
+            margin: 12px;
+            border: 1px dashed #dbe3ee;
+            border-radius: 8px;
+            background: #fbfcff;
+        }
         @@media (max-width: 1320px) {
             .filtre-grid { grid-template-columns: repeat(3, minmax(160px, 1fr)); }
             .ykc-report-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
