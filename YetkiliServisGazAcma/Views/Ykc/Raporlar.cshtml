@@ -2,7 +2,7 @@
 @{
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
     var filtre = ViewBag.Filtre as YkcTalepListeFiltre ?? new YkcTalepListeFiltre();
-    var yetkiliServisMi = User.IsInRole("YetkiliServis");
+    var yetkiliServisMi = User.IsInRole("SertifikaliFirma");
     var icOperasyonGorsun = !yetkiliServisMi;
     var listelenen = Model.Kayitlar.Count;
 }
@@ -190,6 +190,51 @@
         .ykc-report-row:hover::before {
             background: var(--df-primary);
         }
+        .ykc-report-stack {
+            gap: 12px;
+        }
+        .ykc-report-metrics {
+            gap: 10px;
+            padding: 4px 20px 14px;
+        }
+        .ykc-report-metric {
+            padding: 11px 14px;
+        }
+        .ykc-report-value {
+            font-size: 22px;
+            margin-top: 7px;
+        }
+        .filtre-kart form {
+            padding: 14px 18px 16px;
+        }
+        .filtre-grid {
+            grid-template-columns: repeat(5, minmax(140px, 1fr));
+            gap: 10px;
+        }
+        .filtre-butonlar {
+            margin-top: 12px;
+        }
+        .ykc-report-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+        .ykc-summary-list {
+            padding: 10px 14px;
+        }
+        .ykc-summary-row {
+            padding: 8px 10px;
+        }
+        .ykc-report-head {
+            padding: 9px 14px;
+        }
+        .ykc-report-row {
+            margin: 7px 10px;
+            padding: 10px 12px;
+        }
+        .ykc-target-filter,
+        .ykc-target-summary {
+            display: none;
+        }
         .ykc-empty {
             margin: 12px;
             border: 1px dashed #dbe3ee;
@@ -241,7 +286,7 @@
                 </div>
                 @if (icOperasyonGorsun)
                 {
-                    <div class="filtre-alan">
+                    <div class="filtre-alan ykc-target-filter">
                         <label>Firma</label>
                         <input type="text" name="firma" value="@filtre.Firma" placeholder="Firma adı" />
                     </div>
@@ -313,7 +358,7 @@
     </section>
 
     <div class="ykc-report-grid">
-        <section class="ykc-summary-card">
+        <section class="ykc-summary-card ykc-target-summary">
             <div class="ykc-summary-head">Durum Dağılımı</div>
             <div class="ykc-summary-list">
                 @foreach (var durum in Model.DurumOzetleri.OrderBy(x => x.Durum))

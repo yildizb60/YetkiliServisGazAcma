@@ -6,7 +6,7 @@ using YetkiliServisGazAcma.Entities;
 
 namespace YetkiliServisGazAcma.Controllers
 {
-    [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,YetkiliServis")]
+    [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma")]
     [ApiExplorerSettings(IgnoreApi = true)]
     [Route("ykc")]
     public class YkcController : Controller
@@ -319,8 +319,8 @@ namespace YetkiliServisGazAcma.Controllers
             ViewData["PanelTitle"] = title;
             ViewData["PanelSubtitle"] = subtitle;
 
-            if (User.IsInRole("YetkiliServis"))
-                ViewData["PanelArea"] = "YetkiliServis";
+            if (User.IsInRole("SertifikaliFirma"))
+                ViewData["PanelArea"] = "SertifikaliFirma";
             else if (User.IsInRole("Personel"))
                 ViewData["PanelArea"] = "Personel";
             else

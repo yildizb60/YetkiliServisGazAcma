@@ -122,6 +122,7 @@
             }
             <option value="Personel" selected="@(seciliTip == "Personel" ? "selected" : null)">Personel</option>
             <option value="Servis" selected="@(seciliTip == "Servis" ? "selected" : null)">Yetkili Servis</option>
+            <option value="SertifikaliFirma" selected="@(seciliTip == "SertifikaliFirma" ? "selected" : null)">Sertifikalı Firma</option>
         </select>
     </div>
     <div class="filter-group">
@@ -175,6 +176,12 @@
                         ? "Şirket Admini"
                         : "Süper Admin";
             var bagli = k.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis ? k.Firma?.FirmaAdi : k.Sirket?.SirketAdi;
+            if (k.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma)
+            {
+                tip = "Sertifikalı Firma";
+                bagli = k.Firma?.FirmaAdi;
+            }
+
             var kullaniciIslemYapilabilir = genelSistemAdminMi ||
                 (k.KullaniciTipi != KullaniciTipiDegerleri.GenelSistemAdmin &&
                  k.KullaniciTipi != KullaniciTipiDegerleri.SirketAdmin);

@@ -324,7 +324,9 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (!sirketId.HasValue)
                 return false;
 
-            if (hedef.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis && hedef.FirmaId.HasValue)
+            if ((hedef.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis ||
+                 hedef.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma) &&
+                hedef.FirmaId.HasValue)
             {
                 return await _context.Ys_Firmalar.AnyAsync(x =>
                     x.Id == hedef.FirmaId.Value &&

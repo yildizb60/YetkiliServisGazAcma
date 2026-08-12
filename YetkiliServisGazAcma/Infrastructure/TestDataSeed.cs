@@ -62,6 +62,18 @@ namespace YetkiliServisGazAcma.Infrastructure
                 firma.Id,
                 new[] { KullaniciRolAdlari.YetkiliServis });
 
+            var sertifikaliFirma = await SertifikaliFirmaBulVeyaOlustur(context, corumgaz);
+            await DemoServisIlkKurulumuHazirla(context, sertifikaliFirma);
+            await KullaniciOlusturVeyaGuncelle(
+                userManager,
+                "test.sertifikalifirma@demo.com",
+                "Demo Sertifikalı Firma",
+                "905551000005",
+                KullaniciTipiDegerleri.SertifikaliFirma,
+                corumgaz.Id,
+                sertifikaliFirma.Id,
+                new[] { KullaniciRolAdlari.SertifikaliFirma });
+
             var eskiYetkiler = await context.Dag_PersonelYetkiler
                 .Where(x => x.KullaniciId == personel.Id)
                 .ToListAsync();
@@ -159,6 +171,49 @@ namespace YetkiliServisGazAcma.Infrastructure
                 firma.FirmaAdi = "Demo Yetkili Servis";
                 firma.YetkiliKisi = "Demo Yetkili Servis";
                 firma.Telefon = "05551000004";
+                firma.Email = email;
+                firma.VergiNo = vergiNo;
+                firma.VergiDairesi = "Demo";
+                firma.FaaliyetIli = sirket.Il;
+                firma.SirketId = sirket.Id;
+                firma.AktifMi = true;
+            }
+
+            await context.SaveChangesAsync();
+            return firma;
+        }
+
+        private static async Task<Ys_Firma> SertifikaliFirmaBulVeyaOlustur(AppDbContext context, Dag_Sirket sirket)
+        {
+            const string email = "test.sertifikalifirma@demo.com";
+            const string vergiNo = "9990000002";
+
+            var firma = await context.Ys_Firmalar
+                .FirstOrDefaultAsync(x => !x.SilindiMi && (x.Email == email || x.VergiNo == vergiNo));
+
+            if (firma == null)
+            {
+                firma = new Ys_Firma
+                {
+                    FirmaAdi = "Demo Sertifikalı Firma",
+                    YetkiliKisi = "Demo Sertifikalı Firma Yetkilisi",
+                    Telefon = "05551000005",
+                    Email = email,
+                    VergiNo = vergiNo,
+                    VergiDairesi = "Demo",
+                    FaaliyetIli = sirket.Il,
+                    SirketId = sirket.Id,
+                    AktifMi = true,
+                    OlusturanKullanici = "demo-seed"
+                };
+
+                context.Ys_Firmalar.Add(firma);
+            }
+            else
+            {
+                firma.FirmaAdi = "Demo Sertifikalı Firma";
+                firma.YetkiliKisi = "Demo Sertifikalı Firma Yetkilisi";
+                firma.Telefon = "05551000005";
                 firma.Email = email;
                 firma.VergiNo = vergiNo;
                 firma.VergiDairesi = "Demo";

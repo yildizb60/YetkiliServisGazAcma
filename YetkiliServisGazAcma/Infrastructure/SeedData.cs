@@ -12,7 +12,7 @@ namespace YetkiliServisGazAcma.Infrastructure
             bool createDefaultUsers)
         {
             // 1. Rolleri oluştur
-            string[] roller = { "GenelSistemAdmin", "SirketAdmin", "SuperAdmin", "Personel", "YetkiliServis" };
+            string[] roller = { "GenelSistemAdmin", "SirketAdmin", "SuperAdmin", "Personel", "YetkiliServis", "SertifikaliFirma" };
             foreach (var rol in roller)
             {
                 if (!await roleManager.RoleExistsAsync(rol))

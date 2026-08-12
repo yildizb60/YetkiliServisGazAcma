@@ -9,12 +9,16 @@
             path.StartsWith("/ys-panel", StringComparison.OrdinalIgnoreCase) ||
             path.StartsWith("/ys-devreyeal", StringComparison.OrdinalIgnoreCase) ||
             path.StartsWith("/ys-yetki-belgesi", StringComparison.OrdinalIgnoreCase)));
+    var isSertifikaliFirmaPanel = string.Equals(panelArea, "SertifikaliFirma", StringComparison.OrdinalIgnoreCase)
+        || (User.IsInRole("SertifikaliFirma") && path.StartsWith("/ykc", StringComparison.OrdinalIgnoreCase));
     var genelSistemAdminMi = (ViewBag.GenelSistemAdminMi as bool?)
         ?? (User.IsInRole("GenelSistemAdmin") || User.IsInRole("SuperAdmin"));
     var sirketAdminMi = User.IsInRole("SirketAdmin");
     var personelMi = User.IsInRole("Personel");
 
-    var panelAltBaslik = isYetkiliServisPanel
+    var panelAltBaslik = isSertifikaliFirmaPanel
+        ? "Sertifikalı Firma"
+        : isYetkiliServisPanel
         ? "Yetkili Servis"
         : isPersonelPanel
             ? "Personel Paneli"
@@ -75,12 +79,6 @@
             <a class="@("nav-item" + ActiveExact("DevreyeAl", "/ys-devreyeal"))" href="/ys-devreyeal">
                 <span class="nav-ico">&#128295;</span> Cihaz Devreye Al
             </a>
-            <a class="@("nav-item" + Active("YkcTalepler", "/ykc/talepler", "/ykc/detay", "/ykc/yeni", "/ykc/fr265"))" href="/ykc/talepler">
-                <span class="nav-ico">&#128293;</span> Cihaz Değişim Talebi
-            </a>
-            <a class="@("nav-item" + Active("YkcRaporlar", "/ykc/raporlar"))" href="/ykc/raporlar">
-                <span class="nav-ico">&#128202;</span> Cihaz Değişim Raporları
-            </a>
             <a class="@("nav-item" + Active("DevreyeGecmis", "/ys-devreyeal/gecmis", "/ys-devreyeal/detay"))" href="/ys-devreyeal/gecmis">
                 <span class="nav-ico">&#128221;</span> İşlem Geçmişim
             </a>
@@ -100,6 +98,19 @@
             </a>
             <a class="@("nav-item" + Active("Profil", "/ys-panel/profil"))" href="/ys-panel/profil">
                 <span class="nav-ico">&#128100;</span> Profilim
+            </a>
+        }
+        else if (isSertifikaliFirmaPanel)
+        {
+            <div class="nav-section">Firma</div>
+            <a class="@("nav-item" + Active("YkcTalepler", "/ykc/talepler", "/ykc/detay", "/ykc/fr265"))" href="/ykc/talepler">
+                <span class="nav-ico">&#128221;</span> Cihaz Değişim Taleplerim
+            </a>
+            <a class="@("nav-item" + Active("YkcYeni", "/ykc/yeni"))" href="/ykc/yeni">
+                <span class="nav-ico">&#10133;</span> Yeni Talep
+            </a>
+            <a class="@("nav-item" + Active("YkcRaporlar", "/ykc/raporlar"))" href="/ykc/raporlar">
+                <span class="nav-ico">&#128202;</span> Cihaz Değişim Raporlarım
             </a>
         }
         else if (isPersonelPanel)

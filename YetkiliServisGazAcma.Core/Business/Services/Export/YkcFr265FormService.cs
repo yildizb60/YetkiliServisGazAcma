@@ -74,7 +74,7 @@ namespace YetkiliServisGazAcma.Business.Services
             SetCellText(tables, 3, 4, 1, talep.EskiKapasite);
             SetCellText(tables, 3, 4, 2, talep.YeniKapasite);
 
-            SetCellText(tables, 4, 1, 0, FirmaImzaMetni(talep));
+            SetCellText(tables, 5, 1, 0, FirmaImzaMetni(talep));
         }
 
         private static string FirmaImzaMetni(YkcTalepDetayDto talep)

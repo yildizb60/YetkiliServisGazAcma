@@ -2,7 +2,7 @@
 @{
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
     var yonetebilir = User.IsInRole("GenelSistemAdmin") || User.IsInRole("SuperAdmin") || User.IsInRole("SirketAdmin") || User.IsInRole("Personel");
-    var icOperasyonGorsun = !User.IsInRole("YetkiliServis");
+    var icOperasyonGorsun = !User.IsInRole("SertifikaliFirma");
     var atamaYapilabilir = Model.Durum == YkcDurumDegerleri.AtamaBekliyor || Model.Durum == YkcDurumDegerleri.Atandi || Model.Durum == YkcDurumDegerleri.SahaIsleminde;
     var formYardimMetni = icOperasyonGorsun
         ? "Firma formu ve saha ıslak imzalı formu bu alandan izlenir. Saha ekibi işlem sonrası fotoğraf/PDF yükleyebilir."
@@ -89,7 +89,11 @@
 
 @section Styles {
     <style>
-        .ykc-detail-stack { display: grid; gap: 16px; }
+        .ykc-detail-stack { display: grid; gap: 14px; }
+        .ykc-detail-stack > * { order: 10; }
+        .ykc-hero { order: 1; }
+        .ykc-operation-grid { order: 2; }
+        .ykc-randevu-card { order: 3; }
         .ykc-summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; padding: 0 24px 20px; }
         .ykc-summary { background: #f8fafc; border: 1px solid #edf2f7; border-radius: 8px; padding: 14px 16px; min-width: 0; }
         .ykc-summary-label { color: #697386; font-size: 11px; font-weight: 850; text-transform: uppercase; letter-spacing: .04em; }
@@ -108,6 +112,8 @@
         .ykc-field.full { grid-column: 1 / -1; }
         .ykc-field label { font-size: 11px; color: #555; font-weight: 850; text-transform: uppercase; letter-spacing: .04em; }
         .ykc-field input, .ykc-field select, .ykc-field textarea { width: 100%; border: 1.5px solid #dfe5ee; border-radius: 8px; background: #fafbfc; color: var(--df-text); padding: 10px 12px; font-size: 13px; outline: none; }
+        .ykc-field:has(#ykcHedefUygulamaSecim),
+        .ykc-field:has(#ykcCallCenterTetik) { display: none; }
         .ykc-field textarea { min-height: 78px; resize: vertical; }
         .ykc-actions { display: flex; justify-content: flex-end; gap: 10px; padding: 0 18px 18px; }
         .ykc-list { display: grid; gap: 8px; padding: 16px 18px; }
@@ -130,12 +136,12 @@
         .ykc-summary:nth-child(2)::before { background: #1dbb7a; }
         .ykc-summary:nth-child(3)::before { background: #dc8e0d; }
         .ykc-summary:nth-child(4)::before { background: #7056d8; }
-        .ykc-flow-strip { display: grid; grid-template-columns: repeat(4, minmax(210px, 1fr)); gap: 12px; padding: 0 24px 22px; }
-        .ykc-flow-step { position: relative; border: 1px solid #e2e8f2; background: linear-gradient(180deg, #fff 0%, #fbfcff 100%); border-radius: 8px; padding: 15px 16px; display: grid; grid-template-columns: 36px 1fr; gap: 4px 12px; align-items: start; min-width: 0; min-height: 106px; box-shadow: 0 12px 24px rgba(13, 34, 112, .045); }
+        .ykc-flow-strip { display: grid; grid-template-columns: repeat(4, minmax(180px, 1fr)); gap: 10px; padding: 0 24px 18px; }
+        .ykc-flow-step { position: relative; border: 1px solid #e2e8f2; background: linear-gradient(180deg, #fff 0%, #fbfcff 100%); border-radius: 8px; padding: 12px 14px; display: grid; grid-template-columns: 30px 1fr; gap: 3px 10px; align-items: start; min-width: 0; min-height: 78px; box-shadow: 0 10px 20px rgba(13, 34, 112, .04); }
         .ykc-flow-step::after { content: ""; position: absolute; left: 16px; right: 16px; bottom: 0; height: 3px; border-radius: 999px 999px 0 0; background: var(--df-primary); opacity: .55; }
-        .ykc-flow-no { width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; background: #eef3ff; color: var(--df-primary); font-weight: 900; font-size: 12px; grid-row: 1 / span 2; }
+        .ykc-flow-no { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; background: #eef3ff; color: var(--df-primary); font-weight: 900; font-size: 12px; grid-row: 1 / span 2; }
         .ykc-flow-title { color: var(--df-text); font-size: 13px; font-weight: 900; line-height: 1.25; }
-        .ykc-flow-text { color: var(--df-muted); font-size: 12px; margin-top: 2px; line-height: 1.45; max-width: 34ch; }
+        .ykc-flow-text { color: var(--df-muted); font-size: 11px; margin-top: 2px; line-height: 1.35; max-width: none; }
         .ykc-flow-step.is-done { border-color: #c9eadb; background: #f4fcf8; }
         .ykc-flow-step.is-done::after { background: #1dbb7a; opacity: .9; }
         .ykc-flow-step.is-done .ykc-flow-no { background: #1dbb7a; color: #fff; }
@@ -239,6 +245,25 @@
         .ykc-randevu-card {
             box-shadow: 0 14px 32px rgba(112, 86, 216, .075);
         }
+        .ykc-device-compare-grid .ykc-card,
+        .ykc-operation-grid .ykc-card {
+            border-color: #d8e2f0;
+        }
+        .ykc-device-compare-grid .ykc-info {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+            padding: 12px;
+        }
+        .ykc-device-compare-grid .ykc-item {
+            padding: 9px 10px;
+        }
+        .ykc-operation-grid {
+            grid-template-columns: minmax(0, 1.35fr) minmax(320px, .65fr);
+            align-items: stretch;
+        }
+        .ykc-operation-grid .ykc-form-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
         @@media (max-width: 1100px) {
             .ykc-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .ykc-grid { grid-template-columns: 1fr; }
@@ -279,7 +304,7 @@
             <div class="ykc-summary"><div class="ykc-summary-label">Tesisat</div><div class="ykc-summary-value">@Deger(Model.TesisatNo)</div></div>
             @if (icOperasyonGorsun)
             {
-                <div class="ykc-summary"><div class="ykc-summary-label">Hedef</div><div class="ykc-summary-value">@HedefYazi(Model.HedefUygulama)</div></div>
+                <div class="ykc-summary"><div class="ykc-summary-label">İç Operasyon</div><div class="ykc-summary-value">@DurumYazi(Model.Durum)</div></div>
             }
             else
             {
@@ -315,7 +340,6 @@
             <div class="ykc-item"><div class="ykc-label">Randevu Saati</div><div class="ykc-value" id="ykcPlanSaat">@Deger(Model.RandevuSaati)</div></div>
             <div class="ykc-item"><div class="ykc-label">Ekip</div><div class="ykc-value" id="ykcPlanEkip">@Deger(Model.AtananEkip)</div></div>
             <div class="ykc-item"><div class="ykc-label">Bölge</div><div class="ykc-value" id="ykcPlanBolge">@Deger(Model.Bolge)</div></div>
-            <div class="ykc-item"><div class="ykc-label">Hedef Uygulama</div><div class="ykc-value" id="ykcPlanHedef">@HedefYazi(Model.HedefUygulama)</div></div>
             <div class="ykc-item"><div class="ykc-label">Saha Durumu</div><div class="ykc-value">@DurumYazi(Model.Durum)</div></div>
         </div>
         <div class="ykc-randevu-note">
@@ -350,26 +374,26 @@
         </section>
     </div>
 
-    <div class="ykc-grid">
+    <div class="ykc-grid ykc-device-compare-grid">
         <section class="ykc-card">
-            <div class="ykc-card-head"><div class="ykc-card-title">Eski Cihaz</div></div>
+            <div class="ykc-card-head"><div class="ykc-card-title">Projedeki Cihaz</div></div>
             <div class="ykc-info">
-                <div class="ykc-item"><div class="ykc-label">Cihaz Tipi</div><div class="ykc-value">@Deger(Model.EskiCihazTipi)</div></div>
-                <div class="ykc-item"><div class="ykc-label">Tip Kodu</div><div class="ykc-value">@Deger(Model.EskiCihazTipiKodu)</div></div>
+                <div class="ykc-item"><div class="ykc-label">Yakıcı Cihaz Tipi</div><div class="ykc-value">@Deger(Model.EskiCihazTipi)</div></div>
+                <div class="ykc-item" style="display:none;"><div class="ykc-label">Tip Kodu</div><div class="ykc-value">@Deger(Model.EskiCihazTipiKodu)</div></div>
                 <div class="ykc-item"><div class="ykc-label">Marka</div><div class="ykc-value">@Deger(Model.EskiMarka)</div></div>
-                <div class="ykc-item"><div class="ykc-label">Marka Kodu</div><div class="ykc-value">@Deger(Model.EskiMarkaKodu)</div></div>
+                <div class="ykc-item" style="display:none;"><div class="ykc-label">Marka Kodu</div><div class="ykc-value">@Deger(Model.EskiMarkaKodu)</div></div>
                 <div class="ykc-item"><div class="ykc-label">Baca Tipi</div><div class="ykc-value">@Deger(Model.EskiBacaTipi)</div></div>
                 <div class="ykc-item"><div class="ykc-label">Kapasite</div><div class="ykc-value">@Deger(Model.EskiKapasite)</div></div>
             </div>
         </section>
 
         <section class="ykc-card">
-            <div class="ykc-card-head"><div class="ykc-card-title">Yeni Cihaz</div></div>
+            <div class="ykc-card-head"><div class="ykc-card-title">Yeni Kullanılan Cihaz</div></div>
             <div class="ykc-info">
-                <div class="ykc-item"><div class="ykc-label">Cihaz Tipi</div><div class="ykc-value">@Deger(Model.YeniCihazTipi)</div></div>
-                <div class="ykc-item"><div class="ykc-label">Tip Kodu</div><div class="ykc-value">@Deger(Model.YeniCihazTipiKodu)</div></div>
+                <div class="ykc-item"><div class="ykc-label">Yakıcı Cihaz Tipi</div><div class="ykc-value">@Deger(Model.YeniCihazTipi)</div></div>
+                <div class="ykc-item" style="display:none;"><div class="ykc-label">Tip Kodu</div><div class="ykc-value">@Deger(Model.YeniCihazTipiKodu)</div></div>
                 <div class="ykc-item"><div class="ykc-label">Marka</div><div class="ykc-value">@Deger(Model.YeniMarka)</div></div>
-                <div class="ykc-item"><div class="ykc-label">Marka Kodu</div><div class="ykc-value">@Deger(Model.YeniMarkaKodu)</div></div>
+                <div class="ykc-item" style="display:none;"><div class="ykc-label">Marka Kodu</div><div class="ykc-value">@Deger(Model.YeniMarkaKodu)</div></div>
                 <div class="ykc-item"><div class="ykc-label">Baca Tipi</div><div class="ykc-value">@Deger(Model.YeniBacaTipi)</div></div>
                 <div class="ykc-item"><div class="ykc-label">Kapasite</div><div class="ykc-value">@Deger(Model.YeniKapasite)</div></div>
                 <div class="ykc-item"><div class="ykc-label">Model</div><div class="ykc-value">@Deger(Model.YeniModel)</div></div>
@@ -382,7 +406,7 @@
         <div class="ykc-card-head"><div class="ykc-card-title">Proje Uyum Kontrolü</div></div>
         <div class="ykc-check-grid">
             <div class="ykc-check">
-                <div class="ykc-check-title">Cihaz Tipi</div>
+                <div class="ykc-check-title">Yakıcı Cihaz Tipi</div>
                 <div class="ykc-check-line">Eski: @Deger(Model.EskiCihazTipiKodu ?? Model.EskiCihazTipi)</div>
                 <div class="ykc-check-line">Yeni: @Deger(Model.YeniCihazTipiKodu ?? Model.YeniCihazTipi)</div>
                 <span class="df-pill @KontrolClass(Model.EskiCihazTipiKodu ?? Model.EskiCihazTipi, Model.YeniCihazTipiKodu ?? Model.YeniCihazTipi)">
@@ -410,7 +434,7 @@
 
     @if (yonetebilir)
     {
-        <div class="ykc-grid">
+        <div class="ykc-grid ykc-operation-grid">
             <section class="ykc-card">
                 <div class="ykc-card-head"><div class="ykc-card-title">Onay, Randevu ve Ekip Ataması</div></div>
                 @if (!atamaYapilabilir)
@@ -425,7 +449,7 @@
                     <div class="ykc-form-grid">
                         <div class="ykc-field">
                             <label>Hedef Uygulama</label>
-                            <select name="HedefUygulama" id="ykcHedefUygulamaSecim">
+                            <select id="ykcHedefUygulamaSecim">
                                 <option value="@YkcHedefUygulamaDegerleri.YonetimPaneli" selected="@Secili(Model.HedefUygulama == YkcHedefUygulamaDegerleri.YonetimPaneli)">Yönetim Paneli</option>
                                 <option value="@YkcHedefUygulamaDegerleri.DogalgazMobileApp" selected="@Secili(Model.HedefUygulama == YkcHedefUygulamaDegerleri.DogalgazMobileApp)">Doğalgaz Mobile App</option>
                                 <option value="@YkcHedefUygulamaDegerleri.Crm187" selected="@Secili(Model.HedefUygulama == YkcHedefUygulamaDegerleri.Crm187)">CRM187</option>

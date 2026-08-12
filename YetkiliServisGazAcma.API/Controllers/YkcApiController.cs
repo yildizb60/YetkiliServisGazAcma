@@ -13,7 +13,7 @@ namespace YetkiliServisGazAcma.API.Controllers
 {
     [ApiController]
     [Route("api/ykc")]
-    [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,YetkiliServis")]
+    [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma")]
     public class YkcApiController : ControllerBase
     {
         private readonly YkcTalepService _ykcTalepService;
@@ -357,7 +357,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 ? YkcFormDosyaTuruDegerleri.FirmaFormu
                 : dto.DosyaTuru.Trim();
 
-            if (roller.Contains("YetkiliServis") && dosyaTuru != YkcFormDosyaTuruDegerleri.FirmaFormu)
+            if (roller.Contains("SertifikaliFirma") && dosyaTuru != YkcFormDosyaTuruDegerleri.FirmaFormu)
                 return Forbid();
 
             dto.DosyaTuru = dosyaTuru;
@@ -387,7 +387,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 ? YkcFormDosyaTuruDegerleri.FirmaFormu
                 : istek.DosyaTuru.Trim();
 
-            if (roller.Contains("YetkiliServis") && dosyaTuru != YkcFormDosyaTuruDegerleri.FirmaFormu)
+            if (roller.Contains("SertifikaliFirma") && dosyaTuru != YkcFormDosyaTuruDegerleri.FirmaFormu)
                 return Forbid();
 
             var webRoot = _environment.WebRootPath;

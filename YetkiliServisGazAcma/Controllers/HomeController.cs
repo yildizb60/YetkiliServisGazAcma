@@ -31,12 +31,6 @@ namespace YetkiliServisGazAcma.Controllers
             return View();
         }
 
-        [HttpGet("cihaz-degisim-formu")]
-        public IActionResult CihazDegisimFormu()
-        {
-            return View();
-        }
-
         [HttpGet("yetkisiz-erisim")]
         public IActionResult YetkisizErisim()
         {

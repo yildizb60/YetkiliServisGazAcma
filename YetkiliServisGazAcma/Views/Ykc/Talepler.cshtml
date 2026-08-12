@@ -1,7 +1,7 @@
 @model YkcTalepListeSonuc
 @{
     var filtre = ViewBag.Filtre as YkcTalepListeFiltre ?? new YkcTalepListeFiltre();
-    var yetkiliServisMi = User.IsInRole("YetkiliServis");
+    var yetkiliServisMi = User.IsInRole("SertifikaliFirma");
     var icOperasyonGorsun = !yetkiliServisMi;
     var incelemedeSayisi = Model.Talepler.Count(x => x.Durum == YkcDurumDegerleri.TalepAlindi || x.Durum == YkcDurumDegerleri.AtamaBekliyor);
     var randevuSayisi = Model.Talepler.Count(x => x.Durum == YkcDurumDegerleri.Atandi || x.RandevuTarihi.HasValue);

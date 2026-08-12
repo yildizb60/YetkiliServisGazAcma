@@ -7,5 +7,6 @@ namespace YetkiliServisGazAcma.Business.Services
         public const string EskiSuperAdmin = "SuperAdmin";
         public const string Personel = "Personel";
         public const string YetkiliServis = "YetkiliServis";
+        public const string SertifikaliFirma = "SertifikaliFirma";
     }
 }

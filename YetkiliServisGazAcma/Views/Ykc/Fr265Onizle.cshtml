@@ -31,9 +31,14 @@
         .fr265-section-title { font-size: 13px; font-weight: 900; text-transform: uppercase; margin: 18px 0 8px; color: #1f2937; }
         .fr265-text { font-size: 13px; line-height: 1.55; margin: 10px 0; text-align: justify; }
         .fr265-sign-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 22px; }
+        .fr265-sign-grid.three { grid-template-columns: repeat(3, 1fr); }
         .fr265-sign { border: 1px solid #111827; min-height: 138px; padding: 12px; font-size: 13px; }
         .fr265-sign-title { font-weight: 900; margin-bottom: 14px; }
         .fr265-line { margin-top: 10px; }
+        .fr265-check-grid { display: grid; gap: 12px; margin-top: 18px; }
+        .fr265-check-block { border: 1px solid #111827; padding: 12px; break-inside: avoid; }
+        .fr265-check-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; font-weight: 900; margin-bottom: 10px; }
+        .fr265-reason { border-bottom: 1px dotted #111827; min-height: 28px; margin-top: 8px; }
         .fr265-note { color: var(--df-muted); font-size: 12px; margin-top: 12px; }
         @@media print {
             body { background: #fff !important; }
@@ -43,7 +48,7 @@
         }
         @@media (max-width: 760px) {
             .fr265-paper { padding: 22px 18px; }
-            .fr265-head, .fr265-sign-grid { grid-template-columns: 1fr; }
+            .fr265-head, .fr265-sign-grid, .fr265-sign-grid.three { grid-template-columns: 1fr; }
             .fr265-brand { align-items: flex-start; flex-direction: column; }
             .fr265-logo { width: 150px; }
             .fr265-toolbar { flex-direction: column; align-items: stretch; }
@@ -66,7 +71,7 @@
 <section class="fr265-paper">
     <div class="fr265-head">
         <div class="fr265-brand">
-            <img class="fr265-logo" src="@LogoUrl(Model)" alt="Sirket logosu" />
+            <img class="fr265-logo" src="@LogoUrl(Model)" alt="Şirket logosu" />
             <div class="fr265-title">FR265 Proje Tadilatı Gerektirmeyen Yakıcı Cihaz Değişim Formu</div>
         </div>
         <div class="fr265-date">Tarih: @DateTime.Now.ToString("dd.MM.yyyy")</div>
@@ -83,9 +88,9 @@
     <table class="fr265-table">
         <tbody>
             <tr><td class="fr265-label">Adı Soyadı</td><td>@Deger(Model.MusteriAdi)</td></tr>
-            <tr><td class="fr265-label">Tesisat Numarası (Kapı Numarası)</td><td>@Deger(Model.TesisatNo)</td></tr>
+            <tr><td class="fr265-label">Tesisat Numarası</td><td>@Deger(Model.TesisatNo)</td></tr>
             <tr><td class="fr265-label">Tüketim Noktası (Daire/İş Yeri Numarası)</td><td>@Deger(Model.TuketimNoktasi)</td></tr>
-            <tr><td class="fr265-label">Bağlantı Nesnesi (Bina Numarası)</td><td>@Deger(Model.BaglantiNesnesi)</td></tr>
+            <tr><td class="fr265-label">Bina Kodu</td><td>@Deger(Model.BaglantiNesnesi)</td></tr>
             <tr><td class="fr265-label">Adres</td><td>@Deger(Model.Adres)</td></tr>
         </tbody>
     </table>
@@ -107,8 +112,21 @@
         </tbody>
     </table>
 
-    <p class="fr265-text">Yukarıda bilgileri verilen abonenin(tesisatın), mevcut onaylı projesinde bulunan yakıcı cihazın tip, yerleşim ve kapasite değişikliği yapılmamıştır.</p>
-    <p class="fr265-text">Aynı yerde, aynı tip ve kapasitedeki yeni yakıcı cihaz, tesisat üzerindeki cihaz vanasına, cihaz bağlantı parçaları ve atık sistemleri ile tesis edilmiş olup, değişimle ilgili tüm idari ve teknik sorumluluk tarafımıza aittir. Mevcut onaylı projesine göre yerinde gerekli tesisat kontrollerinin yapılması sonrası, yakıcı cihaz ile cihaz bağlantı hattı ve atık sistemleri devreye alma işlemleri tarafımızca yapılacak olup, sorumluluğu tarafımıza aittir.</p>
+    <table class="fr265-table">
+        <tbody>
+            <tr>
+                <td class="fr265-label">Takılan Yakıcı Cihaz İkinci El Cihaz Mı?</td>
+                <td>☐ Evet</td>
+                <td>☐ Hayır</td>
+            </tr>
+            <tr>
+                <td colspan="3">Cihazın ikinci el olması durumunda, yetkili servis tarafından düzenlenecek “Yetkili Servis Cihaz Kontrol Raporu” bu forma eklenmelidir.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <p class="fr265-text">Yukarıda bilgileri verilen abonenin/tesisatın mevcut onaylı projesinde bulunan yakıcı cihazın tip, yerleşim ve kapasite değişikliği yapılmamıştır.</p>
+    <p class="fr265-text">Aynı yerde, aynı tip ve kapasitedeki yeni yakıcı cihaz tesisat üzerindeki cihaz vanasına, cihaz bağlantı parçaları ve atık sistemleri ile tesis edilmiş olup değişimle ilgili tüm idari ve teknik sorumluluk sertifikalı firmaya aittir.</p>
 
     <div class="fr265-sign-grid">
         <div class="fr265-sign">
@@ -125,5 +143,55 @@
         </div>
     </div>
 
-    <div class="fr265-note">Not: Tüketim noktası, bağlantı nesnesi ve gerçek sertifika numarası alanları ilgili servis/veri alanı netleştiğinde otomatik doldurulacaktır.</div>
+    <p class="fr265-text">Yukarıdaki bilgileri verilen yeni cihaz belirtilen adreste görülmüştür.</p>
+    <div class="fr265-sign-grid">
+        <div class="fr265-sign">
+            <div class="fr265-sign-title">İşlemi Yapan Gaz Dağıtım Şirketi Yetkilisi</div>
+            <div class="fr265-line">Adı ve Soyadı:</div>
+            <div class="fr265-line">Tarih:</div>
+            <div class="fr265-line">İmza:</div>
+        </div>
+        <div class="fr265-sign">
+            <div class="fr265-sign-title">İşlem Yapılan Abone / Kullanıcı</div>
+            <div class="fr265-line">Adı ve Soyadı: @Deger(Model.MusteriAdi)</div>
+            <div class="fr265-line">Tarih:</div>
+            <div class="fr265-line">İmza:</div>
+        </div>
+    </div>
+
+    <div class="fr265-check-grid">
+        @for (var kontrolNo = 1; kontrolNo <= 5; kontrolNo++)
+        {
+            <div class="fr265-check-block">
+                <div class="fr265-check-head">
+                    <span>@($"{kontrolNo}. KONTROL")</span>
+                    <span>☐ Uygun &nbsp;&nbsp; ☐ Uygun Değil</span>
+                </div>
+                <div>Uygun değil ise nedeni:</div>
+                <div class="fr265-reason"></div>
+                <div class="fr265-sign-grid three" style="margin-top:14px;">
+                    <div>
+                        <strong>Gaz Dağıtım Şirketi Yetkilisi</strong>
+                        <div class="fr265-line">Adı Soyadı:</div>
+                        <div class="fr265-line">Tarih:</div>
+                        <div class="fr265-line">İmza:</div>
+                    </div>
+                    <div>
+                        <strong>Abone / Kullanıcı</strong>
+                        <div class="fr265-line">Adı Soyadı:</div>
+                        <div class="fr265-line">Tarih:</div>
+                        <div class="fr265-line">İmza:</div>
+                    </div>
+                    <div>
+                        <strong>Sertifikalı Firma</strong>
+                        <div class="fr265-line">Firma / Yetkili:</div>
+                        <div class="fr265-line">Tarih:</div>
+                        <div class="fr265-line">Kaşe / İmza:</div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="fr265-note">Not: Tüketim noktası, bina kodu ve gerçek sertifika numarası alanları ilgili servis/veri alanı netleştiğinde otomatik doldurulacaktır.</div>
 </section>

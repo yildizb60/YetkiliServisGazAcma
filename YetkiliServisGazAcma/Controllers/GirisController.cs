@@ -244,6 +244,7 @@ namespace YetkiliServisGazAcma.Controllers
             var hedefRol = kullanici.KullaniciTipi switch
             {
                 KullaniciTipiDegerleri.YetkiliServis => KullaniciRolAdlari.YetkiliServis,
+                KullaniciTipiDegerleri.SertifikaliFirma => KullaniciRolAdlari.SertifikaliFirma,
                 KullaniciTipiDegerleri.Personel => KullaniciRolAdlari.Personel,
                 KullaniciTipiDegerleri.SirketAdmin => sirketAdmin ? KullaniciRolAdlari.SirketAdmin : KullaniciRolAdlari.GenelSistemAdmin,
                 KullaniciTipiDegerleri.GenelSistemAdmin => KullaniciRolAdlari.GenelSistemAdmin,
@@ -274,6 +275,7 @@ namespace YetkiliServisGazAcma.Controllers
             return kullanici.KullaniciTipi switch
             {
                 KullaniciTipiDegerleri.YetkiliServis => Redirect("/ys-panel"),
+                KullaniciTipiDegerleri.SertifikaliFirma => Redirect("/ykc/talepler"),
                 KullaniciTipiDegerleri.Personel => Redirect("/personel-panel"),
                 KullaniciTipiDegerleri.SirketAdmin => Redirect("/AdminPanel"),
                 KullaniciTipiDegerleri.GenelSistemAdmin => Redirect("/AdminPanel"),

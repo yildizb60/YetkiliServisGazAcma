@@ -5,7 +5,8 @@ namespace YetkiliServisGazAcma.Business.Services
         YetkiliServis = 1,
         Personel = 2,
         SirketAdmin = 3,
-        GenelSistemAdmin = 4
+        GenelSistemAdmin = 4,
+        SertifikaliFirma = 5
     }
 
     public static class KullaniciTipiDegerleri
@@ -14,5 +15,6 @@ namespace YetkiliServisGazAcma.Business.Services
         public const int Personel = (int)KullaniciTipi.Personel;
         public const int SirketAdmin = (int)KullaniciTipi.SirketAdmin;
         public const int GenelSistemAdmin = (int)KullaniciTipi.GenelSistemAdmin;
+        public const int SertifikaliFirma = (int)KullaniciTipi.SertifikaliFirma;
     }
 }

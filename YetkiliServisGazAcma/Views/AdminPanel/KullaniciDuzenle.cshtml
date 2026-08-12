@@ -67,7 +67,8 @@
                         </select>
                     </div>
                 }
-                else if (hedef?.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis)
+                else if (hedef?.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis ||
+                         hedef?.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma)
                 {
                     <div class="info-item">
                         <div class="info-label">Firma</div>
