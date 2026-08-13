@@ -4,9 +4,12 @@
     var yonetebilir = User.IsInRole("GenelSistemAdmin") || User.IsInRole("SuperAdmin") || User.IsInRole("SirketAdmin") || User.IsInRole("Personel");
     var icOperasyonGorsun = !User.IsInRole("SertifikaliFirma");
     var atamaYapilabilir = Model.Durum == YkcDurumDegerleri.AtamaBekliyor || Model.Durum == YkcDurumDegerleri.Atandi || Model.Durum == YkcDurumDegerleri.SahaIsleminde;
+    var incelemeAdimiAcik = Model.Durum == YkcDurumDegerleri.TalepAlindi;
+    var randevuAdimiAcik = atamaYapilabilir;
+    var belgeAdimiAcik = !yonetebilir || Model.Durum == YkcDurumDegerleri.Atandi || Model.Durum == YkcDurumDegerleri.SahaIsleminde || Model.Durum == YkcDurumDegerleri.Tamamlandi;
     var formYardimMetni = icOperasyonGorsun
-        ? "Firma formu ve saha ıslak imzalı formu bu alandan izlenir. Saha ekibi işlem sonrası fotoğraf/PDF yükleyebilir."
-        : "FR265 formunu önizleyip Word olarak indirin, firma yetkilisine imzalatın ve imzalı PDF ya da fotoğrafı Firma Formu olarak buradan yükleyin.";
+        ? "Dijital form akışı arşiv ve imza sürecine hazır tutulur. İmzalı nihai belge geldiğinde bu alandan izlenir ya da geçici dosya olarak eklenir."
+        : "FR265 bilgileri sistemde dijital tutulur. İmzalı nihai belge arşivden görüntülenene kadar geçici belge/fotoğraf bu alandan eklenebilir.";
 }
 
 @functions {
@@ -64,14 +67,13 @@
         };
     }
 
-    private static string HedefYazi(string? hedef)
+    private static string DosyaTuruYazi(string? tur)
     {
-        return hedef switch
+        return tur switch
         {
-            YkcHedefUygulamaDegerleri.YonetimPaneli => "Yönetim Paneli",
-            YkcHedefUygulamaDegerleri.DogalgazMobileApp => "Doğalgaz Mobile App",
-            YkcHedefUygulamaDegerleri.Crm187 => "CRM187",
-            _ => Deger(hedef)
+            YkcFormDosyaTuruDegerleri.SahaIslakImzaliForm => "İmzalı Nihai Belge",
+            YkcFormDosyaTuruDegerleri.FirmaFormu => "Servis Ön Formu",
+            _ => Deger(tur)
         };
     }
 
@@ -89,34 +91,35 @@
 
 @section Styles {
     <style>
-        .ykc-detail-stack { display: grid; gap: 14px; }
+        .ykc-detail-stack { display: grid; gap: 10px; }
         .ykc-detail-stack > * { order: 10; }
         .ykc-hero { order: 1; }
-        .ykc-operation-grid { order: 2; }
-        .ykc-randevu-card { order: 3; }
-        .ykc-summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; padding: 0 24px 20px; }
-        .ykc-summary { background: #f8fafc; border: 1px solid #edf2f7; border-radius: 8px; padding: 14px 16px; min-width: 0; }
+        .ykc-context-grid { order: 2; }
+        .ykc-compare-card { order: 3; }
+        .ykc-process-card { order: 4; }
+        .ykc-history-grid { order: 5; }
+        .ykc-summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; padding: 0 20px 12px; }
+        .ykc-summary { background: #f8fafc; border: 1px solid #edf2f7; border-radius: 8px; padding: 10px 13px; min-width: 0; }
         .ykc-summary-label { color: #697386; font-size: 11px; font-weight: 850; text-transform: uppercase; letter-spacing: .04em; }
-        .ykc-summary-value { color: #172033; font-size: 16px; font-weight: 900; margin-top: 7px; overflow-wrap: anywhere; }
-        .ykc-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+        .ykc-summary-value { color: #172033; font-size: 14px; font-weight: 900; margin-top: 5px; overflow-wrap: anywhere; }
+        .ykc-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
         .ykc-card { background: #fff; border: 1px solid var(--df-border); border-radius: 8px; overflow: hidden; }
         .ykc-card-head { padding: 15px 18px; background: #f8fafc; border-bottom: 1px solid var(--df-border); }
         .ykc-card-title { color: var(--df-text); font-size: 14px; font-weight: 900; }
-        .ykc-info { padding: 16px 18px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+        .ykc-info { padding: 14px 16px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+        .ykc-info-compact { grid-template-columns: repeat(3, minmax(0, 1fr)); }
         .ykc-info.full { grid-template-columns: 1fr; }
-        .ykc-item { border: 1px solid #edf2f7; background: #fbfcfe; border-radius: 8px; padding: 11px 12px; min-width: 0; }
+        .ykc-item { border: 1px solid #edf2f7; background: #fbfcfe; border-radius: 8px; padding: 9px 11px; min-width: 0; }
         .ykc-label { color: #697386; font-size: 10px; font-weight: 850; text-transform: uppercase; letter-spacing: .04em; }
         .ykc-value { color: var(--df-text); font-size: 13px; font-weight: 750; margin-top: 5px; overflow-wrap: anywhere; }
-        .ykc-form-grid { padding: 16px 18px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+        .ykc-form-grid { padding: 14px 16px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
         .ykc-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
         .ykc-field.full { grid-column: 1 / -1; }
         .ykc-field label { font-size: 11px; color: #555; font-weight: 850; text-transform: uppercase; letter-spacing: .04em; }
         .ykc-field input, .ykc-field select, .ykc-field textarea { width: 100%; border: 1.5px solid #dfe5ee; border-radius: 8px; background: #fafbfc; color: var(--df-text); padding: 10px 12px; font-size: 13px; outline: none; }
-        .ykc-field:has(#ykcHedefUygulamaSecim),
-        .ykc-field:has(#ykcCallCenterTetik) { display: none; }
         .ykc-field textarea { min-height: 78px; resize: vertical; }
-        .ykc-actions { display: flex; justify-content: flex-end; gap: 10px; padding: 0 18px 18px; }
-        .ykc-list { display: grid; gap: 8px; padding: 16px 18px; }
+        .ykc-actions { display: flex; justify-content: flex-end; gap: 10px; padding: 0 16px 16px; }
+        .ykc-list { display: grid; gap: 8px; padding: 14px 16px; }
         .ykc-list-row { border: 1px solid #edf2f7; background: #fbfcfe; border-radius: 8px; padding: 12px; display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; color: var(--df-text-soft); font-size: 13px; }
         .ykc-check-grid { padding: 16px 18px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
         .ykc-check { border: 1px solid #edf2f7; background: #fbfcfe; border-radius: 8px; padding: 12px; display: grid; gap: 8px; }
@@ -136,12 +139,12 @@
         .ykc-summary:nth-child(2)::before { background: #1dbb7a; }
         .ykc-summary:nth-child(3)::before { background: #dc8e0d; }
         .ykc-summary:nth-child(4)::before { background: #7056d8; }
-        .ykc-flow-strip { display: grid; grid-template-columns: repeat(4, minmax(180px, 1fr)); gap: 10px; padding: 0 24px 18px; }
-        .ykc-flow-step { position: relative; border: 1px solid #e2e8f2; background: linear-gradient(180deg, #fff 0%, #fbfcff 100%); border-radius: 8px; padding: 12px 14px; display: grid; grid-template-columns: 30px 1fr; gap: 3px 10px; align-items: start; min-width: 0; min-height: 78px; box-shadow: 0 10px 20px rgba(13, 34, 112, .04); }
+        .ykc-flow-strip { display: grid; grid-template-columns: repeat(4, minmax(150px, 1fr)); gap: 8px; padding: 0 20px 12px; }
+        .ykc-flow-step { position: relative; border: 1px solid #e2e8f2; background: linear-gradient(180deg, #fff 0%, #fbfcff 100%); border-radius: 8px; padding: 9px 11px; display: grid; grid-template-columns: 26px 1fr; gap: 2px 8px; align-items: start; min-width: 0; min-height: 58px; box-shadow: 0 8px 16px rgba(13, 34, 112, .035); }
         .ykc-flow-step::after { content: ""; position: absolute; left: 16px; right: 16px; bottom: 0; height: 3px; border-radius: 999px 999px 0 0; background: var(--df-primary); opacity: .55; }
-        .ykc-flow-no { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; background: #eef3ff; color: var(--df-primary); font-weight: 900; font-size: 12px; grid-row: 1 / span 2; }
-        .ykc-flow-title { color: var(--df-text); font-size: 13px; font-weight: 900; line-height: 1.25; }
-        .ykc-flow-text { color: var(--df-muted); font-size: 11px; margin-top: 2px; line-height: 1.35; max-width: none; }
+        .ykc-flow-no { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; background: #eef3ff; color: var(--df-primary); font-weight: 900; font-size: 11px; grid-row: 1 / span 2; }
+        .ykc-flow-title { color: var(--df-text); font-size: 12px; font-weight: 900; line-height: 1.2; }
+        .ykc-flow-text { color: var(--df-muted); font-size: 10.5px; margin-top: 1px; line-height: 1.25; max-width: none; }
         .ykc-flow-step.is-done { border-color: #c9eadb; background: #f4fcf8; }
         .ykc-flow-step.is-done::after { background: #1dbb7a; opacity: .9; }
         .ykc-flow-step.is-done .ykc-flow-no { background: #1dbb7a; color: #fff; }
@@ -257,6 +260,37 @@
         .ykc-device-compare-grid .ykc-item {
             padding: 9px 10px;
         }
+        .ykc-compare-card { order: 3; }
+        .ykc-compare-table {
+            display: grid;
+            grid-template-columns: minmax(140px, .8fr) minmax(160px, 1fr) minmax(160px, 1fr) minmax(110px, auto);
+            gap: 0;
+            padding: 14px 18px 18px;
+            overflow-x: auto;
+        }
+        .ykc-compare-table > div {
+            border-bottom: 1px solid #e6edf7;
+            padding: 11px 12px;
+            min-width: 0;
+            color: var(--df-text-soft);
+            font-size: 13px;
+            line-height: 1.45;
+        }
+        .ykc-compare-head {
+            background: #f7f9fd;
+            color: #566280 !important;
+            font-size: 11px !important;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+        .ykc-compare-label {
+            color: var(--df-text) !important;
+            font-weight: 900;
+        }
+        .ykc-compare-table > div:nth-last-child(-n+4) {
+            border-bottom: 0;
+        }
         .ykc-operation-grid {
             grid-template-columns: minmax(0, 1.35fr) minmax(320px, .65fr);
             align-items: stretch;
@@ -264,6 +298,21 @@
         .ykc-operation-grid .ykc-form-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
+        .ykc-history-grid { grid-template-columns: 1fr; }
+        .ykc-process-list { display: grid; gap: 9px; padding: 12px 14px 14px; }
+        .ykc-step-panel { border: 1px solid #e1e9f4; border-radius: 8px; background: #fff; overflow: hidden; }
+        .ykc-step-panel summary { list-style: none; cursor: pointer; user-select: none; }
+        .ykc-step-panel summary::-webkit-details-marker { display: none; }
+        .ykc-step-summary { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 52px; padding: 10px 12px; background: #fbfcff; }
+        .ykc-step-no { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; color: var(--df-primary); background: #eef3ff; font-size: 12px; font-weight: 900; }
+        .ykc-step-title { color: var(--df-text); font-size: 13px; font-weight: 900; }
+        .ykc-step-subtitle { color: var(--df-muted); font-size: 11.5px; margin-top: 2px; }
+        .ykc-step-toggle { color: var(--df-primary); border: 1px solid #d9e2f1; background: #fff; border-radius: 999px; padding: 6px 10px; font-size: 11px; font-weight: 900; }
+        .ykc-step-panel[open] .ykc-step-toggle::after { content: "Kapat"; }
+        .ykc-step-panel:not([open]) .ykc-step-toggle::after { content: "Aç"; }
+        .ykc-step-body { border-top: 1px solid #edf2f7; }
+        .ykc-process-note { margin: 12px 16px 0; border: 1px solid #dbe7ff; background: #f4f7ff; border-radius: 8px; padding: 10px 12px; color: var(--df-text-soft); font-size: 12px; line-height: 1.45; }
+        .ykc-archive-tools { padding: 0 16px 12px; display: flex; flex-wrap: wrap; gap: 10px; }
         @@media (max-width: 1100px) {
             .ykc-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .ykc-grid { grid-template-columns: 1fr; }
@@ -271,7 +320,7 @@
             .ykc-flow-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
         @@media (max-width: 720px) {
-            .ykc-summary-grid, .ykc-info, .ykc-form-grid, .ykc-upload, .ykc-check-grid, .ykc-flow-strip { grid-template-columns: 1fr; }
+            .ykc-summary-grid, .ykc-info, .ykc-info-compact, .ykc-form-grid, .ykc-upload, .ykc-check-grid, .ykc-flow-strip, .ykc-step-summary { grid-template-columns: 1fr; }
             .ykc-actions, .df-actions { flex-direction: column; align-items: stretch; }
         }
     </style>
@@ -296,7 +345,7 @@
             <div class="df-actions">
                 <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/talepler">Listeye Dön</a>
                 <a class="df-btn df-btn-primary df-btn-sm" href="/ykc/fr265/onizle/@Model.Id" target="_blank">FR265 Önizle</a>
-                <a class="df-btn df-btn-success df-btn-sm" href="/ykc/fr265/indir/@Model.Id">Word İndir</a>
+                <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/fr265/indir/@Model.Id">Belge İndir</a>
                 <span class="df-pill @DurumClass(Model.Durum)">@DurumYazi(Model.Durum)</span>
             </div>
         </div>
@@ -310,8 +359,8 @@
             {
                 <div class="ykc-summary"><div class="ykc-summary-label">Durum</div><div class="ykc-summary-value">@DurumYazi(Model.Durum)</div></div>
             }
-            <div class="ykc-summary"><div class="ykc-summary-label">Bölge / Ekip</div><div class="ykc-summary-value">@Deger(Model.Bolge) / @Deger(Model.AtananEkip)</div></div>
-            <div class="ykc-summary"><div class="ykc-summary-label">Randevu</div><div class="ykc-summary-value">@Tarih(Model.RandevuTarihi) @Deger(Model.RandevuSaati)</div></div>
+            <div class="ykc-summary"><div class="ykc-summary-label">Bölge / Ekip</div><div class="ykc-summary-value"><span id="ykcPlanBolge">@Deger(Model.Bolge)</span> / <span id="ykcPlanEkip">@Deger(Model.AtananEkip)</span></div></div>
+            <div class="ykc-summary"><div class="ykc-summary-label">Randevu</div><div class="ykc-summary-value"><span id="ykcPlanTarih">@Tarih(Model.RandevuTarihi)</span> <span id="ykcPlanSaat">@Deger(Model.RandevuSaati)</span></div></div>
         </div>
         <div class="ykc-flow-strip">
             <div class="ykc-flow-step @AkisClass(Model.Durum, YkcDurumDegerleri.TalepAlindi)">
@@ -328,29 +377,15 @@
             </div>
             <div class="ykc-flow-step @AkisClass(Model.Durum, YkcDurumDegerleri.SahaIsleminde)">
                 <div class="ykc-flow-no">4</div>
-                <div><div class="ykc-flow-title">Saha Sonucu</div><div class="ykc-flow-text">Islak imzalı form yüklenir, işlem tamamlanır ya da reddedilir.</div></div>
+                <div><div class="ykc-flow-title">Belge ve Arşiv</div><div class="ykc-flow-text">İmzalı nihai belge arşivden izlenir, işlem kapatılır.</div></div>
             </div>
         </div>
     </section>
 
-    <section class="ykc-card ykc-randevu-card">
-        <div class="ykc-card-head"><div class="ykc-card-title">Randevu ve Saha Planı</div></div>
-        <div class="ykc-info">
-            <div class="ykc-item"><div class="ykc-label">Randevu Tarihi</div><div class="ykc-value" id="ykcPlanTarih">@Tarih(Model.RandevuTarihi)</div></div>
-            <div class="ykc-item"><div class="ykc-label">Randevu Saati</div><div class="ykc-value" id="ykcPlanSaat">@Deger(Model.RandevuSaati)</div></div>
-            <div class="ykc-item"><div class="ykc-label">Ekip</div><div class="ykc-value" id="ykcPlanEkip">@Deger(Model.AtananEkip)</div></div>
-            <div class="ykc-item"><div class="ykc-label">Bölge</div><div class="ykc-value" id="ykcPlanBolge">@Deger(Model.Bolge)</div></div>
-            <div class="ykc-item"><div class="ykc-label">Saha Durumu</div><div class="ykc-value">@DurumYazi(Model.Durum)</div></div>
-        </div>
-        <div class="ykc-randevu-note">
-            Randevu kaydedildiğinde bu alan ve /ykc/talepler listesindeki Randevu kolonu güncellenir. Saha sonucu adımı yetkili servisin değil, iç operasyon veya sahaya yönlendirilen ekibin işlemidir; ıslak imzalı form yüklenip talep tamamlanır ya da gerekçeyle reddedilir.
-        </div>
-    </section>
-
-    <div class="ykc-grid">
+    <div class="ykc-grid ykc-context-grid">
         <section class="ykc-card">
             <div class="ykc-card-head"><div class="ykc-card-title">Tesisat ve Müşteri</div></div>
-            <div class="ykc-info">
+            <div class="ykc-info ykc-info-compact">
                 <div class="ykc-item"><div class="ykc-label">Müşteri</div><div class="ykc-value">@Deger(Model.MusteriAdi)</div></div>
                 <div class="ykc-item"><div class="ykc-label">Telefon</div><div class="ykc-value">@Deger(Model.MusteriTelefon)</div></div>
                 <div class="ykc-item"><div class="ykc-label">Abone</div><div class="ykc-value">@Deger(Model.AboneNo)</div></div>
@@ -363,7 +398,7 @@
 
         <section class="ykc-card">
             <div class="ykc-card-head"><div class="ykc-card-title">Firma ve Kapsam</div></div>
-            <div class="ykc-info">
+            <div class="ykc-info ykc-info-compact">
                 <div class="ykc-item"><div class="ykc-label">Firma</div><div class="ykc-value">@Deger(Model.FirmaAdi)</div></div>
                 <div class="ykc-item"><div class="ykc-label">Şirket</div><div class="ykc-value">@Deger(Model.SirketAdi)</div></div>
                 <div class="ykc-item"><div class="ykc-label">VKN</div><div class="ykc-value">@Deger(Model.Vkn)</div></div>
@@ -374,231 +409,231 @@
         </section>
     </div>
 
-    <div class="ykc-grid ykc-device-compare-grid">
-        <section class="ykc-card">
-            <div class="ykc-card-head"><div class="ykc-card-title">Projedeki Cihaz</div></div>
-            <div class="ykc-info">
-                <div class="ykc-item"><div class="ykc-label">Yakıcı Cihaz Tipi</div><div class="ykc-value">@Deger(Model.EskiCihazTipi)</div></div>
-                <div class="ykc-item" style="display:none;"><div class="ykc-label">Tip Kodu</div><div class="ykc-value">@Deger(Model.EskiCihazTipiKodu)</div></div>
-                <div class="ykc-item"><div class="ykc-label">Marka</div><div class="ykc-value">@Deger(Model.EskiMarka)</div></div>
-                <div class="ykc-item" style="display:none;"><div class="ykc-label">Marka Kodu</div><div class="ykc-value">@Deger(Model.EskiMarkaKodu)</div></div>
-                <div class="ykc-item"><div class="ykc-label">Baca Tipi</div><div class="ykc-value">@Deger(Model.EskiBacaTipi)</div></div>
-                <div class="ykc-item"><div class="ykc-label">Kapasite</div><div class="ykc-value">@Deger(Model.EskiKapasite)</div></div>
-            </div>
-        </section>
+    <section class="ykc-card ykc-compare-card">
+        <div class="ykc-card-head"><div class="ykc-card-title">Cihaz Karşılaştırması</div></div>
+        <div class="ykc-compare-table">
+            <div class="ykc-compare-head">Alan</div>
+            <div class="ykc-compare-head">Projedeki Cihaz</div>
+            <div class="ykc-compare-head">Yeni Kullanılan Cihaz</div>
+            <div class="ykc-compare-head">Kontrol</div>
 
-        <section class="ykc-card">
-            <div class="ykc-card-head"><div class="ykc-card-title">Yeni Kullanılan Cihaz</div></div>
-            <div class="ykc-info">
-                <div class="ykc-item"><div class="ykc-label">Yakıcı Cihaz Tipi</div><div class="ykc-value">@Deger(Model.YeniCihazTipi)</div></div>
-                <div class="ykc-item" style="display:none;"><div class="ykc-label">Tip Kodu</div><div class="ykc-value">@Deger(Model.YeniCihazTipiKodu)</div></div>
-                <div class="ykc-item"><div class="ykc-label">Marka</div><div class="ykc-value">@Deger(Model.YeniMarka)</div></div>
-                <div class="ykc-item" style="display:none;"><div class="ykc-label">Marka Kodu</div><div class="ykc-value">@Deger(Model.YeniMarkaKodu)</div></div>
-                <div class="ykc-item"><div class="ykc-label">Baca Tipi</div><div class="ykc-value">@Deger(Model.YeniBacaTipi)</div></div>
-                <div class="ykc-item"><div class="ykc-label">Kapasite</div><div class="ykc-value">@Deger(Model.YeniKapasite)</div></div>
-                <div class="ykc-item"><div class="ykc-label">Model</div><div class="ykc-value">@Deger(Model.YeniModel)</div></div>
-                <div class="ykc-item"><div class="ykc-label">Seri No</div><div class="ykc-value">@Deger(Model.YeniSeriNo)</div></div>
-            </div>
-        </section>
-    </div>
+            <div class="ykc-compare-label">Yakıcı Cihaz Tipi</div>
+            <div>@Deger(Model.EskiCihazTipi)</div>
+            <div>@Deger(Model.YeniCihazTipi)</div>
+            <div><span class="df-pill @KontrolClass(Model.EskiCihazTipiKodu ?? Model.EskiCihazTipi, Model.YeniCihazTipiKodu ?? Model.YeniCihazTipi)">@KontrolYazi(Model.EskiCihazTipiKodu ?? Model.EskiCihazTipi, Model.YeniCihazTipiKodu ?? Model.YeniCihazTipi)</span></div>
 
-    <section class="ykc-card">
-        <div class="ykc-card-head"><div class="ykc-card-title">Proje Uyum Kontrolü</div></div>
-        <div class="ykc-check-grid">
-            <div class="ykc-check">
-                <div class="ykc-check-title">Yakıcı Cihaz Tipi</div>
-                <div class="ykc-check-line">Eski: @Deger(Model.EskiCihazTipiKodu ?? Model.EskiCihazTipi)</div>
-                <div class="ykc-check-line">Yeni: @Deger(Model.YeniCihazTipiKodu ?? Model.YeniCihazTipi)</div>
-                <span class="df-pill @KontrolClass(Model.EskiCihazTipiKodu ?? Model.EskiCihazTipi, Model.YeniCihazTipiKodu ?? Model.YeniCihazTipi)">
-                    @KontrolYazi(Model.EskiCihazTipiKodu ?? Model.EskiCihazTipi, Model.YeniCihazTipiKodu ?? Model.YeniCihazTipi)
-                </span>
+            <div class="ykc-compare-label">Marka</div>
+            <div>@Deger(Model.EskiMarka)</div>
+            <div>
+                @Deger(Model.YeniMarka)
+                @if (!string.IsNullOrWhiteSpace(Model.YeniModel))
+                {
+                    <div class="ykc-muted">@Model.YeniModel</div>
+                }
             </div>
-            <div class="ykc-check">
-                <div class="ykc-check-title">Baca Tipi</div>
-                <div class="ykc-check-line">Eski: @Deger(Model.EskiBacaTipiKodu ?? Model.EskiBacaTipi)</div>
-                <div class="ykc-check-line">Yeni: @Deger(Model.YeniBacaTipiKodu ?? Model.YeniBacaTipi)</div>
-                <span class="df-pill @KontrolClass(Model.EskiBacaTipiKodu ?? Model.EskiBacaTipi, Model.YeniBacaTipiKodu ?? Model.YeniBacaTipi)">
-                    @KontrolYazi(Model.EskiBacaTipiKodu ?? Model.EskiBacaTipi, Model.YeniBacaTipiKodu ?? Model.YeniBacaTipi)
-                </span>
-            </div>
-            <div class="ykc-check">
-                <div class="ykc-check-title">Kapasite</div>
-                <div class="ykc-check-line">Eski: @Deger(Model.EskiKapasite)</div>
-                <div class="ykc-check-line">Yeni: @Deger(Model.YeniKapasite)</div>
-                <span class="df-pill @KontrolClass(Model.EskiKapasite, Model.YeniKapasite)">
-                    @KontrolYazi(Model.EskiKapasite, Model.YeniKapasite)
-                </span>
-            </div>
+            <div><span class="df-pill df-pill-secondary">Bilgi</span></div>
+
+            <div class="ykc-compare-label">Baca Tipi</div>
+            <div>@Deger(Model.EskiBacaTipi)</div>
+            <div>@Deger(Model.YeniBacaTipi)</div>
+            <div><span class="df-pill @KontrolClass(Model.EskiBacaTipiKodu ?? Model.EskiBacaTipi, Model.YeniBacaTipiKodu ?? Model.YeniBacaTipi)">@KontrolYazi(Model.EskiBacaTipiKodu ?? Model.EskiBacaTipi, Model.YeniBacaTipiKodu ?? Model.YeniBacaTipi)</span></div>
+
+            <div class="ykc-compare-label">Kapasite</div>
+            <div>@Deger(Model.EskiKapasite)</div>
+            <div>@Deger(Model.YeniKapasite)</div>
+            <div><span class="df-pill @KontrolClass(Model.EskiKapasite, Model.YeniKapasite)">@KontrolYazi(Model.EskiKapasite, Model.YeniKapasite)</span></div>
+
+            @if (!string.IsNullOrWhiteSpace(Model.YeniSeriNo))
+            {
+                <div class="ykc-compare-label">Seri No</div>
+                <div>-</div>
+                <div>@Model.YeniSeriNo</div>
+                <div><span class="df-pill df-pill-secondary">Bilgi</span></div>
+            }
         </div>
     </section>
 
-    @if (yonetebilir)
-    {
-        <div class="ykc-grid ykc-operation-grid">
-            <section class="ykc-card">
-                <div class="ykc-card-head"><div class="ykc-card-title">Onay, Randevu ve Ekip Ataması</div></div>
-                @if (!atamaYapilabilir)
-                {
-                    <div class="df-alert" style="margin:16px 18px 0; background:var(--df-warning-soft); border-color:#f5d999; color:#8a5a00;">
-                        Randevu ve atama için talebi önce Red / Durum Güncelle alanından İç Tesisat İncelemesinde durumuna alın.
-                    </div>
-                }
-                <form method="post" action="/ykc/atama-yap">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="TalepId" value="@Model.Id" />
-                    <div class="ykc-form-grid">
-                        <div class="ykc-field">
-                            <label>Hedef Uygulama</label>
-                            <select id="ykcHedefUygulamaSecim">
-                                <option value="@YkcHedefUygulamaDegerleri.YonetimPaneli" selected="@Secili(Model.HedefUygulama == YkcHedefUygulamaDegerleri.YonetimPaneli)">Yönetim Paneli</option>
-                                <option value="@YkcHedefUygulamaDegerleri.DogalgazMobileApp" selected="@Secili(Model.HedefUygulama == YkcHedefUygulamaDegerleri.DogalgazMobileApp)">Doğalgaz Mobile App</option>
-                                <option value="@YkcHedefUygulamaDegerleri.Crm187" selected="@Secili(Model.HedefUygulama == YkcHedefUygulamaDegerleri.Crm187)">CRM187</option>
-                            </select>
-                        </div>
-                        <div class="ykc-field">
-                            <label>Kullanıcı Tipi</label>
-                            <input name="AtananKullaniciTipi" value="@Model.Atamalar.FirstOrDefault()?.AtananKullaniciTipi" placeholder="Mühendis, 187 Acil..." />
-                        </div>
-                        <div class="ykc-field">
-                            <label>Ekip</label>
-                            <input name="AtananEkip" value="@Model.AtananEkip" placeholder="Ekip adı" required />
-                        </div>
-                        <div class="ykc-field">
-                            <label>Bölge</label>
-                            <input name="Bolge" value="@Model.Bolge" placeholder="Bölge" required />
-                        </div>
-                        <div class="ykc-field">
-                            <label>Randevu Tarihi</label>
-                            <div class="ykc-picker-field">
-                                <input id="randevuTarihi" type="date" name="RandevuTarihi" value="@Model.RandevuTarihi?.ToString("yyyy-MM-dd")" required />
-                                <button type="button" class="ykc-picker-btn" data-picker="#randevuTarihi" aria-label="Takvimi aç"><i class="bi bi-calendar3"></i></button>
-                            </div>
-                        </div>
-                        <div class="ykc-field">
-                            <label>Randevu Saati</label>
-                            <div class="ykc-picker-field">
-                                <input id="randevuSaati" type="time" name="RandevuSaati" value="@Model.RandevuSaati" required />
-                                <button type="button" class="ykc-picker-btn" data-picker="#randevuSaati" aria-label="Saati seç"><i class="bi bi-clock"></i></button>
-                            </div>
-                        </div>
-                        <div class="ykc-field full">
-                            <label>Açıklama</label>
-                            <textarea name="Aciklama" placeholder="Atama notu"></textarea>
-                        </div>
-                        <div class="ykc-field full">
-                            <label>
-                                <input type="checkbox" id="ykcCallCenterTetik" name="CallCenterTetiklenecekMi" value="true" checked="@Isaretli(Model.CallCenterTetiklenecekMi)" style="width:auto; margin-right:8px;" />
-                                CRM187 / Callcenter tetikleme gerektiriyor
-                            </label>
-                            <div class="ykc-muted">Bu seçenek yalnızca hedef uygulama CRM187 seçildiğinde kullanılır.</div>
-                        </div>
-                    </div>
-                    <div class="ykc-actions">
-                        <button class="df-btn df-btn-primary" type="submit" @Pasif(!atamaYapilabilir)>Randevu ve Atamayı Kaydet</button>
-                    </div>
-                </form>
-            </section>
-
-            <section class="ykc-card">
-                <div class="ykc-card-head"><div class="ykc-card-title">Red / Durum Güncelle</div></div>
-                <form method="post" action="/ykc/durum-guncelle">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="TalepId" value="@Model.Id" />
-                    <div class="ykc-form-grid">
-                        <div class="ykc-field">
-                            <label>Durum</label>
-                            <select name="Durum">
-                                <option value="@YkcDurumDegerleri.TalepAlindi" selected="@Secili(Model.Durum == YkcDurumDegerleri.TalepAlindi)">Beklemede</option>
-                                <option value="@YkcDurumDegerleri.AtamaBekliyor" selected="@Secili(Model.Durum == YkcDurumDegerleri.AtamaBekliyor)">İç Tesisat İncelemesinde</option>
-                                <option value="@YkcDurumDegerleri.Atandi" selected="@Secili(Model.Durum == YkcDurumDegerleri.Atandi)">Randevu Verildi</option>
-                                <option value="@YkcDurumDegerleri.SahaIsleminde" selected="@Secili(Model.Durum == YkcDurumDegerleri.SahaIsleminde)">Saha İşleminde</option>
-                                <option value="@YkcDurumDegerleri.Reddedildi" selected="@Secili(Model.Durum == YkcDurumDegerleri.Reddedildi)">Reddedildi</option>
-                                <option value="@YkcDurumDegerleri.Tamamlandi" selected="@Secili(Model.Durum == YkcDurumDegerleri.Tamamlandi)">Tamamlandı</option>
-                                <option value="@YkcDurumDegerleri.Iptal" selected="@Secili(Model.Durum == YkcDurumDegerleri.Iptal)">İptal</option>
-                            </select>
-                        </div>
-                        <div class="ykc-field full">
-                            <label>Açıklama</label>
-                            <textarea name="Aciklama" placeholder="Red veya durum açıklaması">@Model.RedAciklama</textarea>
-                        </div>
-                    </div>
-                    <div class="ykc-actions">
-                        <button class="df-btn df-btn-success" type="submit">Durumu Güncelle</button>
-                    </div>
-                </form>
-            </section>
-        </div>
-    }
-
-    <div class="ykc-grid">
-        <section class="ykc-card">
-            <div class="ykc-card-head"><div class="ykc-card-title">Form Dosyaları</div></div>
-            <div class="ykc-info full">
-                <div class="ykc-item ykc-form-hint">
-                    <div class="ykc-label">FR265 Akışı</div>
-                    <div class="ykc-value">@formYardimMetni</div>
-                </div>
-            </div>
-            <div class="ykc-form-tools">
-                <a class="df-btn df-btn-primary df-btn-sm" href="/ykc/fr265/onizle/@Model.Id" target="_blank">FR265 Önizle</a>
-                <a class="df-btn df-btn-success df-btn-sm" href="/ykc/fr265/indir/@Model.Id">Word İndir</a>
-            </div>
-            <form method="post" action="/ykc/form-yukle" enctype="multipart/form-data" class="ykc-upload">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="talepId" value="@Model.Id" />
-                @if (icOperasyonGorsun)
-                {
-                    <div class="ykc-field">
-                        <label>Dosya Türü</label>
-                        <select name="dosyaTuru">
-                            <option value="@YkcFormDosyaTuruDegerleri.SahaIslakImzaliForm">Saha Islak İmzalı Form</option>
-                            <option value="@YkcFormDosyaTuruDegerleri.FirmaFormu">Firma Formu</option>
-                        </select>
-                    </div>
-                }
-                else
-                {
-                    <input type="hidden" name="dosyaTuru" value="@YkcFormDosyaTuruDegerleri.FirmaFormu" />
-                    <div class="ykc-field">
-                        <label>Dosya Türü</label>
-                        <input value="Firma Formu" readonly />
-                    </div>
-                }
-                <div class="ykc-field">
-                    <label>Yeni Form Dosyası</label>
-                    <input type="file" name="formDosyasi" accept=".pdf,.jpg,.jpeg,.png" />
-                </div>
-                <button class="df-btn df-btn-primary df-btn-sm" type="submit">Yükle</button>
-            </form>
-            <div class="ykc-list">
-                @if (!Model.Dosyalar.Any())
-                {
-                    <div class="ykc-empty">Henüz form dosyası eklenmemiş.</div>
-                }
-                else
-                {
-                    foreach (var dosya in Model.Dosyalar)
-                    {
-                        <div class="ykc-list-row">
+    <section class="ykc-card ykc-process-card">
+        <div class="ykc-card-head"><div class="ykc-card-title">İşlem Adımları</div></div>
+        <div class="ykc-process-list">
+            @if (yonetebilir)
+            {
+                <details class="ykc-step-panel" open="@incelemeAdimiAcik">
+                    <summary>
+                        <div class="ykc-step-summary">
+                            <div class="ykc-step-no">1</div>
                             <div>
-                                <strong>@Deger(dosya.DosyaAdi)</strong>
-                                <div class="ykc-muted">@Deger(dosya.DosyaTuru) / @dosya.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</div>
-                                <div class="ykc-muted">/ykc/dosya/@dosya.Id</div>
+                                <div class="ykc-step-title">İnceleme Kararı</div>
+                                <div class="ykc-step-subtitle">Talebi incelemeye al, reddet, iptal et veya saha sonucuna göre kapat.</div>
                             </div>
-                            @if (!string.IsNullOrWhiteSpace(dosya.DosyaYolu))
-                            {
-                                <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/dosya/@dosya.Id" target="_blank">Dosyayı Aç</a>
-                            }
-                            else
-                            {
-                                <span class="df-pill df-pill-primary">Dosya</span>
-                            }
+                            <span class="ykc-step-toggle"></span>
                         </div>
-                    }
-                }
-            </div>
-        </section>
+                    </summary>
+                    <div class="ykc-step-body">
+                        <form method="post" action="/ykc/durum-guncelle">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="TalepId" value="@Model.Id" />
+                            <div class="ykc-form-grid">
+                                <div class="ykc-field">
+                                    <label>Sonraki Durum</label>
+                                    <select name="Durum">
+                                        <option value="@YkcDurumDegerleri.TalepAlindi" selected="@Secili(Model.Durum == YkcDurumDegerleri.TalepAlindi)">Beklemede</option>
+                                        <option value="@YkcDurumDegerleri.AtamaBekliyor" selected="@Secili(Model.Durum == YkcDurumDegerleri.AtamaBekliyor)">İç Tesisat İncelemesinde</option>
+                                        <option value="@YkcDurumDegerleri.Atandi" selected="@Secili(Model.Durum == YkcDurumDegerleri.Atandi)">Randevu Verildi</option>
+                                        <option value="@YkcDurumDegerleri.SahaIsleminde" selected="@Secili(Model.Durum == YkcDurumDegerleri.SahaIsleminde)">Saha İşleminde</option>
+                                        <option value="@YkcDurumDegerleri.Reddedildi" selected="@Secili(Model.Durum == YkcDurumDegerleri.Reddedildi)">Reddedildi</option>
+                                        <option value="@YkcDurumDegerleri.Tamamlandi" selected="@Secili(Model.Durum == YkcDurumDegerleri.Tamamlandi)">Tamamlandı</option>
+                                        <option value="@YkcDurumDegerleri.Iptal" selected="@Secili(Model.Durum == YkcDurumDegerleri.Iptal)">İptal</option>
+                                    </select>
+                                </div>
+                                <div class="ykc-field full">
+                                    <label>Açıklama</label>
+                                    <textarea name="Aciklama" placeholder="Karar, red veya iptal açıklaması">@Model.RedAciklama</textarea>
+                                </div>
+                            </div>
+                            <div class="ykc-actions">
+                                <button class="df-btn df-btn-primary" type="submit">Kararı Kaydet</button>
+                            </div>
+                        </form>
+                    </div>
+                </details>
 
+                <details class="ykc-step-panel" open="@randevuAdimiAcik">
+                    <summary>
+                        <div class="ykc-step-summary">
+                            <div class="ykc-step-no">2</div>
+                            <div>
+                                <div class="ykc-step-title">Randevu ve Ekip Ataması</div>
+                                <div class="ykc-step-subtitle">Bölge tesisattan gelir; atanacak ekip bölgeye göre seçilir. CRM187/mobile kullanıcıya hedef seçimi olarak gösterilmez.</div>
+                            </div>
+                            <span class="ykc-step-toggle"></span>
+                        </div>
+                    </summary>
+                    <div class="ykc-step-body">
+                        @if (!atamaYapilabilir)
+                        {
+                            <div class="df-alert" style="margin:12px 16px 0; background:var(--df-warning-soft); border-color:#f5d999; color:#8a5a00;">
+                                Randevu ve atama için talebi önce İç Tesisat İncelemesinde durumuna alın.
+                            </div>
+                        }
+                        <form method="post" action="/ykc/atama-yap">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="TalepId" value="@Model.Id" />
+                            <input type="hidden" name="AtananKullaniciTipi" value="@Model.Atamalar.FirstOrDefault()?.AtananKullaniciTipi" />
+                            <input type="hidden" name="HedefUygulama" value="@Model.HedefUygulama" />
+                            <div class="ykc-form-grid">
+                                <div class="ykc-field">
+                                    <label>Atanacak Ekip</label>
+                                    <input name="AtananEkip" value="@Model.AtananEkip" placeholder="Bölgeye uygun ekip" required />
+                                </div>
+                                <div class="ykc-field">
+                                    <label>Bölge</label>
+                                    <input name="Bolge" value="@Model.Bolge" placeholder="Tesisattan gelen bölge" required />
+                                </div>
+                                <div class="ykc-field">
+                                    <label>Randevu Tarihi</label>
+                                    <div class="ykc-picker-field">
+                                        <input id="randevuTarihi" type="date" name="RandevuTarihi" value="@Model.RandevuTarihi?.ToString("yyyy-MM-dd")" required />
+                                        <button type="button" class="ykc-picker-btn" data-picker="#randevuTarihi" aria-label="Takvimi aç"><i class="bi bi-calendar3"></i></button>
+                                    </div>
+                                </div>
+                                <div class="ykc-field">
+                                    <label>Randevu Saati</label>
+                                    <div class="ykc-picker-field">
+                                        <input id="randevuSaati" type="time" name="RandevuSaati" value="@Model.RandevuSaati" required />
+                                        <button type="button" class="ykc-picker-btn" data-picker="#randevuSaati" aria-label="Saati seç"><i class="bi bi-clock"></i></button>
+                                    </div>
+                                </div>
+                                <div class="ykc-field full">
+                                    <label>Açıklama</label>
+                                    <textarea name="Aciklama" placeholder="Atama notu"></textarea>
+                                </div>
+                            </div>
+                            <div class="ykc-actions">
+                                <button class="df-btn df-btn-primary" type="submit" @Pasif(!atamaYapilabilir)>Randevu ve Atamayı Kaydet</button>
+                            </div>
+                        </form>
+                    </div>
+                </details>
+            }
+
+            <details class="ykc-step-panel" open="@belgeAdimiAcik">
+                <summary>
+                    <div class="ykc-step-summary">
+                        <div class="ykc-step-no">3</div>
+                        <div>
+                            <div class="ykc-step-title">Dijital Belge ve Arşiv</div>
+                            <div class="ykc-step-subtitle">Form bilgisi sistemde tutulur; imzalı nihai belge arşiv/imza sürecinden izlenir.</div>
+                        </div>
+                        <span class="ykc-step-toggle"></span>
+                    </div>
+                </summary>
+                <div class="ykc-step-body">
+                    <div class="ykc-process-note">@formYardimMetni</div>
+                    <div class="ykc-archive-tools">
+                        <a class="df-btn df-btn-primary df-btn-sm" href="/ykc/fr265/onizle/@Model.Id" target="_blank">FR265 Önizle</a>
+                        <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/fr265/indir/@Model.Id">Geçici Belge İndir</a>
+                    </div>
+                    <form method="post" action="/ykc/form-yukle" enctype="multipart/form-data" class="ykc-upload">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="talepId" value="@Model.Id" />
+                        @if (icOperasyonGorsun)
+                        {
+                            <div class="ykc-field">
+                                <label>Belge Türü</label>
+                                <select name="dosyaTuru">
+                                    <option value="@YkcFormDosyaTuruDegerleri.SahaIslakImzaliForm">İmzalı Nihai Belge</option>
+                                    <option value="@YkcFormDosyaTuruDegerleri.FirmaFormu">Servis Ön Formu</option>
+                                </select>
+                            </div>
+                        }
+                        else
+                        {
+                            <input type="hidden" name="dosyaTuru" value="@YkcFormDosyaTuruDegerleri.FirmaFormu" />
+                            <div class="ykc-field">
+                                <label>Belge Türü</label>
+                                <input value="Servis Ön Formu" readonly />
+                            </div>
+                        }
+                        <div class="ykc-field">
+                            <label>Belge / Fotoğraf</label>
+                            <input type="file" name="formDosyasi" accept=".pdf,.jpg,.jpeg,.png" />
+                        </div>
+                        <button class="df-btn df-btn-primary df-btn-sm" type="submit">Yükle</button>
+                    </form>
+                    <div class="ykc-list">
+                        @if (!Model.Dosyalar.Any())
+                        {
+                            <div class="ykc-empty">Henüz belge eklenmemiş.</div>
+                        }
+                        else
+                        {
+                            foreach (var dosya in Model.Dosyalar)
+                            {
+                                <div class="ykc-list-row">
+                                    <div>
+                                        <strong>@Deger(dosya.DosyaAdi)</strong>
+                                        <div class="ykc-muted">@DosyaTuruYazi(dosya.DosyaTuru) / @dosya.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</div>
+                                        <div class="ykc-muted">/ykc/dosya/@dosya.Id</div>
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(dosya.DosyaYolu))
+                                    {
+                                        <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/dosya/@dosya.Id" target="_blank">Dosyayı Aç</a>
+                                    }
+                                    else
+                                    {
+                                        <span class="df-pill df-pill-primary">Belge</span>
+                                    }
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+            </details>
+        </div>
+    </section>
+
+    <div class="ykc-grid ykc-history-grid">
         <section class="ykc-card">
             <div class="ykc-card-head"><div class="ykc-card-title">İşlem Geçmişi</div></div>
             <div class="ykc-list">
@@ -652,8 +687,6 @@
         });
 
         (function () {
-            const hedef = document.getElementById('ykcHedefUygulamaSecim');
-            const callCenter = document.getElementById('ykcCallCenterTetik');
             const randevuTarihi = document.getElementById('randevuTarihi');
             const randevuSaati = document.getElementById('randevuSaati');
             const ekip = document.querySelector('input[name="AtananEkip"]');
@@ -662,11 +695,6 @@
             const planSaat = document.getElementById('ykcPlanSaat');
             const planEkip = document.getElementById('ykcPlanEkip');
             const planBolge = document.getElementById('ykcPlanBolge');
-            const planHedef = document.getElementById('ykcPlanHedef');
-
-            if (!hedef || !callCenter) {
-                return;
-            }
 
             function planDeger(value) {
                 const temiz = (value || '').trim();
@@ -702,32 +730,15 @@
                 if (planBolge && bolge) {
                     planBolge.textContent = planDeger(bolge.value);
                 }
-
-                if (planHedef && hedef) {
-                    const secili = hedef.options[hedef.selectedIndex];
-                    planHedef.textContent = secili ? planDeger(secili.textContent) : '-';
-                }
             }
 
-            function callCenterDurumunuGuncelle() {
-                const crm187Secili = hedef.value === '@YkcHedefUygulamaDegerleri.Crm187';
-                callCenter.disabled = !crm187Secili;
-                if (crm187Secili) {
-                    callCenter.checked = true;
-                } else {
-                    callCenter.checked = false;
-                }
-            }
-
-            hedef.addEventListener('change', callCenterDurumunuGuncelle);
-            [hedef, randevuTarihi, randevuSaati, ekip, bolge]
+            [randevuTarihi, randevuSaati, ekip, bolge]
                 .filter(Boolean)
                 .forEach(function (alan) {
                     alan.addEventListener('input', planOnizlemeGuncelle);
                     alan.addEventListener('change', planOnizlemeGuncelle);
                 });
 
-            callCenterDurumunuGuncelle();
             planOnizlemeGuncelle();
         })();
     </script>

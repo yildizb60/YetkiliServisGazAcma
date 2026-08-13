@@ -91,45 +91,51 @@
 
 @section Styles {
     <style>
-        .ykc-report-stack { display: grid; gap: 14px; }
+        .ykc-report-stack { display: grid; gap: 10px; }
         .ykc-report-hero { overflow: hidden; border-color: #dfe6f2; }
-        .ykc-report-hero .df-panel-head { align-items: flex-start; background: linear-gradient(180deg, #ffffff 0%, #f7f9fd 100%); }
-        .ykc-report-hero .df-panel-title { font-size: 20px; }
-        .ykc-report-metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; padding: 2px 22px 18px; }
-        .ykc-report-metric { position: relative; min-width: 0; border: 1px solid #e5ebf4; border-radius: 8px; background: #fff; padding: 12px 15px 12px 17px; box-shadow: 0 10px 24px rgba(13, 34, 112, .045); }
-        .ykc-report-metric::before { content: ""; position: absolute; left: 0; top: 11px; bottom: 11px; width: 3px; border-radius: 999px; background: var(--report-accent, var(--df-primary)); }
-        .ykc-report-label { color: #62708a; font-size: 11px; font-weight: 850; text-transform: uppercase; letter-spacing: .035em; }
-        .ykc-report-value { color: #172033; font-size: 24px; font-weight: 900; line-height: 1; margin-top: 8px; }
+        .ykc-report-hero .df-panel-head { align-items: flex-start; background: linear-gradient(180deg, #ffffff 0%, #f7f9fd 100%); padding: 15px 20px; }
+        .ykc-report-hero .df-panel-title { font-size: 19px; }
+        .ykc-report-hero .df-panel-subtitle { font-size: 12px; margin-top: 4px; }
+        .ykc-report-metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 9px; padding: 0 20px 14px; }
+        .ykc-report-metric { position: relative; min-width: 0; border: 1px solid #e5ebf4; border-radius: 8px; background: #fff; padding: 10px 13px 10px 15px; box-shadow: 0 8px 18px rgba(13, 34, 112, .04); }
+        .ykc-report-metric::before { content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 999px; background: var(--report-accent, var(--df-primary)); }
+        .ykc-report-label { color: #62708a; font-size: 10.5px; font-weight: 850; text-transform: uppercase; letter-spacing: .03em; }
+        .ykc-report-value { color: #172033; font-size: 22px; font-weight: 900; line-height: 1; margin-top: 6px; }
 
-        .filtre-kart { background: #fff; border-radius: 8px; border: 1px solid var(--df-border); padding: 0; overflow: hidden; box-shadow: 0 10px 26px rgba(13, 34, 112, .045); }
-        .filtre-baslik { display: flex; align-items: center; gap: 9px; font-size: 14px; font-weight: 900; color: var(--df-text); margin: 0; border-bottom: 1px solid var(--df-border); padding: 14px 20px; background: #fff; }
-        .filtre-baslik::before { content: ""; width: 7px; height: 20px; border-radius: 999px; background: var(--df-primary); }
-        .filtre-kart form { padding: 16px 20px 18px; }
-        .filtre-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 12px; align-items: end; }
-        .filtre-alan { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-        .filtre-alan label { font-size: 11px; color: #68758c; font-weight: 850; text-transform: uppercase; letter-spacing: .035em; }
-        .filtre-alan input, .filtre-alan select { height: 38px; padding: 8px 11px; border: 1.5px solid #dfe5ee; border-radius: 8px; font-size: 13px; outline: none; color: var(--df-text); background: #fff; width: 100%; min-width: 0; }
-        .filtre-alan input:focus, .filtre-alan select:focus { border-color: var(--df-primary); background: #fff; box-shadow: 0 0 0 3px rgba(46, 78, 200, .10); }
-        .ykc-filter-footer { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; margin-top: 14px; padding-top: 13px; border-top: 1px solid #edf2f7; }
-        .filtre-butonlar { display: flex; gap: 10px; flex: 0 0 auto; }
-        .ykc-active-filters { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; min-width: 0; }
-        .ykc-active-title { color: #6b7890; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .035em; }
-        .ykc-filter-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 26px; padding: 4px 9px; border-radius: 999px; background: #eef4ff; color: #33415c; border: 1px solid #d4e0f7; font-size: 11px; font-weight: 750; }
+        .ykc-report-filter-panel { background: #fff; border: 1px solid var(--df-border); border-radius: 8px; overflow: hidden; box-shadow: 0 10px 24px rgba(13, 34, 112, .045); }
+        .ykc-report-filter-panel summary { list-style: none; cursor: pointer; user-select: none; }
+        .ykc-report-filter-panel summary::-webkit-details-marker { display: none; }
+        .ykc-filter-summary { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; min-height: 48px; padding: 10px 16px; }
+        .ykc-filter-title { display: flex; align-items: center; gap: 9px; color: var(--df-text); font-size: 14px; font-weight: 900; }
+        .ykc-filter-title::before { content: ""; width: 7px; height: 20px; border-radius: 999px; background: var(--df-primary); }
+        .ykc-filter-toggle { color: var(--df-primary); border: 1px solid #d9e2f1; background: #fff; border-radius: 999px; padding: 6px 10px; font-size: 11px; font-weight: 900; }
+        .ykc-report-filter-panel[open] .ykc-filter-toggle::after { content: "Kapat"; }
+        .ykc-report-filter-panel:not([open]) .ykc-filter-toggle::after { content: "Filtreleri aç"; }
+        .ykc-active-filters { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-width: 0; }
+        .ykc-filter-empty { color: #72809a; font-size: 12px; font-weight: 700; }
+        .ykc-filter-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 25px; padding: 3px 9px; border-radius: 999px; background: #eef4ff; color: #33415c; border: 1px solid #d4e0f7; font-size: 11px; font-weight: 750; }
         .ykc-filter-chip b { color: var(--df-primary); font-weight: 900; }
+        .ykc-report-filter-form { border-top: 1px solid #edf2f7; padding: 14px 16px 16px; }
+        .ykc-report-filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; align-items: end; }
+        .ykc-report-field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+        .ykc-report-field label { font-size: 10.5px; color: #68758c; font-weight: 850; text-transform: uppercase; letter-spacing: .035em; }
+        .ykc-report-field input, .ykc-report-field select { height: 36px; padding: 8px 10px; border: 1.5px solid #dfe5ee; border-radius: 8px; font-size: 13px; outline: none; color: var(--df-text); background: #fff; width: 100%; min-width: 0; }
+        .ykc-report-field input:focus, .ykc-report-field select:focus { border-color: var(--df-primary); box-shadow: 0 0 0 3px rgba(46, 78, 200, .10); }
+        .ykc-filter-actions { display: flex; gap: 10px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #edf2f7; }
 
-        .ykc-report-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-        .ykc-summary-card { background: #fff; border: 1px solid var(--df-border); border-radius: 8px; box-shadow: 0 10px 26px rgba(13, 34, 112, .045); overflow: hidden; }
-        .ykc-summary-head { display: flex; align-items: center; gap: 9px; padding: 13px 16px; border-bottom: 1px solid var(--df-border); color: var(--df-text); background: #fff; font-size: 14px; font-weight: 900; }
-        .ykc-summary-head::before { content: ""; width: 7px; height: 18px; border-radius: 999px; background: var(--summary-accent, var(--df-primary)); flex: 0 0 auto; }
-        .ykc-summary-list { display: grid; gap: 7px; padding: 12px 15px; max-height: 156px; overflow: auto; }
-        .ykc-summary-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; border: 1px solid #edf2f7; background: #fbfcfe; border-radius: 8px; padding: 9px 11px; color: var(--df-text-soft); font-size: 13px; }
+        .ykc-summary-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+        .ykc-summary-group { display: flex; align-items: center; gap: 7px; min-width: 0; min-height: 44px; background: #fff; border: 1px solid var(--df-border); border-radius: 8px; padding: 8px 11px; box-shadow: 0 8px 18px rgba(13, 34, 112, .035); overflow: hidden; }
+        .ykc-summary-group > strong { color: var(--df-text); font-size: 12px; font-weight: 900; white-space: nowrap; }
+        .ykc-summary-tags { display: flex; align-items: center; gap: 6px; min-width: 0; overflow: hidden; }
+        .ykc-summary-tag { display: inline-flex; align-items: center; gap: 6px; min-height: 24px; max-width: 160px; padding: 3px 8px; border: 1px solid #e4ebf5; border-radius: 999px; background: #fbfcff; color: #4b5a72; font-size: 11px; font-weight: 750; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .ykc-summary-tag b { color: var(--df-text); font-weight: 900; }
 
         .ykc-results { overflow: hidden; }
-        .ykc-results .section-head { padding: 13px 18px; }
-        .ykc-limit-note { color: var(--df-muted); font-size: 12px; padding: 0 18px 13px; border-bottom: 1px solid #edf2f7; }
+        .ykc-results .section-head { padding: 12px 16px; }
+        .ykc-limit-note { color: var(--df-muted); font-size: 12px; padding: 0 16px 11px; border-bottom: 1px solid #edf2f7; }
         .ykc-report-head, .ykc-report-row { display: grid; grid-template-columns: 1fr 1.35fr 1.2fr 1.2fr 1.05fr .72fr; gap: 12px; align-items: center; }
-        .ykc-report-head { padding: 11px 18px; background: #f4f7fb; color: #566280; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .035em; border-bottom: 1px solid var(--df-border); }
-        .ykc-report-row { margin: 9px 12px; padding: 12px 14px; border: 1px solid #e8edf5; border-radius: 8px; background: #fff; color: var(--df-text-soft); font-size: 13px; box-shadow: 0 8px 18px rgba(13, 34, 112, .035); }
+        .ykc-report-head { padding: 10px 16px; background: #f4f7fb; color: #566280; font-size: 10.5px; font-weight: 900; text-transform: uppercase; letter-spacing: .035em; border-bottom: 1px solid var(--df-border); }
+        .ykc-report-row { margin: 7px 10px; padding: 10px 12px; border: 1px solid #e8edf5; border-radius: 8px; background: #fff; color: var(--df-text-soft); font-size: 13px; box-shadow: 0 8px 18px rgba(13, 34, 112, .032); }
         .ykc-report-row:hover { border-color: #d6def0; background: #fbfcff; }
         .ykc-cell-main { color: var(--df-text); font-weight: 850; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .ykc-code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; color: var(--df-primary); font-weight: 900; }
@@ -139,18 +145,14 @@
 
         @@media (max-width: 1320px) {
             .ykc-report-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-            .ykc-report-grid { grid-template-columns: 1fr; }
+            .ykc-summary-strip { grid-template-columns: 1fr; }
             .ykc-report-head { display: none; }
             .ykc-report-row { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
             .ykc-report-row > div::before { content: attr(data-label); display: block; color: var(--df-muted); font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 3px; }
         }
-        @@media (max-width: 900px) {
-            .ykc-filter-footer { align-items: stretch; flex-direction: column; }
-            .filtre-butonlar { justify-content: flex-start; }
-        }
         @@media (max-width: 760px) {
-            .ykc-report-metrics, .ykc-report-row { grid-template-columns: 1fr; }
-            .filtre-butonlar, .df-actions { flex-direction: column; align-items: stretch; }
+            .ykc-report-metrics, .ykc-report-row, .ykc-filter-summary { grid-template-columns: 1fr; }
+            .ykc-filter-actions, .df-actions { flex-direction: column; align-items: stretch; }
         }
     </style>
 }
@@ -175,44 +177,62 @@
         </div>
     </section>
 
-    <section class="filtre-kart">
-        <div class="filtre-baslik">Filtrele</div>
-        <form method="get" action="/ykc/raporlar">
-            <div class="filtre-grid">
-                <div class="filtre-alan">
+    <details class="ykc-report-filter-panel">
+        <summary>
+            <div class="ykc-filter-summary">
+                <div class="ykc-filter-title">Filtreler</div>
+                <div class="ykc-active-filters">
+                    @if (aktifFiltreler.Any())
+                    {
+                        @foreach (var item in aktifFiltreler)
+                        {
+                            <span class="ykc-filter-chip"><b>@item.Etiket</b>@item.Deger</span>
+                        }
+                    }
+                    else
+                    {
+                        <span class="ykc-filter-empty">Filtre alanları kapalı. Açınca tesisat, firma, ekip, tarih ve durum alanları görünür.</span>
+                    }
+                </div>
+                <span class="ykc-filter-toggle"></span>
+            </div>
+        </summary>
+        <form method="get" action="/ykc/raporlar" class="ykc-report-filter-form">
+            <div class="ykc-report-filter-grid">
+                <div class="ykc-report-field">
                     <label>Tesisat</label>
                     <input type="text" name="tesisatNo" value="@filtre.TesisatNo" placeholder="Tesisat no" />
                 </div>
                 @if (icOperasyonGorsun)
                 {
-                    <div class="filtre-alan">
+                    <div class="ykc-report-field">
                         <label>Firma</label>
                         <input type="text" name="firma" value="@filtre.Firma" placeholder="Firma adı" />
                     </div>
-                    <div class="filtre-alan">
+                    <div class="ykc-report-field">
                         <label>Ekip</label>
                         <input type="text" name="ekip" value="@filtre.Ekip" placeholder="Ekip adı" />
                     </div>
                 }
-                <div class="filtre-alan">
+                <div class="ykc-report-field">
                     <label>Marka</label>
                     <input type="text" name="marka" value="@filtre.Marka" placeholder="Marka" />
                 </div>
-                <div class="filtre-alan">
+                <div class="ykc-report-field">
                     <label>İl</label>
                     <input type="text" name="il" value="@filtre.Il" placeholder="İl" />
                 </div>
-                <div class="filtre-alan">
+                <div class="ykc-report-field">
                     <label>İlçe</label>
                     <input type="text" name="ilce" value="@filtre.Ilce" placeholder="İlçe" />
                 </div>
-                <div class="filtre-alan">
+                <div class="ykc-report-field">
                     <label>Bölge</label>
                     <input type="text" name="bolge" value="@filtre.Bolge" placeholder="Bölge" />
                 </div>
                 @if (icOperasyonGorsun)
                 {
-                    <div class="filtre-alan">
+                    <div class="ykc-report-field">
                         <label>Hedef</label>
                         <select name="hedefUygulama">
                             <option value="">Tümü</option>
@@ -222,7 +242,7 @@
                         </select>
                     </div>
                 }
-                <div class="filtre-alan">
+                <div class="ykc-report-field">
                     <label>Durum</label>
                     <select name="durum">
                         <option value="">Tümü</option>
@@ -240,86 +260,51 @@
                         }
                     </select>
                 </div>
-                <div class="filtre-alan">
+                <div class="ykc-report-field">
                     <label>Başlangıç</label>
                     <input type="date" name="bas" value="@filtre.BaslangicTarihi?.ToString("yyyy-MM-dd")" />
                 </div>
-                <div class="filtre-alan">
+                <div class="ykc-report-field">
                     <label>Bitiş</label>
                     <input type="date" name="bit" value="@filtre.BitisTarihi?.ToString("yyyy-MM-dd")" />
                 </div>
             </div>
-            <div class="ykc-filter-footer">
-                <div class="ykc-active-filters">
-                    @if (aktifFiltreler.Any())
-                    {
-                        <span class="ykc-active-title">Aktif filtreler</span>
-                        @foreach (var item in aktifFiltreler)
-                        {
-                            <span class="ykc-filter-chip"><b>@item.Etiket</b>@item.Deger</span>
-                        }
-                    }
-                </div>
-                <div class="filtre-butonlar">
-                    <button class="df-btn df-btn-primary" type="submit">Raporla</button>
-                    <a class="df-btn df-btn-secondary" href="/ykc/raporlar">Temizle</a>
-                </div>
+            <div class="ykc-filter-actions">
+                <button class="df-btn df-btn-primary" type="submit">Raporla</button>
+                <a class="df-btn df-btn-secondary" href="/ykc/raporlar">Temizle</a>
             </div>
         </form>
-    </section>
+    </details>
 
-    <div class="ykc-report-grid">
-        <section class="ykc-summary-card" style="--summary-accent:#2e4ec8;">
-            <div class="ykc-summary-head">Durum Dağılımı</div>
-            <div class="ykc-summary-list">
+    <section class="ykc-summary-strip">
+        <div class="ykc-summary-group">
+            <strong>Durum</strong>
+            <div class="ykc-summary-tags">
                 @foreach (var durum in Model.DurumOzetleri.OrderBy(x => x.Durum))
                 {
-                    <div class="ykc-summary-row">
-                        <span>@DurumYazi(durum.Durum)</span>
-                        <span class="df-pill @DurumClass(durum.Durum)">@durum.Sayi</span>
-                    </div>
-                }
-                @if (!Model.DurumOzetleri.Any())
-                {
-                    <div class="ykc-empty">Veri bulunamadı.</div>
+                    <span class="ykc-summary-tag">@DurumYazi(durum.Durum) <b>@durum.Sayi</b></span>
                 }
             </div>
-        </section>
-
-        <section class="ykc-summary-card" style="--summary-accent:#1dbb7a;">
-            <div class="ykc-summary-head">Hedef Uygulama Özeti</div>
-            <div class="ykc-summary-list">
+        </div>
+        <div class="ykc-summary-group">
+            <strong>Hedef</strong>
+            <div class="ykc-summary-tags">
                 @foreach (var hedef in Model.HedefOzetleri.OrderByDescending(x => x.Sayi))
                 {
-                    <div class="ykc-summary-row">
-                        <span>@HedefYazi(hedef.Ad)</span>
-                        <strong>@hedef.Sayi</strong>
-                    </div>
-                }
-                @if (!Model.HedefOzetleri.Any())
-                {
-                    <div class="ykc-empty">Veri bulunamadı.</div>
+                    <span class="ykc-summary-tag">@HedefYazi(hedef.Ad) <b>@hedef.Sayi</b></span>
                 }
             </div>
-        </section>
-
-        <section class="ykc-summary-card" style="--summary-accent:#7056d8;">
-            <div class="ykc-summary-head">Ekip Özeti</div>
-            <div class="ykc-summary-list">
+        </div>
+        <div class="ykc-summary-group">
+            <strong>Ekip</strong>
+            <div class="ykc-summary-tags">
                 @foreach (var ekip in Model.EkipOzetleri)
                 {
-                    <div class="ykc-summary-row">
-                        <span>@Deger(ekip.Ad)</span>
-                        <strong>@ekip.Sayi</strong>
-                    </div>
-                }
-                @if (!Model.EkipOzetleri.Any())
-                {
-                    <div class="ykc-empty">Veri bulunamadı.</div>
+                    <span class="ykc-summary-tag">@Deger(ekip.Ad) <b>@ekip.Sayi</b></span>
                 }
             </div>
-        </section>
-    </div>
+        </div>
+    </section>
 
     <section class="section ykc-results">
         <div class="section-head">
@@ -332,7 +317,7 @@
             <div>Firma / Müşteri</div>
             <div>Cihaz</div>
             <div>Randevu / Ekip</div>
-            <div>Durum / Formlar</div>
+            <div>Durum / Belge</div>
             <div>İşlem</div>
         </div>
         @if (!Model.Kayitlar.Any())
@@ -346,7 +331,7 @@
                 <div class="ykc-report-row">
                     <div data-label="Tesisat / Form">
                         <div class="ykc-cell-main"><span class="ykc-code">@Deger(kayit.TesisatNo)</span></div>
-                        <div class="ykc-muted">Form #@kayit.Id · @kayit.TalepTarihi.ToString("dd.MM.yyyy HH:mm")</div>
+                        <div class="ykc-muted">FR265 #@kayit.Id · @kayit.TalepTarihi.ToString("dd.MM.yyyy HH:mm")</div>
                     </div>
                     <div data-label="Firma / Müşteri">
                         <div class="ykc-cell-main">@Deger(kayit.FirmaAdi)</div>
@@ -360,11 +345,11 @@
                         <div class="ykc-cell-main">@RandevuYazi(kayit.RandevuTarihi, kayit.RandevuSaati)</div>
                         <div class="ykc-muted">@Deger(kayit.AtananEkip) / @Deger(kayit.Bolge)</div>
                     </div>
-                    <div data-label="Durum / Formlar">
+                    <div data-label="Durum / Belge">
                         <span class="df-pill @DurumClass(kayit.Durum)">@DurumYazi(kayit.Durum)</span>
                         <div class="ykc-file-pills">
-                            <span class="df-pill @(kayit.FirmaFormuVar ? "df-pill-success" : "df-pill-warning")">Firma Formu</span>
-                            <span class="df-pill @(kayit.SahaFormuVar ? "df-pill-success" : "df-pill-warning")">Saha Formu</span>
+                            <span class="df-pill @(kayit.FirmaFormuVar ? "df-pill-success" : "df-pill-warning")">Servis Ön Formu</span>
+                            <span class="df-pill @(kayit.SahaFormuVar ? "df-pill-success" : "df-pill-warning")">İmzalı Belge</span>
                         </div>
                     </div>
                     <div data-label="İşlem">
