@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="~/css/panel-layout.css" asp-append-version="true" />
     @await RenderSectionAsync("Styles", required: false)
     <link rel="stylesheet" href="~/css/panel-unify.css" asp-append-version="true" />
+    @await RenderSectionAsync("TailStyles", required: false)
 </head>
 <body data-onay="@(ViewBag.OnayBekleyen ?? 0)" data-sure="@(ViewBag.SuresiBitecek ?? 0)">
     <div class="layout">
