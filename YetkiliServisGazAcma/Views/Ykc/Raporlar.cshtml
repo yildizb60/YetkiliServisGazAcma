@@ -5,6 +5,7 @@
     var yetkiliServisMi = User.IsInRole("SertifikaliFirma");
     var icOperasyonGorsun = !yetkiliServisMi;
     var listelenen = Model.Kayitlar.Count;
+    var hedefFiltresiGoster = false;
     var aktifFiltreler = new List<(string Etiket, string Deger)>();
 
     void AktifFiltreEkle(string etiket, string? deger)
@@ -20,8 +21,6 @@
     AktifFiltreEkle("İl", filtre.Il);
     AktifFiltreEkle("İlçe", filtre.Ilce);
     AktifFiltreEkle("Bölge", filtre.Bolge);
-    if (!string.IsNullOrWhiteSpace(filtre.HedefUygulama))
-        AktifFiltreEkle("Hedef", HedefYazi(filtre.HedefUygulama));
     if (filtre.Durum.HasValue)
         AktifFiltreEkle("Durum", DurumYazi(filtre.Durum.Value));
     if (filtre.BaslangicTarihi.HasValue)
@@ -123,7 +122,7 @@
         .ykc-report-field input:focus, .ykc-report-field select:focus { border-color: var(--df-primary); box-shadow: 0 0 0 3px rgba(46, 78, 200, .10); }
         .ykc-filter-actions { display: flex; gap: 10px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #edf2f7; }
 
-        .ykc-summary-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+        .ykc-summary-strip { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
         .ykc-summary-group { display: flex; align-items: center; gap: 7px; min-width: 0; min-height: 44px; background: #fff; border: 1px solid var(--df-border); border-radius: 8px; padding: 8px 11px; box-shadow: 0 8px 18px rgba(13, 34, 112, .035); overflow: hidden; }
         .ykc-summary-group > strong { color: var(--df-text); font-size: 12px; font-weight: 900; white-space: nowrap; }
         .ykc-summary-tags { display: flex; align-items: center; gap: 6px; min-width: 0; overflow: hidden; }
@@ -142,6 +141,35 @@
         .ykc-muted { color: var(--df-muted); font-size: 12px; margin-top: 3px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .ykc-file-pills { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
         .ykc-empty { padding: 42px; text-align: center; color: var(--df-muted); }
+        .ykc-row-view-details { white-space: nowrap; color: var(--df-primary); border-color: #cfd9f7; background: #f8faff; }
+        .ykc-row-view-details:hover { color: #fff; border-color: var(--df-primary); background: var(--df-primary); }
+
+        .ykc-report-modal { position: fixed; inset: 0; z-index: 1080; display: none; align-items: center; justify-content: center; padding: 24px; }
+        .ykc-report-modal.is-open { display: flex; }
+        .ykc-report-modal-backdrop { position: absolute; inset: 0; background: rgba(17, 29, 56, .42); backdrop-filter: blur(3px); }
+        .ykc-report-modal-dialog { position: relative; z-index: 1; width: min(940px, 100%); max-height: calc(100vh - 48px); display: flex; flex-direction: column; background: #fff; border: 1px solid #dfe6f2; border-radius: 10px; overflow: hidden; box-shadow: 0 26px 70px rgba(13, 34, 112, .22); }
+        .ykc-report-modal-header { min-height: 72px; padding: 16px 18px; display: flex; align-items: center; justify-content: space-between; gap: 14px; border-bottom: 1px solid #e6edf7; background: linear-gradient(180deg, #ffffff 0%, #f7f9fd 100%); }
+        .ykc-modal-title-wrap { display: flex; align-items: center; gap: 12px; min-width: 0; }
+        .ykc-modal-icon { width: 44px; height: 44px; border-radius: 10px; display: grid; place-items: center; color: #fff; background: var(--df-primary); box-shadow: 0 12px 24px rgba(46, 78, 200, .18); flex: 0 0 auto; }
+        .ykc-modal-title { color: var(--df-text); font-size: 18px; font-weight: 900; margin: 0; line-height: 1.2; }
+        .ykc-modal-subtitle { color: var(--df-muted); font-size: 12px; margin-top: 4px; overflow-wrap: anywhere; }
+        .ykc-modal-close { width: 36px; height: 36px; border: 1px solid #d9e2f1; border-radius: 8px; background: #fff; color: var(--df-text-soft); display: grid; place-items: center; cursor: pointer; }
+        .ykc-modal-close:hover { color: var(--df-primary); border-color: var(--df-primary); background: var(--df-primary-soft); }
+        .ykc-report-modal-body { padding: 16px 18px; overflow-y: auto; display: grid; gap: 14px; }
+        .ykc-modal-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; }
+        .ykc-modal-stat { border: 1px solid #e5ebf4; border-radius: 8px; background: #fff; padding: 10px 12px; min-width: 0; box-shadow: 0 8px 18px rgba(13, 34, 112, .035); }
+        .ykc-modal-stat small { display: block; color: #68758c; font-size: 10.5px; font-weight: 850; text-transform: uppercase; letter-spacing: .035em; }
+        .ykc-modal-stat strong { display: block; color: var(--df-text); font-size: 13px; font-weight: 900; margin-top: 5px; overflow-wrap: anywhere; }
+        .ykc-modal-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+        .ykc-modal-section { border: 1px solid #e5ebf4; border-radius: 8px; overflow: hidden; background: #fff; }
+        .ykc-modal-section-title { padding: 11px 13px; border-bottom: 1px solid #edf2f7; color: var(--df-text); font-size: 13px; font-weight: 900; display: flex; align-items: center; gap: 8px; }
+        .ykc-modal-section-title::before { content: ""; width: 6px; height: 18px; border-radius: 999px; background: var(--df-primary); }
+        .ykc-modal-info { padding: 12px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+        .ykc-modal-info.full { grid-template-columns: 1fr; }
+        .ykc-modal-item { min-width: 0; border: 1px solid #edf2f7; border-radius: 8px; background: #fbfcff; padding: 9px 10px; }
+        .ykc-modal-label { color: #68758c; font-size: 10px; font-weight: 850; text-transform: uppercase; letter-spacing: .035em; }
+        .ykc-modal-value { color: var(--df-text); font-size: 13px; font-weight: 750; margin-top: 5px; overflow-wrap: anywhere; }
+        .ykc-report-modal-footer { padding: 13px 18px; border-top: 1px solid #e6edf7; background: #fbfcff; display: flex; justify-content: flex-end; gap: 10px; }
 
         @@media (max-width: 1320px) {
             .ykc-report-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -151,8 +179,10 @@
             .ykc-report-row > div::before { content: attr(data-label); display: block; color: var(--df-muted); font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 3px; }
         }
         @@media (max-width: 760px) {
-            .ykc-report-metrics, .ykc-report-row, .ykc-filter-summary { grid-template-columns: 1fr; }
+            .ykc-report-metrics, .ykc-report-row, .ykc-filter-summary, .ykc-modal-stats, .ykc-modal-grid, .ykc-modal-info { grid-template-columns: 1fr; }
             .ykc-filter-actions, .df-actions { flex-direction: column; align-items: stretch; }
+            .ykc-report-modal { padding: 12px; }
+            .ykc-report-modal-footer { flex-direction: column; }
         }
     </style>
 }
@@ -230,7 +260,7 @@
                     <label>Bölge</label>
                     <input type="text" name="bolge" value="@filtre.Bolge" placeholder="Bölge" />
                 </div>
-                @if (icOperasyonGorsun)
+                @if (hedefFiltresiGoster && icOperasyonGorsun)
                 {
                     <div class="ykc-report-field">
                         <label>Hedef</label>
@@ -286,15 +316,18 @@
                 }
             </div>
         </div>
-        <div class="ykc-summary-group">
-            <strong>Hedef</strong>
-            <div class="ykc-summary-tags">
-                @foreach (var hedef in Model.HedefOzetleri.OrderByDescending(x => x.Sayi))
-                {
-                    <span class="ykc-summary-tag">@HedefYazi(hedef.Ad) <b>@hedef.Sayi</b></span>
-                }
+        @if (hedefFiltresiGoster)
+        {
+            <div class="ykc-summary-group">
+                <strong>Hedef</strong>
+                <div class="ykc-summary-tags">
+                    @foreach (var hedef in Model.HedefOzetleri.OrderByDescending(x => x.Sayi))
+                    {
+                        <span class="ykc-summary-tag">@HedefYazi(hedef.Ad) <b>@hedef.Sayi</b></span>
+                    }
+                </div>
             </div>
-        </div>
+        }
         <div class="ykc-summary-group">
             <strong>Ekip</strong>
             <div class="ykc-summary-tags">
@@ -353,10 +386,193 @@
                         </div>
                     </div>
                     <div data-label="İşlem">
-                        <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/detay/@kayit.Id">Detay</a>
+                        <button class="df-btn df-btn-secondary df-btn-sm ykc-row-view-details"
+                                type="button"
+                                data-id="@kayit.Id"
+                                data-detail-url="/ykc/detay/@kayit.Id"
+                                data-tesisat="@Deger(kayit.TesisatNo)"
+                                data-firma="@Deger(kayit.FirmaAdi)"
+                                data-sirket="@Deger(kayit.SirketAdi)"
+                                data-musteri="@Deger(kayit.MusteriAdi)"
+                                data-proje="@Deger(kayit.ProjeNo)"
+                                data-sayac="@Deger(kayit.SayacNo)"
+                                data-eski-cihaz="@Deger(kayit.EskiCihazTipi)"
+                                data-yeni-cihaz="@Deger(kayit.YeniCihazTipi)"
+                                data-eski-marka="@Deger(kayit.EskiMarka)"
+                                data-yeni-marka="@Deger(kayit.YeniMarka)"
+                                data-yeni-model="@Deger(kayit.YeniModel)"
+                                data-yeni-kapasite="@Deger(kayit.YeniKapasite)"
+                                data-bolge="@Deger(kayit.Bolge)"
+                                data-ekip="@Deger(kayit.AtananEkip)"
+                                data-talep-tarihi="@kayit.TalepTarihi.ToString("dd.MM.yyyy HH:mm")"
+                                data-randevu="@RandevuYazi(kayit.RandevuTarihi, kayit.RandevuSaati)"
+                                data-durum="@DurumYazi(kayit.Durum)"
+                                data-durum-class="@DurumClass(kayit.Durum)"
+                                data-firma-formu="@(kayit.FirmaFormuVar ? "Var" : "Yok")"
+                                data-imzali-belge="@(kayit.SahaFormuVar ? "Var" : "Yok")">
+                            <i class="bi bi-eye"></i> Detay Gör
+                        </button>
                     </div>
                 </div>
             }
         }
     </section>
 </div>
+
+<div class="ykc-report-modal" id="ykcReportDetailModal" aria-hidden="true">
+    <div class="ykc-report-modal-backdrop" data-ykc-modal-close></div>
+    <div class="ykc-report-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="ykcReportModalTitle">
+        <div class="ykc-report-modal-header">
+            <div class="ykc-modal-title-wrap">
+                <div class="ykc-modal-icon"><i class="bi bi-eye"></i></div>
+                <div>
+                    <h3 class="ykc-modal-title" id="ykcReportModalTitle">Talep Detayı</h3>
+                    <div class="ykc-modal-subtitle" id="ykcReportModalSubtitle">-</div>
+                </div>
+            </div>
+            <button class="ykc-modal-close" type="button" data-ykc-modal-close aria-label="Kapat"><i class="bi bi-x-circle"></i></button>
+        </div>
+        <div class="ykc-report-modal-body">
+            <div class="ykc-modal-stats">
+                <div class="ykc-modal-stat"><small>Durum</small><strong><span class="df-pill" id="ykcModalDurum">-</span></strong></div>
+                <div class="ykc-modal-stat"><small>Randevu</small><strong id="ykcModalRandevu">-</strong></div>
+                <div class="ykc-modal-stat"><small>Ekip / Bölge</small><strong id="ykcModalEkipBolge">-</strong></div>
+                <div class="ykc-modal-stat"><small>Talep Tarihi</small><strong id="ykcModalTalepOzetiTarihi">-</strong></div>
+            </div>
+
+            <div class="ykc-modal-grid">
+                <section class="ykc-modal-section">
+                    <div class="ykc-modal-section-title">Tesisat ve Müşteri</div>
+                    <div class="ykc-modal-info">
+                        <div class="ykc-modal-item"><div class="ykc-modal-label">Tesisat</div><div class="ykc-modal-value" id="ykcModalTesisat">-</div></div>
+                        <div class="ykc-modal-item"><div class="ykc-modal-label">Müşteri</div><div class="ykc-modal-value" id="ykcModalMusteri">-</div></div>
+                        <div class="ykc-modal-item"><div class="ykc-modal-label">Proje</div><div class="ykc-modal-value" id="ykcModalProje">-</div></div>
+                        <div class="ykc-modal-item"><div class="ykc-modal-label">Sayaç</div><div class="ykc-modal-value" id="ykcModalSayac">-</div></div>
+                    </div>
+                </section>
+
+                <section class="ykc-modal-section">
+                    <div class="ykc-modal-section-title">Firma ve Kapsam</div>
+                    <div class="ykc-modal-info">
+                        <div class="ykc-modal-item"><div class="ykc-modal-label">Firma</div><div class="ykc-modal-value" id="ykcModalFirma">-</div></div>
+                        <div class="ykc-modal-item"><div class="ykc-modal-label">Şirket</div><div class="ykc-modal-value" id="ykcModalSirket">-</div></div>
+                        <div class="ykc-modal-item"><div class="ykc-modal-label">Talep Tarihi</div><div class="ykc-modal-value" id="ykcModalTalepTarihi">-</div></div>
+                        <div class="ykc-modal-item"><div class="ykc-modal-label">Kayıt</div><div class="ykc-modal-value" id="ykcModalKayit">-</div></div>
+                    </div>
+                </section>
+
+                <section class="ykc-modal-section">
+                    <div class="ykc-modal-section-title">Cihaz Bilgisi</div>
+                    <div class="ykc-modal-info">
+                        <div class="ykc-modal-item"><div class="ykc-modal-label">Eski Cihaz</div><div class="ykc-modal-value" id="ykcModalEskiCihaz">-</div></div>
+                        <div class="ykc-modal-item"><div class="ykc-modal-label">Yeni Cihaz</div><div class="ykc-modal-value" id="ykcModalYeniCihaz">-</div></div>
+                        <div class="ykc-modal-item"><div class="ykc-modal-label">Marka Değişimi</div><div class="ykc-modal-value" id="ykcModalMarka">-</div></div>
+                        <div class="ykc-modal-item"><div class="ykc-modal-label">Yeni Kapasite</div><div class="ykc-modal-value" id="ykcModalKapasite">-</div></div>
+                    </div>
+                </section>
+
+                <section class="ykc-modal-section">
+                    <div class="ykc-modal-section-title">Belge Durumu</div>
+                    <div class="ykc-modal-info">
+                        <div class="ykc-modal-item"><div class="ykc-modal-label">Servis Ön Formu</div><div class="ykc-modal-value" id="ykcModalFirmaFormu">-</div></div>
+                        <div class="ykc-modal-item"><div class="ykc-modal-label">İmzalı Belge</div><div class="ykc-modal-value" id="ykcModalImzaliBelge">-</div></div>
+                    </div>
+                </section>
+            </div>
+        </div>
+        <div class="ykc-report-modal-footer">
+            <button class="df-btn df-btn-secondary" type="button" data-ykc-modal-close>Kapat</button>
+            <a class="df-btn df-btn-primary" id="ykcModalDetailLink" href="#">Tam Detaya Git</a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const modal = document.getElementById('ykcReportDetailModal');
+            const detailLink = document.getElementById('ykcModalDetailLink');
+            const durum = document.getElementById('ykcModalDurum');
+
+            function text(id, value) {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.textContent = value && value.trim ? value.trim() || '-' : value || '-';
+                }
+            }
+
+            function birlestir(sol, sag) {
+                const temizSol = (sol || '').trim();
+                const temizSag = (sag || '').trim();
+                if (!temizSol || temizSol === '-') {
+                    return temizSag || '-';
+                }
+                if (!temizSag || temizSag === '-') {
+                    return temizSol;
+                }
+                return temizSol + ' / ' + temizSag;
+            }
+
+            function ac(button) {
+                const data = button.dataset;
+
+                text('ykcReportModalTitle', 'FR265 #' + data.id + ' Talep Detayı');
+                text('ykcReportModalSubtitle', birlestir(data.firma, data.musteri));
+                text('ykcModalRandevu', data.randevu);
+                text('ykcModalEkipBolge', birlestir(data.ekip, data.bolge));
+                text('ykcModalTalepOzetiTarihi', data.talepTarihi);
+                text('ykcModalTesisat', data.tesisat);
+                text('ykcModalMusteri', data.musteri);
+                text('ykcModalProje', data.proje);
+                text('ykcModalSayac', data.sayac);
+                text('ykcModalFirma', data.firma);
+                text('ykcModalSirket', data.sirket);
+                text('ykcModalTalepTarihi', data.talepTarihi);
+                text('ykcModalKayit', 'FR265 #' + data.id);
+                text('ykcModalEskiCihaz', birlestir(data.eskiCihaz, data.eskiMarka));
+                text('ykcModalYeniCihaz', birlestir(data.yeniCihaz, birlestir(data.yeniMarka, data.yeniModel)));
+                text('ykcModalMarka', (data.eskiMarka || '-') + ' -> ' + (data.yeniMarka || '-'));
+                text('ykcModalKapasite', data.yeniKapasite);
+                text('ykcModalFirmaFormu', data.firmaFormu);
+                text('ykcModalImzaliBelge', data.imzaliBelge);
+
+                if (durum) {
+                    durum.textContent = data.durum || '-';
+                    durum.className = 'df-pill ' + (data.durumClass || 'df-pill-secondary');
+                }
+
+                if (detailLink) {
+                    detailLink.href = data.detailUrl || ('/ykc/detay/' + data.id);
+                }
+
+                modal.classList.add('is-open');
+                modal.setAttribute('aria-hidden', 'false');
+                document.body.style.overflow = 'hidden';
+            }
+
+            function kapat() {
+                modal.classList.remove('is-open');
+                modal.setAttribute('aria-hidden', 'true');
+                document.body.style.overflow = '';
+            }
+
+            document.addEventListener('click', function (event) {
+                const detailButton = event.target.closest('.ykc-row-view-details');
+                if (detailButton) {
+                    ac(detailButton);
+                    return;
+                }
+
+                if (event.target.closest('[data-ykc-modal-close]')) {
+                    kapat();
+                }
+            });
+
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape' && modal.classList.contains('is-open')) {
+                    kapat();
+                }
+            });
+        })();
+    </script>
+}

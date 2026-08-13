@@ -94,6 +94,20 @@
         .ykc-detail-stack { display: grid; gap: 10px; }
         .ykc-detail-stack > * { order: 10; }
         .ykc-hero { order: 1; }
+        .ykc-workspace-tabs { order: 2; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 9px; }
+        .ykc-tab-btn { border: 1px solid #dfe6f2; border-radius: 8px; background: #fff; color: var(--df-text); min-height: 54px; padding: 10px 12px; display: flex; align-items: center; justify-content: center; gap: 9px; font-size: 12px; font-weight: 900; text-align: center; cursor: pointer; box-shadow: 0 8px 18px rgba(13, 34, 112, .035); transition: background .16s ease, color .16s ease, border-color .16s ease, box-shadow .16s ease, transform .16s ease; }
+        .ykc-tab-btn i { color: var(--df-primary); font-size: 16px; }
+        .ykc-tab-btn:hover { border-color: #cdd8ea; background: #fbfcff; transform: translateY(-1px); }
+        .ykc-tab-btn.active { color: #fff; border-color: var(--df-primary); background: linear-gradient(135deg, var(--df-primary) 0%, #1d3ea7 100%); box-shadow: 0 12px 24px rgba(46, 78, 200, .18); }
+        .ykc-tab-btn.active i { color: #fff; }
+        .ykc-tab-pane { order: 3; display: none; min-width: 0; }
+        .ykc-tab-pane.active { display: block; }
+        .ykc-tab-pane > .ykc-card,
+        .ykc-tab-pane > .ykc-grid { width: 100%; }
+        .ykc-tab-pane[data-ykc-tab-panel="firma"] .ykc-card-title::before { background: #1dbb7a; }
+        .ykc-tab-pane[data-ykc-tab-panel="cihaz"] .ykc-card-title::before { background: #dc8e0d; }
+        .ykc-tab-pane[data-ykc-tab-panel="islem"] .ykc-card-title::before { background: #7056d8; }
+        .ykc-tab-pane[data-ykc-tab-panel="gecmis"] .ykc-card-title::before { background: #52627a; }
         .ykc-context-grid { order: 2; }
         .ykc-compare-card { order: 3; }
         .ykc-process-card { order: 4; }
@@ -315,12 +329,13 @@
         .ykc-archive-tools { padding: 0 16px 12px; display: flex; flex-wrap: wrap; gap: 10px; }
         @@media (max-width: 1100px) {
             .ykc-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .ykc-workspace-tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
             .ykc-grid { grid-template-columns: 1fr; }
             .ykc-form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .ykc-flow-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
         @@media (max-width: 720px) {
-            .ykc-summary-grid, .ykc-info, .ykc-info-compact, .ykc-form-grid, .ykc-upload, .ykc-check-grid, .ykc-flow-strip, .ykc-step-summary { grid-template-columns: 1fr; }
+            .ykc-summary-grid, .ykc-info, .ykc-info-compact, .ykc-form-grid, .ykc-upload, .ykc-check-grid, .ykc-flow-strip, .ykc-step-summary, .ykc-workspace-tabs { grid-template-columns: 1fr; }
             .ykc-actions, .df-actions { flex-direction: column; align-items: stretch; }
         }
     </style>
@@ -382,7 +397,25 @@
         </div>
     </section>
 
-    <div class="ykc-grid ykc-context-grid">
+    <div class="ykc-workspace-tabs" role="tablist" aria-label="Talep detay bölümleri">
+        <button class="ykc-tab-btn active" type="button" data-ykc-tab="tesisat" aria-selected="true">
+            <i class="bi bi-file-earmark-text"></i><span>Tesisat ve Müşteri</span>
+        </button>
+        <button class="ykc-tab-btn" type="button" data-ykc-tab="firma" aria-selected="false">
+            <i class="bi bi-building-check"></i><span>Firma ve Kapsam</span>
+        </button>
+        <button class="ykc-tab-btn" type="button" data-ykc-tab="cihaz" aria-selected="false">
+            <i class="bi bi-clipboard2-check"></i><span>Cihaz Kontrolü</span>
+        </button>
+        <button class="ykc-tab-btn" type="button" data-ykc-tab="islem" aria-selected="false">
+            <i class="bi bi-calendar-check"></i><span>İşlem Adımları</span>
+        </button>
+        <button class="ykc-tab-btn" type="button" data-ykc-tab="gecmis" aria-selected="false">
+            <i class="bi bi-clock"></i><span>İşlem Geçmişi</span>
+        </button>
+    </div>
+
+    <div class="ykc-tab-pane active" data-ykc-tab-panel="tesisat">
         <section class="ykc-card">
             <div class="ykc-card-head"><div class="ykc-card-title">Tesisat ve Müşteri</div></div>
             <div class="ykc-info ykc-info-compact">
@@ -395,7 +428,9 @@
                 <div class="ykc-item" style="grid-column:1/-1;"><div class="ykc-label">Adres</div><div class="ykc-value">@Deger(Model.Adres)</div></div>
             </div>
         </section>
+    </div>
 
+    <div class="ykc-tab-pane" data-ykc-tab-panel="firma">
         <section class="ykc-card">
             <div class="ykc-card-head"><div class="ykc-card-title">Firma ve Kapsam</div></div>
             <div class="ykc-info ykc-info-compact">
@@ -409,6 +444,7 @@
         </section>
     </div>
 
+    <div class="ykc-tab-pane" data-ykc-tab-panel="cihaz">
     <section class="ykc-card ykc-compare-card">
         <div class="ykc-card-head"><div class="ykc-card-title">Cihaz Karşılaştırması</div></div>
         <div class="ykc-compare-table">
@@ -453,6 +489,9 @@
         </div>
     </section>
 
+    </div>
+
+    <div class="ykc-tab-pane" data-ykc-tab-panel="islem">
     <section class="ykc-card ykc-process-card">
         <div class="ykc-card-head"><div class="ykc-card-title">İşlem Adımları</div></div>
         <div class="ykc-process-list">
@@ -633,6 +672,9 @@
         </div>
     </section>
 
+    </div>
+
+    <div class="ykc-tab-pane" data-ykc-tab-panel="gecmis">
     <div class="ykc-grid ykc-history-grid">
         <section class="ykc-card">
             <div class="ykc-card-head"><div class="ykc-card-title">İşlem Geçmişi</div></div>
@@ -664,10 +706,34 @@
             </div>
         </section>
     </div>
+    </div>
 </div>
 
 @section Scripts {
     <script>
+        (function () {
+            const tabs = Array.from(document.querySelectorAll('[data-ykc-tab]'));
+            const panels = Array.from(document.querySelectorAll('[data-ykc-tab-panel]'));
+
+            function aktifEt(tabId) {
+                tabs.forEach(function (tab) {
+                    const aktif = tab.dataset.ykcTab === tabId;
+                    tab.classList.toggle('active', aktif);
+                    tab.setAttribute('aria-selected', aktif ? 'true' : 'false');
+                });
+
+                panels.forEach(function (panel) {
+                    panel.classList.toggle('active', panel.dataset.ykcTabPanel === tabId);
+                });
+            }
+
+            tabs.forEach(function (tab) {
+                tab.addEventListener('click', function () {
+                    aktifEt(tab.dataset.ykcTab);
+                });
+            });
+        })();
+
         document.addEventListener('click', function (event) {
             const button = event.target.closest('[data-picker]');
             if (!button) {
