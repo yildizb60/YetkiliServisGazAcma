@@ -275,7 +275,7 @@ namespace YetkiliServisGazAcma.Controllers
             return kullanici.KullaniciTipi switch
             {
                 KullaniciTipiDegerleri.YetkiliServis => Redirect("/ys-panel"),
-                KullaniciTipiDegerleri.SertifikaliFirma => Redirect("/ykc/talepler"),
+                KullaniciTipiDegerleri.SertifikaliFirma => Redirect("/ykc"),
                 KullaniciTipiDegerleri.Personel => Redirect("/personel-panel"),
                 KullaniciTipiDegerleri.SirketAdmin => Redirect("/AdminPanel"),
                 KullaniciTipiDegerleri.GenelSistemAdmin => Redirect("/AdminPanel"),

@@ -21,9 +21,22 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpGet("")]
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
-            return RedirectToAction(nameof(Talepler));
+            var kullanici = await _userManager.GetUserAsync(User);
+            if (kullanici == null)
+                return Redirect("/giris");
+
+            PanelViewBag(kullanici, "YkcOzet", "Cihaz Değişim Özeti", "FR265 talep, inceleme, randevu ve imza sürecinizi izleyin");
+
+            var filtre = new YkcTalepListeFiltre
+            {
+                Sayfa = 1,
+                SayfaBoyutu = 100
+            };
+
+            var sonuc = await _ykcApiClient.TaleplerAsync(kullanici, filtre) ?? new YkcTalepListeSonuc();
+            return View("~/Views/Ykc/Index.cshtml", sonuc);
         }
 
         [HttpGet("talepler")]

@@ -86,13 +86,46 @@
             _ => Deger(hedef)
         };
     }
+
+    private static string ImzaDurumYazi(int durum, bool imzaliBelgeVar)
+    {
+        if (imzaliBelgeVar)
+            return "İmzalı belge hazır";
+
+        if (durum == YkcDurumDegerleri.Reddedildi || durum == YkcDurumDegerleri.Iptal)
+            return "İmza süreci kapalı";
+
+        return "İmza bekleniyor";
+    }
+
+    private static string ImzaDurumClass(int durum, bool imzaliBelgeVar)
+    {
+        if (imzaliBelgeVar)
+            return "df-pill-success";
+
+        if (durum == YkcDurumDegerleri.Reddedildi || durum == YkcDurumDegerleri.Iptal)
+            return "df-pill-danger";
+
+        return "df-pill-warning";
+    }
 }
 
 @section Styles {
     <style>
         .ykc-report-stack { display: grid; gap: 10px; }
         .ykc-report-hero { overflow: hidden; border-color: #dfe6f2; }
-        .ykc-report-hero .df-panel-head { align-items: flex-start; background: linear-gradient(180deg, #ffffff 0%, #f7f9fd 100%); padding: 15px 20px; }
+        .ykc-report-hero .df-panel-head {
+            align-items: flex-start;
+            background:
+                radial-gradient(circle at 88% 18%, rgba(22, 198, 232, .30) 0 54px, transparent 56px),
+                radial-gradient(circle at 74% 78%, rgba(109, 93, 252, .32) 0 68px, transparent 70px),
+                linear-gradient(135deg, #10162f 0%, #172557 58%, #513bd6 100%);
+            color: #fff;
+            padding: 15px 20px;
+        }
+        .ykc-report-hero .df-panel-head .df-panel-title,
+        .ykc-report-hero .df-panel-head .df-panel-subtitle { color: #fff; }
+        .ykc-report-hero .df-panel-head .df-btn-secondary { border-color: rgba(255, 255, 255, .42); color: #fff; background: rgba(255, 255, 255, .10); }
         .ykc-report-hero .df-panel-title { font-size: 19px; }
         .ykc-report-hero .df-panel-subtitle { font-size: 12px; margin-top: 4px; }
         .ykc-report-metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 9px; padding: 0 20px 14px; }
@@ -350,7 +383,7 @@
             <div>Firma / Müşteri</div>
             <div>Cihaz</div>
             <div>Randevu / Ekip</div>
-            <div>Durum / Belge</div>
+            <div>Durum / İmza</div>
             <div>İşlem</div>
         </div>
         @if (!Model.Kayitlar.Any())
@@ -378,11 +411,10 @@
                         <div class="ykc-cell-main">@RandevuYazi(kayit.RandevuTarihi, kayit.RandevuSaati)</div>
                         <div class="ykc-muted">@Deger(kayit.AtananEkip) / @Deger(kayit.Bolge)</div>
                     </div>
-                    <div data-label="Durum / Belge">
+                    <div data-label="Durum / İmza">
                         <span class="df-pill @DurumClass(kayit.Durum)">@DurumYazi(kayit.Durum)</span>
                         <div class="ykc-file-pills">
-                            <span class="df-pill @(kayit.FirmaFormuVar ? "df-pill-success" : "df-pill-warning")">Geçici Arşiv Belgesi</span>
-                            <span class="df-pill @(kayit.SahaFormuVar ? "df-pill-success" : "df-pill-warning")">İmzalı Nihai Belge</span>
+                            <span class="df-pill @ImzaDurumClass(kayit.Durum, kayit.SahaFormuVar)">@ImzaDurumYazi(kayit.Durum, kayit.SahaFormuVar)</span>
                         </div>
                     </div>
                     <div data-label="İşlem">
@@ -408,8 +440,7 @@
                                 data-randevu="@RandevuYazi(kayit.RandevuTarihi, kayit.RandevuSaati)"
                                 data-durum="@DurumYazi(kayit.Durum)"
                                 data-durum-class="@DurumClass(kayit.Durum)"
-                                data-firma-formu="@(kayit.FirmaFormuVar ? "Var" : "Yok")"
-                                data-imzali-belge="@(kayit.SahaFormuVar ? "Var" : "Yok")">
+                                data-imza-durumu="@ImzaDurumYazi(kayit.Durum, kayit.SahaFormuVar)">
                             <i class="bi bi-eye"></i> Detay Gör
                         </button>
                     </div>
@@ -472,10 +503,9 @@
                 </section>
 
                 <section class="ykc-modal-section">
-                    <div class="ykc-modal-section-title">Belge Durumu</div>
-                    <div class="ykc-modal-info">
-                        <div class="ykc-modal-item"><div class="ykc-modal-label">Geçici Arşiv Belgesi</div><div class="ykc-modal-value" id="ykcModalFirmaFormu">-</div></div>
-                        <div class="ykc-modal-item"><div class="ykc-modal-label">İmzalı Nihai Belge</div><div class="ykc-modal-value" id="ykcModalImzaliBelge">-</div></div>
+                    <div class="ykc-modal-section-title">İmza Durumu</div>
+                    <div class="ykc-modal-info full">
+                        <div class="ykc-modal-item"><div class="ykc-modal-label">Dijital İmza</div><div class="ykc-modal-value" id="ykcModalImzaDurumu">-</div></div>
                     </div>
                 </section>
             </div>
@@ -533,8 +563,7 @@
                 text('ykcModalYeniCihaz', birlestir(data.yeniCihaz, birlestir(data.yeniMarka, data.yeniModel)));
                 text('ykcModalMarka', (data.eskiMarka || '-') + ' -> ' + (data.yeniMarka || '-'));
                 text('ykcModalKapasite', data.yeniKapasite);
-                text('ykcModalFirmaFormu', data.firmaFormu);
-                text('ykcModalImzaliBelge', data.imzaliBelge);
+                text('ykcModalImzaDurumu', data.imzaDurumu);
 
                 if (durum) {
                     durum.textContent = data.durum || '-';

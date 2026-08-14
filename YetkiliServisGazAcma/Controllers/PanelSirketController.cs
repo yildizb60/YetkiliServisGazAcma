@@ -70,6 +70,7 @@ namespace YetkiliServisGazAcma.Controllers
             return kullanici.KullaniciTipi switch
             {
                 KullaniciTipiDegerleri.YetkiliServis => "/ys-panel",
+                KullaniciTipiDegerleri.SertifikaliFirma => "/ykc",
                 KullaniciTipiDegerleri.Personel => "/personel-panel",
                 KullaniciTipiDegerleri.SirketAdmin => "/AdminPanel",
                 KullaniciTipiDegerleri.GenelSistemAdmin => "/AdminPanel",

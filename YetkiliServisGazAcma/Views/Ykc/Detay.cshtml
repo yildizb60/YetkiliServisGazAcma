@@ -7,9 +7,10 @@
     var incelemeAdimiAcik = Model.Durum == YkcDurumDegerleri.TalepAlindi;
     var randevuAdimiAcik = atamaYapilabilir;
     var belgeAdimiAcik = !yonetebilir || Model.Durum == YkcDurumDegerleri.Atandi || Model.Durum == YkcDurumDegerleri.SahaIsleminde || Model.Durum == YkcDurumDegerleri.Tamamlandi;
+    var imzaliBelge = Model.Dosyalar.FirstOrDefault(x => x.DosyaTuru == YkcFormDosyaTuruDegerleri.SahaIslakImzaliForm);
     var formYardimMetni = icOperasyonGorsun
-        ? "FR265 bu talebin verileriyle önizlenir. İmza servisi devreye alındığında belge API ile gönderilecek, imza durumu ve nihai dosya bu ekrandan takip edilecek."
-        : "FR265 sistemde dijital hazırlanır. İç tesisat incelemesi sonrası imza/arşiv sürecine gönderilir; imzalı nihai belge tamamlandığında buradan görüntülenir.";
+        ? "FR265 bu talebin verileriyle doldurulur ve önce önizlenir. İmza entegrasyonu devreye alındığında doğru belge imza/arşiv uygulamasına gönderilecek; imzalı nihai belge geri geldiğinde buradan indirilecek."
+        : "FR265 sistemde doldurulur ve önizlenir. İç tesisat incelemesi sonrası imza/arşiv uygulamasına gönderilir; imzalı nihai belge tamamlandığında buradan görüntülenir.";
 }
 
 @functions {
@@ -72,7 +73,7 @@
         return tur switch
         {
             YkcFormDosyaTuruDegerleri.SahaIslakImzaliForm => "İmzalı Nihai Belge",
-            YkcFormDosyaTuruDegerleri.FirmaFormu => "Geçici Arşiv Belgesi",
+            YkcFormDosyaTuruDegerleri.FirmaFormu => "Entegrasyon Öncesi Ek",
             _ => Deger(tur)
         };
     }
@@ -141,12 +142,25 @@
         .ykc-check-line { color: var(--df-muted); font-size: 12px; overflow-wrap: anywhere; }
         .ykc-upload { margin: 16px 18px 0; border: 1px dashed #cfd8e6; background: #f8fafc; border-radius: 8px; padding: 14px; display: grid; grid-template-columns: minmax(170px, .8fr) minmax(220px, 1.2fr) auto; gap: 10px; align-items: end; }
         .ykc-upload .ykc-field { gap: 5px; }
+        .ykc-disabled-action { opacity: .62; cursor: not-allowed; pointer-events: none; }
+        .ykc-technical-upload { margin: 14px 16px 0; border: 1px dashed #cfd8e6; border-radius: 8px; background: #fbfcff; }
+        .ykc-technical-upload summary { list-style: none; cursor: pointer; padding: 11px 13px; color: var(--df-text); font-size: 12px; font-weight: 900; }
+        .ykc-technical-upload summary::-webkit-details-marker { display: none; }
+        .ykc-technical-upload .ykc-upload { margin: 0; border: 0; border-top: 1px dashed #dbe3ef; border-radius: 0; background: transparent; }
         .ykc-muted { color: var(--df-muted); font-size: 12px; }
         .ykc-empty { color: var(--df-muted); background: #fbfcfe; border: 1px dashed #dbe3ee; border-radius: 8px; padding: 18px; text-align: center; font-size: 13px; }
         .ykc-hero { overflow: hidden; border-color: #dfe6f2; }
-        .ykc-hero .df-panel-head { align-items: flex-start; background: linear-gradient(180deg, #ffffff 0%, #f7f9fd 100%); }
-        .ykc-hero .df-panel-title { font-size: 20px; }
-        .ykc-hero .df-panel-subtitle { margin-top: 5px; color: var(--df-muted); }
+        .ykc-hero .df-panel-head {
+            align-items: flex-start;
+            background:
+                radial-gradient(circle at 88% 18%, rgba(22, 198, 232, .30) 0 54px, transparent 56px),
+                radial-gradient(circle at 74% 78%, rgba(109, 93, 252, .32) 0 68px, transparent 70px),
+                linear-gradient(135deg, #10162f 0%, #172557 58%, #513bd6 100%);
+            color: #fff;
+        }
+        .ykc-hero .df-panel-title { color: #fff; font-size: 20px; }
+        .ykc-hero .df-panel-subtitle { margin-top: 5px; color: rgba(255, 255, 255, .78); }
+        .ykc-hero .df-panel-head .df-btn-secondary { border-color: rgba(255, 255, 255, .42); color: #fff; background: rgba(255, 255, 255, .10); }
         .ykc-summary-grid { padding-top: 4px; }
         .ykc-summary { position: relative; background: #fff; box-shadow: 0 10px 24px rgba(13, 34, 112, .045); }
         .ykc-summary::before { content: ""; position: absolute; left: 0; top: 12px; bottom: 12px; width: 3px; border-radius: 999px; background: var(--df-primary); }
@@ -360,7 +374,14 @@
             <div class="df-actions">
                 <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/talepler">Listeye Dön</a>
                 <a class="df-btn df-btn-primary df-btn-sm" href="/ykc/fr265/onizle/@Model.Id" target="_blank">FR265 Önizle</a>
-                <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/fr265/indir/@Model.Id">Taslak FR265 İndir</a>
+                @if (imzaliBelge != null)
+                {
+                    <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/dosya/@imzaliBelge.Id" target="_blank">İmzalı Belge İndir</a>
+                }
+                else
+                {
+                    <span class="df-btn df-btn-secondary df-btn-sm ykc-disabled-action">İmzalı Belge Bekleniyor</span>
+                }
                 <span class="df-pill @DurumClass(Model.Durum)">@DurumYazi(Model.Durum)</span>
             </div>
         </div>
@@ -611,35 +632,38 @@
                     <div class="ykc-process-note">@formYardimMetni</div>
                     <div class="ykc-archive-tools">
                         <a class="df-btn df-btn-primary df-btn-sm" href="/ykc/fr265/onizle/@Model.Id" target="_blank">FR265 Önizle</a>
-                        <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/fr265/indir/@Model.Id">Taslak FR265 İndir</a>
-                    </div>
-                    <form method="post" action="/ykc/form-yukle" enctype="multipart/form-data" class="ykc-upload">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="talepId" value="@Model.Id" />
-                        @if (icOperasyonGorsun)
+                        <span class="df-btn df-btn-secondary df-btn-sm ykc-disabled-action">İmza Uygulamasına Gönder</span>
+                        @if (imzaliBelge != null)
                         {
+                            <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/dosya/@imzaliBelge.Id" target="_blank">İmzalı Belge İndir</a>
+                        }
+                        else
+                        {
+                            <span class="df-btn df-btn-secondary df-btn-sm ykc-disabled-action">İmzalı Belge Bekleniyor</span>
+                        }
+                    </div>
+                    @if (icOperasyonGorsun)
+                    {
+                        <details class="ykc-technical-upload">
+                            <summary>Entegrasyon öncesi teknik belge ekleme</summary>
+                            <form method="post" action="/ykc/form-yukle" enctype="multipart/form-data" class="ykc-upload">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="talepId" value="@Model.Id" />
                             <div class="ykc-field">
                                 <label>Belge Türü</label>
                                 <select name="dosyaTuru">
                                     <option value="@YkcFormDosyaTuruDegerleri.SahaIslakImzaliForm">İmzalı Nihai Belge</option>
-                                    <option value="@YkcFormDosyaTuruDegerleri.FirmaFormu">Geçici Arşiv Belgesi</option>
+                                    <option value="@YkcFormDosyaTuruDegerleri.FirmaFormu">Entegrasyon Öncesi Ek</option>
                                 </select>
                             </div>
-                        }
-                        else
-                        {
-                            <input type="hidden" name="dosyaTuru" value="@YkcFormDosyaTuruDegerleri.FirmaFormu" />
                             <div class="ykc-field">
-                                <label>Belge Türü</label>
-                                <input value="Geçici Arşiv Belgesi" readonly />
+                                <label>Belge</label>
+                                <input type="file" name="formDosyasi" accept=".pdf,.jpg,.jpeg,.png" />
                             </div>
-                        }
-                        <div class="ykc-field">
-                            <label>Geçici Belge</label>
-                            <input type="file" name="formDosyasi" accept=".pdf,.jpg,.jpeg,.png" />
-                        </div>
-                        <button class="df-btn df-btn-primary df-btn-sm" type="submit">Geçici Belge Ekle</button>
-                    </form>
+                                <button class="df-btn df-btn-primary df-btn-sm" type="submit">Belge Ekle</button>
+                            </form>
+                        </details>
+                    }
                     <div class="ykc-list">
                         @if (!Model.Dosyalar.Any())
                         {

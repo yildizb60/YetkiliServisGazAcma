@@ -519,29 +519,29 @@
             <div class="ykc-card-head">
                 <div>
                     <div class="ykc-card-title">FR265 Önizleme ve İmza Akışı</div>
-                    <div class="ykc-card-subtitle">Talep kaydedildikten sonra form sistemde önizlenir, uygun aşamada imza/arşiv servisine gönderilir.</div>
+                    <div class="ykc-card-subtitle">Talep kaydedildikten sonra form önizlenir; doğruysa dijital imza/arşiv uygulamasına gönderilir.</div>
                 </div>
             </div>
             <div class="ykc-form-grid">
                 <div class="ykc-signature-flow">
                     <div class="ykc-signature-step">
                         <div class="ykc-signature-no">1</div>
-                        <strong>Form Önizleme</strong>
-                        <span>FR265, bu ekrandaki tesisat ve cihaz bilgileriyle sistemde dijital olarak hazırlanır.</span>
+                        <strong>Önizle ve Kontrol Et</strong>
+                        <span>FR265, bu ekrandaki tesisat ve cihaz bilgileriyle doldurulmuş belge olarak hazırlanır.</span>
                     </div>
                     <div class="ykc-signature-step">
                         <div class="ykc-signature-no">2</div>
-                        <strong>İmzaya Gönderim</strong>
-                        <span>İç tesisat incelemesi tamamlanınca belge imza/arşiv uygulamasına API üzerinden aktarılır.</span>
+                        <strong>İmza Uygulamasına Gönder</strong>
+                        <span>Belge doğruysa dijital imza/arşiv uygulamasına aktarılır ve eksik imza alanları orada tamamlanır.</span>
                     </div>
                     <div class="ykc-signature-step">
                         <div class="ykc-signature-no">3</div>
-                        <strong>İmzalı Nihai Belge</strong>
-                        <span>İmza süreci tamamlandığında durum ve imzalı belge sistemde görüntülenir.</span>
+                        <strong>İmzalı Belgeyi Al</strong>
+                        <span>İmza süreci bittiğinde sistemde yalnızca imzalı nihai belge görüntülenir ve indirilir.</span>
                     </div>
                 </div>
                 <div class="ykc-signature-note">
-                    Bu ekranda dosya yükletmiyoruz; amaç talep verisini doğru kayda almak ve FR265'i dijital imza sürecine hazır hale getirmek. İmzalı belge takibi detay ekranında yapılır.
+                    Bu ekranda amaç talep verisini doğru kayda almak ve FR265'i önizlenebilir hale getirmek. Gerçek imza entegrasyonu tamamlandığında gönderim ve imzalı belge dönüşü detay ekranından yönetilecek.
                 </div>
             </div>
             <div class="ykc-actions">
