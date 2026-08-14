@@ -27,12 +27,12 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null)
                 return Redirect("/giris");
 
-            PanelViewBag(kullanici, "YkcOzet", "Cihaz Değişim Özeti", "FR265 talep, inceleme, randevu ve imza sürecinizi izleyin");
+            PanelViewBag(kullanici, "YkcOzet", "Ana Sayfa", "Cihaz değişim, FR265 önizleme, randevu ve dijital imza sürecinizi izleyin");
 
             var filtre = new YkcTalepListeFiltre
             {
                 Sayfa = 1,
-                SayfaBoyutu = 100
+                SayfaBoyutu = 500
             };
 
             var sonuc = await _ykcApiClient.TaleplerAsync(kullanici, filtre) ?? new YkcTalepListeSonuc();

@@ -31,6 +31,7 @@ namespace YetkiliServisGazAcma.Business.Services
 
                 var document = XDocument.Parse(xml);
                 Doldur(document, talep);
+                KagitKontrolBloklariniKaldir(document);
 
                 documentEntry.Delete();
                 var updatedEntry = archive.CreateEntry("word/document.xml", CompressionLevel.Optimal);
@@ -48,10 +49,11 @@ namespace YetkiliServisGazAcma.Business.Services
 
         private static void Doldur(XDocument document, YkcTalepDetayDto talep)
         {
+            var formTarihi = FormTarihi(talep);
             foreach (var textNode in document.Descendants(W + "t"))
             {
                 if (textNode.Value.Contains("Tarih :"))
-                    textNode.Value = $"Tarih : {DateTime.Now:dd.MM.yyyy}";
+                    textNode.Value = $"Tarih : {formTarihi}";
             }
 
             var tables = document.Descendants(W + "tbl").ToList();
@@ -74,10 +76,26 @@ namespace YetkiliServisGazAcma.Business.Services
             SetCellText(tables, 3, 4, 1, talep.EskiKapasite);
             SetCellText(tables, 3, 4, 2, talep.YeniKapasite);
 
-            SetCellText(tables, 5, 1, 0, FirmaImzaMetni(talep));
+            SetCellText(tables, 5, 1, 0, FirmaImzaMetni(talep, formTarihi));
         }
 
-        private static string FirmaImzaMetni(YkcTalepDetayDto talep)
+        private static void KagitKontrolBloklariniKaldir(XDocument document)
+        {
+            var kontrolTablolari = document
+                .Descendants(W + "tbl")
+                .Where(table => TableText(table).Contains("KONTROL", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            foreach (var table in kontrolTablolari)
+                table.Remove();
+        }
+
+        private static string TableText(XElement table)
+        {
+            return string.Concat(table.Descendants(W + "t").Select(x => x.Value));
+        }
+
+        private static string FirmaImzaMetni(YkcTalepDetayDto talep, string formTarihi)
         {
             var yetkili = Clean(talep.FirmaYetkiliKisi);
             var satirlar = new List<string>
@@ -85,11 +103,16 @@ namespace YetkiliServisGazAcma.Business.Services
                 "Sertifikali Firma Yetkilisi",
                 "",
                 $"Adi ve Soyadi: {yetkili}",
-                $"Tarih: {DateTime.Now:dd.MM.yyyy}",
+                $"Tarih: {formTarihi}",
                 "Imza:"
             };
 
             return string.Join(Environment.NewLine, satirlar);
+        }
+
+        private static string FormTarihi(YkcTalepDetayDto talep)
+        {
+            return talep.TalepTarihi.ToString("dd.MM.yyyy");
         }
 
         private static void SetCellText(IReadOnlyList<XElement> tables, int tableIndex, int rowIndex, int cellIndex, string? value)

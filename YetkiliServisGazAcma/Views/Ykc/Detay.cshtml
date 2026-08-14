@@ -161,6 +161,9 @@
         .ykc-hero .df-panel-title { color: #fff; font-size: 20px; }
         .ykc-hero .df-panel-subtitle { margin-top: 5px; color: rgba(255, 255, 255, .78); }
         .ykc-hero .df-panel-head .df-btn-secondary { border-color: rgba(255, 255, 255, .42); color: #fff; background: rgba(255, 255, 255, .10); }
+        .ykc-hero-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .ykc-hero-chip { display: inline-flex; align-items: center; gap: 7px; border: 1px solid rgba(255,255,255,.24); border-radius: 999px; background: rgba(255,255,255,.10); color: #fff; padding: 6px 10px; font-size: 11px; font-weight: 850; }
+        .ykc-hero-chip i { color: #54d6ef; }
         .ykc-summary-grid { padding-top: 4px; }
         .ykc-summary { position: relative; background: #fff; box-shadow: 0 10px 24px rgba(13, 34, 112, .045); }
         .ykc-summary::before { content: ""; position: absolute; left: 0; top: 12px; bottom: 12px; width: 3px; border-radius: 999px; background: var(--df-primary); }
@@ -341,15 +344,32 @@
         .ykc-step-body { border-top: 1px solid #edf2f7; }
         .ykc-process-note { margin: 12px 16px 0; border: 1px solid #dbe7ff; background: #f4f7ff; border-radius: 8px; padding: 10px 12px; color: var(--df-text-soft); font-size: 12px; line-height: 1.45; }
         .ykc-archive-tools { padding: 0 16px 12px; display: flex; flex-wrap: wrap; gap: 10px; }
+        .ykc-decision-grid { padding: 14px 16px 4px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+        .ykc-decision-card { border: 1px solid #dfe7f2; border-radius: 8px; background: #fff; color: var(--df-text); padding: 12px; text-align: left; cursor: pointer; display: grid; gap: 6px; min-height: 96px; box-shadow: 0 8px 18px rgba(13, 34, 112, .035); transition: border-color .16s ease, transform .16s ease, box-shadow .16s ease; }
+        .ykc-decision-card:hover { border-color: #cbd8ee; transform: translateY(-1px); box-shadow: 0 12px 24px rgba(13, 34, 112, .07); }
+        .ykc-decision-card i { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; background: var(--df-primary-soft); color: var(--df-primary); }
+        .ykc-decision-card strong { font-size: 13px; font-weight: 900; }
+        .ykc-decision-card span { color: var(--df-muted); font-size: 11.5px; line-height: 1.35; }
+        .ykc-decision-card.is-danger i { background: var(--df-danger-soft); color: var(--df-danger); }
+        .ykc-decision-card.is-warn i { background: var(--df-warning-soft); color: var(--df-warning); }
+        .ykc-decision-card.is-success i { background: var(--df-success-soft); color: var(--df-success); }
+        .ykc-route-grid { padding: 14px 16px 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+        .ykc-route-card { border: 1px solid #dfe7f2; border-radius: 8px; background: #fff; color: var(--df-text); padding: 13px; text-align: left; cursor: pointer; display: grid; grid-template-columns: 38px 1fr; gap: 10px; align-items: center; box-shadow: 0 8px 18px rgba(13, 34, 112, .035); transition: border-color .16s ease, background .16s ease, transform .16s ease; }
+        .ykc-route-card:hover,
+        .ykc-route-card.active { border-color: #bfcdf0; background: #f7f9ff; transform: translateY(-1px); }
+        .ykc-route-icon { width: 38px; height: 38px; border-radius: 8px; display: grid; place-items: center; background: linear-gradient(135deg, var(--df-primary), #6d5dfc); color: #fff; font-size: 16px; }
+        .ykc-route-title { font-size: 13px; font-weight: 900; }
+        .ykc-route-sub { margin-top: 3px; color: var(--df-muted); font-size: 11.5px; line-height: 1.35; }
         @@media (max-width: 1100px) {
             .ykc-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .ykc-workspace-tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
             .ykc-grid { grid-template-columns: 1fr; }
             .ykc-form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .ykc-flow-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .ykc-decision-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
         @@media (max-width: 720px) {
-            .ykc-summary-grid, .ykc-info, .ykc-info-compact, .ykc-form-grid, .ykc-upload, .ykc-check-grid, .ykc-flow-strip, .ykc-step-summary, .ykc-workspace-tabs { grid-template-columns: 1fr; }
+            .ykc-summary-grid, .ykc-info, .ykc-info-compact, .ykc-form-grid, .ykc-upload, .ykc-check-grid, .ykc-flow-strip, .ykc-step-summary, .ykc-workspace-tabs, .ykc-decision-grid, .ykc-route-grid { grid-template-columns: 1fr; }
             .ykc-actions, .df-actions { flex-direction: column; align-items: stretch; }
         }
     </style>
@@ -370,6 +390,12 @@
             <div>
                 <h2 class="df-panel-title">Cihaz Değişim Talebi #@Model.Id</h2>
                 <div class="df-panel-subtitle">@Deger(Model.FirmaAdi) / @Deger(Model.TesisatNo)</div>
+                <div class="ykc-hero-chips">
+                    <span class="ykc-hero-chip"><i class="bi bi-activity"></i>@DurumYazi(Model.Durum)</span>
+                    <span class="ykc-hero-chip"><i class="bi bi-geo-alt"></i>@Deger(Model.Bolge)</span>
+                    <span class="ykc-hero-chip"><i class="bi bi-calendar-check"></i>@Tarih(Model.RandevuTarihi) @Deger(Model.RandevuSaati)</span>
+                    <span class="ykc-hero-chip"><i class="bi bi-file-earmark-check"></i>@(imzaliBelge != null ? "İmzalı Belge Hazır" : "İmza Bekliyor")</span>
+                </div>
             </div>
             <div class="df-actions">
                 <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/talepler">Listeye Dön</a>
@@ -429,7 +455,7 @@
             <i class="bi bi-clipboard2-check"></i><span>Cihaz Kontrolü</span>
         </button>
         <button class="ykc-tab-btn" type="button" data-ykc-tab="islem" aria-selected="false">
-            <i class="bi bi-calendar-check"></i><span>İşlem Adımları</span>
+            <i class="bi bi-calendar-check"></i><span>Yönlendirme</span>
         </button>
         <button class="ykc-tab-btn" type="button" data-ykc-tab="gecmis" aria-selected="false">
             <i class="bi bi-clock"></i><span>İşlem Geçmişi</span>
@@ -460,7 +486,7 @@
                 <div class="ykc-item"><div class="ykc-label">VKN</div><div class="ykc-value">@Deger(Model.Vkn)</div></div>
                 <div class="ykc-item"><div class="ykc-label">Firma Kodu</div><div class="ykc-value">@Deger(Model.FirmaKodu)</div></div>
                 <div class="ykc-item"><div class="ykc-label">İl / İlçe</div><div class="ykc-value">@Deger(Model.Il) / @Deger(Model.Ilce)</div></div>
-                <div class="ykc-item"><div class="ykc-label">Kaynak</div><div class="ykc-value">@Deger(Model.KaynakTipi)</div></div>
+                <div class="ykc-item"><div class="ykc-label">Kayıt Kanalı</div><div class="ykc-value">@Deger(Model.KaynakTipi)</div></div>
             </div>
         </section>
     </div>
@@ -524,7 +550,7 @@
                             <div class="ykc-step-no">1</div>
                             <div>
                                 <div class="ykc-step-title">İnceleme Kararı</div>
-                                <div class="ykc-step-subtitle">Talebi incelemeye al, reddet, iptal et veya saha sonucuna göre kapat.</div>
+                                <div class="ykc-step-subtitle">Genel durum listesi yerine bu talep için gerçek kararı seçin.</div>
                             </div>
                             <span class="ykc-step-toggle"></span>
                         </div>
@@ -533,26 +559,47 @@
                         <form method="post" action="/ykc/durum-guncelle">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="TalepId" value="@Model.Id" />
+                            <div class="ykc-decision-grid">
+                                @if (Model.Durum == YkcDurumDegerleri.TalepAlindi)
+                                {
+                                    <button class="ykc-decision-card" type="submit" name="Durum" value="@YkcDurumDegerleri.AtamaBekliyor">
+                                        <i class="bi bi-search"></i>
+                                        <strong>İncelemeye Al</strong>
+                                        <span>Talep iç tesisat yönlendirme kuyruğuna alınır.</span>
+                                    </button>
+                                }
+                                @if (Model.Durum == YkcDurumDegerleri.Atandi)
+                                {
+                                    <button class="ykc-decision-card" type="submit" name="Durum" value="@YkcDurumDegerleri.SahaIsleminde">
+                                        <i class="bi bi-geo"></i>
+                                        <strong>Saha Sürecini Başlat</strong>
+                                        <span>Randevu sonrası kayıt saha işlemine alınır.</span>
+                                    </button>
+                                }
+                                @if (Model.Durum == YkcDurumDegerleri.SahaIsleminde || imzaliBelge != null)
+                                {
+                                    <button class="ykc-decision-card is-success" type="submit" name="Durum" value="@YkcDurumDegerleri.Tamamlandi">
+                                        <i class="bi bi-check2-circle"></i>
+                                        <strong>Tamamla</strong>
+                                        <span>İmzalı nihai belge hazırsa işlem kapatılır.</span>
+                                    </button>
+                                }
+                                <button class="ykc-decision-card is-danger" type="submit" name="Durum" value="@YkcDurumDegerleri.Reddedildi">
+                                    <i class="bi bi-x-circle"></i>
+                                    <strong>Reddet</strong>
+                                    <span>Teknik veya idari gerekçeyle talep reddedilir.</span>
+                                </button>
+                                <button class="ykc-decision-card is-warn" type="submit" name="Durum" value="@YkcDurumDegerleri.Iptal">
+                                    <i class="bi bi-slash-circle"></i>
+                                    <strong>İptal Et</strong>
+                                    <span>Başlamayan veya geri çekilen kayıt kapatılır.</span>
+                                </button>
+                            </div>
                             <div class="ykc-form-grid">
-                                <div class="ykc-field">
-                                    <label>Sonraki Durum</label>
-                                    <select name="Durum">
-                                        <option value="@YkcDurumDegerleri.TalepAlindi" selected="@Secili(Model.Durum == YkcDurumDegerleri.TalepAlindi)">Beklemede</option>
-                                        <option value="@YkcDurumDegerleri.AtamaBekliyor" selected="@Secili(Model.Durum == YkcDurumDegerleri.AtamaBekliyor)">İç Tesisat İncelemesinde</option>
-                                        <option value="@YkcDurumDegerleri.Atandi" selected="@Secili(Model.Durum == YkcDurumDegerleri.Atandi)">Randevu Verildi</option>
-                                        <option value="@YkcDurumDegerleri.SahaIsleminde" selected="@Secili(Model.Durum == YkcDurumDegerleri.SahaIsleminde)">Saha İşleminde</option>
-                                        <option value="@YkcDurumDegerleri.Reddedildi" selected="@Secili(Model.Durum == YkcDurumDegerleri.Reddedildi)">Reddedildi</option>
-                                        <option value="@YkcDurumDegerleri.Tamamlandi" selected="@Secili(Model.Durum == YkcDurumDegerleri.Tamamlandi)">Tamamlandı</option>
-                                        <option value="@YkcDurumDegerleri.Iptal" selected="@Secili(Model.Durum == YkcDurumDegerleri.Iptal)">İptal</option>
-                                    </select>
-                                </div>
                                 <div class="ykc-field full">
                                     <label>Açıklama</label>
-                                    <textarea name="Aciklama" placeholder="Karar, red veya iptal açıklaması">@Model.RedAciklama</textarea>
+                                    <textarea name="Aciklama" placeholder="Red, iptal veya tamamlama notu">@Model.RedAciklama</textarea>
                                 </div>
-                            </div>
-                            <div class="ykc-actions">
-                                <button class="df-btn df-btn-primary" type="submit">Kararı Kaydet</button>
                             </div>
                         </form>
                     </div>
@@ -581,13 +628,40 @@
                             <input type="hidden" name="TalepId" value="@Model.Id" />
                             <input type="hidden" name="AtananKullaniciTipi" value="@Model.Atamalar.FirstOrDefault()?.AtananKullaniciTipi" />
                             <input type="hidden" name="HedefUygulama" value="@Model.HedefUygulama" />
+                            <input type="hidden" name="CallCenterTetiklenecekMi" value="false" />
+                            <div class="ykc-route-grid">
+                                <button class="ykc-route-card" type="button"
+                                        data-route-ekip="187 Acil"
+                                        data-route-tip="CRM187"
+                                        data-route-hedef="@YkcHedefUygulamaDegerleri.Crm187"
+                                        data-route-callcenter="true"
+                                        data-route-note="187 acil yönlendirme">
+                                    <span class="ykc-route-icon"><i class="bi bi-telephone-outbound"></i></span>
+                                    <span>
+                                        <span class="ykc-route-title">187 Acil</span>
+                                        <span class="ykc-route-sub">Acil müdahale gerektiren cihaz değişimi için yönlendir.</span>
+                                    </span>
+                                </button>
+                                <button class="ykc-route-card" type="button"
+                                        data-route-ekip="Mühendis"
+                                        data-route-tip="Mühendis"
+                                        data-route-hedef="@YkcHedefUygulamaDegerleri.DogalgazMobileApp"
+                                        data-route-callcenter="false"
+                                        data-route-note="mühendis yönlendirme">
+                                    <span class="ykc-route-icon"><i class="bi bi-person-gear"></i></span>
+                                    <span>
+                                        <span class="ykc-route-title">Mühendis</span>
+                                        <span class="ykc-route-sub">İç tesisat mühendisinin inceleyeceği normal saha akışı.</span>
+                                    </span>
+                                </button>
+                            </div>
                             <div class="ykc-form-grid">
                                 <div class="ykc-field">
-                                    <label>Atanacak Ekip</label>
-                                    <input name="AtananEkip" value="@Model.AtananEkip" placeholder="Bölgeye uygun ekip" required />
+                                    <label>Yönlendirilecek Birim / Kişi</label>
+                                    <input name="AtananEkip" value="@Model.AtananEkip" placeholder="187 Acil veya mühendis" required />
                                 </div>
                                 <div class="ykc-field">
-                                    <label>Bölge</label>
+                                    <label>Tesisat Bölgesi</label>
                                     <input name="Bolge" value="@Model.Bolge" placeholder="Tesisattan gelen bölge" required />
                                 </div>
                                 <div class="ykc-field">
@@ -606,7 +680,7 @@
                                 </div>
                                 <div class="ykc-field full">
                                     <label>Açıklama</label>
-                                    <textarea name="Aciklama" placeholder="Atama notu"></textarea>
+                                    <textarea name="Aciklama" placeholder="Atama ve yönlendirme notu"></textarea>
                                 </div>
                             </div>
                             <div class="ykc-actions">
@@ -775,6 +849,47 @@
                 input.focus();
             }
         });
+
+        (function () {
+            const routeCards = Array.from(document.querySelectorAll('[data-route-ekip]'));
+            const ekip = document.querySelector('input[name="AtananEkip"]');
+            const tip = document.querySelector('input[name="AtananKullaniciTipi"]');
+            const hedef = document.querySelector('input[name="HedefUygulama"]');
+            const callCenter = document.querySelector('input[name="CallCenterTetiklenecekMi"]');
+            const aciklama = document.querySelector('textarea[name="Aciklama"][placeholder="Atama ve yönlendirme notu"]');
+
+            routeCards.forEach(function (card) {
+                card.addEventListener('click', function () {
+                    routeCards.forEach(function (item) { item.classList.remove('active'); });
+                    card.classList.add('active');
+
+                    if (ekip) {
+                        ekip.value = card.dataset.routeEkip || '';
+                        ekip.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+
+                    if (tip) {
+                        tip.value = card.dataset.routeTip || '';
+                    }
+
+                    if (hedef) {
+                        hedef.value = card.dataset.routeHedef || '';
+                    }
+
+                    if (callCenter) {
+                        callCenter.value = card.dataset.routeCallcenter === 'true' ? 'true' : 'false';
+                    }
+
+                    if (aciklama && !aciklama.value.trim()) {
+                        aciklama.value = card.dataset.routeNote || '';
+                    }
+                });
+
+                if (ekip && ekip.value.trim().toLocaleLowerCase('tr-TR') === (card.dataset.routeEkip || '').toLocaleLowerCase('tr-TR')) {
+                    card.classList.add('active');
+                }
+            });
+        })();
 
         (function () {
             const randevuTarihi = document.getElementById('randevuTarihi');

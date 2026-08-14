@@ -194,10 +194,6 @@ namespace YetkiliServisGazAcma.Business.Services
             if (!AtamaYapilabilirMi(talep.Durum))
                 return YkcIslemSonuc.HataliSonuc("Bu durumdaki talep icin randevu ve atama yapilamaz.");
 
-            var firmaFormuVar = await FormDosyasiVarMiAsync(talep.Id, YkcFormDosyaTuruDegerleri.FirmaFormu);
-            if (!firmaFormuVar)
-                return YkcIslemSonuc.HataliSonuc("Randevu ve atama icin once firma imzali FR265 formu yuklenmelidir.");
-
             if (string.IsNullOrWhiteSpace(dto.AtananEkip))
                 return YkcIslemSonuc.HataliSonuc("Randevu icin ekip secimi zorunludur.");
 
@@ -283,7 +279,7 @@ namespace YetkiliServisGazAcma.Business.Services
             var sahaFormuVar = await FormDosyasiVarMiAsync(talep.Id, YkcFormDosyaTuruDegerleri.SahaIslakImzaliForm);
 
             if (dto.Durum == YkcDurumDegerleri.Tamamlandi && !sahaFormuVar)
-                return YkcIslemSonuc.HataliSonuc("Talebi tamamlamak icin once saha islak imzali formu yuklenmelidir.");
+                return YkcIslemSonuc.HataliSonuc("Talebi tamamlamak icin imzali nihai belge sistemde hazir olmalidir.");
 
             if (dto.Durum == YkcDurumDegerleri.Tamamlandi && !RandevuZamaniGeldiMi(talep.RandevuTarihi, talep.RandevuSaati))
                 return YkcIslemSonuc.HataliSonuc("Randevu zamani gelmeden talep tamamlandi durumuna alinamaz.");
@@ -349,28 +345,6 @@ namespace YetkiliServisGazAcma.Business.Services
                 OlusturanKullanici = kullanici.UserName
             });
 
-            if (dosyaTuru == YkcFormDosyaTuruDegerleri.SahaIslakImzaliForm
-                && talep.Durum == YkcDurumDegerleri.Atandi)
-            {
-                var eskiDurum = talep.Durum;
-                talep.Durum = YkcDurumDegerleri.SahaIsleminde;
-                talep.GuncellemeTarihi = DateTime.Now;
-                talep.GuncelleyenKullanici = kullanici.UserName;
-
-                _context.Ykc_IslemGecmisi.Add(new Ykc_IslemGecmisi
-                {
-                    TalepId = talep.Id,
-                    IslemTipi = "DurumGuncellendi",
-                    EskiDurum = eskiDurum,
-                    YeniDurum = talep.Durum,
-                    Aciklama = "Saha islak imzali form yuklendigi icin saha islemi baslatildi.",
-                    KullaniciId = kullanici.Id,
-                    KullaniciAdi = kullanici.UserName,
-                    OlusturmaTarihi = DateTime.Now,
-                    OlusturanKullanici = kullanici.UserName
-                });
-            }
-
             _context.Ykc_IslemGecmisi.Add(new Ykc_IslemGecmisi
             {
                 TalepId = talep.Id,
@@ -383,7 +357,7 @@ namespace YetkiliServisGazAcma.Business.Services
             });
 
             await _context.SaveChangesAsync();
-            return YkcIslemSonuc.BasariliSonuc("Cihaz değişim form dosyası kaydedildi.", talep.Id);
+            return YkcIslemSonuc.BasariliSonuc("Cihaz değişim belge kaydı oluşturuldu.", talep.Id);
         }
 
         public async Task<bool> IslemGecmisiEkleAsync(
@@ -644,25 +618,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 return YkcIslemSonuc.HataliSonuc("Test amacli placeholder degerlerle cihaz degisim talebi olusturulamaz. Lutfen gercek tesisat ve cihaz bilgilerini giriniz.");
             }
 
-            if (!BosVeyaAyni(dto.EskiCihazTipiKodu, dto.YeniCihazTipiKodu)
-                || !BosVeyaAyni(dto.EskiBacaTipiKodu, dto.YeniBacaTipiKodu)
-                || !BosVeyaAyni(dto.EskiKapasite, dto.YeniKapasite))
-            {
-                return YkcIslemSonuc.HataliSonuc("Eski cihaz ile yeni cihaz tipi, baca tipi veya kapasite uyumlu değil. Proje tadilatı gerekebilir.");
-            }
-
             return YkcIslemSonuc.BasariliSonuc("Uygun.");
-        }
-
-        private static bool BosVeyaAyni(string? eskiDeger, string? yeniDeger)
-        {
-            if (string.IsNullOrWhiteSpace(eskiDeger))
-                return true;
-
-            if (string.IsNullOrWhiteSpace(yeniDeger))
-                return false;
-
-            return string.Equals(eskiDeger.Trim(), yeniDeger.Trim(), StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool PlaceholderDegerVar(params string?[] degerler)
@@ -1102,13 +1058,8 @@ namespace YetkiliServisGazAcma.Business.Services
 
         private static string? YetkiBelgesiNoBul(Ykc_Talep talep)
         {
-            var yetkiBelgesi = talep.Firma?.YetkiBelgeleri?
-                .Where(x => !x.SilindiMi && x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi)
-                .OrderByDescending(x => x.YetkiBelgesiBitisTarihi)
-                .ThenByDescending(x => x.Id)
-                .FirstOrDefault();
-
-            return yetkiBelgesi?.Id.ToString();
+            // Gerçek sertifika numarası alanı netleşmeden veritabanı Id değeri resmi forma basılmamalı.
+            return null;
         }
 
         private static List<YkcGecmisDto> TekilGecmis(IEnumerable<Ykc_IslemGecmisi> gecmisler)

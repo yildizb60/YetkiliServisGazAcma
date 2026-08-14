@@ -1,6 +1,7 @@
 @model YkcTalepDetayDto
 @{
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
+    var formTarihi = Model.TalepTarihi.ToString("dd.MM.yyyy");
 }
 
 @functions {
@@ -35,10 +36,6 @@
         .fr265-sign { border: 1px solid #111827; min-height: 138px; padding: 12px; font-size: 13px; }
         .fr265-sign-title { font-weight: 900; margin-bottom: 14px; }
         .fr265-line { margin-top: 10px; }
-        .fr265-check-grid { display: grid; gap: 12px; margin-top: 18px; }
-        .fr265-check-block { border: 1px solid #111827; padding: 12px; break-inside: avoid; }
-        .fr265-check-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; font-weight: 900; margin-bottom: 10px; }
-        .fr265-reason { border-bottom: 1px dotted #111827; min-height: 28px; margin-top: 8px; }
         .fr265-note { color: var(--df-muted); font-size: 12px; margin-top: 12px; }
         @@media print {
             body { background: #fff !important; }
@@ -59,12 +56,11 @@
 <div class="fr265-toolbar">
     <div>
         <h2 class="df-panel-title" style="margin:0;">FR265 Form Önizleme</h2>
-        <div class="df-panel-subtitle">Cihaz değişim talebi #@Model.Id için imza öncesi dijital form.</div>
+        <div class="df-panel-subtitle">Cihaz değişim talebi #@Model.Id için imzaya gönderilecek dijital belge taslağı.</div>
     </div>
     <div class="df-actions">
         <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/detay/@Model.Id">Detaya Dön</a>
-        <a class="df-btn df-btn-success df-btn-sm" href="/ykc/fr265/indir/@Model.Id">Word İndir</a>
-        <button class="df-btn df-btn-primary df-btn-sm" type="button" onclick="window.print()">Yazdır</button>
+        <span class="df-btn df-btn-primary df-btn-sm" style="pointer-events:none;opacity:.65;">İmza Uygulamasına Gönder</span>
     </div>
 </div>
 
@@ -74,7 +70,7 @@
             <img class="fr265-logo" src="@LogoUrl(Model)" alt="Şirket logosu" />
             <div class="fr265-title">FR265 Proje Tadilatı Gerektirmeyen Yakıcı Cihaz Değişim Formu</div>
         </div>
-        <div class="fr265-date">Tarih: @DateTime.Now.ToString("dd.MM.yyyy")</div>
+        <div class="fr265-date">Tarih: @formTarihi</div>
     </div>
 
     <table class="fr265-table">
@@ -132,7 +128,7 @@
         <div class="fr265-sign">
             <div class="fr265-sign-title">Sertifikalı Firma Yetkilisi</div>
             <div class="fr265-line">Adı ve Soyadı: @Deger(Model.FirmaYetkiliKisi)</div>
-            <div class="fr265-line">Tarih: @DateTime.Now.ToString("dd.MM.yyyy")</div>
+            <div class="fr265-line">Tarih: @formTarihi</div>
             <div class="fr265-line">İmza:</div>
         </div>
         <div class="fr265-sign">
@@ -159,39 +155,5 @@
         </div>
     </div>
 
-    <div class="fr265-check-grid">
-        @for (var kontrolNo = 1; kontrolNo <= 5; kontrolNo++)
-        {
-            <div class="fr265-check-block">
-                <div class="fr265-check-head">
-                    <span>@($"{kontrolNo}. KONTROL")</span>
-                    <span>☐ Uygun &nbsp;&nbsp; ☐ Uygun Değil</span>
-                </div>
-                <div>Uygun değil ise nedeni:</div>
-                <div class="fr265-reason"></div>
-                <div class="fr265-sign-grid three" style="margin-top:14px;">
-                    <div>
-                        <strong>Gaz Dağıtım Şirketi Yetkilisi</strong>
-                        <div class="fr265-line">Adı Soyadı:</div>
-                        <div class="fr265-line">Tarih:</div>
-                        <div class="fr265-line">İmza:</div>
-                    </div>
-                    <div>
-                        <strong>Abone / Kullanıcı</strong>
-                        <div class="fr265-line">Adı Soyadı:</div>
-                        <div class="fr265-line">Tarih:</div>
-                        <div class="fr265-line">İmza:</div>
-                    </div>
-                    <div>
-                        <strong>Sertifikalı Firma</strong>
-                        <div class="fr265-line">Firma / Yetkili:</div>
-                        <div class="fr265-line">Tarih:</div>
-                        <div class="fr265-line">Kaşe / İmza:</div>
-                    </div>
-                </div>
-            </div>
-        }
-    </div>
-
-    <div class="fr265-note">Not: Tüketim noktası, bina kodu ve gerçek sertifika numarası alanları ilgili servis/veri alanı netleştiğinde otomatik doldurulacaktır.</div>
+    <div class="fr265-note">Not: Bu belge kontrol önizlemesidir. İmza entegrasyonu devreye alındığında doğru bulunan form dış dijital imza/arşiv uygulamasına gönderilecek, indirme işlemi imzalı nihai belge üzerinden yapılacaktır.</div>
 </section>
