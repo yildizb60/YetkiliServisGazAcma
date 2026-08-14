@@ -102,16 +102,21 @@
         }
         else if (isSertifikaliFirmaPanel)
         {
-            <div class="nav-section">Firma</div>
-            <a class="@("nav-item" + Active("YkcTalepler", "/ykc/talepler", "/ykc/detay", "/ykc/fr265"))" href="/ykc/talepler">
-                <span class="nav-ico">&#128221;</span> Cihaz Değişim Taleplerim
-            </a>
-            <a class="@("nav-item" + Active("YkcYeni", "/ykc/yeni"))" href="/ykc/yeni">
-                <span class="nav-ico">&#10133;</span> Yeni Talep
-            </a>
-            <a class="@("nav-item" + Active("YkcRaporlar", "/ykc/raporlar"))" href="/ykc/raporlar">
-                <span class="nav-ico">&#128202;</span> Cihaz Değişim Raporlarım
-            </a>
+            <div class="nav-section">Cihaz Değişim</div>
+            <div class="nav-quick-grid">
+                <a class="@("nav-quick-item" + Active("YkcTalepler", "/ykc/talepler", "/ykc/detay", "/ykc/fr265"))" href="/ykc/talepler" title="Taleplerim">
+                    <span class="nav-quick-ico">&#128221;</span>
+                    <span>Talepler</span>
+                </a>
+                <a class="@("nav-quick-item" + Active("YkcYeni", "/ykc/yeni"))" href="/ykc/yeni" title="Yeni Talep">
+                    <span class="nav-quick-ico">&#10133;</span>
+                    <span>Yeni</span>
+                </a>
+                <a class="@("nav-quick-item" + Active("YkcRaporlar", "/ykc/raporlar"))" href="/ykc/raporlar" title="Raporlarım">
+                    <span class="nav-quick-ico">&#128202;</span>
+                    <span>Rapor</span>
+                </a>
+            </div>
         }
         else if (isPersonelPanel)
         {

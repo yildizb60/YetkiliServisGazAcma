@@ -8,8 +8,8 @@
     var randevuAdimiAcik = atamaYapilabilir;
     var belgeAdimiAcik = !yonetebilir || Model.Durum == YkcDurumDegerleri.Atandi || Model.Durum == YkcDurumDegerleri.SahaIsleminde || Model.Durum == YkcDurumDegerleri.Tamamlandi;
     var formYardimMetni = icOperasyonGorsun
-        ? "Dijital form akışı arşiv ve imza sürecine hazır tutulur. İmzalı nihai belge geldiğinde bu alandan izlenir ya da geçici dosya olarak eklenir."
-        : "FR265 bilgileri sistemde dijital tutulur. İmzalı nihai belge arşivden görüntülenene kadar geçici belge/fotoğraf bu alandan eklenebilir.";
+        ? "FR265 bu talebin verileriyle önizlenir. İmza servisi devreye alındığında belge API ile gönderilecek, imza durumu ve nihai dosya bu ekrandan takip edilecek."
+        : "FR265 sistemde dijital hazırlanır. İç tesisat incelemesi sonrası imza/arşiv sürecine gönderilir; imzalı nihai belge tamamlandığında buradan görüntülenir.";
 }
 
 @functions {
@@ -72,7 +72,7 @@
         return tur switch
         {
             YkcFormDosyaTuruDegerleri.SahaIslakImzaliForm => "İmzalı Nihai Belge",
-            YkcFormDosyaTuruDegerleri.FirmaFormu => "Servis Ön Formu",
+            YkcFormDosyaTuruDegerleri.FirmaFormu => "Geçici Arşiv Belgesi",
             _ => Deger(tur)
         };
     }
@@ -360,7 +360,7 @@
             <div class="df-actions">
                 <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/talepler">Listeye Dön</a>
                 <a class="df-btn df-btn-primary df-btn-sm" href="/ykc/fr265/onizle/@Model.Id" target="_blank">FR265 Önizle</a>
-                <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/fr265/indir/@Model.Id">Belge İndir</a>
+                <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/fr265/indir/@Model.Id">Taslak FR265 İndir</a>
                 <span class="df-pill @DurumClass(Model.Durum)">@DurumYazi(Model.Durum)</span>
             </div>
         </div>
@@ -543,7 +543,7 @@
                             <div class="ykc-step-no">2</div>
                             <div>
                                 <div class="ykc-step-title">Randevu ve Ekip Ataması</div>
-                                <div class="ykc-step-subtitle">Bölge tesisattan gelir; atanacak ekip bölgeye göre seçilir. CRM187/mobile kullanıcıya hedef seçimi olarak gösterilmez.</div>
+                                <div class="ykc-step-subtitle">Randevu tarihi, bölge bilgisi ve uygun ekip bu adımda netleştirilir.</div>
                             </div>
                             <span class="ykc-step-toggle"></span>
                         </div>
@@ -601,8 +601,8 @@
                     <div class="ykc-step-summary">
                         <div class="ykc-step-no">3</div>
                         <div>
-                            <div class="ykc-step-title">Dijital Belge ve Arşiv</div>
-                            <div class="ykc-step-subtitle">Form bilgisi sistemde tutulur; imzalı nihai belge arşiv/imza sürecinden izlenir.</div>
+                            <div class="ykc-step-title">FR265 ve İmza Takibi</div>
+                            <div class="ykc-step-subtitle">Form önizlenir; imza/arşiv süreci ve nihai belge bu adımda takip edilir.</div>
                         </div>
                         <span class="ykc-step-toggle"></span>
                     </div>
@@ -611,7 +611,7 @@
                     <div class="ykc-process-note">@formYardimMetni</div>
                     <div class="ykc-archive-tools">
                         <a class="df-btn df-btn-primary df-btn-sm" href="/ykc/fr265/onizle/@Model.Id" target="_blank">FR265 Önizle</a>
-                        <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/fr265/indir/@Model.Id">Geçici Belge İndir</a>
+                        <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/fr265/indir/@Model.Id">Taslak FR265 İndir</a>
                     </div>
                     <form method="post" action="/ykc/form-yukle" enctype="multipart/form-data" class="ykc-upload">
                         @Html.AntiForgeryToken()
@@ -622,7 +622,7 @@
                                 <label>Belge Türü</label>
                                 <select name="dosyaTuru">
                                     <option value="@YkcFormDosyaTuruDegerleri.SahaIslakImzaliForm">İmzalı Nihai Belge</option>
-                                    <option value="@YkcFormDosyaTuruDegerleri.FirmaFormu">Servis Ön Formu</option>
+                                    <option value="@YkcFormDosyaTuruDegerleri.FirmaFormu">Geçici Arşiv Belgesi</option>
                                 </select>
                             </div>
                         }
@@ -631,14 +631,14 @@
                             <input type="hidden" name="dosyaTuru" value="@YkcFormDosyaTuruDegerleri.FirmaFormu" />
                             <div class="ykc-field">
                                 <label>Belge Türü</label>
-                                <input value="Servis Ön Formu" readonly />
+                                <input value="Geçici Arşiv Belgesi" readonly />
                             </div>
                         }
                         <div class="ykc-field">
-                            <label>Belge / Fotoğraf</label>
+                            <label>Geçici Belge</label>
                             <input type="file" name="formDosyasi" accept=".pdf,.jpg,.jpeg,.png" />
                         </div>
-                        <button class="df-btn df-btn-primary df-btn-sm" type="submit">Yükle</button>
+                        <button class="df-btn df-btn-primary df-btn-sm" type="submit">Geçici Belge Ekle</button>
                     </form>
                     <div class="ykc-list">
                         @if (!Model.Dosyalar.Any())

@@ -137,6 +137,58 @@ body {
     color: #fff;
 }
 
+.nav-quick-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    padding: 6px 14px 12px;
+}
+
+.nav-quick-item {
+    min-height: 64px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.045);
+    color: rgba(255, 255, 255, 0.74);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    text-align: center;
+    text-decoration: none;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1.15;
+    transition: background .15s, color .15s, border-color .15s, transform .15s;
+}
+
+.nav-quick-item:hover {
+    border-color: rgba(34, 191, 227, 0.42);
+    background: rgba(34, 191, 227, 0.12);
+    color: #fff;
+    transform: translateY(-1px);
+}
+
+.nav-quick-item.active {
+    border-color: transparent;
+    background: linear-gradient(135deg, #1B9FD4 0%, #3655d8 54%, #6d5dfc 100%);
+    color: #fff;
+    box-shadow: 0 12px 24px rgba(18, 42, 116, 0.28);
+}
+
+.nav-quick-ico {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.10);
+    display: grid;
+    place-items: center;
+    font-size: 15px;
+    line-height: 1;
+    font-family: "Segoe UI Emoji", "Segoe UI Symbol", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+}
+
 .nav-badge {
     background: #e24b4a;
     color: #fff;

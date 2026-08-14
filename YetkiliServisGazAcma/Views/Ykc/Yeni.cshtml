@@ -25,7 +25,8 @@
         .ykc-step-title { color: var(--df-text); font-size: 12px; font-weight: 900; }
         .ykc-step-text { color: var(--df-muted); font-size: 11px; line-height: 1.28; margin-top: 2px; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
         .ykc-card { background: #fff; border: 1px solid var(--df-border); border-radius: 8px; overflow: hidden; }
-        .ykc-card-head { padding: 16px 20px; border-bottom: 1px solid var(--df-border); background: #f8fafc; display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+        .ykc-card-head { position: relative; padding: 16px 20px; border-bottom: 1px solid var(--df-border); background: linear-gradient(90deg, rgba(109, 93, 252, .10), rgba(22, 198, 232, .07) 42%, #fff 82%); display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+        .ykc-card-head::after { content: ""; position: absolute; left: 20px; right: 20px; bottom: -1px; height: 2px; border-radius: 999px; background: linear-gradient(90deg, var(--df-primary), var(--ykc-cyan), transparent 78%); opacity: .55; }
         .ykc-card-title { color: var(--df-text); font-size: 15px; font-weight: 900; }
         .ykc-card-subtitle { color: var(--df-muted); font-size: 12px; margin-top: 3px; }
         .ykc-form-grid { padding: 20px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
@@ -213,9 +214,7 @@
             border-radius: 8px;
             box-shadow: inset 0 0 0 1px rgba(46, 78, 200, .08);
         }
-        .ykc-card-head {
-            background: #fff;
-        }
+        .ykc-card-head { background: linear-gradient(90deg, rgba(109, 93, 252, .10), rgba(22, 198, 232, .07) 42%, #fff 82%); }
         .ykc-card-title {
             display: flex;
             align-items: center;
@@ -270,9 +269,55 @@
             margin-right: 10px;
             cursor: pointer;
         }
+        .ykc-signature-flow {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+        }
+        .ykc-signature-step {
+            border: 1px solid #dce6f4;
+            border-radius: 8px;
+            background: linear-gradient(180deg, #fff 0%, #f8fbff 100%);
+            padding: 14px;
+            display: grid;
+            gap: 8px;
+            min-height: 132px;
+        }
+        .ykc-signature-step strong {
+            color: var(--df-text);
+            font-size: 13px;
+            font-weight: 900;
+        }
+        .ykc-signature-step span {
+            color: var(--df-muted);
+            font-size: 12px;
+            line-height: 1.45;
+        }
+        .ykc-signature-no {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            display: grid;
+            place-items: center;
+            color: #fff;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--df-primary), var(--ykc-purple));
+        }
+        .ykc-signature-note {
+            grid-column: 1 / -1;
+            border: 1px solid #d9e9ff;
+            border-radius: 8px;
+            background: linear-gradient(90deg, #f8fbff 0%, #eefbff 100%);
+            color: var(--df-text-soft);
+            font-size: 12px;
+            line-height: 1.5;
+            padding: 12px 14px;
+        }
         @@media (max-width: 1100px) {
             .ykc-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .ykc-form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .ykc-signature-flow { grid-template-columns: 1fr; }
             .ykc-field.two { grid-column: 1 / -1; }
             .ykc-auto-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .ykc-query-strip,
@@ -473,27 +518,35 @@
         <section class="ykc-card" style="margin-top:16px;">
             <div class="ykc-card-head">
                 <div>
-                    <div class="ykc-card-title">Dijital Form ve İmza Süreci</div>
-                    <div class="ykc-card-subtitle">Talep kaydedilince FR265 bilgisi sistemde dijital oluşur; imzalı nihai belge arşiv/imza sürecinden izlenir.</div>
+                    <div class="ykc-card-title">FR265 Önizleme ve İmza Akışı</div>
+                    <div class="ykc-card-subtitle">Talep kaydedildikten sonra form sistemde önizlenir, uygun aşamada imza/arşiv servisine gönderilir.</div>
                 </div>
             </div>
             <div class="ykc-form-grid">
-                <div class="ykc-digital-note">
-                    <strong>Ana akış dijitaldir.</strong>
-                    Bu ekranda amaç çıktı alıp elle ilerlemek değil; tesisat ve cihaz bilgisini doğru kayda almak, ardından iç tesisat incelemesi ve dijital imza/arşiv sürecine hazır hale getirmektir.
+                <div class="ykc-signature-flow">
+                    <div class="ykc-signature-step">
+                        <div class="ykc-signature-no">1</div>
+                        <strong>Form Önizleme</strong>
+                        <span>FR265, bu ekrandaki tesisat ve cihaz bilgileriyle sistemde dijital olarak hazırlanır.</span>
+                    </div>
+                    <div class="ykc-signature-step">
+                        <div class="ykc-signature-no">2</div>
+                        <strong>İmzaya Gönderim</strong>
+                        <span>İç tesisat incelemesi tamamlanınca belge imza/arşiv uygulamasına API üzerinden aktarılır.</span>
+                    </div>
+                    <div class="ykc-signature-step">
+                        <div class="ykc-signature-no">3</div>
+                        <strong>İmzalı Nihai Belge</strong>
+                        <span>İmza süreci tamamlandığında durum ve imzalı belge sistemde görüntülenir.</span>
+                    </div>
                 </div>
-                <div class="ykc-field two">
-                    <label>Geçici Ek / Arşiv Belgesi</label>
-                    <input type="file" name="formDosyasi" accept=".pdf,.jpg,.jpeg,.png" />
-                </div>
-                <div class="ykc-field">
-                    <label>Belge Notu</label>
-                    <div class="ykc-help">Şimdilik yalnızca elinizde mevcut bir dijital belge varsa ekleyin. İmza entegrasyonu devreye alındığında sistem imzalı nihai belgeyi arşivden gösterecek.</div>
+                <div class="ykc-signature-note">
+                    Bu ekranda dosya yükletmiyoruz; amaç talep verisini doğru kayda almak ve FR265'i dijital imza sürecine hazır hale getirmek. İmzalı belge takibi detay ekranında yapılır.
                 </div>
             </div>
             <div class="ykc-actions">
                 <a class="df-btn df-btn-secondary" href="/ykc/talepler">Vazgeç</a>
-                <button class="df-btn df-btn-primary" type="submit">Dijital Talebi Oluştur</button>
+                <button class="df-btn df-btn-primary" type="submit">Talep Kaydını Oluştur</button>
             </div>
         </section>
     </form>
