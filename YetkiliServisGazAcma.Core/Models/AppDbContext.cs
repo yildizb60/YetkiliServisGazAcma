@@ -26,6 +26,9 @@ namespace YetkiliServisGazAcma.Models
         public DbSet<Ykc_FormDosya> Ykc_FormDosyalari { get; set; }
         public DbSet<Ykc_Atama> Ykc_Atamalar { get; set; }
         public DbSet<Ykc_IslemGecmisi> Ykc_IslemGecmisi { get; set; }
+        public DbSet<Ykc_Fr265Kontrol> Ykc_Fr265Kontroller { get; set; }
+        public DbSet<Ykc_ImzaSureci> Ykc_ImzaSurecleri { get; set; }
+        public DbSet<Ykc_Imzaci> Ykc_Imzacilar { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -56,6 +59,9 @@ namespace YetkiliServisGazAcma.Models
             modelBuilder.Entity<Ykc_FormDosya>().ToTable("Ykc_FormDosyalari");
             modelBuilder.Entity<Ykc_Atama>().ToTable("Ykc_Atamalar");
             modelBuilder.Entity<Ykc_IslemGecmisi>().ToTable("Ykc_IslemGecmisi");
+            modelBuilder.Entity<Ykc_Fr265Kontrol>().ToTable("Ykc_Fr265Kontroller");
+            modelBuilder.Entity<Ykc_ImzaSureci>().ToTable("Ykc_ImzaSurecleri");
+            modelBuilder.Entity<Ykc_Imzaci>().ToTable("Ykc_Imzacilar");
 
             modelBuilder.Entity<AppKullanici>()
                 .HasIndex(x => new { x.KullaniciTipi, x.AktifMi, x.FirmaId });
@@ -151,6 +157,54 @@ namespace YetkiliServisGazAcma.Models
                 .HasOne(x => x.Talep)
                 .WithMany(x => x.IslemGecmisi)
                 .HasForeignKey(x => x.TalepId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Ykc_Fr265Kontrol>()
+                .HasIndex(x => new { x.TalepId, x.KontrolNo, x.SilindiMi });
+
+            modelBuilder.Entity<Ykc_Fr265Kontrol>()
+                .HasOne(x => x.Talep)
+                .WithMany(x => x.Kontroller)
+                .HasForeignKey(x => x.TalepId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Ykc_Fr265Kontrol>()
+                .HasOne(x => x.KontrolEdenKullanici)
+                .WithMany()
+                .HasForeignKey(x => x.KontrolEdenKullaniciId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Ykc_ImzaSureci>()
+                .HasIndex(x => new { x.TalepId, x.Durum, x.SilindiMi });
+
+            modelBuilder.Entity<Ykc_ImzaSureci>()
+                .HasIndex(x => x.ProviderDocumentId);
+
+            modelBuilder.Entity<Ykc_ImzaSureci>()
+                .HasOne(x => x.Talep)
+                .WithMany(x => x.ImzaSurecleri)
+                .HasForeignKey(x => x.TalepId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Ykc_ImzaSureci>()
+                .HasOne(x => x.NihaiDosya)
+                .WithMany()
+                .HasForeignKey(x => x.NihaiDosyaId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Ykc_Imzaci>()
+                .HasIndex(x => new { x.ImzaSureciId, x.SiraNo, x.SilindiMi });
+
+            modelBuilder.Entity<Ykc_Imzaci>()
+                .HasOne(x => x.ImzaSureci)
+                .WithMany(x => x.Imzacilar)
+                .HasForeignKey(x => x.ImzaSureciId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Ykc_Imzaci>()
+                .HasOne(x => x.Kullanici)
+                .WithMany()
+                .HasForeignKey(x => x.KullaniciId)
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }

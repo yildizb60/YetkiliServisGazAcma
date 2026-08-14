@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
+using System.Security.Cryptography;
 using System.Text;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Business.Services.Online;
@@ -117,7 +118,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (servisSonuc == null || !servisSonuc.Basarili)
             {
                 return Ok(YkcTesisatSorguSonuc.Basarisiz(
-                    servisSonuc?.HataMesaji ?? "Servisten bilgi alinamadi. Manuel giris yapabilirsiniz."));
+                    servisSonuc?.HataMesaji ?? "Servisten bilgi alinamadi. Lutfen daha sonra tekrar sorgulayin."));
             }
 
             var cihazlar = servisSonuc.Cihazlar.Select(c => new YkcTesisatCihazDto
@@ -162,6 +163,20 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             var sonuc = await _ykcTalepService.ListeAsync(
                 filtre ?? new YkcTalepListeFiltre(),
+                kullanici,
+                await GenelYetkiliMiAsync(kullanici));
+
+            return Ok(sonuc);
+        }
+
+        [HttpPost("dashboard/ozet")]
+        public async Task<IActionResult> DashboardOzet()
+        {
+            var kullanici = await AktifKullaniciAsync();
+            if (kullanici == null)
+                return Unauthorized(new { basarili = false, mesaj = "Oturum bulunamadı." });
+
+            var sonuc = await _ykcTalepService.DashboardOzetAsync(
                 kullanici,
                 await GenelYetkiliMiAsync(kullanici));
 
@@ -232,18 +247,11 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (string.IsNullOrWhiteSpace(dosya.DosyaYolu))
                 return NotFound(new { basarili = false, mesaj = "Dosya yolu bulunamadi." });
 
-            var webRoot = _environment.WebRootPath;
-            if (string.IsNullOrWhiteSpace(webRoot))
-                webRoot = Path.Combine(_environment.ContentRootPath, "wwwroot");
-
-            var goreliYol = dosya.DosyaYolu.Trim().Replace('\\', '/').TrimStart('/');
-            if (!goreliYol.StartsWith("uploads/ykc/", StringComparison.OrdinalIgnoreCase))
+            var fizikselYol = ResolveYkcBelgeYolu(dosya);
+            if (string.IsNullOrWhiteSpace(fizikselYol))
                 return NotFound(new { basarili = false, mesaj = "Dosya yolu gecersiz." });
 
-            var fizikselYol = Path.GetFullPath(Path.Combine(
-                webRoot,
-                goreliYol.Replace('/', Path.DirectorySeparatorChar)));
-            var kokYol = Path.GetFullPath(webRoot);
+            var kokYol = Path.GetFullPath(BelgeKokYolu(dosya));
 
             if (!fizikselYol.StartsWith(kokYol + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
                 return Forbid();
@@ -339,6 +347,21 @@ namespace YetkiliServisGazAcma.API.Controllers
             return sonuc.Basarili ? Ok(sonuc) : BadRequest(sonuc);
         }
 
+        [HttpPost("talepler/kontroller-kaydet")]
+        [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel")]
+        public async Task<IActionResult> KontrollerKaydet([FromBody] YkcKontrolKaydetDto? dto)
+        {
+            var kullanici = await AktifKullaniciAsync();
+            if (kullanici == null)
+                return Unauthorized(new { basarili = false, mesaj = "Oturum bulunamadı." });
+
+            if (dto == null || dto.TalepId <= 0)
+                return BadRequest(YkcIslemSonuc.HataliSonuc("Kontrol kaydı için talep id zorunludur."));
+
+            var sonuc = await _ykcTalepService.KontrolleriKaydetAsync(dto, kullanici, await GenelYetkiliMiAsync(kullanici));
+            return sonuc.Basarili ? Ok(sonuc) : BadRequest(sonuc);
+        }
+
         [HttpPost("talepler/dosya-kaydet")]
         public async Task<IActionResult> DosyaKaydet([FromBody] YkcDosyaKaydetDto? dto)
         {
@@ -354,10 +377,10 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             var roller = await _userManager.GetRolesAsync(kullanici);
             var dosyaTuru = string.IsNullOrWhiteSpace(dto.DosyaTuru)
-                ? YkcFormDosyaTuruDegerleri.FirmaFormu
+                ? YkcFormDosyaTuruDegerleri.TeknikEk
                 : dto.DosyaTuru.Trim();
 
-            if (roller.Contains("SertifikaliFirma") && dosyaTuru != YkcFormDosyaTuruDegerleri.FirmaFormu)
+            if (roller.Contains("SertifikaliFirma") && dosyaTuru != YkcFormDosyaTuruDegerleri.TeknikEk)
                 return Forbid();
 
             dto.DosyaTuru = dosyaTuru;
@@ -384,17 +407,13 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             var roller = await _userManager.GetRolesAsync(kullanici);
             var dosyaTuru = string.IsNullOrWhiteSpace(istek.DosyaTuru)
-                ? YkcFormDosyaTuruDegerleri.FirmaFormu
+                ? YkcFormDosyaTuruDegerleri.TeknikEk
                 : istek.DosyaTuru.Trim();
 
-            if (roller.Contains("SertifikaliFirma") && dosyaTuru != YkcFormDosyaTuruDegerleri.FirmaFormu)
+            if (roller.Contains("SertifikaliFirma") && dosyaTuru != YkcFormDosyaTuruDegerleri.TeknikEk)
                 return Forbid();
 
-            var webRoot = _environment.WebRootPath;
-            if (string.IsNullOrWhiteSpace(webRoot))
-                webRoot = Path.Combine(_environment.ContentRootPath, "wwwroot");
-
-            var klasor = Path.Combine(webRoot, "uploads", "ykc", istek.TalepId.ToString());
+            var klasor = Path.Combine(PrivateYkcBelgeRoot(), istek.TalepId.ToString());
             Directory.CreateDirectory(klasor);
 
             var dosyaAdi = GuvenliDosyaAdi(istek.Dosya.FileName);
@@ -406,15 +425,18 @@ namespace YetkiliServisGazAcma.API.Controllers
                 await istek.Dosya.CopyToAsync(stream);
             }
 
-            var sanalYol = $"/uploads/ykc/{istek.TalepId}/{kayitAdi}";
+            var belgeHash = await DosyaHashAsync(fizikselYol);
+            var depolamaAnahtari = $"ykc/{istek.TalepId}/{kayitAdi}";
             var sonuc = await _ykcTalepService.DosyaEkleAsync(new YkcDosyaKaydetDto
             {
                 TalepId = istek.TalepId,
                 DosyaTuru = dosyaTuru,
                 DosyaAdi = dosyaAdi,
-                DosyaYolu = sanalYol,
+                DosyaYolu = depolamaAnahtari,
                 IcerikTipi = istek.Dosya.ContentType,
-                DosyaBoyutu = istek.Dosya.Length
+                DosyaBoyutu = istek.Dosya.Length,
+                DepolamaTuru = YkcDepolamaTuruDegerleri.Private,
+                BelgeHash = belgeHash
             }, kullanici, await GenelYetkiliMiAsync(kullanici));
 
             return sonuc.Basarili ? Ok(sonuc) : BadRequest(sonuc);
@@ -452,6 +474,58 @@ namespace YetkiliServisGazAcma.API.Controllers
                 sadeceAd = sadeceAd.Replace(karakter, '_');
 
             return string.IsNullOrWhiteSpace(sadeceAd) ? "ykc-form" : sadeceAd;
+        }
+
+        private string WebRootPath()
+        {
+            return string.IsNullOrWhiteSpace(_environment.WebRootPath)
+                ? Path.Combine(_environment.ContentRootPath, "wwwroot")
+                : _environment.WebRootPath;
+        }
+
+        private string PrivateYkcBelgeRoot()
+        {
+            return Path.Combine(_environment.ContentRootPath, "App_Data", "ykc-belgeler");
+        }
+
+        private string BelgeKokYolu(Ykc_FormDosya dosya)
+        {
+            var yol = dosya.DosyaYolu?.Trim().Replace('\\', '/').TrimStart('/') ?? "";
+            if (yol.StartsWith("uploads/ykc/", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(dosya.DepolamaTuru, YkcDepolamaTuruDegerleri.LegacyWwwroot, StringComparison.OrdinalIgnoreCase))
+            {
+                return WebRootPath();
+            }
+
+            return PrivateYkcBelgeRoot();
+        }
+
+        private string? ResolveYkcBelgeYolu(Ykc_FormDosya dosya)
+        {
+            var yol = dosya.DosyaYolu?.Trim().Replace('\\', '/').TrimStart('/');
+            if (string.IsNullOrWhiteSpace(yol))
+                return null;
+
+            if (yol.StartsWith("uploads/ykc/", StringComparison.OrdinalIgnoreCase))
+            {
+                return Path.GetFullPath(Path.Combine(
+                    WebRootPath(),
+                    yol.Replace('/', Path.DirectorySeparatorChar)));
+            }
+
+            if (yol.StartsWith("ykc/", StringComparison.OrdinalIgnoreCase))
+                yol = yol["ykc/".Length..];
+
+            return Path.GetFullPath(Path.Combine(
+                PrivateYkcBelgeRoot(),
+                yol.Replace('/', Path.DirectorySeparatorChar)));
+        }
+
+        private static async Task<string> DosyaHashAsync(string fizikselYol)
+        {
+            await using var stream = System.IO.File.OpenRead(fizikselYol);
+            var bytes = await SHA256.HashDataAsync(stream);
+            return Convert.ToHexString(bytes);
         }
 
         private static bool YkcFormDosyasiGecerliMi(string? dosyaAdi, string? icerikTipi, bool icerikTipiZorunlu)

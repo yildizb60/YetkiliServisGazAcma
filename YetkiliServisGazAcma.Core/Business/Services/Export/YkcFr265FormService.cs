@@ -76,6 +76,9 @@ namespace YetkiliServisGazAcma.Business.Services
             SetCellText(tables, 3, 4, 1, talep.EskiKapasite);
             SetCellText(tables, 3, 4, 2, talep.YeniKapasite);
 
+            SetCellText(tables, 4, 0, 1, talep.IkinciElCihazMi == true ? "☒ Evet" : "☐ Evet");
+            SetCellText(tables, 4, 0, 2, talep.IkinciElCihazMi == false ? "☒ Hayır" : "☐ Hayır");
+
             SetCellText(tables, 5, 1, 0, FirmaImzaMetni(talep, formTarihi));
         }
 

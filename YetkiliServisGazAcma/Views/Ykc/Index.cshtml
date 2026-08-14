@@ -1,13 +1,15 @@
-@model YkcTalepListeSonuc
+@model YkcDashboardOzetDto
 @{
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
     var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
-    var toplam = Model.Toplam > 0 ? Model.Toplam : Model.Talepler.Count;
-    var incelemede = Model.Talepler.Count(x => x.Durum == YkcDurumDegerleri.TalepAlindi || x.Durum == YkcDurumDegerleri.AtamaBekliyor);
-    var randevuda = Model.Talepler.Count(x => x.Durum == YkcDurumDegerleri.Atandi || x.Durum == YkcDurumDegerleri.SahaIsleminde || x.RandevuTarihi.HasValue);
-    var tamamlanan = Model.Talepler.Count(x => x.Durum == YkcDurumDegerleri.Tamamlandi);
-    var bekleyen = Math.Max(toplam - tamamlanan, 0);
-    var sonTalepler = Model.Talepler.OrderByDescending(x => x.TalepTarihi).Take(5).ToList();
+    var toplam = Model.Toplam;
+    var incelemede = Model.Incelemede;
+    var randevuda = Model.RandevuSaha;
+    var tamamlanan = Model.Tamamlanan;
+    var imzaBekleyen = Model.ImzaBekleyen;
+    var imzaliNihai = Model.ImzaliNihai;
+    var bekleyen = Math.Max(toplam - tamamlanan - Model.RedIptal, 0);
+    var sonTalepler = Model.SonTalepler;
     var adSoyad = kullanici?.AdSoyad ?? kullanici?.Email ?? "Sertifikalı Firma";
     var basHarf = !string.IsNullOrWhiteSpace(adSoyad)
         ? adSoyad.Trim().Substring(0, 1).ToUpper(new System.Globalization.CultureInfo("tr-TR"))
@@ -84,10 +86,10 @@
             Stat1Label = "FR265",
             Stat1Value = toplam.ToString(),
             Stat2Label = "Bekleyen",
-            Stat2Value = bekleyen.ToString(),
-            Stat2Class = bekleyen > 0 ? "df-badge-pulse" : "df-tile-stat-val",
+            Stat2Value = imzaBekleyen.ToString(),
+            Stat2Class = imzaBekleyen > 0 ? "df-badge-pulse" : "df-tile-stat-val",
             Stat3Label = "Nihai",
-            Stat3Value = tamamlanan.ToString()
+            Stat3Value = imzaliNihai.ToString()
         }
     };
 }
@@ -261,8 +263,8 @@
                         </div>
                         <div class="kpi-grid">
                             <div class="kpi-tile"><div class="kpi-icon"><i class="bi bi-eye"></i></div><div class="kpi-n">@toplam</div><div class="kpi-lbl">Önizlenebilir</div></div>
-                            <div class="kpi-tile"><div class="kpi-icon ic-warn"><i class="bi bi-send"></i></div><div class="kpi-n">@bekleyen</div><div class="kpi-lbl">İmza Bekleyen</div></div>
-                            <div class="kpi-tile"><div class="kpi-icon ic-green"><i class="bi bi-file-earmark-check"></i></div><div class="kpi-n">@tamamlanan</div><div class="kpi-lbl">Nihai Belge</div></div>
+                            <div class="kpi-tile"><div class="kpi-icon ic-warn"><i class="bi bi-send"></i></div><div class="kpi-n">@imzaBekleyen</div><div class="kpi-lbl">İmza Bekleyen</div></div>
+                            <div class="kpi-tile"><div class="kpi-icon ic-green"><i class="bi bi-file-earmark-check"></i></div><div class="kpi-n">@imzaliNihai</div><div class="kpi-lbl">Nihai Belge</div></div>
                             <div class="kpi-tile"><div class="kpi-icon ic-teal"><i class="bi bi-plug"></i></div><div class="kpi-n">0</div><div class="kpi-lbl">Entegrasyon</div></div>
                         </div>
                     </div>

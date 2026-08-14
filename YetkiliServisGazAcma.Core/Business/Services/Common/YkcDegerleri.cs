@@ -34,7 +34,42 @@ namespace YetkiliServisGazAcma.Business.Services
 
     public static class YkcFormDosyaTuruDegerleri
     {
-        public const string FirmaFormu = "FIRMA_FORMU";
-        public const string SahaIslakImzaliForm = "SAHA_ISLAK_IMZALI_FORM";
+        public const string Fr265Taslak = "FR265_TASLAK";
+        public const string Fr265ImzayaGonderilen = "FR265_IMZAYA_GONDERILEN";
+        public const string Fr265ImzaliNihai = "FR265_IMZALI_NIHAI";
+        public const string TeknikEk = "TEKNIK_EK";
+    }
+
+    public static class YkcDepolamaTuruDegerleri
+    {
+        public const string Private = "PRIVATE";
+        public const string LegacyWwwroot = "LEGACY_WWWROOT";
+        public const string ExternalArchive = "EXTERNAL_ARCHIVE";
+    }
+
+    public static class YkcImzaDurumDegerleri
+    {
+        public const string Hazir = "HAZIR";
+        public const string ImzayaGonderildi = "IMZAYA_GONDERILDI";
+        public const string ImzaBekliyor = "IMZA_BEKLIYOR";
+        public const string KismiImzali = "KISMI_IMZALI";
+        public const string Tamamlandi = "TAMAMLANDI";
+        public const string Hata = "HATA";
+        public const string Iptal = "IPTAL";
+    }
+
+    public static class YkcImzaciDurumDegerleri
+    {
+        public const string Bekliyor = "BEKLIYOR";
+        public const string Imzaladi = "IMZALADI";
+        public const string Reddetti = "REDDETTI";
+    }
+
+    public static class YkcFr265KontrolSonucDegerleri
+    {
+        public const string Bekliyor = "BEKLIYOR";
+        public const string Uygun = "UYGUN";
+        public const string UygunDegil = "UYGUN_DEGIL";
+        public const string Uygulanmaz = "UYGULANMAZ";
     }
 }

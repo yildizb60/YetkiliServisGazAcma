@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
+using System.Text;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
 
@@ -93,6 +95,46 @@ namespace YetkiliServisGazAcma.Business.Services
             };
         }
 
+        public async Task<YkcDashboardOzetDto> DashboardOzetAsync(AppKullanici kullanici, bool genelYetkili)
+        {
+            var query = YetkiKapsamiUygula(TalepQuery(), kullanici, genelYetkili);
+            var imzaliBelgeTurleri = ImzaliNihaiBelgeTurleri();
+
+            var toplam = await query.CountAsync();
+            var incelemede = await query.CountAsync(x =>
+                x.Durum == YkcDurumDegerleri.TalepAlindi ||
+                x.Durum == YkcDurumDegerleri.AtamaBekliyor);
+            var randevuSaha = await query.CountAsync(x =>
+                x.Durum == YkcDurumDegerleri.Atandi ||
+                x.Durum == YkcDurumDegerleri.SahaIsleminde ||
+                x.RandevuTarihi.HasValue);
+            var tamamlanan = await query.CountAsync(x => x.Durum == YkcDurumDegerleri.Tamamlandi);
+            var imzaliNihai = await query.CountAsync(x =>
+                x.ImzaSurecleri.Any(s => !s.SilindiMi && s.Durum == YkcImzaDurumDegerleri.Tamamlandi) ||
+                x.FormDosyalari.Any(d => !d.SilindiMi && imzaliBelgeTurleri.Contains(d.DosyaTuru)));
+            var redIptal = await query.CountAsync(x =>
+                x.Durum == YkcDurumDegerleri.Reddedildi ||
+                x.Durum == YkcDurumDegerleri.Iptal);
+
+            var sonTalepler = await query
+                .OrderByDescending(x => x.TalepTarihi)
+                .ThenByDescending(x => x.Id)
+                .Take(5)
+                .ToListAsync();
+
+            return new YkcDashboardOzetDto
+            {
+                Toplam = toplam,
+                Incelemede = incelemede,
+                RandevuSaha = randevuSaha,
+                Tamamlanan = tamamlanan,
+                ImzaliNihai = imzaliNihai,
+                ImzaBekleyen = Math.Max(toplam - imzaliNihai - redIptal, 0),
+                RedIptal = redIptal,
+                SonTalepler = sonTalepler.Select(YkcTalepDto.FromEntity).ToList()
+            };
+        }
+
         public async Task<YkcTalepDetayDto?> GetirAsync(int id, AppKullanici kullanici, bool genelYetkili)
         {
             var talep = await YetkiKapsamiUygula(TalepQuery(), kullanici, genelYetkili)
@@ -113,6 +155,7 @@ namespace YetkiliServisGazAcma.Business.Services
                     .FirstOrDefaultAsync(x => x.Id == kullanici.FirmaId.Value && !x.SilindiMi)
                 : null;
 
+            var simdi = DateTime.Now;
             var talep = new Ykc_Talep
             {
                 FirmaId = kullanici.FirmaId ?? dto.FirmaId,
@@ -147,16 +190,23 @@ namespace YetkiliServisGazAcma.Business.Services
                 YeniKapasite = dto.YeniKapasite?.Trim(),
                 YeniModel = dto.YeniModel?.Trim(),
                 YeniSeriNo = dto.YeniSeriNo?.Trim(),
+                IkinciElCihazMi = dto.IkinciElCihazMi,
+                Fr265BelgeOlusturmaTarihi = simdi,
+                Fr265BelgeVersiyonNo = 1,
                 Aufnr = dto.Aufnr?.Trim(),
                 Durum = YkcDurumDegerleri.TalepAlindi,
-                TalepTarihi = DateTime.Now,
+                TalepTarihi = simdi,
                 HedefUygulama = YkcHedefUygulamaDegerleri.YonetimPaneli,
-                OlusturmaTarihi = DateTime.Now,
+                OlusturmaTarihi = simdi,
                 OlusturanKullanici = kullanici.UserName
             };
 
             _context.Ykc_Talepler.Add(talep);
             await _context.SaveChangesAsync();
+
+            VarsayilanKontrollerEkle(talep, kullanici);
+            talep.Fr265BelgeHash = Fr265HashOlustur(talep);
+            ImzaSureciHazirla(talep, kullanici, firma?.YetkiliKisi);
 
             _context.Ykc_IslemGecmisi.Add(new Ykc_IslemGecmisi
             {
@@ -276,15 +326,15 @@ namespace YetkiliServisGazAcma.Business.Services
             if (eskiDurum == dto.Durum)
                 return YkcIslemSonuc.BasariliSonuc("Talep zaten secilen durumda.", talep.Id);
 
-            var sahaFormuVar = await FormDosyasiVarMiAsync(talep.Id, YkcFormDosyaTuruDegerleri.SahaIslakImzaliForm);
+            var imzaliNihaiBelgeVar = await ImzaliNihaiBelgeVarMiAsync(talep.Id);
 
-            if (dto.Durum == YkcDurumDegerleri.Tamamlandi && !sahaFormuVar)
+            if (dto.Durum == YkcDurumDegerleri.Tamamlandi && !imzaliNihaiBelgeVar)
                 return YkcIslemSonuc.HataliSonuc("Talebi tamamlamak icin imzali nihai belge sistemde hazir olmalidir.");
 
             if (dto.Durum == YkcDurumDegerleri.Tamamlandi && !RandevuZamaniGeldiMi(talep.RandevuTarihi, talep.RandevuSaati))
                 return YkcIslemSonuc.HataliSonuc("Randevu zamani gelmeden talep tamamlandi durumuna alinamaz.");
 
-            if (!DurumGecisiGecerliMi(eskiDurum, dto.Durum, sahaFormuVar))
+            if (!DurumGecisiGecerliMi(eskiDurum, dto.Durum, imzaliNihaiBelgeVar))
                 return YkcIslemSonuc.HataliSonuc("Bu durum gecisi icin onceki adimlar tamamlanmalidir.");
 
             talep.Durum = dto.Durum;
@@ -315,6 +365,96 @@ namespace YetkiliServisGazAcma.Business.Services
             return YkcIslemSonuc.BasariliSonuc("Cihaz değişim talebi durumu güncellendi.", talep.Id);
         }
 
+        public async Task<YkcIslemSonuc> KontrolleriKaydetAsync(
+            YkcKontrolKaydetDto dto,
+            AppKullanici kullanici,
+            bool genelYetkili)
+        {
+            var talep = await YetkiKapsamiUygula(TalepQuery(), kullanici, genelYetkili)
+                .FirstOrDefaultAsync(x => x.Id == dto.TalepId);
+
+            if (talep == null)
+                return YkcIslemSonuc.HataliSonuc("Cihaz değişim talebi bulunamadı.");
+
+            if (DurumTerminalMi(talep.Durum))
+                return YkcIslemSonuc.HataliSonuc("Kapanmış talep için kontrol güncellenemez.");
+
+            var gecerliSonuclar = new[]
+            {
+                YkcFr265KontrolSonucDegerleri.Bekliyor,
+                YkcFr265KontrolSonucDegerleri.Uygun,
+                YkcFr265KontrolSonucDegerleri.UygunDegil,
+                YkcFr265KontrolSonucDegerleri.Uygulanmaz
+            };
+
+            foreach (var satir in dto.Kontroller.Where(x => x.KontrolNo is >= 1 and <= 5))
+            {
+                var sonuc = string.IsNullOrWhiteSpace(satir.Sonuc)
+                    ? YkcFr265KontrolSonucDegerleri.Bekliyor
+                    : satir.Sonuc.Trim();
+
+                if (!gecerliSonuclar.Contains(sonuc))
+                    return YkcIslemSonuc.HataliSonuc("Kontrol sonucu geçersiz.");
+
+                var kontrol = talep.Kontroller.FirstOrDefault(x => !x.SilindiMi && x.KontrolNo == satir.KontrolNo);
+                if (kontrol == null)
+                {
+                    kontrol = new Ykc_Fr265Kontrol
+                    {
+                        TalepId = talep.Id,
+                        KontrolNo = satir.KontrolNo,
+                        OlusturmaTarihi = DateTime.Now,
+                        OlusturanKullanici = kullanici.UserName
+                    };
+                    _context.Ykc_Fr265Kontroller.Add(kontrol);
+                    talep.Kontroller.Add(kontrol);
+                }
+
+                kontrol.Sonuc = sonuc;
+                kontrol.Aciklama = satir.Aciklama?.Trim();
+                kontrol.KontrolEdenKullaniciId = kullanici.Id;
+                kontrol.KontrolTarihi = DateTime.Now;
+                kontrol.GuncellemeTarihi = DateTime.Now;
+                kontrol.GuncelleyenKullanici = kullanici.UserName;
+            }
+
+            talep.Fr265BelgeVersiyonNo = Math.Max(talep.Fr265BelgeVersiyonNo, 1) + 1;
+            talep.Fr265BelgeOlusturmaTarihi = DateTime.Now;
+            talep.Fr265BelgeHash = Fr265HashOlustur(talep);
+            talep.GuncellemeTarihi = DateTime.Now;
+            talep.GuncelleyenKullanici = kullanici.UserName;
+
+            var imzaSureci = talep.ImzaSurecleri
+                .Where(x => !x.SilindiMi)
+                .OrderByDescending(x => x.BelgeVersiyonu)
+                .ThenByDescending(x => x.Id)
+                .FirstOrDefault();
+
+            if (imzaSureci != null && imzaSureci.Durum == YkcImzaDurumDegerleri.Hazir)
+            {
+                imzaSureci.BelgeVersiyonu = talep.Fr265BelgeVersiyonNo;
+                imzaSureci.BelgeHash = talep.Fr265BelgeHash;
+                imzaSureci.BelgeOlusturmaTarihi = talep.Fr265BelgeOlusturmaTarihi;
+                imzaSureci.GuncellemeTarihi = DateTime.Now;
+                imzaSureci.GuncelleyenKullanici = kullanici.UserName;
+            }
+
+            _context.Ykc_IslemGecmisi.Add(new Ykc_IslemGecmisi
+            {
+                TalepId = talep.Id,
+                IslemTipi = "FR265KontrolleriGuncellendi",
+                YeniDurum = talep.Durum,
+                Aciklama = "FR265 kontrol adımları güncellendi.",
+                KullaniciId = kullanici.Id,
+                KullaniciAdi = kullanici.UserName,
+                OlusturmaTarihi = DateTime.Now,
+                OlusturanKullanici = kullanici.UserName
+            });
+
+            await _context.SaveChangesAsync();
+            return YkcIslemSonuc.BasariliSonuc("FR265 kontrol adımları kaydedildi.", talep.Id);
+        }
+
         public async Task<YkcIslemSonuc> DosyaEkleAsync(
             YkcDosyaKaydetDto dto,
             AppKullanici kullanici,
@@ -330,10 +470,10 @@ namespace YetkiliServisGazAcma.Business.Services
                 return YkcIslemSonuc.HataliSonuc("Dosya yolu zorunludur.");
 
             var dosyaTuru = string.IsNullOrWhiteSpace(dto.DosyaTuru)
-                ? YkcFormDosyaTuruDegerleri.FirmaFormu
+                ? YkcFormDosyaTuruDegerleri.TeknikEk
                 : dto.DosyaTuru.Trim();
 
-            _context.Ykc_FormDosyalari.Add(new Ykc_FormDosya
+            var dosya = new Ykc_FormDosya
             {
                 TalepId = talep.Id,
                 DosyaTuru = dosyaTuru,
@@ -341,9 +481,15 @@ namespace YetkiliServisGazAcma.Business.Services
                 DosyaYolu = dto.DosyaYolu.Trim(),
                 IcerikTipi = dto.IcerikTipi?.Trim(),
                 DosyaBoyutu = dto.DosyaBoyutu,
+                DepolamaTuru = string.IsNullOrWhiteSpace(dto.DepolamaTuru)
+                    ? YkcDepolamaTuruDegerleri.Private
+                    : dto.DepolamaTuru.Trim(),
+                BelgeHash = dto.BelgeHash?.Trim(),
                 OlusturmaTarihi = DateTime.Now,
                 OlusturanKullanici = kullanici.UserName
-            });
+            };
+
+            _context.Ykc_FormDosyalari.Add(dosya);
 
             _context.Ykc_IslemGecmisi.Add(new Ykc_IslemGecmisi
             {
@@ -357,6 +503,27 @@ namespace YetkiliServisGazAcma.Business.Services
             });
 
             await _context.SaveChangesAsync();
+
+            if (ImzaliNihaiBelgeTuruMu(dosyaTuru))
+            {
+                var imzaSureci = await _context.Ykc_ImzaSurecleri
+                    .Where(x => x.TalepId == talep.Id && !x.SilindiMi)
+                    .OrderByDescending(x => x.BelgeVersiyonu)
+                    .ThenByDescending(x => x.Id)
+                    .FirstOrDefaultAsync();
+
+                if (imzaSureci != null)
+                {
+                    imzaSureci.Durum = YkcImzaDurumDegerleri.Tamamlandi;
+                    imzaSureci.TamamlanmaTarihi = DateTime.Now;
+                    imzaSureci.SonKontrolTarihi = DateTime.Now;
+                    imzaSureci.NihaiDosyaId = dosya.Id;
+                    imzaSureci.GuncellemeTarihi = DateTime.Now;
+                    imzaSureci.GuncelleyenKullanici = kullanici.UserName;
+                    await _context.SaveChangesAsync();
+                }
+            }
+
             return YkcIslemSonuc.BasariliSonuc("Cihaz değişim belge kaydı oluşturuldu.", talep.Id);
         }
 
@@ -389,6 +556,95 @@ namespace YetkiliServisGazAcma.Business.Services
             return true;
         }
 
+        private void VarsayilanKontrollerEkle(Ykc_Talep talep, AppKullanici kullanici)
+        {
+            for (var kontrolNo = 1; kontrolNo <= 5; kontrolNo++)
+            {
+                var kontrol = new Ykc_Fr265Kontrol
+                {
+                    TalepId = talep.Id,
+                    KontrolNo = kontrolNo,
+                    Sonuc = YkcFr265KontrolSonucDegerleri.Bekliyor,
+                    OlusturmaTarihi = DateTime.Now,
+                    OlusturanKullanici = kullanici.UserName
+                };
+
+                _context.Ykc_Fr265Kontroller.Add(kontrol);
+                talep.Kontroller.Add(kontrol);
+            }
+        }
+
+        private void ImzaSureciHazirla(Ykc_Talep talep, AppKullanici kullanici, string? firmaYetkilisi)
+        {
+            var surec = new Ykc_ImzaSureci
+            {
+                TalepId = talep.Id,
+                BelgeVersiyonu = talep.Fr265BelgeVersiyonNo <= 0 ? 1 : talep.Fr265BelgeVersiyonNo,
+                Durum = YkcImzaDurumDegerleri.Hazir,
+                BelgeHash = talep.Fr265BelgeHash,
+                BelgeOlusturmaTarihi = talep.Fr265BelgeOlusturmaTarihi,
+                OlusturmaTarihi = DateTime.Now,
+                OlusturanKullanici = kullanici.UserName,
+                Imzacilar = new List<Ykc_Imzaci>
+                {
+                    YeniImzaci("Sertifikalı Firma Yetkilisi", 1, firmaYetkilisi, kullanici.UserName),
+                    YeniImzaci("Dağıtım Şirketi Yetkilisi", 2, null, kullanici.UserName),
+                    YeniImzaci("Abone / Kullanıcı", 3, talep.MusteriAdi, kullanici.UserName)
+                }
+            };
+
+            _context.Ykc_ImzaSurecleri.Add(surec);
+        }
+
+        private static Ykc_Imzaci YeniImzaci(string rol, int siraNo, string? adSoyad, string? olusturan)
+        {
+            return new Ykc_Imzaci
+            {
+                Rol = rol,
+                SiraNo = siraNo,
+                AdSoyad = adSoyad,
+                Durum = YkcImzaciDurumDegerleri.Bekliyor,
+                OlusturmaTarihi = DateTime.Now,
+                OlusturanKullanici = olusturan
+            };
+        }
+
+        private static string Fr265HashOlustur(Ykc_Talep talep)
+        {
+            var parcalar = new[]
+            {
+                talep.Id.ToString(),
+                talep.Fr265BelgeVersiyonNo.ToString(),
+                talep.TalepTarihi.ToString("O"),
+                talep.TesisatNo,
+                talep.SozlesmeNo,
+                talep.AboneNo,
+                talep.ProjeNo,
+                talep.MusteriAdi,
+                talep.Adres,
+                talep.EskiCihazTipi,
+                talep.EskiMarka,
+                talep.EskiBacaTipi,
+                talep.EskiKapasite,
+                talep.YeniCihazTipi,
+                talep.YeniMarka,
+                talep.YeniBacaTipi,
+                talep.YeniKapasite,
+                talep.YeniModel,
+                talep.YeniSeriNo,
+                talep.IkinciElCihazMi?.ToString()
+            };
+
+            var kontrolParcalari = talep.Kontroller
+                .Where(x => !x.SilindiMi)
+                .OrderBy(x => x.KontrolNo)
+                .Select(x => $"{x.KontrolNo}:{x.Sonuc}:{x.Aciklama}");
+
+            var hamMetin = string.Join("|", parcalar.Concat(kontrolParcalari).Select(x => x?.Trim() ?? ""));
+            var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(hamMetin));
+            return Convert.ToHexString(bytes);
+        }
+
         private static bool DurumTerminalMi(int durum)
         {
             return durum == YkcDurumDegerleri.Tamamlandi
@@ -403,12 +659,32 @@ namespace YetkiliServisGazAcma.Business.Services
                 || durum == YkcDurumDegerleri.SahaIsleminde;
         }
 
-        private Task<bool> FormDosyasiVarMiAsync(int talepId, string dosyaTuru)
+        private async Task<bool> ImzaliNihaiBelgeVarMiAsync(int talepId)
         {
-            return _context.Ykc_FormDosyalari.AnyAsync(x =>
+            var imzaliBelgeTurleri = ImzaliNihaiBelgeTurleri();
+            var imzaSureciTamamlandi = await _context.Ykc_ImzaSurecleri.AnyAsync(x =>
                 x.TalepId == talepId &&
                 !x.SilindiMi &&
-                x.DosyaTuru == dosyaTuru);
+                x.Durum == YkcImzaDurumDegerleri.Tamamlandi);
+
+            if (imzaSureciTamamlandi)
+                return true;
+
+            return await _context.Ykc_FormDosyalari.AnyAsync(x =>
+                x.TalepId == talepId &&
+                !x.SilindiMi &&
+                imzaliBelgeTurleri.Contains(x.DosyaTuru));
+        }
+
+        private static string[] ImzaliNihaiBelgeTurleri()
+        {
+            return new[] { YkcFormDosyaTuruDegerleri.Fr265ImzaliNihai };
+        }
+
+        private static bool ImzaliNihaiBelgeTuruMu(string? dosyaTuru)
+        {
+            return !string.IsNullOrWhiteSpace(dosyaTuru)
+                && ImzaliNihaiBelgeTurleri().Contains(dosyaTuru.Trim(), StringComparer.OrdinalIgnoreCase);
         }
 
         private static bool RandevuZamaniGeldiMi(DateTime? randevuTarihi, string? randevuSaati)
@@ -453,6 +729,9 @@ namespace YetkiliServisGazAcma.Business.Services
                 .Include(x => x.FormDosyalari.Where(d => !d.SilindiMi))
                 .Include(x => x.Atamalar.Where(a => !a.SilindiMi))
                 .Include(x => x.IslemGecmisi.Where(g => !g.SilindiMi))
+                .Include(x => x.Kontroller.Where(k => !k.SilindiMi))
+                .Include(x => x.ImzaSurecleri.Where(s => !s.SilindiMi))
+                    .ThenInclude(x => x.Imzacilar.Where(i => !i.SilindiMi))
                 .Where(x => !x.SilindiMi)
                 .Where(x =>
                     (x.TesisatNo == null || x.TesisatNo != "string") &&
@@ -585,6 +864,9 @@ namespace YetkiliServisGazAcma.Business.Services
             if (string.IsNullOrWhiteSpace(dto.TesisatNo))
                 return YkcIslemSonuc.HataliSonuc("Tesisat no zorunludur.");
 
+            if (string.Equals(dto.KaynakTipi?.Trim(), "ServisHatasi", StringComparison.OrdinalIgnoreCase))
+                return YkcIslemSonuc.HataliSonuc("Online tesisat servisi yanit vermeden cihaz degisim talebi olusturulamaz. Lutfen servisi tekrar sorgulayin.");
+
             if (string.IsNullOrWhiteSpace(dto.YeniCihazTipi) && string.IsNullOrWhiteSpace(dto.YeniCihazTipiKodu))
                 return YkcIslemSonuc.HataliSonuc("Yeni cihaz tipi zorunludur.");
 
@@ -688,6 +970,18 @@ namespace YetkiliServisGazAcma.Business.Services
         public List<YkcTalepDto> Talepler { get; set; } = new();
     }
 
+    public class YkcDashboardOzetDto
+    {
+        public int Toplam { get; set; }
+        public int Incelemede { get; set; }
+        public int RandevuSaha { get; set; }
+        public int Tamamlanan { get; set; }
+        public int ImzaBekleyen { get; set; }
+        public int ImzaliNihai { get; set; }
+        public int RedIptal { get; set; }
+        public List<YkcTalepDto> SonTalepler { get; set; } = new();
+    }
+
     public class YkcRaporSonuc
     {
         public int Toplam { get; set; }
@@ -745,6 +1039,7 @@ namespace YetkiliServisGazAcma.Business.Services
         public string? YeniKapasite { get; set; }
         public string? YeniModel { get; set; }
         public string? YeniSeriNo { get; set; }
+        public bool? IkinciElCihazMi { get; set; }
         public string? Aufnr { get; set; }
     }
 
@@ -778,6 +1073,16 @@ namespace YetkiliServisGazAcma.Business.Services
             return new YkcTesisatSorguSonuc
             {
                 Basarili = false,
+                ManuelGirisSerbest = false,
+                Mesaj = mesaj
+            };
+        }
+
+        public static YkcTesisatSorguSonuc KayitBulunamadi(string mesaj)
+        {
+            return new YkcTesisatSorguSonuc
+            {
+                Basarili = false,
                 ManuelGirisSerbest = true,
                 Mesaj = mesaj
             };
@@ -804,6 +1109,7 @@ namespace YetkiliServisGazAcma.Business.Services
         public string? HedefUygulama { get; set; }
         public DateTime? RandevuTarihi { get; set; }
         public string? RandevuSaati { get; set; }
+        public bool? IkinciElCihazMi { get; set; }
         public bool CallCenterTetiklenecekMi { get; set; }
         public string? Aciklama { get; set; }
     }
@@ -815,6 +1121,19 @@ namespace YetkiliServisGazAcma.Business.Services
         public string? Aciklama { get; set; }
     }
 
+    public class YkcKontrolKaydetDto
+    {
+        public int TalepId { get; set; }
+        public List<YkcKontrolSatirKaydetDto> Kontroller { get; set; } = new();
+    }
+
+    public class YkcKontrolSatirKaydetDto
+    {
+        public int KontrolNo { get; set; }
+        public string? Sonuc { get; set; }
+        public string? Aciklama { get; set; }
+    }
+
     public class YkcDosyaKaydetDto
     {
         public int TalepId { get; set; }
@@ -823,6 +1142,8 @@ namespace YetkiliServisGazAcma.Business.Services
         public string? DosyaYolu { get; set; }
         public string? IcerikTipi { get; set; }
         public long? DosyaBoyutu { get; set; }
+        public string? DepolamaTuru { get; set; }
+        public string? BelgeHash { get; set; }
     }
 
     public class YkcIslemSonuc
@@ -861,6 +1182,7 @@ namespace YetkiliServisGazAcma.Business.Services
         public string? HedefUygulama { get; set; }
         public DateTime? RandevuTarihi { get; set; }
         public string? RandevuSaati { get; set; }
+        public bool? IkinciElCihazMi { get; set; }
 
         public static YkcTalepDto FromEntity(Ykc_Talep talep)
         {
@@ -882,7 +1204,8 @@ namespace YetkiliServisGazAcma.Business.Services
                 AtananEkip = talep.AtananEkip,
                 HedefUygulama = talep.HedefUygulama,
                 RandevuTarihi = talep.RandevuTarihi,
-                RandevuSaati = talep.RandevuSaati
+                RandevuSaati = talep.RandevuSaati,
+                IkinciElCihazMi = talep.IkinciElCihazMi
             };
         }
 
@@ -907,6 +1230,7 @@ namespace YetkiliServisGazAcma.Business.Services
         public string? YeniMarka { get; set; }
         public string? YeniModel { get; set; }
         public string? YeniKapasite { get; set; }
+        public bool? IkinciElCihazMi { get; set; }
         public string? Bolge { get; set; }
         public string? AtananEkip { get; set; }
         public string? HedefUygulama { get; set; }
@@ -914,8 +1238,8 @@ namespace YetkiliServisGazAcma.Business.Services
         public DateTime? RandevuTarihi { get; set; }
         public string? RandevuSaati { get; set; }
         public int Durum { get; set; }
-        public bool FirmaFormuVar { get; set; }
-        public bool SahaFormuVar { get; set; }
+        public bool ImzaliNihaiBelgeVar { get; set; }
+        public string? ImzaDurumu { get; set; }
 
         public static YkcRaporKayitDto FromEntity(Ykc_Talep talep)
         {
@@ -934,6 +1258,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 YeniMarka = talep.YeniMarka,
                 YeniModel = talep.YeniModel,
                 YeniKapasite = talep.YeniKapasite,
+                IkinciElCihazMi = talep.IkinciElCihazMi,
                 Bolge = talep.Bolge,
                 AtananEkip = talep.AtananEkip,
                 HedefUygulama = talep.HedefUygulama,
@@ -941,9 +1266,24 @@ namespace YetkiliServisGazAcma.Business.Services
                 RandevuTarihi = talep.RandevuTarihi,
                 RandevuSaati = talep.RandevuSaati,
                 Durum = talep.Durum,
-                FirmaFormuVar = talep.FormDosyalari.Any(x => !x.SilindiMi && x.DosyaTuru == YkcFormDosyaTuruDegerleri.FirmaFormu),
-                SahaFormuVar = talep.FormDosyalari.Any(x => !x.SilindiMi && x.DosyaTuru == YkcFormDosyaTuruDegerleri.SahaIslakImzaliForm)
+                ImzaDurumu = AktifImzaSureci(talep)?.Durum ?? YkcImzaDurumDegerleri.Hazir,
+                ImzaliNihaiBelgeVar = ImzaliNihaiBelgeVarMi(talep)
             };
+        }
+
+        private static Ykc_ImzaSureci? AktifImzaSureci(Ykc_Talep talep)
+        {
+            return talep.ImzaSurecleri
+                .Where(x => !x.SilindiMi)
+                .OrderByDescending(x => x.BelgeVersiyonu)
+                .ThenByDescending(x => x.Id)
+                .FirstOrDefault();
+        }
+
+        private static bool ImzaliNihaiBelgeVarMi(Ykc_Talep talep)
+        {
+            return talep.ImzaSurecleri.Any(x => !x.SilindiMi && x.Durum == YkcImzaDurumDegerleri.Tamamlandi)
+                || talep.FormDosyalari.Any(x => !x.SilindiMi && x.DosyaTuru == YkcFormDosyaTuruDegerleri.Fr265ImzaliNihai);
         }
     }
 
@@ -977,6 +1317,9 @@ namespace YetkiliServisGazAcma.Business.Services
         public string? YeniKapasite { get; set; }
         public string? YeniModel { get; set; }
         public string? YeniSeriNo { get; set; }
+        public DateTime? Fr265BelgeOlusturmaTarihi { get; set; }
+        public int Fr265BelgeVersiyonNo { get; set; }
+        public string? Fr265BelgeHash { get; set; }
         public string? RedAciklama { get; set; }
         public DateTime? IptalTarihi { get; set; }
         public string? IptalEdenKullaniciId { get; set; }
@@ -989,6 +1332,8 @@ namespace YetkiliServisGazAcma.Business.Services
         public List<YkcDosyaDto> Dosyalar { get; set; } = new();
         public List<YkcAtamaDto> Atamalar { get; set; } = new();
         public List<YkcGecmisDto> Gecmis { get; set; } = new();
+        public List<YkcFr265KontrolDto> Kontroller { get; set; } = new();
+        public YkcImzaSureciDto? ImzaSureci { get; set; }
 
         public new static YkcTalepDetayDto FromEntity(Ykc_Talep talep)
         {
@@ -1037,6 +1382,10 @@ namespace YetkiliServisGazAcma.Business.Services
                 YeniKapasite = talep.YeniKapasite,
                 YeniModel = talep.YeniModel,
                 YeniSeriNo = talep.YeniSeriNo,
+                IkinciElCihazMi = talep.IkinciElCihazMi,
+                Fr265BelgeOlusturmaTarihi = talep.Fr265BelgeOlusturmaTarihi,
+                Fr265BelgeVersiyonNo = talep.Fr265BelgeVersiyonNo,
+                Fr265BelgeHash = talep.Fr265BelgeHash,
                 RedAciklama = talep.RedAciklama,
                 IptalTarihi = talep.IptalTarihi,
                 IptalEdenKullaniciId = talep.IptalEdenKullaniciId,
@@ -1050,6 +1399,13 @@ namespace YetkiliServisGazAcma.Business.Services
                 CallCenterTetiklendiMi = talep.CallCenterTetiklendiMi,
                 Dosyalar = talep.FormDosyalari.OrderByDescending(x => x.OlusturmaTarihi).Select(YkcDosyaDto.FromEntity).ToList(),
                 Atamalar = talep.Atamalar.OrderByDescending(x => x.OlusturmaTarihi).Select(YkcAtamaDto.FromEntity).ToList(),
+                Kontroller = talep.Kontroller.OrderBy(x => x.KontrolNo).Select(YkcFr265KontrolDto.FromEntity).ToList(),
+                ImzaSureci = talep.ImzaSurecleri
+                    .Where(x => !x.SilindiMi)
+                    .OrderByDescending(x => x.BelgeVersiyonu)
+                    .ThenByDescending(x => x.Id)
+                    .Select(YkcImzaSureciDto.FromEntity)
+                    .FirstOrDefault(),
                 Gecmis = TekilGecmis(talep.IslemGecmisi)
             };
 
@@ -1097,6 +1453,8 @@ namespace YetkiliServisGazAcma.Business.Services
         public string? DosyaAdi { get; set; }
         public string? DosyaYolu { get; set; }
         public string? IcerikTipi { get; set; }
+        public string? DepolamaTuru { get; set; }
+        public string? BelgeHash { get; set; }
         public DateTime OlusturmaTarihi { get; set; }
 
         public static YkcDosyaDto FromEntity(Ykc_FormDosya dosya)
@@ -1108,7 +1466,97 @@ namespace YetkiliServisGazAcma.Business.Services
                 DosyaAdi = dosya.DosyaAdi,
                 DosyaYolu = dosya.DosyaYolu,
                 IcerikTipi = dosya.IcerikTipi,
+                DepolamaTuru = dosya.DepolamaTuru,
+                BelgeHash = dosya.BelgeHash,
                 OlusturmaTarihi = dosya.OlusturmaTarihi
+            };
+        }
+    }
+
+    public class YkcFr265KontrolDto
+    {
+        public int Id { get; set; }
+        public int KontrolNo { get; set; }
+        public string Sonuc { get; set; } = YkcFr265KontrolSonucDegerleri.Bekliyor;
+        public string? Aciklama { get; set; }
+        public string? KontrolEdenKullaniciId { get; set; }
+        public DateTime? KontrolTarihi { get; set; }
+
+        public static YkcFr265KontrolDto FromEntity(Ykc_Fr265Kontrol kontrol)
+        {
+            return new YkcFr265KontrolDto
+            {
+                Id = kontrol.Id,
+                KontrolNo = kontrol.KontrolNo,
+                Sonuc = kontrol.Sonuc,
+                Aciklama = kontrol.Aciklama,
+                KontrolEdenKullaniciId = kontrol.KontrolEdenKullaniciId,
+                KontrolTarihi = kontrol.KontrolTarihi
+            };
+        }
+    }
+
+    public class YkcImzaSureciDto
+    {
+        public int Id { get; set; }
+        public string? ProviderDocumentId { get; set; }
+        public int BelgeVersiyonu { get; set; }
+        public string Durum { get; set; } = YkcImzaDurumDegerleri.Hazir;
+        public DateTime? GonderimTarihi { get; set; }
+        public DateTime? TamamlanmaTarihi { get; set; }
+        public DateTime? SonKontrolTarihi { get; set; }
+        public string? HataKodu { get; set; }
+        public string? HataMesaji { get; set; }
+        public int? NihaiDosyaId { get; set; }
+        public string? BelgeHash { get; set; }
+        public DateTime? BelgeOlusturmaTarihi { get; set; }
+        public List<YkcImzaciDto> Imzacilar { get; set; } = new();
+
+        public static YkcImzaSureciDto FromEntity(Ykc_ImzaSureci surec)
+        {
+            return new YkcImzaSureciDto
+            {
+                Id = surec.Id,
+                ProviderDocumentId = surec.ProviderDocumentId,
+                BelgeVersiyonu = surec.BelgeVersiyonu,
+                Durum = surec.Durum,
+                GonderimTarihi = surec.GonderimTarihi,
+                TamamlanmaTarihi = surec.TamamlanmaTarihi,
+                SonKontrolTarihi = surec.SonKontrolTarihi,
+                HataKodu = surec.HataKodu,
+                HataMesaji = surec.HataMesaji,
+                NihaiDosyaId = surec.NihaiDosyaId,
+                BelgeHash = surec.BelgeHash,
+                BelgeOlusturmaTarihi = surec.BelgeOlusturmaTarihi,
+                Imzacilar = surec.Imzacilar
+                    .OrderBy(x => x.SiraNo)
+                    .Select(YkcImzaciDto.FromEntity)
+                    .ToList()
+            };
+        }
+    }
+
+    public class YkcImzaciDto
+    {
+        public int Id { get; set; }
+        public string? Rol { get; set; }
+        public string? AdSoyad { get; set; }
+        public string? KullaniciId { get; set; }
+        public int SiraNo { get; set; }
+        public string? Durum { get; set; }
+        public DateTime? ImzaTarihi { get; set; }
+
+        public static YkcImzaciDto FromEntity(Ykc_Imzaci imzaci)
+        {
+            return new YkcImzaciDto
+            {
+                Id = imzaci.Id,
+                Rol = imzaci.Rol,
+                AdSoyad = imzaci.AdSoyad,
+                KullaniciId = imzaci.KullaniciId,
+                SiraNo = imzaci.SiraNo,
+                Durum = imzaci.Durum,
+                ImzaTarihi = imzaci.ImzaTarihi
             };
         }
     }

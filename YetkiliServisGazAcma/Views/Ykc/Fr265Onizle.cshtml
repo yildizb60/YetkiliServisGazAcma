@@ -6,6 +6,16 @@
 
 @functions {
     private static string Deger(string? value) => string.IsNullOrWhiteSpace(value) ? "" : value.Trim();
+    private static string KontrolSonucYazi(string? sonuc)
+    {
+        return sonuc switch
+        {
+            YkcFr265KontrolSonucDegerleri.Uygun => "Uygun",
+            YkcFr265KontrolSonucDegerleri.UygunDegil => "Uygun Değil",
+            YkcFr265KontrolSonucDegerleri.Uygulanmaz => "Uygulanmaz",
+            _ => "Bekliyor"
+        };
+    }
 
     private static string LogoUrl(YkcTalepDetayDto model)
     {
@@ -112,8 +122,8 @@
         <tbody>
             <tr>
                 <td class="fr265-label">Takılan Yakıcı Cihaz İkinci El Cihaz Mı?</td>
-                <td>☐ Evet</td>
-                <td>☐ Hayır</td>
+                <td>@(Model.IkinciElCihazMi == true ? "☑" : "☐") Evet</td>
+                <td>@(Model.IkinciElCihazMi == false ? "☑" : "☐") Hayır</td>
             </tr>
             <tr>
                 <td colspan="3">Cihazın ikinci el olması durumunda, yetkili servis tarafından düzenlenecek “Yetkili Servis Cihaz Kontrol Raporu” bu forma eklenmelidir.</td>
@@ -123,6 +133,30 @@
 
     <p class="fr265-text">Yukarıda bilgileri verilen abonenin/tesisatın mevcut onaylı projesinde bulunan yakıcı cihazın tip, yerleşim ve kapasite değişikliği yapılmamıştır.</p>
     <p class="fr265-text">Aynı yerde, aynı tip ve kapasitedeki yeni yakıcı cihaz tesisat üzerindeki cihaz vanasına, cihaz bağlantı parçaları ve atık sistemleri ile tesis edilmiş olup değişimle ilgili tüm idari ve teknik sorumluluk sertifikalı firmaya aittir.</p>
+
+    @if (Model.Kontroller.Any())
+    {
+        <div class="fr265-section-title">Kontrol Bilgileri</div>
+        <table class="fr265-table">
+            <thead>
+                <tr>
+                    <th>Kontrol</th>
+                    <th>Sonuç</th>
+                    <th>Açıklama</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var kontrol in Model.Kontroller.OrderBy(x => x.KontrolNo))
+                {
+                    <tr>
+                        <td>@(kontrol.KontrolNo). Kontrol</td>
+                        <td>@KontrolSonucYazi(kontrol.Sonuc)</td>
+                        <td>@Deger(kontrol.Aciklama)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
 
     <div class="fr265-sign-grid">
         <div class="fr265-sign">

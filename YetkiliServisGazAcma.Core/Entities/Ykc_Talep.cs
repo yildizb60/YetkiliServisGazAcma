@@ -41,6 +41,11 @@ namespace YetkiliServisGazAcma.Entities
         public string? YeniKapasite { get; set; }
         public string? YeniModel { get; set; }
         public string? YeniSeriNo { get; set; }
+        public bool? IkinciElCihazMi { get; set; }
+
+        public DateTime? Fr265BelgeOlusturmaTarihi { get; set; }
+        public int Fr265BelgeVersiyonNo { get; set; } = 1;
+        public string? Fr265BelgeHash { get; set; }
 
         public int Durum { get; set; } = Business.Services.YkcDurumDegerleri.TalepAlindi;
         public DateTime TalepTarihi { get; set; } = DateTime.Now;
@@ -67,5 +72,7 @@ namespace YetkiliServisGazAcma.Entities
         public ICollection<Ykc_FormDosya> FormDosyalari { get; set; } = new List<Ykc_FormDosya>();
         public ICollection<Ykc_Atama> Atamalar { get; set; } = new List<Ykc_Atama>();
         public ICollection<Ykc_IslemGecmisi> IslemGecmisi { get; set; } = new List<Ykc_IslemGecmisi>();
+        public ICollection<Ykc_Fr265Kontrol> Kontroller { get; set; } = new List<Ykc_Fr265Kontrol>();
+        public ICollection<Ykc_ImzaSureci> ImzaSurecleri { get; set; } = new List<Ykc_ImzaSureci>();
     }
 }

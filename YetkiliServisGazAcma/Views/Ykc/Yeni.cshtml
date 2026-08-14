@@ -59,7 +59,8 @@
         .ykc-compare-table td { padding: 11px 12px; border-bottom: 1px solid #edf2f7; vertical-align: top; }
         .ykc-compare-table tr:last-child td { border-bottom: 0; }
         .ykc-compare-table .row-label { width: 190px; color: var(--df-muted); font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .035em; background: #fbfcff; }
-        .ykc-compare-table input { width: 100%; min-width: 0; border: 1.5px solid #dfe5ee; border-radius: 8px; background: #fff; color: var(--df-text); padding: 10px 12px; font-size: 13px; outline: none; }
+        .ykc-compare-table input,
+        .ykc-compare-table select { width: 100%; min-width: 0; border: 1.5px solid #dfe5ee; border-radius: 8px; background: #fff; color: var(--df-text); padding: 10px 12px; font-size: 13px; outline: none; }
         .ykc-compare-table input[readonly] { background: #f5f7fb; color: var(--df-muted); cursor: not-allowed; }
         .ykc-compare-note { display: flex; gap: 10px; align-items: flex-start; border: 1px solid #dbe7ff; background: #f6f8ff; color: var(--df-text-soft); border-radius: 8px; padding: 11px 12px; font-size: 12px; line-height: 1.45; }
         .ykc-compare-note strong { color: var(--df-primary); }
@@ -505,6 +506,17 @@
                                 <span asp-validation-for="YeniKapasite"></span>
                             </td>
                         </tr>
+                        <tr>
+                            <td class="row-label">İkinci El Cihaz</td>
+                            <td>-</td>
+                            <td>
+                                <select asp-for="IkinciElCihazMi">
+                                    <option value="">Belirtilmedi</option>
+                                    <option value="true">Evet</option>
+                                    <option value="false">Hayır</option>
+                                </select>
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
 
@@ -714,16 +726,24 @@
                         setReadonly(autoFieldIds, true);
                         populateDevices(cihazlar);
                         showAlert("success", prop(data, "mesaj") || "Tesisat bilgileri alındı.");
-                    } else {
+                    } else if (prop(data, "manuelGirisSerbest") === true) {
+                        setValue("KaynakTipi", "Manuel");
                         setReadonly(autoFieldIds, false);
                         setReadonly(oldDeviceFieldIds, false);
                         clearDevices("Manuel eski cihaz girişi yapınız");
-                        showAlert("warning", prop(data, "mesaj") || "Servisten bilgi alınamadı, manuel girebilirsiniz.");
+                        showAlert("warning", prop(data, "mesaj") || "Serviste kayıt bulunamadı, manuel girebilirsiniz.");
+                    } else {
+                        setValue("KaynakTipi", "ServisHatasi");
+                        setReadonly(autoFieldIds, true);
+                        setReadonly(oldDeviceFieldIds, true);
+                        clearDevices("Servis yanıtı bekleniyor");
+                        showAlert("danger", prop(data, "mesaj") || "Servisten bilgi alınamadı. Lütfen servis çalışınca tekrar sorgulayın.");
                     }
                 } catch (error) {
-                    setReadonly(autoFieldIds, false);
-                    setReadonly(oldDeviceFieldIds, false);
-                    clearDevices("Manuel eski cihaz girişi yapınız");
+                    setValue("KaynakTipi", "ServisHatasi");
+                    setReadonly(autoFieldIds, true);
+                    setReadonly(oldDeviceFieldIds, true);
+                    clearDevices("Servis yanıtı bekleniyor");
                     showAlert("danger", error.message || "Tesisat sorgusu sırasında hata oluştu.");
                 } finally {
                     sorgulaBtn.disabled = false;

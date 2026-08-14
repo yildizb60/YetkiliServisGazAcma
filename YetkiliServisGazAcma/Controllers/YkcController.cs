@@ -29,13 +29,7 @@ namespace YetkiliServisGazAcma.Controllers
 
             PanelViewBag(kullanici, "YkcOzet", "Ana Sayfa", "Cihaz değişim, FR265 önizleme, randevu ve dijital imza sürecinizi izleyin");
 
-            var filtre = new YkcTalepListeFiltre
-            {
-                Sayfa = 1,
-                SayfaBoyutu = 500
-            };
-
-            var sonuc = await _ykcApiClient.TaleplerAsync(kullanici, filtre) ?? new YkcTalepListeSonuc();
+            var sonuc = await _ykcApiClient.DashboardOzetAsync(kullanici) ?? new YkcDashboardOzetDto();
             return View("~/Views/Ykc/Index.cshtml", sonuc);
         }
 
@@ -133,7 +127,7 @@ namespace YetkiliServisGazAcma.Controllers
 
         [HttpPost("yeni")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Yeni(YkcTalepKaydetDto model, IFormFile? formDosyasi)
+        public async Task<IActionResult> Yeni(YkcTalepKaydetDto model)
         {
             var kullanici = await _userManager.GetUserAsync(User);
             if (kullanici == null)
@@ -164,18 +158,6 @@ namespace YetkiliServisGazAcma.Controllers
             {
                 TempData["Hata"] = sonuc?.Mesaj ?? "Cihaz değişim talebi oluşturulamadı.";
                 return View("~/Views/Ykc/Yeni.cshtml", model);
-            }
-
-            if (formDosyasi != null && formDosyasi.Length > 0)
-            {
-                var dosyaSonuc = await _ykcApiClient.FormYukleAsync(
-                    kullanici,
-                    sonuc.Id.Value,
-                    formDosyasi,
-                    YkcFormDosyaTuruDegerleri.FirmaFormu);
-
-                if (dosyaSonuc?.Basarili != true)
-                    TempData["Hata"] = "Talep oluştu fakat form dosyası yüklenemedi: " + (dosyaSonuc?.Mesaj ?? "API yanıtı alınamadı.");
             }
 
             TempData["Basarili"] = sonuc.Mesaj ?? "Cihaz değişim talebi oluşturuldu.";
@@ -294,6 +276,20 @@ namespace YetkiliServisGazAcma.Controllers
             return RedirectToAction(nameof(Detay), new { id = model.TalepId });
         }
 
+        [HttpPost("kontroller-kaydet")]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel")]
+        public async Task<IActionResult> KontrollerKaydet(YkcKontrolKaydetDto model)
+        {
+            var kullanici = await _userManager.GetUserAsync(User);
+            if (kullanici == null)
+                return Redirect("/giris");
+
+            var sonuc = await _ykcApiClient.KontrollerKaydetAsync(kullanici, model);
+            TempData[sonuc?.Basarili == true ? "Basarili" : "Hata"] = sonuc?.Mesaj ?? "FR265 kontrol adımları kaydedilemedi.";
+            return RedirectToAction(nameof(Detay), new { id = model.TalepId });
+        }
+
         [HttpPost("form-yukle")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> FormYukle(int talepId, IFormFile? formDosyasi, string? dosyaTuru)
@@ -318,7 +314,7 @@ namespace YetkiliServisGazAcma.Controllers
                 kullanici,
                 talepId,
                 formDosyasi,
-                string.IsNullOrWhiteSpace(dosyaTuru) ? YkcFormDosyaTuruDegerleri.FirmaFormu : dosyaTuru);
+                string.IsNullOrWhiteSpace(dosyaTuru) ? YkcFormDosyaTuruDegerleri.TeknikEk : dosyaTuru);
 
             TempData[sonuc?.Basarili == true ? "Basarili" : "Hata"] = sonuc?.Mesaj ?? "Cihaz değişim form dosyası yüklenemedi.";
             return RedirectToAction(nameof(Detay), new { id = talepId });

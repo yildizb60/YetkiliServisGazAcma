@@ -43,6 +43,15 @@ namespace YetkiliServisGazAcma.Business.Services
                 "Cihaz değişim raporu");
         }
 
+        public Task<YkcDashboardOzetDto?> DashboardOzetAsync(AppKullanici kullanici)
+        {
+            return PostAsync<object, YkcDashboardOzetDto>(
+                kullanici,
+                "api/ykc/dashboard/ozet",
+                new { },
+                "Cihaz değişim dashboard özeti");
+        }
+
         public Task<YkcTalepListeSonuc?> DogalgazMobileTaleplerAsync(AppKullanici kullanici, YkcTalepListeFiltre filtre)
         {
             return PostAsync<YkcTalepListeFiltre, YkcTalepListeSonuc>(
@@ -124,6 +133,15 @@ namespace YetkiliServisGazAcma.Business.Services
                 "api/ykc/talepler/durum-guncelle",
                 dto,
                 "Cihaz değişim durum güncelle");
+        }
+
+        public Task<YkcIslemSonuc?> KontrollerKaydetAsync(AppKullanici kullanici, YkcKontrolKaydetDto dto)
+        {
+            return PostAsync<YkcKontrolKaydetDto, YkcIslemSonuc>(
+                kullanici,
+                "api/ykc/talepler/kontroller-kaydet",
+                dto,
+                "Cihaz değişim FR265 kontrol kaydet");
         }
 
         public async Task<YkcIslemSonuc?> FormYukleAsync(
