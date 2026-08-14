@@ -493,51 +493,100 @@ namespace YetkiliServisGazAcma.Business.Services
         {
             query = YetkiKapsamiUygula(query, kullanici, genelYetkili);
 
-            if (filtre.SirketId.HasValue && genelYetkili)
-                query = query.Where(x => x.SirketId == filtre.SirketId.Value);
+            var swaggerOrnekFiltre = SwaggerOrnekFiltreMi(filtre);
+            var sirketId = PozitifId(filtre.SirketId);
+            var firmaId = PozitifId(filtre.FirmaId);
+            var tesisatNo = FiltreMetni(filtre.TesisatNo);
+            var firma = FiltreMetni(filtre.Firma);
+            var il = FiltreMetni(filtre.Il);
+            var ilce = FiltreMetni(filtre.Ilce);
+            var bolge = FiltreMetni(filtre.Bolge);
+            var ekip = FiltreMetni(filtre.Ekip);
+            var marka = FiltreMetni(filtre.Marka);
+            var hedefUygulama = FiltreMetni(filtre.HedefUygulama);
+            var durum = filtre.Durum.GetValueOrDefault() > 0 ? filtre.Durum : null;
+            var baslangicTarihi = swaggerOrnekFiltre ? null : filtre.BaslangicTarihi;
+            var bitisTarihi = swaggerOrnekFiltre ? null : filtre.BitisTarihi;
 
-            if (filtre.FirmaId.HasValue && genelYetkili)
-                query = query.Where(x => x.FirmaId == filtre.FirmaId.Value);
+            if (sirketId.HasValue && genelYetkili)
+                query = query.Where(x => x.SirketId == sirketId.Value);
 
-            if (!string.IsNullOrWhiteSpace(filtre.TesisatNo))
-                query = query.Where(x => x.TesisatNo != null && x.TesisatNo.Contains(filtre.TesisatNo.Trim()));
+            if (firmaId.HasValue && genelYetkili)
+                query = query.Where(x => x.FirmaId == firmaId.Value);
 
-            if (!string.IsNullOrWhiteSpace(filtre.Firma))
-                query = query.Where(x => x.Firma != null && x.Firma.FirmaAdi != null && x.Firma.FirmaAdi.Contains(filtre.Firma.Trim()));
+            if (!string.IsNullOrWhiteSpace(tesisatNo))
+                query = query.Where(x => x.TesisatNo != null && x.TesisatNo.Contains(tesisatNo));
 
-            if (!string.IsNullOrWhiteSpace(filtre.Il))
-                query = query.Where(x => x.Il != null && x.Il.Contains(filtre.Il.Trim()));
+            if (!string.IsNullOrWhiteSpace(firma))
+                query = query.Where(x => x.Firma != null && x.Firma.FirmaAdi != null && x.Firma.FirmaAdi.Contains(firma));
 
-            if (!string.IsNullOrWhiteSpace(filtre.Ilce))
-                query = query.Where(x => x.Ilce != null && x.Ilce.Contains(filtre.Ilce.Trim()));
+            if (!string.IsNullOrWhiteSpace(il))
+                query = query.Where(x => x.Il != null && x.Il.Contains(il));
 
-            if (!string.IsNullOrWhiteSpace(filtre.Bolge))
-                query = query.Where(x => x.Bolge != null && x.Bolge.Contains(filtre.Bolge.Trim()));
+            if (!string.IsNullOrWhiteSpace(ilce))
+                query = query.Where(x => x.Ilce != null && x.Ilce.Contains(ilce));
 
-            if (!string.IsNullOrWhiteSpace(filtre.Ekip))
-                query = query.Where(x => x.AtananEkip != null && x.AtananEkip.Contains(filtre.Ekip.Trim()));
+            if (!string.IsNullOrWhiteSpace(bolge))
+                query = query.Where(x => x.Bolge != null && x.Bolge.Contains(bolge));
 
-            if (!string.IsNullOrWhiteSpace(filtre.Marka))
+            if (!string.IsNullOrWhiteSpace(ekip))
+                query = query.Where(x => x.AtananEkip != null && x.AtananEkip.Contains(ekip));
+
+            if (!string.IsNullOrWhiteSpace(marka))
             {
-                var marka = filtre.Marka.Trim();
                 query = query.Where(x =>
                     (x.EskiMarka != null && x.EskiMarka.Contains(marka)) ||
                     (x.YeniMarka != null && x.YeniMarka.Contains(marka)));
             }
 
-            if (!string.IsNullOrWhiteSpace(filtre.HedefUygulama))
-                query = query.Where(x => x.HedefUygulama == filtre.HedefUygulama);
+            if (!string.IsNullOrWhiteSpace(hedefUygulama))
+                query = query.Where(x => x.HedefUygulama == hedefUygulama);
 
-            if (filtre.Durum.HasValue)
-                query = query.Where(x => x.Durum == filtre.Durum.Value);
+            if (durum.HasValue)
+                query = query.Where(x => x.Durum == durum.Value);
 
-            if (filtre.BaslangicTarihi.HasValue)
-                query = query.Where(x => x.TalepTarihi >= filtre.BaslangicTarihi.Value.Date);
+            if (baslangicTarihi.HasValue)
+                query = query.Where(x => x.TalepTarihi >= baslangicTarihi.Value.Date);
 
-            if (filtre.BitisTarihi.HasValue)
-                query = query.Where(x => x.TalepTarihi < filtre.BitisTarihi.Value.Date.AddDays(1));
+            if (bitisTarihi.HasValue)
+                query = query.Where(x => x.TalepTarihi < bitisTarihi.Value.Date.AddDays(1));
 
             return query;
+        }
+
+        private static int? PozitifId(int? value)
+        {
+            return value.GetValueOrDefault() > 0 ? value : null;
+        }
+
+        private static string? FiltreMetni(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value) || PlaceholderDegerMi(value))
+                return null;
+
+            return value.Trim();
+        }
+
+        private static bool SwaggerOrnekFiltreMi(YkcTalepListeFiltre filtre)
+        {
+            var metinlerdeOrnekVar = new[]
+            {
+                filtre.TesisatNo,
+                filtre.Firma,
+                filtre.Il,
+                filtre.Ilce,
+                filtre.Bolge,
+                filtre.Ekip,
+                filtre.Marka,
+                filtre.HedefUygulama
+            }.Any(PlaceholderDegerMi);
+
+            return metinlerdeOrnekVar
+                && filtre.SirketId.GetValueOrDefault() <= 0
+                && filtre.FirmaId.GetValueOrDefault() <= 0
+                && filtre.Durum.GetValueOrDefault() <= 0
+                && filtre.Sayfa <= 0
+                && filtre.SayfaBoyutu <= 0;
         }
 
         private static IQueryable<Ykc_Talep> YetkiKapsamiUygula(
