@@ -5,17 +5,25 @@
 
 @section Styles {
     <style>
-        .ykc-form-stack { display: grid; gap: 16px; }
+        .ykc-form-stack {
+            --ykc-ink: #10162f;
+            --ykc-purple: #6d5dfc;
+            --ykc-cyan: #16c6e8;
+            --ykc-coral: #f15f78;
+            display: grid;
+            gap: 12px;
+        }
         .ykc-create-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
         .ykc-create-form > .validation-summary-errors,
         .ykc-create-form > .ykc-card:first-of-type,
         .ykc-create-form > .ykc-card:last-of-type { grid-column: 1 / -1; }
         .ykc-create-form > .ykc-card { margin-top: 0 !important; }
-        .ykc-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
-        .ykc-step { background: #fff; border: 1px solid var(--df-border); border-radius: 8px; padding: 12px; display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: start; }
+        .ykc-steps-shell { padding: 0 20px 16px; }
+        .ykc-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+        .ykc-step { background: #fff; border: 1px solid var(--df-border); border-radius: 8px; padding: 10px 11px; display: grid; grid-template-columns: auto 1fr; gap: 9px; align-items: center; }
         .ykc-step-no { width: 28px; height: 28px; border-radius: 999px; display: grid; place-items: center; background: var(--df-primary-soft); color: var(--df-primary); font-weight: 900; }
-        .ykc-step-title { color: var(--df-text); font-size: 13px; font-weight: 850; }
-        .ykc-step-text { color: var(--df-muted); font-size: 12px; line-height: 1.45; margin-top: 3px; }
+        .ykc-step-title { color: var(--df-text); font-size: 12px; font-weight: 900; }
+        .ykc-step-text { color: var(--df-muted); font-size: 11px; line-height: 1.28; margin-top: 2px; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
         .ykc-card { background: #fff; border: 1px solid var(--df-border); border-radius: 8px; overflow: hidden; }
         .ykc-card-head { padding: 16px 20px; border-bottom: 1px solid var(--df-border); background: #f8fafc; display: flex; justify-content: space-between; gap: 12px; align-items: center; }
         .ykc-card-title { color: var(--df-text); font-size: 15px; font-weight: 900; }
@@ -30,15 +38,31 @@
         .ykc-field input:focus, .ykc-field select:focus, .ykc-field textarea:focus { border-color: var(--df-primary); background: #fff; }
         .ykc-required { color: var(--df-danger); }
         .ykc-help { color: var(--df-muted); font-size: 12px; line-height: 1.45; }
-        .ykc-compare-wrap { padding: 18px 20px 20px; display: grid; gap: 14px; }
-        .ykc-device-select { display: grid; gap: 6px; }
-        .ykc-compare-table { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid #dfe6f2; border-radius: 8px; overflow: hidden; background: #fff; }
-        .ykc-compare-table th { background: #f4f7fb; color: var(--df-text); font-size: 12px; font-weight: 900; text-align: left; padding: 12px; border-bottom: 1px solid #dfe6f2; }
-        .ykc-compare-table td { padding: 10px 12px; border-bottom: 1px solid #edf2f7; vertical-align: top; }
+        .ykc-compare-wrap { padding: 18px 20px 20px; display: grid; gap: 14px; overflow-x: auto; }
+        .ykc-device-select {
+            display: grid;
+            gap: 7px;
+            border: 1px solid #dfe8f5;
+            background: linear-gradient(180deg, #fbfdff 0%, #f6f9fe 100%);
+            border-radius: 8px;
+            padding: 12px;
+        }
+        .ykc-device-select label { color: var(--df-text); font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: .035em; }
+        .ykc-device-select select { width: 100%; border: 1.5px solid #d8e1ee; border-radius: 8px; background: #fff; color: var(--df-text); padding: 11px 12px; font-size: 13px; outline: none; }
+        .ykc-device-select select:focus { border-color: var(--df-primary); box-shadow: 0 0 0 3px rgba(46, 78, 200, .10); }
+        .ykc-device-card { grid-column: 1 / -1; }
+        .ykc-compare-table { width: 100%; min-width: 760px; border-collapse: separate; border-spacing: 0; border: 1px solid #dfe6f2; border-radius: 8px; overflow: hidden; background: #fff; }
+        .ykc-compare-table th { background: #f4f7fb; color: var(--df-text); font-size: 12px; font-weight: 900; text-align: left; padding: 13px 12px; border-bottom: 1px solid #dfe6f2; }
+        .ykc-compare-table th:nth-child(2) { background: #f6f8ff; color: #203c9a; }
+        .ykc-compare-table th:nth-child(3) { background: #f2fbf7; color: #18724e; }
+        .ykc-compare-table td { padding: 11px 12px; border-bottom: 1px solid #edf2f7; vertical-align: top; }
         .ykc-compare-table tr:last-child td { border-bottom: 0; }
         .ykc-compare-table .row-label { width: 190px; color: var(--df-muted); font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .035em; background: #fbfcff; }
         .ykc-compare-table input { width: 100%; min-width: 0; border: 1.5px solid #dfe5ee; border-radius: 8px; background: #fff; color: var(--df-text); padding: 10px 12px; font-size: 13px; outline: none; }
         .ykc-compare-table input[readonly] { background: #f5f7fb; color: var(--df-muted); cursor: not-allowed; }
+        .ykc-compare-note { display: flex; gap: 10px; align-items: flex-start; border: 1px solid #dbe7ff; background: #f6f8ff; color: var(--df-text-soft); border-radius: 8px; padding: 11px 12px; font-size: 12px; line-height: 1.45; }
+        .ykc-compare-note strong { color: var(--df-primary); }
+        .ykc-inline-hint { color: var(--df-muted); font-size: 11px; margin-top: 5px; }
         .ykc-hidden-fields { display: none; }
         .ykc-field:has(#EskiCihazTipiKodu),
         .ykc-field:has(#EskiMarkaKodu),
@@ -48,7 +72,85 @@
         .ykc-field:has(#YeniBacaTipiKodu) { display: none; }
         .ykc-query-action { display: flex; align-items: end; }
         .ykc-query-action .df-btn { width: 100%; min-height: 40px; }
+        .ykc-query-strip {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: minmax(220px, .85fr) minmax(0, 2.15fr);
+            gap: 14px;
+            align-items: end;
+            border: 1px solid #dbe6f4;
+            border-radius: 8px;
+            background: linear-gradient(180deg, #fbfdff 0%, #f5f8fd 100%);
+            padding: 14px;
+        }
+        .ykc-query-copy { display: grid; gap: 4px; }
+        .ykc-query-copy strong { color: var(--df-text); font-size: 14px; font-weight: 900; }
+        .ykc-query-copy span { color: var(--df-muted); font-size: 12px; line-height: 1.45; }
+        .ykc-query-inputs {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+            gap: 12px;
+            align-items: end;
+        }
+        .ykc-query-inputs .df-btn {
+            min-width: 150px;
+            min-height: 42px;
+            white-space: nowrap;
+        }
+        .ykc-auto-details {
+            grid-column: 1 / -1;
+            border: 1px solid #e3ebf6;
+            border-radius: 8px;
+            background: #fff;
+            overflow: hidden;
+        }
+        .ykc-auto-details summary {
+            list-style: none;
+            min-height: 42px;
+            padding: 10px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            color: var(--df-text);
+            font-size: 12px;
+            font-weight: 900;
+            cursor: pointer;
+            user-select: none;
+            background: linear-gradient(180deg, #ffffff 0%, #f7faff 100%);
+        }
+        .ykc-auto-details summary::-webkit-details-marker { display: none; }
+        .ykc-auto-details summary::after {
+            content: "Aç";
+            border: 1px solid #d9e2f1;
+            border-radius: 999px;
+            color: var(--df-primary);
+            background: #fff;
+            padding: 5px 10px;
+            font-size: 11px;
+            font-weight: 900;
+        }
+        .ykc-auto-details[open] summary::after { content: "Kapat"; }
+        .ykc-auto-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+            padding: 12px;
+            border-top: 1px solid #edf2f7;
+        }
+        .ykc-digital-note {
+            grid-column: 1 / -1;
+            border: 1px solid #d9e4ff;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #f7fbff 0%, #f6f4ff 100%);
+            color: var(--df-text-soft);
+            padding: 12px 13px;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        .ykc-digital-note strong { color: var(--ykc-purple); }
         .ykc-query-alert { display: none; margin: 0 20px 16px; border-radius: 8px; padding: 12px 14px; font-size: 13px; font-weight: 700; }
+        .ykc-query-card .ykc-query-alert { margin: 0; }
         .ykc-query-alert.success { display: block; background: var(--df-success-soft); border: 1px solid #bcebd4; color: #157347; }
         .ykc-query-alert.warning { display: block; background: var(--df-warning-soft); border: 1px solid #f5d999; color: #8a5a00; }
         .ykc-query-alert.danger { display: block; background: var(--df-danger-soft); border: 1px solid #ffd3d3; color: var(--df-danger); }
@@ -61,11 +163,34 @@
             box-shadow: 0 14px 32px rgba(13, 34, 112, .055);
         }
         .ykc-form-stack > .df-page-panel .df-panel-head {
-            background: linear-gradient(180deg, #ffffff 0%, #f7f9fd 100%);
+            background:
+                radial-gradient(circle at 88% 18%, rgba(22, 198, 232, .30) 0 54px, transparent 56px),
+                radial-gradient(circle at 74% 78%, rgba(109, 93, 252, .32) 0 68px, transparent 70px),
+                linear-gradient(135deg, #10162f 0%, #172557 58%, #513bd6 100%);
+            color: #fff;
+            padding: 16px 20px;
+            position: relative;
+        }
+        .ykc-form-stack > .df-page-panel .df-panel-title {
+            color: #fff;
+            font-size: 20px;
+        }
+        .ykc-form-stack > .df-page-panel .df-panel-subtitle {
+            color: rgba(255, 255, 255, .76);
+            margin-top: 4px;
+        }
+        .ykc-form-stack > .df-page-panel .df-btn-secondary {
+            border-color: rgba(255, 255, 255, .30);
+            background: rgba(255, 255, 255, .10);
+            color: #fff;
+        }
+        .ykc-form-stack > .df-page-panel .df-btn-secondary:hover {
+            background: #fff;
+            color: var(--ykc-ink);
         }
         .ykc-step {
             position: relative;
-            min-height: 94px;
+            min-height: 58px;
             background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
             border-color: #e0e7f2;
             box-shadow: 0 10px 22px rgba(13, 34, 112, .04);
@@ -78,12 +203,12 @@
             bottom: 0;
             height: 3px;
             border-radius: 999px 999px 0 0;
-            background: var(--df-primary);
-            opacity: .65;
+            background: linear-gradient(90deg, var(--df-primary), var(--ykc-cyan));
+            opacity: .86;
         }
-        .ykc-step:nth-child(2)::after { background: #1dbb7a; }
-        .ykc-step:nth-child(3)::after { background: #dc8e0d; }
-        .ykc-step:nth-child(4)::after { background: #7056d8; }
+        .ykc-step:nth-child(2)::after { background: linear-gradient(90deg, #1dbb7a, var(--ykc-cyan)); }
+        .ykc-step:nth-child(3)::after { background: linear-gradient(90deg, #dc8e0d, var(--ykc-coral)); }
+        .ykc-step:nth-child(4)::after { background: linear-gradient(90deg, var(--ykc-purple), var(--ykc-cyan)); }
         .ykc-step-no {
             border-radius: 8px;
             box-shadow: inset 0 0 0 1px rgba(46, 78, 200, .08);
@@ -101,7 +226,7 @@
             width: 7px;
             height: 20px;
             border-radius: 999px;
-            background: var(--df-primary);
+            background: linear-gradient(180deg, var(--df-primary), var(--ykc-purple));
         }
         form .ykc-card:nth-of-type(2) .ykc-card-title::before { background: #1dbb7a; }
         form .ykc-card:nth-of-type(3) .ykc-card-title::before { background: #dc8e0d; }
@@ -124,7 +249,7 @@
             background: #f5f7fb;
         }
         .ykc-help {
-            border-left: 3px solid #dbe7ff;
+            border-left: 3px solid var(--ykc-cyan);
             padding-left: 10px;
         }
         .ykc-query-alert {
@@ -149,10 +274,14 @@
             .ykc-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .ykc-form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .ykc-field.two { grid-column: 1 / -1; }
+            .ykc-auto-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .ykc-query-strip,
+            .ykc-query-inputs { grid-template-columns: 1fr; }
+            .ykc-query-inputs .df-btn { width: 100%; }
         }
         @@media (max-width: 720px) {
             .ykc-create-form,
-            .ykc-steps, .ykc-form-grid { grid-template-columns: 1fr; }
+            .ykc-steps, .ykc-form-grid, .ykc-auto-grid { grid-template-columns: 1fr; }
             .ykc-actions { flex-direction: column; }
         }
     </style>
@@ -168,18 +297,18 @@
         <div class="df-panel-head">
             <div>
                 <h2 class="df-panel-title">Yeni Cihaz Değişim Talebi</h2>
-                <div class="df-panel-subtitle">Yakıcı cihaz değişim formu için tesisat, cihaz ve dosya bilgilerini girin.</div>
+                <div class="df-panel-subtitle">Tesisatı sorgulayın, değişecek cihazı seçin ve yeni cihaz bilgisini dijital kayıt olarak oluşturun.</div>
             </div>
             <div class="df-actions">
                 <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/talepler">Listeye Dön</a>
             </div>
         </div>
-        <div style="padding: 0 24px 20px;">
+        <div class="ykc-steps-shell">
             <div class="ykc-steps">
-                <div class="ykc-step"><div class="ykc-step-no">1</div><div><div class="ykc-step-title">Tesisat</div><div class="ykc-step-text">Tesisat, abone ve konum bilgileri alınır.</div></div></div>
-                <div class="ykc-step"><div class="ykc-step-no">2</div><div><div class="ykc-step-title">Eski Cihaz</div><div class="ykc-step-text">Son projedeki değişecek cihaz bilgisi girilir.</div></div></div>
-                <div class="ykc-step"><div class="ykc-step-no">3</div><div><div class="ykc-step-title">Yeni Cihaz</div><div class="ykc-step-text">Yeni cihaz tipi, marka, baca ve kapasite kaydedilir.</div></div></div>
-                <div class="ykc-step"><div class="ykc-step-no">4</div><div><div class="ykc-step-title">Form</div><div class="ykc-step-text">FR265 veya ilgili imzalı form dosyası eklenir.</div></div></div>
+                <div class="ykc-step"><div class="ykc-step-no">1</div><div><div class="ykc-step-title">Tesisat</div><div class="ykc-step-text">Tesisat ve sözleşme sorgulanır.</div></div></div>
+                <div class="ykc-step"><div class="ykc-step-no">2</div><div><div class="ykc-step-title">Projedeki Cihaz</div><div class="ykc-step-text">Değişimi istenen cihaz seçilir.</div></div></div>
+                <div class="ykc-step"><div class="ykc-step-no">3</div><div><div class="ykc-step-title">Yeni Cihaz</div><div class="ykc-step-text">Yeni cihaz bilgileri girilir.</div></div></div>
+                <div class="ykc-step"><div class="ykc-step-no">4</div><div><div class="ykc-step-title">Dijital Kayıt</div><div class="ykc-step-text">FR265 sistemde dijital hazırlanır.</div></div></div>
             </div>
         </div>
     </section>
@@ -188,29 +317,39 @@
         @Html.AntiForgeryToken()
         @Html.ValidationSummary(false)
 
-        <section class="ykc-card">
+        <section class="ykc-card ykc-query-card">
             <div class="ykc-card-head">
                 <div>
-                    <div class="ykc-card-title">Tesisat ve Müşteri Bilgileri</div>
-                    <div class="ykc-card-subtitle">Bu alanlar talebin hangi tesisat için açıldığını belirler.</div>
+                    <div class="ykc-card-title">Tesisat Sorgulama</div>
+                    <div class="ykc-card-subtitle">Tesisat numarası ile müşteri, sayaç ve projedeki cihaz bilgileri sorgulanır.</div>
                 </div>
             </div>
             <div class="ykc-form-grid">
-                <div class="ykc-field">
-                    <label>Tesisat No <span class="ykc-required">*</span></label>
-                    <input asp-for="TesisatNo" autocomplete="off" required />
-                    <span asp-validation-for="TesisatNo"></span>
-                </div>
-                <div class="ykc-field">
-                    <label>Sözleşme No</label>
-                    <input asp-for="SozlesmeNo" autocomplete="off" />
-                </div>
-                <div class="ykc-field ykc-query-action">
-                    <button type="button" class="df-btn df-btn-primary" id="ykcTesisatSorgulaBtn">Tesisat Sorgula</button>
+                <div class="ykc-query-strip">
+                    <div class="ykc-query-copy">
+                        <strong>Projedeki cihazları getir</strong>
+                        <span>Tesisat ve sözleşme numarası girildiğinde son onaylı projedeki cihazlar listelenir.</span>
+                    </div>
+                    <div class="ykc-query-inputs">
+                        <div class="ykc-field">
+                            <label>Tesisat No <span class="ykc-required">*</span></label>
+                            <input asp-for="TesisatNo" autocomplete="off" required />
+                            <span asp-validation-for="TesisatNo"></span>
+                        </div>
+                        <div class="ykc-field">
+                            <label>Sözleşme No</label>
+                            <input asp-for="SozlesmeNo" autocomplete="off" />
+                        </div>
+                        <button type="button" class="df-btn df-btn-primary" id="ykcTesisatSorgulaBtn">Sorgula</button>
+                    </div>
                 </div>
                 <div class="ykc-field full">
                     <div id="ykcSorguAlert" class="ykc-query-alert"></div>
                 </div>
+
+                <details class="ykc-auto-details">
+                    <summary>Sorgudan gelen tesisat, müşteri ve konum bilgileri</summary>
+                    <div class="ykc-auto-grid">
                 <div class="ykc-field">
                     <label>Abone No</label>
                     <input asp-for="AboneNo" autocomplete="off" />
@@ -235,15 +374,7 @@
                     <label>Müşteri Telefon</label>
                     <input asp-for="MusteriTelefon" autocomplete="off" />
                 </div>
-                <div class="ykc-field">
-                    <label>Kaynak Tipi</label>
-                    <select asp-for="KaynakTipi">
-                        <option value="Manuel">Manuel</option>
-                        <option value="OnlineServis">Online Servis</option>
-                        <option value="Zetacad">Zetacad</option>
-                        <option value="Mobil">Mobil</option>
-                    </select>
-                </div>
+                <input type="hidden" asp-for="KaynakTipi" />
                 <div class="ykc-field">
                     <label>İl</label>
                     <input asp-for="Il" autocomplete="off" />
@@ -260,55 +391,81 @@
                     <label>Adres</label>
                     <textarea asp-for="Adres"></textarea>
                 </div>
+                    </div>
+                </details>
             </div>
         </section>
 
-        <section class="ykc-card" style="margin-top:16px;">
+        <section class="ykc-card ykc-device-card" style="margin-top:16px;">
             <div class="ykc-card-head">
                 <div>
-                    <div class="ykc-card-title">Projedeki Cihaz</div>
-                    <div class="ykc-card-subtitle">Son onaylı projede yer alan ve değişimi talep edilen cihaz.</div>
+                    <div class="ykc-card-title">Cihaz Bilgileri</div>
+                    <div class="ykc-card-subtitle">FR265 formundaki düzene göre projedeki cihaz ve yeni kullanılan cihaz aynı satırda karşılaştırılır.</div>
                 </div>
             </div>
-            <div class="ykc-form-grid">
-                <div class="ykc-field full">
+            <div class="ykc-compare-wrap">
+                <div class="ykc-device-select">
                     <label>Projedeki Cihazlar</label>
                     <select id="ykcServisCihazSecimi" disabled>
                         <option value="">Önce tesisat sorgulayınız</option>
                     </select>
-                    <div class="ykc-help">Servisten gelen cihaz seçilince eski cihaz bilgileri otomatik dolar. Baca tipi servisten gelmediği için manuel girilir.</div>
+                    <div class="ykc-inline-hint">Sorgudan gelen cihaz seçilince projedeki cihaz sütunu dolar. Bilgi gelmezse manuel giriş yapılabilir.</div>
                 </div>
-                <div class="ykc-field">
-                    <label>Eski Cihaz Tipi Kodu</label>
-                    <input asp-for="EskiCihazTipiKodu" autocomplete="off" />
-                </div>
-                <div class="ykc-field">
-                    <label>Yakıcı Cihaz Tipi</label>
-                    <input asp-for="EskiCihazTipi" autocomplete="off" placeholder="Kombi, ocak..." />
-                </div>
-                <div class="ykc-field">
-                    <label>Marka</label>
-                    <input asp-for="EskiMarka" autocomplete="off" />
-                </div>
-                <div class="ykc-field">
-                    <label>Eski Marka Kodu</label>
-                    <input asp-for="EskiMarkaKodu" autocomplete="off" />
-                </div>
-                <div class="ykc-field">
-                    <label>Eski Baca Tipi Kodu</label>
-                    <input asp-for="EskiBacaTipiKodu" autocomplete="off" />
-                </div>
-                <div class="ykc-field">
-                    <label>Baca Tipi</label>
-                    <input asp-for="EskiBacaTipi" autocomplete="off" />
-                </div>
-                <div class="ykc-field">
-                    <label>Kapasite (kcal/h)</label>
-                    <input asp-for="EskiKapasite" autocomplete="off" placeholder="Örn: 24000" />
-                </div>
-                <div class="ykc-field two">
-                    <label>Kontrol Notu</label>
-                    <div class="ykc-help">Eski cihaz tipi, baca tipi ve kapasite alanı doluysa yeni cihazla uyum kontrolü yapılır. Eski veri boşsa kontrol atlanır.</div>
+
+                <input type="hidden" asp-for="EskiCihazTipiKodu" />
+                <input type="hidden" asp-for="EskiMarkaKodu" />
+                <input type="hidden" asp-for="EskiBacaTipiKodu" />
+                <input type="hidden" asp-for="YeniCihazTipiKodu" />
+                <input type="hidden" asp-for="YeniMarkaKodu" />
+                <input type="hidden" asp-for="YeniBacaTipiKodu" />
+
+                <table class="ykc-compare-table">
+                    <thead>
+                        <tr>
+                            <th>Alan</th>
+                            <th>Projedeki Cihaz</th>
+                            <th>Yeni Kullanılan Cihaz</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="row-label">Yakıcı Cihaz Tipi</td>
+                            <td><input asp-for="EskiCihazTipi" autocomplete="off" readonly /></td>
+                            <td>
+                                <input asp-for="YeniCihazTipi" autocomplete="off" placeholder="Kombi, ocak..." required />
+                                <span asp-validation-for="YeniCihazTipi"></span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="row-label">Marka</td>
+                            <td><input asp-for="EskiMarka" autocomplete="off" readonly /></td>
+                            <td>
+                                <input asp-for="YeniMarka" autocomplete="off" required />
+                                <span asp-validation-for="YeniMarka"></span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="row-label">Baca Tipi</td>
+                            <td><input asp-for="EskiBacaTipi" autocomplete="off" readonly /></td>
+                            <td>
+                                <input asp-for="YeniBacaTipi" autocomplete="off" placeholder="Baca tipi" required />
+                                <span asp-validation-for="YeniBacaTipi"></span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="row-label">Kapasite (kcal/h)</td>
+                            <td><input asp-for="EskiKapasite" autocomplete="off" readonly /></td>
+                            <td>
+                                <input asp-for="YeniKapasite" autocomplete="off" placeholder="Örn: 24000" required />
+                                <span asp-validation-for="YeniKapasite"></span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="ykc-compare-note">
+                    <strong>Kontrol</strong>
+                    <span>Projedeki cihaz ve yeni cihaz aynı tabloda görünür. Uyum değerlendirmesi otomatik karar vermez; iç tesisat incelemesinde mühendis tarafından netleştirilir.</span>
                 </div>
             </div>
         </section>
@@ -316,74 +473,27 @@
         <section class="ykc-card" style="margin-top:16px;">
             <div class="ykc-card-head">
                 <div>
-                    <div class="ykc-card-title">Yeni Kullanılan Cihaz</div>
-                    <div class="ykc-card-subtitle">Yeni takılacak cihazın FR265 formunda yer alacak bilgileri.</div>
+                    <div class="ykc-card-title">Dijital Form ve İmza Süreci</div>
+                    <div class="ykc-card-subtitle">Talep kaydedilince FR265 bilgisi sistemde dijital oluşur; imzalı nihai belge arşiv/imza sürecinden izlenir.</div>
                 </div>
             </div>
             <div class="ykc-form-grid">
-                <div class="ykc-field">
-                    <label>Yeni Cihaz Tipi Kodu</label>
-                    <input asp-for="YeniCihazTipiKodu" autocomplete="off" />
+                <div class="ykc-digital-note">
+                    <strong>Ana akış dijitaldir.</strong>
+                    Bu ekranda amaç çıktı alıp elle ilerlemek değil; tesisat ve cihaz bilgisini doğru kayda almak, ardından iç tesisat incelemesi ve dijital imza/arşiv sürecine hazır hale getirmektir.
                 </div>
-                <div class="ykc-field">
-                    <label>Yakıcı Cihaz Tipi <span class="ykc-required">*</span></label>
-                    <input asp-for="YeniCihazTipi" autocomplete="off" placeholder="Kombi, ocak..." required />
-                    <span asp-validation-for="YeniCihazTipi"></span>
-                </div>
-                <div class="ykc-field">
-                    <label>Marka <span class="ykc-required">*</span></label>
-                    <input asp-for="YeniMarka" autocomplete="off" required />
-                    <span asp-validation-for="YeniMarka"></span>
-                </div>
-                <div class="ykc-field">
-                    <label>Yeni Marka Kodu</label>
-                    <input asp-for="YeniMarkaKodu" autocomplete="off" />
-                </div>
-                <div class="ykc-field">
-                    <label>Yeni Baca Tipi Kodu</label>
-                    <input asp-for="YeniBacaTipiKodu" autocomplete="off" />
-                </div>
-                <div class="ykc-field">
-                    <label>Baca Tipi <span class="ykc-required">*</span></label>
-                    <input asp-for="YeniBacaTipi" autocomplete="off" placeholder="Baca tipi" required />
-                    <span asp-validation-for="YeniBacaTipi"></span>
-                </div>
-                <div class="ykc-field">
-                    <label>Kapasite (kcal/h) <span class="ykc-required">*</span></label>
-                    <input asp-for="YeniKapasite" autocomplete="off" placeholder="Örn: 24000" required />
-                    <span asp-validation-for="YeniKapasite"></span>
-                </div>
-                <div class="ykc-field">
-                    <label>Yeni Model</label>
-                    <input asp-for="YeniModel" autocomplete="off" />
-                </div>
-                <div class="ykc-field">
-                    <label>Yeni Seri No</label>
-                    <input asp-for="YeniSeriNo" autocomplete="off" />
-                </div>
-            </div>
-        </section>
-
-        <section class="ykc-card" style="margin-top:16px;">
-            <div class="ykc-card-head">
-                <div>
-                    <div class="ykc-card-title">Form Dosyası</div>
-                    <div class="ykc-card-subtitle">Opsiyonel: Elinizde önceden hazırlanmış imzalı form varsa bu aşamada ekleyebilirsiniz.</div>
-                </div>
-            </div>
-            <div class="ykc-form-grid">
                 <div class="ykc-field two">
-                    <label>Form Dosyası</label>
+                    <label>Geçici Ek / Arşiv Belgesi</label>
                     <input type="file" name="formDosyasi" accept=".pdf,.jpg,.jpeg,.png" />
                 </div>
                 <div class="ykc-field">
-                    <label>Dosya Tipi</label>
-                    <div class="ykc-help">Form yoksa bu alanı boş bırakın. Talep oluştuktan sonra detay ekranında FR265 otomatik doldurulur; oradan önizleyip Word olarak indirebilir, imzalı halini tekrar yükleyebilirsiniz.</div>
+                    <label>Belge Notu</label>
+                    <div class="ykc-help">Şimdilik yalnızca elinizde mevcut bir dijital belge varsa ekleyin. İmza entegrasyonu devreye alındığında sistem imzalı nihai belgeyi arşivden gösterecek.</div>
                 </div>
             </div>
             <div class="ykc-actions">
                 <a class="df-btn df-btn-secondary" href="/ykc/talepler">Vazgeç</a>
-                <button class="df-btn df-btn-primary" type="submit">Talebi Oluştur</button>
+                <button class="df-btn df-btn-primary" type="submit">Dijital Talebi Oluştur</button>
             </div>
         </section>
     </form>
