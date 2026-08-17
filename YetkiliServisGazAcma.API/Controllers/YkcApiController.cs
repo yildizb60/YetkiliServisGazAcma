@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
+using YetkiliServisGazAcma.API.Services;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Business.Services.Online;
 using YetkiliServisGazAcma.Entities;
@@ -23,7 +24,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         private readonly AppDbContext _context;
         private readonly OnlineCihazBilgileriClient _onlineCihazBilgileriClient;
         private readonly SehirFirmaKoduService _sehirFirmaKoduService;
-        private readonly YkcFr265FormService _ykcFr265FormService;
+        private readonly YkcImzaAkisService _ykcImzaAkisService;
 
         public YkcApiController(
             YkcTalepService ykcTalepService,
@@ -32,7 +33,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             AppDbContext context,
             OnlineCihazBilgileriClient onlineCihazBilgileriClient,
             SehirFirmaKoduService sehirFirmaKoduService,
-            YkcFr265FormService ykcFr265FormService)
+            YkcImzaAkisService ykcImzaAkisService)
         {
             _ykcTalepService = ykcTalepService;
             _userManager = userManager;
@@ -40,7 +41,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             _context = context;
             _onlineCihazBilgileriClient = onlineCihazBilgileriClient;
             _sehirFirmaKoduService = sehirFirmaKoduService;
-            _ykcFr265FormService = ykcFr265FormService;
+            _ykcImzaAkisService = ykcImzaAkisService;
         }
 
         [HttpPost("tesisat-sorgula")]
@@ -198,30 +199,64 @@ namespace YetkiliServisGazAcma.API.Controllers
             return Ok(sonuc);
         }
 
-        [HttpPost("talepler/fr265-word")]
-        public async Task<IActionResult> Fr265Word([FromBody] YkcTalepGetirIstek? istek)
+        [HttpPost("imza/entegrasyon")]
+        public IActionResult ImzaEntegrasyonBilgisi()
+        {
+            return Ok(_ykcImzaAkisService.EntegrasyonBilgisi());
+        }
+
+        [HttpPost("talepler/imzaya-gonder")]
+        [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel")]
+        public async Task<IActionResult> ImzayaGonder([FromBody] YkcTalepGetirIstek? istek)
         {
             var kullanici = await AktifKullaniciAsync();
             if (kullanici == null)
                 return Unauthorized(new { basarili = false, mesaj = "Oturum bulunamadı." });
 
             if (istek == null || istek.Id <= 0)
-                return BadRequest(new { basarili = false, mesaj = "Talep id zorunludur." });
+                return BadRequest(YkcIslemSonuc.HataliSonuc("İmza gönderimi için talep id zorunludur."));
 
-            var genelYetkili = await GenelYetkiliMiAsync(kullanici);
-            var detay = await _ykcTalepService.GetirAsync(istek.Id, kullanici, genelYetkili);
-            if (detay == null)
-                return NotFound(new { basarili = false, mesaj = "Cihaz değişim talebi bulunamadı." });
+            if (!_ykcImzaAkisService.EntegrasyonBilgisi().KullanilabilirMi)
+            {
+                return StatusCode(
+                    StatusCodes.Status503ServiceUnavailable,
+                    YkcIslemSonuc.HataliSonuc("Dijital imza sağlayıcısı henüz yapılandırılmadı; belge gönderilmedi."));
+            }
 
-            var belge = _ykcFr265FormService.WordOlustur(detay);
-            await _ykcTalepService.IslemGecmisiEkleAsync(
-                detay.Id,
+            var sonuc = await _ykcImzaAkisService.ImzayaGonderAsync(
+                istek.Id,
                 kullanici,
-                genelYetkili,
-                "FR265WordIndirildi",
-                "FR265 cihaz değişim formu Word olarak üretildi.");
+                await GenelYetkiliMiAsync(kullanici),
+                HttpContext.RequestAborted);
 
-            return File(belge.Bytes, belge.ContentType, belge.DosyaAdi);
+            return sonuc.Basarili ? Ok(sonuc) : BadRequest(sonuc);
+        }
+
+        [HttpPost("talepler/imza-durum-sorgula")]
+        [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel")]
+        public async Task<IActionResult> ImzaDurumSorgula([FromBody] YkcTalepGetirIstek? istek)
+        {
+            var kullanici = await AktifKullaniciAsync();
+            if (kullanici == null)
+                return Unauthorized(new { basarili = false, mesaj = "Oturum bulunamadı." });
+
+            if (istek == null || istek.Id <= 0)
+                return BadRequest(YkcIslemSonuc.HataliSonuc("İmza durumu için talep id zorunludur."));
+
+            if (!_ykcImzaAkisService.EntegrasyonBilgisi().KullanilabilirMi)
+            {
+                return StatusCode(
+                    StatusCodes.Status503ServiceUnavailable,
+                    YkcIslemSonuc.HataliSonuc("Dijital imza sağlayıcısı henüz yapılandırılmadı."));
+            }
+
+            var sonuc = await _ykcImzaAkisService.ImzaDurumunuSorgulaAsync(
+                istek.Id,
+                kullanici,
+                await GenelYetkiliMiAsync(kullanici),
+                HttpContext.RequestAborted);
+
+            return sonuc.Basarili ? Ok(sonuc) : BadRequest(sonuc);
         }
 
         [HttpPost("talepler/dosya-indir")]
@@ -260,6 +295,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return NotFound(new { basarili = false, mesaj = "Dosya fiziksel olarak bulunamadi." });
 
             var bytes = await System.IO.File.ReadAllBytesAsync(fizikselYol, HttpContext.RequestAborted);
+            Response.Headers.CacheControl = "private, no-store";
             var contentType = string.IsNullOrWhiteSpace(dosya.IcerikTipi)
                 ? "application/octet-stream"
                 : dosya.IcerikTipi.Trim();
@@ -380,10 +416,24 @@ namespace YetkiliServisGazAcma.API.Controllers
                 ? YkcFormDosyaTuruDegerleri.TeknikEk
                 : dto.DosyaTuru.Trim();
 
-            if (roller.Contains("SertifikaliFirma") && dosyaTuru != YkcFormDosyaTuruDegerleri.TeknikEk)
-                return Forbid();
+            var icOperasyon = IcOperasyonRoluVarMi(roller);
+            if (!ElleYuklenebilirBelgeTuruMu(dosyaTuru, icOperasyon))
+                return BadRequest(YkcIslemSonuc.HataliSonuc("Bu belge türü kullanıcı yüklemesine açık değildir."));
+
+            if (dosyaTuru == YkcFormDosyaTuruDegerleri.Fr265ImzaliAday
+                && !string.Equals(Path.GetExtension(dto.DosyaAdi ?? dto.DosyaYolu), ".pdf", StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest(YkcIslemSonuc.HataliSonuc("İmzalı belge doğrulama adayı yalnızca PDF olabilir."));
+            }
+
+            if (!string.Equals(dto.DepolamaTuru, YkcDepolamaTuruDegerleri.Private, StringComparison.OrdinalIgnoreCase)
+                || !PrivateDepolamaAnahtariGecerliMi(dto.DosyaYolu, dto.TalepId))
+            {
+                return BadRequest(YkcIslemSonuc.HataliSonuc("Dosya yalnızca YKC private storage anahtarıyla kaydedilebilir."));
+            }
 
             dto.DosyaTuru = dosyaTuru;
+            dto.DepolamaTuru = YkcDepolamaTuruDegerleri.Private;
             var sonuc = await _ykcTalepService.DosyaEkleAsync(dto, kullanici, await GenelYetkiliMiAsync(kullanici));
             return sonuc.Basarili ? Ok(sonuc) : BadRequest(sonuc);
         }
@@ -410,8 +460,15 @@ namespace YetkiliServisGazAcma.API.Controllers
                 ? YkcFormDosyaTuruDegerleri.TeknikEk
                 : istek.DosyaTuru.Trim();
 
-            if (roller.Contains("SertifikaliFirma") && dosyaTuru != YkcFormDosyaTuruDegerleri.TeknikEk)
-                return Forbid();
+            var icOperasyon = IcOperasyonRoluVarMi(roller);
+            if (!ElleYuklenebilirBelgeTuruMu(dosyaTuru, icOperasyon))
+                return BadRequest(YkcIslemSonuc.HataliSonuc("Bu belge türü kullanıcı yüklemesine açık değildir."));
+
+            if (dosyaTuru == YkcFormDosyaTuruDegerleri.Fr265ImzaliAday
+                && !string.Equals(Path.GetExtension(istek.Dosya.FileName), ".pdf", StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest(YkcIslemSonuc.HataliSonuc("İmzalı belge doğrulama adayı yalnızca PDF olabilir."));
+            }
 
             var klasor = Path.Combine(PrivateYkcBelgeRoot(), istek.TalepId.ToString());
             Directory.CreateDirectory(klasor);
@@ -438,6 +495,9 @@ namespace YetkiliServisGazAcma.API.Controllers
                 DepolamaTuru = YkcDepolamaTuruDegerleri.Private,
                 BelgeHash = belgeHash
             }, kullanici, await GenelYetkiliMiAsync(kullanici));
+
+            if (!sonuc.Basarili && System.IO.File.Exists(fizikselYol))
+                System.IO.File.Delete(fizikselYol);
 
             return sonuc.Basarili ? Ok(sonuc) : BadRequest(sonuc);
         }
@@ -526,6 +586,25 @@ namespace YetkiliServisGazAcma.API.Controllers
             await using var stream = System.IO.File.OpenRead(fizikselYol);
             var bytes = await SHA256.HashDataAsync(stream);
             return Convert.ToHexString(bytes);
+        }
+
+        private static bool IcOperasyonRoluVarMi(IEnumerable<string> roller)
+        {
+            return roller.Any(x => x is "GenelSistemAdmin" or "SuperAdmin" or "SirketAdmin" or "Personel");
+        }
+
+        private static bool ElleYuklenebilirBelgeTuruMu(string dosyaTuru, bool icOperasyon)
+        {
+            return dosyaTuru == YkcFormDosyaTuruDegerleri.TeknikEk
+                || (icOperasyon && dosyaTuru == YkcFormDosyaTuruDegerleri.Fr265ImzaliAday);
+        }
+
+        private static bool PrivateDepolamaAnahtariGecerliMi(string? dosyaYolu, int talepId)
+        {
+            var yol = dosyaYolu?.Trim().Replace('\\', '/').TrimStart('/');
+            return !string.IsNullOrWhiteSpace(yol)
+                && !yol.Contains("..", StringComparison.Ordinal)
+                && yol.StartsWith($"ykc/{talepId}/", StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool YkcFormDosyasiGecerliMi(string? dosyaAdi, string? icerikTipi, bool icerikTipiZorunlu)

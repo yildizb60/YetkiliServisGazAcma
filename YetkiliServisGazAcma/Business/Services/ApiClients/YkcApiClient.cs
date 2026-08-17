@@ -52,6 +52,15 @@ namespace YetkiliServisGazAcma.Business.Services
                 "Cihaz değişim dashboard özeti");
         }
 
+        public Task<YkcImzaEntegrasyonDto?> ImzaEntegrasyonBilgisiAsync(AppKullanici kullanici)
+        {
+            return PostAsync<object, YkcImzaEntegrasyonDto>(
+                kullanici,
+                "api/ykc/imza/entegrasyon",
+                new { },
+                "YKC dijital imza entegrasyon bilgisi");
+        }
+
         public Task<YkcTalepListeSonuc?> DogalgazMobileTaleplerAsync(AppKullanici kullanici, YkcTalepListeFiltre filtre)
         {
             return PostAsync<YkcTalepListeFiltre, YkcTalepListeSonuc>(
@@ -86,16 +95,6 @@ namespace YetkiliServisGazAcma.Business.Services
                 "api/ykc/tesisat-sorgula",
                 istek,
                 "Cihaz degisim tesisat sorgula");
-        }
-
-        public Task<ApiDosyaSonuc?> Fr265WordAsync(AppKullanici kullanici, int id)
-        {
-            return PostFileAsync(
-                kullanici,
-                "api/ykc/talepler/fr265-word",
-                new YkcTalepGetirIstek { Id = id },
-                $"FR265_Cihaz_Degisim_Talebi_{id}.docx",
-                "FR265 cihaz degisim formu Word");
         }
 
         public Task<ApiDosyaSonuc?> DosyaIndirAsync(AppKullanici kullanici, int dosyaId)
@@ -142,6 +141,24 @@ namespace YetkiliServisGazAcma.Business.Services
                 "api/ykc/talepler/kontroller-kaydet",
                 dto,
                 "Cihaz değişim FR265 kontrol kaydet");
+        }
+
+        public Task<YkcIslemSonuc?> ImzayaGonderAsync(AppKullanici kullanici, int talepId)
+        {
+            return PostAsync<YkcTalepGetirIstek, YkcIslemSonuc>(
+                kullanici,
+                "api/ykc/talepler/imzaya-gonder",
+                new YkcTalepGetirIstek { Id = talepId },
+                "YKC FR265 imzaya gönder");
+        }
+
+        public Task<YkcIslemSonuc?> ImzaDurumSorgulaAsync(AppKullanici kullanici, int talepId)
+        {
+            return PostAsync<YkcTalepGetirIstek, YkcIslemSonuc>(
+                kullanici,
+                "api/ykc/talepler/imza-durum-sorgula",
+                new YkcTalepGetirIstek { Id = talepId },
+                "YKC FR265 imza durumu sorgula");
         }
 
         public async Task<YkcIslemSonuc?> FormYukleAsync(

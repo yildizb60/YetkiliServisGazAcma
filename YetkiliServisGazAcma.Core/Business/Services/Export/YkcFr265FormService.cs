@@ -31,7 +31,6 @@ namespace YetkiliServisGazAcma.Business.Services
 
                 var document = XDocument.Parse(xml);
                 Doldur(document, talep);
-                KagitKontrolBloklariniKaldir(document);
 
                 documentEntry.Delete();
                 var updatedEntry = archive.CreateEntry("word/document.xml", CompressionLevel.Optimal);
@@ -56,46 +55,148 @@ namespace YetkiliServisGazAcma.Business.Services
                     textNode.Value = $"Tarih : {formTarihi}";
             }
 
-            var tables = document.Descendants(W + "tbl").ToList();
+            var firmaTablosu = FindTable(document, "Sertifikalı Firma Unvanı");
+            var sertifikaTablosu = FindTable(document, "Sertifika Numarası");
+            var tesisatTablosu = FindTable(document, "Tesisat Numarası", "Tüketim Noktası");
+            var cihazTablosu = FindTable(document, "Projedeki Cihaz", "Yeni Kullanılan Cihaz");
+            var ikinciElTablosu = FindTable(document, "Takılan Yakıcı Cihaz İkinci El Cihaz Mı");
+            var firmaImzaTablosu = FindTable(document, "Sertifikalı Firma Yetkilisi");
 
-            SetCellText(tables, 0, 0, 1, talep.FirmaAdi);
-            SetCellText(tables, 1, 0, 1, talep.YetkiBelgesiNo);
+            SetCellText(firmaTablosu, 0, 1, talep.FirmaAdi);
+            SetCellText(sertifikaTablosu, 0, 1, talep.YetkiBelgesiNo);
 
-            SetCellText(tables, 2, 0, 1, talep.MusteriAdi);
-            SetCellText(tables, 2, 1, 1, talep.TesisatNo);
-            SetCellText(tables, 2, 2, 1, talep.TuketimNoktasi);
-            SetCellText(tables, 2, 3, 1, talep.BaglantiNesnesi);
-            SetCellText(tables, 2, 4, 1, talep.Adres);
+            SetCellText(tesisatTablosu, 0, 1, talep.MusteriAdi);
+            SetCellText(tesisatTablosu, 1, 1, talep.TesisatNo);
+            SetCellText(tesisatTablosu, 2, 1, talep.TuketimNoktasi);
+            SetCellText(tesisatTablosu, 3, 1, talep.BaglantiNesnesi);
+            SetCellText(tesisatTablosu, 4, 1, talep.Adres);
 
-            SetCellText(tables, 3, 1, 1, talep.EskiCihazTipi);
-            SetCellText(tables, 3, 1, 2, talep.YeniCihazTipi);
-            SetCellText(tables, 3, 2, 1, talep.EskiMarka);
-            SetCellText(tables, 3, 2, 2, talep.YeniMarka);
-            SetCellText(tables, 3, 3, 1, talep.EskiBacaTipi);
-            SetCellText(tables, 3, 3, 2, talep.YeniBacaTipi);
-            SetCellText(tables, 3, 4, 1, talep.EskiKapasite);
-            SetCellText(tables, 3, 4, 2, talep.YeniKapasite);
+            SetCellText(cihazTablosu, 1, 1, talep.EskiCihazTipi);
+            SetCellText(cihazTablosu, 1, 2, talep.YeniCihazTipi);
+            SetCellText(cihazTablosu, 2, 1, talep.EskiMarka);
+            SetCellText(cihazTablosu, 2, 2, talep.YeniMarka);
+            SetCellText(cihazTablosu, 3, 1, talep.EskiBacaTipi);
+            SetCellText(cihazTablosu, 3, 2, talep.YeniBacaTipi);
+            SetCellText(cihazTablosu, 4, 1, talep.EskiKapasite);
+            SetCellText(cihazTablosu, 4, 2, talep.YeniKapasite);
 
-            SetCellText(tables, 4, 0, 1, talep.IkinciElCihazMi == true ? "☒ Evet" : "☐ Evet");
-            SetCellText(tables, 4, 0, 2, talep.IkinciElCihazMi == false ? "☒ Hayır" : "☐ Hayır");
+            SetCellText(ikinciElTablosu, 0, 1, talep.IkinciElCihazMi == true ? "☒ Evet" : "☐ Evet");
+            SetCellText(ikinciElTablosu, 0, 2, talep.IkinciElCihazMi == false ? "☒ Hayır" : "☐ Hayır");
 
-            SetCellText(tables, 5, 1, 0, FirmaImzaMetni(talep, formTarihi));
+            SetCellText(firmaImzaTablosu, 1, 0, FirmaImzaMetni(talep, formTarihi));
+            KontrolleriDoldur(document, talep.Kontroller);
         }
 
-        private static void KagitKontrolBloklariniKaldir(XDocument document)
+        private static XElement? FindTable(XDocument document, params string[] labels)
         {
-            var kontrolTablolari = document
+            var labelKeys = labels.Select(TextKey).ToList();
+            return document
                 .Descendants(W + "tbl")
-                .Where(table => TableText(table).Contains("KONTROL", StringComparison.OrdinalIgnoreCase))
-                .ToList();
-
-            foreach (var table in kontrolTablolari)
-                table.Remove();
+                .FirstOrDefault(table =>
+                {
+                    var tableKey = TextKey(string.Concat(table.Descendants(W + "t").Select(x => x.Value)));
+                    return labelKeys.All(tableKey.Contains);
+                });
         }
 
-        private static string TableText(XElement table)
+        private static string TextKey(string value)
         {
-            return string.Concat(table.Descendants(W + "t").Select(x => x.Value));
+            return new string(value.Where(char.IsLetterOrDigit).ToArray()).ToUpperInvariant();
+        }
+
+        private static void KontrolleriDoldur(XDocument document, IReadOnlyCollection<YkcFr265KontrolDto> kontroller)
+        {
+            var body = document.Root?.Element(W + "body");
+            if (body == null)
+                return;
+
+            var bodyElements = body.Elements().ToList();
+            for (var kontrolNo = 1; kontrolNo <= 5; kontrolNo++)
+            {
+                var baslikIndex = bodyElements.FindIndex(x =>
+                    x.Name == W + "p" &&
+                    ParagraphText(x).StartsWith($"{kontrolNo}. KONTROL", StringComparison.OrdinalIgnoreCase));
+
+                if (baslikIndex < 0)
+                    continue;
+
+                var kontrol = kontroller.FirstOrDefault(x => x.KontrolNo == kontrolNo);
+                var sonucParagrafi = SonrakiParagraf(bodyElements, baslikIndex + 1);
+                var aciklamaEtiketiIndex = sonucParagrafi == null ? -1 : bodyElements.IndexOf(sonucParagrafi);
+                var aciklamaParagrafi = aciklamaEtiketiIndex < 0
+                    ? null
+                    : SonrakiParagraf(bodyElements, aciklamaEtiketiIndex + 1, "Uygun değil ise nedeni:");
+
+                if (sonucParagrafi != null)
+                    SetParagraphText(sonucParagrafi, KontrolSonucMetni(kontrol?.Sonuc));
+
+                if (aciklamaParagrafi != null)
+                    SetParagraphText(aciklamaParagrafi, KontrolAciklamaMetni(kontrol));
+            }
+        }
+
+        private static XElement? SonrakiParagraf(
+            IReadOnlyList<XElement> elements,
+            int baslangicIndex,
+            string? atlanacakMetin = null)
+        {
+            for (var index = baslangicIndex; index < elements.Count; index++)
+            {
+                var element = elements[index];
+                if (element.Name == W + "tbl")
+                    return null;
+
+                if (element.Name != W + "p")
+                    continue;
+
+                var metin = ParagraphText(element);
+                if (!string.IsNullOrWhiteSpace(atlanacakMetin)
+                    && metin.StartsWith(atlanacakMetin, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                return element;
+            }
+
+            return null;
+        }
+
+        private static string KontrolSonucMetni(string? sonuc)
+        {
+            return sonuc switch
+            {
+                YkcFr265KontrolSonucDegerleri.Uygun => "☒ Uygun      ☐ Uygun Değil",
+                YkcFr265KontrolSonucDegerleri.UygunDegil => "☐ Uygun      ☒ Uygun Değil",
+                YkcFr265KontrolSonucDegerleri.Uygulanmaz => "☐ Uygun      ☐ Uygun Değil      ☒ Uygulanmaz",
+                _ => "☐ Uygun      ☐ Uygun Değil"
+            };
+        }
+
+        private static string KontrolAciklamaMetni(YkcFr265KontrolDto? kontrol)
+        {
+            if (!string.IsNullOrWhiteSpace(kontrol?.Aciklama))
+                return kontrol.Aciklama.Trim();
+
+            return kontrol?.Sonuc == YkcFr265KontrolSonucDegerleri.Uygulanmaz
+                ? "Uygulanmaz"
+                : "................................................................................";
+        }
+
+        private static string ParagraphText(XElement paragraph)
+        {
+            return string.Concat(paragraph.Descendants(W + "t").Select(x => x.Value)).Trim();
+        }
+
+        private static void SetParagraphText(XElement paragraph, string value)
+        {
+            foreach (var child in paragraph.Elements().Where(x => x.Name != W + "pPr").ToList())
+                child.Remove();
+
+            paragraph.Add(new XElement(W + "r",
+                new XElement(W + "t",
+                    new XAttribute(XNamespace.Xml + "space", "preserve"),
+                    value)));
         }
 
         private static string FirmaImzaMetni(YkcTalepDetayDto talep, string formTarihi)
@@ -103,11 +204,11 @@ namespace YetkiliServisGazAcma.Business.Services
             var yetkili = Clean(talep.FirmaYetkiliKisi);
             var satirlar = new List<string>
             {
-                "Sertifikali Firma Yetkilisi",
+                "Sertifikalı Firma Yetkilisi",
                 "",
-                $"Adi ve Soyadi: {yetkili}",
+                $"Adı ve Soyadı: {yetkili}",
                 $"Tarih: {formTarihi}",
-                "Imza:"
+                "İmza:"
             };
 
             return string.Join(Environment.NewLine, satirlar);
@@ -118,12 +219,12 @@ namespace YetkiliServisGazAcma.Business.Services
             return talep.TalepTarihi.ToString("dd.MM.yyyy");
         }
 
-        private static void SetCellText(IReadOnlyList<XElement> tables, int tableIndex, int rowIndex, int cellIndex, string? value)
+        private static void SetCellText(XElement? table, int rowIndex, int cellIndex, string? value)
         {
-            if (tableIndex >= tables.Count)
+            if (table == null)
                 return;
 
-            var rows = tables[tableIndex].Elements(W + "tr").ToList();
+            var rows = table.Elements(W + "tr").ToList();
             if (rowIndex >= rows.Count)
                 return;
 

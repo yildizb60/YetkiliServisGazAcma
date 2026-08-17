@@ -192,6 +192,9 @@ namespace YetkiliServisGazAcma.Controllers
                 return RedirectToAction(nameof(Talepler));
             }
 
+            ViewBag.ImzaEntegrasyonu = await _ykcApiClient.ImzaEntegrasyonBilgisiAsync(kullanici)
+                ?? new YkcImzaEntegrasyonDto();
+
             return View("~/Views/Ykc/Detay.cshtml", detay);
         }
 
@@ -211,24 +214,40 @@ namespace YetkiliServisGazAcma.Controllers
                 return RedirectToAction(nameof(Talepler));
             }
 
+            ViewBag.ImzaEntegrasyonu = await _ykcApiClient.ImzaEntegrasyonBilgisiAsync(kullanici)
+                ?? new YkcImzaEntegrasyonDto();
+
             return View("~/Views/Ykc/Fr265Onizle.cshtml", detay);
         }
 
-        [HttpGet("fr265/indir/{id:int}")]
-        public async Task<IActionResult> Fr265Indir(int id)
+        [HttpPost("imzaya-gonder")]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel")]
+        public async Task<IActionResult> ImzayaGonder(int talepId)
         {
             var kullanici = await _userManager.GetUserAsync(User);
             if (kullanici == null)
                 return Redirect("/giris");
 
-            var dosya = await _ykcApiClient.Fr265WordAsync(kullanici, id);
-            if (dosya == null || dosya.Bytes.Length == 0)
-            {
-                TempData["Hata"] = "FR265 cihaz değişim formu üretilemedi.";
-                return RedirectToAction(nameof(Detay), new { id });
-            }
+            var sonuc = await _ykcApiClient.ImzayaGonderAsync(kullanici, talepId);
+            TempData[sonuc?.Basarili == true ? "Basarili" : "Hata"] = sonuc?.Mesaj
+                ?? "FR265 dijital imza uygulamasına gönderilemedi.";
+            return RedirectToAction(nameof(Detay), new { id = talepId });
+        }
 
-            return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+        [HttpPost("imza-durum-sorgula")]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel")]
+        public async Task<IActionResult> ImzaDurumSorgula(int talepId)
+        {
+            var kullanici = await _userManager.GetUserAsync(User);
+            if (kullanici == null)
+                return Redirect("/giris");
+
+            var sonuc = await _ykcApiClient.ImzaDurumSorgulaAsync(kullanici, talepId);
+            TempData[sonuc?.Basarili == true ? "Basarili" : "Hata"] = sonuc?.Mesaj
+                ?? "FR265 dijital imza durumu alınamadı.";
+            return RedirectToAction(nameof(Detay), new { id = talepId });
         }
 
         [HttpGet("dosya/{id:int}")]

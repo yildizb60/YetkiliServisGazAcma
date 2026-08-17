@@ -99,6 +99,8 @@ builder.Services.AddScoped<AdminPersonelYetkiApiService>();
 builder.Services.AddScoped<YetkiliServisPanelYonetimApiService>();
 builder.Services.AddScoped<DevreyeAlmaExportApiService>();
 builder.Services.AddScoped<YkcFr265FormService>();
+builder.Services.AddScoped<YkcImzaAkisService>();
+builder.Services.AddSingleton<IYkcImzaProvider, YapilandirilmamisYkcImzaProvider>();
 builder.Services.AddSmsServices(builder.Configuration);
 builder.Services.Configure<OnlineServiceOptions>(builder.Configuration.GetSection("OnlineService"));
 builder.Services.AddHttpClient<OnlineCihazBilgileriClient>((serviceProvider, client) =>
@@ -261,6 +263,16 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/uploads/ykc"))
+    {
+        context.Response.StatusCode = StatusCodes.Status404NotFound;
+        return;
+    }
+
+    await next();
+});
 app.UseStaticFiles();
 app.UseRouting();
 app.UseCors("PublicApiCors");

@@ -7,15 +7,31 @@
     var incelemeAdimiAcik = Model.Durum == YkcDurumDegerleri.TalepAlindi;
     var randevuAdimiAcik = atamaYapilabilir;
     var belgeAdimiAcik = !yonetebilir || Model.Durum == YkcDurumDegerleri.Atandi || Model.Durum == YkcDurumDegerleri.SahaIsleminde || Model.Durum == YkcDurumDegerleri.Tamamlandi;
-    var imzaliBelge = Model.Dosyalar.FirstOrDefault(x => x.DosyaTuru == YkcFormDosyaTuruDegerleri.Fr265ImzaliNihai);
     var imzaSureci = Model.ImzaSureci;
-    var imzaliBelgeHazir = imzaliBelge != null || string.Equals(imzaSureci?.Durum, YkcImzaDurumDegerleri.Tamamlandi, StringComparison.OrdinalIgnoreCase);
+    var imzaEntegrasyonu = ViewBag.ImzaEntegrasyonu as YkcImzaEntegrasyonDto ?? new YkcImzaEntegrasyonDto();
+    var imzaliBelge = imzaSureci?.NihaiDosyaId is int nihaiDosyaId
+        ? Model.Dosyalar.FirstOrDefault(x => x.Id == nihaiDosyaId && x.DosyaTuru == YkcFormDosyaTuruDegerleri.Fr265ImzaliNihai)
+        : null;
+    var imzaliBelgeHazir = imzaliBelge != null
+        && !string.IsNullOrWhiteSpace(imzaSureci?.ProviderDocumentId)
+        && string.Equals(imzaSureci?.Durum, YkcImzaDurumDegerleri.Tamamlandi, StringComparison.OrdinalIgnoreCase);
+    var gonderimTakildi = imzaSureci?.Durum == YkcImzaDurumDegerleri.ImzayaGonderildi
+        && string.IsNullOrWhiteSpace(imzaSureci.ProviderDocumentId)
+        && (!imzaSureci.GonderimTarihi.HasValue || imzaSureci.GonderimTarihi <= DateTime.Now.AddMinutes(-5));
+    var imzayaGonderebilir = yonetebilir
+        && imzaEntegrasyonu.KullanilabilirMi
+        && string.IsNullOrWhiteSpace(imzaSureci?.ProviderDocumentId)
+        && (imzaSureci?.Durum is null or YkcImzaDurumDegerleri.Hazir or YkcImzaDurumDegerleri.Hata || gonderimTakildi);
+    var imzaDurumuSorgulanabilir = yonetebilir
+        && imzaEntegrasyonu.KullanilabilirMi
+        && !string.IsNullOrWhiteSpace(imzaSureci?.ProviderDocumentId)
+        && !imzaliBelgeHazir;
     var kontrolSatirlari = Model.Kontroller.Any()
         ? Model.Kontroller
         : Enumerable.Range(1, 5).Select(no => new YkcFr265KontrolDto { KontrolNo = no }).ToList();
-    var formYardimMetni = icOperasyonGorsun
-        ? "FR265 bu talebin verileriyle doldurulur ve önce önizlenir. İmza entegrasyonu devreye alındığında doğru belge imza/arşiv uygulamasına gönderilecek; imzalı nihai belge geri geldiğinde buradan indirilecek."
-        : "FR265 sistemde doldurulur ve önizlenir. İç tesisat incelemesi sonrası imza/arşiv uygulamasına gönderilir; imzalı nihai belge tamamlandığında buradan görüntülenir.";
+    var formYardimMetni = imzaEntegrasyonu.KullanilabilirMi
+        ? "Önizlemesi onaylanan FR265, dijital imza uygulamasına gönderilir. Süreç tamamlandığında yalnızca sağlayıcıdan dönen imzalı nihai belge indirilebilir."
+        : "FR265 önizlemesi hazır. Dijital imza sağlayıcısı bağlandığında aynı belge kilitlenip gönderilecek; bu aşamada imzalanmış gibi işaretlenmeyecek.";
 }
 
 @functions {
@@ -25,6 +41,7 @@
     private static string? Isaretli(bool kosul) => kosul ? "checked" : null;
     private static string? Pasif(bool kosul) => kosul ? "disabled" : null;
     private static string EvetHayir(bool? value) => value.HasValue ? (value.Value ? "Evet" : "Hayır") : "-";
+    private static string KisaHash(string? value) => string.IsNullOrWhiteSpace(value) ? "Belge henüz kilitlenmedi" : $"SHA-256 {value[..Math.Min(value.Length, 16)]}…";
     private static string KontrolYazi(string? eskiDeger, string? yeniDeger)
     {
         if (string.IsNullOrWhiteSpace(eskiDeger))
@@ -80,6 +97,7 @@
         {
             YkcFormDosyaTuruDegerleri.Fr265Taslak => "FR265 Taslak",
             YkcFormDosyaTuruDegerleri.Fr265ImzayaGonderilen => "İmzaya Gönderilen FR265",
+            YkcFormDosyaTuruDegerleri.Fr265ImzaliAday => "Doğrulama Bekleyen İmzalı Belge",
             YkcFormDosyaTuruDegerleri.Fr265ImzaliNihai => "İmzalı Nihai Belge",
             YkcFormDosyaTuruDegerleri.TeknikEk => "Teknik Ek",
             _ => Deger(tur)
@@ -90,7 +108,7 @@
     {
         return durum switch
         {
-            YkcImzaDurumDegerleri.Hazir => "Önizleme Hazır",
+            YkcImzaDurumDegerleri.Hazir => "Önizleme Aşamasında",
             YkcImzaDurumDegerleri.ImzayaGonderildi => "İmzaya Gönderildi",
             YkcImzaDurumDegerleri.ImzaBekliyor => "İmza Bekliyor",
             YkcImzaDurumDegerleri.KismiImzali => "Kısmi İmzalı",
@@ -813,9 +831,10 @@
                             <div class="ykc-check-line">FR265 sürüm @Model.Fr265BelgeVersiyonNo</div>
                         </div>
                         <div class="ykc-check">
-                            <div class="ykc-check-title">Belge Kimliği</div>
-                            <div class="ykc-check-line">@Deger(imzaSureci?.ProviderDocumentId)</div>
-                            <div class="ykc-check-line">@Deger(Model.Fr265BelgeHash)</div>
+                            <div class="ykc-check-title">Belge ve Sağlayıcı</div>
+                            <div class="ykc-check-line">@(string.IsNullOrWhiteSpace(imzaSureci?.ProviderDocumentId) ? "Henüz gönderilmedi" : imzaSureci.ProviderDocumentId)</div>
+                            <div class="ykc-check-line">@KisaHash(Model.Fr265BelgeHash)</div>
+                            <div class="ykc-check-line">@Deger(imzaEntegrasyonu.ProviderAdi)</div>
                         </div>
                         <div class="ykc-check">
                             <div class="ykc-check-title">İmzacı Akışı</div>
@@ -834,7 +853,26 @@
                     </div>
                     <div class="ykc-archive-tools">
                         <a class="df-btn df-btn-primary df-btn-sm" href="/ykc/fr265/onizle/@Model.Id" target="_blank">FR265 Önizle</a>
-                        <span class="df-btn df-btn-secondary df-btn-sm ykc-disabled-action">İmza Uygulamasına Gönder</span>
+                        @if (imzayaGonderebilir)
+                        {
+                            <form method="post" action="/ykc/imzaya-gonder">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="talepId" value="@Model.Id" />
+                                <button class="df-btn df-btn-secondary df-btn-sm" type="submit">İmza Uygulamasına Gönder</button>
+                            </form>
+                        }
+                        else if (!imzaEntegrasyonu.KullanilabilirMi)
+                        {
+                            <span class="df-btn df-btn-secondary df-btn-sm ykc-disabled-action">İmza Entegrasyonu Bekleniyor</span>
+                        }
+                        @if (imzaDurumuSorgulanabilir)
+                        {
+                            <form method="post" action="/ykc/imza-durum-sorgula">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="talepId" value="@Model.Id" />
+                                <button class="df-btn df-btn-secondary df-btn-sm" type="submit">İmza Durumunu Güncelle</button>
+                            </form>
+                        }
                         @if (imzaliBelge != null)
                         {
                             <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/dosya/@imzaliBelge.Id" target="_blank">İmzalı Belge İndir</a>
@@ -847,14 +885,14 @@
                     @if (icOperasyonGorsun)
                     {
                         <details class="ykc-technical-upload">
-                            <summary>Entegrasyon öncesi teknik belge ekleme</summary>
+                            <summary>Geçiş dönemi belge kaydı</summary>
                             <form method="post" action="/ykc/form-yukle" enctype="multipart/form-data" class="ykc-upload">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="talepId" value="@Model.Id" />
                             <div class="ykc-field">
                                 <label>Belge Türü</label>
                                 <select name="dosyaTuru">
-                                    <option value="@YkcFormDosyaTuruDegerleri.Fr265ImzaliNihai">İmzalı Nihai Belge</option>
+                                    <option value="@YkcFormDosyaTuruDegerleri.Fr265ImzaliAday">Doğrulama Bekleyen İmzalı Belge</option>
                                     <option value="@YkcFormDosyaTuruDegerleri.TeknikEk">Teknik Ek</option>
                                 </select>
                             </div>

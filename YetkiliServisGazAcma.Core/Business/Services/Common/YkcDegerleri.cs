@@ -36,6 +36,7 @@ namespace YetkiliServisGazAcma.Business.Services
     {
         public const string Fr265Taslak = "FR265_TASLAK";
         public const string Fr265ImzayaGonderilen = "FR265_IMZAYA_GONDERILEN";
+        public const string Fr265ImzaliAday = "FR265_IMZALI_ADAY";
         public const string Fr265ImzaliNihai = "FR265_IMZALI_NIHAI";
         public const string TeknikEk = "TEKNIK_EK";
     }

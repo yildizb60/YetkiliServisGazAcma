@@ -2,6 +2,15 @@
 @{
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
     var formTarihi = Model.TalepTarihi.ToString("dd.MM.yyyy");
+    var imzaEntegrasyonu = ViewBag.ImzaEntegrasyonu as YkcImzaEntegrasyonDto ?? new YkcImzaEntegrasyonDto();
+    var icOperasyon = User.IsInRole("GenelSistemAdmin") || User.IsInRole("SuperAdmin") || User.IsInRole("SirketAdmin") || User.IsInRole("Personel");
+    var gonderimTakildi = Model.ImzaSureci?.Durum == YkcImzaDurumDegerleri.ImzayaGonderildi
+        && string.IsNullOrWhiteSpace(Model.ImzaSureci.ProviderDocumentId)
+        && (!Model.ImzaSureci.GonderimTarihi.HasValue || Model.ImzaSureci.GonderimTarihi <= DateTime.Now.AddMinutes(-5));
+    var imzayaGonderebilir = icOperasyon
+        && imzaEntegrasyonu.KullanilabilirMi
+        && string.IsNullOrWhiteSpace(Model.ImzaSureci?.ProviderDocumentId)
+        && (Model.ImzaSureci?.Durum is null or YkcImzaDurumDegerleri.Hazir or YkcImzaDurumDegerleri.Hata || gonderimTakildi);
 }
 
 @functions {
@@ -70,7 +79,18 @@
     </div>
     <div class="df-actions">
         <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/detay/@Model.Id">Detaya Dön</a>
-        <span class="df-btn df-btn-primary df-btn-sm" style="pointer-events:none;opacity:.65;">İmza Uygulamasına Gönder</span>
+        @if (imzayaGonderebilir)
+        {
+            <form method="post" action="/ykc/imzaya-gonder">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="talepId" value="@Model.Id" />
+                <button class="df-btn df-btn-primary df-btn-sm" type="submit">İmza Uygulamasına Gönder</button>
+            </form>
+        }
+        else if (!imzaEntegrasyonu.KullanilabilirMi)
+        {
+            <span class="df-btn df-btn-secondary df-btn-sm" style="pointer-events:none;opacity:.65;">İmza Entegrasyonu Bekleniyor</span>
+        }
     </div>
 </div>
 
