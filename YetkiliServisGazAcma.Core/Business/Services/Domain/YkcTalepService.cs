@@ -75,16 +75,24 @@ namespace YetkiliServisGazAcma.Business.Services
                 .Take(8)
                 .ToListAsync();
 
+            var sayfa = Math.Max(filtre.Sayfa, 1);
+            var sayfaBoyutu = Math.Clamp(filtre.SayfaBoyutu <= 0 ? 10 : filtre.SayfaBoyutu, 10, 100);
+            var toplamSayfa = Math.Max(1, (int)Math.Ceiling(toplam / (double)sayfaBoyutu));
+            sayfa = Math.Min(sayfa, toplamSayfa);
+
             var kayitlar = await query
                 .OrderByDescending(x => x.TalepTarihi)
                 .ThenByDescending(x => x.Id)
-                .Take(500)
+                .Skip((sayfa - 1) * sayfaBoyutu)
+                .Take(sayfaBoyutu)
                 .ToListAsync();
 
             return new YkcRaporSonuc
             {
                 Toplam = toplam,
-                KayitLimiti = 500,
+                Sayfa = sayfa,
+                SayfaBoyutu = sayfaBoyutu,
+                KayitLimiti = sayfaBoyutu,
                 DurumOzetleri = durumOzetleri,
                 HedefOzetleri = hedefOzetleri,
                 EkipOzetleri = ekipOzetleri,
@@ -946,6 +954,8 @@ namespace YetkiliServisGazAcma.Business.Services
     public class YkcRaporSonuc
     {
         public int Toplam { get; set; }
+        public int Sayfa { get; set; } = 1;
+        public int SayfaBoyutu { get; set; } = 10;
         public int KayitLimiti { get; set; }
         public List<YkcRaporDurumOzetDto> DurumOzetleri { get; set; } = new();
         public List<YkcRaporMetinOzetDto> HedefOzetleri { get; set; } = new();

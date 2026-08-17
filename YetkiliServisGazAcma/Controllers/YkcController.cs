@@ -30,6 +30,8 @@ namespace YetkiliServisGazAcma.Controllers
             PanelViewBag(kullanici, "YkcOzet", "Ana Sayfa", "Cihaz değişim, FR265 önizleme, randevu ve dijital imza sürecinizi izleyin");
 
             var sonuc = await _ykcApiClient.DashboardOzetAsync(kullanici) ?? new YkcDashboardOzetDto();
+            ViewBag.ImzaEntegrasyonu = await _ykcApiClient.ImzaEntegrasyonBilgisiAsync(kullanici)
+                ?? new YkcImzaEntegrasyonDto();
             return View("~/Views/Ykc/Index.cshtml", sonuc);
         }
 
@@ -85,7 +87,9 @@ namespace YetkiliServisGazAcma.Controllers
             string? hedefUygulama,
             int? durum,
             DateTime? bas,
-            DateTime? bit)
+            DateTime? bit,
+            int sayfa = 1,
+            int sayfaBoyutu = 10)
         {
             var kullanici = await _userManager.GetUserAsync(User);
             if (kullanici == null)
@@ -106,8 +110,8 @@ namespace YetkiliServisGazAcma.Controllers
                 Durum = durum,
                 BaslangicTarihi = bas,
                 BitisTarihi = bit,
-                Sayfa = 1,
-                SayfaBoyutu = 500
+                Sayfa = Math.Max(sayfa, 1),
+                SayfaBoyutu = Math.Clamp(sayfaBoyutu, 10, 100)
             };
 
             var sonuc = await _ykcApiClient.RaporAsync(kullanici, filtre) ?? new YkcRaporSonuc();

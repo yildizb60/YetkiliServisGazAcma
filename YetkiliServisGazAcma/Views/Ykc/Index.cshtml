@@ -8,6 +8,7 @@
     var tamamlanan = Model.Tamamlanan;
     var imzaBekleyen = Model.ImzaBekleyen;
     var imzaliNihai = Model.ImzaliNihai;
+    var imzaEntegrasyonu = ViewBag.ImzaEntegrasyonu as YkcImzaEntegrasyonDto ?? new YkcImzaEntegrasyonDto();
     var bekleyen = Math.Max(toplam - tamamlanan - Model.RedIptal, 0);
     var sonTalepler = Model.SonTalepler;
     var adSoyad = kullanici?.AdSoyad ?? kullanici?.Email ?? "Sertifikalı Firma";
@@ -80,7 +81,7 @@
             Title = "Dijital İmza",
             Url = "/ykc/talepler",
             Icon = "bi bi-send-check",
-            Done = tamamlanan,
+            Done = imzaliNihai,
             Total = Math.Max(toplam, 1),
             Subtitle = "Nihai Belge / Toplam",
             Stat1Label = "FR265",
@@ -130,20 +131,7 @@
 
     private static string Deger(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
 
-    private static string DurumYazi(int durum)
-    {
-        return durum switch
-        {
-            YkcDurumDegerleri.TalepAlindi => "Beklemede",
-            YkcDurumDegerleri.AtamaBekliyor => "İncelemede",
-            YkcDurumDegerleri.Atandi => "Randevu Verildi",
-            YkcDurumDegerleri.SahaIsleminde => "Saha İşleminde",
-            YkcDurumDegerleri.Reddedildi => "Reddedildi",
-            YkcDurumDegerleri.Tamamlandi => "Tamamlandı",
-            YkcDurumDegerleri.Iptal => "İptal",
-            _ => "Bilinmiyor"
-        };
-    }
+    private static string DurumYazi(int durum) => YkcDurumSunumu.Etiket(durum);
 
     private static string RandevuYazi(DateTime? tarih, string? saat)
     {
@@ -265,7 +253,7 @@
                             <div class="kpi-tile"><div class="kpi-icon"><i class="bi bi-eye"></i></div><div class="kpi-n">@toplam</div><div class="kpi-lbl">Önizlenebilir</div></div>
                             <div class="kpi-tile"><div class="kpi-icon ic-warn"><i class="bi bi-send"></i></div><div class="kpi-n">@imzaBekleyen</div><div class="kpi-lbl">İmza Bekleyen</div></div>
                             <div class="kpi-tile"><div class="kpi-icon ic-green"><i class="bi bi-file-earmark-check"></i></div><div class="kpi-n">@imzaliNihai</div><div class="kpi-lbl">Nihai Belge</div></div>
-                            <div class="kpi-tile"><div class="kpi-icon ic-teal"><i class="bi bi-plug"></i></div><div class="kpi-n">0</div><div class="kpi-lbl">Entegrasyon</div></div>
+                            <div class="kpi-tile"><div class="kpi-icon ic-teal"><i class="bi bi-plug"></i></div><div class="kpi-n">@(imzaEntegrasyonu.KullanilabilirMi ? "Aktif" : "Bekliyor")</div><div class="kpi-lbl">Entegrasyon</div></div>
                         </div>
                     </div>
                     <div class="chart-pane">
