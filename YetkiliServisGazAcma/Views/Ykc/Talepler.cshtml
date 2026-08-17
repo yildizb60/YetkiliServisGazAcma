@@ -1,27 +1,54 @@
 @model YkcTalepListeSonuc
 @{
+    Layout = "~/Views/Shared/_PanelLayout.cshtml";
     var filtre = ViewBag.Filtre as YkcTalepListeFiltre ?? new YkcTalepListeFiltre();
+    var ozet = ViewBag.Ozet as YkcDashboardOzetDto ?? new YkcDashboardOzetDto();
     var sertifikaliFirmaMi = User.IsInRole("SertifikaliFirma");
     var icOperasyonGorsun = !sertifikaliFirmaMi;
-    var incelemedeSayisi = Model.Talepler.Count(x => x.Durum == YkcDurumDegerleri.TalepAlindi || x.Durum == YkcDurumDegerleri.AtamaBekliyor);
-    var randevuSayisi = Model.Talepler.Count(x => x.Durum == YkcDurumDegerleri.Atandi || x.RandevuTarihi.HasValue);
-    var tamamlananSayisi = Model.Talepler.Count(x => x.Durum == YkcDurumDegerleri.Tamamlandi);
-    Layout = "~/Views/Shared/_PanelLayout.cshtml";
+    var aktifFiltreler = new List<(string Etiket, string Deger)>();
+    var toplamSayfa = Model.SayfaBoyutu > 0
+        ? Math.Max((int)Math.Ceiling(Model.Toplam / (double)Model.SayfaBoyutu), 1)
+        : 1;
+
+    void AktifFiltreEkle(string etiket, string? deger)
+    {
+        if (!string.IsNullOrWhiteSpace(deger))
+            aktifFiltreler.Add((etiket, deger));
+    }
+
+    AktifFiltreEkle("Tesisat", filtre.TesisatNo);
+    AktifFiltreEkle("Firma", filtre.Firma);
+    AktifFiltreEkle("İl", filtre.Il);
+    AktifFiltreEkle("İlçe", filtre.Ilce);
+    AktifFiltreEkle("Bölge", filtre.Bolge);
+    if (filtre.Durum.HasValue)
+        AktifFiltreEkle("Durum", DurumYazi(filtre.Durum.Value));
+    if (filtre.BaslangicTarihi.HasValue)
+        AktifFiltreEkle("Başlangıç", filtre.BaslangicTarihi.Value.ToString("dd.MM.yyyy"));
+    if (filtre.BitisTarihi.HasValue)
+        AktifFiltreEkle("Bitiş", filtre.BitisTarihi.Value.ToString("dd.MM.yyyy"));
 }
 
 @functions {
     private static string Deger(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
     private static string? Secili(bool kosul) => kosul ? "selected" : null;
+
     private static string RandevuYazi(DateTime? tarih, string? saat)
     {
         if (!tarih.HasValue && string.IsNullOrWhiteSpace(saat))
-            return "-";
+            return "Randevu bekliyor";
 
         return string.Join(" ", new[]
         {
             tarih?.ToString("dd.MM.yyyy"),
             string.IsNullOrWhiteSpace(saat) ? null : saat
         }.Where(x => !string.IsNullOrWhiteSpace(x)));
+    }
+
+    private static string KonumYazi(params string?[] parcalar)
+    {
+        var sonuc = string.Join(" / ", parcalar.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x!.Trim()));
+        return string.IsNullOrWhiteSpace(sonuc) ? "-" : sonuc;
     }
 
     private static string SayfaUrl(YkcTalepListeFiltre filtre, int sayfa)
@@ -36,7 +63,6 @@
         Ekle(query, "bas", filtre.BaslangicTarihi?.ToString("yyyy-MM-dd"));
         Ekle(query, "bit", filtre.BitisTarihi?.ToString("yyyy-MM-dd"));
         Ekle(query, "sayfa", sayfa.ToString());
-
         return "/ykc/talepler" + (query.Count == 0 ? "" : "?" + string.Join("&", query));
     }
 
@@ -71,180 +97,13 @@
             _ => "df-pill-warning"
         };
     }
-
 }
 
-@section Styles {
-    <style>
-        .ykc-stack { display: grid; gap: 16px; }
-        .ykc-list-hero { overflow: hidden; border-color: #dfe6f2; }
-        .ykc-list-hero { overflow: hidden; border-color: #dfe6f2; }
-        .ykc-list-hero .df-panel-head {
-            align-items: flex-start;
-            background:
-                radial-gradient(circle at 88% 18%, rgba(22, 198, 232, .30) 0 54px, transparent 56px),
-                radial-gradient(circle at 74% 78%, rgba(109, 93, 252, .32) 0 68px, transparent 70px),
-                linear-gradient(135deg, #10162f 0%, #172557 58%, #513bd6 100%);
-            color: #fff;
-            padding: 16px 20px;
-        }
-        .ykc-list-hero .df-panel-title { color: #fff; font-size: 20px; }
-        .ykc-list-hero .df-panel-subtitle { color: rgba(255,255,255,.78); }
-        .ykc-list-hero .df-btn-secondary { border-color: rgba(255,255,255,.42); color: #fff; background: rgba(255,255,255,.10); }
-        .ykc-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; padding: 4px 24px 22px; }
-        .ykc-metric { position: relative; background: #fff; border: 1px solid #e5ebf4; border-radius: 8px; padding: 15px 17px; min-width: 0; box-shadow: 0 10px 24px rgba(13, 34, 112, .045); }
-        .ykc-metric::before { content: ""; position: absolute; left: 0; top: 12px; bottom: 12px; width: 3px; border-radius: 999px; background: var(--df-primary); }
-        .ykc-metric:nth-child(2)::before { background: #dc8e0d; }
-        .ykc-metric:nth-child(3)::before { background: #1dbb7a; }
-        .ykc-metric:nth-child(4)::before { background: #7056d8; }
-        .ykc-metric-label { color: #6d7890; font-size: 11px; font-weight: 850; text-transform: uppercase; letter-spacing: .04em; }
-        .ykc-metric-value { color: #172033; font-size: 25px; font-weight: 900; line-height: 1; margin-top: 9px; }
-        .ykc-flow { display: grid; grid-template-columns: repeat(4, minmax(210px, 1fr)); gap: 12px; }
-        .ykc-flow-step { position: relative; border: 1px solid #e2e8f2; background: linear-gradient(180deg, #fff 0%, #fbfcff 100%); border-radius: 8px; padding: 15px 16px; display: grid; grid-template-columns: 36px 1fr; grid-template-areas: "no title" "no text"; gap: 4px 12px; align-items: start; min-width: 0; min-height: 108px; box-shadow: 0 12px 24px rgba(13, 34, 112, .045); }
-        .ykc-flow-step::after { content: ""; position: absolute; left: 16px; right: 16px; bottom: 0; height: 3px; border-radius: 999px 999px 0 0; background: var(--df-primary); opacity: .75; }
-        .ykc-flow-no { grid-area: no; width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; background: var(--df-primary-soft); color: var(--df-primary); font-weight: 900; font-size: 12px; }
-        .ykc-flow-title { grid-area: title; color: var(--df-text); font-size: 13px; font-weight: 900; line-height: 1.25; }
-        .ykc-flow-text { grid-area: text; color: var(--df-muted); font-size: 12px; line-height: 1.45; max-width: 32ch; }
-        .filtre-kart { background: #fff; border-radius: 8px; border: 1px solid var(--df-border); padding: 20px 24px; box-shadow: 0 10px 26px rgba(13, 34, 112, .045); }
-        .filtre-baslik { font-size: 14px; font-weight: 900; color: var(--df-text); margin-bottom: 16px; border-bottom: 1px solid var(--df-border); padding-bottom: 12px; }
-        .filtre-grid { display: grid; grid-template-columns: repeat(6, minmax(130px, 1fr)); gap: 14px; align-items: end; }
-        .filtre-alan { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-        .filtre-alan label { font-size: 11px; color: #68758c; font-weight: 850; text-transform: uppercase; letter-spacing: .04em; }
-        .filtre-alan input, .filtre-alan select { padding: 10px 12px; border: 1.5px solid #dfe5ee; border-radius: 8px; font-size: 13px; outline: none; color: var(--df-text); background: #fafbfc; width: 100%; min-width: 0; }
-        .filtre-alan input:focus, .filtre-alan select:focus { border-color: var(--df-primary); background: #fff; box-shadow: 0 0 0 3px rgba(46, 78, 200, .08); }
-        .filtre-butonlar { display: flex; gap: 10px; margin-top: 16px; }
-        .ykc-table-head, .ykc-table-row { display: grid; grid-template-columns: .85fr .9fr .9fr 1.2fr 1.2fr .95fr .75fr; align-items: center; gap: 10px; }
-        .ykc-table-head.ykc-table-internal, .ykc-table-row.ykc-table-internal { grid-template-columns: .75fr 1fr .8fr .85fr 1.05fr 1.05fr .9fr .75fr; }
-        .ykc-table-head { padding: 12px 20px; background: #f4f7fb; color: #566280; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--df-border); }
-        .ykc-table-row { margin: 10px 12px; padding: 14px 14px; border: 1px solid #e8edf5; border-radius: 8px; color: var(--df-text-soft); font-size: 13px; background: #fff; box-shadow: 0 8px 18px rgba(13, 34, 112, .035); }
-        .ykc-table-row:hover { border-color: #d6def0; background: #fbfcff; }
-        .ykc-code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; color: var(--df-primary); font-weight: 850; }
-        .ykc-muted { color: var(--df-muted); font-size: 12px; }
-        .ykc-empty { padding: 42px; text-align: center; color: var(--df-muted); }
-        .ykc-device { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .ykc-pager { display: flex; justify-content: space-between; gap: 12px; align-items: center; border-top: 1px solid var(--df-border); padding: 14px 20px; color: var(--df-muted); font-size: 12px; }
-        .ykc-pager-actions { display: flex; gap: 8px; align-items: center; }
-        .ykc-stack > .df-page-panel,
-        .filtre-kart {
-            border-color: #dfe6f2;
-            box-shadow: 0 14px 32px rgba(13, 34, 112, .055);
-        }
-        .ykc-list-hero .df-panel-head {
-            border-bottom-color: #e6edf7;
-        }
-        .ykc-metric {
-            background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
-        }
-        .ykc-metric-value {
-            letter-spacing: 0;
-        }
-        .ykc-flow-step {
-            background: #fff;
-            border-color: #dfe6f2;
-        }
-        .ykc-flow-step:nth-child(2)::after { background: #1dbb7a; }
-        .ykc-flow-step:nth-child(3)::after { background: #dc8e0d; }
-        .ykc-flow-step:nth-child(4)::after { background: #7056d8; }
-        .ykc-flow-step:nth-child(2) .ykc-flow-no { background: #edfaf4; color: #16875b; }
-        .ykc-flow-step:nth-child(3) .ykc-flow-no { background: #fff9ec; color: #a76308; }
-        .ykc-flow-step:nth-child(4) .ykc-flow-no { background: #f2f0ff; color: #5940bd; }
-        .filtre-kart {
-            padding: 0;
-            overflow: hidden;
-        }
-        .filtre-baslik {
-            display: flex;
-            align-items: center;
-            gap: 9px;
-            margin: 0;
-            padding: 15px 20px;
-            background: #fff;
-        }
-        .filtre-baslik::before {
-            content: "";
-            width: 7px;
-            height: 20px;
-            border-radius: 999px;
-            background: var(--df-primary);
-        }
-        .filtre-kart form {
-            padding: 18px 20px 20px;
-        }
-        .filtre-alan input,
-        .filtre-alan select {
-            background: #fff;
-            transition: border-color .16s ease, box-shadow .16s ease;
-        }
-        .ykc-table-head {
-            background: #f7f9fd;
-        }
-        .ykc-table-row {
-            position: relative;
-            background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
-        }
-        .ykc-table-row::before {
-            content: "";
-            position: absolute;
-            left: 0;
-            top: 12px;
-            bottom: 12px;
-            width: 3px;
-            border-radius: 999px;
-            background: #dbe4f2;
-        }
-        .ykc-table-row:hover::before {
-            background: var(--df-primary);
-        }
-        .ykc-toggle-panel summary {
-            list-style: none;
-            cursor: pointer;
-            user-select: none;
-        }
-        .ykc-toggle-panel summary::-webkit-details-marker {
-            display: none;
-        }
-        .ykc-toggle-panel summary .df-panel-head,
-        .ykc-toggle-panel summary.filtre-baslik {
-            margin: 0;
-        }
-        .ykc-toggle-panel summary .df-actions::after,
-        .ykc-toggle-panel summary.filtre-baslik::after {
-            content: "Aç";
-            border: 1px solid #dbe3ef;
-            border-radius: 999px;
-            color: var(--df-primary);
-            background: #fff;
-            font-size: 11px;
-            font-weight: 900;
-            padding: 6px 10px;
-            margin-left: auto;
-        }
-        .ykc-toggle-panel[open] summary .df-actions::after,
-        .ykc-toggle-panel[open] summary.filtre-baslik::after {
-            content: "Kapat";
-        }
-        .ykc-empty {
-            margin: 12px;
-            border: 1px dashed #dbe3ee;
-            border-radius: 8px;
-            background: #fbfcff;
-        }
-        @@media (max-width: 1250px) {
-            .filtre-grid { grid-template-columns: repeat(3, minmax(160px, 1fr)); }
-            .ykc-metrics, .ykc-flow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-            .ykc-table-head { display: none; }
-            .ykc-table-row { grid-template-columns: 1fr; align-items: stretch; }
-            .ykc-table-row > div::before { content: attr(data-label); display: block; color: var(--df-muted); font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 3px; }
-        }
-        @@media (max-width: 760px) {
-            .filtre-grid, .ykc-metrics, .ykc-flow { grid-template-columns: 1fr; }
-            .filtre-butonlar, .df-actions, .ykc-pager { flex-direction: column; align-items: stretch; }
-            .ykc-pager-actions { justify-content: stretch; }
-        }
-    </style>
+@section PageStyles {
+    <link rel="stylesheet" href="~/css/ykc-operations.css" asp-append-version="true" />
 }
 
-<div class="ykc-stack">
+<div class="ykc-workspace">
     @if (TempData["Basarili"] != null)
     {
         <div class="df-alert df-alert-success">@TempData["Basarili"]</div>
@@ -254,101 +113,86 @@
         <div class="df-alert df-alert-danger">@TempData["Hata"]</div>
     }
 
-    <section class="df-page-panel ykc-list-hero">
+    <section class="ykc-workspace-hero">
         <div class="df-panel-head">
-            <div>
-                <h2 class="df-panel-title">@(sertifikaliFirmaMi ? "Cihaz Değişim Talepleri" : "İç Tesisat Cihaz Değişim Kuyruğu")</h2>
-                <div class="df-panel-subtitle">@(sertifikaliFirmaMi ? "Yakıcı cihaz değişim formlarınızı ve randevu durumunu takip edin." : "Form, randevu, ekip ataması ve saha sonucunu tek ekrandan takip edin.")</div>
+            <div class="ykc-hero-title-wrap">
+                <span class="ykc-hero-mark"><i class="bi bi-fire"></i></span>
+                <div>
+                    <h1 class="df-panel-title">@(sertifikaliFirmaMi ? "Cihaz Değişim Talepleri" : "Cihaz Değişim Operasyonları")</h1>
+                    <div class="df-panel-subtitle">@(sertifikaliFirmaMi ? "FR265, randevu ve dijital imza durumlarını tek listeden izleyin." : "İnceleme, ekip ataması, saha ve imza bekleyen kayıtları yönetin.")</div>
+                </div>
             </div>
             @if (sertifikaliFirmaMi)
             {
                 <div class="df-actions">
-                    <a class="df-btn df-btn-primary df-btn-sm" href="/ykc/yeni">Yeni Cihaz Değişim Talebi</a>
+                    <a class="ykc-hero-action" href="/ykc/yeni"><i class="bi bi-plus-lg"></i><span>Yeni Talep</span></a>
                 </div>
             }
         </div>
-        <div class="ykc-metrics">
-            <div class="ykc-metric">
-                <div class="ykc-metric-label">Toplam</div>
-                <div class="ykc-metric-value">@Model.Toplam</div>
+        <div class="ykc-kpi-strip" style="--ykc-kpi-count:4;">
+            <div class="ykc-kpi" style="--ykc-kpi-accent:#22d3ee;">
+                <span class="ykc-kpi-icon"><i class="bi bi-collection"></i></span>
+                <div><strong class="ykc-kpi-value">@ozet.Toplam</strong><span class="ykc-kpi-label">Toplam Kayıt</span></div>
             </div>
-            <div class="ykc-metric">
-                <div class="ykc-metric-label">İncelemede</div>
-                <div class="ykc-metric-value">@incelemedeSayisi</div>
+            <div class="ykc-kpi" style="--ykc-kpi-accent:#fbbf24;">
+                <span class="ykc-kpi-icon"><i class="bi bi-hourglass-split"></i></span>
+                <div><strong class="ykc-kpi-value">@ozet.Incelemede</strong><span class="ykc-kpi-label">İnceleme Kuyruğu</span></div>
             </div>
-            @if (sertifikaliFirmaMi)
-            {
-                <div class="ykc-metric">
-                    <div class="ykc-metric-label">Randevu</div>
-                    <div class="ykc-metric-value">@randevuSayisi</div>
-                </div>
-                <div class="ykc-metric">
-                    <div class="ykc-metric-label">Tamamlanan</div>
-                    <div class="ykc-metric-value">@tamamlananSayisi</div>
-                </div>
-            }
-            else
-            {
-                <div class="ykc-metric">
-                    <div class="ykc-metric-label">Randevu</div>
-                    <div class="ykc-metric-value">@randevuSayisi</div>
-                </div>
-                <div class="ykc-metric">
-                    <div class="ykc-metric-label">Tamamlanan</div>
-                    <div class="ykc-metric-value">@tamamlananSayisi</div>
-                </div>
-            }
+            <div class="ykc-kpi" style="--ykc-kpi-accent:#c084fc;">
+                <span class="ykc-kpi-icon"><i class="bi bi-calendar2-check"></i></span>
+                <div><strong class="ykc-kpi-value">@ozet.RandevuSaha</strong><span class="ykc-kpi-label">Randevu / Saha</span></div>
+            </div>
+            <div class="ykc-kpi" style="--ykc-kpi-accent:#34d399;">
+                <span class="ykc-kpi-icon"><i class="bi bi-check2-circle"></i></span>
+                <div><strong class="ykc-kpi-value">@ozet.Tamamlanan</strong><span class="ykc-kpi-label">Tamamlanan</span></div>
+            </div>
         </div>
     </section>
 
-    <details class="df-page-panel ykc-toggle-panel">
-        <summary>
-            <div class="df-panel-head">
-                <div>
-                    <div class="section-title">Akış</div>
-                    <div class="df-panel-subtitle">Cihaz değişim talebi sürecinin kısa özeti.</div>
-                </div>
-                <div class="df-actions"></div>
-            </div>
+    <details class="ykc-filter-panel">
+        <summary class="ykc-filter-bar">
+            <span class="ykc-filter-leading"><i class="bi bi-sliders2"></i> Filtreler</span>
+            <span class="ykc-filter-state">
+                @if (aktifFiltreler.Any())
+                {
+                    @foreach (var item in aktifFiltreler.Take(5))
+                    {
+                        <span class="ykc-filter-chip"><b>@item.Etiket</b>@item.Deger</span>
+                    }
+                }
+                else
+                {
+                    <span class="ykc-filter-hint">Tesisat, durum, firma, bölge veya tarih ile listeyi daraltın.</span>
+                }
+            </span>
+            <span class="ykc-filter-chevron"><i class="bi bi-chevron-down"></i></span>
         </summary>
-        <div style="padding: 0 24px 20px;">
-            <div class="ykc-flow">
-                <div class="ykc-flow-step"><div class="ykc-flow-no">1</div><div class="ykc-flow-title">Talep ve Form</div><div class="ykc-flow-text">Firma tesisat bilgisi, eski/yeni cihaz bilgisi ve FR265 formunu girer.</div></div>
-                <div class="ykc-flow-step"><div class="ykc-flow-no">2</div><div class="ykc-flow-title">İç Tesisat İncelemesi</div><div class="ykc-flow-text">Personel talebi inceler; atama ve randevu kararını verir.</div></div>
-                <div class="ykc-flow-step"><div class="ykc-flow-no">3</div><div class="ykc-flow-title">Randevu ve Saha</div><div class="ykc-flow-text">Uygun ekip için randevu oluşturulur, saha süreci takip edilir.</div></div>
-                <div class="ykc-flow-step"><div class="ykc-flow-no">4</div><div class="ykc-flow-title">Sonuç</div><div class="ykc-flow-text">Tamamlama, red ve dosya geçmişi kayıt altında tutulur.</div></div>
-            </div>
-        </div>
-    </details>
-
-    <details class="filtre-kart ykc-toggle-panel">
-        <summary class="filtre-baslik">Filtrele</summary>
-        <form method="get" action="/ykc/talepler">
-            <div class="filtre-grid">
-                <div class="filtre-alan">
+        <form method="get" action="/ykc/talepler" class="ykc-filter-form">
+            <div class="ykc-filter-grid">
+                <div class="ykc-filter-field">
                     <label>Tesisat</label>
                     <input type="text" name="tesisatNo" value="@filtre.TesisatNo" placeholder="Tesisat no" />
                 </div>
                 @if (icOperasyonGorsun)
                 {
-                    <div class="filtre-alan">
+                    <div class="ykc-filter-field">
                         <label>Firma</label>
                         <input type="text" name="firma" value="@filtre.Firma" placeholder="Firma adı" />
                     </div>
-                    <div class="filtre-alan">
+                    <div class="ykc-filter-field">
                         <label>İl</label>
                         <input type="text" name="il" value="@filtre.Il" placeholder="İl" />
                     </div>
-                    <div class="filtre-alan">
+                    <div class="ykc-filter-field">
                         <label>İlçe</label>
                         <input type="text" name="ilce" value="@filtre.Ilce" placeholder="İlçe" />
                     </div>
-                    <div class="filtre-alan">
+                    <div class="ykc-filter-field">
                         <label>Bölge</label>
                         <input type="text" name="bolge" value="@filtre.Bolge" placeholder="Bölge" />
                     </div>
                 }
-                <div class="filtre-alan">
+                <div class="ykc-filter-field">
                     <label>Durum</label>
                     <select name="durum">
                         <option value="">Tümü</option>
@@ -366,82 +210,110 @@
                         }
                     </select>
                 </div>
-                <div class="filtre-alan">
+                <div class="ykc-filter-field">
                     <label>Başlangıç</label>
                     <input type="date" name="bas" value="@filtre.BaslangicTarihi?.ToString("yyyy-MM-dd")" />
                 </div>
-                <div class="filtre-alan">
+                <div class="ykc-filter-field">
                     <label>Bitiş</label>
                     <input type="date" name="bit" value="@filtre.BitisTarihi?.ToString("yyyy-MM-dd")" />
                 </div>
             </div>
-            <div class="filtre-butonlar">
-                <button class="df-btn df-btn-primary" type="submit">Filtrele</button>
-                <a class="df-btn df-btn-secondary" href="/ykc/talepler">Temizle</a>
+            <div class="ykc-filter-actions">
+                <button class="df-btn df-btn-primary" type="submit"><i class="bi bi-funnel"></i> Uygula</button>
+                <a class="df-btn df-btn-secondary" href="/ykc/talepler"><i class="bi bi-x-lg"></i> Temizle</a>
             </div>
         </form>
     </details>
 
-    <section class="section">
-        <div class="section-head">
-            <div class="section-title">Cihaz Değişim Formları</div>
-            <span class="section-sayi">@Model.Toplam kayıt</span>
-        </div>
-        <div class="ykc-table-head @(icOperasyonGorsun ? "ykc-table-internal" : "")">
-            <div>Tesisat</div>
-            @if (icOperasyonGorsun)
-            {
-                <div>Firma</div>
-            }
-            <div>Talep Tarihi</div>
-            <div>Randevu</div>
-            <div>Eski Cihaz</div>
-            <div>Yeni Cihaz</div>
-            <div>Durum</div>
-            <div>İşlem</div>
-        </div>
-        @if (!Model.Talepler.Any())
-        {
-            <div class="ykc-empty">Henüz cihaz değişim talebi bulunmuyor.</div>
-        }
-        else
-        {
-            foreach (var talep in Model.Talepler)
-            {
-                <div class="ykc-table-row @(icOperasyonGorsun ? "ykc-table-internal" : "")">
-                    <div data-label="Tesisat">
-                        <div class="ykc-code">@Deger(talep.TesisatNo)</div>
-                    </div>
-                    @if (icOperasyonGorsun)
-                    {
-                        <div data-label="Firma">@Deger(talep.FirmaAdi)</div>
-                    }
-                    <div data-label="Talep Tarihi">@talep.TalepTarihi.ToString("dd.MM.yyyy HH:mm")</div>
-                    <div data-label="Randevu">@RandevuYazi(talep.RandevuTarihi, talep.RandevuSaati)</div>
-                    <div data-label="Eski Cihaz" class="ykc-device" title="@talep.EskiCihaz">@Deger(talep.EskiCihaz)</div>
-                    <div data-label="Yeni Cihaz" class="ykc-device" title="@talep.YeniCihaz">@Deger(talep.YeniCihaz)</div>
-                    <div data-label="Durum"><span class="df-pill @DurumClass(talep.Durum)">@DurumYazi(talep.Durum)</span></div>
-                    <div data-label="İşlem"><a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/detay/@talep.Id">Görüntüle</a></div>
+    <section class="ykc-data-panel">
+        <div class="ykc-data-toolbar">
+            <div class="ykc-data-title-wrap">
+                <span class="ykc-data-title-icon"><i class="bi bi-journal-text"></i></span>
+                <div>
+                    <div class="ykc-data-title">Cihaz Değişim Kayıtları</div>
+                    <div class="ykc-data-subtitle">En güncel talepler işlem önceliğiyle listelenir.</div>
                 </div>
-            }
-        }
-        @{
-            var toplamSayfa = Model.SayfaBoyutu > 0
-                ? (int)Math.Ceiling(Model.Toplam / (double)Model.SayfaBoyutu)
-                : 1;
-        }
+            </div>
+            <span class="ykc-record-count"><i class="bi bi-database"></i> @Model.Toplam kayıt</span>
+        </div>
+
+        <div class="ykc-table-scroll">
+            <table class="ykc-data-table">
+                <colgroup>
+                    <col style="width:15%" />
+                    <col style="width:20%" />
+                    <col style="width:25%" />
+                    <col style="width:18%" />
+                    <col style="width:12%" />
+                    <col style="width:10%" />
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>Talep / Tesisat</th>
+                        <th>@(icOperasyonGorsun ? "Firma / Müşteri" : "Müşteri / Konum")</th>
+                        <th>Cihaz Değişimi</th>
+                        <th>Randevu / Atama</th>
+                        <th>Durum</th>
+                        <th>İşlem</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Talepler.Any())
+                    {
+                        <tr>
+                            <td colspan="6">
+                                <div class="ykc-empty-state"><i class="bi bi-inbox"></i>Filtreye uygun cihaz değişim talebi bulunamadı.</div>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var talep in Model.Talepler)
+                        {
+                            <tr>
+                                <td data-label="Talep / Tesisat">
+                                    <div class="ykc-primary-cell"><span class="ykc-code">@Deger(talep.TesisatNo)</span></div>
+                                    <div class="ykc-cell-meta">FR265 #@talep.Id · @talep.TalepTarihi.ToString("dd.MM.yyyy HH:mm")</div>
+                                </td>
+                                <td data-label="@(icOperasyonGorsun ? "Firma / Müşteri" : "Müşteri / Konum")">
+                                    <div class="ykc-primary-cell">@(icOperasyonGorsun ? Deger(talep.FirmaAdi) : Deger(talep.MusteriAdi))</div>
+                                    <div class="ykc-cell-meta">@(icOperasyonGorsun ? $"{Deger(talep.MusteriAdi)} · {KonumYazi(talep.Ilce, talep.Bolge)}" : KonumYazi(talep.Il, talep.Ilce, talep.Bolge))</div>
+                                </td>
+                                <td data-label="Cihaz Değişimi">
+                                    <div class="ykc-device-change" title="@($"{talep.EskiCihaz} -> {talep.YeniCihaz}")">
+                                        <span class="ykc-device-old">@Deger(talep.EskiCihaz)</span>
+                                        <i class="bi bi-arrow-right ykc-device-arrow"></i>
+                                        <span class="ykc-device-new">@Deger(talep.YeniCihaz)</span>
+                                    </div>
+                                </td>
+                                <td data-label="Randevu / Atama">
+                                    <div class="ykc-primary-cell">@RandevuYazi(talep.RandevuTarihi, talep.RandevuSaati)</div>
+                                    <div class="ykc-cell-meta">@KonumYazi(talep.AtananEkip, talep.Bolge)</div>
+                                </td>
+                                <td data-label="Durum"><span class="df-pill @DurumClass(talep.Durum)">@DurumYazi(talep.Durum)</span></td>
+                                <td class="ykc-action-cell" data-label="İşlem">
+                                    <a class="ykc-detail-action" href="/ykc/detay/@talep.Id" title="Talep detayını aç"><i class="bi bi-eye"></i><span>Detay</span></a>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+
         @if (toplamSayfa > 1)
         {
             <div class="ykc-pager">
-                <div>Sayfa @Model.Sayfa / @toplamSayfa</div>
+                <span>Sayfa @Model.Sayfa / @toplamSayfa</span>
                 <div class="ykc-pager-actions">
                     @if (Model.Sayfa > 1)
                     {
-                        <a class="df-btn df-btn-secondary df-btn-sm" href="@SayfaUrl(filtre, Model.Sayfa - 1)">Önceki</a>
+                        <a class="df-btn df-btn-secondary df-btn-sm" href="@SayfaUrl(filtre, Model.Sayfa - 1)"><i class="bi bi-chevron-left"></i> Önceki</a>
                     }
                     @if (Model.Sayfa < toplamSayfa)
                     {
-                        <a class="df-btn df-btn-primary df-btn-sm" href="@SayfaUrl(filtre, Model.Sayfa + 1)">Sonraki</a>
+                        <a class="df-btn df-btn-primary df-btn-sm" href="@SayfaUrl(filtre, Model.Sayfa + 1)">Sonraki <i class="bi bi-chevron-right"></i></a>
                     }
                 </div>
             </div>

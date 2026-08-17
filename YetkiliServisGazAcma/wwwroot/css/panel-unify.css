@@ -804,17 +804,6 @@ td {
     box-shadow: 0 14px 32px rgba(13, 34, 112, .055) !important;
 }
 
-.ykc-list-hero .df-panel-head,
-.ykc-report-hero .df-panel-head,
-.ykc-hero .df-panel-head,
-.ykc-card-head,
-.ykc-summary-head,
-.ykc-stack .filtre-baslik,
-.ykc-report-stack .filtre-baslik {
-    background: linear-gradient(180deg, #ffffff 0%, #f7f9fd 100%) !important;
-    border-color: #e6edf7 !important;
-}
-
 .ykc-metric,
 .ykc-report-metric,
 .ykc-summary,
@@ -822,7 +811,6 @@ td {
 .ykc-check,
 .ykc-list-row,
 .ykc-table-row,
-.ykc-report-row,
 .ykc-summary-row {
     background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%) !important;
     border-color: #e6edf7 !important;
@@ -834,7 +822,6 @@ td {
 .ykc-report-metric,
 .ykc-list-row,
 .ykc-table-row,
-.ykc-report-row,
 .ykc-check {
     box-shadow: 0 8px 18px rgba(13, 34, 112, .035) !important;
 }
@@ -949,14 +936,12 @@ td {
     cursor: pointer !important;
 }
 
-.ykc-table-row,
-.ykc-report-row {
+.ykc-table-row {
     position: relative !important;
     overflow: hidden !important;
 }
 
-.ykc-table-row::before,
-.ykc-report-row::before {
+.ykc-table-row::before {
     content: "" !important;
     position: absolute !important;
     left: 0 !important;
@@ -968,14 +953,12 @@ td {
 }
 
 .ykc-table-row:hover,
-.ykc-report-row:hover,
 .ykc-list-row:hover,
 .ykc-item:hover {
     border-color: #d8e1ef !important;
     background: #ffffff !important;
 }
 
-.ykc-table-row:hover::before,
-.ykc-report-row:hover::before {
+.ykc-table-row:hover::before {
     background: var(--df-primary) !important;
 }

@@ -333,6 +333,10 @@
     </style>
 }
 
+@section PageStyles {
+    <link rel="stylesheet" href="~/css/ykc-operations.css" asp-append-version="true" />
+}
+
 <div class="ykc-form-stack">
     @if (TempData["Hata"] != null)
     {
@@ -527,7 +531,7 @@
             </div>
         </section>
 
-        <section class="ykc-card" style="margin-top:16px;">
+        <section class="ykc-card ykc-digital-card" style="margin-top:16px;">
             <div class="ykc-card-head">
                 <div>
                     <div class="ykc-card-title">FR265 Önizleme ve İmza Akışı</div>

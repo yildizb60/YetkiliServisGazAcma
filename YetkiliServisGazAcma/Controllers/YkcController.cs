@@ -69,6 +69,7 @@ namespace YetkiliServisGazAcma.Controllers
 
             var sonuc = await _ykcApiClient.TaleplerAsync(kullanici, filtre) ?? new YkcTalepListeSonuc();
             ViewBag.Filtre = filtre;
+            ViewBag.Ozet = await _ykcApiClient.DashboardOzetAsync(kullanici) ?? new YkcDashboardOzetDto();
             return View("~/Views/Ykc/Talepler.cshtml", sonuc);
         }
 

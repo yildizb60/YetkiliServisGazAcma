@@ -120,11 +120,17 @@ body {
 }
 
 .nav-ico {
-    width: 18px;
+    width: 26px;
+    height: 26px;
+    flex: 0 0 26px;
+    border-radius: 7px;
+    display: grid;
+    place-items: center;
     text-align: center;
-    font-size: 15px;
+    font-size: 14px;
     line-height: 1;
-    font-family: "Segoe UI Emoji", "Segoe UI Symbol", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+    background: rgba(255, 255, 255, 0.07);
+    color: rgba(255, 255, 255, 0.78);
 }
 
 .nav-item:hover {
@@ -134,6 +140,11 @@ body {
 
 .nav-item.active {
     background: #1B9FD4;
+    color: #fff;
+}
+
+.nav-item.active .nav-ico {
+    background: rgba(255, 255, 255, 0.18);
     color: #fff;
 }
 
@@ -1238,6 +1249,7 @@ textarea {
 .df-pill-warning { background: var(--df-warning-50); color: var(--df-warning-500); }
 .df-pill-success { background: var(--df-success-50); color: var(--df-success-500); }
 .df-pill-danger { background: var(--df-danger-50); color: var(--df-danger-500); }
+.df-pill-primary { background: var(--df-primary-soft); color: var(--df-primary); }
 .df-pill-muted { background: var(--df-surface-2); color: var(--df-muted); }
 
 .df-alert {
