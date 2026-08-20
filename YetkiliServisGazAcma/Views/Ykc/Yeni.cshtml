@@ -14,27 +14,23 @@
         <div class="df-alert df-alert-danger">@TempData["Hata"]</div>
     }
 
-    <section class="ykc-workspace-hero ykc-create-hero">
-        <div class="df-panel-head">
-            <div class="ykc-hero-title-wrap">
-                <span class="ykc-hero-mark"><i class="bi bi-file-earmark-plus"></i></span>
-                <div>
-                    <h1 class="df-panel-title">Yeni Cihaz Değişim Talebi</h1>
-                    <div class="df-panel-subtitle">Tesisatı sorgulayın, projedeki cihazı seçin ve yeni cihaz kaydını doğrulayarak oluşturun.</div>
-                </div>
-            </div>
-            <div class="df-actions">
-                <a class="ykc-hero-secondary" href="/ykc/talepler"><i class="bi bi-arrow-left"></i><span>Talep Listesi</span></a>
-            </div>
+    <header class="ykc-page-header">
+        <div class="ykc-page-heading">
+            <div class="ykc-page-eyebrow">Yakıcı cihaz değişimi</div>
+            <h1>Yeni Cihaz Değişim Talebi</h1>
+            <p>Tesisatı bulun, projedeki cihazı seçin ve yeni cihaz bilgileriyle talebi oluşturun.</p>
         </div>
-    </section>
+        <div class="ykc-header-actions">
+            <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/talepler"><i class="bi bi-arrow-left"></i> Talep Listesi</a>
+        </div>
+    </header>
 
     <nav class="ykc-wizard-progress" aria-label="Yeni talep adımları">
-        <button class="ykc-wizard-step" type="button" data-ykc-step="1"><span>1</span><div><strong>Tesisat</strong><small>Sorgula</small></div></button>
-        <button class="ykc-wizard-step" type="button" data-ykc-step="2"><span>2</span><div><strong>Projedeki Cihaz</strong><small>Seç</small></div></button>
-        <button class="ykc-wizard-step" type="button" data-ykc-step="3"><span>3</span><div><strong>Yeni Cihaz</strong><small>Bilgileri gir</small></div></button>
-        <button class="ykc-wizard-step" type="button" data-ykc-step="4"><span>4</span><div><strong>Belge</strong><small>Akışı hazırla</small></div></button>
-        <button class="ykc-wizard-step" type="button" data-ykc-step="5"><span>5</span><div><strong>Son Kontrol</strong><small>Kaydı oluştur</small></div></button>
+        <button class="ykc-wizard-step" type="button" data-ykc-step="1"><span>1</span><strong>Tesisat Sorgula</strong></button>
+        <button class="ykc-wizard-step" type="button" data-ykc-step="2"><span>2</span><strong>Projedeki Cihaz</strong></button>
+        <button class="ykc-wizard-step" type="button" data-ykc-step="3"><span>3</span><strong>Yeni Cihaz</strong></button>
+        <button class="ykc-wizard-step" type="button" data-ykc-step="4"><span>4</span><strong>Form Süreci</strong></button>
+        <button class="ykc-wizard-step" type="button" data-ykc-step="5"><span>5</span><strong>Önizleme</strong></button>
     </nav>
 
     <form method="post" action="/ykc/yeni" class="ykc-wizard-form" id="ykcCreateForm">
@@ -42,9 +38,8 @@
         @Html.ValidationSummary(false)
 
         <section class="ykc-stage-panel" data-ykc-stage-panel="1">
-            <header class="ykc-stage-head is-query">
-                <span class="ykc-stage-icon"><i class="bi bi-search"></i></span>
-                <div><span class="ykc-stage-kicker">1. adım</span><h2>Tesisat bilgilerini sorgulayın</h2><p>Müşteri, konum ve proje bilgileri servis kaydından alınır.</p></div>
+            <header class="ykc-stage-head">
+                <div><span class="ykc-stage-kicker">1. adım · Tesisat sorgula</span><h2>Tesisat bilgilerini bulun</h2><p>Müşteri, konum ve proje bilgileri servis kaydından alınır.</p></div>
             </header>
             <div class="ykc-stage-body ykc-query-layout">
                 <div class="ykc-stage-form-block">
@@ -56,7 +51,7 @@
                     <div id="ykcSorguAlert" class="ykc-query-alert" role="status"></div>
                 </div>
 
-                <aside class="ykc-query-result" aria-live="polite">
+                <section class="ykc-query-result" aria-live="polite">
                     <div class="ykc-query-result-head">
                         <span><i class="bi bi-person-vcard"></i></span>
                         <div><small>Sorgu sonucu</small><strong data-preview="MusteriAdi">@(Model.MusteriAdi ?? "Henüz sorgulanmadı")</strong></div>
@@ -67,7 +62,7 @@
                         <div><dt>Bölge</dt><dd data-preview="Bolge">@(Model.Bolge ?? "-")</dd></div>
                         <div class="wide"><dt>Adres</dt><dd data-preview="Adres">@(Model.Adres ?? "-")</dd></div>
                     </dl>
-                </aside>
+                </section>
 
                 <details class="ykc-data-disclosure">
                     <summary><span><i class="bi bi-database-check"></i> Sorgudan gelen tüm bilgiler</span><i class="bi bi-chevron-down"></i></summary>
@@ -93,9 +88,8 @@
         </section>
 
         <section class="ykc-stage-panel" data-ykc-stage-panel="2">
-            <header class="ykc-stage-head is-device">
-                <span class="ykc-stage-icon"><i class="bi bi-fire"></i></span>
-                <div><span class="ykc-stage-kicker">2. adım</span><h2>Değiştirilecek cihazı seçin</h2><p>Servisten gelen proje cihazı bu aşamada seçilir ve değiştirilmeden kayda alınır.</p></div>
+            <header class="ykc-stage-head">
+                <div><span class="ykc-stage-kicker">2. adım · Projedeki cihaz</span><h2>Değiştirilecek cihazı seçin</h2><p>Servisten gelen proje cihazı seçilir ve değiştirilemeden kayda alınır.</p></div>
             </header>
             <div class="ykc-stage-body">
                 <div class="ykc-device-picker">
@@ -124,24 +118,51 @@
         </section>
 
         <section class="ykc-stage-panel" data-ykc-stage-panel="3">
-            <header class="ykc-stage-head is-new-device">
-                <span class="ykc-stage-icon"><i class="bi bi-plus-square"></i></span>
-                <div><span class="ykc-stage-kicker">3. adım</span><h2>Yeni cihaz bilgilerini girin</h2><p>Takılacak cihazın teknik bilgileri FR265 kaydının yeni cihaz bölümünü oluşturur.</p></div>
+            <header class="ykc-stage-head">
+                <div><span class="ykc-stage-kicker">3. adım · Yeni cihaz</span><h2>Cihazları yan yana karşılaştırın</h2><p>Soldaki proje bilgileri değiştirilemez; sağdaki alanlara takılacak cihazı girin.</p></div>
             </header>
-            <div class="ykc-stage-body ykc-new-device-layout">
-                <aside class="ykc-selected-device">
-                    <span class="ykc-selected-label">Seçilen proje cihazı</span>
-                    <strong data-summary="old-title">@(Model.EskiMarka ?? "-") / @(Model.EskiCihazTipi ?? "-")</strong>
-                    <dl><div><dt>Baca</dt><dd data-summary="old-flue">@(Model.EskiBacaTipi ?? "-")</dd></div><div><dt>Kapasite</dt><dd data-summary="old-capacity">@(Model.EskiKapasite ?? "-")</dd></div></dl>
-                </aside>
-                <div class="ykc-new-device-fields">
-                    <div class="ykc-field"><label>Yeni Cihaz Tipi <span class="ykc-required">*</span></label><input asp-for="YeniCihazTipi" autocomplete="off" required /><span asp-validation-for="YeniCihazTipi"></span></div>
-                    <div class="ykc-field"><label>Yeni Marka <span class="ykc-required">*</span></label><input asp-for="YeniMarka" autocomplete="off" required /><span asp-validation-for="YeniMarka"></span></div>
-                    <div class="ykc-field"><label>Model</label><input asp-for="YeniModel" autocomplete="off" /></div>
-                    <div class="ykc-field"><label>Seri No</label><input asp-for="YeniSeriNo" autocomplete="off" /></div>
-                    <div class="ykc-field"><label>Baca Tipi <span class="ykc-required">*</span></label><input asp-for="YeniBacaTipi" autocomplete="off" required /><span asp-validation-for="YeniBacaTipi"></span></div>
-                    <div class="ykc-field"><label>Kapasite (kcal/h) <span class="ykc-required">*</span></label><input asp-for="YeniKapasite" autocomplete="off" required /><span asp-validation-for="YeniKapasite"></span></div>
-                    <div class="ykc-field"><label>İkinci El Cihaz</label><select asp-for="IkinciElCihazMi"><option value="">Belirtilmedi</option><option value="true">Evet</option><option value="false">Hayır</option></select></div>
+            <div class="ykc-stage-body">
+                <div class="ykc-table-scroll">
+                    <table class="ykc-device-entry-table">
+                        <thead>
+                            <tr><th>Özellik</th><th>Projedeki Cihaz</th><th>Yeni Kullanılan Cihaz</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <th>Yakıcı Cihaz Tipi</th>
+                                <td data-summary="old-type">@(Model.EskiCihazTipi ?? "-")</td>
+                                <td><div class="ykc-field"><label class="visually-hidden" for="YeniCihazTipi">Yeni Cihaz Tipi</label><input asp-for="YeniCihazTipi" autocomplete="off" placeholder="Cihaz tipi" required /><span asp-validation-for="YeniCihazTipi"></span></div></td>
+                            </tr>
+                            <tr>
+                                <th>Marka</th>
+                                <td data-summary="old-brand">@(Model.EskiMarka ?? "-")</td>
+                                <td>
+                                    <div class="ykc-stacked-fields">
+                                        <div class="ykc-field"><label class="visually-hidden" for="YeniMarka">Yeni Marka</label><input asp-for="YeniMarka" autocomplete="off" placeholder="Marka" required /><span asp-validation-for="YeniMarka"></span></div>
+                                        <div class="ykc-field ykc-helper-field"><label for="YeniModel">Model <small>(yardımcı bilgi)</small></label><input asp-for="YeniModel" autocomplete="off" placeholder="Model" /></div>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Baca Tipi</th>
+                                <td data-summary="old-flue">@(Model.EskiBacaTipi ?? "-")</td>
+                                <td><div class="ykc-field"><label class="visually-hidden" for="YeniBacaTipi">Yeni Baca Tipi</label><input asp-for="YeniBacaTipi" autocomplete="off" placeholder="Baca tipi" required /><span asp-validation-for="YeniBacaTipi"></span></div></td>
+                            </tr>
+                            <tr>
+                                <th>Kapasite (kcal/h)</th>
+                                <td data-summary="old-capacity">@(Model.EskiKapasite ?? "-")</td>
+                                <td><div class="ykc-field"><label class="visually-hidden" for="YeniKapasite">Yeni Kapasite</label><input asp-for="YeniKapasite" autocomplete="off" placeholder="Kapasite" required /><span asp-validation-for="YeniKapasite"></span></div></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="ykc-device-supplement">
+                    <div class="ykc-field"><label>Yeni Cihaz Seri No</label><input asp-for="YeniSeriNo" autocomplete="off" /></div>
+                    <fieldset class="ykc-secondhand-field">
+                        <legend>Takılan cihaz ikinci el mi?</legend>
+                        <label for="IkinciElHayir"><input id="IkinciElHayir" type="radio" name="IkinciElCihazMi" value="false" checked="@(Model.IkinciElCihazMi == false ? "checked" : null)" required /> Hayır</label>
+                        <label for="IkinciElEvet"><input id="IkinciElEvet" type="radio" name="IkinciElCihazMi" value="true" checked="@(Model.IkinciElCihazMi == true ? "checked" : null)" /> Evet</label>
+                    </fieldset>
                 </div>
             </div>
             <footer class="ykc-stage-actions">
@@ -151,18 +172,17 @@
         </section>
 
         <section class="ykc-stage-panel" data-ykc-stage-panel="4">
-            <header class="ykc-stage-head is-document">
-                <span class="ykc-stage-icon"><i class="bi bi-file-earmark-lock"></i></span>
-                <div><span class="ykc-stage-kicker">4. adım</span><h2>FR265 belge akışını hazırlayın</h2><p>Bu aşamada dosya yüklenmez; kayıt sonrası sistem doldurulmuş FR265 önizlemesini üretir.</p></div>
+            <header class="ykc-stage-head">
+                <div><span class="ykc-stage-kicker">4. adım · Form süreci</span><h2>FR265 sürecini kontrol edin</h2><p>Talep oluşturulduğunda sistem, girilen bilgilerle doldurulmuş FR265 önizlemesini hazırlar.</p></div>
             </header>
             <div class="ykc-stage-body">
-                <div class="ykc-document-flow">
-                    <div><span><i class="bi bi-file-earmark-text"></i></span><strong>Dijital Oluştur</strong><small>Talep verileri FR265 alanlarına aktarılır.</small></div><i class="bi bi-arrow-right"></i>
-                    <div><span><i class="bi bi-eye"></i></span><strong>Önizle</strong><small>Belge detay ekranında kontrol edilir.</small></div><i class="bi bi-arrow-right"></i>
-                    <div><span><i class="bi bi-send-check"></i></span><strong>İmzaya Gönder</strong><small>Sağlayıcı hazır olduğunda onaylı belge gönderilir.</small></div><i class="bi bi-arrow-right"></i>
-                    <div><span><i class="bi bi-file-earmark-check"></i></span><strong>Nihai Belge</strong><small>İmzalanmış belge arşivden geri alınır.</small></div>
-                </div>
-                <div class="ykc-inline-status is-success"><i class="bi bi-check-circle"></i> Talep kaydı, yazdırma veya ıslak imzalı dosya yükleme adımı olmadan dijital sürece hazırlanacak.</div>
+                <ol class="ykc-document-flow">
+                    <li><span>1</span><div><strong>FR265 hazırlanır</strong><small>Talep verileri form alanlarına aktarılır.</small></div></li>
+                    <li><span>2</span><div><strong>Form önizlenir</strong><small>Talep detayında doldurulmuş belge kontrol edilir.</small></div></li>
+                    <li><span>3</span><div><strong>Dijital imza süreci izlenir</strong><small>Bağlantı etkin olduğunda onaylanan belge imza uygulamasına gönderilir.</small></div></li>
+                    <li><span>4</span><div><strong>İmzalı belge kayda eklenir</strong><small>İmza uygulamasından dönen nihai belge görüntülenir.</small></div></li>
+                </ol>
+                <div class="ykc-inline-status is-info"><i class="bi bi-info-circle"></i> Bu adımda dosya yüklemeniz gerekmez.</div>
             </div>
             <footer class="ykc-stage-actions">
                 <button class="df-btn df-btn-secondary" type="button" data-ykc-back="3"><i class="bi bi-arrow-left"></i> Geri</button>
@@ -171,17 +191,26 @@
         </section>
 
         <section class="ykc-stage-panel" data-ykc-stage-panel="5">
-            <header class="ykc-stage-head is-review">
-                <span class="ykc-stage-icon"><i class="bi bi-clipboard2-check"></i></span>
-                <div><span class="ykc-stage-kicker">5. adım</span><h2>Talebi kontrol edip oluşturun</h2><p>Kaydetmeden önce tesisat ile eski ve yeni cihaz bilgisini son kez karşılaştırın.</p></div>
+            <header class="ykc-stage-head">
+                <div><span class="ykc-stage-kicker">5. adım · Önizleme</span><h2>Talebi kontrol edip oluşturun</h2><p>Kaydetmeden önce tesisat ile projedeki ve yeni cihaz bilgisini son kez karşılaştırın.</p></div>
             </header>
             <div class="ykc-stage-body">
-                <div class="ykc-review-grid">
-                    <article><span><i class="bi bi-geo-alt"></i> Tesisat</span><strong data-summary="installation">@(Model.TesisatNo ?? "-")</strong><small data-summary="customer">@(Model.MusteriAdi ?? "-")</small></article>
-                    <article class="is-old"><span><i class="bi bi-box-arrow-left"></i> Projedeki Cihaz</span><strong data-summary="old-device">@(Model.EskiMarka ?? "-") / @(Model.EskiCihazTipi ?? "-")</strong><small data-summary="old-detail">@(Model.EskiBacaTipi ?? "-") · @(Model.EskiKapasite ?? "-")</small></article>
-                    <article class="is-new"><span><i class="bi bi-box-arrow-in-right"></i> Yeni Cihaz</span><strong data-summary="new-device">@(Model.YeniMarka ?? "-") / @(Model.YeniCihazTipi ?? "-")</strong><small data-summary="new-detail">@(Model.YeniBacaTipi ?? "-") · @(Model.YeniKapasite ?? "-")</small></article>
+                <dl class="ykc-review-installation">
+                    <div><dt>Tesisat</dt><dd data-summary="installation">@(Model.TesisatNo ?? "-")</dd></div>
+                    <div><dt>Müşteri</dt><dd data-summary="customer">@(Model.MusteriAdi ?? "-")</dd></div>
+                </dl>
+                <div class="ykc-table-scroll">
+                    <table class="ykc-comparison-table">
+                        <thead><tr><th>Özellik</th><th>Projedeki Cihaz</th><th>Yeni Kullanılan Cihaz</th></tr></thead>
+                        <tbody>
+                            <tr><th>Yakıcı Cihaz Tipi</th><td data-summary="old-type">@(Model.EskiCihazTipi ?? "-")</td><td data-summary="new-type">@(Model.YeniCihazTipi ?? "-")</td></tr>
+                            <tr><th>Marka</th><td data-summary="old-brand">@(Model.EskiMarka ?? "-")</td><td><strong data-summary="new-brand">@(Model.YeniMarka ?? "-")</strong><small data-summary="new-model">@(Model.YeniModel ?? "-")</small></td></tr>
+                            <tr><th>Baca Tipi</th><td data-summary="old-flue">@(Model.EskiBacaTipi ?? "-")</td><td data-summary="new-flue">@(Model.YeniBacaTipi ?? "-")</td></tr>
+                            <tr><th>Kapasite (kcal/h)</th><td data-summary="old-capacity">@(Model.EskiKapasite ?? "-")</td><td data-summary="new-capacity">@(Model.YeniKapasite ?? "-")</td></tr>
+                        </tbody>
+                    </table>
                 </div>
-                <div class="ykc-inline-status is-info"><i class="bi bi-info-circle"></i> Kayıt oluşturulduktan sonra FR265 önizlemesi ve iç tesisat yönlendirmesi talep detayında yürütülür.</div>
+                <div class="ykc-inline-status is-info"><i class="bi bi-info-circle"></i> Talep oluşturulduktan sonra doldurulmuş FR265 önizlemesi talep detayında açılır.</div>
             </div>
             <footer class="ykc-stage-actions">
                 <button class="df-btn df-btn-secondary" type="button" data-ykc-back="4"><i class="bi bi-arrow-left"></i> Geri</button>
@@ -235,16 +264,18 @@
             function combine(values, separator) { return values.map(item => String(item || '').trim()).filter(Boolean).join(separator); }
 
             function updateSummaries() {
-                const set = (key, text) => document.querySelectorAll(`[data-summary="${key}"]`).forEach(item => item.textContent = displayValue(text));
+                const set = (key, text) => document.querySelectorAll('[data-summary="' + key + '"]').forEach(item => item.textContent = displayValue(text));
                 set('installation', value('TesisatNo'));
                 set('customer', value('MusteriAdi'));
-                set('old-title', combine([value('EskiMarka'), value('EskiCihazTipi')], ' / '));
+                set('old-type', value('EskiCihazTipi'));
+                set('old-brand', value('EskiMarka'));
                 set('old-flue', value('EskiBacaTipi'));
                 set('old-capacity', value('EskiKapasite'));
-                set('old-device', combine([value('EskiMarka'), value('EskiCihazTipi')], ' / '));
-                set('old-detail', combine([value('EskiBacaTipi'), value('EskiKapasite')], ' · '));
-                set('new-device', combine([value('YeniMarka'), value('YeniCihazTipi')], ' / '));
-                set('new-detail', combine([value('YeniBacaTipi'), value('YeniKapasite')], ' · '));
+                set('new-type', value('YeniCihazTipi'));
+                set('new-brand', value('YeniMarka'));
+                set('new-model', value('YeniModel'));
+                set('new-flue', value('YeniBacaTipi'));
+                set('new-capacity', value('YeniKapasite'));
             }
 
             const autoFieldIds = ['AboneNo', 'ProjeNo', 'SayacNo', 'FirmaKodu', 'MusteriAdi', 'MusteriTelefon', 'Il', 'Ilce', 'Bolge', 'Adres'];
@@ -310,6 +341,8 @@
                 if (step === 3) {
                     const invalid = ['YeniCihazTipi', 'YeniMarka', 'YeniBacaTipi', 'YeniKapasite'].map(field).find(item => !item?.checkValidity());
                     if (invalid) { invalid.reportValidity(); return false; }
+                    const secondHand = form.querySelector('input[name="IkinciElCihazMi"]:checked');
+                    if (!secondHand) { field('IkinciElHayir')?.reportValidity(); return false; }
                 }
                 return true;
             }

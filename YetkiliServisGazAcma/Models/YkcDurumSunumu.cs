@@ -6,10 +6,10 @@ public static class YkcDurumSunumu
 {
     public static string Etiket(int durum) => durum switch
     {
-        YkcDurumDegerleri.TalepAlindi => "Beklemede",
-        YkcDurumDegerleri.AtamaBekliyor => "İncelemede",
-        YkcDurumDegerleri.Atandi => "Randevu Verildi",
-        YkcDurumDegerleri.SahaIsleminde => "Saha İşleminde",
+        YkcDurumDegerleri.TalepAlindi => "Talep Alındı",
+        YkcDurumDegerleri.AtamaBekliyor => "İnceleniyor",
+        YkcDurumDegerleri.Atandi => "Randevu Oluşturuldu",
+        YkcDurumDegerleri.SahaIsleminde => "İşlem Devam Ediyor",
         YkcDurumDegerleri.Reddedildi => "Reddedildi",
         YkcDurumDegerleri.Tamamlandi => "Tamamlandı",
         YkcDurumDegerleri.Iptal => "İptal",

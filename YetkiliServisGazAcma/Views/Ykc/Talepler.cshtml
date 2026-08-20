@@ -5,6 +5,9 @@
     var ozet = ViewBag.Ozet as YkcDashboardOzetDto ?? new YkcDashboardOzetDto();
     var sertifikaliFirmaMi = User.IsInRole("SertifikaliFirma");
     var icOperasyonGorsun = !sertifikaliFirmaMi;
+    ViewData["PanelSubtitle"] = sertifikaliFirmaMi
+        ? "Talep, randevu ve FR265 takibi"
+        : "Gelen cihaz değişim talepleri";
     var aktifFiltreler = new List<(string Etiket, string Deger)>();
     var toplamSayfa = Model.SayfaBoyutu > 0
         ? Math.Max((int)Math.Ceiling(Model.Toplam / (double)Model.SayfaBoyutu), 1)
@@ -36,7 +39,7 @@
     private static string RandevuYazi(DateTime? tarih, string? saat)
     {
         if (!tarih.HasValue && string.IsNullOrWhiteSpace(saat))
-            return "Randevu bekliyor";
+            return "Randevu planlanacak";
 
         return string.Join(" ", new[]
         {
@@ -74,6 +77,22 @@
 
     private static string DurumYazi(int durum) => YkcDurumSunumu.Etiket(durum);
     private static string DurumClass(int durum) => YkcDurumSunumu.CssSinifi(durum);
+
+    private static string GerekenIslemYazi(int durum, bool icOperasyonGorsun) => (durum, icOperasyonGorsun) switch
+    {
+        (YkcDurumDegerleri.TalepAlindi, true) => "Talebi incele",
+        (YkcDurumDegerleri.AtamaBekliyor, true) => "Randevu planla",
+        (YkcDurumDegerleri.Atandi, true) => "Randevuyu takip et",
+        (YkcDurumDegerleri.SahaIsleminde, true) => "FR265 ve imzayı kontrol et",
+        (YkcDurumDegerleri.TalepAlindi, false) => "Talebin durumunu gör",
+        (YkcDurumDegerleri.AtamaBekliyor, false) => "İnceleme durumunu gör",
+        (YkcDurumDegerleri.Atandi, false) => "Randevuyu gör",
+        (YkcDurumDegerleri.SahaIsleminde, false) => "FR265 sürecini gör",
+        (YkcDurumDegerleri.Tamamlandi, _) => "Tamamlanan kaydı gör",
+        (YkcDurumDegerleri.Reddedildi, _) => "Red gerekçesini gör",
+        (YkcDurumDegerleri.Iptal, _) => "İptal bilgisini gör",
+        _ => "Talebi görüntüle"
+    };
 }
 
 @section PageStyles {
@@ -90,43 +109,27 @@
         <div class="df-alert df-alert-danger">@TempData["Hata"]</div>
     }
 
-    <section class="ykc-workspace-hero">
-        <div class="df-panel-head">
-            <div class="ykc-hero-title-wrap">
-                <span class="ykc-hero-mark"><i class="bi bi-fire"></i></span>
-                <div>
-                    <h1 class="df-panel-title">@(sertifikaliFirmaMi ? "Cihaz Değişim Talepleri" : "Cihaz Değişim Operasyonları")</h1>
-                    <div class="df-panel-subtitle">@(sertifikaliFirmaMi ? "FR265, randevu ve dijital imza durumlarını tek listeden izleyin." : "İnceleme, ekip ataması, saha ve imza bekleyen kayıtları yönetin.")</div>
-                </div>
-            </div>
-            @if (sertifikaliFirmaMi)
-            {
-                <div class="df-actions">
-                    <a class="ykc-hero-action" href="/ykc/yeni"><i class="bi bi-plus-lg"></i><span>Yeni Talep</span></a>
-                </div>
-            }
+    <header class="ykc-page-header">
+        <div class="ykc-page-heading">
+            <div class="ykc-page-eyebrow">Yakıcı cihaz değişimi</div>
+            <h1>@(sertifikaliFirmaMi ? "Cihaz Değişim Taleplerim" : "Cihaz Değişim Talepleri")</h1>
+            <p>@(sertifikaliFirmaMi ? "Taleplerinizin inceleme, randevu ve FR265 durumunu takip edin." : "Gelen talepleri durumuna ve yapılması gereken işleme göre yönetin.")</p>
         </div>
-        <div class="ykc-kpi-strip" style="--ykc-kpi-count:4;">
-            <div class="ykc-kpi" style="--ykc-kpi-accent:#22d3ee;">
-                <span class="ykc-kpi-icon"><i class="bi bi-collection"></i></span>
-                <div><strong class="ykc-kpi-value">@ozet.Toplam</strong><span class="ykc-kpi-label">Toplam Kayıt</span></div>
+        @if (sertifikaliFirmaMi)
+        {
+            <div class="ykc-header-actions">
+                <a class="df-btn df-btn-primary" href="/ykc/yeni"><i class="bi bi-plus-lg"></i> Yeni Talep</a>
             </div>
-            <div class="ykc-kpi" style="--ykc-kpi-accent:#fbbf24;">
-                <span class="ykc-kpi-icon"><i class="bi bi-hourglass-split"></i></span>
-                <div><strong class="ykc-kpi-value">@ozet.Incelemede</strong><span class="ykc-kpi-label">İnceleme Kuyruğu</span></div>
-            </div>
-            <div class="ykc-kpi" style="--ykc-kpi-accent:#c084fc;">
-                <span class="ykc-kpi-icon"><i class="bi bi-calendar2-check"></i></span>
-                <div><strong class="ykc-kpi-value">@ozet.RandevuSaha</strong><span class="ykc-kpi-label">Randevu / Saha</span></div>
-            </div>
-            <div class="ykc-kpi" style="--ykc-kpi-accent:#34d399;">
-                <span class="ykc-kpi-icon"><i class="bi bi-check2-circle"></i></span>
-                <div><strong class="ykc-kpi-value">@ozet.Tamamlanan</strong><span class="ykc-kpi-label">Tamamlanan</span></div>
-            </div>
-        </div>
-    </section>
+        }
+        <dl class="ykc-list-overview">
+            <div><dt>Toplam</dt><dd>@ozet.Toplam</dd></div>
+            <div><dt>İncelenen</dt><dd>@ozet.Incelemede</dd></div>
+            <div><dt>Randevu / İşlem</dt><dd>@ozet.RandevuSaha</dd></div>
+            <div><dt>Tamamlanan</dt><dd>@ozet.Tamamlanan</dd></div>
+        </dl>
+    </header>
 
-    <details class="ykc-filter-panel">
+    <details class="ykc-filter-panel" open="@(aktifFiltreler.Any() ? "open" : null)">
         <summary class="ykc-filter-bar">
             <span class="ykc-filter-leading"><i class="bi bi-sliders2"></i> Filtreler</span>
             <span class="ykc-filter-state">
@@ -139,7 +142,7 @@
                 }
                 else
                 {
-                    <span class="ykc-filter-hint">Tesisat, durum, firma, bölge veya tarih ile listeyi daraltın.</span>
+                    <span class="ykc-filter-hint">@(sertifikaliFirmaMi ? "Tesisat, durum veya tarih ile taleplerinizi daraltın." : "Tesisat, durum, firma, bölge veya tarih ile listeyi daraltın.")</span>
                 }
             </span>
             <span class="ykc-filter-chevron"><i class="bi bi-chevron-down"></i></span>
@@ -174,10 +177,10 @@
                     <select name="durum">
                         <option value="">Tümü</option>
                         @foreach (var item in new[] {
-                            new { Id = YkcDurumDegerleri.TalepAlindi, Ad = "Beklemede" },
-                            new { Id = YkcDurumDegerleri.AtamaBekliyor, Ad = "İncelemede" },
-                            new { Id = YkcDurumDegerleri.Atandi, Ad = "Randevu Verildi" },
-                            new { Id = YkcDurumDegerleri.SahaIsleminde, Ad = "Saha İşleminde" },
+                            new { Id = YkcDurumDegerleri.TalepAlindi, Ad = "Talep Alındı" },
+                            new { Id = YkcDurumDegerleri.AtamaBekliyor, Ad = "İnceleniyor" },
+                            new { Id = YkcDurumDegerleri.Atandi, Ad = "Randevu Oluşturuldu" },
+                            new { Id = YkcDurumDegerleri.SahaIsleminde, Ad = "İşlem Devam Ediyor" },
                             new { Id = YkcDurumDegerleri.Reddedildi, Ad = "Reddedildi" },
                             new { Id = YkcDurumDegerleri.Tamamlandi, Ad = "Tamamlandı" },
                             new { Id = YkcDurumDegerleri.Iptal, Ad = "İptal" }
@@ -208,8 +211,8 @@
             <div class="ykc-data-title-wrap">
                 <span class="ykc-data-title-icon"><i class="bi bi-journal-text"></i></span>
                 <div>
-                    <div class="ykc-data-title">Cihaz Değişim Kayıtları</div>
-                    <div class="ykc-data-subtitle">En güncel talepler işlem önceliğiyle listelenir.</div>
+                    <div class="ykc-data-title">Talep Listesi</div>
+                    <div class="ykc-data-subtitle">Talep, güncel durum ve sonraki işlem aynı satırda gösterilir.</div>
                 </div>
             </div>
             <span class="ykc-record-count"><i class="bi bi-database"></i> @Model.Toplam kayıt</span>
@@ -218,21 +221,21 @@
         <div class="ykc-table-scroll">
             <table class="ykc-data-table">
                 <colgroup>
-                    <col style="width:15%" />
-                    <col style="width:20%" />
-                    <col style="width:25%" />
+                    <col style="width:14%" />
+                    <col style="width:18%" />
+                    <col style="width:22%" />
                     <col style="width:18%" />
                     <col style="width:12%" />
-                    <col style="width:10%" />
+                    <col style="width:16%" />
                 </colgroup>
                 <thead>
                     <tr>
                         <th>Talep / Tesisat</th>
                         <th>@(icOperasyonGorsun ? "Firma / Müşteri" : "Müşteri / Konum")</th>
                         <th>Cihaz Değişimi</th>
-                        <th>Randevu / Atama</th>
+                        <th>@(icOperasyonGorsun ? "Randevu / Yönlendirme" : "Randevu")</th>
                         <th>Durum</th>
-                        <th>İşlem</th>
+                        <th>Gereken İşlem</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -248,6 +251,7 @@
                     {
                         @foreach (var talep in Model.Talepler)
                         {
+                            var gerekenIslem = GerekenIslemYazi(talep.Durum, icOperasyonGorsun);
                             <tr>
                                 <td data-label="Talep / Tesisat">
                                     <div class="ykc-primary-cell"><span class="ykc-code">@Deger(talep.TesisatNo)</span></div>
@@ -264,13 +268,16 @@
                                         <span class="ykc-device-new">@Deger(talep.YeniCihaz)</span>
                                     </div>
                                 </td>
-                                <td data-label="Randevu / Atama">
+                                <td data-label="@(icOperasyonGorsun ? "Randevu / Yönlendirme" : "Randevu")">
                                     <div class="ykc-primary-cell">@RandevuYazi(talep.RandevuTarihi, talep.RandevuSaati)</div>
-                                    <div class="ykc-cell-meta">@KonumYazi(talep.AtananEkip, talep.Bolge)</div>
+                                    @if (icOperasyonGorsun)
+                                    {
+                                        <div class="ykc-cell-meta">@KonumYazi(talep.AtananEkip, talep.Bolge)</div>
+                                    }
                                 </td>
                                 <td data-label="Durum"><span class="df-pill @DurumClass(talep.Durum)">@DurumYazi(talep.Durum)</span></td>
-                                <td class="ykc-action-cell" data-label="İşlem">
-                                    <a class="ykc-detail-action" href="/ykc/detay/@talep.Id" title="Talep detayını aç"><i class="bi bi-eye"></i><span>Detay</span></a>
+                                <td class="ykc-action-cell" data-label="Gereken İşlem">
+                                    <a class="ykc-next-action" href="/ykc/detay/@talep.Id" title="Talep detayını aç"><span>@gerekenIslem</span><i class="bi bi-arrow-right"></i></a>
                                 </td>
                             </tr>
                         }
