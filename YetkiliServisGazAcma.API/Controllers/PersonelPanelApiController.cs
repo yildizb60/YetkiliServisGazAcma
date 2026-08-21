@@ -47,7 +47,11 @@ namespace YetkiliServisGazAcma.API.Controllers
                         YetkiTipleri.RAPOR_GOR,
                         YetkiTipleri.KULLANICI_YONET,
                         YetkiTipleri.DAGITIM_SIRKET_YONET,
-                        YetkiTipleri.MARKA_YONET
+                        YetkiTipleri.MARKA_YONET,
+                        YetkiTipleri.YKC_TALEP_GOR,
+                        YetkiTipleri.YKC_ATAMA_YAP,
+                        YetkiTipleri.YKC_FR265_IMZA_ISLEM,
+                        YetkiTipleri.YKC_RAPOR_GOR
                     }
                 });
             }

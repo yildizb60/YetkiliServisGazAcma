@@ -42,6 +42,7 @@ builder.Services.AddScoped<YetkiliServisService>();
 builder.Services.AddScoped<AdminDashboardService>();
 builder.Services.AddScoped<AdminYetkiliServisListeService>();
 builder.Services.AddScoped<SehirFirmaKoduService>();
+builder.Services.AddScoped<YkcYetkiService>();
 builder.Services.AddScoped<AktifSirketService>();
 builder.Services.AddScoped<PanelKimlikService>();
 builder.Services.AddScoped<PanelKimlikActionFilter>();

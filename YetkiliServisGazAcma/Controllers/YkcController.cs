@@ -27,6 +27,9 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null)
                 return Redirect("/giris");
 
+            if (!YkcYetkileri().TalepleriGorebilir)
+                return Redirect("/yetkisiz-erisim");
+
             PanelViewBag(kullanici, "YkcOzet", "Ana Sayfa", "Cihaz değişim, FR265 önizleme, randevu ve dijital imza sürecinizi izleyin");
 
             var sonuc = await _ykcApiClient.DashboardOzetAsync(kullanici) ?? new YkcDashboardOzetDto();
@@ -51,6 +54,9 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await _userManager.GetUserAsync(User);
             if (kullanici == null)
                 return Redirect("/giris");
+
+            if (!YkcYetkileri().TalepleriGorebilir)
+                return Redirect("/yetkisiz-erisim");
 
             PanelViewBag(kullanici, "YkcTalepler", "Cihaz Değişim Talepleri", "Yakıcı cihaz değişim formu, randevu ve atama süreci");
 
@@ -95,6 +101,9 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null)
                 return Redirect("/giris");
 
+            if (!YkcYetkileri().RaporlariGorebilir)
+                return Redirect("/yetkisiz-erisim");
+
             PanelViewBag(kullanici, "YkcRaporlar", "Cihaz Değişim Raporları", "Firma, ekip, tesisat ve tarih aralığına göre cihaz değişim süreci");
 
             var filtre = new YkcTalepListeFiltre
@@ -126,6 +135,9 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null)
                 return Redirect("/giris");
 
+            if (!YkcYetkileri().TalepOlusturabilir)
+                return Redirect("/yetkisiz-erisim");
+
             PanelViewBag(kullanici, "YkcYeni", "Yeni Cihaz Değişim Talebi", "Yakıcı cihaz değişim formu oluştur");
             return View("~/Views/Ykc/Yeni.cshtml", new YkcTalepKaydetDto());
         }
@@ -137,6 +149,9 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await _userManager.GetUserAsync(User);
             if (kullanici == null)
                 return Redirect("/giris");
+
+            if (!YkcYetkileri().TalepOlusturabilir)
+                return Redirect("/yetkisiz-erisim");
 
             PanelViewBag(kullanici, "YkcYeni", "Yeni Cihaz Değişim Talebi", "Yakıcı cihaz değişim formu oluştur");
 
@@ -177,6 +192,9 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null)
                 return Unauthorized(new YkcTesisatSorguSonuc { Basarili = false, Mesaj = "Oturum bulunamadi." });
 
+            if (!YkcYetkileri().TalepOlusturabilir)
+                return StatusCode(StatusCodes.Status403Forbidden, YkcTesisatSorguSonuc.Basarisiz("Tesisat sorgulama yetkiniz bulunmuyor."));
+
             var sonuc = await _ykcApiClient.TesisatSorgulaAsync(kullanici, model);
             return Json(sonuc ?? YkcTesisatSorguSonuc.Basarisiz("Tesisat sorgusu icin API yaniti alinamadi."));
         }
@@ -187,6 +205,9 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await _userManager.GetUserAsync(User);
             if (kullanici == null)
                 return Redirect("/giris");
+
+            if (!YkcYetkileri().TalepleriGorebilir)
+                return Redirect("/yetkisiz-erisim");
 
             PanelViewBag(kullanici, "YkcTalepler", "Cihaz Değişim Talebi Detayı", "Form, cihaz bilgileri ve atama süreci");
 
@@ -209,6 +230,9 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await _userManager.GetUserAsync(User);
             if (kullanici == null)
                 return Redirect("/giris");
+
+            if (!YkcYetkileri().TalepleriGorebilir)
+                return Redirect("/yetkisiz-erisim");
 
             PanelViewBag(kullanici, "YkcTalepler", "FR265 Form Önizleme", "Proje tadilatı gerektirmeyen yakıcı cihaz değişim formu");
 
@@ -234,6 +258,9 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null)
                 return Redirect("/giris");
 
+            if (!YkcYetkileri().Fr265ImzaIslemiYapabilir)
+                return Redirect("/yetkisiz-erisim");
+
             var sonuc = await _ykcApiClient.ImzayaGonderAsync(kullanici, talepId);
             TempData[sonuc?.Basarili == true ? "Basarili" : "Hata"] = sonuc?.Mesaj
                 ?? "FR265 dijital imza uygulamasına gönderilemedi.";
@@ -249,6 +276,9 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null)
                 return Redirect("/giris");
 
+            if (!YkcYetkileri().Fr265ImzaIslemiYapabilir)
+                return Redirect("/yetkisiz-erisim");
+
             var sonuc = await _ykcApiClient.ImzaDurumSorgulaAsync(kullanici, talepId);
             TempData[sonuc?.Basarili == true ? "Basarili" : "Hata"] = sonuc?.Mesaj
                 ?? "FR265 dijital imza durumu alınamadı.";
@@ -261,6 +291,9 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await _userManager.GetUserAsync(User);
             if (kullanici == null)
                 return Redirect("/giris");
+
+            if (!YkcYetkileri().TalepleriGorebilir)
+                return Redirect("/yetkisiz-erisim");
 
             var dosya = await _ykcApiClient.DosyaIndirAsync(kullanici, id);
             if (dosya == null || dosya.Bytes.Length == 0)
@@ -281,6 +314,9 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null)
                 return Redirect("/giris");
 
+            if (!YkcYetkileri().AtamaYapabilir)
+                return Redirect("/yetkisiz-erisim");
+
             var sonuc = await _ykcApiClient.AtamaYapAsync(kullanici, model);
             TempData[sonuc?.Basarili == true ? "Basarili" : "Hata"] = sonuc?.Mesaj ?? "Cihaz değişim talebi ataması kaydedilemedi.";
             return RedirectToAction(nameof(Detay), new { id = model.TalepId });
@@ -294,6 +330,15 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await _userManager.GetUserAsync(User);
             if (kullanici == null)
                 return Redirect("/giris");
+
+            var ykcYetkileri = YkcYetkileri();
+            var durumYetkili = model.Durum == YkcDurumDegerleri.Tamamlandi
+                ? ykcYetkileri.Fr265ImzaIslemiYapabilir
+                : model.Durum == YkcDurumDegerleri.SahaIsleminde
+                    ? ykcYetkileri.AtamaYapabilir || ykcYetkileri.Fr265ImzaIslemiYapabilir
+                    : ykcYetkileri.AtamaYapabilir;
+            if (!durumYetkili)
+                return Redirect("/yetkisiz-erisim");
 
             var sonuc = await _ykcApiClient.DurumGuncelleAsync(kullanici, model);
             TempData[sonuc?.Basarili == true ? "Basarili" : "Hata"] = sonuc?.Mesaj ?? "Cihaz değişim talebi durumu güncellenemedi.";
@@ -309,6 +354,9 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null)
                 return Redirect("/giris");
 
+            if (!YkcYetkileri().Fr265ImzaIslemiYapabilir)
+                return Redirect("/yetkisiz-erisim");
+
             var sonuc = await _ykcApiClient.KontrollerKaydetAsync(kullanici, model);
             TempData[sonuc?.Basarili == true ? "Basarili" : "Hata"] = sonuc?.Mesaj ?? "FR265 kontrol adımları kaydedilemedi.";
             return RedirectToAction(nameof(Detay), new { id = model.TalepId });
@@ -321,6 +369,9 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await _userManager.GetUserAsync(User);
             if (kullanici == null)
                 return Redirect("/giris");
+
+            if (!YkcYetkileri().Fr265ImzaIslemiYapabilir)
+                return Redirect("/yetkisiz-erisim");
 
             if (talepId <= 0)
             {
@@ -342,6 +393,11 @@ namespace YetkiliServisGazAcma.Controllers
 
             TempData[sonuc?.Basarili == true ? "Basarili" : "Hata"] = sonuc?.Mesaj ?? "Cihaz değişim form dosyası yüklenemedi.";
             return RedirectToAction(nameof(Detay), new { id = talepId });
+        }
+
+        private YkcYetkiOzeti YkcYetkileri()
+        {
+            return ViewBag.YkcYetkileri as YkcYetkiOzeti ?? new YkcYetkiOzeti();
         }
 
         private void PanelViewBag(AppKullanici kullanici, string activeMenu, string title, string subtitle)

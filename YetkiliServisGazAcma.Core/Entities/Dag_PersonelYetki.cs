@@ -7,6 +7,10 @@ namespace YetkiliServisGazAcma.Entities
         public const string KULLANICI_YONET = "KULLANICI_YONET";
         public const string DAGITIM_SIRKET_YONET = "DAGITIM_SIRKET_YONET";
         public const string MARKA_YONET = "MARKA_YONET";
+        public const string YKC_TALEP_GOR = "YKC_TALEP_GOR";
+        public const string YKC_ATAMA_YAP = "YKC_ATAMA_YAP";
+        public const string YKC_FR265_IMZA_ISLEM = "YKC_FR265_IMZA_ISLEM";
+        public const string YKC_RAPOR_GOR = "YKC_RAPOR_GOR";
         public const string TAM_YETKI = "TAM_YETKI";
     }
 

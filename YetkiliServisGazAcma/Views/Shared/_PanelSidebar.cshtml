@@ -15,6 +15,7 @@
         ?? (User.IsInRole("GenelSistemAdmin") || User.IsInRole("SuperAdmin"));
     var sirketAdminMi = User.IsInRole("SirketAdmin");
     var personelMi = User.IsInRole("Personel");
+    var ykcYetkileri = ViewBag.YkcYetkileri as YkcYetkiOzeti ?? new YkcYetkiOzeti();
 
     var panelAltBaslik = isSertifikaliFirmaPanel
         ? "Sertifikalı Firma"
@@ -136,12 +137,18 @@
             <a class="@("nav-item" + Active("DevreyeAlmalar", "/personel-panel/devreyealmalar"))" href="/personel-panel/devreyealmalar">
                 <span class="nav-ico"><i class="bi bi-bag-check"></i></span> Devreye Almalar
             </a>
-            <a class="@("nav-item" + Active("YkcTalepler", "/ykc/talepler", "/ykc/detay", "/ykc/yeni", "/ykc/fr265"))" href="/ykc/talepler">
-                <span class="nav-ico"><i class="bi bi-fire"></i></span> Cihaz Değişim Talepleri
-            </a>
-            <a class="@("nav-item" + Active("YkcRaporlar", "/ykc/raporlar"))" href="/ykc/raporlar">
-                <span class="nav-ico"><i class="bi bi-bar-chart-line"></i></span> Cihaz Değişim Raporları
-            </a>
+            @if (ykcYetkileri.TalepleriGorebilir)
+            {
+                <a class="@("nav-item" + Active("YkcTalepler", "/ykc/talepler", "/ykc/detay", "/ykc/fr265"))" href="/ykc/talepler">
+                    <span class="nav-ico"><i class="bi bi-fire"></i></span> Cihaz Değişim Talepleri
+                </a>
+            }
+            @if (ykcYetkileri.RaporlariGorebilir)
+            {
+                <a class="@("nav-item" + Active("YkcRaporlar", "/ykc/raporlar"))" href="/ykc/raporlar">
+                    <span class="nav-ico"><i class="bi bi-bar-chart-line"></i></span> Cihaz Değişim Raporları
+                </a>
+            }
             <a class="@("nav-item" + Active("Markalar", "/personel-panel/markalar"))" href="/personel-panel/markalar">
                 <span class="nav-ico"><i class="bi bi-building-check"></i></span> Markalar
             </a>

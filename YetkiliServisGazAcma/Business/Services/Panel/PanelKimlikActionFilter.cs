@@ -10,15 +10,18 @@ namespace YetkiliServisGazAcma.Business.Services
         private readonly UserManager<AppKullanici> _userManager;
         private readonly PanelKimlikService _panelKimlikService;
         private readonly AktifSirketService _aktifSirketService;
+        private readonly YkcYetkiService _ykcYetkiService;
 
         public PanelKimlikActionFilter(
             UserManager<AppKullanici> userManager,
             PanelKimlikService panelKimlikService,
-            AktifSirketService aktifSirketService)
+            AktifSirketService aktifSirketService,
+            YkcYetkiService ykcYetkiService)
         {
             _userManager = userManager;
             _panelKimlikService = panelKimlikService;
             _aktifSirketService = aktifSirketService;
+            _ykcYetkiService = ykcYetkiService;
         }
 
         public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
@@ -36,9 +39,11 @@ namespace YetkiliServisGazAcma.Business.Services
                 if (kullanici != null)
                 {
                     controller.ViewBag.AktifSirketler = await _aktifSirketService.KullaniciSirketleriAsync(kullanici);
-                    controller.ViewBag.AktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
+                    var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
+                    controller.ViewBag.AktifSirketId = aktifSirketId;
                     controller.ViewBag.GenelSistemAdminMi = await _aktifSirketService.GenelSistemAdminMi(kullanici);
                     controller.ViewBag.SirketAdminMi = await _aktifSirketService.SirketAdminMi(kullanici);
+                    controller.ViewBag.YkcYetkileri = await _ykcYetkiService.OzetAsync(kullanici, aktifSirketId);
                 }
             }
 

@@ -127,6 +127,14 @@ namespace YetkiliServisGazAcma.Business.Services
             var redIptal = await query.CountAsync(x =>
                 x.Durum == YkcDurumDegerleri.Reddedildi ||
                 x.Durum == YkcDurumDegerleri.Iptal);
+            var imzaBekleyen = await query.CountAsync(x =>
+                x.ImzaSurecleri.Any(s =>
+                    !s.SilindiMi
+                    && s.ProviderDocumentId != null
+                    && s.ProviderDocumentId != ""
+                    && (s.Durum == YkcImzaDurumDegerleri.ImzayaGonderildi
+                        || s.Durum == YkcImzaDurumDegerleri.ImzaBekliyor
+                        || s.Durum == YkcImzaDurumDegerleri.KismiImzali)));
 
             var sonTalepler = await query
                 .OrderByDescending(x => x.TalepTarihi)
@@ -141,7 +149,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 RandevuSaha = randevuSaha,
                 Tamamlanan = tamamlanan,
                 ImzaliNihai = imzaliNihai,
-                ImzaBekleyen = Math.Max(toplam - imzaliNihai - redIptal, 0),
+                ImzaBekleyen = imzaBekleyen,
                 RedIptal = redIptal,
                 SonTalepler = sonTalepler.Select(YkcTalepDto.FromEntity).ToList()
             };
@@ -339,7 +347,7 @@ namespace YetkiliServisGazAcma.Business.Services
             var imzaliNihaiBelgeVar = await ImzaliNihaiBelgeVarMiAsync(talep.Id);
 
             if (dto.Durum == YkcDurumDegerleri.Tamamlandi && !imzaliNihaiBelgeVar)
-                return YkcIslemSonuc.HataliSonuc("Talebi tamamlamak icin imzali nihai belge sistemde hazir olmalidir.");
+                return YkcIslemSonuc.HataliSonuc("İşlemi tamamlamak için FR265'in imza/arşiv sisteminden dönmüş imzalı nihai belgesi gerekir. Dijital imza entegrasyonu bağlanmadan bu talep canlı olarak tamamlanamaz.");
 
             if (dto.Durum == YkcDurumDegerleri.Tamamlandi && !RandevuZamaniGeldiMi(talep.RandevuTarihi, talep.RandevuSaati))
                 return YkcIslemSonuc.HataliSonuc("Randevu zamani gelmeden talep tamamlandi durumuna alinamaz.");

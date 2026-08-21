@@ -14,6 +14,7 @@ using YetkiliServisGazAcma.Models;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Business.Services.Online;
 using YetkiliServisGazAcma.API.Services;
+using YetkiliServisGazAcma.API.Swagger;
 using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -99,8 +100,18 @@ builder.Services.AddScoped<AdminPersonelYetkiApiService>();
 builder.Services.AddScoped<YetkiliServisPanelYonetimApiService>();
 builder.Services.AddScoped<DevreyeAlmaExportApiService>();
 builder.Services.AddScoped<YkcFr265FormService>();
+builder.Services.AddScoped<YkcYetkiService>();
 builder.Services.AddScoped<YkcImzaAkisService>();
-builder.Services.AddSingleton<IYkcImzaProvider, YapilandirilmamisYkcImzaProvider>();
+var ykcImzaProvider = builder.Configuration["YkcImza:Provider"];
+if (builder.Environment.IsDevelopment()
+    && string.Equals(ykcImzaProvider, "Demo", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.AddSingleton<IYkcImzaProvider, DemoYkcImzaProvider>();
+}
+else
+{
+    builder.Services.AddSingleton<IYkcImzaProvider, YapilandirilmamisYkcImzaProvider>();
+}
 builder.Services.AddSmsServices(builder.Configuration);
 builder.Services.Configure<OnlineServiceOptions>(builder.Configuration.GetSection("OnlineService"));
 builder.Services.AddHttpClient<OnlineCihazBilgileriClient>((serviceProvider, client) =>
@@ -189,12 +200,10 @@ builder.Services.AddSwaggerGen(c =>
     // JWT desteği
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Name = "Authorization",
-        Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
         BearerFormat = "JWT",
-        In = ParameterLocation.Header,
-        Description = "Token giriniz. Örnek: Bearer {token}"
+        Description = "JWT token giriniz."
     });
 
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
@@ -211,6 +220,8 @@ builder.Services.AddSwaggerGen(c =>
             Array.Empty<string>()
         }
     });
+
+    c.OperationFilter<ApiSwaggerResponseOperationFilter>();
 });
 
 var app = builder.Build();

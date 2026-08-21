@@ -37,6 +37,7 @@ namespace YetkiliServisGazAcma.API.Services
             return new YkcImzaEntegrasyonDto
             {
                 KullanilabilirMi = _imzaProvider.KullanilabilirMi,
+                DemoModuMu = _imzaProvider.DemoModuMu,
                 ProviderAdi = _imzaProvider.ProviderAdi
             };
         }
@@ -56,6 +57,9 @@ namespace YetkiliServisGazAcma.API.Services
 
             if (TerminalDurumMu(detay.Durum))
                 return YkcIslemSonuc.HataliSonuc("Kapanmış talep dijital imzaya gönderilemez.");
+
+            if (!ImzaGonderimineHazirMi(detay, out var hazirlikMesaji))
+                return YkcIslemSonuc.HataliSonuc(hazirlikMesaji);
 
             var talep = await _context.Ykc_Talepler
                 .Include(x => x.FormDosyalari)
@@ -548,6 +552,48 @@ namespace YetkiliServisGazAcma.API.Services
             return durum == YkcDurumDegerleri.Tamamlandi
                 || durum == YkcDurumDegerleri.Reddedildi
                 || durum == YkcDurumDegerleri.Iptal;
+        }
+
+        private static bool ImzaGonderimineHazirMi(YkcTalepDetayDto detay, out string mesaj)
+        {
+            if (detay.Durum != YkcDurumDegerleri.SahaIsleminde)
+            {
+                mesaj = "FR265 yalnız randevu gerçekleşip kontrol aşamasına geçtikten sonra imzaya gönderilebilir.";
+                return false;
+            }
+
+            if (!detay.RandevuTarihi.HasValue || string.IsNullOrWhiteSpace(detay.RandevuSaati))
+            {
+                mesaj = "FR265 imzaya gönderilmeden önce randevu tarih ve saat bilgisi kaydedilmelidir.";
+                return false;
+            }
+
+            var kontroller = detay.Kontroller
+                .Where(x => x.KontrolNo is >= 1 and <= 5)
+                .GroupBy(x => x.KontrolNo)
+                .Select(x => x.OrderByDescending(k => k.KontrolTarihi ?? DateTime.MinValue).First())
+                .ToList();
+
+            if (kontroller.Count != 5)
+            {
+                mesaj = "FR265 imzaya gönderilmeden önce 1-5 kontrol sonuçları tamamlanmalıdır.";
+                return false;
+            }
+
+            var kabulEdilenSonuclar = new[]
+            {
+                YkcFr265KontrolSonucDegerleri.Uygun,
+                YkcFr265KontrolSonucDegerleri.Uygulanmaz
+            };
+
+            if (kontroller.Any(x => !kabulEdilenSonuclar.Contains(x.Sonuc)))
+            {
+                mesaj = "FR265 imzaya gönderilmeden önce tüm kontroller uygun veya uygulanmaz olarak tamamlanmalıdır.";
+                return false;
+            }
+
+            mesaj = "";
+            return true;
         }
 
         private static string HashOlustur(byte[] bytes)

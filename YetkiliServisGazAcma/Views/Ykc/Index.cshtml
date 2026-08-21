@@ -246,14 +246,14 @@
                             <div class="user-ava"><i class="bi bi-send-check"></i></div>
                             <div>
                                 <div class="user-lbl">Dijital Akış</div>
-                                <div class="user-name">FR265 Önizleme ve İmza</div>
+                                <div class="user-name">@(imzaEntegrasyonu.DemoModuMu ? "FR265 ve Demo İmza Akışı" : "FR265 Önizleme ve İmza")</div>
                             </div>
                         </div>
                         <div class="kpi-grid">
                             <div class="kpi-tile"><div class="kpi-icon"><i class="bi bi-eye"></i></div><div class="kpi-n">@toplam</div><div class="kpi-lbl">Önizlenebilir</div></div>
                             <div class="kpi-tile"><div class="kpi-icon ic-warn"><i class="bi bi-send"></i></div><div class="kpi-n">@imzaBekleyen</div><div class="kpi-lbl">İmza Bekleyen</div></div>
                             <div class="kpi-tile"><div class="kpi-icon ic-green"><i class="bi bi-file-earmark-check"></i></div><div class="kpi-n">@imzaliNihai</div><div class="kpi-lbl">Nihai Belge</div></div>
-                            <div class="kpi-tile"><div class="kpi-icon ic-teal"><i class="bi bi-plug"></i></div><div class="kpi-n">@(imzaEntegrasyonu.KullanilabilirMi ? "Aktif" : "Bekliyor")</div><div class="kpi-lbl">Entegrasyon</div></div>
+                            <div class="kpi-tile"><div class="kpi-icon ic-teal"><i class="bi bi-plug"></i></div><div class="kpi-n">@(imzaEntegrasyonu.DemoModuMu ? "Demo" : imzaEntegrasyonu.KullanilabilirMi ? "Aktif" : "Bekliyor")</div><div class="kpi-lbl">Entegrasyon</div></div>
                         </div>
                     </div>
                     <div class="chart-pane">
@@ -263,8 +263,8 @@
                                 <div class="dash-list-sub">Belge doğruysa imza uygulamasına gönderilecek.</div>
                             </div>
                             <div class="dash-list-item">
-                                <div class="dash-list-title">Eksik imzalar dış uygulamada tamamlanır</div>
-                                <div class="dash-list-sub">Callback/API entegrasyonu eklendiğinde durum otomatik izlenecek.</div>
+                                <div class="dash-list-title">@(imzaEntegrasyonu.DemoModuMu ? "Sunum akışı test sağlayıcısıyla tamamlanır" : "Eksik imzalar dış uygulamada tamamlanır")</div>
+                                <div class="dash-list-sub">@(imzaEntegrasyonu.DemoModuMu ? "Oluşan demo sonuç belgesi gerçek elektronik imza değildir." : "Callback/API entegrasyonu ile durum otomatik izlenir.")</div>
                             </div>
                             <div class="dash-list-item">
                                 <div class="dash-list-title">İmzalı nihai belge arşivden gelir</div>

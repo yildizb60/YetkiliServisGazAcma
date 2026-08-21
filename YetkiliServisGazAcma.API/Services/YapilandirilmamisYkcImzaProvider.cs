@@ -8,6 +8,7 @@ namespace YetkiliServisGazAcma.API.Services
 
         public string ProviderAdi => "Yapılandırılmadı";
         public bool KullanilabilirMi => false;
+        public bool DemoModuMu => false;
 
         public Task<YkcImzaGonderSonuc> GonderAsync(
             YkcImzaGonderIstek istek,

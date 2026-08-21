@@ -531,6 +531,10 @@ namespace YetkiliServisGazAcma.Controllers
                 [YetkiTipleri.RAPOR_GOR] = "Rapor Gor",
                 [YetkiTipleri.KULLANICI_YONET] = "Kullanici Yonet",
                 [YetkiTipleri.MARKA_YONET] = "Marka Yonet",
+                [YetkiTipleri.YKC_TALEP_GOR] = "YKC Taleplerini Gör",
+                [YetkiTipleri.YKC_ATAMA_YAP] = "YKC Atama ve Randevu",
+                [YetkiTipleri.YKC_FR265_IMZA_ISLEM] = "YKC FR265 ve İmza İşlemleri",
+                [YetkiTipleri.YKC_RAPOR_GOR] = "YKC Raporlarını Gör",
                 [YetkiTipleri.TAM_YETKI] = "Tam Yetki"
             };
 

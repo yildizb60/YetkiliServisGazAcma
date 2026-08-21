@@ -29,6 +29,8 @@ Base route:
 /api/ykc
 ```
 
+Swagger cevap semalari `ApiSwaggerResponseOperationFilter` ile merkezden tamamlanir. Boylece `IActionResult` donen endpointlerde 200 cevaplari bos kalmaz; YKC islem uclari `YkcIslemSonuc`, rapor uclari `YkcRaporSonuc`, dosya indirme uclari ise binary dosya olarak gorunur. Kimlik/yetki, dogrulama, bulunamadi ve imza entegrasyonu hazir degil gibi hata cevaplari da Swagger'da ayri status code ile listelenir.
+
 Talepler:
 
 ```text
@@ -92,7 +94,7 @@ Servis basarili cevap verir ancak kayit bulamazsa ekran kontrollu manuel girise 
 Talep olustuktan sonra detay ekraninda FR265 akisi su sekilde ilerler:
 
 1. `FR265 Onizle`, kayitli talep ve kontrol bilgileriyle dijital form gorunumunu acar.
-2. Gercek imza provider'i yapilandirilmissa `Imza Uygulamasina Gonder`, guncel Word belgesini bir kez uretir ve private storage'da kilitli snapshot olarak saklar.
+2. Gercek imza provider'i yapilandirilmissa ve talep `SahaIsleminde` durumunda randevu ile 1-5 kontrol sonucu tamamlanmissa `Imza Uygulamasina Gonder`, guncel Word belgesini bir kez uretir ve private storage'da kilitli snapshot olarak saklar.
 3. Snapshot'in gercek SHA-256 degeri talep, imza sureci ve dosya kaydina yazilir; provider'a ayni baytlar gonderilir.
 4. `Imza Durumunu Guncelle`, provider'daki imzaci ve belge durumunu sorgular.
 5. Provider tamamlanmis belgeyi dondurdugunde belge `FR265_IMZALI_NIHAI` olarak private storage'a alinir ve indirilebilir hale gelir.
@@ -147,11 +149,11 @@ Bu hedefler kullaniciya tercih alani olarak gosterilmez; secilen ekip/kullanici 
 - Ic tesisat onayi/atamasi icin randevu tarihi, randevu saati, bolge ve ekip zorunludur.
 - Randevu/atama yapilabilmesi icin talep once `AtamaBekliyor` yani "Ic tesisat incelemesinde" durumuna alinmalidir.
 - Tamamlanan, reddedilen veya iptal edilen talepler tekrar atanamaz.
-- Kullanici yuklemesinde sadece `TEKNIK_EK` ve ic operasyon rolleri icin `FR265_IMZALI_ADAY` kabul edilir.
-- `FR265_IMZALI_ADAY` yalnizca PDF olabilir ve imza surecini tamamlamaz.
+- Kullanici yuklemesinde yalnizca `TEKNIK_EK` kabul edilir; `FR265_IMZALI_ADAY` artik yeni yuklemeye acik degildir.
 - `FR265_TASLAK` gercek Word baytlarinin private storage snapshot'idir. Hash bu dosyanin SHA-256 degeridir.
 - `FR265_IMZAYA_GONDERILEN`, saglayicinin kabul ettigi kilitli snapshot'tir.
 - `FR265_IMZALI_NIHAI` yalnizca dijital imza saglayicisindan donen nihai belge icin uretilir.
+- Genel dosya indirme endpoint'i `FR265_TASLAK`, `FR265_IMZAYA_GONDERILEN` veya eski `FR265_IMZALI_ADAY` kayitlarini indirmez; yalniz `TEKNIK_EK` ve tamamlanmis imza surecine bagli `FR265_IMZALI_NIHAI` indirilebilir.
 - Talep ancak provider belge kimligi, tamamlanmis imza sureci ve bu surece bagli nihai dosya birlikte varsa tamamlanabilir.
 - FR265'in sayfa sayisi kodda sabitlenmez; guncel Word sablonu kac sayfaysa uretilen belge onu korur.
 - Baca tipi secenekleri mudurden netlestikten sonra liste/initial servislerine eklenecektir.

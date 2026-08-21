@@ -120,6 +120,10 @@ namespace YetkiliServisGazAcma.Controllers
             var yServis = await KullaniciYetkiliMi(kullanici, YetkiTipleri.KULLANICI_YONET);
             var ySirketYonet = await KullaniciYetkiliMi(kullanici, YetkiTipleri.DAGITIM_SIRKET_YONET);
             var yMarkaYonet = await KullaniciYetkiliMi(kullanici, YetkiTipleri.MARKA_YONET);
+            var yYkcTalep = await KullaniciYetkiliMi(kullanici, YetkiTipleri.YKC_TALEP_GOR);
+            var yYkcAtama = await KullaniciYetkiliMi(kullanici, YetkiTipleri.YKC_ATAMA_YAP);
+            var yYkcImza = await KullaniciYetkiliMi(kullanici, YetkiTipleri.YKC_FR265_IMZA_ISLEM);
+            var yYkcRapor = await KullaniciYetkiliMi(kullanici, YetkiTipleri.YKC_RAPOR_GOR);
 
             ViewBag.YetkiBelgesi = yYetkiBelgesi;
             ViewBag.YetkiRapor = yRapor;
@@ -128,6 +132,10 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.YetkiMarka = yMarkaYonet;
             ViewBag.YetkiSirketYonet = ySirketYonet;
             ViewBag.YetkiMarkaYonet = yMarkaYonet;
+            ViewBag.YetkiYkcTalep = yYkcTalep;
+            ViewBag.YetkiYkcAtama = yYkcAtama;
+            ViewBag.YetkiYkcImza = yYkcImza;
+            ViewBag.YetkiYkcRapor = yYkcRapor;
 
             List<string> yetkilerim;
             if (await _aktifSirketService.GenelSistemAdminMi(kullanici) || await _aktifSirketService.SirketAdminMi(kullanici))
@@ -138,7 +146,11 @@ namespace YetkiliServisGazAcma.Controllers
                     "Yetki Belgesi Onay",
                     "Rapor Gör",
                     "Kullanıcı Yönet",
-                    "Marka Yönet"
+                    "Marka Yönet",
+                    "YKC Taleplerini Gör",
+                    "YKC Atama ve Randevu",
+                    "YKC FR265 ve İmza İşlemleri",
+                    "YKC Raporlarını Gör"
                 };
             }
             else
@@ -151,6 +163,10 @@ namespace YetkiliServisGazAcma.Controllers
                     [YetkiTipleri.RAPOR_GOR] = "Rapor Gör",
                     [YetkiTipleri.KULLANICI_YONET] = "Kullanıcı Yönet",
                     [YetkiTipleri.MARKA_YONET] = "Marka Yönet",
+                    [YetkiTipleri.YKC_TALEP_GOR] = "YKC Taleplerini Gör",
+                    [YetkiTipleri.YKC_ATAMA_YAP] = "YKC Atama ve Randevu",
+                    [YetkiTipleri.YKC_FR265_IMZA_ISLEM] = "YKC FR265 ve İmza İşlemleri",
+                    [YetkiTipleri.YKC_RAPOR_GOR] = "YKC Raporlarını Gör",
                     [YetkiTipleri.TAM_YETKI] = "Tam Yetki"
                 };
 

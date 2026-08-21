@@ -4,6 +4,7 @@ namespace YetkiliServisGazAcma.Business.Services
     {
         string ProviderAdi { get; }
         bool KullanilabilirMi { get; }
+        bool DemoModuMu { get; }
 
         Task<YkcImzaGonderSonuc> GonderAsync(
             YkcImzaGonderIstek istek,
@@ -84,6 +85,7 @@ namespace YetkiliServisGazAcma.Business.Services
     public class YkcImzaEntegrasyonDto
     {
         public bool KullanilabilirMi { get; set; }
+        public bool DemoModuMu { get; set; }
         public string? ProviderAdi { get; set; }
     }
 }

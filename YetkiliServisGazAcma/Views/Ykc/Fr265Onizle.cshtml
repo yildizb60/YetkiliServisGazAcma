@@ -3,14 +3,31 @@
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
     var formTarihi = Model.TalepTarihi.ToString("dd.MM.yyyy");
     var imzaEntegrasyonu = ViewBag.ImzaEntegrasyonu as YkcImzaEntegrasyonDto ?? new YkcImzaEntegrasyonDto();
-    var icOperasyon = User.IsInRole("GenelSistemAdmin") || User.IsInRole("SuperAdmin") || User.IsInRole("SirketAdmin") || User.IsInRole("Personel");
+    var ykcYetkileri = ViewBag.YkcYetkileri as YkcYetkiOzeti ?? new YkcYetkiOzeti();
+    var imzaIslemYetkisi = ykcYetkileri.Fr265ImzaIslemiYapabilir;
+    var demoImzaModu = imzaEntegrasyonu.DemoModuMu;
     var gonderimTakildi = Model.ImzaSureci?.Durum == YkcImzaDurumDegerleri.ImzayaGonderildi
         && string.IsNullOrWhiteSpace(Model.ImzaSureci.ProviderDocumentId)
         && (!Model.ImzaSureci.GonderimTarihi.HasValue || Model.ImzaSureci.GonderimTarihi <= DateTime.Now.AddMinutes(-5));
-    var imzayaGonderebilir = icOperasyon
+    var kontroller = Model.Kontroller
+        .Where(x => x.KontrolNo is >= 1 and <= 5)
+        .GroupBy(x => x.KontrolNo)
+        .Select(x => x.OrderByDescending(k => k.KontrolTarihi ?? DateTime.MinValue).First())
+        .ToList();
+    var imzayaHazir = Model.Durum == YkcDurumDegerleri.SahaIsleminde
+        && Model.RandevuTarihi.HasValue
+        && !string.IsNullOrWhiteSpace(Model.RandevuSaati)
+        && kontroller.Count == 5
+        && kontroller.All(x => x.Sonuc == YkcFr265KontrolSonucDegerleri.Uygun || x.Sonuc == YkcFr265KontrolSonucDegerleri.Uygulanmaz);
+    var imzayaGonderebilir = imzaIslemYetkisi
         && imzaEntegrasyonu.KullanilabilirMi
+        && imzayaHazir
         && string.IsNullOrWhiteSpace(Model.ImzaSureci?.ProviderDocumentId)
         && (Model.ImzaSureci?.Durum is null or YkcImzaDurumDegerleri.Hazir or YkcImzaDurumDegerleri.Hata || gonderimTakildi);
+    var imzaDurumuSorgulanabilir = imzaIslemYetkisi
+        && imzaEntegrasyonu.KullanilabilirMi
+        && !string.IsNullOrWhiteSpace(Model.ImzaSureci?.ProviderDocumentId)
+        && Model.ImzaSureci?.Durum != YkcImzaDurumDegerleri.Tamamlandi;
 }
 
 @functions {
@@ -56,6 +73,9 @@
         .fr265-sign-title { font-weight: 900; margin-bottom: 14px; }
         .fr265-line { margin-top: 10px; }
         .fr265-note { color: var(--df-muted); font-size: 12px; margin-top: 12px; }
+        .fr265-demo-note { display: flex; align-items: flex-start; gap: 10px; max-width: 920px; margin: 0 auto 14px; padding: 11px 13px; border: 1px solid #f0c36a; background: #fff8e8; color: #714f0d; font-size: 12px; }
+        .fr265-demo-note i { font-size: 16px; }
+        .fr265-demo-note strong { display: block; margin-bottom: 2px; }
         @@media print {
             body { background: #fff !important; }
             .df-sidebar, .df-topbar, .fr265-toolbar { display: none !important; }
@@ -84,7 +104,15 @@
             <form method="post" action="/ykc/imzaya-gonder">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="talepId" value="@Model.Id" />
-                <button class="df-btn df-btn-primary df-btn-sm" type="submit">İmza Uygulamasına Gönder</button>
+                <button class="df-btn df-btn-primary df-btn-sm" type="submit">@(demoImzaModu ? "Demo İmza Sürecine Gönder" : "İmza Uygulamasına Gönder")</button>
+            </form>
+        }
+        else if (imzaDurumuSorgulanabilir)
+        {
+            <form method="post" action="/ykc/imza-durum-sorgula">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="talepId" value="@Model.Id" />
+                <button class="df-btn df-btn-primary df-btn-sm" type="submit">İmza Durumunu Güncelle</button>
             </form>
         }
         else if (!imzaEntegrasyonu.KullanilabilirMi)
@@ -93,6 +121,11 @@
         }
     </div>
 </div>
+
+@if (demoImzaModu)
+{
+    <div class="fr265-demo-note"><i class="bi bi-beaker"></i><span><strong>Demo imza modu</strong>Gönderim ve sonuç alma adımları sunum için simüle edilir. Oluşan sonuç belgesi hukuki elektronik imza içermez.</span></div>
+}
 
 <section class="fr265-paper">
     <div class="fr265-head">
@@ -209,5 +242,5 @@
         </div>
     </div>
 
-    <div class="fr265-note">Not: Bu belge kontrol önizlemesidir. İmza entegrasyonu devreye alındığında doğru bulunan form dış dijital imza/arşiv uygulamasına gönderilecek, indirme işlemi imzalı nihai belge üzerinden yapılacaktır.</div>
+    <div class="fr265-note">Not: Bu belge kontrol önizlemesidir. @(demoImzaModu ? "Geliştirme ortamında akış demo sağlayıcıyla gösterilir; sonuç hukuki imza sayılmaz." : "Gerçek entegrasyonda doğru bulunan form dış dijital imza/arşiv uygulamasına gönderilecek, indirme işlemi imzalı nihai belge üzerinden yapılacaktır.")</div>
 </section>

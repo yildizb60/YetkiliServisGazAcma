@@ -25,6 +25,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         private readonly OnlineCihazBilgileriClient _onlineCihazBilgileriClient;
         private readonly SehirFirmaKoduService _sehirFirmaKoduService;
         private readonly YkcImzaAkisService _ykcImzaAkisService;
+        private readonly YkcYetkiService _ykcYetkiService;
 
         public YkcApiController(
             YkcTalepService ykcTalepService,
@@ -33,7 +34,8 @@ namespace YetkiliServisGazAcma.API.Controllers
             AppDbContext context,
             OnlineCihazBilgileriClient onlineCihazBilgileriClient,
             SehirFirmaKoduService sehirFirmaKoduService,
-            YkcImzaAkisService ykcImzaAkisService)
+            YkcImzaAkisService ykcImzaAkisService,
+            YkcYetkiService ykcYetkiService)
         {
             _ykcTalepService = ykcTalepService;
             _userManager = userManager;
@@ -42,6 +44,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             _onlineCihazBilgileriClient = onlineCihazBilgileriClient;
             _sehirFirmaKoduService = sehirFirmaKoduService;
             _ykcImzaAkisService = ykcImzaAkisService;
+            _ykcYetkiService = ykcYetkiService;
         }
 
         [HttpPost("tesisat-sorgula")]
@@ -50,6 +53,10 @@ namespace YetkiliServisGazAcma.API.Controllers
             var kullanici = await AktifKullaniciAsync();
             if (kullanici == null)
                 return Unauthorized(new { basarili = false, mesaj = "Oturum bulunamadi." });
+
+            var ykcYetkileri = await _ykcYetkiService.OzetAsync(kullanici, kullanici.SirketId, HttpContext.RequestAborted);
+            if (!ykcYetkileri.TalepOlusturabilir)
+                return YkcYetkisiz("Tesisat sorgulama ve talep oluşturma yetkiniz bulunmuyor.");
 
             if (string.IsNullOrWhiteSpace(istek?.TesisatNo))
                 return Ok(YkcTesisatSorguSonuc.Basarisiz("Tesisat no zorunludur."));
@@ -162,6 +169,9 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (kullanici == null)
                 return Unauthorized(new { basarili = false, mesaj = "Oturum bulunamadı." });
 
+            if (!await YkcYetkiliMiAsync(kullanici, YetkiTipleri.YKC_TALEP_GOR))
+                return YkcYetkisiz("YKC taleplerini görüntüleme yetkiniz bulunmuyor.");
+
             var sonuc = await _ykcTalepService.ListeAsync(
                 filtre ?? new YkcTalepListeFiltre(),
                 kullanici,
@@ -177,6 +187,9 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (kullanici == null)
                 return Unauthorized(new { basarili = false, mesaj = "Oturum bulunamadı." });
 
+            if (!await YkcYetkiliMiAsync(kullanici, YetkiTipleri.YKC_TALEP_GOR))
+                return YkcYetkisiz("YKC özetini görüntüleme yetkiniz bulunmuyor.");
+
             var sonuc = await _ykcTalepService.DashboardOzetAsync(
                 kullanici,
                 await GenelYetkiliMiAsync(kullanici));
@@ -190,6 +203,9 @@ namespace YetkiliServisGazAcma.API.Controllers
             var kullanici = await AktifKullaniciAsync();
             if (kullanici == null)
                 return Unauthorized(new { basarili = false, mesaj = "Oturum bulunamadı." });
+
+            if (!await YkcYetkiliMiAsync(kullanici, YetkiTipleri.YKC_RAPOR_GOR))
+                return YkcYetkisiz("YKC raporlarını görüntüleme yetkiniz bulunmuyor.");
 
             var sonuc = await _ykcTalepService.RaporAsync(
                 filtre ?? new YkcTalepListeFiltre(),
@@ -215,6 +231,9 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             if (istek == null || istek.Id <= 0)
                 return BadRequest(YkcIslemSonuc.HataliSonuc("İmza gönderimi için talep id zorunludur."));
+
+            if (!await YkcYetkiliMiAsync(kullanici, YetkiTipleri.YKC_FR265_IMZA_ISLEM))
+                return YkcYetkisiz("FR265 ve dijital imza işlemi yetkiniz bulunmuyor.");
 
             if (!_ykcImzaAkisService.EntegrasyonBilgisi().KullanilabilirMi)
             {
@@ -243,6 +262,9 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (istek == null || istek.Id <= 0)
                 return BadRequest(YkcIslemSonuc.HataliSonuc("İmza durumu için talep id zorunludur."));
 
+            if (!await YkcYetkiliMiAsync(kullanici, YetkiTipleri.YKC_FR265_IMZA_ISLEM))
+                return YkcYetkisiz("FR265 ve dijital imza işlemi yetkiniz bulunmuyor.");
+
             if (!_ykcImzaAkisService.EntegrasyonBilgisi().KullanilabilirMi)
             {
                 return StatusCode(
@@ -269,14 +291,21 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (istek == null || istek.Id <= 0)
                 return BadRequest(new { basarili = false, mesaj = "Dosya id zorunludur." });
 
+            if (!await YkcYetkiliMiAsync(kullanici, YetkiTipleri.YKC_TALEP_GOR))
+                return YkcYetkisiz("YKC belge görüntüleme yetkiniz bulunmuyor.");
+
             var dosya = await _context.Ykc_FormDosyalari
                 .Include(x => x.Talep)
+                    .ThenInclude(x => x!.ImzaSurecleri)
                 .FirstOrDefaultAsync(x => x.Id == istek.Id && !x.SilindiMi && x.Talep != null && !x.Talep.SilindiMi);
 
             if (dosya?.Talep == null)
                 return NotFound(new { basarili = false, mesaj = "Cihaz degisim form dosyasi bulunamadi." });
 
             if (!await TalepDosyasinaYetkiliMiAsync(dosya.Talep, kullanici))
+                return Forbid();
+
+            if (!YkcDosyasiIndirmeyeAcikMi(dosya))
                 return Forbid();
 
             if (string.IsNullOrWhiteSpace(dosya.DosyaYolu))
@@ -332,6 +361,9 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (istek == null || istek.Id <= 0)
                 return BadRequest(new { basarili = false, mesaj = "Talep id zorunludur." });
 
+            if (!await YkcYetkiliMiAsync(kullanici, YetkiTipleri.YKC_TALEP_GOR))
+                return YkcYetkisiz("YKC talep detayını görüntüleme yetkiniz bulunmuyor.");
+
             var sonuc = await _ykcTalepService.GetirAsync(istek.Id, kullanici, await GenelYetkiliMiAsync(kullanici));
             if (sonuc == null)
                 return NotFound(new { basarili = false, mesaj = "Cihaz değişim talebi bulunamadı." });
@@ -349,6 +381,10 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (dto == null)
                 return BadRequest(YkcIslemSonuc.HataliSonuc("Talep bilgileri zorunludur."));
 
+            var ykcYetkileri = await _ykcYetkiService.OzetAsync(kullanici, kullanici.SirketId, HttpContext.RequestAborted);
+            if (!ykcYetkileri.TalepOlusturabilir)
+                return YkcYetkisiz("YKC talebi oluşturma yetkiniz bulunmuyor.");
+
             var sonuc = await _ykcTalepService.OlusturAsync(dto, kullanici);
             return sonuc.Basarili ? Ok(sonuc) : BadRequest(sonuc);
         }
@@ -363,6 +399,9 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             if (dto == null || dto.TalepId <= 0)
                 return BadRequest(YkcIslemSonuc.HataliSonuc("Atama icin talep id zorunludur."));
+
+            if (!await YkcYetkiliMiAsync(kullanici, YetkiTipleri.YKC_ATAMA_YAP))
+                return YkcYetkisiz("YKC atama ve randevu işlemi yetkiniz bulunmuyor.");
 
             var sonuc = await _ykcTalepService.AtamaYapAsync(dto, kullanici, await GenelYetkiliMiAsync(kullanici));
             return sonuc.Basarili ? Ok(sonuc) : BadRequest(sonuc);
@@ -379,6 +418,9 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (dto == null || dto.TalepId <= 0)
                 return BadRequest(YkcIslemSonuc.HataliSonuc("Durum güncelleme için talep id zorunludur."));
 
+            if (!await DurumGuncellemeYetkiliMiAsync(kullanici, dto.Durum))
+                return YkcYetkisiz("Bu YKC durum işlemi için yetkiniz bulunmuyor.");
+
             var sonuc = await _ykcTalepService.DurumGuncelleAsync(dto, kullanici, await GenelYetkiliMiAsync(kullanici));
             return sonuc.Basarili ? Ok(sonuc) : BadRequest(sonuc);
         }
@@ -394,6 +436,9 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (dto == null || dto.TalepId <= 0)
                 return BadRequest(YkcIslemSonuc.HataliSonuc("Kontrol kaydı için talep id zorunludur."));
 
+            if (!await YkcYetkiliMiAsync(kullanici, YetkiTipleri.YKC_FR265_IMZA_ISLEM))
+                return YkcYetkisiz("FR265 kontrol işlemi yetkiniz bulunmuyor.");
+
             var sonuc = await _ykcTalepService.KontrolleriKaydetAsync(dto, kullanici, await GenelYetkiliMiAsync(kullanici));
             return sonuc.Basarili ? Ok(sonuc) : BadRequest(sonuc);
         }
@@ -408,6 +453,9 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (dto == null || dto.TalepId <= 0)
                 return BadRequest(YkcIslemSonuc.HataliSonuc("Dosya kaydi icin talep id zorunludur."));
 
+            if (!await YkcYetkiliMiAsync(kullanici, YetkiTipleri.YKC_FR265_IMZA_ISLEM))
+                return YkcYetkisiz("YKC teknik belge işlemi yetkiniz bulunmuyor.");
+
             if (!YkcFormDosyasiGecerliMi(dto.DosyaAdi ?? dto.DosyaYolu, dto.IcerikTipi, icerikTipiZorunlu: false))
                 return BadRequest(YkcIslemSonuc.HataliSonuc("Sadece PDF, JPG veya PNG form dosyasi kaydedilebilir."));
 
@@ -419,12 +467,6 @@ namespace YetkiliServisGazAcma.API.Controllers
             var icOperasyon = IcOperasyonRoluVarMi(roller);
             if (!ElleYuklenebilirBelgeTuruMu(dosyaTuru, icOperasyon))
                 return BadRequest(YkcIslemSonuc.HataliSonuc("Bu belge türü kullanıcı yüklemesine açık değildir."));
-
-            if (dosyaTuru == YkcFormDosyaTuruDegerleri.Fr265ImzaliAday
-                && !string.Equals(Path.GetExtension(dto.DosyaAdi ?? dto.DosyaYolu), ".pdf", StringComparison.OrdinalIgnoreCase))
-            {
-                return BadRequest(YkcIslemSonuc.HataliSonuc("İmzalı belge doğrulama adayı yalnızca PDF olabilir."));
-            }
 
             if (!string.Equals(dto.DepolamaTuru, YkcDepolamaTuruDegerleri.Private, StringComparison.OrdinalIgnoreCase)
                 || !PrivateDepolamaAnahtariGecerliMi(dto.DosyaYolu, dto.TalepId))
@@ -449,6 +491,9 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (istek.TalepId <= 0)
                 return BadRequest(YkcIslemSonuc.HataliSonuc("Form yukleme icin talep id zorunludur."));
 
+            if (!await YkcYetkiliMiAsync(kullanici, YetkiTipleri.YKC_FR265_IMZA_ISLEM))
+                return YkcYetkisiz("YKC teknik belge işlemi yetkiniz bulunmuyor.");
+
             if (istek.Dosya == null || istek.Dosya.Length == 0)
                 return BadRequest(YkcIslemSonuc.HataliSonuc("Yüklenecek form dosyası zorunludur."));
 
@@ -463,12 +508,6 @@ namespace YetkiliServisGazAcma.API.Controllers
             var icOperasyon = IcOperasyonRoluVarMi(roller);
             if (!ElleYuklenebilirBelgeTuruMu(dosyaTuru, icOperasyon))
                 return BadRequest(YkcIslemSonuc.HataliSonuc("Bu belge türü kullanıcı yüklemesine açık değildir."));
-
-            if (dosyaTuru == YkcFormDosyaTuruDegerleri.Fr265ImzaliAday
-                && !string.Equals(Path.GetExtension(istek.Dosya.FileName), ".pdf", StringComparison.OrdinalIgnoreCase))
-            {
-                return BadRequest(YkcIslemSonuc.HataliSonuc("İmzalı belge doğrulama adayı yalnızca PDF olabilir."));
-            }
 
             var klasor = Path.Combine(PrivateYkcBelgeRoot(), istek.TalepId.ToString());
             Directory.CreateDirectory(klasor);
@@ -500,6 +539,37 @@ namespace YetkiliServisGazAcma.API.Controllers
                 System.IO.File.Delete(fizikselYol);
 
             return sonuc.Basarili ? Ok(sonuc) : BadRequest(sonuc);
+        }
+
+        private async Task<bool> YkcYetkiliMiAsync(AppKullanici kullanici, string yetkiTipi)
+        {
+            return await _ykcYetkiService.YetkiliMiAsync(
+                kullanici,
+                yetkiTipi,
+                kullanici.SirketId,
+                HttpContext.RequestAborted);
+        }
+
+        private async Task<bool> DurumGuncellemeYetkiliMiAsync(AppKullanici kullanici, int yeniDurum)
+        {
+            var yetkiler = await _ykcYetkiService.OzetAsync(
+                kullanici,
+                kullanici.SirketId,
+                HttpContext.RequestAborted);
+
+            return yeniDurum switch
+            {
+                YkcDurumDegerleri.SahaIsleminde => yetkiler.AtamaYapabilir || yetkiler.Fr265ImzaIslemiYapabilir,
+                YkcDurumDegerleri.Tamamlandi => yetkiler.Fr265ImzaIslemiYapabilir,
+                _ => yetkiler.AtamaYapabilir
+            };
+        }
+
+        private ObjectResult YkcYetkisiz(string mesaj)
+        {
+            return StatusCode(
+                StatusCodes.Status403Forbidden,
+                YkcIslemSonuc.HataliSonuc(mesaj));
         }
 
         private Task<AppKullanici?> AktifKullaniciAsync()
@@ -595,8 +665,22 @@ namespace YetkiliServisGazAcma.API.Controllers
 
         private static bool ElleYuklenebilirBelgeTuruMu(string dosyaTuru, bool icOperasyon)
         {
-            return dosyaTuru == YkcFormDosyaTuruDegerleri.TeknikEk
-                || (icOperasyon && dosyaTuru == YkcFormDosyaTuruDegerleri.Fr265ImzaliAday);
+            return dosyaTuru == YkcFormDosyaTuruDegerleri.TeknikEk;
+        }
+
+        private static bool YkcDosyasiIndirmeyeAcikMi(Ykc_FormDosya dosya)
+        {
+            if (dosya.DosyaTuru == YkcFormDosyaTuruDegerleri.TeknikEk)
+                return true;
+
+            if (dosya.DosyaTuru != YkcFormDosyaTuruDegerleri.Fr265ImzaliNihai)
+                return false;
+
+            return dosya.Talep?.ImzaSurecleri.Any(s =>
+                !s.SilindiMi
+                && s.Durum == YkcImzaDurumDegerleri.Tamamlandi
+                && !string.IsNullOrWhiteSpace(s.ProviderDocumentId)
+                && s.NihaiDosyaId == dosya.Id) == true;
         }
 
         private static bool PrivateDepolamaAnahtariGecerliMi(string? dosyaYolu, int talepId)
