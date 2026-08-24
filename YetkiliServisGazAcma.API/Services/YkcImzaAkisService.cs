@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.IO.Compression;
 using System.Security.Cryptography;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
@@ -221,7 +222,23 @@ namespace YetkiliServisGazAcma.API.Services
                 return YkcIslemSonuc.HataliSonuc("İmza uygulamasına gönderilmiş bir FR265 belgesi bulunamadı.");
 
             if (ImzaliNihaiBelgeHazirMi(surec, talep.FormDosyalari))
+            {
+                if (_imzaProvider.DemoModuMu)
+                {
+                    var mevcutNihaiDosya = talep.FormDosyalari.FirstOrDefault(x =>
+                        x.Id == surec.NihaiDosyaId
+                        && !x.SilindiMi
+                        && x.DosyaTuru == YkcFormDosyaTuruDegerleri.Fr265ImzaliNihai);
+
+                    if (mevcutNihaiDosya != null
+                        && await DemoNihaiBelgeyiYenileGerekiyorsaAsync(detay, talep, surec, mevcutNihaiDosya, kullanici, cancellationToken))
+                    {
+                        await _context.SaveChangesAsync(cancellationToken);
+                    }
+                }
+
                 return YkcIslemSonuc.BasariliSonuc("İmzalı nihai belge zaten hazır.", talep.Id);
+            }
 
             YkcImzaDurumSonuc providerSonucu;
             try
@@ -251,7 +268,19 @@ namespace YetkiliServisGazAcma.API.Services
 
             if (yeniDurum == YkcImzaDurumDegerleri.Tamamlandi)
             {
-                if (providerSonucu.NihaiBelgeBytes == null || providerSonucu.NihaiBelgeBytes.Length == 0)
+                var nihaiBelgeBytes = providerSonucu.NihaiBelgeBytes;
+                var nihaiBelgeAdi = providerSonucu.NihaiBelgeAdi;
+                var nihaiIcerikTipi = providerSonucu.NihaiBelgeIcerikTipi;
+
+                if ((nihaiBelgeBytes == null || nihaiBelgeBytes.Length == 0) && _imzaProvider.DemoModuMu)
+                {
+                    var demoBelge = DemoImzaliNihaiBelgeOlustur(detay, surec);
+                    nihaiBelgeBytes = demoBelge.Bytes;
+                    nihaiBelgeAdi = $"FR265_Imzali_Nihai_{talep.Id}.docx";
+                    nihaiIcerikTipi = demoBelge.ContentType;
+                }
+
+                if (nihaiBelgeBytes == null || nihaiBelgeBytes.Length == 0)
                 {
                     surec.Durum = YkcImzaDurumDegerleri.ImzaBekliyor;
                     surec.HataKodu = "NIHAI_BELGE_YOK";
@@ -260,16 +289,16 @@ namespace YetkiliServisGazAcma.API.Services
                     return YkcIslemSonuc.HataliSonuc(surec.HataMesaji);
                 }
 
-                var nihaiBelgeAdi = GuvenliDosyaAdi(providerSonucu.NihaiBelgeAdi ?? $"FR265_Imzali_{talep.Id}.pdf");
-                var nihaiIcerikTipi = string.IsNullOrWhiteSpace(providerSonucu.NihaiBelgeIcerikTipi)
+                nihaiBelgeAdi = GuvenliDosyaAdi(nihaiBelgeAdi ?? $"FR265_Imzali_{talep.Id}.pdf");
+                nihaiIcerikTipi = string.IsNullOrWhiteSpace(nihaiIcerikTipi)
                     ? "application/pdf"
-                    : providerSonucu.NihaiBelgeIcerikTipi.Trim();
-                var nihaiHash = HashOlustur(providerSonucu.NihaiBelgeBytes);
+                    : nihaiIcerikTipi.Trim();
+                var nihaiHash = HashOlustur(nihaiBelgeBytes);
                 var kayit = await PrivateBelgeKaydetAsync(
                     talep.Id,
                     nihaiBelgeAdi,
                     nihaiIcerikTipi,
-                    providerSonucu.NihaiBelgeBytes,
+                    nihaiBelgeBytes,
                     cancellationToken);
 
                 var nihaiDosya = new Ykc_FormDosya
@@ -279,7 +308,7 @@ namespace YetkiliServisGazAcma.API.Services
                     DosyaAdi = nihaiBelgeAdi,
                     DosyaYolu = kayit.DepolamaAnahtari,
                     IcerikTipi = nihaiIcerikTipi,
-                    DosyaBoyutu = providerSonucu.NihaiBelgeBytes.LongLength,
+                    DosyaBoyutu = nihaiBelgeBytes.LongLength,
                     DepolamaTuru = YkcDepolamaTuruDegerleri.Private,
                     BelgeHash = nihaiHash,
                     OlusturmaTarihi = kayit.KayitTarihi,
@@ -303,6 +332,51 @@ namespace YetkiliServisGazAcma.API.Services
 
             await _context.SaveChangesAsync(cancellationToken);
             return YkcIslemSonuc.BasariliSonuc("Dijital imza durumu güncellendi.", talep.Id);
+        }
+
+        public async Task<bool> DemoNihaiBelgeyiYenileAsync(
+            int dosyaId,
+            AppKullanici kullanici,
+            bool genelYetkili,
+            CancellationToken cancellationToken = default)
+        {
+            if (!_imzaProvider.DemoModuMu)
+                return false;
+
+            var dosya = await _context.Ykc_FormDosyalari
+                .Include(x => x.Talep)
+                    .ThenInclude(x => x!.FormDosyalari)
+                .Include(x => x.Talep)
+                    .ThenInclude(x => x!.ImzaSurecleri)
+                        .ThenInclude(x => x.Imzacilar)
+                .FirstOrDefaultAsync(x =>
+                    x.Id == dosyaId
+                    && !x.SilindiMi
+                    && x.DosyaTuru == YkcFormDosyaTuruDegerleri.Fr265ImzaliNihai
+                    && x.Talep != null
+                    && !x.Talep.SilindiMi,
+                    cancellationToken);
+
+            if (dosya?.Talep == null)
+                return false;
+
+            var detay = await _talepService.GetirAsync(dosya.TalepId, kullanici, genelYetkili);
+            if (detay == null)
+                return false;
+
+            var surec = AktifSurec(dosya.Talep);
+            if (surec == null
+                || surec.Durum != YkcImzaDurumDegerleri.Tamamlandi
+                || surec.NihaiDosyaId != dosya.Id)
+            {
+                return false;
+            }
+
+            var yenilendi = await DemoNihaiBelgeyiYenileGerekiyorsaAsync(detay, dosya.Talep, surec, dosya, kullanici, cancellationToken);
+            if (yenilendi)
+                await _context.SaveChangesAsync(cancellationToken);
+
+            return yenilendi;
         }
 
         private async Task<Ykc_FormDosya?> GecerliTaslakGetirAsync(
@@ -331,6 +405,95 @@ namespace YetkiliServisGazAcma.API.Services
             }
 
             return null;
+        }
+
+        private async Task<bool> DemoNihaiBelgeyiYenileGerekiyorsaAsync(
+            YkcTalepDetayDto detay,
+            Ykc_Talep talep,
+            Ykc_ImzaSureci surec,
+            Ykc_FormDosya nihaiDosya,
+            AppKullanici kullanici,
+            CancellationToken cancellationToken)
+        {
+            var mevcutBytes = await PrivateBelgeOkuAsync(nihaiDosya, cancellationToken);
+            if (mevcutBytes is { Length: > 0 }
+                && DocxMetniIcerir(mevcutBytes, "Dijital imza kaydı alındı"))
+            {
+                return false;
+            }
+
+            var belge = DemoImzaliNihaiBelgeOlustur(detay, surec);
+            var belgeHash = HashOlustur(belge.Bytes);
+            var kayit = await PrivateBelgeKaydetAsync(
+                talep.Id,
+                $"FR265_Imzali_Nihai_{talep.Id}.docx",
+                belge.ContentType,
+                belge.Bytes,
+                cancellationToken);
+
+            nihaiDosya.DosyaAdi = $"FR265_Imzali_Nihai_{talep.Id}.docx";
+            nihaiDosya.DosyaYolu = kayit.DepolamaAnahtari;
+            nihaiDosya.IcerikTipi = belge.ContentType;
+            nihaiDosya.DosyaBoyutu = belge.Bytes.LongLength;
+            nihaiDosya.DepolamaTuru = YkcDepolamaTuruDegerleri.Private;
+            nihaiDosya.BelgeHash = belgeHash;
+            nihaiDosya.GuncellemeTarihi = DateTime.Now;
+            nihaiDosya.GuncelleyenKullanici = kullanici.UserName;
+
+            surec.NihaiDosya = nihaiDosya;
+            surec.NihaiDosyaId = nihaiDosya.Id;
+            surec.Durum = YkcImzaDurumDegerleri.Tamamlandi;
+            surec.TamamlanmaTarihi ??= DateTime.Now;
+            surec.GuncellemeTarihi = DateTime.Now;
+            surec.GuncelleyenKullanici = kullanici.UserName;
+
+            GecmisEkle(talep, kullanici, "FR265DemoNihaiBelgeYenilendi", "Nihai FR265 belge kopyasına dijital imza kayıt bilgisi işlendi.");
+            return true;
+        }
+
+        private YkcFr265BelgeSonuc DemoImzaliNihaiBelgeOlustur(YkcTalepDetayDto detay, Ykc_ImzaSureci surec)
+        {
+            var varsayilanImzaTarihi = surec.Imzacilar
+                .Where(x => !x.SilindiMi && x.ImzaTarihi.HasValue)
+                .Select(x => x.ImzaTarihi)
+                .Max() ?? surec.TamamlanmaTarihi ?? DateTime.Now;
+
+            return _fr265FormService.WordOlustur(detay, new YkcFr265BelgeSecenekleri
+            {
+                ImzaliNihaiMi = true,
+                ImzaTarihi = varsayilanImzaTarihi,
+                Imzalar = surec.Imzacilar
+                    .Where(x => !x.SilindiMi)
+                    .OrderBy(x => x.SiraNo)
+                    .Select(x => new YkcFr265ImzaSatiri
+                    {
+                        SiraNo = x.SiraNo,
+                        Rol = x.Rol,
+                        AdSoyad = x.AdSoyad,
+                        ImzaTarihi = x.ImzaTarihi ?? varsayilanImzaTarihi
+                    })
+                    .ToList()
+            });
+        }
+
+        private static bool DocxMetniIcerir(byte[] bytes, string arananMetin)
+        {
+            try
+            {
+                using var stream = new MemoryStream(bytes);
+                using var archive = new ZipArchive(stream, ZipArchiveMode.Read);
+                var documentEntry = archive.GetEntry("word/document.xml");
+                if (documentEntry == null)
+                    return false;
+
+                using var reader = new StreamReader(documentEntry.Open());
+                var xml = reader.ReadToEnd();
+                return xml.Contains(arananMetin, StringComparison.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         private async Task<SaklananBelge> PrivateBelgeKaydetAsync(
@@ -623,5 +786,6 @@ namespace YetkiliServisGazAcma.API.Services
             public string DepolamaAnahtari { get; set; } = "";
             public DateTime KayitTarihi { get; set; }
         }
+
     }
 }

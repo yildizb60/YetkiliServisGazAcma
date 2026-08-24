@@ -43,6 +43,9 @@
         && imzaEntegrasyonu.KullanilabilirMi
         && !string.IsNullOrWhiteSpace(imzaSureci?.ProviderDocumentId)
         && !imzaliBelgeHazir;
+    var tamamlamayaHazir = Model.Durum == YkcDurumDegerleri.SahaIsleminde
+        && imzaliBelgeHazir
+        && fr265ImzaYetkisi;
     var imzaBirincilIslemVar = imzaliBelge != null || imzayaGonderebilir || imzaDurumuSorgulanabilir;
     var indirilebilirDosyalar = Model.Dosyalar
         .Where(x => x.DosyaTuru == YkcFormDosyaTuruDegerleri.TeknikEk
@@ -82,6 +85,29 @@
         YkcDurumDegerleri.Iptal => "İptal bilgisi işlem geçmişinde yer alır.",
         _ => "Talebin güncel bilgilerini kontrol edin."
     };
+    if (icOperasyonGorsun && Model.Durum == YkcDurumDegerleri.SahaIsleminde)
+    {
+        if (imzaliBelgeHazir)
+        {
+            gorevBasligi = "İmzalı FR265 hazır";
+            gorevAciklamasi = "Nihai FR265 kayda geldi. Belgeyi kontrol edip işlemi tamamlayabilirsiniz.";
+        }
+        else if (imzaDurumuSorgulanabilir)
+        {
+            gorevBasligi = "İmza sonucunu güncelleyin";
+            gorevAciklamasi = "FR265 imza uygulamasına gönderildi. İmzalı FR265'in kayda gelip gelmediğini kontrol etmek için imza durumunu güncelleyin.";
+        }
+        else if (imzayaGonderebilir)
+        {
+            gorevBasligi = "FR265'i önizleyip imzaya gönderin";
+            gorevAciklamasi = "Kontroller tamamlandı. Önce FR265'i Word formuna yakın görünümde kontrol edin; doğruysa imzaya gönderin.";
+        }
+        else if (!kontrollerImzayaHazir)
+        {
+            gorevBasligi = "FR265 2. sayfa kontrollerini doldurun";
+            gorevAciklamasi = "Bu alan Word formundaki 1-5 Kontrol bölümüdür. Randevu sonrası her kontrol için Uygun, Uygun Değil veya Uygulanmaz seçin; uygun değilse açıklama yazın.";
+        }
+    }
     if (!icOperasyonGorsun)
     {
         gorevBasligi = Model.Durum switch
@@ -89,7 +115,7 @@
             YkcDurumDegerleri.TalepAlindi => "Talebiniz alındı",
             YkcDurumDegerleri.AtamaBekliyor => "Talebiniz inceleniyor",
             YkcDurumDegerleri.Atandi => "Randevunuz oluşturuldu",
-            YkcDurumDegerleri.SahaIsleminde => "Form ve imza süreci devam ediyor",
+            YkcDurumDegerleri.SahaIsleminde => imzaliBelgeHazir ? "İmzalı FR265 hazır" : "Form ve imza süreci devam ediyor",
             _ => gorevBasligi
         };
         gorevAciklamasi = Model.Durum switch
@@ -97,12 +123,12 @@
             YkcDurumDegerleri.TalepAlindi => "Tesisat ve cihaz bilgileriniz kontrol için kaydedildi.",
             YkcDurumDegerleri.AtamaBekliyor => "Talebiniz değerlendiriliyor. Randevu oluşturulduğunda burada görebileceksiniz.",
             YkcDurumDegerleri.Atandi => "Planlanan randevu tarihini ve talebinizin güncel durumunu takip edebilirsiniz.",
-            YkcDurumDegerleri.SahaIsleminde => "FR265 önizlemesini ve dijital imza sonucunu bu ekrandan takip edebilirsiniz.",
+            YkcDurumDegerleri.SahaIsleminde => imzaliBelgeHazir ? "Nihai FR265 belgesini indirip talep durumunu takip edebilirsiniz." : "FR265 önizlemesini ve dijital imza sonucunu bu ekrandan takip edebilirsiniz.",
             _ => gorevAciklamasi
         };
     }
     var formYardimMetni = demoImzaModu
-        ? "FR265 geliştirme ortamındaki test sağlayıcısına gönderilir. Durum güncellendiğinde gerçek imza yerine, akışı göstermek için açıkça işaretlenmiş bir demo sonuç belgesi oluşturulur."
+        ? "Geliştirme ortamında süreç aynı FR265 belgesi üzerinden test edilir. Gerçek e-imza entegrasyonu bağlandığında bu adım imza uygulamasına gidecek; ayrı bir belge üretilmez."
         : imzaEntegrasyonu.KullanilabilirMi
         ? "Kontrol edilen FR265 dijital imza uygulamasına gönderilir. Süreç tamamlandığında imzalı nihai belge bu kayda eklenir."
         : "FR265 önizlemesi kullanılabilir. Dijital imza bağlantısı etkinleşmeden belge gönderilmiş veya imzalanmış sayılmaz.";
@@ -207,7 +233,7 @@
                 <div><dt>Yönlendirme</dt><dd id="ykcPlanEkip">@Deger(Model.AtananEkip)</dd></div>
             }
             <div><dt>Randevu</dt><dd><span id="ykcPlanTarih">@(Model.RandevuTarihi.HasValue ? Tarih(Model.RandevuTarihi) : string.IsNullOrWhiteSpace(Model.RandevuSaati) ? "Henüz planlanmadı" : "")</span> <span id="ykcPlanSaat">@(string.IsNullOrWhiteSpace(Model.RandevuSaati) ? "" : Model.RandevuSaati)</span></dd></div>
-            <div><dt>Form ve İmza</dt><dd>@(imzaliBelgeHazir ? (demoImzaModu ? "Demo sonuç belgesi hazır" : "İmzalı belge hazır") : ImzaDurumYazi(imzaSureci?.Durum))</dd></div>
+            <div><dt>Form ve İmza</dt><dd>@(imzaliBelgeHazir ? "İmzalı FR265 hazır" : ImzaDurumYazi(imzaSureci?.Durum))</dd></div>
         </dl>
     </header>
 
@@ -241,10 +267,10 @@
         {
             <div class="ykc-firm-progress">
                 <div><span>Randevu</span><strong>@RandevuYazi(Model.RandevuTarihi, Model.RandevuSaati)</strong></div>
-                <div><span>FR265 ve imza</span><strong>@(imzaliBelgeHazir ? (demoImzaModu ? "Demo sonuç belgesi hazır" : "İmzalı belge hazır") : ImzaDurumYazi(imzaSureci?.Durum))</strong></div>
+                <div><span>FR265 ve imza</span><strong>@(imzaliBelgeHazir ? "İmzalı FR265 hazır" : ImzaDurumYazi(imzaSureci?.Durum))</strong></div>
                 @if (imzaliBelge != null)
                 {
-                    <a class="df-btn df-btn-primary" href="/ykc/dosya/@imzaliBelge.Id" target="_blank"><i class="bi bi-download"></i> @(demoImzaModu ? "Demo Sonuç Belgesini İndir" : "İmzalı Belgeyi İndir")</a>
+                    <a class="df-btn df-btn-primary" href="/ykc/dosya/@imzaliBelge.Id" target="_blank"><i class="bi bi-download"></i> İmzalı FR265'i İndir</a>
                 }
             </div>
         }
@@ -277,21 +303,34 @@
 
             @if (Model.Durum == YkcDurumDegerleri.SahaIsleminde && fr265ImzaYetkisi)
             {
-                <div class="ykc-current-plan">
-                    <a class="ykc-text-action" href="#fr265-controls"><i class="bi bi-clipboard2-check"></i><span><strong>Kontrol sonuçlarını gir</strong><small>Kontrol 1-5 sonuç ve açıklamaları</small></span></a>
-                    <a class="ykc-text-action" href="#fr265-signature"><i class="bi bi-file-earmark-check"></i><span><strong>FR265 ve imzayı kontrol et</strong><small>Önizleme, gönderim ve nihai belge</small></span></a>
-                    @if (imzaliBelgeHazir)
+                <div class="ykc-current-plan @(tamamlamayaHazir ? "is-final-ready" : null)">
+                    @if (tamamlamayaHazir)
                     {
-                        <form method="post" action="/ykc/durum-guncelle">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="TalepId" value="@Model.Id" />
-                            <input type="hidden" name="Durum" value="@YkcDurumDegerleri.Tamamlandi" />
-                            <button class="df-btn df-btn-primary" type="submit"><i class="bi bi-check2-circle"></i> İşlemi Tamamla</button>
-                        </form>
+                        <div class="ykc-final-action-card">
+                            <div class="ykc-final-icon"><i class="bi bi-patch-check-fill"></i></div>
+                            <div>
+                                <strong>İmzalı FR265 kayda geldi</strong>
+                                <small>Belgeyi indirip kontrol edin; uygunsa talebi tamamlayın.</small>
+                            </div>
+                            <div class="ykc-final-actions">
+                                @if (imzaliBelge != null)
+                                {
+                                    <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/dosya/@imzaliBelge.Id" target="_blank"><i class="bi bi-download"></i> İmzalı FR265'i İndir</a>
+                                }
+                                <form method="post" action="/ykc/durum-guncelle">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="TalepId" value="@Model.Id" />
+                                    <input type="hidden" name="Durum" value="@YkcDurumDegerleri.Tamamlandi" />
+                                    <button class="df-btn df-btn-primary df-btn-sm" type="submit"><i class="bi bi-check2-circle"></i> İşlemi Tamamla</button>
+                                </form>
+                            </div>
+                        </div>
                     }
                     else
                     {
-                        <div class="ykc-completion-gate"><i class="bi bi-lock"></i><span><strong>Tamamlama için imza sonucu bekleniyor</strong><small>FR265'i gönderin ve imza durumunu güncelleyin.</small></span></div>
+                        <a class="ykc-text-action" href="#fr265-controls"><i class="bi bi-clipboard2-check"></i><span><strong>1-5 kontrolü doldur</strong><small>Word FR265'in 2. sayfasındaki kontrol alanları</small></span></a>
+                        <a class="ykc-text-action" href="#fr265-signature"><i class="bi bi-file-earmark-check"></i><span><strong>FR265'i önizle / imzaya gönder</strong><small>Önce formu kontrol edin, sonra gönderin</small></span></a>
+                        <div class="ykc-completion-gate"><i class="bi bi-lock"></i><span><strong>İşlem henüz tamamlanamaz</strong><small>@(kontrollerImzayaHazir ? (imzaDurumuSorgulanabilir ? "FR265 imza uygulamasında. İmzalı belge geldiyse İmza Durumunu Güncelle deyin." : "Önce FR265'i önizleyin; doğruysa Önizledim, İmzaya Gönder deyin.") : "Önce Word formundaki 1-5 kontrol sonuçlarını kaydedin.")</small></span></div>
                     }
                 </div>
             }
@@ -410,9 +449,10 @@
         </article>
     </section>
 
-    <details class="ykc-detail-section" id="fr265-controls" open="@(Model.Durum == YkcDurumDegerleri.SahaIsleminde ? "open" : null)">
-        <summary><span><strong>FR265 Kontrol Adımları</strong><small>Kontrol 1-5 · Sonuç ve açıklama</small></span><i class="bi bi-chevron-down"></i></summary>
+    <details class="ykc-detail-section" id="fr265-controls" open="@(Model.Durum == YkcDurumDegerleri.SahaIsleminde && !imzaliBelgeHazir ? "open" : null)">
+        <summary><span><strong>FR265 2. Sayfa Kontrolleri</strong><small>Word formundaki 1-5 Kontrol · Sonuç ve açıklama</small></span><i class="bi bi-chevron-down"></i></summary>
         <div class="ykc-detail-section-body">
+            <p class="ykc-process-message is-leading">Bu bölüm, FR265 Word formunun ikinci sayfasındaki 1-5 Kontrol alanıdır. Kontroller tamamlanmadan form imzaya gönderilmez.</p>
             @if (fr265ImzaYetkisi)
             {
                 <form method="post" action="/ykc/kontroller-kaydet">
@@ -450,12 +490,12 @@
         </div>
     </details>
 
-    <details class="ykc-detail-section" id="fr265-signature" open="@(Model.Durum == YkcDurumDegerleri.SahaIsleminde || Model.Durum == YkcDurumDegerleri.Tamamlandi ? "open" : null)">
-        <summary><span><strong>FR265 ve Dijital İmza</strong><small>@ImzaDurumYazi(imzaSureci?.Durum) · Belge sürümü @Model.Fr265BelgeVersiyonNo</small></span><i class="bi bi-chevron-down"></i></summary>
+    <details class="ykc-detail-section" id="fr265-signature" open="@((Model.Durum == YkcDurumDegerleri.SahaIsleminde && !imzaliBelgeHazir) || Model.Durum == YkcDurumDegerleri.Tamamlandi ? "open" : null)">
+        <summary><span><strong>FR265 Önizleme ve İmza</strong><small>Önizle · İmzaya gönder · Durumu güncelle · Tamamla</small></span><i class="bi bi-chevron-down"></i></summary>
         <div class="ykc-detail-section-body">
             @if (demoImzaModu)
             {
-                <div class="ykc-demo-mode"><i class="bi bi-beaker"></i><span><strong>Demo imza modu</strong><small>Bu işlem yalnızca geliştirme ve sunum içindir; hukuki elektronik imza üretmez.</small></span></div>
+                <div class="ykc-demo-mode"><i class="bi bi-info-circle"></i><span><strong>Geçici entegrasyon modu</strong><small>Akış aynı FR265 belgesi üzerinden test edilir; gerçek e-imza sağlayıcısı bağlanınca bu adım dış imza uygulamasına gidecek.</small></span></div>
             }
             <dl class="ykc-signature-summary">
                 <div><dt>İmza Durumu</dt><dd><span class="df-pill @(imzaliBelgeHazir ? "df-pill-success" : "df-pill-warning")">@ImzaDurumYazi(imzaSureci?.Durum)</span></dd></div>
@@ -466,17 +506,21 @@
             <div class="ykc-form-actions is-left">
                 @if (imzaliBelge != null)
                 {
-                    <a class="df-btn df-btn-primary df-btn-sm" href="/ykc/dosya/@imzaliBelge.Id" target="_blank"><i class="bi bi-download"></i> @(demoImzaModu ? "Demo Sonuç Belgesini İndir" : "İmzalı Belgeyi İndir")</a>
+                    <a class="df-btn df-btn-primary df-btn-sm" href="/ykc/dosya/@imzaliBelge.Id" target="_blank"><i class="bi bi-download"></i> İmzalı FR265'i İndir</a>
                 }
                 else if (imzayaGonderebilir)
                 {
-                    <form method="post" action="/ykc/imzaya-gonder">@Html.AntiForgeryToken()<input type="hidden" name="talepId" value="@Model.Id" /><button class="df-btn df-btn-primary df-btn-sm" type="submit"><i class="bi bi-send"></i> İmzaya Gönder</button></form>
+                    <a class="df-btn df-btn-primary df-btn-sm" href="/ykc/fr265/onizle/@Model.Id" target="_blank"><i class="bi bi-eye"></i> FR265'i Önizle</a>
+                    <form method="post" action="/ykc/imzaya-gonder">@Html.AntiForgeryToken()<input type="hidden" name="talepId" value="@Model.Id" /><button class="df-btn df-btn-secondary df-btn-sm" type="submit"><i class="bi bi-send"></i> Önizledim, İmzaya Gönder</button></form>
                 }
                 else if (imzaDurumuSorgulanabilir)
                 {
                     <form method="post" action="/ykc/imza-durum-sorgula">@Html.AntiForgeryToken()<input type="hidden" name="talepId" value="@Model.Id" /><button class="df-btn df-btn-primary df-btn-sm" type="submit"><i class="bi bi-arrow-repeat"></i> İmza Durumunu Güncelle</button></form>
                 }
-                <a class="df-btn @(imzaBirincilIslemVar ? "df-btn-secondary" : "df-btn-primary") df-btn-sm" href="/ykc/fr265/onizle/@Model.Id" target="_blank"><i class="bi bi-eye"></i> FR265'i Önizle</a>
+                @if (!imzayaGonderebilir)
+                {
+                    <a class="df-btn @(imzaBirincilIslemVar ? "df-btn-secondary" : "df-btn-primary") df-btn-sm" href="/ykc/fr265/onizle/@Model.Id" target="_blank"><i class="bi bi-eye"></i> FR265'i Önizle</a>
+                }
             </div>
             @if (!imzaEntegrasyonu.KullanilabilirMi)
             {

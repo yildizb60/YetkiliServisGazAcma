@@ -8,10 +8,11 @@ namespace YetkiliServisGazAcma.Business.Services
         private const string TemplateRelativePath = "Templates/Ykc/FR265_Yakici_Cihaz_Degisim_Formu.docx";
         private static readonly XNamespace W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 
-        public YkcFr265BelgeSonuc WordOlustur(YkcTalepDetayDto talep)
+        public YkcFr265BelgeSonuc WordOlustur(YkcTalepDetayDto talep, YkcFr265BelgeSecenekleri? secenekler = null)
         {
             var templatePath = FindTemplatePath();
             using var output = new MemoryStream();
+            secenekler ??= new YkcFr265BelgeSecenekleri();
 
             using (var template = File.OpenRead(templatePath))
             {
@@ -30,7 +31,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 }
 
                 var document = XDocument.Parse(xml);
-                Doldur(document, talep);
+                Doldur(document, talep, secenekler);
 
                 documentEntry.Delete();
                 var updatedEntry = archive.CreateEntry("word/document.xml", CompressionLevel.Optimal);
@@ -46,7 +47,7 @@ namespace YetkiliServisGazAcma.Business.Services
             };
         }
 
-        private static void Doldur(XDocument document, YkcTalepDetayDto talep)
+        private static void Doldur(XDocument document, YkcTalepDetayDto talep, YkcFr265BelgeSecenekleri secenekler)
         {
             var formTarihi = FormTarihi(talep);
             foreach (var textNode in document.Descendants(W + "t"))
@@ -61,6 +62,7 @@ namespace YetkiliServisGazAcma.Business.Services
             var cihazTablosu = FindTable(document, "Projedeki Cihaz", "Yeni Kullanılan Cihaz");
             var ikinciElTablosu = FindTable(document, "Takılan Yakıcı Cihaz İkinci El Cihaz Mı");
             var firmaImzaTablosu = FindTable(document, "Sertifikalı Firma Yetkilisi");
+            var gorulduImzaTablosu = FindTable(document, "Yukardaki bilgileri verilen yeni cihaz", "İşlemi Yapan Gaz Dağıtım");
 
             SetCellText(firmaTablosu, 0, 1, talep.FirmaAdi);
             SetCellText(sertifikaTablosu, 0, 1, talep.YetkiBelgesiNo);
@@ -83,8 +85,13 @@ namespace YetkiliServisGazAcma.Business.Services
             SetCellText(ikinciElTablosu, 0, 1, talep.IkinciElCihazMi == true ? "☒ Evet" : "☐ Evet");
             SetCellText(ikinciElTablosu, 0, 2, talep.IkinciElCihazMi == false ? "☒ Hayır" : "☐ Hayır");
 
-            SetCellText(firmaImzaTablosu, 1, 0, FirmaImzaMetni(talep, formTarihi));
+            SetCellText(firmaImzaTablosu, 1, 0, FirmaImzaMetni(talep, formTarihi, secenekler));
             KontrolleriDoldur(document, talep.Kontroller);
+            if (secenekler.ImzaliNihaiMi)
+            {
+                GorulduImzaTablosunuDoldur(gorulduImzaTablosu, talep, secenekler, formTarihi);
+                KontrolImzaTablolariniDoldur(document, talep, secenekler, formTarihi);
+            }
         }
 
         private static XElement? FindTable(XDocument document, params string[] labels)
@@ -199,19 +206,111 @@ namespace YetkiliServisGazAcma.Business.Services
                     value)));
         }
 
-        private static string FirmaImzaMetni(YkcTalepDetayDto talep, string formTarihi)
+        private static void GorulduImzaTablosunuDoldur(
+            XElement? table,
+            YkcTalepDetayDto talep,
+            YkcFr265BelgeSecenekleri secenekler,
+            string formTarihi)
         {
-            var yetkili = Clean(talep.FirmaYetkiliKisi);
+            if (table == null)
+                return;
+
+            var dagitim = ImzaSatiri(secenekler, 2);
+            var abone = ImzaSatiri(secenekler, 3);
+            var satirlar = new[]
+            {
+                "Yukardaki bilgileri verilen yeni cihaz belirtilen adreste görülmüştür.",
+                "",
+                "İşlemi Yapan Gaz Dağıtım Şirketi Yetkilisi",
+                $"Adı ve Soyadı: {ImzaAdSoyad(dagitim, "Gaz Dağıtım Şirketi Yetkilisi")}",
+                $"Tarih: {ImzaTarihi(dagitim, secenekler, formTarihi)}",
+                $"İmza: {ImzaKaydiMetni()}",
+                "",
+                "İşlem Yapılan Abone/Kullanıcı",
+                $"Adı ve Soyadı: {ImzaAdSoyad(abone, talep.MusteriAdi)}",
+                $"Tarih: {ImzaTarihi(abone, secenekler, formTarihi)}",
+                $"İmza: {ImzaKaydiMetni()}"
+            };
+
+            SetCellText(table, 0, 0, string.Join(Environment.NewLine, satirlar));
+        }
+
+        private static void KontrolImzaTablolariniDoldur(
+            XDocument document,
+            YkcTalepDetayDto talep,
+            YkcFr265BelgeSecenekleri secenekler,
+            string formTarihi)
+        {
+            var firma = ImzaSatiri(secenekler, 1);
+            var dagitim = ImzaSatiri(secenekler, 2);
+            var abone = ImzaSatiri(secenekler, 3);
+
+            var imzaTablolari = document
+                .Descendants(W + "tbl")
+                .Where(table =>
+                {
+                    var tableKey = TextKey(string.Concat(table.Descendants(W + "t").Select(x => x.Value)));
+                    return tableKey.Contains(TextKey("Gaz Dağıtım Şirketi Yetkilisi"))
+                        && tableKey.Contains(TextKey("Abone / Kullanıcı"))
+                        && tableKey.Contains(TextKey("Sertifikalı Firma"))
+                        && tableKey.Contains(TextKey("Kaşe / İmza"));
+                })
+                .ToList();
+
+            foreach (var table in imzaTablolari)
+            {
+                SetCellText(table, 1, 0, $"Adı Soyadı{Environment.NewLine}{ImzaAdSoyad(dagitim, "Gaz Dağıtım Şirketi Yetkilisi")}");
+                SetCellText(table, 1, 1, $"Adı Soyadı{Environment.NewLine}{ImzaAdSoyad(abone, talep.MusteriAdi)}");
+                SetCellText(table, 1, 2, $"Firma / Yetkili{Environment.NewLine}{ImzaAdSoyad(firma, talep.FirmaAdi)}");
+                SetCellText(table, 2, 0, $"Tarih{Environment.NewLine}{ImzaTarihi(dagitim, secenekler, formTarihi)}");
+                SetCellText(table, 2, 1, $"Tarih{Environment.NewLine}{ImzaTarihi(abone, secenekler, formTarihi)}");
+                SetCellText(table, 2, 2, $"Tarih{Environment.NewLine}{ImzaTarihi(firma, secenekler, formTarihi)}");
+                SetCellText(table, 3, 0, $"İmza{Environment.NewLine}{ImzaKaydiMetni()}");
+                SetCellText(table, 3, 1, $"İmza{Environment.NewLine}{ImzaKaydiMetni()}");
+                SetCellText(table, 3, 2, $"Kaşe / İmza{Environment.NewLine}{ImzaKaydiMetni()}");
+            }
+        }
+
+        private static string FirmaImzaMetni(YkcTalepDetayDto talep, string formTarihi, YkcFr265BelgeSecenekleri secenekler)
+        {
+            var firma = ImzaSatiri(secenekler, 1);
+            var yetkili = ImzaAdSoyad(firma, talep.FirmaYetkiliKisi);
             var satirlar = new List<string>
             {
                 "Sertifikalı Firma Yetkilisi",
                 "",
                 $"Adı ve Soyadı: {yetkili}",
-                $"Tarih: {formTarihi}",
-                "İmza:"
+                $"Tarih: {ImzaTarihi(firma, secenekler, formTarihi)}",
+                secenekler.ImzaliNihaiMi ? $"İmza: {ImzaKaydiMetni()}" : "İmza:"
             };
 
             return string.Join(Environment.NewLine, satirlar);
+        }
+
+        private static YkcFr265ImzaSatiri? ImzaSatiri(YkcFr265BelgeSecenekleri secenekler, int siraNo)
+        {
+            return secenekler.Imzalar
+                .Where(x => x.SiraNo == siraNo)
+                .OrderByDescending(x => x.ImzaTarihi.HasValue)
+                .FirstOrDefault();
+        }
+
+        private static string ImzaAdSoyad(YkcFr265ImzaSatiri? imza, string? fallback)
+        {
+            return Clean(imza?.AdSoyad) is { Length: > 0 } adSoyad
+                ? adSoyad
+                : Clean(fallback);
+        }
+
+        private static string ImzaTarihi(YkcFr265ImzaSatiri? imza, YkcFr265BelgeSecenekleri secenekler, string formTarihi)
+        {
+            var tarih = imza?.ImzaTarihi ?? secenekler.ImzaTarihi;
+            return tarih?.ToString("dd.MM.yyyy") ?? formTarihi;
+        }
+
+        private static string ImzaKaydiMetni()
+        {
+            return "Dijital imza kaydı alındı";
         }
 
         private static string FormTarihi(YkcTalepDetayDto talep)
@@ -305,5 +404,20 @@ namespace YetkiliServisGazAcma.Business.Services
         public byte[] Bytes { get; set; } = Array.Empty<byte>();
         public string ContentType { get; set; } = "application/octet-stream";
         public string DosyaAdi { get; set; } = "FR265_Cihaz_Degisim_Formu.docx";
+    }
+
+    public class YkcFr265BelgeSecenekleri
+    {
+        public bool ImzaliNihaiMi { get; set; }
+        public DateTime? ImzaTarihi { get; set; }
+        public List<YkcFr265ImzaSatiri> Imzalar { get; set; } = new();
+    }
+
+    public class YkcFr265ImzaSatiri
+    {
+        public int SiraNo { get; set; }
+        public string? Rol { get; set; }
+        public string? AdSoyad { get; set; }
+        public DateTime? ImzaTarihi { get; set; }
     }
 }

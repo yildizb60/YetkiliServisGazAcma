@@ -1,10 +1,6 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Controllers;
-using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
-using System.Reflection;
 using YetkiliServisGazAcma.API.Controllers;
 using YetkiliServisGazAcma.Business.Services;
 
@@ -12,11 +8,6 @@ namespace YetkiliServisGazAcma.API.Swagger
 {
     public class ApiSwaggerResponseOperationFilter : IOperationFilter
     {
-        private static readonly Type GenericErrorType = typeof(ApiErrorResponseDto);
-        private static readonly Type GenericOperationType = typeof(ApiOperationResponseDto);
-        private static readonly Type ValidationErrorType = typeof(ValidationProblemDetails);
-        private static readonly Type ProblemType = typeof(ProblemDetails);
-
         private static readonly Dictionary<string, ResponseSpec> RouteResponses = new(StringComparer.OrdinalIgnoreCase)
         {
             ["api/auth/token"] = Json<AuthTokenResponseDto>("Token üretildi."),
@@ -156,18 +147,12 @@ namespace YetkiliServisGazAcma.API.Swagger
                 else if (spec.SuccessType != null)
                     SetJsonResponse(operation, context, "200", spec.SuccessType, spec.SuccessDescription);
 
-                if (spec.BadRequestType != null)
-                    SetJsonResponse(operation, context, "400", spec.BadRequestType, "İstek doğrulanamadı veya iş kuralı sağlanamadı.");
-
-                if (spec.ServiceUnavailableType != null)
-                    SetJsonResponse(operation, context, "503", spec.ServiceUnavailableType, "Bağımlı servis veya entegrasyon hazır değil.");
+                SadeceBasariliResponseGoster(operation);
             }
-
-            EnsureBadRequestResponse(operation, context, route, spec);
-            EnsureAuthResponses(operation, context);
-            EnsureNotFoundResponse(operation, context, route);
-            EnsureRateLimitResponse(operation, context);
-            EnsureServerErrorResponse(operation, context);
+            else
+            {
+                SadeceBasariliResponseGoster(operation);
+            }
         }
 
         private static ResponseSpec Json<T>(string description, Type? badRequestType = null, Type? serviceUnavailableType = null)
@@ -180,67 +165,10 @@ namespace YetkiliServisGazAcma.API.Swagger
             return new ResponseSpec(null, description, null, null, FileResponse: true);
         }
 
-        private static void EnsureBadRequestResponse(OpenApiOperation operation, OperationFilterContext context, string route, ResponseSpec? spec)
+        private static void SadeceBasariliResponseGoster(OpenApiOperation operation)
         {
-            if (operation.Responses.ContainsKey("400"))
-                return;
-
-            var badRequestType = spec?.BadRequestType
-                ?? (route.StartsWith("api/ykc/talepler/", StringComparison.OrdinalIgnoreCase) ? typeof(YkcIslemSonuc) : null)
-                ?? (route.Contains("/ekle", StringComparison.OrdinalIgnoreCase)
-                    || route.Contains("/guncelle", StringComparison.OrdinalIgnoreCase)
-                    || route.Contains("/sil", StringComparison.OrdinalIgnoreCase)
-                    || route.Contains("/kaydet", StringComparison.OrdinalIgnoreCase)
-                    || route.Contains("/kayit", StringComparison.OrdinalIgnoreCase)
-                    || route.Contains("/yukle", StringComparison.OrdinalIgnoreCase)
-                    || route.Contains("/getir", StringComparison.OrdinalIgnoreCase)
-                        ? GenericErrorType
-                        : ValidationErrorType);
-
-            SetJsonResponse(operation, context, "400", badRequestType, "Geçersiz istek veya doğrulama hatası.");
-        }
-
-        private static void EnsureAuthResponses(OpenApiOperation operation, OperationFilterContext context)
-        {
-            if (!RequiresAuthorization(context))
-                return;
-
-            if (!operation.Responses.ContainsKey("401"))
-                SetJsonResponse(operation, context, "401", GenericErrorType, "Kimlik doğrulama gerekli veya oturum geçersiz.");
-
-            if (!operation.Responses.ContainsKey("403"))
-                SetJsonResponse(operation, context, "403", GenericErrorType, "Bu işlem için yetki yok.");
-        }
-
-        private static void EnsureNotFoundResponse(OpenApiOperation operation, OperationFilterContext context, string route)
-        {
-            if (operation.Responses.ContainsKey("404"))
-                return;
-
-            var canReturnNotFound = route.Contains("/getir", StringComparison.OrdinalIgnoreCase)
-                || route.Contains("/sil", StringComparison.OrdinalIgnoreCase)
-                || route.Contains("/pdf", StringComparison.OrdinalIgnoreCase)
-                || route.Contains("/excel", StringComparison.OrdinalIgnoreCase)
-                || route.Contains("/dosya-indir", StringComparison.OrdinalIgnoreCase)
-                || route.Contains("/firma-ekrani", StringComparison.OrdinalIgnoreCase)
-                || route.EndsWith("/profil", StringComparison.OrdinalIgnoreCase);
-
-            if (canReturnNotFound)
-                SetJsonResponse(operation, context, "404", GenericErrorType, "Kayıt veya dosya bulunamadı.");
-        }
-
-        private static void EnsureRateLimitResponse(OpenApiOperation operation, OperationFilterContext context)
-        {
-            if (operation.Responses.ContainsKey("429") || !HasMetadata<EnableRateLimitingAttribute>(context))
-                return;
-
-            SetJsonResponse(operation, context, "429", GenericErrorType, "Çok fazla istek gönderildi.");
-        }
-
-        private static void EnsureServerErrorResponse(OpenApiOperation operation, OperationFilterContext context)
-        {
-            if (!operation.Responses.ContainsKey("500"))
-                SetJsonResponse(operation, context, "500", ProblemType, "Beklenmeyen sunucu hatası.");
+            foreach (var statusCode in operation.Responses.Keys.Where(x => x != "200").ToList())
+                operation.Responses.Remove(statusCode);
         }
 
         private static void SetJsonResponse(OpenApiOperation operation, OperationFilterContext context, string statusCode, Type responseType, string description)
@@ -286,26 +214,6 @@ namespace YetkiliServisGazAcma.API.Swagger
             }
 
             operation.Responses[statusCode] = response;
-        }
-
-        private static bool RequiresAuthorization(OperationFilterContext context)
-        {
-            if (HasMetadata<IAllowAnonymous>(context))
-                return false;
-
-            return HasMetadata<IAuthorizeData>(context);
-        }
-
-        private static bool HasMetadata<T>(OperationFilterContext context)
-        {
-            if (context.ApiDescription.ActionDescriptor.EndpointMetadata.OfType<T>().Any())
-                return true;
-
-            if (context.MethodInfo.GetCustomAttributes(inherit: true).OfType<T>().Any())
-                return true;
-
-            return context.ApiDescription.ActionDescriptor is ControllerActionDescriptor controllerAction
-                && controllerAction.ControllerTypeInfo.GetCustomAttributes(inherit: true).OfType<T>().Any();
         }
 
         private static string? NormalizeRoute(string? relativePath)

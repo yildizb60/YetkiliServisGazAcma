@@ -6,6 +6,13 @@
     var ykcYetkileri = ViewBag.YkcYetkileri as YkcYetkiOzeti ?? new YkcYetkiOzeti();
     var imzaIslemYetkisi = ykcYetkileri.Fr265ImzaIslemiYapabilir;
     var demoImzaModu = imzaEntegrasyonu.DemoModuMu;
+    var imzaliBelge = Model.ImzaSureci?.NihaiDosyaId is int nihaiDosyaId
+        ? Model.Dosyalar.FirstOrDefault(x => x.Id == nihaiDosyaId && x.DosyaTuru == YkcFormDosyaTuruDegerleri.Fr265ImzaliNihai)
+        : null;
+    var imzaliBelgeHazir = imzaliBelge != null
+        && Model.ImzaSureci?.Durum == YkcImzaDurumDegerleri.Tamamlandi
+        && !string.IsNullOrWhiteSpace(Model.ImzaSureci.ProviderDocumentId)
+        && Model.ImzaSureci.NihaiDosyaId.HasValue;
     var gonderimTakildi = Model.ImzaSureci?.Durum == YkcImzaDurumDegerleri.ImzayaGonderildi
         && string.IsNullOrWhiteSpace(Model.ImzaSureci.ProviderDocumentId)
         && (!Model.ImzaSureci.GonderimTarihi.HasValue || Model.ImzaSureci.GonderimTarihi <= DateTime.Now.AddMinutes(-5));
@@ -13,6 +20,9 @@
         .Where(x => x.KontrolNo is >= 1 and <= 5)
         .GroupBy(x => x.KontrolNo)
         .Select(x => x.OrderByDescending(k => k.KontrolTarihi ?? DateTime.MinValue).First())
+        .ToList();
+    var kontrolSatirlari = Enumerable.Range(1, 5)
+        .Select(no => kontroller.FirstOrDefault(x => x.KontrolNo == no) ?? new YkcFr265KontrolDto { KontrolNo = no })
         .ToList();
     var imzayaHazir = Model.Durum == YkcDurumDegerleri.SahaIsleminde
         && Model.RandevuTarihi.HasValue
@@ -32,15 +42,33 @@
 
 @functions {
     private static string Deger(string? value) => string.IsNullOrWhiteSpace(value) ? "" : value.Trim();
-    private static string KontrolSonucYazi(string? sonuc)
+    private static string Kutu(bool secili) => secili ? "☒" : "☐";
+    private static bool UygunMu(YkcFr265KontrolDto kontrol) => kontrol.Sonuc == YkcFr265KontrolSonucDegerleri.Uygun;
+    private static bool UygunDegilMi(YkcFr265KontrolDto kontrol) => kontrol.Sonuc == YkcFr265KontrolSonucDegerleri.UygunDegil;
+
+    private static string KontrolAciklama(YkcFr265KontrolDto kontrol)
     {
-        return sonuc switch
-        {
-            YkcFr265KontrolSonucDegerleri.Uygun => "Uygun",
-            YkcFr265KontrolSonucDegerleri.UygunDegil => "Uygun Değil",
-            YkcFr265KontrolSonucDegerleri.Uygulanmaz => "Uygulanmaz",
-            _ => "Bekliyor"
-        };
+        if (!string.IsNullOrWhiteSpace(kontrol.Aciklama))
+            return kontrol.Aciklama.Trim();
+
+        return kontrol.Sonuc == YkcFr265KontrolSonucDegerleri.Uygulanmaz
+            ? "Uygulanmaz"
+            : "................................................................................";
+    }
+
+    private static string? ImzaciAdi(YkcTalepDetayDto model, int siraNo)
+    {
+        return model.ImzaSureci?.Imzacilar
+            .FirstOrDefault(x => x.SiraNo == siraNo)
+            ?.AdSoyad;
+    }
+
+    private static string? ImzaTarihi(YkcTalepDetayDto model, int siraNo)
+    {
+        var tarih = model.ImzaSureci?.Imzacilar
+            .FirstOrDefault(x => x.SiraNo == siraNo)
+            ?.ImzaTarihi;
+        return tarih?.ToString("dd.MM.yyyy");
     }
 
     private static string LogoUrl(YkcTalepDetayDto model)
@@ -55,56 +83,74 @@
 @section Styles {
     <style>
         .fr265-toolbar { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 14px; }
-        .fr265-paper { max-width: 920px; margin: 0 auto; background: #fff; border: 1px solid var(--df-border); border-radius: 8px; box-shadow: var(--df-shadow-soft); padding: 34px 38px; color: #111827; }
-        .fr265-head { display: grid; grid-template-columns: 1fr auto; gap: 18px; align-items: start; border-bottom: 2px solid #111827; padding-bottom: 14px; margin-bottom: 18px; }
-        .fr265-brand { display: flex; align-items: center; gap: 16px; min-width: 0; }
-        .fr265-logo { width: 172px; max-height: 58px; object-fit: contain; flex: 0 0 auto; }
-        .fr265-title { font-size: 18px; font-weight: 900; text-transform: uppercase; line-height: 1.35; }
-        .fr265-date { font-size: 13px; font-weight: 800; white-space: nowrap; }
-        .fr265-table { width: 100%; border-collapse: collapse; margin: 12px 0 18px; table-layout: fixed; }
-        .fr265-table th, .fr265-table td { border: 1px solid #111827; padding: 9px 10px; vertical-align: middle; font-size: 13px; min-height: 36px; }
-        .fr265-table th { background: #f3f4f6; font-weight: 900; text-align: left; }
-        .fr265-label { width: 34%; font-weight: 850; background: #f9fafb; }
-        .fr265-section-title { font-size: 13px; font-weight: 900; text-transform: uppercase; margin: 18px 0 8px; color: #1f2937; }
-        .fr265-text { font-size: 13px; line-height: 1.55; margin: 10px 0; text-align: justify; }
-        .fr265-sign-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 22px; }
-        .fr265-sign-grid.three { grid-template-columns: repeat(3, 1fr); }
-        .fr265-sign { border: 1px solid #111827; min-height: 138px; padding: 12px; font-size: 13px; }
-        .fr265-sign-title { font-weight: 900; margin-bottom: 14px; }
-        .fr265-line { margin-top: 10px; }
-        .fr265-note { color: var(--df-muted); font-size: 12px; margin-top: 12px; }
-        .fr265-demo-note { display: flex; align-items: flex-start; gap: 10px; max-width: 920px; margin: 0 auto 14px; padding: 11px 13px; border: 1px solid #f0c36a; background: #fff8e8; color: #714f0d; font-size: 12px; }
-        .fr265-demo-note i { font-size: 16px; }
-        .fr265-demo-note strong { display: block; margin-bottom: 2px; }
+        .fr265-toolbar-title { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .fr265-ready-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 9px; color: #0f6b3f; background: #edf9f2; border: 1px solid #bfe8cf; border-radius: 4px; font-size: 11px; font-weight: 800; }
+        .fr265-page-tabs { display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 12px; }
+        .fr265-page-tabs a { min-width: 78px; padding: 7px 12px; color: #1f2937; background: #fff; border: 1px solid #cfd6df; border-radius: 4px; font-size: 12px; font-weight: 700; text-align: center; }
+        .fr265-page-tabs a:hover { color: #17498f; border-color: #17498f; }
+        .fr265-note { display: flex; align-items: flex-start; gap: 9px; max-width: 860px; margin: 0 auto 14px; padding: 10px 12px; color: #111; background: #fff; border: 1px solid #111; border-radius: 0; font-size: 12px; line-height: 1.45; }
+        .fr265-document { display: grid; gap: 18px; }
+        .fr265-paper { width: min(860px, 100%); min-height: 1110px; margin: 0 auto; padding: 28px 34px; color: #000; background: #fff; border: 1px solid #000; box-shadow: none; font-family: Arial, "Segoe UI", sans-serif; }
+        .fr265-paper-head { display: grid; grid-template-columns: 170px minmax(0, 1fr) 118px; align-items: center; gap: 14px; margin-bottom: 16px; }
+        .fr265-logo { width: 160px; max-height: 54px; object-fit: contain; }
+        .fr265-title { font-size: 16px; font-weight: 800; text-align: center; text-transform: uppercase; line-height: 1.35; }
+        .fr265-signature-state { margin-top: 3px; color: #000; font-size: 11px; font-weight: 700; }
+        .fr265-date { font-size: 12px; font-weight: 700; text-align: right; white-space: nowrap; }
+        .fr265-table { width: 100%; margin: 0 0 10px; border-collapse: collapse; table-layout: fixed; }
+        .fr265-table th, .fr265-table td { min-height: 31px; padding: 7px 8px; border: 1px solid #000; vertical-align: middle; font-size: 12px; line-height: 1.35; }
+        .fr265-table th { background: #fff; font-weight: 800; text-align: center; }
+        .fr265-label { width: 34%; font-weight: 800; background: #fff; }
+        .fr265-value { min-height: 18px; display: block; font-weight: 600; }
+        .fr265-statement td { padding: 11px 12px; font-size: 12px; line-height: 1.5; text-align: justify; }
+        .fr265-sign-text { white-space: pre-line; line-height: 1.7; }
+        .fr265-control-title { margin: 14px 0 6px; color: #000; font-size: 13px; font-weight: 800; text-transform: uppercase; }
+        .fr265-control-result { margin-bottom: 5px; font-size: 12px; font-weight: 700; }
+        .fr265-control-reason { margin-bottom: 7px; font-size: 12px; line-height: 1.45; }
+        .fr265-sign-table td { height: 31px; text-align: center; font-size: 11.5px; }
+        .fr265-sign-table tr:first-child td { font-weight: 800; background: #fff; }
+        .fr265-sign-table tr:last-child td { height: 38px; }
         @@media print {
             body { background: #fff !important; }
-            .df-sidebar, .df-topbar, .fr265-toolbar { display: none !important; }
+            .df-sidebar, .df-topbar, .fr265-toolbar, .fr265-page-tabs, .fr265-note { display: none !important; }
             .df-main, .df-content { margin: 0 !important; padding: 0 !important; }
-            .fr265-paper { border: none; box-shadow: none; max-width: none; padding: 0; }
+            .fr265-document { gap: 0; }
+            .fr265-paper { width: 100%; min-height: 0; border: none; box-shadow: none; padding: 0; page-break-after: always; }
+            .fr265-paper:last-child { page-break-after: auto; }
         }
         @@media (max-width: 760px) {
-            .fr265-paper { padding: 22px 18px; }
-            .fr265-head, .fr265-sign-grid, .fr265-sign-grid.three { grid-template-columns: 1fr; }
-            .fr265-brand { align-items: flex-start; flex-direction: column; }
-            .fr265-logo { width: 150px; }
             .fr265-toolbar { flex-direction: column; align-items: stretch; }
+            .fr265-paper { min-height: auto; padding: 20px 15px; overflow-x: auto; }
+            .fr265-paper-head { grid-template-columns: 1fr; text-align: center; }
+            .fr265-date { text-align: center; }
+            .fr265-logo { margin: 0 auto; }
+            .fr265-table { min-width: 650px; }
         }
     </style>
 }
 
 <div class="fr265-toolbar">
     <div>
-        <h2 class="df-panel-title" style="margin:0;">FR265 Form Önizleme</h2>
-        <div class="df-panel-subtitle">Cihaz değişim talebi #@Model.Id için imzaya gönderilecek dijital belge taslağı.</div>
+        <div class="fr265-toolbar-title">
+            <h2 class="df-panel-title" style="margin:0;">@(imzaliBelgeHazir ? "İmzalı FR265 Belgesi" : "FR265 Form Önizleme")</h2>
+            @if (imzaliBelgeHazir)
+            {
+                <span class="fr265-ready-badge"><i class="bi bi-patch-check-fill"></i> İmzalı nihai belge</span>
+            }
+        </div>
+        <div class="df-panel-subtitle">Cihaz değişim talebi #@Model.Id için @(imzaliBelgeHazir ? "kayda gelen nihai FR265 belgesi." : "imzaya gönderilecek FR265 belgesi.")</div>
     </div>
     <div class="df-actions">
         <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/detay/@Model.Id">Detaya Dön</a>
+        @if (imzaliBelgeHazir && imzaliBelge != null)
+        {
+            <a class="df-btn df-btn-primary df-btn-sm" href="/ykc/dosya/@imzaliBelge.Id" target="_blank"><i class="bi bi-download"></i> İmzalı FR265'i İndir</a>
+        }
         @if (imzayaGonderebilir)
         {
             <form method="post" action="/ykc/imzaya-gonder">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="talepId" value="@Model.Id" />
-                <button class="df-btn df-btn-primary df-btn-sm" type="submit">@(demoImzaModu ? "Demo İmza Sürecine Gönder" : "İmza Uygulamasına Gönder")</button>
+                <button class="df-btn df-btn-primary df-btn-sm" type="submit">İmza Uygulamasına Gönder</button>
             </form>
         }
         else if (imzaDurumuSorgulanabilir)
@@ -122,125 +168,158 @@
     </div>
 </div>
 
-@if (demoImzaModu)
+<div class="fr265-page-tabs" aria-label="FR265 sayfaları">
+    <a href="#fr265-page-1">1. Sayfa</a>
+    <a href="#fr265-page-2">2. Sayfa</a>
+</div>
+
+@if (demoImzaModu || imzaliBelgeHazir)
 {
-    <div class="fr265-demo-note"><i class="bi bi-beaker"></i><span><strong>Demo imza modu</strong>Gönderim ve sonuç alma adımları sunum için simüle edilir. Oluşan sonuç belgesi hukuki elektronik imza içermez.</span></div>
+    <div class="fr265-note">
+        <i class="bi bi-info-circle"></i>
+        <span>
+            @(demoImzaModu
+                ? "Geliştirme ortamında akış aynı FR265 formu üzerinden test edilir; gerçek e-imza sağlayıcısı bağlandığında bu belge dış imza uygulamasına gönderilecek."
+                : "İmzalı nihai belge hazır olduğunda indirilen dosya FR265 kaydına bağlı nihai belgedir.")
+        </span>
+    </div>
 }
 
-<section class="fr265-paper">
-    <div class="fr265-head">
-        <div class="fr265-brand">
+<div class="fr265-document">
+    <section class="fr265-paper" id="fr265-page-1" aria-label="FR265 birinci sayfa">
+        <div class="fr265-paper-head">
             <img class="fr265-logo" src="@LogoUrl(Model)" alt="Şirket logosu" />
             <div class="fr265-title">FR265 Proje Tadilatı Gerektirmeyen Yakıcı Cihaz Değişim Formu</div>
+            <div class="fr265-date">Tarih : @formTarihi</div>
         </div>
-        <div class="fr265-date">Tarih: @formTarihi</div>
-    </div>
 
-    <table class="fr265-table">
-        <tbody>
-            <tr><td class="fr265-label">Sertifikalı Firma Unvanı</td><td>@Deger(Model.FirmaAdi)</td></tr>
-            <tr><td class="fr265-label">Sertifika Numarası</td><td>@Deger(Model.YetkiBelgesiNo)</td></tr>
-        </tbody>
-    </table>
+        <table class="fr265-table">
+            <tbody>
+                <tr><td class="fr265-label">Sertifikalı Firma Unvanı</td><td><span class="fr265-value">@Deger(Model.FirmaAdi)</span></td></tr>
+            </tbody>
+        </table>
+        <table class="fr265-table">
+            <tbody>
+                <tr><td class="fr265-label">Sertifika Numarası</td><td><span class="fr265-value">@Deger(Model.YetkiBelgesiNo)</span></td></tr>
+            </tbody>
+        </table>
 
-    <div class="fr265-section-title">Abone / Tesisat Bilgileri</div>
-    <table class="fr265-table">
-        <tbody>
-            <tr><td class="fr265-label">Adı Soyadı</td><td>@Deger(Model.MusteriAdi)</td></tr>
-            <tr><td class="fr265-label">Tesisat Numarası</td><td>@Deger(Model.TesisatNo)</td></tr>
-            <tr><td class="fr265-label">Tüketim Noktası (Daire/İş Yeri Numarası)</td><td>@Deger(Model.TuketimNoktasi)</td></tr>
-            <tr><td class="fr265-label">Bina Kodu</td><td>@Deger(Model.BaglantiNesnesi)</td></tr>
-            <tr><td class="fr265-label">Adres</td><td>@Deger(Model.Adres)</td></tr>
-        </tbody>
-    </table>
+        <table class="fr265-table">
+            <tbody>
+                <tr><td class="fr265-label">Adı Soyadı</td><td><span class="fr265-value">@Deger(Model.MusteriAdi)</span></td></tr>
+                <tr><td class="fr265-label">Tesisat Numarası</td><td><span class="fr265-value">@Deger(Model.TesisatNo)</span></td></tr>
+                <tr><td class="fr265-label">Tüketim Noktası (Daire/İş Yeri Numarası)</td><td><span class="fr265-value">@Deger(Model.TuketimNoktasi)</span></td></tr>
+                <tr><td class="fr265-label">Bina Kodu</td><td><span class="fr265-value">@Deger(Model.BaglantiNesnesi)</span></td></tr>
+                <tr><td class="fr265-label">Adres</td><td><span class="fr265-value">@Deger(Model.Adres)</span></td></tr>
+            </tbody>
+        </table>
 
-    <div class="fr265-section-title">Cihaz Karşılaştırması</div>
-    <table class="fr265-table">
-        <thead>
-            <tr>
-                <th></th>
-                <th>Projedeki Cihaz</th>
-                <th>Yeni Kullanılan Cihaz</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr><td class="fr265-label">Yakıcı Cihaz Tipi</td><td>@Deger(Model.EskiCihazTipi)</td><td>@Deger(Model.YeniCihazTipi)</td></tr>
-            <tr><td class="fr265-label">Marka</td><td>@Deger(Model.EskiMarka)</td><td>@Deger(Model.YeniMarka)</td></tr>
-            <tr><td class="fr265-label">Baca Tipi</td><td>@Deger(Model.EskiBacaTipi)</td><td>@Deger(Model.YeniBacaTipi)</td></tr>
-            <tr><td class="fr265-label">Kapasite (kcal/h)</td><td>@Deger(Model.EskiKapasite)</td><td>@Deger(Model.YeniKapasite)</td></tr>
-        </tbody>
-    </table>
-
-    <table class="fr265-table">
-        <tbody>
-            <tr>
-                <td class="fr265-label">Takılan Yakıcı Cihaz İkinci El Cihaz Mı?</td>
-                <td>@(Model.IkinciElCihazMi == true ? "☑" : "☐") Evet</td>
-                <td>@(Model.IkinciElCihazMi == false ? "☑" : "☐") Hayır</td>
-            </tr>
-            <tr>
-                <td colspan="3">Cihazın ikinci el olması durumunda, yetkili servis tarafından düzenlenecek “Yetkili Servis Cihaz Kontrol Raporu” bu forma eklenmelidir.</td>
-            </tr>
-        </tbody>
-    </table>
-
-    <p class="fr265-text">Yukarıda bilgileri verilen abonenin/tesisatın mevcut onaylı projesinde bulunan yakıcı cihazın tip, yerleşim ve kapasite değişikliği yapılmamıştır.</p>
-    <p class="fr265-text">Aynı yerde, aynı tip ve kapasitedeki yeni yakıcı cihaz tesisat üzerindeki cihaz vanasına, cihaz bağlantı parçaları ve atık sistemleri ile tesis edilmiş olup değişimle ilgili tüm idari ve teknik sorumluluk sertifikalı firmaya aittir.</p>
-
-    @if (Model.Kontroller.Any())
-    {
-        <div class="fr265-section-title">Kontrol Bilgileri</div>
         <table class="fr265-table">
             <thead>
                 <tr>
-                    <th>Kontrol</th>
-                    <th>Sonuç</th>
-                    <th>Açıklama</th>
+                    <th></th>
+                    <th>Projedeki Cihaz</th>
+                    <th>Yeni Kullanılan Cihaz</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var kontrol in Model.Kontroller.OrderBy(x => x.KontrolNo))
-                {
-                    <tr>
-                        <td>@(kontrol.KontrolNo). Kontrol</td>
-                        <td>@KontrolSonucYazi(kontrol.Sonuc)</td>
-                        <td>@Deger(kontrol.Aciklama)</td>
-                    </tr>
-                }
+                <tr><td class="fr265-label">Yakıcı Cihaz Tipi</td><td>@Deger(Model.EskiCihazTipi)</td><td>@Deger(Model.YeniCihazTipi)</td></tr>
+                <tr><td class="fr265-label">Marka</td><td>@Deger(Model.EskiMarka)</td><td>@Deger(Model.YeniMarka)</td></tr>
+                <tr><td class="fr265-label">Baca Tipi</td><td>@Deger(Model.EskiBacaTipi)</td><td>@Deger(Model.YeniBacaTipi)</td></tr>
+                <tr><td class="fr265-label">Kapasite (kcal/h)</td><td>@Deger(Model.EskiKapasite)</td><td>@Deger(Model.YeniKapasite)</td></tr>
             </tbody>
         </table>
-    }
 
-    <div class="fr265-sign-grid">
-        <div class="fr265-sign">
-            <div class="fr265-sign-title">Sertifikalı Firma Yetkilisi</div>
-            <div class="fr265-line">Adı ve Soyadı: @Deger(Model.FirmaYetkiliKisi)</div>
-            <div class="fr265-line">Tarih: @formTarihi</div>
-            <div class="fr265-line">İmza:</div>
-        </div>
-        <div class="fr265-sign">
-            <div class="fr265-sign-title">İşlemi Yapan Gaz Dağıtım Şirketi Yetkilisi</div>
-            <div class="fr265-line">Adı ve Soyadı:</div>
-            <div class="fr265-line">Tarih:</div>
-            <div class="fr265-line">İmza:</div>
-        </div>
-    </div>
+        <table class="fr265-table">
+            <tbody>
+                <tr>
+                    <td class="fr265-label">Takılan Yakıcı Cihaz İkinci El Cihaz Mı?</td>
+                    <td>@Kutu(Model.IkinciElCihazMi == true) Evet</td>
+                    <td>@Kutu(Model.IkinciElCihazMi == false) Hayır</td>
+                </tr>
+                <tr>
+                    <td colspan="3">Cihazın ikinci el olması durumunda, bu evrakla birlikte yetkili servis tarafından düzenlenecek “Yetkili Servis Cihaz Kontrol Raporu” bu forma eklenmelidir.</td>
+                </tr>
+            </tbody>
+        </table>
 
-    <p class="fr265-text">Yukarıdaki bilgileri verilen yeni cihaz belirtilen adreste görülmüştür.</p>
-    <div class="fr265-sign-grid">
-        <div class="fr265-sign">
-            <div class="fr265-sign-title">İşlemi Yapan Gaz Dağıtım Şirketi Yetkilisi</div>
-            <div class="fr265-line">Adı ve Soyadı:</div>
-            <div class="fr265-line">Tarih:</div>
-            <div class="fr265-line">İmza:</div>
-        </div>
-        <div class="fr265-sign">
-            <div class="fr265-sign-title">İşlem Yapılan Abone / Kullanıcı</div>
-            <div class="fr265-line">Adı ve Soyadı: @Deger(Model.MusteriAdi)</div>
-            <div class="fr265-line">Tarih:</div>
-            <div class="fr265-line">İmza:</div>
-        </div>
-    </div>
+        <table class="fr265-table fr265-statement">
+            <tbody>
+                <tr>
+                    <td>
+                        Yukarıda bilgileri verilen abonenin(tesisatın), mevcut onaylı projesinde bulunan yakıcı cihazın tip, yerleşim ve kapasite değişikliği yapılmamıştır.
+                        <br /><br />
+                        Aynı yerde, aynı tip ve kapasitedeki yeni yakıcı cihaz, tesisat üzerindeki cihaz vanasına, cihaz bağlantı parçaları ve atık sistemleri ile tesis edilmiş olup, değişimle ilgili tüm idari ve teknik sorumluluk tarafımıza aittir.
+                    </td>
+                </tr>
+                <tr>
+            <td class="fr265-sign-text">Sertifikalı Firma Yetkilisi
+Adı ve Soyadı: @Deger(Model.FirmaYetkiliKisi)
+Tarih: @Deger(ImzaTarihi(Model, 1) ?? formTarihi)
+İmza:@if (imzaliBelgeHazir) { <text>
+İmza kaydı alındı</text> }</td>
+                </tr>
+            </tbody>
+        </table>
 
-    <div class="fr265-note">Not: Bu belge kontrol önizlemesidir. @(demoImzaModu ? "Geliştirme ortamında akış demo sağlayıcıyla gösterilir; sonuç hukuki imza sayılmaz." : "Gerçek entegrasyonda doğru bulunan form dış dijital imza/arşiv uygulamasına gönderilecek, indirme işlemi imzalı nihai belge üzerinden yapılacaktır.")</div>
-</section>
+        <table class="fr265-table fr265-statement">
+            <tbody>
+                <tr>
+                    <td>
+                        Yukardaki bilgileri verilen yeni cihaz belirtilen adreste görülmüştür.
+                        <br /><br />
+                        İşlemi Yapan Gaz Dağıtım Şirketi Yetkilisi
+                        <br />Adı ve Soyadı: @Deger(ImzaciAdi(Model, 2))
+                        <br />Tarih: @Deger(ImzaTarihi(Model, 2))
+                        <br />İmza:@if (imzaliBelgeHazir) { <span class="fr265-signature-state"> İmza kaydı alındı</span> }
+                    </td>
+                    <td>
+                        İşlem Yapılan Abone/Kullanıcı
+                        <br />Adı ve Soyadı: @Deger(Model.MusteriAdi)
+                        <br />Tarih: @Deger(ImzaTarihi(Model, 3))
+                        <br />İmza:@if (imzaliBelgeHazir) { <span class="fr265-signature-state"> İmza kaydı alındı</span> }
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section class="fr265-paper" id="fr265-page-2" aria-label="FR265 ikinci sayfa">
+        <div class="fr265-paper-head">
+            <img class="fr265-logo" src="@LogoUrl(Model)" alt="Şirket logosu" />
+            <div class="fr265-title">FR265 Proje Tadilatı Gerektirmeyen Yakıcı Cihaz Değişim Formu</div>
+            <div class="fr265-date">Tarih : @formTarihi</div>
+        </div>
+
+        @foreach (var kontrol in kontrolSatirlari)
+        {
+            <div class="fr265-control-title">@kontrol.KontrolNo. KONTROL</div>
+            <div class="fr265-control-result">@Kutu(UygunMu(kontrol)) Uygun&nbsp;&nbsp;&nbsp;&nbsp;@Kutu(UygunDegilMi(kontrol)) Uygun Değil</div>
+            <div class="fr265-control-reason">Uygun değil ise nedeni: @KontrolAciklama(kontrol)</div>
+            <table class="fr265-table fr265-sign-table">
+                <tbody>
+                    <tr>
+                        <td>Gaz Dağıtım Şirketi Yetkilisi</td>
+                        <td>Abone / Kullanıcı</td>
+                        <td>Sertifikalı Firma</td>
+                    </tr>
+                    <tr>
+                        <td>Adı Soyadı<br />@Deger(ImzaciAdi(Model, 2))</td>
+                        <td>Adı Soyadı<br />@Deger(Model.MusteriAdi)</td>
+                        <td>Firma / Yetkili<br />@Deger(Model.FirmaYetkiliKisi)</td>
+                    </tr>
+                    <tr>
+                        <td>Tarih<br />@Deger(ImzaTarihi(Model, 2))</td>
+                        <td>Tarih<br />@Deger(ImzaTarihi(Model, 3))</td>
+                        <td>Tarih<br />@Deger(ImzaTarihi(Model, 1))</td>
+                    </tr>
+                    <tr>
+                        <td>İmza@if (imzaliBelgeHazir) { <div class="fr265-signature-state">İmza kaydı alındı</div> }</td>
+                        <td>İmza@if (imzaliBelgeHazir) { <div class="fr265-signature-state">İmza kaydı alındı</div> }</td>
+                        <td>Kaşe / İmza@if (imzaliBelgeHazir) { <div class="fr265-signature-state">İmza kaydı alındı</div> }</td>
+                    </tr>
+                </tbody>
+            </table>
+        }
+    </section>
+</div>

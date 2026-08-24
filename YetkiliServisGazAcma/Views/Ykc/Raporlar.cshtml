@@ -337,18 +337,18 @@
         </div>
         <div class="ykc-report-modal-body">
             <div class="ykc-modal-stats">
-                <div class="ykc-modal-stat ykc-modal-stat-primary"><small>Durum</small><strong><span class="df-pill" id="ykcModalDurum">-</span></strong></div>
-                <div class="ykc-modal-stat"><small>Randevu</small><strong id="ykcModalRandevu">-</strong></div>
+                <div class="ykc-modal-stat ykc-modal-stat-primary"><i class="bi bi-activity"></i><div><small>Durum</small><strong><span class="df-pill" id="ykcModalDurum">-</span></strong></div></div>
+                <div class="ykc-modal-stat ykc-modal-stat-date"><i class="bi bi-calendar2-check"></i><div><small>Randevu</small><strong id="ykcModalRandevu">-</strong></div></div>
                 @if (icOperasyonGorsun)
                 {
-                    <div class="ykc-modal-stat"><small>Yönlendirme / Bölge</small><strong id="ykcModalEkipBolge">-</strong></div>
+                    <div class="ykc-modal-stat ykc-modal-stat-route"><i class="bi bi-signpost-split"></i><div><small>Yönlendirme / Bölge</small><strong id="ykcModalEkipBolge">-</strong></div></div>
                 }
-                <div class="ykc-modal-stat"><small>Talep Tarihi</small><strong id="ykcModalTalepOzetiTarihi">-</strong></div>
+                <div class="ykc-modal-stat ykc-modal-stat-created"><i class="bi bi-clock-history"></i><div><small>Talep Tarihi</small><strong id="ykcModalTalepOzetiTarihi">-</strong></div></div>
             </div>
 
             <div class="ykc-modal-grid">
-                <section class="ykc-modal-section">
-                    <div class="ykc-modal-section-title">Tesisat ve Müşteri</div>
+                <section class="ykc-modal-section ykc-modal-section-customer">
+                    <div class="ykc-modal-section-title"><i class="bi bi-person-vcard"></i> Tesisat ve Müşteri</div>
                     <div class="ykc-modal-info">
                         <div class="ykc-modal-item"><div class="ykc-modal-label">Tesisat</div><div class="ykc-modal-value" id="ykcModalTesisat">-</div></div>
                         <div class="ykc-modal-item"><div class="ykc-modal-label">Müşteri</div><div class="ykc-modal-value" id="ykcModalMusteri">-</div></div>
@@ -357,8 +357,8 @@
                     </div>
                 </section>
 
-                <section class="ykc-modal-section">
-                    <div class="ykc-modal-section-title">Firma ve Kapsam</div>
+                <section class="ykc-modal-section ykc-modal-section-company">
+                    <div class="ykc-modal-section-title"><i class="bi bi-building-check"></i> Firma ve Kapsam</div>
                     <div class="ykc-modal-info">
                         <div class="ykc-modal-item"><div class="ykc-modal-label">Firma</div><div class="ykc-modal-value" id="ykcModalFirma">-</div></div>
                         <div class="ykc-modal-item"><div class="ykc-modal-label">Şirket</div><div class="ykc-modal-value" id="ykcModalSirket">-</div></div>
@@ -368,7 +368,7 @@
                 </section>
 
                 <section class="ykc-modal-section ykc-modal-section-device">
-                    <div class="ykc-modal-section-title">Cihaz Bilgisi</div>
+                    <div class="ykc-modal-section-title"><i class="bi bi-arrow-left-right"></i> Cihaz Bilgisi</div>
                     <div class="ykc-modal-info">
                         <div class="ykc-modal-item"><div class="ykc-modal-label">Eski Cihaz</div><div class="ykc-modal-value" id="ykcModalEskiCihaz">-</div></div>
                         <div class="ykc-modal-item"><div class="ykc-modal-label">Yeni Cihaz</div><div class="ykc-modal-value" id="ykcModalYeniCihaz">-</div></div>
@@ -378,7 +378,7 @@
                 </section>
 
                 <section class="ykc-modal-section ykc-modal-section-signature">
-                    <div class="ykc-modal-section-title">İmza Durumu</div>
+                    <div class="ykc-modal-section-title"><i class="bi bi-shield-check"></i> İmza Durumu</div>
                     <div class="ykc-modal-info full">
                         <div class="ykc-modal-item"><div class="ykc-modal-label">Dijital İmza</div><div class="ykc-modal-value" id="ykcModalImzaDurumu">-</div></div>
                     </div>
