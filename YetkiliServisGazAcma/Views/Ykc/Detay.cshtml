@@ -141,6 +141,24 @@
     private static string EvetHayir(bool? value) => value.HasValue ? (value.Value ? "Evet" : "Hayır") : "-";
     private static string DurumYazi(int durum) => YkcDurumSunumu.Etiket(durum);
     private static string DurumClass(int durum) => YkcDurumSunumu.CssSinifi(durum);
+    private static string GecmisIslemYazi(string? islemTipi) => islemTipi switch
+    {
+        "TalepOlusturuldu" => "Talep oluşturuldu",
+        "DurumGuncellendi" => "Durum güncellendi",
+        "AtamaYapildi" => "Randevu ve yönlendirme kaydedildi",
+        "FR265TaslakOlusturuldu" => "FR265 formu hazırlandı",
+        "FR265ImzayaGonderildi" => "FR265 imzaya gönderildi",
+        "FR265ImzaliNihaiBelgeAlindi" => "İmzalı FR265 alındı",
+        "FR265DemoNihaiBelgeYenilendi" => "İmzalı FR265 yenilendi",
+        "FR265KontrolleriGuncellendi" => "FR265 kontrolleri kaydedildi",
+        "DosyaEklendi" => "Belge eklendi",
+        _ => Deger(islemTipi)
+    };
+
+    private static bool DurumDegisimiMi(string? islemTipi)
+    {
+        return string.Equals(islemTipi, "DurumGuncellendi", StringComparison.OrdinalIgnoreCase);
+    }
 
     private static string RandevuYazi(DateTime? tarih, string? saat)
     {
@@ -221,7 +239,7 @@
             <p>@Deger(Model.FirmaAdi) <span aria-hidden="true">·</span> Tesisat @Deger(Model.TesisatNo) <span aria-hidden="true">·</span> @Model.TalepTarihi.ToString("dd.MM.yyyy HH:mm")</p>
         </div>
         <div class="ykc-header-actions">
-            <span class="df-pill @DurumClass(Model.Durum)">@DurumYazi(Model.Durum)</span>
+            <span class="ykc-header-status @DurumClass(Model.Durum)">@DurumYazi(Model.Durum)</span>
             <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/talepler"><i class="bi bi-arrow-left"></i> Listeye Dön</a>
             <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/fr265/onizle/@Model.Id" target="_blank"><i class="bi bi-eye"></i> FR265'i Önizle</a>
         </div>
@@ -260,7 +278,6 @@
                 <h2 id="current-task-title">@gorevBasligi</h2>
                 <p>@gorevAciklamasi</p>
             </div>
-            <span class="df-pill @DurumClass(Model.Durum)">@DurumYazi(Model.Durum)</span>
         </header>
 
         @if (!icOperasyonGorsun)
@@ -306,24 +323,17 @@
                 <div class="ykc-current-plan @(tamamlamayaHazir ? "is-final-ready" : null)">
                     @if (tamamlamayaHazir)
                     {
-                        <div class="ykc-final-action-card">
-                            <div class="ykc-final-icon"><i class="bi bi-patch-check-fill"></i></div>
-                            <div>
-                                <strong>İmzalı FR265 kayda geldi</strong>
-                                <small>Belgeyi indirip kontrol edin; uygunsa talebi tamamlayın.</small>
-                            </div>
-                            <div class="ykc-final-actions">
-                                @if (imzaliBelge != null)
-                                {
-                                    <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/dosya/@imzaliBelge.Id" target="_blank"><i class="bi bi-download"></i> İmzalı FR265'i İndir</a>
-                                }
-                                <form method="post" action="/ykc/durum-guncelle">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="TalepId" value="@Model.Id" />
-                                    <input type="hidden" name="Durum" value="@YkcDurumDegerleri.Tamamlandi" />
-                                    <button class="df-btn df-btn-primary df-btn-sm" type="submit"><i class="bi bi-check2-circle"></i> İşlemi Tamamla</button>
-                                </form>
-                            </div>
+                        <div class="ykc-final-toolbar" aria-label="İmzalı FR265 aksiyonları">
+                            @if (imzaliBelge != null)
+                            {
+                                <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/dosya/@imzaliBelge.Id" target="_blank"><i class="bi bi-download"></i> İmzalı FR265'i İndir</a>
+                            }
+                            <form method="post" action="/ykc/durum-guncelle">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="TalepId" value="@Model.Id" />
+                                <input type="hidden" name="Durum" value="@YkcDurumDegerleri.Tamamlandi" />
+                                <button class="df-btn df-btn-primary df-btn-sm" type="submit"><i class="bi bi-check2-circle"></i> İşlemi Tamamla</button>
+                            </form>
                         </div>
                     }
                     else
@@ -333,11 +343,6 @@
                         <div class="ykc-completion-gate"><i class="bi bi-lock"></i><span><strong>İşlem henüz tamamlanamaz</strong><small>@(kontrollerImzayaHazir ? (imzaDurumuSorgulanabilir ? "FR265 imza uygulamasında. İmzalı belge geldiyse İmza Durumunu Güncelle deyin." : "Önce FR265'i önizleyin; doğruysa Önizledim, İmzaya Gönder deyin.") : "Önce Word formundaki 1-5 kontrol sonuçlarını kaydedin.")</small></span></div>
                     }
                 </div>
-            }
-
-            @if (terminalDurum)
-            {
-                <div class="ykc-terminal-message">@gorevAciklamasi</div>
             }
 
             @if (atamaYapilabilir && atamaYetkisi)
@@ -434,17 +439,6 @@
                 <div><dt>Firma</dt><dd>@Deger(Model.FirmaAdi)</dd></div><div><dt>Şirket</dt><dd>@Deger(Model.SirketAdi)</dd></div>
                 <div><dt>VKN</dt><dd>@Deger(Model.Vkn)</dd></div><div><dt>Firma Kodu</dt><dd>@Deger(Model.FirmaKodu)</dd></div>
                 <div class="wide"><dt>İl / İlçe</dt><dd>@Deger(Model.Il) / @Deger(Model.Ilce)</dd></div>
-            </dl>
-        </article>
-        <article>
-            <h2>Planlama</h2>
-            <dl>
-                <div><dt>Randevu Tarihi</dt><dd>@Tarih(Model.RandevuTarihi)</dd></div><div><dt>Randevu Saati</dt><dd>@Deger(Model.RandevuSaati)</dd></div>
-                @if (icOperasyonGorsun)
-                {
-                    <div><dt>Bölge</dt><dd>@Deger(Model.Bolge)</dd></div><div><dt>Yönlendirme</dt><dd>@Deger(Model.AtananEkip)</dd></div>
-                }
-                <div class="wide"><dt>Güncel Durum</dt><dd>@DurumYazi(Model.Durum)</dd></div>
             </dl>
         </article>
     </section>
@@ -562,7 +556,7 @@
             <div class="ykc-history-list">
                 @foreach (var gecmis in Model.Gecmis.Take(3))
                 {
-                    <div><time>@gecmis.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</time><span></span><section><strong>@Deger(gecmis.IslemTipi)</strong><small>@Deger(gecmis.KullaniciAdi) @if (!string.IsNullOrWhiteSpace(gecmis.Aciklama)) { <text>· @gecmis.Aciklama</text> }</small></section>@if (gecmis.YeniDurum.HasValue) { <span class="df-pill @DurumClass(gecmis.YeniDurum.Value)">@DurumYazi(gecmis.YeniDurum.Value)</span> }</div>
+                    <div><time>@gecmis.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</time><span></span><section><strong>@GecmisIslemYazi(gecmis.IslemTipi)</strong><small>@Deger(gecmis.KullaniciAdi) @if (DurumDegisimiMi(gecmis.IslemTipi) && gecmis.YeniDurum.HasValue) { <text>· @DurumYazi(gecmis.YeniDurum.Value)</text> } @if (!string.IsNullOrWhiteSpace(gecmis.Aciklama)) { <text>· @gecmis.Aciklama</text> }</small></section></div>
                 }
             </div>
             @if (Model.Gecmis.Count > 3)
@@ -572,7 +566,7 @@
                     <div class="ykc-history-list">
                         @foreach (var gecmis in Model.Gecmis.Skip(3))
                         {
-                            <div><time>@gecmis.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</time><span></span><section><strong>@Deger(gecmis.IslemTipi)</strong><small>@Deger(gecmis.KullaniciAdi) @if (!string.IsNullOrWhiteSpace(gecmis.Aciklama)) { <text>· @gecmis.Aciklama</text> }</small></section>@if (gecmis.YeniDurum.HasValue) { <span class="df-pill @DurumClass(gecmis.YeniDurum.Value)">@DurumYazi(gecmis.YeniDurum.Value)</span> }</div>
+                            <div><time>@gecmis.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</time><span></span><section><strong>@GecmisIslemYazi(gecmis.IslemTipi)</strong><small>@Deger(gecmis.KullaniciAdi) @if (DurumDegisimiMi(gecmis.IslemTipi) && gecmis.YeniDurum.HasValue) { <text>· @DurumYazi(gecmis.YeniDurum.Value)</text> } @if (!string.IsNullOrWhiteSpace(gecmis.Aciklama)) { <text>· @gecmis.Aciklama</text> }</small></section></div>
                         }
                     </div>
                 </details>
