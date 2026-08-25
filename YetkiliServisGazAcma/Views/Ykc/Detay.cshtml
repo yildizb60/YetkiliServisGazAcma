@@ -23,13 +23,27 @@
     var gonderimTakildi = imzaSureci?.Durum == YkcImzaDurumDegerleri.ImzayaGonderildi
         && string.IsNullOrWhiteSpace(imzaSureci.ProviderDocumentId)
         && (!imzaSureci.GonderimTarihi.HasValue || imzaSureci.GonderimTarihi <= DateTime.Now.AddMinutes(-5));
-    var imzayaHazirKontroller = Model.Kontroller
+    var sonKontrolKayitlari = Model.Kontroller
         .Where(x => x.KontrolNo is >= 1 and <= 5)
         .GroupBy(x => x.KontrolNo)
         .Select(x => x.OrderByDescending(k => k.KontrolTarihi ?? DateTime.MinValue).First())
+        .OrderBy(x => x.KontrolNo)
         .ToList();
-    var kontrollerImzayaHazir = imzayaHazirKontroller.Count == 5
-        && imzayaHazirKontroller.All(x => x.Sonuc == YkcFr265KontrolSonucDegerleri.Uygun || x.Sonuc == YkcFr265KontrolSonucDegerleri.Uygulanmaz);
+    var kontrolSatirlari = Enumerable.Range(1, 5)
+        .Select(no => sonKontrolKayitlari.FirstOrDefault(x => x.KontrolNo == no) ?? new YkcFr265KontrolDto { KontrolNo = no })
+        .ToList();
+    var sonucGirilenKontroller = kontrolSatirlari
+        .Where(x => x.Sonuc == YkcFr265KontrolSonucDegerleri.Uygun || x.Sonuc == YkcFr265KontrolSonucDegerleri.UygunDegil)
+        .OrderBy(x => x.KontrolNo)
+        .ToList();
+    var sonKontrol = sonucGirilenKontroller.LastOrDefault();
+    var kontrollerImzayaHazir = sonKontrol?.Sonuc == YkcFr265KontrolSonucDegerleri.Uygun;
+    var siradakiKontrolNo = (sonKontrol?.KontrolNo ?? 0) + 1;
+    var aktifKontrolNo = kontrollerImzayaHazir || siradakiKontrolNo > 5 ? (int?)null : siradakiKontrolNo;
+    var aktifKontrol = aktifKontrolNo.HasValue
+        ? kontrolSatirlari.FirstOrDefault(x => x.KontrolNo == aktifKontrolNo.Value)
+        : null;
+    var tekrarKontrolBekleniyor = sonKontrol?.Sonuc == YkcFr265KontrolSonucDegerleri.UygunDegil && aktifKontrolNo.HasValue;
     var talepImzayaHazir = Model.Durum == YkcDurumDegerleri.SahaIsleminde
         && Model.RandevuTarihi.HasValue
         && !string.IsNullOrWhiteSpace(Model.RandevuSaati)
@@ -43,17 +57,27 @@
         && imzaEntegrasyonu.KullanilabilirMi
         && !string.IsNullOrWhiteSpace(imzaSureci?.ProviderDocumentId)
         && !imzaliBelgeHazir;
+    var kontrolBolumuAktif = icOperasyonGorsun
+        && fr265ImzaYetkisi
+        && Model.Durum == YkcDurumDegerleri.SahaIsleminde
+        && !kontrollerImzayaHazir
+        && aktifKontrol != null
+        && !imzaliBelgeHazir
+        && !imzaDurumuSorgulanabilir;
     var tamamlamayaHazir = Model.Durum == YkcDurumDegerleri.SahaIsleminde
         && imzaliBelgeHazir
         && fr265ImzaYetkisi;
     var imzaBirincilIslemVar = imzaliBelge != null || imzayaGonderebilir || imzaDurumuSorgulanabilir;
+    var imzaBolumuGorsun = !icOperasyonGorsun
+        || imzaliBelgeHazir
+        || imzaDurumuSorgulanabilir
+        || imzayaGonderebilir
+        || kontrollerImzayaHazir
+        || Model.Durum == YkcDurumDegerleri.Tamamlandi;
     var indirilebilirDosyalar = Model.Dosyalar
         .Where(x => x.DosyaTuru == YkcFormDosyaTuruDegerleri.TeknikEk
             || (x.DosyaTuru == YkcFormDosyaTuruDegerleri.Fr265ImzaliNihai && imzaliBelgeHazir && imzaliBelge != null && x.Id == imzaliBelge.Id))
         .ToList();
-    var kontrolSatirlari = Model.Kontroller.Any()
-        ? Model.Kontroller
-        : Enumerable.Range(1, 5).Select(no => new YkcFr265KontrolDto { KontrolNo = no }).ToList();
     var aktifAdim = Model.Durum switch
     {
         YkcDurumDegerleri.TalepAlindi => 1,
@@ -102,10 +126,20 @@
             gorevBasligi = "FR265'i önizleyip imzaya gönderin";
             gorevAciklamasi = "Kontroller tamamlandı. Önce FR265'i Word formuna yakın görünümde kontrol edin; doğruysa imzaya gönderin.";
         }
+        else if (!kontrollerImzayaHazir && aktifKontrol == null)
+        {
+            gorevBasligi = "Kontrol uygun tamamlanmadı";
+            gorevAciklamasi = "FR265 formundaki 5 kontrol alanı kullanıldı. Yeni kontrol için iş kuralının netleştirilmesi gerekir.";
+        }
+        else if (tekrarKontrolBekleniyor)
+        {
+            gorevBasligi = $"{aktifKontrolNo}. kontrol sonucunu girin";
+            gorevAciklamasi = "Önceki kontrolde uygunsuzluk kaydedildi. Firma eksikliği giderdikten sonra bu kontrol satırında uygun veya uygun değil kararını kaydedin.";
+        }
         else if (!kontrollerImzayaHazir)
         {
-            gorevBasligi = "FR265 2. sayfa kontrollerini doldurun";
-            gorevAciklamasi = "Bu alan Word formundaki 1-5 Kontrol bölümüdür. Randevu sonrası her kontrol için Uygun, Uygun Değil veya Uygulanmaz seçin; uygun değilse açıklama yazın.";
+            gorevBasligi = "Kontrol sonucunu girin";
+            gorevAciklamasi = "Randevu gerçekleşti. FR265 formundaki kontrol sonucunu Uygun veya Uygun Değil olarak kaydedin; uygun değilse nedeni yazın.";
         }
     }
     if (!icOperasyonGorsun)
@@ -198,15 +232,13 @@
     {
         YkcFr265KontrolSonucDegerleri.Uygun => "Uygun",
         YkcFr265KontrolSonucDegerleri.UygunDegil => "Uygun Değil",
-        YkcFr265KontrolSonucDegerleri.Uygulanmaz => "Uygulanmaz",
-        _ => "Bekliyor"
+        _ => "Henüz girilmedi"
     };
 
     private static string KontrolSonucClass(string? sonuc) => sonuc switch
     {
         YkcFr265KontrolSonucDegerleri.Uygun => "df-pill-success",
         YkcFr265KontrolSonucDegerleri.UygunDegil => "df-pill-danger",
-        YkcFr265KontrolSonucDegerleri.Uygulanmaz => "df-pill-primary",
         _ => "df-pill-warning"
     };
 
@@ -244,7 +276,7 @@
             <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/fr265/onizle/@Model.Id" target="_blank"><i class="bi bi-eye"></i> FR265'i Önizle</a>
         </div>
         <dl class="ykc-request-summary">
-            <div><dt>Tesisat / Proje</dt><dd>@Deger(Model.TesisatNo) / @Deger(Model.ProjeNo)</dd></div>
+            <div><dt>Tesisat</dt><dd>@Deger(Model.TesisatNo)</dd></div>
             @if (icOperasyonGorsun)
             {
                 <div><dt>Bölge</dt><dd id="ykcPlanBolge">@Deger(Model.Bolge)</dd></div>
@@ -338,9 +370,15 @@
                     }
                     else
                     {
-                        <a class="ykc-text-action" href="#fr265-controls"><i class="bi bi-clipboard2-check"></i><span><strong>1-5 kontrolü doldur</strong><small>Word FR265'in 2. sayfasındaki kontrol alanları</small></span></a>
-                        <a class="ykc-text-action" href="#fr265-signature"><i class="bi bi-file-earmark-check"></i><span><strong>FR265'i önizle / imzaya gönder</strong><small>Önce formu kontrol edin, sonra gönderin</small></span></a>
-                        <div class="ykc-completion-gate"><i class="bi bi-lock"></i><span><strong>İşlem henüz tamamlanamaz</strong><small>@(kontrollerImzayaHazir ? (imzaDurumuSorgulanabilir ? "FR265 imza uygulamasında. İmzalı belge geldiyse İmza Durumunu Güncelle deyin." : "Önce FR265'i önizleyin; doğruysa Önizledim, İmzaya Gönder deyin.") : "Önce Word formundaki 1-5 kontrol sonuçlarını kaydedin.")</small></span></div>
+                        @if (kontrolBolumuAktif)
+                        {
+                            <a class="ykc-text-action" href="#fr265-controls"><i class="bi bi-clipboard2-check"></i><span><strong>@(aktifKontrolNo). kontrol sonucunu gir</strong><small>Uygun veya Uygun Değil kararını kaydedin</small></span></a>
+                        }
+                        @if (kontrollerImzayaHazir || imzaDurumuSorgulanabilir)
+                        {
+                            <a class="ykc-text-action" href="#fr265-signature"><i class="bi bi-file-earmark-check"></i><span><strong>FR265'i önizle / imzaya gönder</strong><small>Formu kontrol edin ve imza sonucunu takip edin</small></span></a>
+                        }
+                        <div class="ykc-completion-gate"><i class="bi bi-lock"></i><span><strong>İşlem henüz tamamlanamaz</strong><small>@(kontrollerImzayaHazir ? (imzaDurumuSorgulanabilir ? "FR265 imza uygulamasında. İmzalı belge geldiyse İmza Durumunu Güncelle deyin." : "Önce FR265'i önizleyin; doğruysa Önizledim, İmzaya Gönder deyin.") : "Randevu sonrası kontrol sonucu uygun kaydedilmeden imzaya geçilmez.")</small></span></div>
                     }
                 </div>
             }
@@ -370,7 +408,7 @@
                         <div class="ykc-assignment-fields">
                             <div class="ykc-field"><label>Yönlendirilecek Birim / Kişi</label><input name="AtananEkip" value="@Model.AtananEkip" placeholder="187 Acil veya mühendis" required /></div>
                             <div class="ykc-field"><label>Tesisat Bölgesi</label><input name="Bolge" value="@Model.Bolge" placeholder="Tesisat bölgesi" required /></div>
-                            <div class="ykc-field"><label>Randevu Tarihi</label><div class="ykc-picker"><input id="randevuTarihi" type="date" name="RandevuTarihi" value="@Model.RandevuTarihi?.ToString("yyyy-MM-dd")" required /><button type="button" data-picker="#randevuTarihi" title="Takvimi aç"><i class="bi bi-calendar3"></i></button></div></div>
+                            <div class="ykc-field"><label>Randevu Tarihi</label><div class="ykc-picker"><input id="randevuTarihi" type="date" name="RandevuTarihi" value="@Model.RandevuTarihi?.ToString("yyyy-MM-dd")" min="@DateTime.Now.ToString("yyyy-MM-dd")" required /><button type="button" data-picker="#randevuTarihi" title="Takvimi aç"><i class="bi bi-calendar3"></i></button></div></div>
                             <div class="ykc-field"><label>Randevu Saati</label><div class="ykc-picker"><input id="randevuSaati" type="time" name="RandevuSaati" value="@Model.RandevuSaati" required /><button type="button" data-picker="#randevuSaati" title="Saati seç"><i class="bi bi-clock"></i></button></div></div>
                             <div class="ykc-field ykc-field-wide"><label>Not</label><textarea name="Aciklama" placeholder="Atama ve yönlendirme notu"></textarea></div>
                         </div>
@@ -411,7 +449,7 @@
                 <thead><tr><th>Özellik</th><th>Projedeki Cihaz</th><th>Yeni Kullanılan Cihaz</th></tr></thead>
                 <tbody>
                     <tr><th>Yakıcı Cihaz Tipi</th><td>@Deger(Model.EskiCihazTipi)</td><td>@Deger(Model.YeniCihazTipi)</td></tr>
-                    <tr><th>Marka</th><td>@Deger(Model.EskiMarka)</td><td><strong>@Deger(Model.YeniMarka)</strong>@if (!string.IsNullOrWhiteSpace(Model.YeniModel)) { <small>Model: @Model.YeniModel</small> }</td></tr>
+                    <tr><th>Marka</th><td>@Deger(Model.EskiMarka)</td><td>@Deger(Model.YeniMarka)</td></tr>
                     <tr><th>Baca Tipi</th><td>@Deger(Model.EskiBacaTipi)</td><td>@Deger(Model.YeniBacaTipi)</td></tr>
                     <tr><th>Kapasite (kcal/h)</th><td>@Deger(Model.EskiKapasite)</td><td>@Deger(Model.YeniKapasite)</td></tr>
                 </tbody>
@@ -419,7 +457,6 @@
         </div>
         <dl class="ykc-comparison-meta">
             <div><dt>Takılan cihaz ikinci el mi?</dt><dd>@EvetHayir(Model.IkinciElCihazMi)</dd></div>
-            <div><dt>Yeni cihaz seri no</dt><dd>@Deger(Model.YeniSeriNo)</dd></div>
         </dl>
     </section>
 
@@ -429,7 +466,7 @@
             <dl>
                 <div><dt>Müşteri</dt><dd>@Deger(Model.MusteriAdi)</dd></div><div><dt>Telefon</dt><dd>@Deger(Model.MusteriTelefon)</dd></div>
                 <div><dt>Abone</dt><dd>@Deger(Model.AboneNo)</dd></div><div><dt>Sözleşme</dt><dd>@Deger(Model.SozlesmeNo)</dd></div>
-                <div><dt>Proje</dt><dd>@Deger(Model.ProjeNo)</dd></div><div><dt>Sayaç</dt><dd>@Deger(Model.SayacNo)</dd></div>
+                <div><dt>Sayaç</dt><dd>@Deger(Model.SayacNo)</dd></div>
                 <div class="wide"><dt>Adres</dt><dd>@Deger(Model.Adres)</dd></div>
             </dl>
         </article>
@@ -443,107 +480,126 @@
         </article>
     </section>
 
-    <details class="ykc-detail-section" id="fr265-controls" open="@(Model.Durum == YkcDurumDegerleri.SahaIsleminde && !imzaliBelgeHazir ? "open" : null)">
-        <summary><span><strong>FR265 2. Sayfa Kontrolleri</strong><small>Word formundaki 1-5 Kontrol · Sonuç ve açıklama</small></span><i class="bi bi-chevron-down"></i></summary>
-        <div class="ykc-detail-section-body">
-            <p class="ykc-process-message is-leading">Bu bölüm, FR265 Word formunun ikinci sayfasındaki 1-5 Kontrol alanıdır. Kontroller tamamlanmadan form imzaya gönderilmez.</p>
-            @if (fr265ImzaYetkisi)
-            {
-                <form method="post" action="/ykc/kontroller-kaydet">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="TalepId" value="@Model.Id" />
-                    <div class="ykc-control-list">
-                        @for (var i = 0; i < kontrolSatirlari.Count; i++)
+    @if (icOperasyonGorsun && (Model.Durum == YkcDurumDegerleri.SahaIsleminde || sonucGirilenKontroller.Any()))
+    {
+        <details class="ykc-detail-section" id="fr265-controls" open="@(kontrolBolumuAktif ? "open" : null)">
+            <summary><span><strong>FR265 Kontrol Sonucu</strong><small>Word formundaki 1-5 Kontrol alanı tekrar kontrol sırasıdır</small></span><i class="bi bi-chevron-down"></i></summary>
+            <div class="ykc-detail-section-body">
+                @if (sonucGirilenKontroller.Any())
+                {
+                    <div class="ykc-control-history">
+                        @foreach (var kontrol in sonucGirilenKontroller)
                         {
-                            var kontrol = kontrolSatirlari[i];
-                            <div class="ykc-control-row">
-                                <input type="hidden" name="Kontroller[@i].KontrolNo" value="@kontrol.KontrolNo" />
-                                <strong>@kontrol.KontrolNo. Kontrol</strong>
-                                <select name="Kontroller[@i].Sonuc">
-                                    <option value="@YkcFr265KontrolSonucDegerleri.Bekliyor" selected="@Secili(kontrol.Sonuc == YkcFr265KontrolSonucDegerleri.Bekliyor)">Bekliyor</option>
-                                    <option value="@YkcFr265KontrolSonucDegerleri.Uygun" selected="@Secili(kontrol.Sonuc == YkcFr265KontrolSonucDegerleri.Uygun)">Uygun</option>
-                                    <option value="@YkcFr265KontrolSonucDegerleri.UygunDegil" selected="@Secili(kontrol.Sonuc == YkcFr265KontrolSonucDegerleri.UygunDegil)">Uygun Değil</option>
-                                    <option value="@YkcFr265KontrolSonucDegerleri.Uygulanmaz" selected="@Secili(kontrol.Sonuc == YkcFr265KontrolSonucDegerleri.Uygulanmaz)">Uygulanmaz</option>
-                                </select>
-                                <textarea name="Kontroller[@i].Aciklama" placeholder="Açıklama">@kontrol.Aciklama</textarea>
+                            <div>
+                                <span>@(kontrol.KontrolNo). kontrol</span>
+                                <strong class="@KontrolSonucClass(kontrol.Sonuc)">@KontrolSonucYazi(kontrol.Sonuc)</strong>
+                                @if (!string.IsNullOrWhiteSpace(kontrol.Aciklama))
+                                {
+                                    <small>@kontrol.Aciklama</small>
+                                }
                             </div>
                         }
                     </div>
-                    <div class="ykc-form-actions"><button class="df-btn df-btn-primary df-btn-sm" type="submit"><i class="bi bi-save"></i> Kontrolleri Kaydet</button></div>
-                </form>
-            }
-            else
-            {
-                <div class="ykc-control-list is-readonly">
-                    @foreach (var kontrol in kontrolSatirlari)
-                    {
-                        <div class="ykc-control-row"><strong>@kontrol.KontrolNo. Kontrol</strong><span class="df-pill @KontrolSonucClass(kontrol.Sonuc)">@KontrolSonucYazi(kontrol.Sonuc)</span><small>@Deger(kontrol.Aciklama)</small></div>
-                    }
-                </div>
-            }
-        </div>
-    </details>
+                }
 
-    <details class="ykc-detail-section" id="fr265-signature" open="@((Model.Durum == YkcDurumDegerleri.SahaIsleminde && !imzaliBelgeHazir) || Model.Durum == YkcDurumDegerleri.Tamamlandi ? "open" : null)">
-        <summary><span><strong>FR265 Önizleme ve İmza</strong><small>Önizle · İmzaya gönder · Durumu güncelle · Tamamla</small></span><i class="bi bi-chevron-down"></i></summary>
-        <div class="ykc-detail-section-body">
-            @if (demoImzaModu)
-            {
-                <div class="ykc-demo-mode"><i class="bi bi-info-circle"></i><span><strong>Geçici entegrasyon modu</strong><small>Akış aynı FR265 belgesi üzerinden test edilir; gerçek e-imza sağlayıcısı bağlanınca bu adım dış imza uygulamasına gidecek.</small></span></div>
-            }
-            <dl class="ykc-signature-summary">
-                <div><dt>İmza Durumu</dt><dd><span class="df-pill @(imzaliBelgeHazir ? "df-pill-success" : "df-pill-warning")">@ImzaDurumYazi(imzaSureci?.Durum)</span></dd></div>
-                <div><dt>Sağlayıcı</dt><dd>@Deger(imzaEntegrasyonu.ProviderAdi)</dd></div>
-                <div><dt>Belge No</dt><dd>@(string.IsNullOrWhiteSpace(imzaSureci?.ProviderDocumentId) ? "Henüz gönderilmedi" : imzaSureci.ProviderDocumentId)</dd></div>
-            </dl>
-            <p class="ykc-process-message">@formYardimMetni</p>
-            <div class="ykc-form-actions is-left">
-                @if (imzaliBelge != null)
+                @if (fr265ImzaYetkisi && kontrolBolumuAktif && aktifKontrol != null)
                 {
-                    <a class="df-btn df-btn-primary df-btn-sm" href="/ykc/dosya/@imzaliBelge.Id" target="_blank"><i class="bi bi-download"></i> İmzalı FR265'i İndir</a>
+                    <form method="post" action="/ykc/kontroller-kaydet" class="ykc-control-active">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="TalepId" value="@Model.Id" />
+                        <input type="hidden" name="Kontroller[0].KontrolNo" value="@aktifKontrol.KontrolNo" />
+                        <div>
+                            <span class="ykc-section-kicker">Sıradaki kayıt</span>
+                            <h3>@(aktifKontrol.KontrolNo). Kontrol</h3>
+                            <p>Bu kontrolde tesisat uygunsa süreç FR265 önizleme ve imzaya gönderme adımına geçer. Uygun değilse nedeni yazılır; firma eksikliği giderdikten sonra sonraki kontrol satırı kullanılır.</p>
+                        </div>
+                        <fieldset class="ykc-control-choice-group">
+                            <legend>Kontrol sonucu</legend>
+                            <label><input type="radio" name="Kontroller[0].Sonuc" value="@YkcFr265KontrolSonucDegerleri.Uygun" required /> Uygun</label>
+                            <label><input type="radio" name="Kontroller[0].Sonuc" value="@YkcFr265KontrolSonucDegerleri.UygunDegil" required /> Uygun Değil</label>
+                        </fieldset>
+                        <div class="ykc-field">
+                            <label>Uygun değil ise nedeni</label>
+                            <textarea name="Kontroller[0].Aciklama" placeholder="Uygun değilse nedeni yazın">@aktifKontrol.Aciklama</textarea>
+                        </div>
+                        <div class="ykc-form-actions"><button class="df-btn df-btn-primary df-btn-sm" type="submit"><i class="bi bi-save"></i> Kontrolü Kaydet</button></div>
+                    </form>
                 }
-                else if (imzayaGonderebilir)
+                else if (kontrollerImzayaHazir)
                 {
-                    <a class="df-btn df-btn-primary df-btn-sm" href="/ykc/fr265/onizle/@Model.Id" target="_blank"><i class="bi bi-eye"></i> FR265'i Önizle</a>
-                    <form method="post" action="/ykc/imzaya-gonder">@Html.AntiForgeryToken()<input type="hidden" name="talepId" value="@Model.Id" /><button class="df-btn df-btn-secondary df-btn-sm" type="submit"><i class="bi bi-send"></i> Önizledim, İmzaya Gönder</button></form>
+                    <div class="ykc-inline-status is-success"><i class="bi bi-check2-circle"></i> Son kontrol uygun. FR265 önizlenip imzaya gönderilebilir.</div>
                 }
-                else if (imzaDurumuSorgulanabilir)
+                else if (!fr265ImzaYetkisi)
                 {
-                    <form method="post" action="/ykc/imza-durum-sorgula">@Html.AntiForgeryToken()<input type="hidden" name="talepId" value="@Model.Id" /><button class="df-btn df-btn-primary df-btn-sm" type="submit"><i class="bi bi-arrow-repeat"></i> İmza Durumunu Güncelle</button></form>
-                }
-                @if (!imzayaGonderebilir)
-                {
-                    <a class="df-btn @(imzaBirincilIslemVar ? "df-btn-secondary" : "df-btn-primary") df-btn-sm" href="/ykc/fr265/onizle/@Model.Id" target="_blank"><i class="bi bi-eye"></i> FR265'i Önizle</a>
+                    <div class="ykc-inline-status is-info"><i class="bi bi-info-circle"></i> Kontrol sonucu girmek için YKC FR265/imza yetkisi gerekir.</div>
                 }
             </div>
-            @if (!imzaEntegrasyonu.KullanilabilirMi)
-            {
-                <div class="ykc-integration-note"><i class="bi bi-info-circle"></i> Dijital imza bağlantısı henüz etkin değil. Önizleme gerçek talep verileriyle kullanılabilir.</div>
-            }
-            @if (fr265ImzaYetkisi)
-            {
-                <details class="ykc-transition-upload">
-                    <summary>Teknik ek belge ekle <i class="bi bi-chevron-down"></i></summary>
-                    <form method="post" action="/ykc/form-yukle" enctype="multipart/form-data">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="talepId" value="@Model.Id" />
-                        <input type="hidden" name="dosyaTuru" value="@YkcFormDosyaTuruDegerleri.TeknikEk" />
-                        <div class="ykc-field"><label>Belge</label><input type="file" name="formDosyasi" accept=".pdf,.jpg,.jpeg,.png" /></div>
-                        <button class="df-btn df-btn-secondary df-btn-sm" type="submit">Teknik Ek Ekle</button>
-                    </form>
-                </details>
-            }
-            @if (indirilebilirDosyalar.Any())
-            {
-                <div class="ykc-document-list">
-                    @foreach (var dosya in indirilebilirDosyalar)
+        </details>
+    }
+
+    @if (imzaBolumuGorsun)
+    {
+        <details class="ykc-detail-section" id="fr265-signature" open="@((!icOperasyonGorsun || imzaBolumuGorsun) ? "open" : null)">
+            <summary><span><strong>FR265 Önizleme ve İmza</strong><small>Önizle · imzaya gönder · durumu güncelle · tamamla</small></span><i class="bi bi-chevron-down"></i></summary>
+            <div class="ykc-detail-section-body">
+                @if (demoImzaModu && (imzayaGonderebilir || imzaDurumuSorgulanabilir || imzaliBelgeHazir))
+                {
+                    <div class="ykc-demo-mode"><i class="bi bi-info-circle"></i><span><strong>Geçici entegrasyon modu</strong><small>Akış aynı FR265 belgesi üzerinden test edilir; gerçek e-imza sağlayıcısı bağlanınca bu adım dış imza uygulamasına gidecek.</small></span></div>
+                }
+                <dl class="ykc-signature-summary">
+                    <div><dt>İmza Durumu</dt><dd><span class="df-pill @(imzaliBelgeHazir ? "df-pill-success" : "df-pill-warning")">@ImzaDurumYazi(imzaSureci?.Durum)</span></dd></div>
+                    <div><dt>Sağlayıcı</dt><dd>@Deger(imzaEntegrasyonu.ProviderAdi)</dd></div>
+                    <div><dt>Belge No</dt><dd>@(string.IsNullOrWhiteSpace(imzaSureci?.ProviderDocumentId) ? "Henüz gönderilmedi" : imzaSureci.ProviderDocumentId)</dd></div>
+                </dl>
+                <p class="ykc-process-message">@formYardimMetni</p>
+                <div class="ykc-form-actions is-left">
+                    @if (imzaliBelge != null)
                     {
-                        <a href="/ykc/dosya/@dosya.Id" target="_blank"><i class="bi bi-file-earmark"></i><span><strong>@Deger(dosya.DosyaAdi)</strong><small>@DosyaTuruYazi(dosya.DosyaTuru) · @dosya.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</small></span><i class="bi bi-download"></i></a>
+                        <a class="df-btn df-btn-primary df-btn-sm" href="/ykc/dosya/@imzaliBelge.Id" target="_blank"><i class="bi bi-download"></i> İmzalı FR265'i İndir</a>
+                    }
+                    else if (imzayaGonderebilir)
+                    {
+                        <a class="df-btn df-btn-primary df-btn-sm" href="/ykc/fr265/onizle/@Model.Id" target="_blank"><i class="bi bi-eye"></i> FR265'i Önizle</a>
+                        <form method="post" action="/ykc/imzaya-gonder">@Html.AntiForgeryToken()<input type="hidden" name="talepId" value="@Model.Id" /><button class="df-btn df-btn-secondary df-btn-sm" type="submit"><i class="bi bi-send"></i> Önizledim, İmzaya Gönder</button></form>
+                    }
+                    else if (imzaDurumuSorgulanabilir)
+                    {
+                        <form method="post" action="/ykc/imza-durum-sorgula">@Html.AntiForgeryToken()<input type="hidden" name="talepId" value="@Model.Id" /><button class="df-btn df-btn-primary df-btn-sm" type="submit"><i class="bi bi-arrow-repeat"></i> İmza Durumunu Güncelle</button></form>
+                    }
+                    @if (!imzayaGonderebilir)
+                    {
+                        <a class="df-btn @(imzaBirincilIslemVar ? "df-btn-secondary" : "df-btn-primary") df-btn-sm" href="/ykc/fr265/onizle/@Model.Id" target="_blank"><i class="bi bi-eye"></i> FR265'i Önizle</a>
                     }
                 </div>
-            }
-        </div>
-    </details>
+                @if (!imzaEntegrasyonu.KullanilabilirMi)
+                {
+                    <div class="ykc-integration-note"><i class="bi bi-info-circle"></i> Dijital imza bağlantısı henüz etkin değil. Önizleme gerçek talep verileriyle kullanılabilir.</div>
+                }
+                @if (fr265ImzaYetkisi)
+                {
+                    <details class="ykc-transition-upload">
+                        <summary>Teknik ek belge ekle <i class="bi bi-chevron-down"></i></summary>
+                        <form method="post" action="/ykc/form-yukle" enctype="multipart/form-data">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="talepId" value="@Model.Id" />
+                            <input type="hidden" name="dosyaTuru" value="@YkcFormDosyaTuruDegerleri.TeknikEk" />
+                            <div class="ykc-field"><label>Belge</label><input type="file" name="formDosyasi" accept=".pdf,.jpg,.jpeg,.png" /></div>
+                            <button class="df-btn df-btn-secondary df-btn-sm" type="submit">Teknik Ek Ekle</button>
+                        </form>
+                    </details>
+                }
+                @if (indirilebilirDosyalar.Any())
+                {
+                    <div class="ykc-document-list">
+                        @foreach (var dosya in indirilebilirDosyalar)
+                        {
+                            <a href="/ykc/dosya/@dosya.Id" target="_blank"><i class="bi bi-file-earmark"></i><span><strong>@Deger(dosya.DosyaAdi)</strong><small>@DosyaTuruYazi(dosya.DosyaTuru) · @dosya.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</small></span><i class="bi bi-download"></i></a>
+                        }
+                    </div>
+                }
+            </div>
+        </details>
+    }
 
     <section class="ykc-content-section ykc-history-section">
         <div class="ykc-section-heading"><div><span class="ykc-section-kicker">Kayıt hareketleri</span><h2>İşlem Geçmişi</h2></div><span>@Model.Gecmis.Count kayıt</span></div>
@@ -638,6 +694,17 @@
                 if (team) targets.team.filter(Boolean).forEach(item => item.textContent = clean(team.value));
                 if (region) targets.region.filter(Boolean).forEach(item => item.textContent = clean(region.value));
             }
+            document.querySelectorAll('form[action="/ykc/atama-yap"]').forEach(form => {
+                form.addEventListener('submit', event => {
+                    if (!date?.value || !time?.value) return;
+                    const selected = new Date(date.value + 'T' + time.value);
+                    if (!Number.isNaN(selected.valueOf()) && selected < new Date()) {
+                        event.preventDefault();
+                        alert('Geçmiş tarih veya saat için randevu kaydedilemez.');
+                        date.focus();
+                    }
+                });
+            });
             [date, time, team, region].filter(Boolean).forEach(item => { item.addEventListener('input', update); item.addEventListener('change', update); });
             update();
         })();

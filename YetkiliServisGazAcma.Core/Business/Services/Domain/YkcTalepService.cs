@@ -274,6 +274,9 @@ namespace YetkiliServisGazAcma.Business.Services
             if (string.IsNullOrWhiteSpace(dto.RandevuSaati))
                 return YkcIslemSonuc.HataliSonuc("Randevu saati zorunludur.");
 
+            if (RandevuZamaniGecmisteMi(dto.RandevuTarihi, dto.RandevuSaati))
+                return YkcIslemSonuc.HataliSonuc("Gecmis tarih veya saat icin randevu kaydedilemez.");
+
             var eskiDurum = talep.Durum;
             var hedef = HedefUygulamaBelirle(dto.AtananKullaniciTipi, dto.HedefUygulama, dto.CallCenterTetiklenecekMi);
 
@@ -397,6 +400,9 @@ namespace YetkiliServisGazAcma.Business.Services
             if (DurumTerminalMi(talep.Durum))
                 return YkcIslemSonuc.HataliSonuc("Kapanmış talep için kontrol güncellenemez.");
 
+            if (talep.Durum != YkcDurumDegerleri.SahaIsleminde)
+                return YkcIslemSonuc.HataliSonuc("Kontrol sonucu yalnızca randevu gerçekleşip kontrol aşamasına geçildikten sonra girilebilir.");
+
             var imzaSureci = talep.ImzaSurecleri
                 .Where(x => !x.SilindiMi)
                 .OrderByDescending(x => x.BelgeVersiyonu)
@@ -415,21 +421,50 @@ namespace YetkiliServisGazAcma.Business.Services
 
             var gecerliSonuclar = new[]
             {
-                YkcFr265KontrolSonucDegerleri.Bekliyor,
                 YkcFr265KontrolSonucDegerleri.Uygun,
-                YkcFr265KontrolSonucDegerleri.UygunDegil,
-                YkcFr265KontrolSonucDegerleri.Uygulanmaz
+                YkcFr265KontrolSonucDegerleri.UygunDegil
             };
 
             var degisiklikVar = false;
-            foreach (var satir in dto.Kontroller.Where(x => x.KontrolNo is >= 1 and <= 5))
-            {
-                var sonuc = string.IsNullOrWhiteSpace(satir.Sonuc)
-                    ? YkcFr265KontrolSonucDegerleri.Bekliyor
-                    : satir.Sonuc.Trim();
+            var kontrolSatirlari = dto.Kontroller
+                .Where(x => x.KontrolNo is >= 1 and <= 5)
+                .GroupBy(x => x.KontrolNo)
+                .Select(x => x.Last())
+                .ToList();
 
-                if (!gecerliSonuclar.Contains(sonuc))
+            if (!kontrolSatirlari.Any())
+                return YkcIslemSonuc.HataliSonuc("Kontrol sonucu zorunludur.");
+
+            var mevcutSonKontrol = talep.Kontroller
+                .Where(x => !x.SilindiMi
+                    && x.KontrolNo is >= 1 and <= 5
+                    && (x.Sonuc == YkcFr265KontrolSonucDegerleri.Uygun
+                        || x.Sonuc == YkcFr265KontrolSonucDegerleri.UygunDegil))
+                .OrderBy(x => x.KontrolNo)
+                .LastOrDefault();
+
+            if (mevcutSonKontrol?.Sonuc == YkcFr265KontrolSonucDegerleri.Uygun)
+                return YkcIslemSonuc.HataliSonuc("Son kontrol uygun kaydedildiği için yeni kontrol sonucu girilemez.");
+
+            var beklenenKontrolNo = (mevcutSonKontrol?.KontrolNo ?? 0) + 1;
+            if (beklenenKontrolNo > 5)
+                return YkcIslemSonuc.HataliSonuc("FR265 formunda kullanılabilir kontrol alanı kalmadı.");
+
+            if (kontrolSatirlari.Count != 1 || kontrolSatirlari[0].KontrolNo != beklenenKontrolNo)
+                return YkcIslemSonuc.HataliSonuc($"{beklenenKontrolNo}. kontrol sonucu bekleniyor.");
+
+            foreach (var satir in kontrolSatirlari)
+            {
+                var sonuc = satir.Sonuc?.Trim();
+
+                if (string.IsNullOrWhiteSpace(sonuc) || !gecerliSonuclar.Contains(sonuc))
                     return YkcIslemSonuc.HataliSonuc("Kontrol sonucu geçersiz.");
+
+                if (sonuc == YkcFr265KontrolSonucDegerleri.UygunDegil
+                    && string.IsNullOrWhiteSpace(satir.Aciklama))
+                {
+                    return YkcIslemSonuc.HataliSonuc("Uygun değil sonucu için açıklama zorunludur.");
+                }
 
                 var kontrol = talep.Kontroller.FirstOrDefault(x => !x.SilindiMi && x.KontrolNo == satir.KontrolNo);
                 if (kontrol == null)
@@ -673,6 +708,17 @@ namespace YetkiliServisGazAcma.Business.Services
             return randevuTarihi.Value.Date.Add(saat) <= DateTime.Now;
         }
 
+        private static bool RandevuZamaniGecmisteMi(DateTime? randevuTarihi, string? randevuSaati)
+        {
+            if (!randevuTarihi.HasValue || string.IsNullOrWhiteSpace(randevuSaati))
+                return false;
+
+            if (!TimeSpan.TryParse(randevuSaati.Trim(), out var saat))
+                return false;
+
+            return randevuTarihi.Value.Date.Add(saat) < DateTime.Now;
+        }
+
         private static bool DurumGecisiGecerliMi(int eskiDurum, int yeniDurum, bool imzaliNihaiBelgeVar)
         {
             if (eskiDurum == yeniDurum)
@@ -688,8 +734,7 @@ namespace YetkiliServisGazAcma.Business.Services
             {
                 YkcDurumDegerleri.TalepAlindi => yeniDurum == YkcDurumDegerleri.AtamaBekliyor,
                 YkcDurumDegerleri.AtamaBekliyor => yeniDurum == YkcDurumDegerleri.Atandi,
-                YkcDurumDegerleri.Atandi => yeniDurum == YkcDurumDegerleri.SahaIsleminde
-                    || (imzaliNihaiBelgeVar && yeniDurum == YkcDurumDegerleri.Tamamlandi),
+                YkcDurumDegerleri.Atandi => yeniDurum == YkcDurumDegerleri.SahaIsleminde,
                 YkcDurumDegerleri.SahaIsleminde => yeniDurum == YkcDurumDegerleri.Tamamlandi,
                 _ => false
             };

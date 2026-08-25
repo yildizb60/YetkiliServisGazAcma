@@ -43,7 +43,7 @@ namespace YetkiliServisGazAcma.Business.Services
             {
                 Bytes = output.ToArray(),
                 ContentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                DosyaAdi = $"FR265_Cihaz_Degisim_Talebi_{SafeFilePart(talep.TesisatNo ?? talep.Id.ToString())}_{talep.Id}.docx"
+                DosyaAdi = $"FR265_Proje_Tadilati_Gerektirmeyen_Yakici_Cihaz_Degisim_Formu_{SafeFilePart(talep.TesisatNo ?? talep.Id.ToString())}_{talep.Id}.docx"
             };
         }
 
@@ -65,12 +65,12 @@ namespace YetkiliServisGazAcma.Business.Services
             var gorulduImzaTablosu = FindTable(document, "Yukardaki bilgileri verilen yeni cihaz", "İşlemi Yapan Gaz Dağıtım");
 
             SetCellText(firmaTablosu, 0, 1, talep.FirmaAdi);
-            SetCellText(sertifikaTablosu, 0, 1, talep.YetkiBelgesiNo);
+            SetCellText(sertifikaTablosu, 0, 1, null);
 
             SetCellText(tesisatTablosu, 0, 1, talep.MusteriAdi);
             SetCellText(tesisatTablosu, 1, 1, talep.TesisatNo);
-            SetCellText(tesisatTablosu, 2, 1, talep.TuketimNoktasi);
-            SetCellText(tesisatTablosu, 3, 1, talep.BaglantiNesnesi);
+            SetCellText(tesisatTablosu, 2, 1, null);
+            SetCellText(tesisatTablosu, 3, 1, null);
             SetCellText(tesisatTablosu, 4, 1, talep.Adres);
 
             SetCellText(cihazTablosu, 1, 1, talep.EskiCihazTipi);
@@ -175,7 +175,6 @@ namespace YetkiliServisGazAcma.Business.Services
             {
                 YkcFr265KontrolSonucDegerleri.Uygun => "☒ Uygun      ☐ Uygun Değil",
                 YkcFr265KontrolSonucDegerleri.UygunDegil => "☐ Uygun      ☒ Uygun Değil",
-                YkcFr265KontrolSonucDegerleri.Uygulanmaz => "☐ Uygun      ☐ Uygun Değil      ☒ Uygulanmaz",
                 _ => "☐ Uygun      ☐ Uygun Değil"
             };
         }
@@ -185,9 +184,7 @@ namespace YetkiliServisGazAcma.Business.Services
             if (!string.IsNullOrWhiteSpace(kontrol?.Aciklama))
                 return kontrol.Aciklama.Trim();
 
-            return kontrol?.Sonuc == YkcFr265KontrolSonucDegerleri.Uygulanmaz
-                ? "Uygulanmaz"
-                : "................................................................................";
+            return "................................................................................";
         }
 
         private static string ParagraphText(XElement paragraph)
@@ -280,7 +277,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 "Sertifikalı Firma Yetkilisi",
                 "",
                 $"Adı ve Soyadı: {yetkili}",
-                $"Tarih: {ImzaTarihi(firma, secenekler, formTarihi)}",
+                secenekler.ImzaliNihaiMi ? $"Tarih: {ImzaTarihi(firma, secenekler, formTarihi)}" : "Tarih:",
                 secenekler.ImzaliNihaiMi ? $"İmza: {ImzaKaydiMetni()}" : "İmza:"
             };
 

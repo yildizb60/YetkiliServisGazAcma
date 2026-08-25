@@ -20,15 +20,19 @@
         .Where(x => x.KontrolNo is >= 1 and <= 5)
         .GroupBy(x => x.KontrolNo)
         .Select(x => x.OrderByDescending(k => k.KontrolTarihi ?? DateTime.MinValue).First())
+        .OrderBy(x => x.KontrolNo)
         .ToList();
     var kontrolSatirlari = Enumerable.Range(1, 5)
         .Select(no => kontroller.FirstOrDefault(x => x.KontrolNo == no) ?? new YkcFr265KontrolDto { KontrolNo = no })
         .ToList();
+    var sonKontrol = kontrolSatirlari
+        .Where(x => x.Sonuc == YkcFr265KontrolSonucDegerleri.Uygun || x.Sonuc == YkcFr265KontrolSonucDegerleri.UygunDegil)
+        .OrderBy(x => x.KontrolNo)
+        .LastOrDefault();
     var imzayaHazir = Model.Durum == YkcDurumDegerleri.SahaIsleminde
         && Model.RandevuTarihi.HasValue
         && !string.IsNullOrWhiteSpace(Model.RandevuSaati)
-        && kontroller.Count == 5
-        && kontroller.All(x => x.Sonuc == YkcFr265KontrolSonucDegerleri.Uygun || x.Sonuc == YkcFr265KontrolSonucDegerleri.Uygulanmaz);
+        && sonKontrol?.Sonuc == YkcFr265KontrolSonucDegerleri.Uygun;
     var imzayaGonderebilir = imzaIslemYetkisi
         && imzaEntegrasyonu.KullanilabilirMi
         && imzayaHazir
@@ -51,9 +55,7 @@
         if (!string.IsNullOrWhiteSpace(kontrol.Aciklama))
             return kontrol.Aciklama.Trim();
 
-        return kontrol.Sonuc == YkcFr265KontrolSonucDegerleri.Uygulanmaz
-            ? "Uygulanmaz"
-            : "................................................................................";
+        return "................................................................................";
     }
 
     private static string? ImzaciAdi(YkcTalepDetayDto model, int siraNo)
@@ -90,23 +92,35 @@
         .fr265-page-tabs a:hover { color: #17498f; border-color: #17498f; }
         .fr265-note { display: flex; align-items: flex-start; gap: 9px; max-width: 860px; margin: 0 auto 14px; padding: 10px 12px; color: #111; background: #fff; border: 1px solid #111; border-radius: 0; font-size: 12px; line-height: 1.45; }
         .fr265-document { display: grid; gap: 18px; }
-        .fr265-paper { width: min(860px, 100%); min-height: 1110px; margin: 0 auto; padding: 28px 34px; color: #000; background: #fff; border: 1px solid #000; box-shadow: none; font-family: Arial, "Segoe UI", sans-serif; }
-        .fr265-paper-head { display: grid; grid-template-columns: 170px minmax(0, 1fr) 118px; align-items: center; gap: 14px; margin-bottom: 16px; }
-        .fr265-logo { width: 160px; max-height: 54px; object-fit: contain; }
-        .fr265-title { font-size: 16px; font-weight: 800; text-align: center; text-transform: uppercase; line-height: 1.35; }
-        .fr265-signature-state { margin-top: 3px; color: #000; font-size: 11px; font-weight: 700; }
-        .fr265-date { font-size: 12px; font-weight: 700; text-align: right; white-space: nowrap; }
-        .fr265-table { width: 100%; margin: 0 0 10px; border-collapse: collapse; table-layout: fixed; }
-        .fr265-table th, .fr265-table td { min-height: 31px; padding: 7px 8px; border: 1px solid #000; vertical-align: middle; font-size: 12px; line-height: 1.35; }
-        .fr265-table th { background: #fff; font-weight: 800; text-align: center; }
-        .fr265-label { width: 34%; font-weight: 800; background: #fff; }
-        .fr265-value { min-height: 18px; display: block; font-weight: 600; }
-        .fr265-statement td { padding: 11px 12px; font-size: 12px; line-height: 1.5; text-align: justify; }
-        .fr265-sign-text { white-space: pre-line; line-height: 1.7; }
-        .fr265-control-title { margin: 14px 0 6px; color: #000; font-size: 13px; font-weight: 800; text-transform: uppercase; }
-        .fr265-control-result { margin-bottom: 5px; font-size: 12px; font-weight: 700; }
-        .fr265-control-reason { margin-bottom: 7px; font-size: 12px; line-height: 1.45; }
-        .fr265-sign-table td { height: 31px; text-align: center; font-size: 11.5px; }
+        .fr265-paper { width: min(960px, 100%); min-height: 1240px; margin: 0 auto; padding: 46px 34px 34px; color: #000; background: #fff; border: 1px solid #c8c8c8; box-shadow: none; font-family: Calibri, Carlito, Arial, sans-serif; font-size: 11pt; }
+        .fr265-paper * { letter-spacing: 0; }
+        .fr265-paper-head { display: grid; grid-template-columns: 130px minmax(0, 1fr) 145px; align-items: end; gap: 16px; margin-bottom: 34px; }
+        .fr265-logo { width: 82px; max-height: 58px; object-fit: contain; justify-self: center; }
+        .fr265-title { color: #7f7f7f; font-size: 18pt; font-weight: 700; text-align: center; text-transform: uppercase; line-height: 1.22; }
+        .fr265-signature-state { margin-top: 3px; color: #000; font-size: 10.5pt; font-weight: 700; }
+        .fr265-date { color: #000; font-size: 11pt; font-weight: 700; text-align: right; white-space: nowrap; }
+        .fr265-table { width: 100%; margin: 0 0 24px; border-collapse: collapse; table-layout: fixed; border: 1px solid #000; }
+        .fr265-table th, .fr265-table td { min-height: 24px; padding: 3px 8px; color: #000; background: #fff; border: 1px solid #000; vertical-align: middle; font-family: Calibri, Carlito, Arial, sans-serif; font-size: 11pt; line-height: 1.15; }
+        .fr265-table th { font-weight: 700; text-align: center; }
+        .fr265-label { width: 36%; color: #000; font-weight: 700; background: #fff; }
+        .fr265-value { min-height: 17px; display: block; color: #000; font-weight: 400; }
+        .fr265-form-table tr { height: 25px; }
+        .fr265-form-table tr:first-child { height: 30px; }
+        .fr265-firm-table tr,
+        .fr265-certificate-table tr { height: 47px; }
+        .fr265-device-table th,
+        .fr265-device-table td { text-align: left; }
+        .fr265-device-table thead th { text-align: center; }
+        .fr265-secondhand-table th { text-align: center; }
+        .fr265-secondhand-table .fr265-label { text-align: center; }
+        .fr265-secondhand-table td { height: 32px; text-align: center; }
+        .fr265-secondhand-note { padding: 8px 10px !important; font-weight: 700; text-align: center; line-height: 1.25 !important; }
+        .fr265-statement td { padding: 11px 12px; color: #000; font-size: 11pt; line-height: 1.25; text-align: justify; }
+        .fr265-sign-text { white-space: pre-line; line-height: 1.45; }
+        .fr265-control-title { margin: 14px 0 6px; color: #000; font-size: 11pt; font-weight: 700; text-transform: uppercase; }
+        .fr265-control-result { margin-bottom: 5px; color: #000; font-size: 11pt; font-weight: 700; }
+        .fr265-control-reason { margin-bottom: 7px; color: #000; font-size: 11pt; line-height: 1.25; }
+        .fr265-sign-table td { height: 31px; text-align: center; font-size: 10.5pt; }
         .fr265-sign-table tr:first-child td { font-weight: 800; background: #fff; }
         .fr265-sign-table tr:last-child td { height: 38px; }
         @@media print {
@@ -173,15 +187,11 @@
     <a href="#fr265-page-2">2. Sayfa</a>
 </div>
 
-@if (demoImzaModu || imzaliBelgeHazir)
+@if (imzaliBelgeHazir)
 {
     <div class="fr265-note">
         <i class="bi bi-info-circle"></i>
-        <span>
-            @(demoImzaModu
-                ? "Geliştirme ortamında akış aynı FR265 formu üzerinden test edilir; gerçek e-imza sağlayıcısı bağlandığında bu belge dış imza uygulamasına gönderilecek."
-                : "İmzalı nihai belge hazır olduğunda indirilen dosya FR265 kaydına bağlı nihai belgedir.")
-        </span>
+        <span>İmzalı nihai belge hazır olduğunda indirilen dosya FR265 kaydına bağlı nihai belgedir.</span>
     </div>
 }
 
@@ -189,32 +199,32 @@
     <section class="fr265-paper" id="fr265-page-1" aria-label="FR265 birinci sayfa">
         <div class="fr265-paper-head">
             <img class="fr265-logo" src="@LogoUrl(Model)" alt="Şirket logosu" />
-            <div class="fr265-title">FR265 Proje Tadilatı Gerektirmeyen Yakıcı Cihaz Değişim Formu</div>
+            <div class="fr265-title">FR265 PROJE TADİLATI GEREKTİRMEYEN YAKICI CİHAZ DEĞİŞİM FORMU</div>
             <div class="fr265-date">Tarih : @formTarihi</div>
         </div>
 
-        <table class="fr265-table">
+        <table class="fr265-table fr265-firm-table">
             <tbody>
                 <tr><td class="fr265-label">Sertifikalı Firma Unvanı</td><td><span class="fr265-value">@Deger(Model.FirmaAdi)</span></td></tr>
             </tbody>
         </table>
-        <table class="fr265-table">
+        <table class="fr265-table fr265-certificate-table">
             <tbody>
-                <tr><td class="fr265-label">Sertifika Numarası</td><td><span class="fr265-value">@Deger(Model.YetkiBelgesiNo)</span></td></tr>
+                <tr><td class="fr265-label">Sertifika Numarası</td><td><span class="fr265-value"></span></td></tr>
             </tbody>
         </table>
 
-        <table class="fr265-table">
+        <table class="fr265-table fr265-form-table">
             <tbody>
                 <tr><td class="fr265-label">Adı Soyadı</td><td><span class="fr265-value">@Deger(Model.MusteriAdi)</span></td></tr>
                 <tr><td class="fr265-label">Tesisat Numarası</td><td><span class="fr265-value">@Deger(Model.TesisatNo)</span></td></tr>
-                <tr><td class="fr265-label">Tüketim Noktası (Daire/İş Yeri Numarası)</td><td><span class="fr265-value">@Deger(Model.TuketimNoktasi)</span></td></tr>
-                <tr><td class="fr265-label">Bina Kodu</td><td><span class="fr265-value">@Deger(Model.BaglantiNesnesi)</span></td></tr>
+                <tr><td class="fr265-label">Tüketim Noktası (Daire/İş Yeri Numarası)</td><td><span class="fr265-value"></span></td></tr>
+                <tr><td class="fr265-label">Bina Kodu</td><td><span class="fr265-value"></span></td></tr>
                 <tr><td class="fr265-label">Adres</td><td><span class="fr265-value">@Deger(Model.Adres)</span></td></tr>
             </tbody>
         </table>
 
-        <table class="fr265-table">
+        <table class="fr265-table fr265-device-table">
             <thead>
                 <tr>
                     <th></th>
@@ -230,15 +240,19 @@
             </tbody>
         </table>
 
-        <table class="fr265-table">
+        <table class="fr265-table fr265-secondhand-table">
             <tbody>
                 <tr>
-                    <td class="fr265-label">Takılan Yakıcı Cihaz İkinci El Cihaz Mı?</td>
-                    <td>@Kutu(Model.IkinciElCihazMi == true) Evet</td>
-                    <td>@Kutu(Model.IkinciElCihazMi == false) Hayır</td>
+                    <td class="fr265-label" rowspan="2">Takılan Yakıcı Cihaz İkinci El Cihaz Mı?</td>
+                    <th>Evet</th>
+                    <th>Hayır</th>
                 </tr>
                 <tr>
-                    <td colspan="3">Cihazın ikinci el olması durumunda, bu evrakla birlikte yetkili servis tarafından düzenlenecek “Yetkili Servis Cihaz Kontrol Raporu” bu forma eklenmelidir.</td>
+                    <td>@Kutu(Model.IkinciElCihazMi == true)</td>
+                    <td>@Kutu(Model.IkinciElCihazMi == false)</td>
+                </tr>
+                <tr>
+                    <td colspan="3" class="fr265-secondhand-note">Cihazın ikinci el olması durumunda, bu evrakla birlikte yetkili servis tarafından düzenlenecek “Yetkili Servis Cihaz Kontrol Raporu” bu forma eklenmelidir.</td>
                 </tr>
             </tbody>
         </table>
@@ -255,9 +269,8 @@
                 <tr>
             <td class="fr265-sign-text">Sertifikalı Firma Yetkilisi
 Adı ve Soyadı: @Deger(Model.FirmaYetkiliKisi)
-Tarih: @Deger(ImzaTarihi(Model, 1) ?? formTarihi)
-İmza:@if (imzaliBelgeHazir) { <text>
-İmza kaydı alındı</text> }</td>
+Tarih: @(imzaliBelgeHazir ? Deger(ImzaTarihi(Model, 1) ?? formTarihi) : "")
+İmza:@(imzaliBelgeHazir ? "\nİmza kaydı alındı" : "")</td>
                 </tr>
             </tbody>
         </table>
@@ -271,13 +284,13 @@ Tarih: @Deger(ImzaTarihi(Model, 1) ?? formTarihi)
                         İşlemi Yapan Gaz Dağıtım Şirketi Yetkilisi
                         <br />Adı ve Soyadı: @Deger(ImzaciAdi(Model, 2))
                         <br />Tarih: @Deger(ImzaTarihi(Model, 2))
-                        <br />İmza:@if (imzaliBelgeHazir) { <span class="fr265-signature-state"> İmza kaydı alındı</span> }
+                        <br />İmza:@(imzaliBelgeHazir ? " İmza kaydı alındı" : "")
                     </td>
                     <td>
                         İşlem Yapılan Abone/Kullanıcı
                         <br />Adı ve Soyadı: @Deger(Model.MusteriAdi)
                         <br />Tarih: @Deger(ImzaTarihi(Model, 3))
-                        <br />İmza:@if (imzaliBelgeHazir) { <span class="fr265-signature-state"> İmza kaydı alındı</span> }
+                        <br />İmza:@(imzaliBelgeHazir ? " İmza kaydı alındı" : "")
                     </td>
                 </tr>
             </tbody>
@@ -287,7 +300,7 @@ Tarih: @Deger(ImzaTarihi(Model, 1) ?? formTarihi)
     <section class="fr265-paper" id="fr265-page-2" aria-label="FR265 ikinci sayfa">
         <div class="fr265-paper-head">
             <img class="fr265-logo" src="@LogoUrl(Model)" alt="Şirket logosu" />
-            <div class="fr265-title">FR265 Proje Tadilatı Gerektirmeyen Yakıcı Cihaz Değişim Formu</div>
+            <div class="fr265-title">FR265 PROJE TADİLATI GEREKTİRMEYEN YAKICI CİHAZ DEĞİŞİM FORMU</div>
             <div class="fr265-date">Tarih : @formTarihi</div>
         </div>
 
@@ -314,9 +327,9 @@ Tarih: @Deger(ImzaTarihi(Model, 1) ?? formTarihi)
                         <td>Tarih<br />@Deger(ImzaTarihi(Model, 1))</td>
                     </tr>
                     <tr>
-                        <td>İmza@if (imzaliBelgeHazir) { <div class="fr265-signature-state">İmza kaydı alındı</div> }</td>
-                        <td>İmza@if (imzaliBelgeHazir) { <div class="fr265-signature-state">İmza kaydı alındı</div> }</td>
-                        <td>Kaşe / İmza@if (imzaliBelgeHazir) { <div class="fr265-signature-state">İmza kaydı alındı</div> }</td>
+                        <td>İmza@(imzaliBelgeHazir ? " İmza kaydı alındı" : "")</td>
+                        <td>İmza@(imzaliBelgeHazir ? " İmza kaydı alındı" : "")</td>
+                        <td>Kaşe / İmza@(imzaliBelgeHazir ? " İmza kaydı alındı" : "")</td>
                     </tr>
                 </tbody>
             </table>

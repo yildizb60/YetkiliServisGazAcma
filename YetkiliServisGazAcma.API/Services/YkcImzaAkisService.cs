@@ -731,27 +731,23 @@ namespace YetkiliServisGazAcma.API.Services
                 return false;
             }
 
-            var kontroller = detay.Kontroller
+            var sonKontrol = detay.Kontroller
                 .Where(x => x.KontrolNo is >= 1 and <= 5)
-                .GroupBy(x => x.KontrolNo)
-                .Select(x => x.OrderByDescending(k => k.KontrolTarihi ?? DateTime.MinValue).First())
-                .ToList();
+                .Where(x => x.Sonuc == YkcFr265KontrolSonucDegerleri.Uygun
+                    || x.Sonuc == YkcFr265KontrolSonucDegerleri.UygunDegil)
+                .OrderByDescending(x => x.KontrolNo)
+                .ThenByDescending(x => x.KontrolTarihi ?? DateTime.MinValue)
+                .FirstOrDefault();
 
-            if (kontroller.Count != 5)
+            if (sonKontrol == null)
             {
-                mesaj = "FR265 imzaya gönderilmeden önce 1-5 kontrol sonuçları tamamlanmalıdır.";
+                mesaj = "FR265 imzaya gönderilmeden önce randevu sonrası en az bir kontrol sonucu girilmelidir.";
                 return false;
             }
 
-            var kabulEdilenSonuclar = new[]
+            if (sonKontrol.Sonuc != YkcFr265KontrolSonucDegerleri.Uygun)
             {
-                YkcFr265KontrolSonucDegerleri.Uygun,
-                YkcFr265KontrolSonucDegerleri.Uygulanmaz
-            };
-
-            if (kontroller.Any(x => !kabulEdilenSonuclar.Contains(x.Sonuc)))
-            {
-                mesaj = "FR265 imzaya gönderilmeden önce tüm kontroller uygun veya uygulanmaz olarak tamamlanmalıdır.";
+                mesaj = "Son kontrol uygun değil. Firma eksikliği giderdikten sonra bir sonraki kontrol sonucu uygun olmalıdır.";
                 return false;
             }
 

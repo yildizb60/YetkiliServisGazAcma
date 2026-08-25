@@ -39,7 +39,7 @@
 
         <section class="ykc-stage-panel" data-ykc-stage-panel="1">
             <header class="ykc-stage-head">
-                <div><span class="ykc-stage-kicker">1. adım · Tesisat sorgula</span><h2>Tesisat bilgilerini bulun</h2><p>Müşteri, konum ve proje bilgileri servis kaydından alınır.</p></div>
+                <div><span class="ykc-stage-kicker">1. adım · Tesisat sorgula</span><h2>Tesisat bilgilerini bulun</h2><p>Müşteri, adres ve projedeki cihaz bilgileri servis kaydından alınır.</p></div>
             </header>
             <div class="ykc-stage-body ykc-query-layout">
                 <div class="ykc-stage-form-block">
@@ -58,8 +58,7 @@
                     </div>
                     <dl class="ykc-result-list">
                         <div><dt>Abone</dt><dd data-preview="AboneNo">@(Model.AboneNo ?? "-")</dd></div>
-                        <div><dt>Proje</dt><dd data-preview="ProjeNo">@(Model.ProjeNo ?? "-")</dd></div>
-                        <div><dt>Bölge</dt><dd data-preview="Bolge">@(Model.Bolge ?? "-")</dd></div>
+                        <div><dt>Tesisat</dt><dd data-preview="TesisatNo">@(Model.TesisatNo ?? "-")</dd></div>
                         <div class="wide"><dt>Adres</dt><dd data-preview="Adres">@(Model.Adres ?? "-")</dd></div>
                     </dl>
                 </section>
@@ -68,14 +67,14 @@
                     <summary><span><i class="bi bi-database-check"></i> Sorgudan gelen tüm bilgiler</span><i class="bi bi-chevron-down"></i></summary>
                     <div class="ykc-auto-grid">
                         <div class="ykc-field"><label>Abone No</label><input asp-for="AboneNo" autocomplete="off" readonly /></div>
-                        <div class="ykc-field"><label>Proje No</label><input asp-for="ProjeNo" autocomplete="off" readonly /></div>
+                        <input type="hidden" asp-for="ProjeNo" />
                         <div class="ykc-field"><label>Sayaç No</label><input asp-for="SayacNo" autocomplete="off" readonly /></div>
                         <div class="ykc-field"><label>Firma Kodu</label><input asp-for="FirmaKodu" autocomplete="off" readonly /></div>
                         <div class="ykc-field"><label>Müşteri</label><input asp-for="MusteriAdi" autocomplete="off" readonly /></div>
                         <div class="ykc-field"><label>Telefon</label><input asp-for="MusteriTelefon" autocomplete="off" readonly /></div>
                         <div class="ykc-field"><label>İl</label><input asp-for="Il" autocomplete="off" readonly /></div>
                         <div class="ykc-field"><label>İlçe</label><input asp-for="Ilce" autocomplete="off" readonly /></div>
-                        <div class="ykc-field"><label>Bölge</label><input asp-for="Bolge" autocomplete="off" readonly /></div>
+                        <input type="hidden" asp-for="Bolge" />
                         <div class="ykc-field full"><label>Adres</label><textarea asp-for="Adres" readonly></textarea></div>
                     </div>
                 </details>
@@ -137,10 +136,8 @@
                                 <th>Marka</th>
                                 <td data-summary="old-brand">@(Model.EskiMarka ?? "-")</td>
                                 <td>
-                                    <div class="ykc-stacked-fields">
-                                        <div class="ykc-field"><label class="visually-hidden" for="YeniMarka">Yeni Marka</label><input asp-for="YeniMarka" autocomplete="off" placeholder="Marka" required /><span asp-validation-for="YeniMarka"></span></div>
-                                        <div class="ykc-field ykc-helper-field"><label for="YeniModel">Model <small>(yardımcı bilgi)</small></label><input asp-for="YeniModel" autocomplete="off" placeholder="Model" /></div>
-                                    </div>
+                                    <div class="ykc-field"><label class="visually-hidden" for="YeniMarka">Yeni Marka</label><input asp-for="YeniMarka" autocomplete="off" placeholder="Marka" required /><span asp-validation-for="YeniMarka"></span></div>
+                                    <input type="hidden" asp-for="YeniModel" />
                                 </td>
                             </tr>
                             <tr>
@@ -157,7 +154,7 @@
                     </table>
                 </div>
                 <div class="ykc-device-supplement">
-                    <div class="ykc-field"><label>Yeni Cihaz Seri No</label><input asp-for="YeniSeriNo" autocomplete="off" /></div>
+                    <input type="hidden" asp-for="YeniSeriNo" />
                     <fieldset class="ykc-secondhand-field">
                         <legend>Takılan cihaz ikinci el mi?</legend>
                         <label for="IkinciElHayir"><input id="IkinciElHayir" type="radio" name="IkinciElCihazMi" value="false" checked="@(Model.IkinciElCihazMi == false ? "checked" : null)" required /> Hayır</label>
@@ -204,7 +201,7 @@
                         <thead><tr><th>Özellik</th><th>Projedeki Cihaz</th><th>Yeni Kullanılan Cihaz</th></tr></thead>
                         <tbody>
                             <tr><th>Yakıcı Cihaz Tipi</th><td data-summary="old-type">@(Model.EskiCihazTipi ?? "-")</td><td data-summary="new-type">@(Model.YeniCihazTipi ?? "-")</td></tr>
-                            <tr><th>Marka</th><td data-summary="old-brand">@(Model.EskiMarka ?? "-")</td><td><strong data-summary="new-brand">@(Model.YeniMarka ?? "-")</strong><small data-summary="new-model">@(Model.YeniModel ?? "-")</small></td></tr>
+                            <tr><th>Marka</th><td data-summary="old-brand">@(Model.EskiMarka ?? "-")</td><td data-summary="new-brand">@(Model.YeniMarka ?? "-")</td></tr>
                             <tr><th>Baca Tipi</th><td data-summary="old-flue">@(Model.EskiBacaTipi ?? "-")</td><td data-summary="new-flue">@(Model.YeniBacaTipi ?? "-")</td></tr>
                             <tr><th>Kapasite (kcal/h)</th><td data-summary="old-capacity">@(Model.EskiKapasite ?? "-")</td><td data-summary="new-capacity">@(Model.YeniKapasite ?? "-")</td></tr>
                         </tbody>
@@ -273,7 +270,6 @@
                 set('old-capacity', value('EskiKapasite'));
                 set('new-type', value('YeniCihazTipi'));
                 set('new-brand', value('YeniMarka'));
-                set('new-model', value('YeniModel'));
                 set('new-flue', value('YeniBacaTipi'));
                 set('new-capacity', value('YeniKapasite'));
             }
@@ -284,7 +280,7 @@
             function fillTopFields(data) {
                 ['TesisatNo', 'SozlesmeNo', 'AboneNo', 'SayacNo', 'FirmaKodu', 'MusteriAdi', 'MusteriTelefon', 'Il', 'Ilce', 'Bolge', 'Adres']
                     .forEach(id => setValueIfPresent(id, prop(data, id.charAt(0).toLowerCase() + id.slice(1))));
-                ['MusteriAdi', 'AboneNo', 'ProjeNo', 'Bolge', 'Adres'].forEach(id => setPreview(id, value(id)));
+                ['MusteriAdi', 'AboneNo', 'TesisatNo', 'Adres'].forEach(id => setPreview(id, value(id)));
             }
 
             function applyDevice(cihaz) {
@@ -305,7 +301,6 @@
                 setValue('YeniCihazTipi', tip);
                 setValue('YeniKapasite', kapasite);
                 setReadonly(oldDeviceFieldIds, true);
-                setPreview('ProjeNo', value('ProjeNo'));
                 updateSummaries();
             }
 
