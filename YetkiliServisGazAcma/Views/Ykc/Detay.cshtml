@@ -9,9 +9,15 @@
     ViewData["PanelSubtitle"] = icOperasyonGorsun
         ? "Cihaz karşılaştırması ve talep işlemleri"
         : "Talep, randevu ve FR265 durumu";
-    var atamaYapilabilir = Model.Durum == YkcDurumDegerleri.AtamaBekliyor || Model.Durum == YkcDurumDegerleri.Atandi || Model.Durum == YkcDurumDegerleri.SahaIsleminde;
     var terminalDurum = Model.Durum == YkcDurumDegerleri.Tamamlandi || Model.Durum == YkcDurumDegerleri.Reddedildi || Model.Durum == YkcDurumDegerleri.Iptal;
     var imzaSureci = Model.ImzaSureci;
+    var imzaSureciBasladi = !string.IsNullOrWhiteSpace(imzaSureci?.ProviderDocumentId)
+        || imzaSureci?.Durum == YkcImzaDurumDegerleri.ImzayaGonderildi
+        || imzaSureci?.Durum == YkcImzaDurumDegerleri.ImzaBekliyor
+        || imzaSureci?.Durum == YkcImzaDurumDegerleri.KismiImzali
+        || imzaSureci?.Durum == YkcImzaDurumDegerleri.Tamamlandi;
+    var atamaYapilabilir = !imzaSureciBasladi
+        && (Model.Durum == YkcDurumDegerleri.AtamaBekliyor || Model.Durum == YkcDurumDegerleri.Atandi || Model.Durum == YkcDurumDegerleri.SahaIsleminde);
     var imzaEntegrasyonu = ViewBag.ImzaEntegrasyonu as YkcImzaEntegrasyonDto ?? new YkcImzaEntegrasyonDto();
     var demoImzaModu = imzaEntegrasyonu.DemoModuMu;
     var imzaliBelge = imzaSureci?.NihaiDosyaId is int nihaiDosyaId

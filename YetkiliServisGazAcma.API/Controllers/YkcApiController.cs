@@ -308,27 +308,6 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (!YkcDosyasiIndirmeyeAcikMi(dosya))
                 return Forbid();
 
-            if (dosya.DosyaTuru == YkcFormDosyaTuruDegerleri.Fr265ImzaliNihai)
-            {
-                var genelYetkili = await GenelYetkiliMiAsync(kullanici);
-                var yenilendi = await _ykcImzaAkisService.DemoNihaiBelgeyiYenileAsync(
-                    dosya.Id,
-                    kullanici,
-                    genelYetkili,
-                    HttpContext.RequestAborted);
-
-                if (yenilendi)
-                {
-                    dosya = await _context.Ykc_FormDosyalari
-                        .Include(x => x.Talep)
-                            .ThenInclude(x => x!.ImzaSurecleri)
-                        .FirstOrDefaultAsync(x => x.Id == istek.Id && !x.SilindiMi && x.Talep != null && !x.Talep.SilindiMi);
-
-                    if (dosya?.Talep == null)
-                        return NotFound(new { basarili = false, mesaj = "Cihaz degisim form dosyasi bulunamadi." });
-                }
-            }
-
             if (string.IsNullOrWhiteSpace(dosya.DosyaYolu))
                 return NotFound(new { basarili = false, mesaj = "Dosya yolu bulunamadi." });
 

@@ -49,6 +49,7 @@
     private static string Kutu(bool secili) => secili ? "☒" : "☐";
     private static bool UygunMu(YkcFr265KontrolDto kontrol) => kontrol.Sonuc == YkcFr265KontrolSonucDegerleri.Uygun;
     private static bool UygunDegilMi(YkcFr265KontrolDto kontrol) => kontrol.Sonuc == YkcFr265KontrolSonucDegerleri.UygunDegil;
+    private static bool KontrolTamamlandi(YkcFr265KontrolDto kontrol) => UygunMu(kontrol) || UygunDegilMi(kontrol);
 
     private static string KontrolAciklama(YkcFr265KontrolDto kontrol)
     {
@@ -92,7 +93,8 @@
         .fr265-page-tabs a:hover { color: #17498f; border-color: #17498f; }
         .fr265-note { display: flex; align-items: flex-start; gap: 9px; max-width: 860px; margin: 0 auto 14px; padding: 10px 12px; color: #111; background: #fff; border: 1px solid #111; border-radius: 0; font-size: 12px; line-height: 1.45; }
         .fr265-document { display: grid; gap: 18px; }
-        .fr265-paper { width: min(960px, 100%); min-height: 1240px; margin: 0 auto; padding: 46px 34px 34px; color: #000; background: #fff; border: 1px solid #c8c8c8; box-shadow: none; font-family: Calibri, Carlito, Arial, sans-serif; font-size: 11pt; }
+        .fr265-paper { width: min(860px, 100%); min-height: 1216px; margin: 0 auto; padding: 42px 31px 31px; color: #000; background: #fff; border: 1px solid #c8c8c8; box-shadow: none; font-family: Calibri, Carlito, Arial, sans-serif; font-size: 11pt; }
+        .fr265-control-page { padding-top: 24px; }
         .fr265-paper * { letter-spacing: 0; }
         .fr265-paper-head { display: grid; grid-template-columns: 130px minmax(0, 1fr) 145px; align-items: end; gap: 16px; margin-bottom: 34px; }
         .fr265-logo { width: 82px; max-height: 58px; object-fit: contain; justify-self: center; }
@@ -297,15 +299,16 @@ Tarih: @(imzaliBelgeHazir ? Deger(ImzaTarihi(Model, 1) ?? formTarihi) : "")
         </table>
     </section>
 
-    <section class="fr265-paper" id="fr265-page-2" aria-label="FR265 ikinci sayfa">
+    <section class="fr265-paper fr265-control-page" id="fr265-page-2" aria-label="FR265 ikinci sayfa">
         <div class="fr265-paper-head">
             <img class="fr265-logo" src="@LogoUrl(Model)" alt="Şirket logosu" />
             <div class="fr265-title">FR265 PROJE TADİLATI GEREKTİRMEYEN YAKICI CİHAZ DEĞİŞİM FORMU</div>
-            <div class="fr265-date">Tarih : @formTarihi</div>
+            <div class="fr265-date"></div>
         </div>
 
         @foreach (var kontrol in kontrolSatirlari)
         {
+            var kontrolTamamlandi = KontrolTamamlandi(kontrol);
             <div class="fr265-control-title">@kontrol.KontrolNo. KONTROL</div>
             <div class="fr265-control-result">@Kutu(UygunMu(kontrol)) Uygun&nbsp;&nbsp;&nbsp;&nbsp;@Kutu(UygunDegilMi(kontrol)) Uygun Değil</div>
             <div class="fr265-control-reason">Uygun değil ise nedeni: @KontrolAciklama(kontrol)</div>
@@ -317,19 +320,19 @@ Tarih: @(imzaliBelgeHazir ? Deger(ImzaTarihi(Model, 1) ?? formTarihi) : "")
                         <td>Sertifikalı Firma</td>
                     </tr>
                     <tr>
-                        <td>Adı Soyadı<br />@Deger(ImzaciAdi(Model, 2))</td>
-                        <td>Adı Soyadı<br />@Deger(Model.MusteriAdi)</td>
-                        <td>Firma / Yetkili<br />@Deger(Model.FirmaYetkiliKisi)</td>
+                        <td>Adı Soyadı@(imzaliBelgeHazir && kontrolTamamlandi ? $": {Deger(ImzaciAdi(Model, 2))}" : "")</td>
+                        <td>Adı Soyadı@(imzaliBelgeHazir && kontrolTamamlandi ? $": {Deger(Model.MusteriAdi)}" : "")</td>
+                        <td>Firma / Yetkili@(imzaliBelgeHazir && kontrolTamamlandi ? $": {Deger(Model.FirmaYetkiliKisi)}" : "")</td>
                     </tr>
                     <tr>
-                        <td>Tarih<br />@Deger(ImzaTarihi(Model, 2))</td>
-                        <td>Tarih<br />@Deger(ImzaTarihi(Model, 3))</td>
-                        <td>Tarih<br />@Deger(ImzaTarihi(Model, 1))</td>
+                        <td>Tarih@(imzaliBelgeHazir && kontrolTamamlandi ? $": {Deger(ImzaTarihi(Model, 2))}" : "")</td>
+                        <td>Tarih@(imzaliBelgeHazir && kontrolTamamlandi ? $": {Deger(ImzaTarihi(Model, 3))}" : "")</td>
+                        <td>Tarih@(imzaliBelgeHazir && kontrolTamamlandi ? $": {Deger(ImzaTarihi(Model, 1))}" : "")</td>
                     </tr>
                     <tr>
-                        <td>İmza@(imzaliBelgeHazir ? " İmza kaydı alındı" : "")</td>
-                        <td>İmza@(imzaliBelgeHazir ? " İmza kaydı alındı" : "")</td>
-                        <td>Kaşe / İmza@(imzaliBelgeHazir ? " İmza kaydı alındı" : "")</td>
+                        <td>İmza@(imzaliBelgeHazir && kontrolTamamlandi ? ": İmzalandı" : "")</td>
+                        <td>İmza@(imzaliBelgeHazir && kontrolTamamlandi ? ": İmzalandı" : "")</td>
+                        <td>Kaşe / İmza@(imzaliBelgeHazir && kontrolTamamlandi ? ": İmzalandı" : "")</td>
                     </tr>
                 </tbody>
             </table>

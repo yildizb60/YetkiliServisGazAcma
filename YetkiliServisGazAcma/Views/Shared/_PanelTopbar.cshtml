@@ -1,4 +1,5 @@
 @using YetkiliServisGazAcma.Entities
+@using YetkiliServisGazAcma.Business.Services
 @{
     var kullanici = ViewBag.Kullanici as AppKullanici;
     var adSoyad = kullanici?.AdSoyad ?? "Sistem Kullanıcısı";
@@ -6,13 +7,16 @@
     var baslik = (ViewData["PanelTitle"] ?? ViewData["Title"])?.ToString() ?? "Panel";
     var altBaslik = ViewData["PanelSubtitle"]?.ToString();
     var sirketAdi = ViewBag.PanelSirketAdi as string ?? "Genel Yönetim";
-    var path = Context?.Request?.Path.ToString().ToLowerInvariant() ?? "";
-    var panelUrl = path.Contains("/personel-panel")
-        ? "/personel-panel"
-        : path.Contains("/ys-panel")
-            ? "/ys-panel"
-            : "/AdminPanel";
-    var profilUrl = panelUrl + "/profil";
+    var panelUrl = kullanici?.KullaniciTipi switch
+    {
+        KullaniciTipiDegerleri.YetkiliServis => "/ys-panel",
+        KullaniciTipiDegerleri.Personel => "/personel-panel",
+        KullaniciTipiDegerleri.SertifikaliFirma => "/ykc",
+        _ => "/AdminPanel"
+    };
+    var profilUrl = kullanici?.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma
+        ? null
+        : panelUrl + "/profil";
 
     var rol = kullanici?.KullaniciTipi switch
     {
@@ -69,12 +73,14 @@
                 </div>
 
                 <div class="df-dropdown-divider"></div>
-                <a href="@profilUrl" class="df-dropdown-item">
-                    <i class="bi bi-person"></i>
-                    Profil ve Ayarlar
-                </a>
-
-                <div class="df-dropdown-divider"></div>
+                @if (!string.IsNullOrWhiteSpace(profilUrl))
+                {
+                    <a href="@profilUrl" class="df-dropdown-item">
+                        <i class="bi bi-person"></i>
+                        Profil ve Ayarlar
+                    </a>
+                    <div class="df-dropdown-divider"></div>
+                }
                 <a href="/cikis" class="df-dropdown-item danger">
                     <i class="bi bi-box-arrow-right"></i>
                     Çıkış Yap

@@ -8,6 +8,19 @@ namespace YetkiliServisGazAcma.API.Services
 {
     public class AdminPersonelYetkiApiService
     {
+        private static readonly HashSet<string> GecerliYetkiTipleri = new(StringComparer.OrdinalIgnoreCase)
+        {
+            YetkiTipleri.YETKI_BELGESI_ONAY,
+            YetkiTipleri.RAPOR_GOR,
+            YetkiTipleri.KULLANICI_YONET,
+            YetkiTipleri.MARKA_YONET,
+            YetkiTipleri.YKC_TALEP_GOR,
+            YetkiTipleri.YKC_ATAMA_YAP,
+            YetkiTipleri.YKC_FR265_IMZA_ISLEM,
+            YetkiTipleri.YKC_RAPOR_GOR,
+            YetkiTipleri.TAM_YETKI
+        };
+
         private readonly AppDbContext _context;
 
         public AdminPersonelYetkiApiService(AppDbContext context)
@@ -244,14 +257,22 @@ namespace YetkiliServisGazAcma.API.Services
         private static List<string> NormalizeYetkiListesi(IEnumerable<string?> yetkiler)
         {
             var liste = yetkiler
-                .Where(x => !string.IsNullOrWhiteSpace(x) && x != YetkiTipleri.DAGITIM_SIRKET_YONET)
-                .Select(x => x!)
-                .Distinct()
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x!.Trim().ToUpperInvariant())
+                .Where(GecerliYetkiTipleri.Contains)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
-            return liste.Contains(YetkiTipleri.TAM_YETKI)
-                ? new List<string> { YetkiTipleri.TAM_YETKI }
-                : liste;
+            if (liste.Contains(YetkiTipleri.TAM_YETKI, StringComparer.OrdinalIgnoreCase))
+                return new List<string> { YetkiTipleri.TAM_YETKI };
+
+            if (liste.Any(x => x is YetkiTipleri.YKC_ATAMA_YAP or YetkiTipleri.YKC_FR265_IMZA_ISLEM or YetkiTipleri.YKC_RAPOR_GOR)
+                && !liste.Contains(YetkiTipleri.YKC_TALEP_GOR, StringComparer.OrdinalIgnoreCase))
+            {
+                liste.Add(YetkiTipleri.YKC_TALEP_GOR);
+            }
+
+            return liste;
         }
 
         private static AdminKullaniciListeDto MapKullanici(AppKullanici kullanici)

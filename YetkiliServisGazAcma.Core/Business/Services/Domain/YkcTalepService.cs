@@ -256,6 +256,18 @@ namespace YetkiliServisGazAcma.Business.Services
             if (DurumTerminalMi(talep.Durum))
                 return YkcIslemSonuc.HataliSonuc("Tamamlanan, reddedilen veya iptal edilen talep icin atama yapilamaz.");
 
+            var imzaSureciBasladi = await _context.Ykc_ImzaSurecleri.AnyAsync(x =>
+                x.TalepId == talep.Id &&
+                !x.SilindiMi &&
+                (!string.IsNullOrWhiteSpace(x.ProviderDocumentId) ||
+                 x.Durum == YkcImzaDurumDegerleri.ImzayaGonderildi ||
+                 x.Durum == YkcImzaDurumDegerleri.ImzaBekliyor ||
+                 x.Durum == YkcImzaDurumDegerleri.KismiImzali ||
+                 x.Durum == YkcImzaDurumDegerleri.Tamamlandi));
+
+            if (imzaSureciBasladi)
+                return YkcIslemSonuc.HataliSonuc("FR265 imza sureci basladiktan sonra randevu ve yonlendirme degistirilemez.");
+
             if (talep.Durum == YkcDurumDegerleri.TalepAlindi)
                 return YkcIslemSonuc.HataliSonuc("Randevu ve atama icin talep once Ic Tesisat Incelemesinde durumuna alinmalidir.");
 

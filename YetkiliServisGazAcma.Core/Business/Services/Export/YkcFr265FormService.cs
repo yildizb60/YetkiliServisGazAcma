@@ -85,7 +85,7 @@ namespace YetkiliServisGazAcma.Business.Services
             SetCellText(ikinciElTablosu, 0, 1, talep.IkinciElCihazMi == true ? "☒ Evet" : "☐ Evet");
             SetCellText(ikinciElTablosu, 0, 2, talep.IkinciElCihazMi == false ? "☒ Hayır" : "☐ Hayır");
 
-            SetCellText(firmaImzaTablosu, 1, 0, FirmaImzaMetni(talep, formTarihi, secenekler));
+            FirmaImzaTablosunuDoldur(firmaImzaTablosu, talep, secenekler, formTarihi);
             KontrolleriDoldur(document, talep.Kontroller);
             if (secenekler.ImzaliNihaiMi)
             {
@@ -194,13 +194,14 @@ namespace YetkiliServisGazAcma.Business.Services
 
         private static void SetParagraphText(XElement paragraph, string value)
         {
+            var runProperties = paragraph.Descendants(W + "rPr").FirstOrDefault() is { } rPr
+                ? new XElement(rPr)
+                : null;
+
             foreach (var child in paragraph.Elements().Where(x => x.Name != W + "pPr").ToList())
                 child.Remove();
 
-            paragraph.Add(new XElement(W + "r",
-                new XElement(W + "t",
-                    new XAttribute(XNamespace.Xml + "space", "preserve"),
-                    value)));
+            paragraph.Add(TextRun(value, runProperties));
         }
 
         private static void GorulduImzaTablosunuDoldur(
@@ -214,22 +215,31 @@ namespace YetkiliServisGazAcma.Business.Services
 
             var dagitim = ImzaSatiri(secenekler, 2);
             var abone = ImzaSatiri(secenekler, 3);
-            var satirlar = new[]
-            {
-                "Yukardaki bilgileri verilen yeni cihaz belirtilen adreste görülmüştür.",
-                "",
-                "İşlemi Yapan Gaz Dağıtım Şirketi Yetkilisi",
-                $"Adı ve Soyadı: {ImzaAdSoyad(dagitim, "Gaz Dağıtım Şirketi Yetkilisi")}",
-                $"Tarih: {ImzaTarihi(dagitim, secenekler, formTarihi)}",
-                $"İmza: {ImzaKaydiMetni()}",
-                "",
-                "İşlem Yapılan Abone/Kullanıcı",
-                $"Adı ve Soyadı: {ImzaAdSoyad(abone, talep.MusteriAdi)}",
-                $"Tarih: {ImzaTarihi(abone, secenekler, formTarihi)}",
-                $"İmza: {ImzaKaydiMetni()}"
-            };
+            var cell = Cell(table, 0, 0);
+            if (cell == null)
+                return;
 
-            SetCellText(table, 0, 0, string.Join(Environment.NewLine, satirlar));
+            var paragraphs = cell.Elements(W + "p").ToList();
+            var adSoyad = paragraphs.FirstOrDefault(x => ParagraphText(x).StartsWith("Adı ve Soyadı:", StringComparison.OrdinalIgnoreCase));
+            var tarihVeImza = paragraphs.FirstOrDefault(x => ParagraphText(x).StartsWith("Tarih:", StringComparison.OrdinalIgnoreCase));
+            var imza = paragraphs.LastOrDefault(x => ParagraphText(x).StartsWith("İmza:", StringComparison.OrdinalIgnoreCase));
+
+            if (adSoyad != null)
+            {
+                SetTabbedParagraphText(adSoyad,
+                    $"Adı ve Soyadı: {ImzaAdSoyad(dagitim, null)}",
+                    $"Adı ve Soyadı: {ImzaAdSoyad(abone, talep.MusteriAdi)}");
+            }
+
+            if (tarihVeImza != null)
+            {
+                SetTabbedParagraphText(tarihVeImza,
+                    $"Tarih: {ImzaTarihi(dagitim, secenekler, formTarihi)}",
+                    $"İmza: {ImzaKaydiMetni()}");
+            }
+
+            if (imza != null)
+                SetParagraphText(imza, $"İmza: {ImzaKaydiMetni()}");
         }
 
         private static void KontrolImzaTablolariniDoldur(
@@ -254,34 +264,42 @@ namespace YetkiliServisGazAcma.Business.Services
                 })
                 .ToList();
 
-            foreach (var table in imzaTablolari)
+            for (var index = 0; index < imzaTablolari.Count && index < 5; index++)
             {
-                SetCellText(table, 1, 0, $"Adı Soyadı{Environment.NewLine}{ImzaAdSoyad(dagitim, "Gaz Dağıtım Şirketi Yetkilisi")}");
-                SetCellText(table, 1, 1, $"Adı Soyadı{Environment.NewLine}{ImzaAdSoyad(abone, talep.MusteriAdi)}");
-                SetCellText(table, 1, 2, $"Firma / Yetkili{Environment.NewLine}{ImzaAdSoyad(firma, talep.FirmaAdi)}");
-                SetCellText(table, 2, 0, $"Tarih{Environment.NewLine}{ImzaTarihi(dagitim, secenekler, formTarihi)}");
-                SetCellText(table, 2, 1, $"Tarih{Environment.NewLine}{ImzaTarihi(abone, secenekler, formTarihi)}");
-                SetCellText(table, 2, 2, $"Tarih{Environment.NewLine}{ImzaTarihi(firma, secenekler, formTarihi)}");
-                SetCellText(table, 3, 0, $"İmza{Environment.NewLine}{ImzaKaydiMetni()}");
-                SetCellText(table, 3, 1, $"İmza{Environment.NewLine}{ImzaKaydiMetni()}");
-                SetCellText(table, 3, 2, $"Kaşe / İmza{Environment.NewLine}{ImzaKaydiMetni()}");
+                var kontrol = talep.Kontroller.FirstOrDefault(x => x.KontrolNo == index + 1);
+                if (kontrol?.Sonuc is not (YkcFr265KontrolSonucDegerleri.Uygun or YkcFr265KontrolSonucDegerleri.UygunDegil))
+                    continue;
+
+                var table = imzaTablolari[index];
+                SetCellText(table, 1, 0, $"Adı Soyadı: {ImzaAdSoyad(dagitim, null)}");
+                SetCellText(table, 1, 1, $"Adı Soyadı: {ImzaAdSoyad(abone, talep.MusteriAdi)}");
+                SetCellText(table, 1, 2, $"Firma / Yetkili: {ImzaAdSoyad(firma, talep.FirmaYetkiliKisi)}");
+                SetCellText(table, 2, 0, $"Tarih: {ImzaTarihi(dagitim, secenekler, formTarihi)}");
+                SetCellText(table, 2, 1, $"Tarih: {ImzaTarihi(abone, secenekler, formTarihi)}");
+                SetCellText(table, 2, 2, $"Tarih: {ImzaTarihi(firma, secenekler, formTarihi)}");
+                SetCellText(table, 3, 0, $"İmza: {ImzaKaydiMetni()}");
+                SetCellText(table, 3, 1, $"İmza: {ImzaKaydiMetni()}");
+                SetCellText(table, 3, 2, $"Kaşe / İmza: {ImzaKaydiMetni()}");
             }
         }
 
-        private static string FirmaImzaMetni(YkcTalepDetayDto talep, string formTarihi, YkcFr265BelgeSecenekleri secenekler)
+        private static void FirmaImzaTablosunuDoldur(
+            XElement? table,
+            YkcTalepDetayDto talep,
+            YkcFr265BelgeSecenekleri secenekler,
+            string formTarihi)
         {
+            if (table == null)
+                return;
+
             var firma = ImzaSatiri(secenekler, 1);
             var yetkili = ImzaAdSoyad(firma, talep.FirmaYetkiliKisi);
-            var satirlar = new List<string>
-            {
-                "Sertifikalı Firma Yetkilisi",
-                "",
-                $"Adı ve Soyadı: {yetkili}",
-                secenekler.ImzaliNihaiMi ? $"Tarih: {ImzaTarihi(firma, secenekler, formTarihi)}" : "Tarih:",
-                secenekler.ImzaliNihaiMi ? $"İmza: {ImzaKaydiMetni()}" : "İmza:"
-            };
+            SetLabeledParagraph(table, 1, 0, "Adı ve Soyadı:", yetkili);
+            if (!secenekler.ImzaliNihaiMi)
+                return;
 
-            return string.Join(Environment.NewLine, satirlar);
+            SetLabeledParagraph(table, 1, 0, "Tarih:", ImzaTarihi(firma, secenekler, formTarihi));
+            SetLabeledParagraph(table, 1, 0, "İmza:", ImzaKaydiMetni());
         }
 
         private static YkcFr265ImzaSatiri? ImzaSatiri(YkcFr265BelgeSecenekleri secenekler, int siraNo)
@@ -307,7 +325,7 @@ namespace YetkiliServisGazAcma.Business.Services
 
         private static string ImzaKaydiMetni()
         {
-            return "Dijital imza kaydı alındı";
+            return "İmzalandı";
         }
 
         private static string FormTarihi(YkcTalepDetayDto talep)
@@ -317,33 +335,87 @@ namespace YetkiliServisGazAcma.Business.Services
 
         private static void SetCellText(XElement? table, int rowIndex, int cellIndex, string? value)
         {
-            if (table == null)
+            var cell = Cell(table, rowIndex, cellIndex);
+            if (cell == null)
                 return;
 
-            var rows = table.Elements(W + "tr").ToList();
-            if (rowIndex >= rows.Count)
-                return;
+            var templateParagraph = cell.Elements(W + "p").FirstOrDefault();
+            var paragraphProperties = templateParagraph?.Element(W + "pPr") is { } pPr
+                ? new XElement(pPr)
+                : null;
+            var runProperties = templateParagraph?.Descendants(W + "rPr").FirstOrDefault() is { } rPr
+                ? new XElement(rPr)
+                : null;
 
-            var cells = rows[rowIndex].Elements(W + "tc").ToList();
-            if (cellIndex >= cells.Count)
-                return;
-
-            var cell = cells[cellIndex];
             foreach (var child in cell.Elements().Where(x => x.Name != W + "tcPr").ToList())
                 child.Remove();
 
             var lines = SplitLines(value);
             foreach (var line in lines)
-                cell.Add(Paragraph(line));
+                cell.Add(Paragraph(line, paragraphProperties, runProperties));
         }
 
-        private static XElement Paragraph(string text)
+        private static XElement? Cell(XElement? table, int rowIndex, int cellIndex)
         {
-            return new XElement(W + "p",
-                new XElement(W + "r",
-                    new XElement(W + "t",
-                        new XAttribute(XNamespace.Xml + "space", "preserve"),
-                        text)));
+            var rows = table?.Elements(W + "tr").ToList();
+            if (rows == null || rowIndex < 0 || rowIndex >= rows.Count)
+                return null;
+
+            var cells = rows[rowIndex].Elements(W + "tc").ToList();
+            return cellIndex < 0 || cellIndex >= cells.Count ? null : cells[cellIndex];
+        }
+
+        private static XElement Paragraph(string text, XElement? paragraphProperties = null, XElement? runProperties = null)
+        {
+            var paragraph = new XElement(W + "p");
+            if (paragraphProperties != null)
+                paragraph.Add(new XElement(paragraphProperties));
+
+            paragraph.Add(TextRun(text, runProperties));
+            return paragraph;
+        }
+
+        private static XElement TextRun(string text, XElement? runProperties = null)
+        {
+            var run = new XElement(W + "r");
+            if (runProperties != null)
+                run.Add(new XElement(runProperties));
+
+            run.Add(new XElement(W + "t",
+                new XAttribute(XNamespace.Xml + "space", "preserve"),
+                text));
+            return run;
+        }
+
+        private static void SetLabeledParagraph(XElement table, int rowIndex, int cellIndex, string label, string? value)
+        {
+            var paragraph = Cell(table, rowIndex, cellIndex)?
+                .Elements(W + "p")
+                .FirstOrDefault(x => ParagraphText(x).StartsWith(label, StringComparison.OrdinalIgnoreCase));
+            if (paragraph != null)
+                SetParagraphText(paragraph, $"{label} {Clean(value)}".TrimEnd());
+        }
+
+        private static void SetTabbedParagraphText(XElement paragraph, params string[] columns)
+        {
+            var runProperties = paragraph.Descendants(W + "rPr").FirstOrDefault() is { } rPr
+                ? new XElement(rPr)
+                : null;
+
+            foreach (var child in paragraph.Elements().Where(x => x.Name != W + "pPr").ToList())
+                child.Remove();
+
+            for (var index = 0; index < columns.Length; index++)
+            {
+                if (index > 0)
+                {
+                    paragraph.Add(new XElement(W + "r",
+                        runProperties == null ? null : new XElement(runProperties),
+                        new XElement(W + "tab")));
+                }
+
+                paragraph.Add(TextRun(columns[index], runProperties));
+            }
         }
 
         private static List<string> SplitLines(string? value)

@@ -136,6 +136,20 @@
             margin-bottom: 12px;
         }
 
+        .permission-note {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            margin: 0 0 14px;
+            padding: 10px 12px;
+            color: #344054;
+            background: #f7f9fc;
+            border: 1px solid #dce2ea;
+            border-radius: 6px;
+            font-size: 12px;
+            line-height: 1.45;
+        }
+
     </style>
 }
 
@@ -143,6 +157,10 @@
     <div class="card-head">@(personel?.AdSoyad ?? "Personel")</div>
     <div class="card-body">
         <div class="info">E-Posta: @(personel?.Email ?? "-")</div>
+        <div class="permission-note">
+            <i class="bi bi-info-circle"></i>
+            <span>YKC atama, FR265/imza veya rapor yetkisi verildiğinde <strong>YKC Taleplerini Gör</strong> yetkisi de otomatik eklenir.</span>
+        </div>
         <form method="post">
             @Html.AntiForgeryToken()
             <div class="section-label">Şirket Bazlı Yetkiler</div>
@@ -161,7 +179,7 @@
                             {
                                 var yetkiSecili = sirketYetkileri.Contains(yetki.Key);
                                 <label class="permission-check">
-                                    <input type="checkbox" class="permission-option" name="yetkiler_@sirket.Id" value="@yetki.Key" @(yetkiSecili ? "checked" : "") />
+                                    <input type="checkbox" class="permission-option" data-permission="@yetki.Key" name="yetkiler_@sirket.Id" value="@yetki.Key" @(yetkiSecili ? "checked" : "") />
                                     <span>@yetki.Value</span>
                                 </label>
                             }
@@ -189,10 +207,28 @@
                     if (!toggle.checked) opt.checked = false;
                 });
             }
+            function syncYkcDependencies(changed) {
+                var viewPermission = card.querySelector('[data-permission="YKC_TALEP_GOR"]');
+                var dependentPermissions = card.querySelectorAll('[data-permission="YKC_ATAMA_YAP"], [data-permission="YKC_FR265_IMZA_ISLEM"], [data-permission="YKC_RAPOR_GOR"]');
+                if (!viewPermission) return;
+
+                if (changed === viewPermission && !viewPermission.checked) {
+                    dependentPermissions.forEach(function (permission) { permission.checked = false; });
+                    return;
+                }
+
+                if (Array.from(dependentPermissions).some(function (permission) { return permission.checked; })) {
+                    viewPermission.checked = true;
+                }
+            }
             if (toggle) {
                 toggle.addEventListener("change", sync);
                 sync();
             }
+            options.forEach(function (option) {
+                option.addEventListener("change", function () { syncYkcDependencies(option); });
+            });
+            syncYkcDependencies();
         });
     })();
 </script>

@@ -232,7 +232,7 @@
                     <tr>
                         <th>Talep / Tesisat</th>
                         <th>@(icOperasyonGorsun ? "Firma / Müşteri" : "Müşteri / Konum")</th>
-                        <th>Cihaz Bilgisi</th>
+                        <th>Projedeki Cihaz / Yeni Kullanılan Cihaz</th>
                         <th>@(icOperasyonGorsun ? "Randevu / Yönlendirme" : "Randevu")</th>
                         <th>Durum</th>
                         <th>Gereken İşlem</th>
@@ -261,7 +261,7 @@
                                     <div class="ykc-primary-cell">@(icOperasyonGorsun ? Deger(talep.FirmaAdi) : Deger(talep.MusteriAdi))</div>
                                     <div class="ykc-cell-meta">@(icOperasyonGorsun ? $"{Deger(talep.MusteriAdi)} · {KonumYazi(talep.Ilce, talep.Bolge)}" : KonumYazi(talep.Il, talep.Ilce, talep.Bolge))</div>
                                 </td>
-                                <td data-label="Cihaz Bilgisi">
+                                <td data-label="Projedeki Cihaz / Yeni Kullanılan Cihaz">
                                     <div class="ykc-device-change" title="@($"Projedeki Cihaz: {talep.EskiCihaz} / Yeni Kullanılan Cihaz: {talep.YeniCihaz}")">
                                         <div class="ykc-device-line"><span>Projedeki Cihaz</span><strong>@Deger(talep.EskiCihaz)</strong></div>
                                         <div class="ykc-device-line"><span>Yeni Kullanılan Cihaz</span><strong>@Deger(talep.YeniCihaz)</strong></div>
