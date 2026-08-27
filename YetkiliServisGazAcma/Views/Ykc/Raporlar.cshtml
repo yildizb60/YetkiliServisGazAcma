@@ -245,7 +245,7 @@
                     <tr>
                         <th>Tesisat / Form</th>
                         <th>Firma / Müşteri</th>
-                        <th>Cihaz</th>
+                        <th>Projedeki Cihaz / Yeni Kullanılan Cihaz</th>
                         <th>@(icOperasyonGorsun ? "Randevu / Yönlendirme" : "Randevu")</th>
                         <th>Durum / İmza</th>
                         <th>İşlem</th>
@@ -263,7 +263,12 @@
                             <tr>
                                 <td data-label="Tesisat / Form"><div class="ykc-cell-main"><span class="ykc-code">@Deger(kayit.TesisatNo)</span></div><div class="ykc-muted">FR265 #@kayit.Id · @kayit.TalepTarihi.ToString("dd.MM.yyyy HH:mm")</div></td>
                                 <td data-label="Firma / Müşteri"><div class="ykc-cell-main">@Deger(kayit.FirmaAdi)</div><div class="ykc-muted">@Deger(kayit.MusteriAdi)</div></td>
-                                <td data-label="Cihaz"><div class="ykc-cell-main" title="@($"{kayit.EskiCihazTipi} -> {kayit.YeniCihazTipi}")">@Deger(kayit.EskiCihazTipi) → @Deger(kayit.YeniCihazTipi)</div><div class="ykc-muted" title="@($"{kayit.EskiMarka} -> {kayit.YeniMarka} / {kayit.YeniModel}")">@Deger(kayit.EskiMarka) → @Deger(kayit.YeniMarka) · @Deger(kayit.YeniModel)</div></td>
+                                <td data-label="Projedeki Cihaz / Yeni Kullanılan Cihaz">
+                                    <div class="ykc-device-change" title="@($"Projedeki Cihaz: {kayit.EskiCihazTipi} / {kayit.EskiMarka} - Yeni Kullanılan Cihaz: {kayit.YeniCihazTipi} / {kayit.YeniMarka}")">
+                                        <div class="ykc-device-line"><span>Projedeki Cihaz</span><strong>@Deger(kayit.EskiCihazTipi) / @Deger(kayit.EskiMarka)</strong></div>
+                                        <div class="ykc-device-line"><span>Yeni Kullanılan Cihaz</span><strong>@Deger(kayit.YeniCihazTipi) / @Deger(kayit.YeniMarka)</strong></div>
+                                    </div>
+                                </td>
                                 <td data-label="@(icOperasyonGorsun ? "Randevu / Yönlendirme" : "Randevu")">
                                     <div class="ykc-cell-main">@RandevuYazi(kayit.RandevuTarihi, kayit.RandevuSaati)</div>
                                     @if (icOperasyonGorsun)
@@ -276,7 +281,7 @@
                                     <button class="ykc-detail-action ykc-row-view-details"
                                             type="button"
                                             data-id="@kayit.Id"
-                                            data-detail-url="/ykc/detay/@kayit.Id"
+                                            data-detail-url="/ykc/detay/@kayit.Id?kaynak=rapor"
                                             data-tesisat="@Deger(kayit.TesisatNo)"
                                             data-firma="@Deger(kayit.FirmaAdi)"
                                             data-sirket="@Deger(kayit.SirketAdi)"
@@ -286,9 +291,11 @@
                                             data-eski-cihaz="@Deger(kayit.EskiCihazTipi)"
                                             data-yeni-cihaz="@Deger(kayit.YeniCihazTipi)"
                                             data-eski-marka="@Deger(kayit.EskiMarka)"
+                                            data-eski-kapasite="@Deger(kayit.EskiKapasite)"
                                             data-yeni-marka="@Deger(kayit.YeniMarka)"
                                             data-yeni-model="@Deger(kayit.YeniModel)"
                                             data-yeni-kapasite="@Deger(kayit.YeniKapasite)"
+                                            data-ikinci-el="@(kayit.IkinciElCihazMi == true ? "Evet" : "Hayır")"
                                             data-bolge="@Deger(kayit.Bolge)"
                                             data-ekip="@Deger(kayit.AtananEkip)"
                                             data-talep-tarihi="@kayit.TalepTarihi.ToString("dd.MM.yyyy HH:mm")"
@@ -370,10 +377,10 @@
                 <section class="ykc-modal-section ykc-modal-section-device">
                     <div class="ykc-modal-section-title"><i class="bi bi-arrow-left-right"></i> Cihaz Bilgisi</div>
                     <div class="ykc-modal-info">
-                        <div class="ykc-modal-item"><div class="ykc-modal-label">Eski Cihaz</div><div class="ykc-modal-value" id="ykcModalEskiCihaz">-</div></div>
-                        <div class="ykc-modal-item"><div class="ykc-modal-label">Yeni Cihaz</div><div class="ykc-modal-value" id="ykcModalYeniCihaz">-</div></div>
-                        <div class="ykc-modal-item"><div class="ykc-modal-label">Marka Değişimi</div><div class="ykc-modal-value" id="ykcModalMarka">-</div></div>
-                        <div class="ykc-modal-item"><div class="ykc-modal-label">Yeni Kapasite</div><div class="ykc-modal-value" id="ykcModalKapasite">-</div></div>
+                        <div class="ykc-modal-item"><div class="ykc-modal-label">Projedeki Cihaz</div><div class="ykc-modal-value" id="ykcModalEskiCihaz">-</div></div>
+                        <div class="ykc-modal-item"><div class="ykc-modal-label">Yeni Kullanılan Cihaz</div><div class="ykc-modal-value" id="ykcModalYeniCihaz">-</div></div>
+                        <div class="ykc-modal-item"><div class="ykc-modal-label">Kapasite (kcal/h)</div><div class="ykc-modal-value" id="ykcModalKapasite">-</div></div>
+                        <div class="ykc-modal-item"><div class="ykc-modal-label">İkinci El Cihaz</div><div class="ykc-modal-value" id="ykcModalIkinciEl">-</div></div>
                     </div>
                 </section>
 
@@ -387,7 +394,7 @@
         </div>
         <div class="ykc-report-modal-footer">
             <button class="df-btn df-btn-secondary" type="button" data-ykc-modal-close>Kapat</button>
-            <a class="df-btn df-btn-primary" id="ykcModalDetailLink" href="#"><i class="bi bi-arrow-right-circle"></i> Tam Detaya Git</a>
+            <a class="df-btn df-btn-primary" id="ykcModalDetailLink" href="#"><i class="bi bi-arrow-right-circle"></i> Talep Detayını Aç</a>
         </div>
     </div>
 </div>
@@ -438,8 +445,8 @@
                 text('ykcModalKayit', 'FR265 #' + data.id);
                 text('ykcModalEskiCihaz', birlestir(data.eskiCihaz, data.eskiMarka));
                 text('ykcModalYeniCihaz', birlestir(data.yeniCihaz, birlestir(data.yeniMarka, data.yeniModel)));
-                text('ykcModalMarka', (data.eskiMarka || '-') + ' -> ' + (data.yeniMarka || '-'));
-                text('ykcModalKapasite', data.yeniKapasite);
+                text('ykcModalKapasite', 'Projedeki: ' + (data.eskiKapasite || '-') + ' / Yeni Kullanılan: ' + (data.yeniKapasite || '-'));
+                text('ykcModalIkinciEl', data.ikinciEl);
                 text('ykcModalImzaDurumu', data.imzaDurumu);
 
                 if (durum) {

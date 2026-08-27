@@ -50,6 +50,14 @@
             ? " active"
             : "";
     }
+
+    string ActiveUnless(string key, string excludedActiveMenu, params string[] prefixes)
+    {
+        if (string.Equals(activeMenu, excludedActiveMenu, StringComparison.OrdinalIgnoreCase))
+            return "";
+
+        return Active(key, prefixes);
+    }
 }
 <aside class="sidebar">
     <div class="logo">
@@ -134,7 +142,7 @@
             </a>
             @if (ykcYetkileri.TalepleriGorebilir)
             {
-                <a class="@("nav-item" + Active("YkcTalepler", "/ykc/talepler", "/ykc/detay", "/ykc/fr265"))" href="/ykc/talepler">
+                <a class="@("nav-item" + ActiveUnless("YkcTalepler", "YkcRaporlar", "/ykc/talepler", "/ykc/detay", "/ykc/fr265"))" href="/ykc/talepler">
                     <span class="nav-ico"><i class="bi bi-fire"></i></span> Cihaz Değişim Talepleri
                 </a>
             }
@@ -190,7 +198,7 @@
             <a class="@("nav-item" + Active("DevreyeAlmalar", "/AdminPanel/devreyealmalar"))" href="/AdminPanel/devreyealmalar">
                 <span class="nav-ico"><i class="bi bi-bag-check"></i></span> Devreye Almalar
             </a>
-            <a class="@("nav-item" + Active("YkcTalepler", "/ykc/talepler", "/ykc/detay", "/ykc/yeni", "/ykc/fr265"))" href="/ykc/talepler">
+            <a class="@("nav-item" + ActiveUnless("YkcTalepler", "YkcRaporlar", "/ykc/talepler", "/ykc/detay", "/ykc/yeni", "/ykc/fr265"))" href="/ykc/talepler">
                 <span class="nav-ico"><i class="bi bi-fire"></i></span> Cihaz Değişim Talepleri
             </a>
             <a class="@("nav-item" + Active("YkcRaporlar", "/ykc/raporlar"))" href="/ykc/raporlar">

@@ -1262,6 +1262,7 @@ namespace YetkiliServisGazAcma.Business.Services
         public string? SayacNo { get; set; }
         public string? EskiCihazTipi { get; set; }
         public string? EskiMarka { get; set; }
+        public string? EskiKapasite { get; set; }
         public string? YeniCihazTipi { get; set; }
         public string? YeniMarka { get; set; }
         public string? YeniModel { get; set; }
@@ -1290,6 +1291,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 SayacNo = talep.SayacNo,
                 EskiCihazTipi = talep.EskiCihazTipi,
                 EskiMarka = talep.EskiMarka,
+                EskiKapasite = talep.EskiKapasite,
                 YeniCihazTipi = talep.YeniCihazTipi,
                 YeniMarka = talep.YeniMarka,
                 YeniModel = talep.YeniModel,

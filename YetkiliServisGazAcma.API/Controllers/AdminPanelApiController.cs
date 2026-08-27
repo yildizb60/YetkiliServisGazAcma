@@ -982,7 +982,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 OlusturmaTarihi = yetkiBelgesi.OlusturmaTarihi,
                 YetkiBelgesiBaslangicTarihi = yetkiBelgesi.YetkiBelgesiBaslangicTarihi,
                 YetkiBelgesiBitisTarihi = yetkiBelgesi.YetkiBelgesiBitisTarihi,
-                DosyaYolu = yetkiBelgesi.DosyaYolu,
+                DosyaYolu = string.IsNullOrWhiteSpace(yetkiBelgesi.DosyaYolu) ? null : YetkiBelgesiService.GuvenliDosyaLinki(yetkiBelgesi.Id),
                 OnaylayanKullanici = yetkiBelgesi.OnaylayanKullanici,
                 OnayTarihi = yetkiBelgesi.OnayTarihi,
                 RedGerekce = yetkiBelgesi.RedGerekce

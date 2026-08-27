@@ -278,7 +278,9 @@ if (!app.Environment.IsDevelopment())
 }
 app.Use(async (context, next) =>
 {
-    if (context.Request.Path.StartsWithSegments("/uploads/ykc"))
+    if (context.Request.Path.StartsWithSegments("/uploads/ykc")
+        || context.Request.Path.StartsWithSegments("/yetki-belgeleri")
+        || context.Request.Path.Equals("/uploads/demo-yetki-belgesi.html", StringComparison.OrdinalIgnoreCase))
     {
         context.Response.StatusCode = StatusCodes.Status404NotFound;
         return;

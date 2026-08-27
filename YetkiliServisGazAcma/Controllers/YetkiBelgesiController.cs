@@ -116,6 +116,30 @@ namespace YetkiliServisGazAcma.Controllers
             return Redirect("/ys-yetki-belgesi");
         }
 
+        [Authorize]
+        [HttpGet]
+        [Route("dosya/{id:int}")]
+        public async Task<IActionResult> Dosya(int id)
+        {
+            var kullanici = await _userManager.GetUserAsync(User);
+            if (kullanici == null)
+                return Redirect("/giris");
+
+            try
+            {
+                var dosya = await _yetkiBelgesiApiClient.DosyaIndirAsync(kullanici, id);
+                if (dosya == null)
+                    return NotFound("Yetki belgesi dosyasi bulunamadi veya bu belge icin yetkiniz yok.");
+
+                Response.Headers.CacheControl = "private, no-store";
+                return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+            }
+            catch (ApiIntegrationException ex)
+            {
+                return NotFound(ex.Message);
+            }
+        }
+
         [Authorize(Roles = "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin")]
         [HttpGet]
         [Route("onay-bekleyenler")]

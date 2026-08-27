@@ -54,12 +54,39 @@
         }
 
         .matrix-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
             padding: 12px 16px;
             border-bottom: 1px solid #e8f0f8;
             font-size: 15px;
             font-weight: 800;
             color: #103a60;
             background: linear-gradient(135deg, rgba(27, 159, 212, .14), rgba(76, 175, 125, .10));
+            cursor: pointer;
+            list-style: none;
+        }
+
+        .matrix-head::after {
+            content: "+";
+            display: grid;
+            place-items: center;
+            width: 22px;
+            height: 22px;
+            border-radius: 8px;
+            background: #fff;
+            border: 1px solid #d5e7f7;
+            color: #14558f;
+            font-weight: 900;
+        }
+
+        .matrix-card[open] .matrix-head::after {
+            content: "-";
+        }
+
+        .matrix-scroll {
+            overflow-x: auto;
         }
 
         .matrix-table {
@@ -127,8 +154,9 @@
     </style>
 }
 
-<div class="matrix-card">
-    <div class="matrix-head">Rol - Yetki Matrisi</div>
+<details class="matrix-card">
+    <summary class="matrix-head">Rol - Yetki Matrisi</summary>
+    <div class="matrix-scroll">
     <table class="matrix-table">
         <thead>
             <tr>
@@ -176,6 +204,30 @@
                 <td class="ok">Ekle / Düzenle / Sil</td>
             </tr>
             <tr>
+                <td><span class="role-badge">Personel (YKC Talepleri Gör)</span></td>
+                <td class="ok">Cihaz Değişim Talepleri menüsü görünür</td>
+                <td class="ok">YKC talep listesi ve detay kayıtları</td>
+                <td class="no">Atama, kontrol ve imza işlemi yapamaz</td>
+            </tr>
+            <tr>
+                <td><span class="role-badge">Personel (YKC Atama ve Randevu)</span></td>
+                <td class="ok">Cihaz Değişim Talepleri menüsü görünür</td>
+                <td class="ok">YKC talep detayında yönlendirme/randevu alanı</td>
+                <td class="ok">187 Acil veya mühendis yönlendirmesi ve randevu kaydı</td>
+            </tr>
+            <tr>
+                <td><span class="role-badge">Personel (YKC FR265 ve İmza)</span></td>
+                <td class="ok">Cihaz Değişim Talepleri menüsü görünür</td>
+                <td class="ok">FR265 kontrol, önizleme ve imza akışı</td>
+                <td class="ok">Kontrol sonucu, imzaya gönderme, imza durum sorgulama ve tamamlama</td>
+            </tr>
+            <tr>
+                <td><span class="role-badge">Personel (YKC Raporları Gör)</span></td>
+                <td class="ok">Cihaz Değişim Raporları menüsü görünür</td>
+                <td class="ok">YKC rapor ekranı ve dışa aktarım</td>
+                <td class="no">Operasyon kararı değiştirmez</td>
+            </tr>
+            <tr>
                 <td><span class="role-badge">Personel (Yetkisiz)</span></td>
                 <td class="ok">Ana Sayfa + Profilim daima görünür</td>
                 <td class="ok">Marka / Şirket / Yetkili Servis listeleri görüntülenir</td>
@@ -183,7 +235,8 @@
             </tr>
         </tbody>
     </table>
-</div>
+    </div>
+</details>
 
 <div class="section">
     <div class="section-head">

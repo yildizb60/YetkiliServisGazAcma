@@ -530,6 +530,7 @@ namespace YetkiliServisGazAcma.Controllers
                 [YetkiTipleri.YETKI_BELGESI_ONAY] = "Yetki Belgesi Onay",
                 [YetkiTipleri.RAPOR_GOR] = "Rapor Gor",
                 [YetkiTipleri.KULLANICI_YONET] = "Kullanici Yonet",
+                [YetkiTipleri.DAGITIM_SIRKET_YONET] = "Dağıtım Şirketi Yönet",
                 [YetkiTipleri.MARKA_YONET] = "Marka Yonet",
                 [YetkiTipleri.YKC_TALEP_GOR] = "YKC Taleplerini Gör",
                 [YetkiTipleri.YKC_ATAMA_YAP] = "YKC Atama ve Randevu",

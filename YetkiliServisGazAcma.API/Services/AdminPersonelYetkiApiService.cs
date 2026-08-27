@@ -13,6 +13,7 @@ namespace YetkiliServisGazAcma.API.Services
             YetkiTipleri.YETKI_BELGESI_ONAY,
             YetkiTipleri.RAPOR_GOR,
             YetkiTipleri.KULLANICI_YONET,
+            YetkiTipleri.DAGITIM_SIRKET_YONET,
             YetkiTipleri.MARKA_YONET,
             YetkiTipleri.YKC_TALEP_GOR,
             YetkiTipleri.YKC_ATAMA_YAP,

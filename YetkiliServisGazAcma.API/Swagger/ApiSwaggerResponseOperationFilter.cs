@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using YetkiliServisGazAcma.API.Controllers;
@@ -48,6 +50,7 @@ namespace YetkiliServisGazAcma.API.Swagger
             ["api/yetki-belgesi/onay-bekleyenler"] = Json<List<YetkiBelgesiDto>>("Onay bekleyen yetki belgeleri."),
             ["api/yetki-belgesi/onay-ekrani"] = Json<YetkiBelgesiOnayEkraniDto>("Yetki belgesi onay ekranı."),
             ["api/yetki-belgesi/sil"] = Json<ApiOperationResponseDto>("Yetki belgesi silme sonucu."),
+            ["api/yetki-belgesi/dosya-indir"] = File("Yetki belgesi dosyası."),
             ["api/yetki-belgesi/onayla"] = Json<ApiOperationResponseDto>("Yetki belgesi onay sonucu."),
             ["api/yetki-belgesi/reddet"] = Json<ApiOperationResponseDto>("Yetki belgesi red sonucu."),
 
@@ -134,24 +137,52 @@ namespace YetkiliServisGazAcma.API.Swagger
             ["api/ykc/talepler/form-yukle"] = Json<YkcIslemSonuc>("YKC teknik ek dosya yükleme sonucu.", badRequestType: typeof(YkcIslemSonuc)),
         };
 
+        private static readonly HashSet<string> NotFoundRoutes = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "api/dagitim-sirket/getir", "api/dagitim-sirket/guncelle", "api/dagitim-sirket/sil",
+            "api/marka/getir", "api/marka/guncelle", "api/marka/sil",
+            "api/yetkili-servisler/getir", "api/yetkili-servisler/guncelle", "api/yetkili-servisler/sil",
+            "api/yetki-belgesi/firma-liste", "api/yetki-belgesi/firma-ekrani", "api/yetki-belgesi/sil", "api/yetki-belgesi/dosya-indir", "api/yetki-belgesi/onayla", "api/yetki-belgesi/reddet",
+            "api/ys-devreyeal/getir", "api/ys-devreyeal/pdf", "api/ys-devreyeal/excel",
+            "api/ys-panel/profil", "api/ys-panel/profil/guncelle", "api/ys-panel/markalar", "api/ys-panel/raporlar/pdf", "api/ys-panel/raporlar/excel",
+            "api/admin-panel/yetkili-servisler/getir", "api/admin-panel/yetkili-servisler/sil",
+            "api/admin-panel/subeler/getir", "api/admin-panel/subeler/guncelle", "api/admin-panel/subeler/durum", "api/admin-panel/subeler/sil",
+            "api/admin-panel/devreye-almalar/getir", "api/admin-panel/devreye-almalar/pdf", "api/admin-panel/devreye-almalar/excel",
+            "api/admin-panel/kullanicilar/getir", "api/admin-panel/kullanicilar/guncelle", "api/admin-panel/kullanicilar/durum", "api/admin-panel/kullanicilar/sil",
+            "api/ykc/talepler/dosya-indir", "api/ykc/talepler/getir"
+        };
+
         public void Apply(OpenApiOperation operation, OperationFilterContext context)
         {
             var route = NormalizeRoute(context.ApiDescription.RelativePath);
             if (route == null)
                 return;
 
+            var authorizationNote = AuthorizationNote(context);
+            if (!string.IsNullOrWhiteSpace(authorizationNote))
+            {
+                operation.Description = string.IsNullOrWhiteSpace(operation.Description)
+                    ? authorizationNote
+                    : $"{operation.Description}\n\n{authorizationNote}";
+            }
+
             if (RouteResponses.TryGetValue(route, out var spec))
             {
+                operation.Responses.Clear();
+
                 if (spec.FileResponse)
                     SetFileResponse(operation, "200", spec.SuccessDescription);
                 else if (spec.SuccessType != null)
                     SetJsonResponse(operation, context, "200", spec.SuccessType, spec.SuccessDescription);
 
-                SadeceBasariliResponseGoster(operation);
-            }
-            else
-            {
-                SadeceBasariliResponseGoster(operation);
+                if (spec.BadRequestType != null)
+                    SetJsonResponse(operation, context, "400", spec.BadRequestType, "İstek doğrulanamadı veya işlem iş kuralı nedeniyle tamamlanamadı.");
+
+                if (NotFoundRoutes.Contains(route))
+                    SetJsonResponse(operation, context, "404", typeof(ApiErrorResponseDto), "İstenen kayıt veya dosya bulunamadı.");
+
+                if (spec.ServiceUnavailableType != null)
+                    SetJsonResponse(operation, context, "503", spec.ServiceUnavailableType, "Bağımlı servis şu anda kullanılamıyor.");
             }
         }
 
@@ -165,10 +196,43 @@ namespace YetkiliServisGazAcma.API.Swagger
             return new ResponseSpec(null, description, null, null, FileResponse: true);
         }
 
-        private static void SadeceBasariliResponseGoster(OpenApiOperation operation)
+        private static string? AuthorizationNote(OperationFilterContext context)
         {
-            foreach (var statusCode in operation.Responses.Keys.Where(x => x != "200").ToList())
-                operation.Responses.Remove(statusCode);
+            if (context.ApiDescription.ActionDescriptor is not ControllerActionDescriptor action)
+                return null;
+
+            var actionAllowsAnonymous = action.MethodInfo
+                .GetCustomAttributes(inherit: true)
+                .OfType<IAllowAnonymous>()
+                .Any();
+            var controllerAllowsAnonymous = action.ControllerTypeInfo
+                .GetCustomAttributes(inherit: true)
+                .OfType<IAllowAnonymous>()
+                .Any();
+
+            if (actionAllowsAnonymous || controllerAllowsAnonymous)
+                return null;
+
+            var authorizeData = action.ControllerTypeInfo
+                .GetCustomAttributes(inherit: true)
+                .OfType<IAuthorizeData>()
+                .Concat(action.MethodInfo
+                    .GetCustomAttributes(inherit: true)
+                    .OfType<IAuthorizeData>())
+                .ToList();
+
+            if (!authorizeData.Any())
+                return null;
+
+            var roles = authorizeData
+                .SelectMany(x => (x.Roles ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (roles.Any())
+                return $"Yetki: {string.Join(", ", roles)} rolüyle alınmış token gerekir.";
+
+            return "Yetki: geçerli kullanıcı tokenı gerekir.";
         }
 
         private static void SetJsonResponse(OpenApiOperation operation, OperationFilterContext context, string statusCode, Type responseType, string description)

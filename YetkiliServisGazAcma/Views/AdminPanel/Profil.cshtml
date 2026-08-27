@@ -10,6 +10,16 @@
     var email = kullanici?.Email ?? "-";
     var tel = kullanici?.PhoneNumber ?? "-";
     var basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "A";
+    var rolAdi = ViewBag.GenelSistemAdminMi == true
+        ? "Genel Sistem Admini"
+        : kullanici?.KullaniciTipi switch
+        {
+            YetkiliServisGazAcma.Business.Services.KullaniciTipiDegerleri.SirketAdmin => "Şirket Yöneticisi",
+            YetkiliServisGazAcma.Business.Services.KullaniciTipiDegerleri.Personel => "Şirket Personeli",
+            YetkiliServisGazAcma.Business.Services.KullaniciTipiDegerleri.YetkiliServis => "Yetkili Servis",
+            YetkiliServisGazAcma.Business.Services.KullaniciTipiDegerleri.SertifikaliFirma => "Sertifikalı Firma",
+            _ => "Kullanıcı"
+        };
 }
 
 @section Styles {
@@ -272,7 +282,7 @@
     </div>
     <div class="kart-icerik">
         <div class="bilgi-satir"><div class="bilgi-satir-label">Kullanıcı Adı</div><div class="bilgi-satir-deger">@kullanici?.UserName</div></div>
-        <div class="bilgi-satir"><div class="bilgi-satir-label">Rol</div><div class="bilgi-satir-deger">@(ViewBag.GenelSistemAdminMi == true ? "Genel Sistem Admini" : "Kullanıcı")</div></div>
+        <div class="bilgi-satir"><div class="bilgi-satir-label">Rol</div><div class="bilgi-satir-deger">@rolAdi</div></div>
         <div class="bilgi-satir"><div class="bilgi-satir-label">Hesap Durumu</div><div class="bilgi-satir-deger">@(kullanici?.AktifMi == true ? "Aktif" : "Pasif")</div></div>
         <div class="bilgi-satir"><div class="bilgi-satir-label">E-posta Onayı</div><div class="bilgi-satir-deger">@(kullanici?.EmailConfirmed == true ? "Onaylandı" : "Onaylanmadı")</div></div>
     </div>

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
@@ -8,6 +9,7 @@ namespace YetkiliServisGazAcma.Business.Services
 {
     public class YetkiBelgesiService
     {
+        private const string PrivateStoragePrefix = "private:yetki-belgeleri/";
         private readonly AppDbContext _context;
         private readonly IWebHostEnvironment _env;
 
@@ -65,11 +67,7 @@ namespace YetkiliServisGazAcma.Business.Services
             if (!await DosyaIcerigiGecerliMi(dosya, uzanti))
                 return (false, "Yuklenen dosyanin icerigi PDF, JPG veya PNG formatinda degil.");
 
-            var webRoot = string.IsNullOrWhiteSpace(_env.WebRootPath)
-                ? Path.Combine(_env.ContentRootPath, "wwwroot")
-                : _env.WebRootPath;
-
-            var klasor = Path.Combine(webRoot, "yetki-belgeleri");
+            var klasor = Path.Combine(PrivateYetkiBelgesiRoot(), firmaId.ToString());
             if (!Directory.Exists(klasor))
                 Directory.CreateDirectory(klasor);
 
@@ -82,7 +80,7 @@ namespace YetkiliServisGazAcma.Business.Services
             var yetkiBelgesi = new Ys_YetkiBelgesi
             {
                 FirmaId = firmaId,
-                DosyaYolu = BuildDosyaYolu(publicBaseUrl, dosyaAdi),
+                DosyaYolu = $"{PrivateStoragePrefix}{firmaId}/{dosyaAdi}",
                 YetkiBelgesiBaslangicTarihi = baslangic,
                 YetkiBelgesiBitisTarihi = bitis,
                 Durum = YetkiBelgesiDurumDegerleri.OnaydaBekliyor,
@@ -97,13 +95,101 @@ namespace YetkiliServisGazAcma.Business.Services
             return (true, "Yetki belgeniz basariyla yuklendi. Onay bekleniyor.");
         }
 
-        private static string BuildDosyaYolu(string? publicBaseUrl, string dosyaAdi)
+        public YetkiBelgesiDosyaSonuc? DosyaGetir(Ys_YetkiBelgesi yetkiBelgesi)
         {
-            var relativePath = "/yetki-belgeleri/" + dosyaAdi;
-            if (string.IsNullOrWhiteSpace(publicBaseUrl))
-                return relativePath;
+            var fizikselYol = ResolveDosyaYolu(yetkiBelgesi.DosyaYolu);
+            if (string.IsNullOrWhiteSpace(fizikselYol) || !File.Exists(fizikselYol))
+                return null;
 
-            return publicBaseUrl.TrimEnd('/') + relativePath;
+            var dosyaAdi = Path.GetFileName(fizikselYol);
+            var provider = new FileExtensionContentTypeProvider();
+            if (!provider.TryGetContentType(dosyaAdi, out var contentType))
+                contentType = "application/octet-stream";
+
+            return new YetkiBelgesiDosyaSonuc
+            {
+                FizikselYol = fizikselYol,
+                DosyaAdi = dosyaAdi,
+                ContentType = contentType
+            };
+        }
+
+        public static string GuvenliDosyaLinki(int yetkiBelgesiId)
+        {
+            return $"/ys-yetki-belgesi/dosya/{yetkiBelgesiId}";
+        }
+
+        private string? ResolveDosyaYolu(string? dosyaYolu)
+        {
+            if (string.IsNullOrWhiteSpace(dosyaYolu))
+                return null;
+
+            var temiz = dosyaYolu.Trim();
+            if (temiz.StartsWith(PrivateStoragePrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                var relative = temiz[PrivateStoragePrefix.Length..]
+                    .Replace('/', Path.DirectorySeparatorChar)
+                    .Replace('\\', Path.DirectorySeparatorChar);
+                return SafeCombine(PrivateYetkiBelgesiRoot(), relative);
+            }
+
+            if (Uri.TryCreate(temiz, UriKind.Absolute, out var uri)
+                && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
+            {
+                temiz = uri.AbsolutePath;
+            }
+
+            if (temiz.StartsWith("/", StringComparison.Ordinal))
+            {
+                var relative = temiz.TrimStart('/')
+                    .Replace('/', Path.DirectorySeparatorChar)
+                    .Replace('\\', Path.DirectorySeparatorChar);
+                return SafeCombine(WebRootPath(), relative);
+            }
+
+            if (!Path.IsPathRooted(temiz))
+            {
+                var relative = temiz
+                    .Replace('/', Path.DirectorySeparatorChar)
+                    .Replace('\\', Path.DirectorySeparatorChar);
+                var privatePath = SafeCombine(PrivateYetkiBelgesiRoot(), relative);
+                if (!string.IsNullOrWhiteSpace(privatePath) && File.Exists(privatePath))
+                    return privatePath;
+
+                return SafeCombine(WebRootPath(), relative);
+            }
+
+            var fullPath = Path.GetFullPath(temiz);
+            if (PathInRoot(fullPath, PrivateYetkiBelgesiRoot()) || PathInRoot(fullPath, WebRootPath()))
+                return fullPath;
+
+            return null;
+        }
+
+        private string PrivateYetkiBelgesiRoot()
+        {
+            return Path.Combine(_env.ContentRootPath, "App_Data", "yetki-belgeleri");
+        }
+
+        private string WebRootPath()
+        {
+            return string.IsNullOrWhiteSpace(_env.WebRootPath)
+                ? Path.Combine(_env.ContentRootPath, "wwwroot")
+                : _env.WebRootPath;
+        }
+
+        private static string? SafeCombine(string root, string relativePath)
+        {
+            var fullRoot = Path.GetFullPath(root);
+            var fullPath = Path.GetFullPath(Path.Combine(fullRoot, relativePath));
+            return PathInRoot(fullPath, fullRoot) ? fullPath : null;
+        }
+
+        private static bool PathInRoot(string path, string root)
+        {
+            var fullRoot = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            var fullPath = Path.GetFullPath(path);
+            return fullPath.StartsWith(fullRoot, StringComparison.OrdinalIgnoreCase);
         }
 
         private static async Task<bool> DosyaIcerigiGecerliMi(IFormFile dosya, string uzanti)
@@ -173,5 +259,12 @@ namespace YetkiliServisGazAcma.Business.Services
             await _context.SaveChangesAsync();
             return true;
         }
+    }
+
+    public class YetkiBelgesiDosyaSonuc
+    {
+        public string FizikselYol { get; set; } = string.Empty;
+        public string ContentType { get; set; } = "application/octet-stream";
+        public string DosyaAdi { get; set; } = "yetki-belgesi";
     }
 }

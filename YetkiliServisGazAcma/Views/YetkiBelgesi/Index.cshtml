@@ -177,7 +177,7 @@
                                 <td><span class="badge @durumClass">@durumText</span></td>
                                 <td>
                                     <div class="df-actions">
-                                        <a class="df-btn df-btn-secondary df-btn-sm" href="@s.DosyaYolu" target="_blank">G&#246;r&#252;nt&#252;le</a>
+                                        <a class="df-btn df-btn-secondary df-btn-sm" href="/ys-yetki-belgesi/dosya/@s.Id" target="_blank">G&#246;r&#252;nt&#252;le</a>
                                         <form method="post" action="/ys-yetki-belgesi/sil" onsubmit="return confirm('Yetki belgesini silmek istiyor musunuz?');">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="id" value="@s.Id" />

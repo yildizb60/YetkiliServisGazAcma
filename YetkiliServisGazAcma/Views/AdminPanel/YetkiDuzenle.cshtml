@@ -4,231 +4,193 @@
     ViewData["PanelSubtitle"] = "Admin Paneli";
     ViewData["ActiveMenu"] = "Yetkiler";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
-    var Kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
+
     var personel = ViewBag.Personel as YetkiliServisGazAcma.Entities.AppKullanici;
-    var mevcutYetkiler = ViewBag.MevcutYetkiler as List<string> ?? new List<string>();
-    var sirketler = ViewBag.Sirketler as List<YetkiliServisGazAcma.Entities.Dag_Sirket> ?? new List<YetkiliServisGazAcma.Entities.Dag_Sirket>();
-    var seciliSirketIds = ViewBag.SeciliSirketIds as List<int> ?? new List<int>();
-    var yetkiSirketMap = ViewBag.YetkiSirketMap as Dictionary<int, List<string>> ?? new Dictionary<int, List<string>>();
-    var tumYetkiler = new Dictionary<string, string>
+    var sirketler = ViewBag.Sirketler as List<YetkiliServisGazAcma.Entities.Dag_Sirket> ?? new();
+    var seciliSirketIds = ViewBag.SeciliSirketIds as List<int> ?? new();
+    var yetkiSirketMap = ViewBag.YetkiSirketMap as Dictionary<int, List<string>> ?? new();
+    var yetkiGruplari = new[]
     {
-        ["YETKI_BELGESI_ONAY"] = "Yetki Belgesi Onay",
-        ["RAPOR_GOR"] = "Rapor Gör",
-        ["KULLANICI_YONET"] = "Yetkili Servis Yönet",
-        ["MARKA_YONET"] = "Marka Yönet",
-        ["YKC_TALEP_GOR"] = "YKC Taleplerini Gör",
-        ["YKC_ATAMA_YAP"] = "YKC Atama ve Randevu",
-        ["YKC_FR265_IMZA_ISLEM"] = "YKC FR265 ve İmza İşlemleri",
-        ["YKC_RAPOR_GOR"] = "YKC Raporlarını Gör",
-        ["TAM_YETKI"] = "Tam Yetki"
+        new
+        {
+            Baslik = "Yakıcı Cihaz Değişimi",
+            Aciklama = "Talep inceleme, randevu, FR265 ve rapor işlemleri.",
+            Yetkiler = new[]
+            {
+                new { Kod = "YKC_TALEP_GOR", Ad = "Talepleri görüntüle", Aciklama = "Şirket kapsamındaki cihaz değişim taleplerini ve durumlarını görür." },
+                new { Kod = "YKC_ATAMA_YAP", Ad = "Randevu ve yönlendirme yap", Aciklama = "İncelenen talep için birim, bölge ve randevu bilgilerini kaydeder." },
+                new { Kod = "YKC_FR265_IMZA_ISLEM", Ad = "FR265 ve imza işlemleri", Aciklama = "Kontrol sonuçlarını, FR265 önizlemesini ve imza akışını yönetir." },
+                new { Kod = "YKC_RAPOR_GOR", Ad = "YKC raporlarını görüntüle", Aciklama = "Cihaz değişim raporlarını görüntüler ve dışa aktarır." }
+            }
+        },
+        new
+        {
+            Baslik = "Devreye Alma ve Belgeler",
+            Aciklama = "Yetki belgesi onayı ve devreye alma raporları.",
+            Yetkiler = new[]
+            {
+                new { Kod = "YETKI_BELGESI_ONAY", Ad = "Yetki belgesi onayla", Aciklama = "Yetkili servis belge başvurularını inceleyip onaylar veya reddeder." },
+                new { Kod = "RAPOR_GOR", Ad = "Operasyon raporlarını görüntüle", Aciklama = "Cihaz devreye alma kayıtları ve raporlarına erişir." }
+            }
+        },
+        new
+        {
+            Baslik = "Yönetim",
+            Aciklama = "Şirket kapsamındaki tanım ve servis yönetimi işlemleri.",
+            Yetkiler = new[]
+            {
+                new { Kod = "KULLANICI_YONET", Ad = "Yetkili servisleri yönet", Aciklama = "Şirket kapsamındaki yetkili servis kayıtlarını görüntüler ve yönetir." },
+                new { Kod = "MARKA_YONET", Ad = "Marka tanımlarını yönet", Aciklama = "Marka tanımlarını görüntüler ve yetkili olduğu işlemleri yürütür." },
+                new { Kod = "DAGITIM_SIRKET_YONET", Ad = "Dağıtım şirketi bilgilerini güncelle", Aciklama = "Atandığı şirketin iletişim bilgilerini görüntüler ve günceller." }
+            }
+        },
+        new
+        {
+            Baslik = "Gelişmiş",
+            Aciklama = "Bu seçenek diğer tüm yetkilerin yerine geçer.",
+            Yetkiler = new[]
+            {
+                new { Kod = "TAM_YETKI", Ad = "Tam yetki", Aciklama = "Bu şirket için tanımlı tüm personel yetkilerini verir. Diğer seçeneklerle birlikte kullanılmaz." }
+            }
+        }
     };
-    string adSoyad = Kullanici?.AdSoyad ?? "Yönetici";
-    string basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "A";
 }
 
 @section Styles {
     <style>
-        .card {
-            background: #fff;
-            border-radius: 12px;
-            border: 1px solid #eee;
-            overflow: hidden;
+        .permission-editor { background: var(--df-surface, #fff); border: 1px solid var(--df-border, #e3e7f0); border-radius: 8px; }
+        .permission-editor-head { padding: 18px 20px; border-bottom: 1px solid var(--df-border, #e3e7f0); }
+        .permission-editor-head h2 { margin: 0; font-size: 18px; color: var(--df-text, #1e2d4a); }
+        .permission-editor-meta { margin: 5px 0 0; color: var(--df-muted, #566280); font-size: 13px; }
+        .permission-editor-body { padding: 20px; }
+        .permission-editor-note { margin: 0 0 16px; padding: 10px 12px; border-left: 3px solid var(--df-primary, #2e4ec8); background: var(--df-primary-soft, #eef1fb); color: var(--df-text-soft, #3d4f6e); font-size: 13px; line-height: 1.5; }
+        .company-permission { border-top: 1px solid var(--df-border, #e3e7f0); }
+        .company-permission:first-of-type { border-top: 0; }
+        .company-permission > summary { display: flex; align-items: center; gap: 10px; padding: 15px 0; cursor: pointer; list-style: none; color: var(--df-text, #1e2d4a); font-weight: 700; }
+        .company-permission > summary::before { content: "+"; display: grid; place-items: center; width: 18px; height: 18px; color: var(--df-primary, #2e4ec8); font-size: 17px; line-height: 1; }
+        .company-permission[open] > summary::before { content: "-"; }
+        .company-enable { width: 16px; height: 16px; accent-color: var(--df-primary, #2e4ec8); }
+        .company-permission-name { flex: 1; }
+        .company-permission-state { color: var(--df-muted, #566280); font-size: 12px; font-weight: 500; }
+        .permission-groups { padding: 0 0 18px 28px; }
+        .permission-group + .permission-group { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--df-border, #e3e7f0); }
+        .permission-group-title { margin: 0; color: var(--df-text, #1e2d4a); font-size: 14px; font-weight: 700; }
+        .permission-group-description { margin: 3px 0 10px; color: var(--df-muted, #566280); font-size: 12px; }
+        .permission-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 20px; }
+        .permission-option-wrap { display: grid; grid-template-columns: auto 1fr; column-gap: 9px; align-items: start; min-width: 0; padding: 8px 0; }
+        .permission-option { width: 16px; height: 16px; margin: 2px 0 0; accent-color: var(--df-primary, #2e4ec8); }
+        .permission-option-label { color: var(--df-text, #1e2d4a); font-size: 13px; font-weight: 650; }
+        .permission-option-description { display: block; margin-top: 2px; color: var(--df-muted, #566280); font-size: 12px; line-height: 1.4; }
+        .permission-option-wrap:has(input:disabled) { opacity: .5; }
+        .permission-editor-actions { display: flex; gap: 10px; padding-top: 20px; border-top: 1px solid var(--df-border, #e3e7f0); }
+        @@media (max-width: 780px) {
+            .permission-editor-body { padding: 16px; }
+            .permission-groups { padding-left: 0; }
+            .permission-list { grid-template-columns: 1fr; }
+            .company-permission-state { display: none; }
         }
-
-        .card-head {
-            padding: 14px 20px;
-            border-bottom: 2px solid #f0f0ee;
-            font-size: 13px;
-            font-weight: 800;
-            color: #333;
-        }
-
-        .card-body {
-            padding: 20px;
-        }
-
-        .company-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 8px;
-            margin: 8px 0 18px;
-        }
-
-        .company-card {
-            border: 1px solid #e1edf7;
-            border-radius: 12px;
-            background: #fbfdff;
-            overflow: hidden;
-        }
-
-        .company-card-head {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 11px 12px;
-            background: #f3f9ff;
-            border-bottom: 1px solid #e1edf7;
-            font-size: 13px;
-            font-weight: 800;
-            color: #183b56;
-        }
-
-        .permission-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-            gap: 8px;
-            padding: 12px;
-        }
-
-        .permission-check {
-            display: flex;
-            align-items: center;
-            gap: 9px;
-            background: #fff;
-            border: 1px solid #e7eef5;
-            border-radius: 9px;
-            padding: 9px 10px;
-            font-size: 13px;
-            font-weight: 700;
-            color: #334155;
-        }
-
-        .permission-check input:disabled + span {
-            color: #a8b3bf;
-        }
-
-        .section-label {
-            font-size: 11px;
-            font-weight: 800;
-            color: #6f7b86;
-            text-transform: uppercase;
-            letter-spacing: .04em;
-            margin: 12px 0 6px;
-        }
-
-        .btn {
-            padding: 10px 16px;
-            border-radius: 8px;
-            border: none;
-            font-weight: 800;
-            cursor: pointer;
-            font-size: 13px;
-            background: #1B9FD4;
-            color: #fff;
-        }
-
-        .btn-secondary {
-            background: #f0f4f8;
-            color: #333;
-            border: 1px solid #ddd;
-            text-decoration: none;
-        }
-
-        .btn-row {
-            display: flex;
-            gap: 10px;
-            margin-top: 16px;
-        }
-
-        .info {
-            font-size: 13px;
-            color: #666;
-            margin-bottom: 12px;
-        }
-
-        .permission-note {
-            display: flex;
-            align-items: flex-start;
-            gap: 8px;
-            margin: 0 0 14px;
-            padding: 10px 12px;
-            color: #344054;
-            background: #f7f9fc;
-            border: 1px solid #dce2ea;
-            border-radius: 6px;
-            font-size: 12px;
-            line-height: 1.45;
-        }
-
     </style>
 }
 
-<div class="card">
-    <div class="card-head">@(personel?.AdSoyad ?? "Personel")</div>
-    <div class="card-body">
-        <div class="info">E-Posta: @(personel?.Email ?? "-")</div>
-        <div class="permission-note">
-            <i class="bi bi-info-circle"></i>
-            <span>YKC atama, FR265/imza veya rapor yetkisi verildiğinde <strong>YKC Taleplerini Gör</strong> yetkisi de otomatik eklenir.</span>
-        </div>
+<section class="permission-editor">
+    <header class="permission-editor-head">
+        <h2>@(personel?.AdSoyad ?? "Personel")</h2>
+        <p class="permission-editor-meta">@(personel?.Email ?? "E-posta bilgisi bulunmuyor")</p>
+    </header>
+    <div class="permission-editor-body">
+        <p class="permission-editor-note">
+            Yakıcı Cihaz Değişimi bölümünde randevu, FR265/imza veya rapor yetkisi seçildiğinde
+            <strong>Talepleri görüntüle</strong> yetkisi otomatik eklenir.
+        </p>
         <form method="post">
             @Html.AntiForgeryToken()
-            <div class="section-label">Şirket Bazlı Yetkiler</div>
-            <div class="company-list">
-                @foreach (var sirket in sirketler)
-                {
-                    var sirketYetkileri = yetkiSirketMap.ContainsKey(sirket.Id) ? yetkiSirketMap[sirket.Id] : new List<string>();
-                    var sirketSecili = seciliSirketIds.Contains(sirket.Id) || sirketYetkileri.Count > 0;
-                    <div class="company-card">
-                        <label class="company-card-head">
-                            <input type="checkbox" class="company-toggle" name="sirketIds" value="@sirket.Id" @(sirketSecili ? "checked" : "") />
-                            <span>@sirket.SirketAdi</span>
-                        </label>
-                        <div class="permission-grid">
-                            @foreach (var yetki in tumYetkiler)
-                            {
-                                var yetkiSecili = sirketYetkileri.Contains(yetki.Key);
-                                <label class="permission-check">
-                                    <input type="checkbox" class="permission-option" data-permission="@yetki.Key" name="yetkiler_@sirket.Id" value="@yetki.Key" @(yetkiSecili ? "checked" : "") />
-                                    <span>@yetki.Value</span>
-                                </label>
-                            }
-                        </div>
+            @for (var index = 0; index < sirketler.Count; index++)
+            {
+                var sirket = sirketler[index];
+                var sirketYetkileri = yetkiSirketMap.TryGetValue(sirket.Id, out var tanimliYetkiler)
+                    ? tanimliYetkiler
+                    : new List<string>();
+                var sirketSecili = seciliSirketIds.Contains(sirket.Id) || sirketYetkileri.Count > 0;
+                <details class="company-permission" @(index == 0 ? "open" : null)>
+                    <summary>
+                        <input type="checkbox" class="company-enable" name="sirketIds" value="@sirket.Id" @(sirketSecili ? "checked" : null) />
+                        <span class="company-permission-name">@sirket.SirketAdi</span>
+                        <span class="company-permission-state">@(sirketSecili ? "Yetki veriliyor" : "Yetki kapalı")</span>
+                    </summary>
+                    <div class="permission-groups">
+                        @foreach (var grup in yetkiGruplari)
+                        {
+                            <section class="permission-group">
+                                <h3 class="permission-group-title">@grup.Baslik</h3>
+                                <p class="permission-group-description">@grup.Aciklama</p>
+                                <div class="permission-list">
+                                    @foreach (var yetki in grup.Yetkiler)
+                                    {
+                                        var yetkiSecili = sirketYetkileri.Contains(yetki.Kod, StringComparer.OrdinalIgnoreCase);
+                                        <label class="permission-option-wrap">
+                                            <input type="checkbox" class="permission-option" data-permission="@yetki.Kod" name="yetkiler_@sirket.Id" value="@yetki.Kod" @(yetkiSecili ? "checked" : null) />
+                                            <span>
+                                                <span class="permission-option-label">@yetki.Ad</span>
+                                                <span class="permission-option-description">@yetki.Aciklama</span>
+                                            </span>
+                                        </label>
+                                    }
+                                </div>
+                            </section>
+                        }
                     </div>
-                }
-            </div>
-            <div class="btn-row">
-                <button type="submit" class="btn">Kaydet</button>
-                <a class="btn btn-secondary" href="/AdminPanel/yetkiler">Vazgeç</a>
+                </details>
+            }
+            <div class="permission-editor-actions">
+                <button type="submit" class="df-btn df-btn-primary">Kaydet</button>
+                <a class="df-btn df-btn-secondary" href="/AdminPanel/yetkiler">Vazgeç</a>
             </div>
         </form>
     </div>
-</div>
+</section>
 
 @section Scripts {
 <script>
     (function () {
-        document.querySelectorAll(".company-card").forEach(function (card) {
-            var toggle = card.querySelector(".company-toggle");
-            var options = card.querySelectorAll(".permission-option");
-            function sync() {
-                options.forEach(function (opt) {
-                    opt.disabled = !toggle.checked;
-                    if (!toggle.checked) opt.checked = false;
-                });
-            }
-            function syncYkcDependencies(changed) {
-                var viewPermission = card.querySelector('[data-permission="YKC_TALEP_GOR"]');
-                var dependentPermissions = card.querySelectorAll('[data-permission="YKC_ATAMA_YAP"], [data-permission="YKC_FR265_IMZA_ISLEM"], [data-permission="YKC_RAPOR_GOR"]');
-                if (!viewPermission) return;
+        document.querySelectorAll(".company-permission").forEach(function (company) {
+            var companyToggle = company.querySelector(".company-enable");
+            var options = Array.from(company.querySelectorAll(".permission-option"));
+            var fullAccess = company.querySelector('[data-permission="TAM_YETKI"]');
+            var requestView = company.querySelector('[data-permission="YKC_TALEP_GOR"]');
+            var ykcDependent = company.querySelectorAll('[data-permission="YKC_ATAMA_YAP"], [data-permission="YKC_FR265_IMZA_ISLEM"], [data-permission="YKC_RAPOR_GOR"]');
 
-                if (changed === viewPermission && !viewPermission.checked) {
-                    dependentPermissions.forEach(function (permission) { permission.checked = false; });
+            function refreshCompanyState() {
+                options.forEach(function (option) { option.disabled = !companyToggle.checked; });
+                company.querySelector(".company-permission-state").textContent = companyToggle.checked ? "Yetki veriliyor" : "Yetki kapalı";
+            }
+
+            function syncYkcPermissions(changed) {
+                if (!requestView) return;
+                if (changed === requestView && !requestView.checked) {
+                    ykcDependent.forEach(function (option) { option.checked = false; });
                     return;
                 }
+                if (Array.from(ykcDependent).some(function (option) { return option.checked; })) requestView.checked = true;
+            }
 
-                if (Array.from(dependentPermissions).some(function (permission) { return permission.checked; })) {
-                    viewPermission.checked = true;
+            function syncFullAccess(changed) {
+                if (!fullAccess) return;
+                if (changed === fullAccess && fullAccess.checked) {
+                    options.forEach(function (option) { if (option !== fullAccess) option.checked = false; });
                 }
+                if (changed !== fullAccess && changed && changed.checked) fullAccess.checked = false;
             }
-            if (toggle) {
-                toggle.addEventListener("change", sync);
-                sync();
-            }
+
+            companyToggle.addEventListener("change", refreshCompanyState);
             options.forEach(function (option) {
-                option.addEventListener("change", function () { syncYkcDependencies(option); });
+                option.addEventListener("change", function () {
+                    syncFullAccess(option);
+                    syncYkcPermissions(option);
+                });
             });
-            syncYkcDependencies();
+            refreshCompanyState();
+            syncFullAccess(fullAccess);
+            syncYkcPermissions();
         });
     })();
 </script>

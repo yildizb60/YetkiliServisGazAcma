@@ -59,6 +59,16 @@ namespace YetkiliServisGazAcma.Business.Services
             return PostAsync<IdIstek>("api/yetki-belgesi/sil", kullanici, new IdIstek { Id = id });
         }
 
+        public Task<ApiDosyaSonuc?> DosyaIndirAsync(AppKullanici kullanici, int id)
+        {
+            return PostFileAsync(
+                kullanici,
+                "api/yetki-belgesi/dosya-indir",
+                new IdIstek { Id = id },
+                $"Yetki_Belgesi_{id}",
+                "Yetki belgesi dosya indir");
+        }
+
         public async Task<YetkiBelgesiIslemSonuc?> YukleAsync(
             AppKullanici kullanici,
             int firmaId,
@@ -244,6 +254,50 @@ namespace YetkiliServisGazAcma.Business.Services
                 }
 
                 return await response.Content.ReadFromJsonAsync<TResponse>();
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
+            {
+                _logger.LogWarning(ex, "{Operasyon} API cagrisina ulasilamadi. Url: {Url}", operasyon, url);
+                ApiClientFallback.EnsureAllowed(_options, operasyon);
+                return default;
+            }
+        }
+
+        private async Task<ApiDosyaSonuc?> PostFileAsync<TRequest>(
+            AppKullanici kullanici,
+            string url,
+            TRequest istek,
+            string varsayilanDosyaAdi,
+            string operasyon)
+        {
+            if (!_options.Enabled)
+            {
+                ApiClientFallback.EnsureAllowed(_options, operasyon);
+                return default;
+            }
+
+            try
+            {
+                var token = await _tokenService.OlusturAsync(kullanici);
+                if (string.IsNullOrWhiteSpace(token))
+                {
+                    ApiClientFallback.EnsureAllowed(_options, $"{operasyon} token");
+                    return default;
+                }
+
+                using var request = new HttpRequestMessage(HttpMethod.Post, url);
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                request.Content = JsonContent.Create(istek);
+
+                using var response = await _httpClient.SendAsync(request);
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("{Operasyon} API cagrisinda basarisiz yanit dondu. Url: {Url}, StatusCode: {StatusCode}", operasyon, url, response.StatusCode);
+                    ApiClientFallback.EnsureAllowed(_options, operasyon);
+                    return default;
+                }
+
+                return await ApiDosyaSonuc.FromResponseAsync(response, varsayilanDosyaAdi);
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
             {

@@ -200,7 +200,7 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpGet("detay/{id:int}")]
-        public async Task<IActionResult> Detay(int id)
+        public async Task<IActionResult> Detay(int id, string? kaynak = null)
         {
             var kullanici = await _userManager.GetUserAsync(User);
             if (kullanici == null)
@@ -209,7 +209,10 @@ namespace YetkiliServisGazAcma.Controllers
             if (!YkcYetkileri().TalepleriGorebilir)
                 return Redirect("/yetkisiz-erisim");
 
-            PanelViewBag(kullanici, "YkcTalepler", "Cihaz Değişim Talebi Detayı", "Form, cihaz bilgileri ve atama süreci");
+            var aktifMenu = string.Equals(kaynak, "rapor", StringComparison.OrdinalIgnoreCase)
+                ? "YkcRaporlar"
+                : "YkcTalepler";
+            PanelViewBag(kullanici, aktifMenu, "Cihaz Değişim Talebi Detayı", "Form, cihaz bilgileri ve atama süreci");
 
             var detay = await _ykcApiClient.DetayAsync(kullanici, id);
             if (detay == null)

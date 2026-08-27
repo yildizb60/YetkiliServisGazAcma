@@ -30,13 +30,16 @@ namespace YetkiliServisGazAcma.API.Controllers
         [HttpPost("firma-liste")]
         public async Task<IActionResult> FirmaListe([FromBody] IdDto dto)
         {
+            if (!await FirmaGoruntulemeYetkisiVarMi(dto.Id))
+                return Forbid();
+
             var belgeler = await _service.FirmaninYetkiBelgeleri(dto.Id);
 
             return Ok(belgeler.Select(x => new YetkiBelgesiDto
             {
                 Id = x.Id,
                 FirmaId = x.FirmaId,
-                DosyaYolu = x.DosyaYolu,
+                DosyaYolu = string.IsNullOrWhiteSpace(x.DosyaYolu) ? null : YetkiBelgesiService.GuvenliDosyaLinki(x.Id),
                 Durum = x.Durum,
                 OlusturmaTarihi = x.OlusturmaTarihi,
                 YetkiBelgesiBaslangicTarihi = x.YetkiBelgesiBaslangicTarihi,
@@ -180,6 +183,27 @@ namespace YetkiliServisGazAcma.API.Controllers
             return Ok(new { basarili = true, mesaj = "Yetki belgesi silindi" });
         }
 
+        [HttpPost("dosya-indir")]
+        public async Task<IActionResult> DosyaIndir([FromBody] IdDto dto)
+        {
+            var yetkiBelgesi = await _context.Ys_YetkiBelgeleri
+                .Include(x => x.Firma)
+                .FirstOrDefaultAsync(x => x.Id == dto.Id && !x.SilindiMi);
+
+            if (yetkiBelgesi == null)
+                return NotFound(new { basarili = false, mesaj = "Yetki belgesi bulunamadi" });
+
+            if (!await FirmaGoruntulemeYetkisiVarMi(yetkiBelgesi.FirmaId))
+                return Forbid();
+
+            var dosya = _service.DosyaGetir(yetkiBelgesi);
+            if (dosya == null)
+                return NotFound(new { basarili = false, mesaj = "Yetki belgesi dosyasi bulunamadi" });
+
+            Response.Headers.CacheControl = "private, no-store";
+            return PhysicalFile(dosya.FizikselYol, dosya.ContentType, dosya.DosyaAdi);
+        }
+
         private static YetkiBelgesiDto MapYetkiBelgesi(Ys_YetkiBelgesi x)
         {
             return new YetkiBelgesiDto
@@ -189,7 +213,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 FirmaAdi = x.Firma?.FirmaAdi,
                 SirketId = x.Firma?.SirketId,
                 SirketAdi = x.Firma?.Sirket?.SirketAdi,
-                DosyaYolu = x.DosyaYolu,
+                DosyaYolu = string.IsNullOrWhiteSpace(x.DosyaYolu) ? null : YetkiBelgesiService.GuvenliDosyaLinki(x.Id),
                 Durum = x.Durum,
                 OlusturmaTarihi = x.OlusturmaTarihi,
                 YetkiBelgesiBaslangicTarihi = x.YetkiBelgesiBaslangicTarihi,
