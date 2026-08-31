@@ -72,7 +72,7 @@ namespace YetkiliServisGazAcma.Controllers
                 BaslangicTarihi = bas,
                 BitisTarihi = bit,
                 Sayfa = Math.Max(sayfa, 1),
-                SayfaBoyutu = 50
+                SayfaBoyutu = 10
             };
 
             var sonuc = await _ykcApiClient.TaleplerAsync(kullanici, filtre) ?? new YkcTalepListeSonuc();

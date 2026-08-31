@@ -12,6 +12,9 @@
     var toplamSayfa = Model.SayfaBoyutu > 0
         ? Math.Max((int)Math.Ceiling(Model.Toplam / (double)Model.SayfaBoyutu), 1)
         : 1;
+    var aktifSayfa = Math.Clamp(Model.Sayfa, 1, toplamSayfa);
+    var ilkKayit = Model.Toplam == 0 ? 0 : ((aktifSayfa - 1) * Model.SayfaBoyutu) + 1;
+    var sonKayit = Math.Min(aktifSayfa * Model.SayfaBoyutu, Model.Toplam);
 
     void AktifFiltreEkle(string etiket, string? deger)
     {
@@ -285,21 +288,31 @@
             </table>
         </div>
 
-        @if (toplamSayfa > 1)
+        @if (Model.Toplam > 0)
         {
-            <div class="ykc-pager">
-                <span>Sayfa @Model.Sayfa / @toplamSayfa</span>
+            <nav class="ykc-pager" aria-label="Talep listesi sayfaları">
+                <span>@ilkKayit-@sonKayit / @Model.Toplam kayıt gösteriliyor</span>
                 <div class="ykc-pager-actions">
-                    @if (Model.Sayfa > 1)
+                    <a class="df-btn df-btn-secondary df-btn-sm @(aktifSayfa == 1 ? "is-disabled" : "")"
+                       href="@(aktifSayfa == 1 ? "#" : SayfaUrl(filtre, aktifSayfa - 1))"
+                       aria-disabled="@(aktifSayfa == 1 ? "true" : "false")"
+                       title="Önceki sayfa">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                    @for (var sayfaNo = Math.Max(1, aktifSayfa - 2); sayfaNo <= Math.Min(toplamSayfa, aktifSayfa + 2); sayfaNo++)
                     {
-                        <a class="df-btn df-btn-secondary df-btn-sm" href="@SayfaUrl(filtre, Model.Sayfa - 1)"><i class="bi bi-chevron-left"></i> Önceki</a>
+                        <a class="ykc-page-number @(sayfaNo == aktifSayfa ? "is-active" : "")"
+                           href="@SayfaUrl(filtre, sayfaNo)"
+                           aria-current="@(sayfaNo == aktifSayfa ? "page" : null)">@sayfaNo</a>
                     }
-                    @if (Model.Sayfa < toplamSayfa)
-                    {
-                        <a class="df-btn df-btn-primary df-btn-sm" href="@SayfaUrl(filtre, Model.Sayfa + 1)">Sonraki <i class="bi bi-chevron-right"></i></a>
-                    }
+                    <a class="df-btn df-btn-secondary df-btn-sm @(aktifSayfa == toplamSayfa ? "is-disabled" : "")"
+                       href="@(aktifSayfa == toplamSayfa ? "#" : SayfaUrl(filtre, aktifSayfa + 1))"
+                       aria-disabled="@(aktifSayfa == toplamSayfa ? "true" : "false")"
+                       title="Sonraki sayfa">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
                 </div>
-            </div>
+            </nav>
         }
     </section>
 </div>

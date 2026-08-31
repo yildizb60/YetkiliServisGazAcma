@@ -138,6 +138,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 ProjeNo = c.ProjeNo ?? "",
                 TesisatNo = c.TesisatNo?.ToString(CultureInfo.InvariantCulture) ?? ""
             }).ToList();
+            var il = firma?.FaaliyetIli ?? sirket?.Il ?? IlFromFirmaKodu(kullanilanFirmaKodu);
 
             return Ok(new YkcTesisatSorguSonuc
             {
@@ -153,9 +154,9 @@ namespace YetkiliServisGazAcma.API.Controllers
                 SayacNo = servisSonuc.SayacNo?.ToString(CultureInfo.InvariantCulture) ?? "",
                 MusteriAdi = servisSonuc.CariAd ?? "",
                 MusteriTelefon = "",
-                Il = firma?.FaaliyetIli ?? sirket?.Il ?? IlFromFirmaKodu(kullanilanFirmaKodu),
+                Il = il,
                 Ilce = "",
-                Bolge = "",
+                Bolge = il,
                 Adres = servisSonuc.Adres ?? "",
                 Durum = cihazlar.Count > 0 ? "Cihaz bilgisi bulundu" : "Tesisat bulundu",
                 Cihazlar = cihazlar

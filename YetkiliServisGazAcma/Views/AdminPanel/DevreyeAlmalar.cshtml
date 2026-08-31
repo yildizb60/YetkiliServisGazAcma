@@ -218,15 +218,16 @@
     </style>
 }
 
+<div class="df-operations-list">
 <div class="istat-row">
-    <div class="istat-kart"><div class="istat-icon mavi">📊</div><div><div class="istat-sayi">@Model.Count</div><div class="istat-label">Toplam işlem</div></div></div>
-    <div class="istat-kart"><div class="istat-icon yesil">✅</div><div><div class="istat-sayi">@Model.Count(x => x.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi)</div><div class="istat-label">Tamamlanan</div></div></div>
-    <div class="istat-kart"><div class="istat-icon sari">⏳</div><div><div class="istat-sayi">@Model.Count(x => x.Durum == DevreyeAlmaDurumDegerleri.Bekliyor)</div><div class="istat-label">Bekleyen</div></div></div>
-    <div class="istat-kart"><div class="istat-icon mor">🏢</div><div><div class="istat-sayi">@Model.Select(x => x.FirmaId).Distinct().Count()</div><div class="istat-label">Farklı Servis</div></div></div>
+    <div class="istat-kart"><div class="istat-icon mavi"><i class="bi bi-collection" aria-hidden="true"></i></div><div><div class="istat-sayi">@Model.Count</div><div class="istat-label">Toplam işlem</div></div></div>
+    <div class="istat-kart"><div class="istat-icon yesil"><i class="bi bi-check-circle" aria-hidden="true"></i></div><div><div class="istat-sayi">@Model.Count(x => x.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi)</div><div class="istat-label">Tamamlanan</div></div></div>
+    <div class="istat-kart"><div class="istat-icon sari"><i class="bi bi-hourglass-split" aria-hidden="true"></i></div><div><div class="istat-sayi">@Model.Count(x => x.Durum == DevreyeAlmaDurumDegerleri.Bekliyor)</div><div class="istat-label">Bekleyen</div></div></div>
+    <div class="istat-kart"><div class="istat-icon mor"><i class="bi bi-building-check" aria-hidden="true"></i></div><div><div class="istat-sayi">@Model.Select(x => x.FirmaId).Distinct().Count()</div><div class="istat-label">Farklı Servis</div></div></div>
 </div>
 
 <div class="filtre-kart">
-    <div class="filtre-baslik">Filtrele</div>
+    <div class="filtre-baslik"><i class="bi bi-funnel" aria-hidden="true"></i> Filtreler</div>
     <form method="get" action="/AdminPanel/devreyealmalar">
         <div class="filtre-grid">
             <div class="filtre-alan">
@@ -277,7 +278,7 @@
 
 <div class="section">
     <div class="section-head">
-        <div class="section-title">Devreye Alma Listesi</div>
+        <div class="section-title"><i class="bi bi-list-check" aria-hidden="true"></i> Devreye Alma Listesi</div>
         <div class="section-sayi">@Model.Count kayıt</div>
     </div>
     <div class="tablo-head">
@@ -311,4 +312,5 @@
             </div>
         }
     }
+</div>
 </div>

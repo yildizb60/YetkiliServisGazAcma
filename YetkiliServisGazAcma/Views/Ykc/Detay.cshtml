@@ -18,6 +18,17 @@
         || imzaSureci?.Durum == YkcImzaDurumDegerleri.Tamamlandi;
     var atamaYapilabilir = !imzaSureciBasladi
         && (Model.Durum == YkcDurumDegerleri.AtamaBekliyor || Model.Durum == YkcDurumDegerleri.Atandi || Model.Durum == YkcDurumDegerleri.SahaIsleminde);
+    var tesisatBolgesi = string.IsNullOrWhiteSpace(Model.Bolge) ? Model.Il : Model.Bolge;
+    var sonAtamaTipi = Model.Atamalar.FirstOrDefault()?.AtananKullaniciTipi ?? string.Empty;
+    var acilEkipSecili = string.Equals(Model.HedefUygulama, YkcHedefUygulamaDegerleri.Crm187, StringComparison.OrdinalIgnoreCase)
+        || sonAtamaTipi.Contains("187", StringComparison.OrdinalIgnoreCase)
+        || (Model.AtananEkip?.Contains("187", StringComparison.OrdinalIgnoreCase) ?? false);
+    var muhendisEkipSecili = !acilEkipSecili
+        && (string.Equals(Model.HedefUygulama, YkcHedefUygulamaDegerleri.DogalgazMobileApp, StringComparison.OrdinalIgnoreCase)
+            || sonAtamaTipi.Contains("Mühendis", StringComparison.OrdinalIgnoreCase)
+            || (Model.AtananEkip?.Contains("Mühendis", StringComparison.OrdinalIgnoreCase) ?? false));
+    var acilEkipAdi = $"{tesisatBolgesi} 187 Acil Ekibi";
+    var muhendisEkipAdi = $"{tesisatBolgesi} Mühendis Ekibi";
     var imzaEntegrasyonu = ViewBag.ImzaEntegrasyonu as YkcImzaEntegrasyonDto ?? new YkcImzaEntegrasyonDto();
     var demoImzaModu = imzaEntegrasyonu.DemoModuMu;
     var imzaliBelge = imzaSureci?.NihaiDosyaId is int nihaiDosyaId
@@ -107,7 +118,7 @@
     var gorevAciklamasi = Model.Durum switch
     {
         YkcDurumDegerleri.TalepAlindi => "Cihaz bilgilerini karşılaştırın ve kaydı inceleme sürecine alın.",
-        YkcDurumDegerleri.AtamaBekliyor => "Uygun yönlendirmeyi, bölgeyi ve randevu bilgisini tek işlemde kaydedin.",
+        YkcDurumDegerleri.AtamaBekliyor => "Tesisattan belirlenen bölge için ekibi ve randevu bilgisini kaydedin.",
         YkcDurumDegerleri.Atandi => "Randevu bilgisi aşağıda hazır. Randevu gerçekleştiğinde işlemi devam ettirin.",
         YkcDurumDegerleri.SahaIsleminde => "Kontrol sonuçlarını kaydedin, FR265'i inceleyin ve imza durumunu takip edin.",
         YkcDurumDegerleri.Tamamlandi => "İmzalı nihai belgeyi ve işlem geçmişini görüntüleyebilirsiniz.",
@@ -347,12 +358,15 @@
                 <div class="ykc-current-plan">
                     <div><span>Planlanan randevu</span><strong>@RandevuYazi(Model.RandevuTarihi, Model.RandevuSaati)</strong></div>
                     <div><span>Yönlendirilen birim / kişi</span><strong>@Deger(Model.AtananEkip)</strong></div>
-                    <form method="post" action="/ykc/durum-guncelle">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="TalepId" value="@Model.Id" />
-                        <input type="hidden" name="Durum" value="@YkcDurumDegerleri.SahaIsleminde" />
-                        <button class="df-btn df-btn-primary" type="submit"><i class="bi bi-check2-circle"></i> Randevu Gerçekleşti</button>
-                    </form>
+                    <div class="ykc-appointment-confirmation">
+                        <form method="post" action="/ykc/durum-guncelle">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="TalepId" value="@Model.Id" />
+                            <input type="hidden" name="Durum" value="@YkcDurumDegerleri.SahaIsleminde" />
+                            <button class="df-btn df-btn-primary" type="submit"><i class="bi bi-check2-circle"></i> Randevuyu Gerçekleşti Olarak Kaydet</button>
+                        </form>
+                        <small>Sahaya giden ekip veya personelin bildirimi üzerine kaydedilir.</small>
+                    </div>
                 </div>
             }
 
@@ -399,21 +413,29 @@
                     <form method="post" action="/ykc/atama-yap" class="ykc-assignment-form">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="TalepId" value="@Model.Id" />
-                        <input type="hidden" name="AtananKullaniciTipi" value="@Model.Atamalar.FirstOrDefault()?.AtananKullaniciTipi" />
-                        <input type="hidden" name="HedefUygulama" value="@Model.HedefUygulama" />
-                        <input type="hidden" name="CallCenterTetiklenecekMi" value="false" />
+                        <input type="hidden" name="Bolge" value="@tesisatBolgesi" />
+
+                        <div class="ykc-assignment-region">
+                            <i class="bi bi-geo-alt-fill"></i>
+                            <span><small>Tesisat Bölgesi</small><strong>@Deger(tesisatBolgesi)</strong></span>
+                            <em>Tesisat sorgusu ve şirket kapsamından belirlendi</em>
+                        </div>
 
                         <fieldset class="ykc-route-fieldset">
-                            <legend>Yönlendirme</legend>
+                            <legend>Bölgeye uygun ekip</legend>
                             <div class="ykc-route-options">
-                                <button type="button" data-route-ekip="187 Acil" data-route-tip="CRM187" data-route-hedef="@YkcHedefUygulamaDegerleri.Crm187" data-route-callcenter="true" data-route-note="187 acil yönlendirme"><i class="bi bi-telephone-outbound"></i><span><strong>187 Acil</strong><small>Acil müdahale</small></span><i class="bi bi-check2"></i></button>
-                                <button type="button" data-route-ekip="Mühendis" data-route-tip="Mühendis" data-route-hedef="@YkcHedefUygulamaDegerleri.DogalgazMobileApp" data-route-callcenter="false" data-route-note="mühendis yönlendirme"><i class="bi bi-person-gear"></i><span><strong>Mühendis</strong><small>Planlı inceleme</small></span><i class="bi bi-check2"></i></button>
+                                <label class="ykc-route-choice">
+                                    <input type="radio" name="AtananKullaniciTipi" value="CRM187" data-team-label="@acilEkipAdi" checked="@(acilEkipSecili ? "checked" : null)" required />
+                                    <span class="ykc-route-option"><i class="bi bi-telephone-outbound"></i><span><strong>@acilEkipAdi</strong><small>Acil müdahale yönlendirmesi</small></span><i class="bi bi-check2"></i></span>
+                                </label>
+                                <label class="ykc-route-choice">
+                                    <input type="radio" name="AtananKullaniciTipi" value="Mühendis" data-team-label="@muhendisEkipAdi" checked="@(muhendisEkipSecili ? "checked" : null)" required />
+                                    <span class="ykc-route-option"><i class="bi bi-person-gear"></i><span><strong>@muhendisEkipAdi</strong><small>Planlı mühendis incelemesi</small></span><i class="bi bi-check2"></i></span>
+                                </label>
                             </div>
                         </fieldset>
 
                         <div class="ykc-assignment-fields">
-                            <div class="ykc-field"><label>Yönlendirilecek Birim / Kişi</label><input name="AtananEkip" value="@Model.AtananEkip" placeholder="187 Acil veya mühendis" required /></div>
-                            <div class="ykc-field"><label>Tesisat Bölgesi</label><input name="Bolge" value="@Model.Bolge" placeholder="Tesisat bölgesi" required /></div>
                             <div class="ykc-field"><label>Randevu Tarihi</label><div class="ykc-picker"><input id="randevuTarihi" type="date" name="RandevuTarihi" value="@Model.RandevuTarihi?.ToString("yyyy-MM-dd")" min="@DateTime.Now.ToString("yyyy-MM-dd")" required /><button type="button" data-picker="#randevuTarihi" title="Takvimi aç"><i class="bi bi-calendar3"></i></button></div></div>
                             <div class="ykc-field"><label>Randevu Saati</label><div class="ykc-picker"><input id="randevuSaati" type="time" name="RandevuSaati" value="@Model.RandevuSaati" required /><button type="button" data-picker="#randevuSaati" title="Saati seç"><i class="bi bi-clock"></i></button></div></div>
                             <div class="ykc-field ykc-field-wide"><label>Not</label><textarea name="Aciklama" placeholder="Atama ve yönlendirme notu"></textarea></div>
@@ -488,7 +510,7 @@
 
     @if (icOperasyonGorsun && (Model.Durum == YkcDurumDegerleri.SahaIsleminde || sonucGirilenKontroller.Any()))
     {
-        <details class="ykc-detail-section" id="fr265-controls" open="@(kontrolBolumuAktif ? "open" : null)">
+        <details class="ykc-detail-section @(kontrolBolumuAktif ? "is-current-task" : null)" id="fr265-controls" data-auto-focus="@(kontrolBolumuAktif ? "true" : "false")" tabindex="-1" open="@(kontrolBolumuAktif ? "open" : null)">
             <summary><span><strong>FR265 Kontrol Sonucu</strong><small>Word formundaki 1-5 Kontrol alanı tekrar kontrol sırasıdır</small></span><i class="bi bi-chevron-down"></i></summary>
             <div class="ykc-detail-section-body">
                 @if (sonucGirilenKontroller.Any())
@@ -648,39 +670,9 @@
         });
 
         (() => {
-            const routeCards = Array.from(document.querySelectorAll('[data-route-ekip]'));
-            const ekip = document.querySelector('input[name="AtananEkip"]');
-            const tip = document.querySelector('input[name="AtananKullaniciTipi"]');
-            const hedef = document.querySelector('input[name="HedefUygulama"]');
-            const callCenter = document.querySelector('input[name="CallCenterTetiklenecekMi"]');
-            const aciklama = document.querySelector('textarea[name="Aciklama"][placeholder="Atama ve yönlendirme notu"]');
-            let otomatikNot = '';
-
-            function selectRoute(card) {
-                routeCards.forEach(item => { item.classList.remove('active'); item.setAttribute('aria-pressed', 'false'); });
-                card.classList.add('active');
-                card.setAttribute('aria-pressed', 'true');
-                if (ekip) { ekip.value = card.dataset.routeEkip || ''; ekip.dispatchEvent(new Event('input', { bubbles: true })); }
-                if (tip) tip.value = card.dataset.routeTip || '';
-                if (hedef) hedef.value = card.dataset.routeHedef || '';
-                if (callCenter) callCenter.value = card.dataset.routeCallcenter === 'true' ? 'true' : 'false';
-                if (aciklama && (!aciklama.value.trim() || aciklama.value === otomatikNot)) {
-                    otomatikNot = card.dataset.routeNote || '';
-                    aciklama.value = otomatikNot;
-                }
-            }
-
-            routeCards.forEach(card => {
-                card.setAttribute('aria-pressed', 'false');
-                card.addEventListener('click', () => selectRoute(card));
-                if (ekip && ekip.value.trim().toLocaleLowerCase('tr-TR') === (card.dataset.routeEkip || '').toLocaleLowerCase('tr-TR')) selectRoute(card);
-            });
-        })();
-
-        (() => {
             const date = document.getElementById('randevuTarihi');
             const time = document.getElementById('randevuSaati');
-            const team = document.querySelector('input[name="AtananEkip"]');
+            const teams = Array.from(document.querySelectorAll('input[name="AtananKullaniciTipi"]'));
             const region = document.querySelector('input[name="Bolge"]');
             const targets = {
                 date: [document.getElementById('ykcPlanTarih')],
@@ -695,9 +687,10 @@
                 return parts.length === 3 ? parts[2] + '.' + parts[1] + '.' + parts[0] : current;
             };
             function update() {
+                const team = teams.find(item => item.checked);
                 if (date) targets.date.filter(Boolean).forEach(item => item.textContent = formatDate(date.value));
                 if (time) targets.time.filter(Boolean).forEach(item => item.textContent = clean(time.value));
-                if (team) targets.team.filter(Boolean).forEach(item => item.textContent = clean(team.value));
+                targets.team.filter(Boolean).forEach(item => item.textContent = clean(team?.dataset.teamLabel));
                 if (region) targets.region.filter(Boolean).forEach(item => item.textContent = clean(region.value));
             }
             document.querySelectorAll('form[action="/ykc/atama-yap"]').forEach(form => {
@@ -711,8 +704,21 @@
                     }
                 });
             });
-            [date, time, team, region].filter(Boolean).forEach(item => { item.addEventListener('input', update); item.addEventListener('change', update); });
+            [date, time, region, ...teams].filter(Boolean).forEach(item => { item.addEventListener('input', update); item.addEventListener('change', update); });
             update();
+        })();
+
+        (() => {
+            const controls = document.querySelector('#fr265-controls[data-auto-focus="true"]');
+            if (!controls) return;
+
+            controls.open = true;
+            const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+                controls.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' });
+                const firstChoice = controls.querySelector('input[name="Kontroller[0].Sonuc"]');
+                window.setTimeout(() => firstChoice?.focus({ preventScroll: true }), reducedMotion ? 0 : 350);
+            }));
         })();
     </script>
 }

@@ -87,9 +87,9 @@ namespace YetkiliServisGazAcma.Business.Services
 
             FirmaImzaTablosunuDoldur(firmaImzaTablosu, talep, secenekler, formTarihi);
             KontrolleriDoldur(document, talep.Kontroller);
+            GorulduImzaTablosunuDoldur(gorulduImzaTablosu, talep, secenekler, formTarihi);
             if (secenekler.ImzaliNihaiMi)
             {
-                GorulduImzaTablosunuDoldur(gorulduImzaTablosu, talep, secenekler, formTarihi);
                 KontrolImzaTablolariniDoldur(document, talep, secenekler, formTarihi);
             }
         }
@@ -215,6 +215,14 @@ namespace YetkiliServisGazAcma.Business.Services
 
             var dagitim = ImzaSatiri(secenekler, 2);
             var abone = ImzaSatiri(secenekler, 3);
+            var dagitimYetkilisi = Clean(talep.GazDagitimYetkilisiAdi);
+            if (dagitimYetkilisi.Length == 0)
+                dagitimYetkilisi = ImzaAdSoyad(dagitim, null);
+
+            var dagitimIslemTarihi = talep.GazDagitimIslemTarihi?.ToString("dd.MM.yyyy")
+                ?? dagitim?.ImzaTarihi?.ToString("dd.MM.yyyy")
+                ?? (secenekler.ImzaliNihaiMi ? secenekler.ImzaTarihi?.ToString("dd.MM.yyyy") ?? formTarihi : string.Empty);
+            var imzaKaydi = secenekler.ImzaliNihaiMi ? ImzaKaydiMetni() : string.Empty;
             var cell = Cell(table, 0, 0);
             if (cell == null)
                 return;
@@ -227,19 +235,19 @@ namespace YetkiliServisGazAcma.Business.Services
             if (adSoyad != null)
             {
                 SetTabbedParagraphText(adSoyad,
-                    $"Adı ve Soyadı: {ImzaAdSoyad(dagitim, null)}",
+                    $"Adı ve Soyadı: {dagitimYetkilisi}",
                     $"Adı ve Soyadı: {ImzaAdSoyad(abone, talep.MusteriAdi)}");
             }
 
             if (tarihVeImza != null)
             {
                 SetTabbedParagraphText(tarihVeImza,
-                    $"Tarih: {ImzaTarihi(dagitim, secenekler, formTarihi)}",
-                    $"İmza: {ImzaKaydiMetni()}");
+                    $"Tarih: {dagitimIslemTarihi}",
+                    $"İmza: {imzaKaydi}");
             }
 
             if (imza != null)
-                SetParagraphText(imza, $"İmza: {ImzaKaydiMetni()}");
+                SetParagraphText(imza, $"İmza: {imzaKaydi}");
         }
 
         private static void KontrolImzaTablolariniDoldur(

@@ -74,6 +74,18 @@
         return tarih?.ToString("dd.MM.yyyy");
     }
 
+    private static string? GazDagitimYetkilisi(YkcTalepDetayDto model)
+    {
+        return !string.IsNullOrWhiteSpace(model.GazDagitimYetkilisiAdi)
+            ? model.GazDagitimYetkilisiAdi
+            : ImzaciAdi(model, 2);
+    }
+
+    private static string? GazDagitimIslemTarihi(YkcTalepDetayDto model)
+    {
+        return model.GazDagitimIslemTarihi?.ToString("dd.MM.yyyy") ?? ImzaTarihi(model, 2);
+    }
+
     private static string LogoUrl(YkcTalepDetayDto model)
     {
         var anahtar = $"{model.FirmaKodu} {model.SirketAdi}".ToUpperInvariant();
@@ -284,8 +296,8 @@ Tarih: @(imzaliBelgeHazir ? Deger(ImzaTarihi(Model, 1) ?? formTarihi) : "")
                         Yukardaki bilgileri verilen yeni cihaz belirtilen adreste görülmüştür.
                         <br /><br />
                         İşlemi Yapan Gaz Dağıtım Şirketi Yetkilisi
-                        <br />Adı ve Soyadı: @Deger(ImzaciAdi(Model, 2))
-                        <br />Tarih: @Deger(ImzaTarihi(Model, 2))
+                        <br />Adı ve Soyadı: @Deger(GazDagitimYetkilisi(Model))
+                        <br />Tarih: @Deger(GazDagitimIslemTarihi(Model))
                         <br />İmza:@(imzaliBelgeHazir ? " İmza kaydı alındı" : "")
                     </td>
                     <td>
