@@ -5,224 +5,165 @@
     ViewData["ActiveMenu"] = "Kullanicilar";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
-    var kullanicilar = ViewBag.Kullanicilar as List<YetkiliServisGazAcma.Entities.AppKullanici>;
-    var seciliQ = ViewBag.SeciliQ as string;
-    var seciliTip = ViewBag.SeciliTip as string;
-    var seciliDurum = ViewBag.SeciliDurum as string;
+    var kullanicilar = ViewBag.Kullanicilar as List<YetkiliServisGazAcma.Entities.AppKullanici> ?? new();
+    var seciliQ = ViewBag.SeciliQ as string ?? "";
+    var seciliTip = ViewBag.SeciliTip as string ?? "";
+    var seciliDurum = ViewBag.SeciliDurum as string ?? "";
+    var seciliBagli = ViewBag.SeciliBagli as string ?? "";
     var genelSistemAdminMi = ViewBag.GenelSistemAdminMi as bool? ?? false;
+    var filtreAktif = !string.IsNullOrWhiteSpace(seciliQ)
+        || !string.IsNullOrWhiteSpace(seciliTip)
+        || !string.IsNullOrWhiteSpace(seciliDurum)
+        || !string.IsNullOrWhiteSpace(seciliBagli);
+    var aktifSayisi = kullanicilar.Count(x => x.AktifMi);
+    var pasifSayisi = kullanicilar.Count - aktifSayisi;
 }
 
-@section Styles {
-    <style>
-        .filter-bar {
-            background: #fff;
-            border: 1px solid #eee;
-            border-radius: 12px;
-            padding: 16px 20px;
-            margin-bottom: 14px;
-            display: grid;
-            grid-template-columns: 2fr 1fr 1.2fr 1fr auto;
-            gap: 10px;
-            align-items: end;
-        }
+<div class="df-user-directory">
+    <section class="df-page-panel df-user-hero">
+        <div class="df-panel-head">
+            <div>
+                <div class="df-panel-kicker"><i class="bi bi-people" aria-hidden="true"></i> ERİŞİM YÖNETİMİ</div>
+                <h2 class="df-panel-title">Kullanıcılar</h2>
+                <div class="df-panel-subtitle">Kullanıcı hesabı, rol, bağlı şirket veya firma ve aktiflik durumunu yönetin.</div>
+            </div>
+            <div class="df-actions">
+                <a class="df-btn df-btn-primary df-btn-sm" href="/AdminPanel/Kullanicilar/ekle"><i class="bi bi-person-plus" aria-hidden="true"></i> Yeni Kullanıcı</a>
+            </div>
+        </div>
+        <div class="df-user-summary" aria-label="Kullanıcı durum özeti">
+            <div><span>Toplam</span><strong>@kullanicilar.Count</strong></div>
+            <div><span>Aktif</span><strong>@aktifSayisi</strong></div>
+            <div><span>Pasif</span><strong>@pasifSayisi</strong></div>
+        </div>
+    </section>
 
-        .filter-group { display: flex; flex-direction: column; gap: 6px; }
-
-        .filter-group label {
-            font-size: 11px;
-            color: #777;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: .04em;
-        }
-
-        .filter-group input,
-        .filter-group select {
-            padding: 9px 10px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 13px;
-        }
-
-        .filter-actions { display: flex; gap: 8px; }
-
-        .btn-filter {
-            padding: 9px 14px;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: 800;
-            border: none;
-            cursor: pointer;
-        }
-
-        .btn-apply { background: #1B9FD4; color: #fff; }
-
-        .btn-clear {
-            background: #fff;
-            color: #1B9FD4;
-            border: 1px solid #1B9FD4;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-        }
-
-        .btn-add {
-            padding: 6px 14px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 800;
-            background: #1B9FD4;
-            color: #fff;
-            text-decoration: none;
-        }
-
-        .alert {
-            padding: 10px 14px;
-            border-radius: 8px;
-            margin-bottom: 12px;
-            font-size: 12px;
-            font-weight: 800;
-        }
-
-        .alert-success { background: #E1F5EE; color: #085041; border: 1px solid #c3e6db; }
-        .alert-danger { background: #FCEBEB; color: #501313; border: 1px solid #eccaca; }
-
-        .tablo-head,
-        .tablo-row { grid-template-columns: 1.2fr 1.1fr .9fr .9fr .6fr 1.5fr; }
-
-        .action-cell { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-        .action-cell form { margin: 0 !important; display: inline-block; }
-        .action-cell .df-btn { min-width: 82px; }
-
-        @@media (max-width: 1100px) {
-            .filter-bar { grid-template-columns: 1fr 1fr; }
-            .tablo-head,
-            .tablo-row { grid-template-columns: 1fr; gap: 8px; }
-        }
-
-        @@media (max-width: 720px) {
-            .filter-bar { grid-template-columns: 1fr; }
-        }
-    </style>
-}
-
-<form class="filter-bar" method="get" action="/AdminPanel/kullanicilar">
-    <div class="filter-group">
-        <label>Arama</label>
-        <input type="text" name="q" value="@seciliQ" placeholder="Ad soyad, e-posta, telefon" />
-    </div>
-    <div class="filter-group">
-        <label>Tip</label>
-        <select name="tip">
-            <option value="" selected="@(string.IsNullOrEmpty(seciliTip) ? "selected" : null)">Tümü</option>
-            @if (genelSistemAdminMi)
-            {
-                <option value="GenelSistemAdmin" selected="@(seciliTip == "GenelSistemAdmin" || seciliTip == "SuperAdmin" ? "selected" : null)">Genel Sistem Admini</option>
-                <option value="SirketAdmin" selected="@(seciliTip == "SirketAdmin" ? "selected" : null)">Şirket Admini</option>
-            }
-            <option value="Personel" selected="@(seciliTip == "Personel" ? "selected" : null)">Personel</option>
-            <option value="Servis" selected="@(seciliTip == "Servis" ? "selected" : null)">Yetkili Servis</option>
-            <option value="SertifikaliFirma" selected="@(seciliTip == "SertifikaliFirma" ? "selected" : null)">Sertifikalı Firma</option>
-        </select>
-    </div>
-    <div class="filter-group">
-        <label>Durum</label>
-        <select name="durum">
-            <option value="" selected="@(string.IsNullOrEmpty(seciliDurum) ? "selected" : null)">Tümü</option>
-            <option value="Aktif" selected="@(seciliDurum == "Aktif" ? "selected" : null)">Aktif</option>
-            <option value="Pasif" selected="@(seciliDurum == "Pasif" ? "selected" : null)">Pasif</option>
-        </select>
-    </div>
-    <div class="filter-group">
-        <label>Şirket/Firma</label>
-        <input type="text" name="bagli" value="@ViewBag.SeciliBagli" placeholder="Şirket veya firma" />
-    </div>
-    <div class="filter-actions">
-        <button class="btn-filter btn-apply" type="submit">Filtrele</button>
-        <a class="btn-filter btn-clear" href="/AdminPanel/kullanicilar">Temizle</a>
-    </div>
-</form>
-
-@if (TempData["Basarili"] != null)
-{
-    <div class="alert alert-success">@TempData["Basarili"]</div>
-}
-@if (TempData["Hata"] != null)
-{
-    <div class="alert alert-danger">@TempData["Hata"]</div>
-}
-
-<div class="section">
-    <div class="section-head">
-        <div class="section-title">Tüm Kullanıcılar</div>
-        <a class="btn-add" href="/AdminPanel/Kullanicilar/ekle">+ Yeni Kullanıcı</a>
-    </div>
-    <div class="tablo-head">
-        <div>Ad Soyad</div><div>E-Posta</div><div>Tip</div><div>Şirket/Firma</div><div>Durum</div><div>İşlem</div>
-    </div>
-    @if (kullanicilar == null || kullanicilar.Count == 0)
+    @if (TempData["Basarili"] != null)
     {
-        <div class="empty">Kullanıcı kaydı yok</div>
+        <div class="df-alert df-alert-success">@TempData["Basarili"]</div>
     }
-    else
+    @if (TempData["Hata"] != null)
     {
-        foreach (var k in kullanicilar)
-        {
-            var tip = k.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis
-                ? "Yetkili Servis"
-                : k.KullaniciTipi == KullaniciTipiDegerleri.Personel
-                    ? "Personel"
-                    : k.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin
-                        ? "Şirket Admini"
-                        : "Süper Admin";
-            var bagli = k.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis ? k.Firma?.FirmaAdi : k.Sirket?.SirketAdi;
-            if (k.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma)
-            {
-                tip = "Sertifikalı Firma";
-                bagli = k.Firma?.FirmaAdi;
-            }
+        <div class="df-alert df-alert-danger">@TempData["Hata"]</div>
+    }
 
-            var kullaniciIslemYapilabilir = genelSistemAdminMi ||
-                (k.KullaniciTipi != KullaniciTipiDegerleri.GenelSistemAdmin &&
-                 k.KullaniciTipi != KullaniciTipiDegerleri.SirketAdmin);
-
-            <div class="tablo-row">
-                <div>@(k.AdSoyad ?? "-")</div>
-                <div>@(k.Email ?? "-")</div>
-                <div>@tip</div>
-                <div>@(bagli ?? "-")</div>
-                <div>
-                    @if (k.AktifMi)
-                    {
-                        <span class="badge b-green">Aktif</span>
-                    }
-                    else
-                    {
-                        <span class="badge b-red">Pasif</span>
-                    }
+    <details class="df-user-filter" open="@(filtreAktif ? "open" : null)">
+        <summary><span><i class="bi bi-funnel" aria-hidden="true"></i><strong>Filtreler</strong><small>Ad, rol, durum veya bağlı kurumla arayın.</small></span><span>@(filtreAktif ? "Filtre uygulandı" : "Aç") <i class="bi bi-chevron-down" aria-hidden="true"></i></span></summary>
+        <form method="get" action="/AdminPanel/kullanicilar">
+            <div class="df-user-filter-grid">
+                <div class="filter-group">
+                    <label>Arama</label>
+                    <input type="text" name="q" value="@seciliQ" placeholder="Ad soyad, e-posta, telefon" />
                 </div>
-                <div class="action-cell df-actions">
-                    @if (kullaniciIslemYapilabilir)
-                    {
-                        <a class="df-btn df-btn-secondary df-btn-sm" href="/AdminPanel/Kullanicilar/Duzenle/@k.Id">Düzenle</a>
-                        <form method="post" action="/AdminPanel/Kullanicilar/durum/@k.Id">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="aktif" value='@(k.AktifMi ? "false" : "true")' />
-                            <button type="submit" class="df-btn @(k.AktifMi ? "df-btn-warning" : "df-btn-success") df-btn-sm">
-                                @(k.AktifMi ? "Pasifleştir" : "Aktifleştir")
-                            </button>
-                        </form>
-                        <form method="post" action="/AdminPanel/kullanicilar/sil/@k.Id" onsubmit="return confirm('Kullanıcıyı silmek istediğinize emin misiniz?');">
-                            @Html.AntiForgeryToken()
-                            <button type="submit" class="df-btn df-btn-danger df-btn-sm">Sil</button>
-                        </form>
-                    }
-                    else
-                    {
-                        <span class="df-pill df-pill-muted">Yetki yok</span>
-                    }
+                <div class="filter-group">
+                    <label>Tip</label>
+                    <select name="tip">
+                        <option value="" selected="@(string.IsNullOrEmpty(seciliTip) ? "selected" : null)">Tümü</option>
+                        @if (genelSistemAdminMi)
+                        {
+                            <option value="GenelSistemAdmin" selected="@(seciliTip == "GenelSistemAdmin" || seciliTip == "SuperAdmin" ? "selected" : null)">Genel Sistem Admini</option>
+                            <option value="SirketAdmin" selected="@(seciliTip == "SirketAdmin" ? "selected" : null)">Şirket Admini</option>
+                        }
+                        <option value="Personel" selected="@(seciliTip == "Personel" ? "selected" : null)">Personel</option>
+                        <option value="Servis" selected="@(seciliTip == "Servis" ? "selected" : null)">Yetkili Servis</option>
+                        <option value="SertifikaliFirma" selected="@(seciliTip == "SertifikaliFirma" ? "selected" : null)">Sertifikalı Firma</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Durum</label>
+                    <select name="durum">
+                        <option value="" selected="@(string.IsNullOrEmpty(seciliDurum) ? "selected" : null)">Tümü</option>
+                        <option value="Aktif" selected="@(seciliDurum == "Aktif" ? "selected" : null)">Aktif</option>
+                        <option value="Pasif" selected="@(seciliDurum == "Pasif" ? "selected" : null)">Pasif</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Şirket / Firma</label>
+                    <input type="text" name="bagli" value="@seciliBagli" placeholder="Şirket veya firma" />
                 </div>
             </div>
-        }
-    }
+            <div class="df-user-filter-actions">
+                <button class="df-btn df-btn-primary df-btn-sm" type="submit"><i class="bi bi-funnel-fill" aria-hidden="true"></i> Filtrele</button>
+                <a class="df-btn df-btn-secondary df-btn-sm" href="/AdminPanel/kullanicilar"><i class="bi bi-x-lg" aria-hidden="true"></i> Temizle</a>
+            </div>
+        </form>
+    </details>
+
+    <section class="df-user-list">
+        <div class="df-user-list-head">
+            <div><h3><i class="bi bi-person-lines-fill" aria-hidden="true"></i> Kullanıcı Listesi</h3><span>Rol ve erişim durumuna göre güncel hesaplar</span></div>
+            <strong>@kullanicilar.Count kayıt</strong>
+        </div>
+        <div class="df-user-table-scroll">
+            <div class="df-user-grid df-user-grid-head">
+                <div>Kullanıcı</div><div>E-posta</div><div>Tip</div><div>Şirket / Firma</div><div>Durum</div><div>İşlemler</div>
+            </div>
+            @if (kullanicilar.Count == 0)
+            {
+                <div class="df-empty"><div class="df-empty-title">Kullanıcı kaydı bulunamadı.</div><p class="df-empty-text">Filtreleri temizleyip yeniden deneyin.</p></div>
+            }
+            else
+            {
+                foreach (var kullanici in kullanicilar)
+                {
+                    var tip = kullanici.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis
+                        ? "Yetkili Servis"
+                        : kullanici.KullaniciTipi == KullaniciTipiDegerleri.Personel
+                            ? "Personel"
+                            : kullanici.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin
+                                ? "Şirket Admini"
+                                : "Süper Admin";
+                    var bagli = kullanici.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis ? kullanici.Firma?.FirmaAdi : kullanici.Sirket?.SirketAdi;
+                    if (kullanici.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma)
+                    {
+                        tip = "Sertifikalı Firma";
+                        bagli = kullanici.Firma?.FirmaAdi;
+                    }
+
+                    var kullaniciIslemYapilabilir = genelSistemAdminMi ||
+                        (kullanici.KullaniciTipi != KullaniciTipiDegerleri.GenelSistemAdmin &&
+                         kullanici.KullaniciTipi != KullaniciTipiDegerleri.SirketAdmin);
+                    var adParcalari = (kullanici.AdSoyad ?? "?")
+                        .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                        .Take(2)
+                        .Select(x => char.ToUpperInvariant(x[0]));
+                    var basHarfler = string.Concat(adParcalari);
+                    var tipClass = kullanici.KullaniciTipi == KullaniciTipiDegerleri.Personel
+                        ? "is-personnel"
+                        : kullanici.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis
+                            ? "is-service"
+                            : kullanici.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma
+                                ? "is-certified"
+                                : "is-admin";
+
+                    <div class="df-user-grid df-user-row">
+                        <div class="df-user-identity"><span class="df-user-avatar">@basHarfler</span><strong>@(kullanici.AdSoyad ?? "-")</strong></div>
+                        <div class="df-user-email">@(kullanici.Email ?? "-")</div>
+                        <div><span class="df-user-type @tipClass">@tip</span></div>
+                        <div>@(bagli ?? "-")</div>
+                        <div><span class="df-pill @(kullanici.AktifMi ? "df-pill-success" : "df-pill-danger")">@(kullanici.AktifMi ? "Aktif" : "Pasif")</span></div>
+                        <div class="df-user-actions">
+                            @if (kullaniciIslemYapilabilir)
+                            {
+                                <a class="df-icon-action" href="/AdminPanel/Kullanicilar/Duzenle/@kullanici.Id" title="Kullanıcıyı düzenle"><i class="bi bi-pencil" aria-hidden="true"></i><span>Düzenle</span></a>
+                                <form method="post" action="/AdminPanel/Kullanicilar/durum/@kullanici.Id">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="aktif" value='@(kullanici.AktifMi ? "false" : "true")' />
+                                    <button type="submit" class="df-icon-action @(kullanici.AktifMi ? "is-warning" : "is-success")" title="@(kullanici.AktifMi ? "Kullanıcıyı pasifleştir" : "Kullanıcıyı aktifleştir")"><i class="bi @(kullanici.AktifMi ? "bi-pause-circle" : "bi-play-circle")" aria-hidden="true"></i><span>@(kullanici.AktifMi ? "Pasifleştir" : "Aktifleştir")</span></button>
+                                </form>
+                                <form method="post" action="/AdminPanel/kullanicilar/sil/@kullanici.Id" onsubmit="return confirm('Kullanıcıyı silmek istediğinize emin misiniz?');">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="df-icon-action is-danger" title="Kullanıcıyı sil"><i class="bi bi-trash3" aria-hidden="true"></i><span>Sil</span></button>
+                                </form>
+                            }
+                            else
+                            {
+                                <span class="df-pill df-pill-muted">Yetki yok</span>
+                            }
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </section>
 </div>
