@@ -15,155 +15,140 @@
         formRol = "Personel";
     }
     int formSirketId = ViewBag.FormSirketId is int s ? s : 0;
-    int formFirmaId = ViewBag.FormFirmaId is int f ? f : 0;
-    var sirketler = ViewBag.Sirketler as List<YetkiliServisGazAcma.Entities.Dag_Sirket>;
-    var firmalar = ViewBag.Firmalar as List<YetkiliServisGazAcma.Entities.Ys_Firma>;
+    var sirketler = ViewBag.Sirketler as List<YetkiliServisGazAcma.Entities.Dag_Sirket> ?? new();
 }
 
-@section Styles {
-    <style>
-        .user-card { background: #fff; border-radius: 12px; border: 1px solid #eee; overflow: hidden; }
-        .user-card-head { padding: 14px 20px; border-bottom: 2px solid #f0f0ee; font-size: 13px; font-weight: 800; color: #333; }
-        .user-card-body { padding: 20px; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-        .form-group { margin-bottom: 14px; }
-        .form-group label { display: block; font-size: 11px; font-weight: 800; color: #777; margin-bottom: 5px; text-transform: uppercase; letter-spacing: .04em; }
-        .form-control { width: 100%; padding: 10px 13px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; background: #fcfcfc; color: #333; }
-        .btn-row { display: flex; gap: 10px; margin-top: 16px; justify-content: flex-end; }
-        .alert { padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; font-size: 12px; font-weight: 800; }
-        .alert-danger { background: #FCEBEB; color: #501313; border: 1px solid #eccaca; }
-        .help { font-size: 11px; color: #888; margin-bottom: 10px; }
-        .role-help { font-size: 12px; color: #4b5f73; background: #f2f8ff; border: 1px solid #dbe9f7; border-radius: 8px; padding: 8px 10px; margin-bottom: 12px; }
-        @@media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
-    </style>
-}
+<div class="df-admin-workspace df-admin-editor df-user-create-workspace">
+    <section class="df-page-panel df-admin-hero">
+        <div class="df-panel-head">
+            <div>
+                <div class="df-panel-kicker"><i class="bi bi-person-add"></i> Kullanıcı hesabı</div>
+                <div class="df-panel-title">Yeni Kullanıcı</div>
+                <div class="df-panel-subtitle">Önce kullanıcının rolünü ve bağlı olduğu kurumu, ardından hesap bilgilerini girin.</div>
+            </div>
+            <a class="df-btn df-btn-secondary df-btn-sm" href="/AdminPanel/Kullanicilar"><i class="bi bi-arrow-left"></i> Kullanıcılara Dön</a>
+        </div>
+    </section>
 
-<div class="user-card">
-    <div class="user-card-head">Kullanıcı Oluştur</div>
-    <div class="user-card-body">
-        @if (ViewBag.Hata != null)
-        {
-            <div class="alert alert-danger">@ViewBag.Hata</div>
-        }
-        <div class="help">Şifre en az 6 karakter, en az 1 küçük harf ve 1 rakam içermelidir.</div>
-        <div id="roleHelp" class="role-help"></div>
-        <form method="post" action="/AdminPanel/Kullanicilar/ekle">
-            @Html.AntiForgeryToken()
-            <div class="grid">
-                <div class="form-group">
-                    <label>Rol</label>
-                    <select class="form-control" name="rol" id="rolSelect">
-                        @if (genelSistemAdminMi)
-                        {
-                            <option value="GenelSistemAdmin" selected="@(formRol == "GenelSistemAdmin" ? "selected" : null)">Genel Sistem Admini</option>
-                            <option value="SirketAdmin" selected="@((formRol == "SirketAdmin" || formRol == "SuperAdmin") ? "selected" : null)">Şirket Admini</option>
-                        }
-                        <option value="Personel" selected="@(formRol == "Personel" ? "selected" : null)">Personel</option>
-                        <option value="YetkiliServis" selected="@(formRol == "YetkiliServis" ? "selected" : null)">Yetkili Servis</option>
-                        <option value="SertifikaliFirma" selected="@(formRol == "SertifikaliFirma" ? "selected" : null)">Sertifikalı Firma</option>
-                    </select>
+    <section class="df-admin-form-card">
+        <div class="df-admin-form-body">
+            @if (ViewBag.Hata != null)
+            {
+                <div class="df-alert df-alert-danger">@ViewBag.Hata</div>
+            }
+
+            <form method="post" action="/AdminPanel/Kullanicilar/ekle">
+                @Html.AntiForgeryToken()
+
+                <section class="df-admin-form-section">
+                    <div class="df-admin-form-section-head">
+                        <span><i class="bi bi-diagram-3"></i></span>
+                        <div>
+                            <h3>Rol ve Bağlantı</h3>
+                            <p>Kullanıcının sistemde ne yapacağını ve hangi şirket kapsamında çalışacağını belirleyin.</p>
+                        </div>
+                    </div>
+                    <div class="df-admin-form-grid">
+                        <div class="df-admin-field is-half">
+                            <label>Rol *</label>
+                            <select name="rol" id="rolSelect" required>
+                                @if (genelSistemAdminMi)
+                                {
+                                    <option value="GenelSistemAdmin" selected="@(formRol == "GenelSistemAdmin")">Genel Sistem Admini</option>
+                                    <option value="SirketAdmin" selected="@(formRol == "SirketAdmin" || formRol == "SuperAdmin")">Şirket Admini</option>
+                                }
+                                <option value="Personel" selected="@(formRol == "Personel")">Personel</option>
+                                <option value="YetkiliServis" selected="@(formRol == "YetkiliServis")">Yetkili Servis</option>
+                                <option value="SertifikaliFirma" selected="@(formRol == "SertifikaliFirma")">Sertifikalı Firma</option>
+                            </select>
+                            <small class="df-admin-field-note" id="roleHelp"></small>
+                        </div>
+                        <div class="df-admin-field is-half" id="sirketGroup">
+                            <label id="sirketLabel">Şirket *</label>
+                            <select id="sirketIdSelect" name="SirketId">
+                                <option value="">Seçiniz</option>
+                                @foreach (var sirket in sirketler)
+                                {
+                                    <option value="@sirket.Id" selected="@(formSirketId == sirket.Id)">@sirket.SirketAdi</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="df-admin-form-section">
+                    <div class="df-admin-form-section-head">
+                        <span><i class="bi bi-person-vcard"></i></span>
+                        <div>
+                            <h3>Hesap Bilgileri</h3>
+                            <p>Oturum açacak kişiye ait temel iletişim ve giriş bilgilerini girin.</p>
+                        </div>
+                    </div>
+                    <div class="df-admin-form-grid">
+                        <div class="df-admin-field is-half">
+                            <label>Ad Soyad *</label>
+                            <input name="adSoyad" value="@formAdSoyad" autocomplete="name" required />
+                        </div>
+                        <div class="df-admin-field is-half">
+                            <label>E-Posta *</label>
+                            <input type="email" name="email" value="@formEmail" autocomplete="email" required />
+                        </div>
+                        <div class="df-admin-field is-half">
+                            <label>Telefon</label>
+                            <input name="telefon" value="@formTelefon" autocomplete="tel" />
+                        </div>
+                        <div class="df-admin-field is-half">
+                            <label>Geçici Şifre *</label>
+                            <input type="password" name="sifre" autocomplete="new-password" required />
+                            <small class="df-admin-field-note">En az 6 karakter, en az bir küçük harf ve bir rakam.</small>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="df-admin-form-actions">
+                    <a class="df-btn df-btn-secondary df-btn-sm" href="/AdminPanel/Kullanicilar"><i class="bi bi-x-lg"></i> Vazgeç</a>
+                    <button type="submit" class="df-btn df-btn-primary df-btn-sm"><i class="bi bi-person-check"></i> Kullanıcıyı Oluştur</button>
                 </div>
-                <div class="form-group">
-                    <label>Ad Soyad</label>
-                    <input class="form-control" name="adSoyad" value="@formAdSoyad" required />
-                </div>
-                <div class="form-group">
-                    <label>E-Posta</label>
-                    <input class="form-control" type="email" name="email" value="@formEmail" required />
-                </div>
-                <div class="form-group">
-                    <label>Telefon</label>
-                    <input class="form-control" name="telefon" value="@formTelefon" />
-                </div>
-                <div class="form-group" id="sirketGroup">
-                    <label id="sirketLabel">Şirket</label>
-                    <select class="form-control" id="sirketIdSelect" name="SirketId">
-                        <option value="">Seçiniz</option>
-                        @if (sirketler != null)
-                        {
-                            foreach (var sirket in sirketler)
-                            {
-                                <option value="@sirket.Id" selected="@(formSirketId == sirket.Id ? "selected" : null)">@sirket.SirketAdi</option>
-                            }
-                        }
-                    </select>
-                </div>
-                <div class="form-group" id="firmaGroup">
-                    <label>Yetkili Servis Firması</label>
-                    <select class="form-control" id="firmaIdSelect" name="firmaId">
-                        <option value="">Seçiniz</option>
-                        @if (firmalar != null)
-                        {
-                            foreach (var firma in firmalar)
-                            {
-                                var label = firma.Sirket != null ? $"{firma.FirmaAdi} ({firma.Sirket.SirketAdi})" : firma.FirmaAdi;
-                                <option value="@firma.Id" selected="@(formFirmaId == firma.Id ? "selected" : null)">@label</option>
-                            }
-                        }
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Şifre</label>
-                    <input class="form-control" type="password" name="sifre" required />
-                </div>
-            </div>
-            <div class="btn-row">
-                <a class="df-btn df-btn-secondary" href="/AdminPanel/Kullanicilar">Vazgeç</a>
-                <button type="submit" class="df-btn df-btn-primary">Kaydet</button>
-            </div>
-        </form>
-    </div>
+            </form>
+        </div>
+    </section>
 </div>
 
 @section Scripts {
-    <script>
-        (function () {
-            var rolSelect = document.getElementById("rolSelect");
-            var sirketGroup = document.getElementById("sirketGroup");
-            var firmaGroup = document.getElementById("firmaGroup");
-            var sirketLabel = document.getElementById("sirketLabel");
-            var sirketIdSelect = document.getElementById("sirketIdSelect");
-            var firmaIdSelect = document.getElementById("firmaIdSelect");
-            var roleHelp = document.getElementById("roleHelp");
+<script>
+    (function () {
+        var rolSelect = document.getElementById("rolSelect");
+        var sirketGroup = document.getElementById("sirketGroup");
+        var sirketLabel = document.getElementById("sirketLabel");
+        var sirketIdSelect = document.getElementById("sirketIdSelect");
+        var roleHelp = document.getElementById("roleHelp");
+        if (!rolSelect || !sirketGroup || !sirketLabel || !sirketIdSelect || !roleHelp) return;
 
-            if (!rolSelect || !sirketGroup || !firmaGroup || !sirketLabel || !sirketIdSelect || !firmaIdSelect || !roleHelp) return;
+        function uygulaRolDavranisi() {
+            var rol = (rolSelect.value || "").trim();
+            var genelAdminMi = rol === "GenelSistemAdmin";
+            var firmaKullanicisiMi = rol === "YetkiliServis" || rol === "SertifikaliFirma";
+            var sirketGerekliMi = !genelAdminMi;
 
-            function uygulaRolDavranisi() {
-                var rol = (rolSelect.value || "").trim();
-                var genelAdminMi = rol === "GenelSistemAdmin";
-                var adminMi = rol === "SirketAdmin" || rol === "SuperAdmin";
-                var personelMi = rol === "Personel";
-                var servisMi = rol === "YetkiliServis" || rol === "SertifikaliFirma";
-                var sirketGerekliMi = adminMi || personelMi || servisMi;
+            sirketGroup.hidden = !sirketGerekliMi;
+            sirketIdSelect.disabled = !sirketGerekliMi;
+            sirketIdSelect.required = sirketGerekliMi;
+            if (!sirketGerekliMi) sirketIdSelect.value = "";
 
-                sirketGroup.style.display = sirketGerekliMi ? "block" : "none";
-                firmaGroup.style.display = "none";
-
-                sirketIdSelect.disabled = !sirketGerekliMi;
-                firmaIdSelect.disabled = true;
-
-                if (!sirketGerekliMi) sirketIdSelect.value = "";
-                firmaIdSelect.value = "";
-
-                if (servisMi) {
-                    sirketLabel.textContent = "Bağlı Şirket";
-                    roleHelp.textContent = "Yetkili Servis rolünde seçilen şirkete bağlı servis kaydı otomatik oluşturulur.";
-                } else if (personelMi) {
-                    sirketLabel.textContent = "Şirket";
-                    roleHelp.textContent = "Personel ana şirketine bağlanır; ek şirket yetkileri Yetkiler ekranından verilir.";
-                } else if (adminMi) {
-                    sirketLabel.textContent = "Şirket";
-                    roleHelp.textContent = "Şirket Admini sadece kendi dağıtım şirketinin kayıtlarını yönetir.";
-                } else if (genelAdminMi) {
-                    sirketLabel.textContent = "Şirket";
-                    roleHelp.textContent = "Genel Sistem Admini şirketten bağımsızdır ve tüm sistemi yönetir.";
-                } else {
-                    roleHelp.textContent = "";
-                }
+            sirketLabel.textContent = firmaKullanicisiMi ? "Bağlı Dağıtım Şirketi *" : "Şirket *";
+            if (firmaKullanicisiMi) {
+                roleHelp.textContent = "Firma hesabı oluşturulur ve seçilen dağıtım şirketine bağlanır.";
+            } else if (rol === "Personel") {
+                roleHelp.textContent = "Personelin ek işlem yetkileri Yetkiler ekranından belirlenir.";
+            } else if (rol === "SirketAdmin" || rol === "SuperAdmin") {
+                roleHelp.textContent = "Şirket yöneticisi yalnızca bağlı şirket kapsamındaki kayıtları yönetir.";
+            } else {
+                roleHelp.textContent = "Sistem genelindeki yönetim hesabıdır.";
             }
+        }
 
-            rolSelect.addEventListener("change", uygulaRolDavranisi);
-            uygulaRolDavranisi();
-        })();
-    </script>
+        rolSelect.addEventListener("change", uygulaRolDavranisi);
+        uygulaRolDavranisi();
+    })();
+</script>
 }

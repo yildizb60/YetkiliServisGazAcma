@@ -1,165 +1,193 @@
+@model YetkiliServisGazAcma.Entities.Ys_Firma
 @{
     ViewData["Title"] = "Yetkili Servis Düzenle";
     ViewData["PanelTitle"] = ViewData["Title"];
     ViewData["PanelSubtitle"] = "Personel Paneli";
     ViewData["ActiveMenu"] = "YetkiliServisler";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
-    var Kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
-    var servis = Model as YetkiliServisGazAcma.Entities.Ys_Firma ?? ViewBag.Servis as YetkiliServisGazAcma.Entities.Ys_Firma;
+
+    var servis = Model ?? ViewBag.Servis as YetkiliServisGazAcma.Entities.Ys_Firma;
     var sehirler = ViewBag.Sehirler as List<string> ?? new();
     var kategoriler = ViewBag.Kategoriler as List<YetkiliServisGazAcma.Entities.UrunKategori> ?? new();
+    var markalar = ViewBag.Markalar as List<YetkiliServisGazAcma.Entities.Ys_Marka> ?? new();
     var seciliKategoriler = ViewBag.SeciliKategoriler as List<int> ?? new();
-    string adSoyad = Kullanici?.AdSoyad ?? "Personel";
-    string basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "A";
-    int onayBekleyen = ViewBag.OnayBekleyen is int v ? v : 0;
+    var seciliMarkalar = ViewBag.SeciliMarkalar as List<int> ?? new();
 }
 
-@section Styles {
-    <style>
-.content { padding: 28px 32px; }
-        .back-link { display: inline-flex; align-items: center; gap: 8px; color: #1B9FD4; font-weight: 700; text-decoration: none; margin-bottom: 14px; }
-        .page-title { font-size: 22px; font-weight: 800; margin: 4px 0 10px; }
-        .card { background: #fff; border-radius: 12px; border: 1px solid #e6eef4; box-shadow: 0 10px 24px rgba(20,40,60,0.08); padding: 16px; max-width: none; width: 100%; }
-        .card-title { font-size: 14px; font-weight: 800; color: #4CAF7D; margin-bottom: 10px; display:flex; align-items:center; gap:8px; }
-        .info-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .info-item { background: #f7fafc; border: 1px solid #edf3f8; border-radius: 10px; padding: 10px 12px; }
-        .info-label { font-size: 11px; color: #6f7b86; margin-bottom: 4px; font-weight: 700; }
-        .info-input { width: 100%; padding: 10px 12px; border: 1.5px solid #e0e0e0; border-radius: 8px; font-size: 13px; color: #333; outline: none; background: #fff; }
-        .info-input:focus { border-color: #4CAF7D; }
-        .info-item.tam { grid-column: span 2; }
-        .actions { display: flex; gap: 10px; margin-top: 16px; }
-        .btn-kaydet { padding: 10px 24px; background: #1B9FD4; color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; }
-        .btn-iptal { padding: 10px 24px; background: #fff; color: #555; border: 1.5px solid #ddd; border-radius: 8px; font-size: 13px; cursor: pointer; text-decoration: none; }
-        .kategori-box { grid-column: 1 / -1; padding: 14px; border: 1px dashed #d8dde6; border-radius: 8px; background: #fff; }
-        .kategori-title { font-size: 13px; font-weight: bold; margin-bottom: 10px; }
-        .kategori-list { display: grid; grid-template-columns: repeat(4, minmax(160px, 1fr)); gap: 10px 14px; }
-        .kategori-item { display: grid; grid-template-columns: 18px 1fr; align-items: center; gap: 8px; font-size: 13px; line-height: 1.2; }
-        .kategori-item input { margin: 0; }
-        .status-row { display: flex; gap: 16px; align-items: center; grid-column: 1 / -1; }
-        .status-pill { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid #ddd; border-radius: 999px; font-size: 13px; cursor: pointer; background: #fff; }
-        .status-pill input { margin: 0; }
+<div class="df-admin-workspace df-admin-editor df-service-create-workspace">
+    <section class="df-page-panel df-admin-hero">
+        <div class="df-panel-head">
+            <div>
+                <div class="df-panel-kicker"><i class="bi bi-pencil-square"></i> Servis kaydı</div>
+                <div class="df-panel-title">Yetkili Servis Düzenle</div>
+                <div class="df-panel-subtitle">@servis?.FirmaAdi firmasının iletişim, kapsam ve durum bilgilerini güncelleyin.</div>
+            </div>
+            <a class="df-btn df-btn-secondary df-btn-sm" href="/personel-panel/yetkiliservisler"><i class="bi bi-arrow-left"></i> Listeye Dön</a>
+        </div>
+    </section>
 
-        @@media (max-width: 1100px) {
-            .info-grid { grid-template-columns: 1fr; }
-            .kategori-list { grid-template-columns: repeat(2, minmax(160px, 1fr)); }
-        }
-        @@media (max-width: 720px) {
-            .sidebar { position: static; width: 100%; height: auto; }
-            .main { margin-left: 0; }
-            .kategori-list { grid-template-columns: 1fr; }
-        }
-    </style>
-}
+    @if (TempData["Hata"] != null)
+    {
+        <div class="df-alert df-alert-danger">@TempData["Hata"]</div>
+    }
 
-<a class="back-link" href="/personel-panel/yetkiliservisler">&#8592; Yetkili Servislere Dön</a>
-<div class="page-title">Yetkili Servis Düzenle</div>
-<div class="card">
-    <div class="card-title">&#128204; Firma Bilgileri</div>
-    <form method="post" action="/personel-panel/yetkiliservisler/duzenle/@servis?.Id">
-        @Html.AntiForgeryToken()
-        <div class="info-grid">
-            <div class="info-item">
-                <div class="info-label">Firma Adı</div>
-                <input class="info-input" type="text" name="firmaAdi" value="@servis?.FirmaAdi" required />
-            </div>
-            <div class="info-item">
-                <div class="info-label">Yetkili Kişi</div>
-                <input class="info-input" type="text" name="yetkiliKisi" value="@servis?.YetkiliKisi" />
-            </div>
-            <div class="info-item">
-                <div class="info-label">Telefon</div>
-                <input class="info-input" type="text" name="telefon" value="@servis?.Telefon" />
-            </div>
-            <div class="info-item">
-                <div class="info-label">E-Posta</div>
-                <input class="info-input" type="email" name="email" value="@servis?.Email" />
-            </div>
-            <div class="info-item">
-                <div class="info-label">Şehir</div>
-                <select class="info-input" name="faaliyetIli" required>
-                    <option value="">-- Seçiniz --</option>
-                    @foreach (var sehir in sehirler)
-                    {
-                        if (string.Equals(servis?.FaaliyetIli, sehir, StringComparison.CurrentCultureIgnoreCase))
-                        {
-                            <option value="@sehir" selected="selected">@sehir</option>
-                        }
-                        else
-                        {
-                            <option value="@sehir">@sehir</option>
-                        }
-                    }
-                </select>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Vergi No</div>
-                <input class="info-input" type="text" name="vergiNo" value="@servis?.VergiNo" />
-            </div>
-            <div class="info-item">
-                <div class="info-label">Vergi Dairesi</div>
-                <input class="info-input" type="text" name="vergiDairesi" value="@servis?.VergiDairesi" />
-            </div>
-            <div class="info-item tam">
-                <div class="info-label">Adres</div>
-                <textarea class="info-input" name="adres">@servis?.Adres</textarea>
-            </div>
-            <div class="kategori-box">
-                <div class="kategori-title">Devreye Alma Ürünleri</div>
-                <div class="kategori-list">
-                    @foreach (var k in kategoriler)
-                    {
-                        var isChecked = seciliKategoriler.Contains(k.Id);
-                        <label class="kategori-item">
-                            <input type="checkbox" name="kategoriids" value="@k.Id" @(isChecked ? "checked" : "") />
-                            @k.Ad
+    <section class="df-admin-form-card">
+        <div class="df-admin-form-body">
+            <form method="post" action="/personel-panel/yetkiliservisler/duzenle/@servis?.Id">
+                @Html.AntiForgeryToken()
+                <section class="df-admin-form-section">
+                    <div class="df-admin-form-section-head">
+                        <span><i class="bi bi-buildings"></i></span>
+                        <div>
+                            <h3>Firma ve İletişim Bilgileri</h3>
+                            <p>Servisin kurumsal kimlik, iletişim ve faaliyet bilgilerini güncelleyin.</p>
+                        </div>
+                    </div>
+                    <div class="df-admin-form-grid">
+                    <div class="df-admin-field"><label>Firma Adı *</label><input type="text" name="firmaAdi" value="@servis?.FirmaAdi" required /></div>
+                    <div class="df-admin-field"><label>Yetkili Kişi</label><input type="text" name="yetkiliKisi" value="@servis?.YetkiliKisi" /></div>
+                    <div class="df-admin-field"><label>Telefon</label><input type="text" name="telefon" value="@servis?.Telefon" /></div>
+                    <div class="df-admin-field"><label>E-Posta</label><input type="email" name="email" value="@servis?.Email" /></div>
+                    <div class="df-admin-field">
+                        <label>Şehir *</label>
+                        <select name="faaliyetIli" required>
+                            <option value="">Seçiniz</option>
+                            @foreach (var sehir in sehirler)
+                            {
+                                <option value="@sehir" selected="@(string.Equals(servis?.FaaliyetIli, sehir, StringComparison.CurrentCultureIgnoreCase))">@sehir</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="df-admin-field"><label>Vergi No</label><input type="text" name="vergiNo" value="@servis?.VergiNo" /></div>
+                    <div class="df-admin-field"><label>Vergi Dairesi</label><input type="text" name="vergiDairesi" value="@servis?.VergiDairesi" /></div>
+                    <div class="df-admin-field is-wide"><label>Adres</label><input type="text" name="adres" value="@servis?.Adres" /></div>
+                    </div>
+                </section>
+
+                <section class="df-admin-form-section">
+                    <div class="df-admin-form-section-head">
+                        <span><i class="bi bi-patch-check"></i></span>
+                        <div>
+                            <h3>Yetki ve Hizmet Kapsamı</h3>
+                            <p>Servisin çalışabileceği markaları ve hizmet türlerini güncelleyin.</p>
+                        </div>
+                    </div>
+                    <div class="df-admin-choice-layout">
+                        <div class="df-admin-choice-box">
+                        <h3 class="df-admin-section-title is-scope"><i class="bi bi-tags"></i> Marka Seçimi</h3>
+                        <div class="df-admin-choice-note">Servisin işlem yapabildiği markaları seçin.</div>
+                        <input class="marka-search" id="markaSearch" type="search" placeholder="Marka ara..." autocomplete="off" />
+                        <div class="marka-list" id="markaList">
+                            <label class="marka-item-all"><input type="checkbox" id="markaSelectAll" /> Tümünü Seç</label>
+                            @foreach (var marka in markalar)
+                            {
+                                <label class="marka-item" data-name="@marka.MarkaAdi">
+                                    <input type="checkbox" name="markaIds" value="@marka.Id" checked="@(seciliMarkalar.Contains(marka.Id))" />
+                                    @marka.MarkaAdi
+                                </label>
+                            }
+                        </div>
+                        </div>
+                        <div class="df-admin-choice-box">
+                        <h3 class="df-admin-section-title is-scope"><i class="bi bi-ui-checks"></i> Kullanılan Hizmet Türleri</h3>
+                        <div class="df-admin-choice-note">Servisin çalışacağı ürün veya hizmet türlerini işaretleyin.</div>
+                        <div class="df-admin-choice-list">
+                            @foreach (var kategori in kategoriler)
+                            {
+                                <label class="df-admin-choice">
+                                    <input type="checkbox" name="kategoriIds" value="@kategori.Id" checked="@(seciliKategoriler.Contains(kategori.Id))" />
+                                    <span class="df-admin-choice-icon">
+                                        @if (!string.IsNullOrWhiteSpace(kategori.IconUrl))
+                                        {
+                                            <img src="@kategori.IconUrl" alt="" />
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-box-seam"></i>
+                                        }
+                                    </span>
+                                    <span>@kategori.Ad</span>
+                                </label>
+                            }
+                        </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="df-admin-form-section">
+                    <div class="df-admin-form-section-head">
+                        <span><i class="bi bi-toggle-on"></i></span>
+                        <div>
+                            <h3>Kayıt Durumu</h3>
+                            <p>Pasif kayıtlar yeni işlemlerde seçim listelerinde gösterilmez.</p>
+                        </div>
+                    </div>
+                    <div class="df-admin-choice-box df-admin-status-box">
+                        <div class="df-admin-choice-list">
+                        <label class="df-admin-choice">
+                            <input type="radio" name="aktifMi" value="true" checked="@(servis?.AktifMi == true)" />
+                            <span class="df-admin-choice-icon"><i class="bi bi-check-circle"></i></span>
+                            <span>Aktif</span>
                         </label>
-                    }
+                        <label class="df-admin-choice">
+                            <input type="radio" name="aktifMi" value="false" checked="@(servis?.AktifMi == false)" />
+                            <span class="df-admin-choice-icon"><i class="bi bi-slash-circle"></i></span>
+                            <span>Pasif</span>
+                        </label>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="df-admin-form-actions">
+                    <a class="df-btn df-btn-secondary df-btn-sm" href="/personel-panel/yetkiliservisler"><i class="bi bi-x-lg"></i> Vazgeç</a>
+                    <button type="submit" class="df-btn df-btn-primary df-btn-sm"><i class="bi bi-check2"></i> Değişiklikleri Kaydet</button>
                 </div>
-            </div>
-            <div class="form-group" style="grid-column: 1 / -1;">
-                <label>Durum</label>
-                <div class="status-row">
-                    <label class="status-pill">
-                        <input type="radio" name="aktifMi" value="true" @(servis?.AktifMi == true ? "checked" : "") />
-                        Aktif
-                    </label>
-                    <label class="status-pill">
-                        <input type="radio" name="aktifMi" value="false" @(servis?.AktifMi == false ? "checked" : "") />
-                        Pasif
-                    </label>
-                </div>
-            </div>
+            </form>
         </div>
-        <div class="actions">
-            <button type="submit" class="btn-kaydet">Kaydet</button>
-            <a class="btn-iptal" href="/personel-panel/yetkiliservisler">Vazgeç</a>
-        </div>
-    </form>
+    </section>
 </div>
 
 @section Scripts {
 <script>
-(function () {
-    // PERSONEL_YETKI_MENU
-    var yetki = {
-        yetkiBelgesi: @((ViewBag.YetkiBelgesi == true).ToString().ToLower()),
-        rapor: @((ViewBag.YetkiRapor == true).ToString().ToLower())
-    };
-
-    function hide(selector, allowed) {
-        if (allowed) return;
-        var list = document.querySelectorAll(selector);
-        list.forEach(function (el) { el.style.display = 'none'; });
-    }
-
-    hide('a[href="/personel-panel/onay-bekleyenler"]', yetki.yetkiBelgesi);
-    hide('a[href="/personel-panel/onay-gecmisi"]', yetki.yetkiBelgesi);
-    hide('a[href="/personel-panel/raporlar"]', yetki.rapor);
-
-    var raporSection = Array.from(document.querySelectorAll('.nav-section')).find(function (x) {
-        return (x.textContent || '').toLowerCase().indexOf('rapor') >= 0;
-    });
-    if (!yetki.rapor && raporSection) raporSection.style.display = 'none';
-})();
+    (function () {
+        var search = document.getElementById("markaSearch");
+        var list = document.getElementById("markaList");
+        var selectAll = document.getElementById("markaSelectAll");
+        if (search && list) {
+            search.addEventListener("input", function () {
+                var query = search.value.toLocaleLowerCase("tr-TR");
+                list.querySelectorAll(".marka-item").forEach(function (item) {
+                    item.style.display = (item.dataset.name || "").toLocaleLowerCase("tr-TR").includes(query) ? "flex" : "none";
+                });
+            });
+        }
+        if (selectAll && list) {
+            var boxes = Array.from(list.querySelectorAll(".marka-item input[type='checkbox']"));
+            selectAll.checked = boxes.length > 0 && boxes.every(function (box) { return box.checked; });
+            selectAll.addEventListener("change", function () {
+                boxes.forEach(function (box) { box.checked = selectAll.checked; });
+            });
+            boxes.forEach(function (box) {
+                box.addEventListener("change", function () {
+                    selectAll.checked = boxes.length > 0 && boxes.every(function (item) { return item.checked; });
+                });
+            });
+        }
+    })();
+</script>
+<script>
+    (function () {
+        var yetki = {
+            yetkiBelgesi: @((ViewBag.YetkiBelgesi == true).ToString().ToLower()),
+            rapor: @((ViewBag.YetkiRapor == true).ToString().ToLower())
+        };
+        function hide(selector, allowed) {
+            if (allowed) return;
+            document.querySelectorAll(selector).forEach(function (el) { el.style.display = "none"; });
+        }
+        hide('a[href="/personel-panel/onay-bekleyenler"]', yetki.yetkiBelgesi);
+        hide('a[href="/personel-panel/onay-gecmisi"]', yetki.yetkiBelgesi);
+        hide('a[href="/personel-panel/raporlar"]', yetki.rapor);
+    })();
 </script>
 }

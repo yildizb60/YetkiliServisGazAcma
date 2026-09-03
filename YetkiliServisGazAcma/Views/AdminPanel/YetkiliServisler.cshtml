@@ -1,3 +1,4 @@
+@using YetkiliServisGazAcma.Entities
 @{
     ViewData["Title"] = "Yetkili Servisler";
     ViewData["PanelTitle"] = "Yetkili Servisler";
@@ -5,269 +6,133 @@
     ViewData["ActiveMenu"] = "YetkiliServisler";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
-    var servisler = ViewBag.YetkiliServisler as List<YetkiliServisGazAcma.Entities.Ys_Firma>;
-    var sehirler = ViewBag.Sehirler as List<string> ?? new();
-    var devreyeSayilari = ViewBag.DevreyeSayilari as Dictionary<int, int> ?? new();
-    var seciliQ = ViewBag.SeciliQ as string;
-    var seciliIl = ViewBag.SeciliIl as string;
+    var servisler = ViewBag.YetkiliServisler as List<Ys_Firma> ?? new List<Ys_Firma>();
+    var sehirler = ViewBag.Sehirler as List<string> ?? new List<string>();
+    var devreyeSayilari = ViewBag.DevreyeSayilari as Dictionary<int, int> ?? new Dictionary<int, int>();
+    var seciliQ = ViewBag.SeciliQ as string ?? "";
+    var seciliIl = ViewBag.SeciliIl as string ?? "";
     var seciliDurum = ViewBag.SeciliDurum is int d ? d : (int?)null;
     var seciliDevreyeSiralama = ViewBag.SeciliDevreyeSiralama as string ?? "";
+    var filtreAktif = !string.IsNullOrWhiteSpace(seciliQ)
+        || !string.IsNullOrWhiteSpace(seciliIl)
+        || seciliDurum.HasValue
+        || !string.IsNullOrWhiteSpace(seciliDevreyeSiralama);
 }
 
-@section Styles {
-    <style>
-        .content {
-            display: grid;
-            gap: 14px;
-        }
-
-        .filter-bar {
-            background: var(--df-surface);
-            border: 1px solid var(--df-border);
-            border-radius: var(--df-radius);
-            padding: 14px 16px;
-            display: grid;
-            grid-template-columns: 2fr 1.2fr 1fr 1fr auto;
-            gap: 12px;
-            align-items: end;
-            box-shadow: 0 12px 26px rgba(15, 23, 42, .06);
-        }
-
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .filter-group label {
-            font-size: 11px;
-            color: var(--df-muted);
-            font-weight: 700;
-            letter-spacing: 0;
-        }
-
-        .filter-group input,
-        .filter-group select {
-            min-height: 36px;
-            padding: 8px 10px;
-            border: 1px solid var(--df-border);
-            border-radius: var(--df-radius);
-            font-size: 13px;
-            background: #fff;
-            color: var(--df-text);
-            font: inherit;
-        }
-
-        .filter-actions {
-            display: flex;
-            gap: 8px;
-        }
-
-        .btn-filter {
-            min-height: 36px;
-            padding: 8px 12px;
-            border-radius: var(--df-radius);
-            font-size: 12px;
-            font-weight: 700;
-            border: none;
-            cursor: pointer;
-        }
-
-        .btn-apply {
-            background: var(--df-primary-500);
-            color: #fff;
-        }
-
-        .btn-clear {
-            background: var(--df-surface-2);
-            color: var(--df-neutral-700);
-            border: 1px solid var(--df-border);
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-        }
-
-        .section {
-            background: var(--df-surface);
-            border-radius: var(--df-radius);
-            border: 1px solid var(--df-border);
-            box-shadow: 0 12px 26px rgba(15, 23, 42, .06);
-        }
-
-        .tablo-head,
-        .tablo-row {
-            grid-template-columns: 1.4fr 1fr 1fr 1fr .8fr 1.9fr;
-        }
-
-        .btn-edit,
-        .btn-del,
-        .btn-disabled,
-        .link-public {
-            border-radius: 6px;
-            font-size: 12px;
-            text-decoration: none;
-        }
-
-        .btn-edit {
-            padding: 5px 12px;
-            background: var(--df-primary-50);
-            color: var(--df-primary-600);
-        }
-
-        .btn-del {
-            padding: 5px 12px;
-            background: var(--df-danger-50);
-            color: var(--df-danger-500);
-            border: none;
-            cursor: pointer;
-        }
-
-        .btn-disabled {
-            padding: 5px 12px;
-            background: #f1f5f9;
-            color: #8391a1;
-            border: none;
-            cursor: not-allowed;
-        }
-
-        .link-public {
-            color: var(--df-primary-600);
-            font-weight: 700;
-            background: transparent;
-            padding: 6px 8px;
-        }
-
-        .alert {
-            padding: 12px 14px;
-            border-radius: 12px;
-            font-size: 13px;
-            font-weight: 800;
-            border: 1px solid transparent;
-        }
-
-        .alert-success {
-            background: #e9f8ef;
-            color: #126337;
-            border-color: #c7ebd4;
-        }
-
-        .alert-danger {
-            background: #fdecec;
-            color: #8a1f1f;
-            border-color: #f4c5c5;
-        }
-
-        @@media (max-width: 1200px) {
-            .filter-bar {
-                grid-template-columns: 1fr 1fr;
-            }
-
-            .tablo-head,
-            .tablo-row {
-                grid-template-columns: 1fr;
-                gap: 8px;
-            }
-        }
-    </style>
-}
-
-@if (TempData["Basarili"] != null)
-{
-    <div class="alert alert-success">@TempData["Basarili"]</div>
-}
-@if (TempData["Hata"] != null)
-{
-    <div class="alert alert-danger">@TempData["Hata"]</div>
-}
-
-<form class="filter-bar" method="get" action="/AdminPanel/yetkiliservisler">
-    <div class="filter-group">
-        <label>Arama</label>
-        <input type="text" name="q" value="@seciliQ" placeholder="Firma, yetkili kişi, vergi no, telefon..." />
-    </div>
-    <div class="filter-group">
-        <label>Şehir</label>
-        <select name="il">
-            <option value="">Tümü</option>
-            @foreach (var sehir in sehirler)
-            {
-                <option value="@sehir" selected="@(seciliIl == sehir ? "selected" : null)">@sehir</option>
-            }
-        </select>
-    </div>
-    <div class="filter-group">
-        <label>Devreye Alma</label>
-        <select name="devreyeSiralama">
-            <option value="">Varsayılan</option>
-            <option value="azalan" selected="@(seciliDevreyeSiralama == "azalan" ? "selected" : null)">En çoktan aza</option>
-            <option value="artan" selected="@(seciliDevreyeSiralama == "artan" ? "selected" : null)">En azdan çoğa</option>
-        </select>
-    </div>
-    <div class="filter-group">
-        <label>Durum</label>
-        <select name="durum">
-            <option value="" selected="@(seciliDurum == null ? "selected" : null)">Tümü</option>
-            <option value="1" selected="@(seciliDurum == 1 ? "selected" : null)">Aktif</option>
-            <option value="0" selected="@(seciliDurum == 0 ? "selected" : null)">Pasif</option>
-        </select>
-    </div>
-    <div class="filter-actions">
-        <button class="btn-filter btn-apply" type="submit">Filtrele</button>
-        <a class="btn-filter btn-clear" href="/AdminPanel/yetkiliservisler">Temizle</a>
-    </div>
-</form>
-
-<div class="section">
-    <div class="section-head">
-        <div class="section-title">Yetkili Servis Listesi</div>
-        <div style="display:flex;gap:10px;align-items:center;">
-            <a class="btn-sm" href="/AdminPanel/yetkiliservisler/ekle">+ Yetkili Servis Ekle</a>
-            <a class="link-public" href="/yetkili-servisler" target="_blank">Yetkili Servis Sayfasını Aç</a>
+<div class="df-service-directory">
+    <section class="df-page-panel df-service-hero">
+        <div class="df-panel-head">
+            <div>
+                <div class="df-panel-kicker"><i class="bi bi-building-check" aria-hidden="true"></i> SERVİS YÖNETİMİ</div>
+                <h2 class="df-panel-title">Yetkili Servisler</h2>
+                <div class="df-panel-subtitle">Servisleri, faaliyet illerini ve devreye alma durumlarını tek listeden yönetin.</div>
+            </div>
+            <div class="df-actions">
+                <a class="df-btn df-btn-secondary df-btn-sm" href="/yetkili-servisler" target="_blank"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> Genel Liste</a>
+                <a class="df-btn df-btn-primary df-btn-sm" href="/AdminPanel/yetkiliservisler/ekle"><i class="bi bi-plus-lg" aria-hidden="true"></i> Yeni Servis</a>
+            </div>
         </div>
-    </div>
-    <div class="tablo-head">
-        <div>Firma</div><div>Şehir</div><div>Vergi No</div><div>Devreye Alma Sayısı</div><div>Durum</div><div>İşlem</div>
-    </div>
-    @if (servisler == null || servisler.Count == 0)
-    {
-        <div class="empty">Yetkili servis kaydı yok</div>
-    }
-    else
-    {
-        foreach (var s in servisler)
-        {
-            var devreyeSayisi = devreyeSayilari.TryGetValue(s.Id, out var sayi) ? sayi : 0;
-            <div class="tablo-row">
-                <div>@(s.FirmaAdi ?? "-")</div>
-                <div>@(s.FaaliyetIli ?? "-")</div>
-                <div>@(s.VergiNo ?? "-")</div>
-                <div>@devreyeSayisi</div>
-                <div>
-                    @if (s.AktifMi)
-                    {
-                        <span class="badge b-green">Aktif</span>
-                    }
-                    else
-                    {
-                        <span class="badge b-red">Pasif</span>
-                    }
+    </section>
+
+    @if (TempData["Basarili"] != null) { <div class="df-alert df-alert-success">@TempData["Basarili"]</div> }
+    @if (TempData["Hata"] != null) { <div class="df-alert df-alert-danger">@TempData["Hata"]</div> }
+
+    <details class="df-service-filter" open="@(filtreAktif ? "open" : null)">
+        <summary>
+            <span><i class="bi bi-funnel" aria-hidden="true"></i><strong>Filtreler</strong><small>Firma, şehir, durum veya işlem sayısına göre listeyi daraltın.</small></span>
+            <span>@(filtreAktif ? "Filtre uygulandı" : "Aç") <i class="bi bi-chevron-down" aria-hidden="true"></i></span>
+        </summary>
+        <form method="get" action="/AdminPanel/yetkiliservisler">
+            <div class="df-service-filter-grid">
+                <div class="filtre-alan">
+                    <label>Firma / Yetkili</label>
+                    <input type="text" name="q" value="@seciliQ" placeholder="Firma, yetkili, VKN veya telefon..." />
                 </div>
-                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-                    <a class="btn-edit" href="/AdminPanel/yetkiliservisler/detay/@s.Id">Detay</a>
-                    <a class="btn-edit" href="/AdminPanel/yetkiliservisler/duzenle/@s.Id">Düzenle</a>
-                    @if (devreyeSayisi > 0)
-                    {
-                        <button type="button" class="btn-disabled" title="Bu servisin devreye alma işlemi olduğu için silinemez.">Silinemez</button>
-                    }
-                    else
-                    {
-                        <form method="post" action="/AdminPanel/yetkiliservisler/sil/@s.Id" onsubmit="return confirm('Bu yetkili servisi silmek istiyor musunuz?');">
-                            @Html.AntiForgeryToken()
-                            <button type="submit" class="btn-del">Sil</button>
-                        </form>
-                    }
+                <div class="filtre-alan">
+                    <label>Şehir</label>
+                    <select name="il">
+                        <option value="">Tümü</option>
+                        @foreach (var sehir in sehirler)
+                        {
+                            <option value="@sehir" selected="@(seciliIl == sehir ? "selected" : null)">@sehir</option>
+                        }
+                    </select>
+                </div>
+                <div class="filtre-alan">
+                    <label>Devreye Alma</label>
+                    <select name="devreyeSiralama">
+                        <option value="">Varsayılan</option>
+                        <option value="azalan" selected="@(seciliDevreyeSiralama == "azalan" ? "selected" : null)">En çoktan aza</option>
+                        <option value="artan" selected="@(seciliDevreyeSiralama == "artan" ? "selected" : null)">En azdan çoğa</option>
+                    </select>
+                </div>
+                <div class="filtre-alan">
+                    <label>Durum</label>
+                    <select name="durum">
+                        <option value="" selected="@(seciliDurum == null ? "selected" : null)">Tümü</option>
+                        <option value="1" selected="@(seciliDurum == 1 ? "selected" : null)">Aktif</option>
+                        <option value="0" selected="@(seciliDurum == 0 ? "selected" : null)">Pasif</option>
+                    </select>
                 </div>
             </div>
-        }
-    }
+            <div class="df-service-filter-actions">
+                <a class="df-btn df-btn-secondary df-btn-sm" href="/AdminPanel/yetkiliservisler"><i class="bi bi-x-lg" aria-hidden="true"></i> Temizle</a>
+                <button class="df-btn df-btn-primary df-btn-sm" type="submit"><i class="bi bi-funnel-fill" aria-hidden="true"></i> Filtrele</button>
+            </div>
+        </form>
+    </details>
+
+    <section class="df-service-list">
+        <div class="df-service-list-head">
+            <div>
+                <h3><i class="bi bi-list-check" aria-hidden="true"></i> Yetkili Servis Listesi</h3>
+                <span>Firma bilgileri, işlem hacmi ve kayıt durumu</span>
+            </div>
+            <strong>@servisler.Count kayıt</strong>
+        </div>
+        <div class="df-service-table-scroll">
+            <div class="df-service-grid df-service-grid-head">
+                <div>Firma</div><div>Şehir</div><div>Vergi No</div><div>İşlem</div><div>Durum</div><div>İşlemler</div>
+            </div>
+            @if (servisler.Count == 0)
+            {
+                <div class="df-empty">
+                    <div class="df-empty-title">Yetkili servis kaydı bulunamadı.</div>
+                    <p class="df-empty-text">Filtreleri temizleyip yeniden deneyin.</p>
+                </div>
+            }
+            else
+            {
+                foreach (var servis in servisler)
+                {
+                    var devreyeSayisi = devreyeSayilari.TryGetValue(servis.Id, out var sayi) ? sayi : 0;
+                    <div class="df-service-grid df-service-row @(servis.AktifMi ? "is-active" : "is-passive")">
+                        <div>
+                            <span class="df-service-name">@(servis.FirmaAdi ?? "-")</span>
+                            <small>@(string.IsNullOrWhiteSpace(servis.YetkiliKisi) ? "Yetkili kişi tanımlı değil" : servis.YetkiliKisi)</small>
+                        </div>
+                        <div>@(servis.FaaliyetIli ?? "-")</div>
+                        <div>@(servis.VergiNo ?? "-")</div>
+                        <div><span class="df-service-count">@devreyeSayisi</span></div>
+                        <div><span class="df-pill @(servis.AktifMi ? "df-pill-success" : "df-pill-danger")">@(servis.AktifMi ? "Aktif" : "Pasif")</span></div>
+                        <div class="df-service-actions">
+                            <a class="df-icon-action" href="/AdminPanel/yetkiliservisler/detay/@servis.Id" title="Servis detayını görüntüle"><i class="bi bi-eye" aria-hidden="true"></i><span>Detay</span></a>
+                            <a class="df-icon-action" href="/AdminPanel/yetkiliservisler/duzenle/@servis.Id" title="Servisi düzenle"><i class="bi bi-pencil" aria-hidden="true"></i><span>Düzenle</span></a>
+                            @if (devreyeSayisi > 0)
+                            {
+                                <button type="button" class="df-icon-action is-disabled" disabled title="Bu servisin devreye alma işlemi olduğu için silinemez."><i class="bi bi-lock" aria-hidden="true"></i><span>Silinemez</span></button>
+                            }
+                            else
+                            {
+                                <form method="post" action="/AdminPanel/yetkiliservisler/sil/@servis.Id" onsubmit="return confirm('Bu yetkili servisi silmek istiyor musunuz?');">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="df-icon-action is-danger" title="Servisi sil"><i class="bi bi-trash3" aria-hidden="true"></i><span>Sil</span></button>
+                                </form>
+                            }
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </section>
 </div>

@@ -12,185 +12,281 @@
     var seciliQ = ViewBag.SeciliQ as string ?? "";
     var aktifSayisi = subeler.Count(x => x.AktifMi);
     var pasifSayisi = subeler.Count - aktifSayisi;
+    var firmaSayisi = firmalar.Count;
+    var filtreAktif = seciliFirmaId > 0 || !string.IsNullOrWhiteSpace(seciliQ);
 }
 
-@if (TempData["Basarili"] != null)
-{
-    <div class="df-alert df-alert-success">@TempData["Basarili"]</div>
-}
-@if (TempData["Hata"] != null)
-{
-    <div class="df-alert df-alert-danger">@TempData["Hata"]</div>
-}
+<div class="df-admin-workspace df-branch-workspace">
+    @if (TempData["Basarili"] != null)
+    {
+        <div class="df-alert df-alert-success">@TempData["Basarili"]</div>
+    }
+    @if (TempData["Hata"] != null)
+    {
+        <div class="df-alert df-alert-danger">@TempData["Hata"]</div>
+    }
 
-<div class="section-label">
-    Servis ağı
-</div>
-
-<div class="df-page-panel">
-    <div class="df-panel-head">
-        <div>
-            <div class="df-panel-title">Şube / Servis Noktaları</div>
-            <div class="df-panel-subtitle">@subeler.Count kayıt listeleniyor</div>
-        </div>
-        <div class="df-status-tabs" id="subeStatusTabs">
-            <button type="button" class="df-tab active" data-status="all">Tümü (@subeler.Count)</button>
-            <button type="button" class="df-tab" data-status="aktif">Aktif (@aktifSayisi)</button>
-            <button type="button" class="df-tab" data-status="pasif">Pasif (@pasifSayisi)</button>
-        </div>
-    </div>
-
-    <div class="df-toolbar">
-        <form method="get" action="/AdminPanel/subeler" class="df-form-row">
-            <div class="df-field">
-                <label>Firma</label>
-                <select name="firmaId" class="df-control">
-                    <option value="0">Tüm firmalar</option>
-                    @foreach (var firma in firmalar)
-                    {
-                        <option value="@firma.Id" selected="@(seciliFirmaId == firma.Id)">@firma.FirmaAdi</option>
-                    }
-                </select>
+    <section class="df-page-panel df-admin-hero">
+        <div class="df-panel-head">
+            <div>
+                <div class="df-panel-kicker"><i class="bi bi-building-gear"></i> Şube ağı</div>
+                <div class="df-panel-title">Şube / Servis Noktaları</div>
+                <div class="df-panel-subtitle">Firmalara bağlı servis noktalarını izleyin; gerektiğinde yeni şube kaydı açın.</div>
             </div>
-            <div class="df-field">
-                <label>Arama</label>
-                <input class="df-control" type="search" name="q" value="@seciliQ" placeholder="Şube, il, telefon veya firma" />
+            <div class="df-actions">
+                <button type="button" class="df-btn df-btn-primary df-btn-sm" id="subeCreateToggle" aria-expanded="false" aria-controls="subeCreatePanel">
+                    <i class="bi bi-plus-lg"></i>
+                    Yeni Şube
+                </button>
             </div>
-            <button type="submit" class="df-btn df-btn-primary df-btn-sm">Filtrele</button>
-            <a href="/AdminPanel/subeler" class="df-btn df-btn-secondary df-btn-sm">Temizle</a>
-        </form>
-    </div>
+        </div>
+        <div class="df-admin-metrics" id="subeStatusTabs" aria-label="Şube durum özeti">
+            <button type="button" class="df-admin-metric active" data-status="all">
+                <i class="bi bi-collection"></i>
+                <span>Tümü</span>
+                <strong>@subeler.Count</strong>
+            </button>
+            <button type="button" class="df-admin-metric is-active" data-status="aktif">
+                <i class="bi bi-check-circle"></i>
+                <span>Aktif</span>
+                <strong>@aktifSayisi</strong>
+            </button>
+            <button type="button" class="df-admin-metric is-passive" data-status="pasif">
+                <i class="bi bi-slash-circle"></i>
+                <span>Pasif</span>
+                <strong>@pasifSayisi</strong>
+            </button>
+            <span class="df-admin-metric is-company">
+                <i class="bi bi-buildings"></i>
+                <span>Firma</span>
+                <strong>@firmaSayisi</strong>
+            </span>
+        </div>
+    </section>
 
-    <div class="stats-body">
-        <form method="post" action="/AdminPanel/subeler/ekle" class="df-form-row">
+    <details class="df-admin-filter" @(filtreAktif ? "open" : "")>
+        <summary>
+            <span>
+                <i class="bi bi-funnel"></i>
+                <span>
+                    <strong>Filtreler</strong>
+                    <small>Firma, şube, il veya telefon ile listeyi daraltın.</small>
+                </span>
+            </span>
+            <span>@(filtreAktif ? "Filtre uygulandı" : "Aç") <i class="bi bi-chevron-down"></i></span>
+        </summary>
+        <div class="df-admin-filter-body">
+            <form method="get" action="/AdminPanel/subeler">
+                <div class="df-admin-filter-grid">
+                    <div class="df-admin-field is-half">
+                        <label>Firma</label>
+                        <select name="firmaId">
+                            <option value="0">Tüm firmalar</option>
+                            @foreach (var firma in firmalar)
+                            {
+                                <option value="@firma.Id" selected="@(seciliFirmaId == firma.Id)">@firma.FirmaAdi</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="df-admin-field is-half">
+                        <label>Arama</label>
+                        <input type="search" name="q" value="@seciliQ" placeholder="Şube, il, telefon veya firma" />
+                    </div>
+                </div>
+                <div class="df-admin-filter-actions">
+                    <a href="/AdminPanel/subeler" class="df-btn df-btn-secondary df-btn-sm">
+                        <i class="bi bi-x-lg"></i>
+                        Temizle
+                    </a>
+                    <button type="submit" class="df-btn df-btn-primary df-btn-sm">
+                        <i class="bi bi-search"></i>
+                        Filtrele
+                    </button>
+                </div>
+            </form>
+        </div>
+    </details>
+
+    <section class="df-admin-form-card df-admin-create-card df-branch-create-card" id="subeCreatePanel" hidden>
+        <div class="df-branch-create-head">
+            <span><i class="bi bi-diagram-3"></i></span>
+            <div><h3>Yeni Şube</h3><p>Firma, şube adı ve hizmet noktasını tek adımda tanımlayın.</p></div>
+        </div>
+        <form method="post" action="/AdminPanel/subeler/ekle">
             @Html.AntiForgeryToken()
-            <div class="df-field">
-                <label>Firma</label>
-                <select name="firmaId" class="df-control" required>
-                    <option value="">Firma seçin</option>
-                    @foreach (var firma in firmalar)
-                    {
-                        <option value="@firma.Id">@firma.FirmaAdi</option>
-                    }
-                </select>
+            <div class="df-branch-form-grid">
+                <div class="df-admin-field is-half">
+                    <label>Bağlı Firma *</label>
+                    <select name="firmaId" required>
+                        <option value="">Firma seçin</option>
+                        @foreach (var firma in firmalar)
+                        {
+                            <option value="@firma.Id">@firma.FirmaAdi</option>
+                        }
+                    </select>
+                </div>
+                <div class="df-admin-field is-half">
+                    <label>Şube Adı *</label>
+                    <input name="subeAdi" required maxlength="150" placeholder="Ör. Merkez Şube" />
+                </div>
+                <div class="df-admin-field"><label>İl</label><input name="il" maxlength="80" /></div>
+                <div class="df-admin-field"><label>İlçe</label><input name="ilce" maxlength="80" /></div>
+                <div class="df-admin-field"><label>Telefon</label><input name="telefon" maxlength="30" autocomplete="tel" /></div>
+                <div class="df-admin-field"><label>Adres</label><input name="adres" maxlength="300" /></div>
             </div>
-            <div class="df-field">
-                <label>Şube adı</label>
-                <input class="df-control" name="subeAdi" required maxlength="150" placeholder="Merkez servis" />
+            <div class="df-branch-create-footer">
+                <label class="df-branch-status-switch">
+                    <input type="checkbox" name="aktifMi" value="true" checked />
+                    <span class="df-branch-switch-track" aria-hidden="true"></span>
+                    <span><strong>Aktif şube</strong><small>Kayıt oluşturulduğunda kullanıma açık olur.</small></span>
+                </label>
+                <div class="df-admin-form-actions">
+                    <button type="button" class="df-btn df-btn-secondary df-btn-sm" id="subeCreateCancel">
+                        <i class="bi bi-x-lg"></i>
+                        Kapat
+                    </button>
+                    <button type="submit" class="df-btn df-btn-primary df-btn-sm">
+                        <i class="bi bi-check2"></i>
+                        Şubeyi Kaydet
+                    </button>
+                </div>
             </div>
-            <div class="df-field">
-                <label>İl</label>
-                <input class="df-control" name="il" maxlength="80" />
-            </div>
-            <div class="df-field">
-                <label>İlçe</label>
-                <input class="df-control" name="ilce" maxlength="80" />
-            </div>
-            <div class="df-field">
-                <label>Telefon</label>
-                <input class="df-control" name="telefon" maxlength="30" />
-            </div>
-            <div class="df-field">
-                <label>Adres</label>
-                <input class="df-control" name="adres" maxlength="300" />
-            </div>
-            <label class="df-check-row">
-                <input type="checkbox" name="aktifMi" value="true" checked />
-                Aktif
-            </label>
-            <button type="submit" class="df-btn df-btn-success df-btn-sm df-sube-add-button">Yeni Şube Ekle</button>
         </form>
-    </div>
+    </section>
 
-    <div class="df-table-wrap">
-        <table class="df-table">
-            <thead>
-                <tr>
-                    <th>Şube</th>
-                    <th>Firma</th>
-                    <th>Konum</th>
-                    <th>Telefon</th>
-                    <th>Durum</th>
-                    <th>İşlem</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if (!subeler.Any())
-                {
+    <section class="df-admin-list-card">
+        <div class="df-service-list-head">
+            <div>
+                <h3><i class="bi bi-diagram-3"></i> Şube Listesi</h3>
+                <span>@subeler.Count kayıt listeleniyor</span>
+            </div>
+        </div>
+
+        <div class="df-admin-table-scroll">
+            <table class="df-table">
+                <thead>
                     <tr>
-                        <td colspan="6">
-                            <div class="df-empty">
-                                <div class="df-empty-title">Şube bulunamadı.</div>
-                                <p class="df-empty-text">Filtreleri değiştirerek tekrar deneyebilir veya yeni şube ekleyebilirsiniz.</p>
-                            </div>
-                        </td>
+                        <th>Şube</th>
+                        <th>Firma</th>
+                        <th>Konum</th>
+                        <th>Telefon</th>
+                        <th>Durum</th>
+                        <th>İşlem</th>
                     </tr>
-                }
-                else
-                {
-                    foreach (var sube in subeler)
+                </thead>
+                <tbody>
+                    @if (!subeler.Any())
                     {
-                        var durum = sube.AktifMi ? "aktif" : "pasif";
-                        <tr data-status="@durum">
-                            <td>
-                                <div class="df-cell-main">@sube.SubeAdi</div>
-                                <div class="df-cell-sub">@sube.Adres</div>
-                            </td>
-                            <td>
-                                <div class="df-cell-main">@sube.Firma?.FirmaAdi</div>
-                                <div class="df-cell-sub">@sube.Firma?.Email</div>
-                            </td>
-                            <td>@($"{sube.Il} {sube.Ilce}".Trim())</td>
-                            <td>@sube.Telefon</td>
-                            <td>
-                                <span class="df-pill @(sube.AktifMi ? "df-pill-success" : "df-pill-muted")">
-                                    @(sube.AktifMi ? "Aktif" : "Pasif")
-                                </span>
-                            </td>
-                            <td>
-                                <div class="df-actions">
-                                    <a class="df-btn df-btn-secondary df-btn-sm" href="/AdminPanel/subeler/duzenle/@sube.Id">Düzenle</a>
-                                    <form method="post" action="/AdminPanel/subeler/durum">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="id" value="@sube.Id" />
-                                        <button type="submit" class="df-btn df-btn-ghost df-btn-sm">
-                                            @(sube.AktifMi ? "Pasifleştir" : "Aktifleştir")
-                                        </button>
-                                    </form>
-                                    <form method="post" action="/AdminPanel/subeler/sil" onsubmit="return confirm('Şube kaydı silinsin mi?');">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="id" value="@sube.Id" />
-                                        <button type="submit" class="df-btn df-btn-danger df-btn-sm">Sil</button>
-                                    </form>
+                        <tr>
+                            <td colspan="6">
+                                <div class="df-empty">
+                                    <div class="df-empty-title">Şube bulunamadı.</div>
+                                    <p class="df-empty-text">Filtreleri değiştirerek tekrar deneyebilir veya yeni şube ekleyebilirsiniz.</p>
                                 </div>
                             </td>
                         </tr>
                     }
-                }
-            </tbody>
-        </table>
-    </div>
+                    else
+                    {
+                        foreach (var sube in subeler)
+                        {
+                            var durum = sube.AktifMi ? "aktif" : "pasif";
+                            <tr data-status="@durum">
+                                <td>
+                                    <div class="df-cell-main">@sube.SubeAdi</div>
+                                    <div class="df-cell-sub">@(string.IsNullOrWhiteSpace(sube.Adres) ? "-" : sube.Adres)</div>
+                                </td>
+                                <td>
+                                    <div class="df-cell-main">@(sube.Firma?.FirmaAdi ?? "-")</div>
+                                    <div class="df-cell-sub">@(sube.Firma?.Email ?? "")</div>
+                                </td>
+                                <td>@(string.IsNullOrWhiteSpace($"{sube.Il} {sube.Ilce}".Trim()) ? "-" : $"{sube.Il} {sube.Ilce}".Trim())</td>
+                                <td>@(string.IsNullOrWhiteSpace(sube.Telefon) ? "-" : sube.Telefon)</td>
+                                <td>
+                                    <span class="df-pill @(sube.AktifMi ? "df-pill-success" : "df-pill-muted")">
+                                        @(sube.AktifMi ? "Aktif" : "Pasif")
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="df-actions">
+                                        <a class="df-btn df-btn-secondary df-btn-sm" href="/AdminPanel/subeler/duzenle/@sube.Id">
+                                            <i class="bi bi-pencil-square"></i>
+                                            Düzenle
+                                        </a>
+                                        <form method="post" action="/AdminPanel/subeler/durum">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@sube.Id" />
+                                            <button type="submit" class="df-btn df-btn-ghost df-btn-sm">
+                                                <i class="bi @(sube.AktifMi ? "bi-slash-circle" : "bi-check-circle")"></i>
+                                                @(sube.AktifMi ? "Pasifleştir" : "Aktifleştir")
+                                            </button>
+                                        </form>
+                                        <form method="post" action="/AdminPanel/subeler/sil" onsubmit="return confirm('Şube kaydı silinsin mi?');">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@sube.Id" />
+                                            <button type="submit" class="df-btn df-btn-danger df-btn-sm">
+                                                <i class="bi bi-trash"></i>
+                                                Sil
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
 </div>
 
 @section Scripts {
 <script>
 (function () {
     var tabs = document.getElementById('subeStatusTabs');
-    if (!tabs) return;
+    if (tabs) {
+        tabs.addEventListener('click', function (event) {
+            var btn = event.target.closest('[data-status]');
+            if (!btn) return;
+            var status = btn.getAttribute('data-status');
 
-    tabs.addEventListener('click', function (event) {
-        var btn = event.target.closest('[data-status]');
-        if (!btn) return;
-        var status = btn.getAttribute('data-status');
+            tabs.querySelectorAll('[data-status]').forEach(function (item) {
+                item.classList.toggle('active', item === btn);
+            });
 
-        tabs.querySelectorAll('[data-status]').forEach(function (item) {
-            item.classList.toggle('active', item === btn);
+            document.querySelectorAll('tr[data-status]').forEach(function (row) {
+                row.style.display = status === 'all' || row.getAttribute('data-status') === status ? '' : 'none';
+            });
         });
+    }
 
-        document.querySelectorAll('tr[data-status]').forEach(function (row) {
-            row.style.display = status === 'all' || row.getAttribute('data-status') === status ? '' : 'none';
+    var createToggle = document.getElementById('subeCreateToggle');
+    var createPanel = document.getElementById('subeCreatePanel');
+    var createCancel = document.getElementById('subeCreateCancel');
+
+    function setCreateOpen(open) {
+        if (!createToggle || !createPanel) return;
+        createPanel.hidden = !open;
+        createToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        createToggle.classList.toggle('df-btn-secondary', open);
+        createToggle.classList.toggle('df-btn-primary', !open);
+        if (open) {
+            var first = createPanel.querySelector('select, input');
+            if (first) first.focus();
+        }
+    }
+
+    if (createToggle && createPanel) {
+        createToggle.addEventListener('click', function () {
+            setCreateOpen(createPanel.hidden);
         });
-    });
+    }
+
+    if (createCancel) {
+        createCancel.addEventListener('click', function () {
+            setCreateOpen(false);
+        });
+    }
 })();
 </script>
 }

@@ -36,7 +36,7 @@
     <link rel="stylesheet" href="~/css/ykc-operations.css" asp-append-version="true" />
 }
 
-<div class="df-service-directory">
+<div class="df-service-directory df-personnel-service-directory">
     <section class="df-page-panel df-service-hero">
         <div class="df-panel-head">
             <div>
@@ -126,7 +126,7 @@
                         .Select(x => x.Kategori!.Ad)
                         .ToList() ?? new List<string?>();
                     var subeSayisi = f.Subeler?.Count(x => !x.SilindiMi) ?? 0;
-                    <div class="df-service-grid df-service-row">
+                    <div class="df-service-grid df-service-row @(f.AktifMi ? "is-active" : "is-passive")">
                         <div><span class="df-service-name">@f.FirmaAdi</span><small>@(string.IsNullOrWhiteSpace(f.YetkiliKisi) ? "Yetkili kişi tanımlı değil" : f.YetkiliKisi)</small></div>
                         <div>@f.Sirket?.SirketAdi</div>
                         <div>@(f.VergiNo ?? "-")</div>

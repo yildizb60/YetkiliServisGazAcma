@@ -17,127 +17,83 @@
         return string.IsNullOrWhiteSpace(value) ? "-" : System.Net.WebUtility.HtmlDecode(value);
     }
 
-    private static string Tarih(DateTime? value)
+    private static bool Gosterilebilir(string? value)
     {
-        return value.HasValue ? value.Value.ToString("dd.MM.yyyy") : "-";
+        return !string.IsNullOrWhiteSpace(value)
+            && value.Trim() != "-"
+            && !string.Equals(value.Trim(), "string", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool GecerliNumara(string? value)
+    {
+        if (!Gosterilebilir(value)) return false;
+        var sadeDeger = new string(value!.Where(char.IsLetterOrDigit).ToArray());
+        return sadeDeger.Length > 0 && sadeDeger.Any(x => x != '0');
     }
 }
 
-<div class="cert-stack">
+<div class="cert-stack df-devreye-detail">
     <section class="df-page-panel">
         <div class="df-panel-head">
             <div>
+                <div class="df-panel-kicker"><i class="bi bi-fire"></i> DEVREYE ALMA KAYDI</div>
                 <h2 class="df-panel-title">Tesisat No: @Deger(Model.TesistatNo)</h2>
-                <div class="df-panel-subtitle">@(Deger(Model.Firma?.Sirket?.SirketAdi)) / @(Deger(Model.Firma?.FirmaAdi)) / @(Deger(marka))</div>
+                <div class="df-panel-subtitle">@Deger(Model.Firma?.Sirket?.SirketAdi) · @Deger(Model.Firma?.FirmaAdi)</div>
             </div>
             <div class="df-actions">
-                <a class="df-btn df-btn-secondary df-btn-sm" href="/AdminPanel/devreyealmalar">Listeye D&#246;n</a>
-                <a class="df-btn df-btn-primary df-btn-sm" href="/AdminPanel/devreyealmalar/pdf/@Model.Id" target="_blank">PDF</a>
-                <a class="df-btn df-btn-success df-btn-sm" href="/AdminPanel/devreyealmalar/excel/@Model.Id" target="_blank">Excel</a>
                 <span class="df-pill @durumClass">@durumYazi</span>
+                <a class="df-btn df-btn-secondary df-btn-sm" href="/AdminPanel/devreyealmalar"><i class="bi bi-arrow-left"></i> Listeye Dön</a>
+                <a class="df-btn df-btn-primary df-btn-sm" href="/AdminPanel/devreyealmalar/pdf/@Model.Id" target="_blank"><i class="bi bi-file-earmark-pdf"></i> PDF</a>
+                <a class="df-btn df-btn-success df-btn-sm" href="/AdminPanel/devreyealmalar/excel/@Model.Id" target="_blank"><i class="bi bi-file-earmark-excel"></i> Excel</a>
             </div>
         </div>
-
         <div class="df-toolbar">
             <div class="df-form-row">
-                <div class="df-field">
-                    <label>Devreye Alma Tarihi</label>
-                    <div class="df-control">@Model.DevreyeAlmaTarihi.ToString("dd.MM.yyyy")</div>
-                </div>
-                <div class="df-field">
-                    <label>Marka</label>
-                    <div class="df-control">@Deger(marka)</div>
-                </div>
-                <div class="df-field">
-                    <label>Teknisyen</label>
-                    <div class="df-control">@Deger(Model.TeknisyenAdi)</div>
-                </div>
-                <div class="df-field">
-                    <label>Servis</label>
-                    <div class="df-control">@Deger(Model.Firma?.FirmaAdi)</div>
-                </div>
+                <div class="df-field"><label>Devreye Alma Tarihi</label><div class="df-control">@Model.DevreyeAlmaTarihi.ToString("dd.MM.yyyy")</div></div>
+                <div class="df-field"><label>Marka</label><div class="df-control">@Deger(marka)</div></div>
+                <div class="df-field"><label>Teknisyen</label><div class="df-control">@Deger(Model.TeknisyenAdi)</div></div>
+                <div class="df-field"><label>Servis</label><div class="df-control">@Deger(Model.Firma?.FirmaAdi)</div></div>
             </div>
         </div>
     </section>
 
     <div class="df-detail-grid">
-        <section class="df-detail-card">
-            <div class="df-detail-card-title df-detail-card-title--icon"><i class="bi bi-person-vcard" aria-hidden="true"></i>Müşteri Bilgileri</div>
+        <section class="df-detail-card df-detail-card--customer">
+            <div class="df-detail-card-title df-detail-card-title--icon"><i class="bi bi-person-vcard"></i>Müşteri Bilgileri</div>
             <div class="df-detail-info">
-                <div class="info-item">
-                    <div class="info-label">Müşteri</div>
-                    <div class="info-value">@Deger(Model.MusteriAdi)</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Telefon</div>
-                    <div class="info-value">@Deger(Model.MusteriTelefon)</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">TC Kimlik No</div>
-                    <div class="info-value">@Deger(Model.MusteriTcNo ?? Model.AboneNo)</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Adres</div>
-                    <div class="info-value">@Deger(Model.Adres)</div>
-                </div>
+                @if (Gosterilebilir(Model.MusteriAdi)) { <div class="info-item"><div class="info-label">Müşteri</div><div class="info-value">@Deger(Model.MusteriAdi)</div></div> }
+                @if (Gosterilebilir(Model.MusteriTelefon)) { <div class="info-item"><div class="info-label">Telefon</div><div class="info-value">@Deger(Model.MusteriTelefon)</div></div> }
+                @if (Gosterilebilir(Model.MusteriTcNo ?? Model.AboneNo)) { <div class="info-item"><div class="info-label">TC / Abone No</div><div class="info-value">@Deger(Model.MusteriTcNo ?? Model.AboneNo)</div></div> }
+                @if (Gosterilebilir(Model.Adres)) { <div class="info-item info-item-wide"><div class="info-label">Adres</div><div class="info-value">@Deger(Model.Adres)</div></div> }
             </div>
         </section>
 
-        <section class="df-detail-card">
-            <div class="df-detail-card-title df-detail-card-title--icon"><i class="bi bi-house-gear" aria-hidden="true"></i>Tesisat Bilgileri</div>
+        <section class="df-detail-card df-detail-card--installation">
+            <div class="df-detail-card-title df-detail-card-title--icon"><i class="bi bi-house-gear"></i>Tesisat Bilgileri</div>
             <div class="df-detail-info">
-                <div class="info-item">
-                    <div class="info-label">Tesisat No</div>
-                    <div class="info-value">@Deger(Model.TesistatNo)</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Servis Cari Kod</div>
-                    <div class="info-value">@Deger(Model.AboneNo)</div>
-                </div>
+                @if (Gosterilebilir(Model.TesistatNo)) { <div class="info-item"><div class="info-label">Tesisat No</div><div class="info-value">@Deger(Model.TesistatNo)</div></div> }
+                @if (Gosterilebilir(Model.UygunlukBelgeNo)) { <div class="info-item"><div class="info-label">Uygunluk Belge No</div><div class="info-value">@Deger(Model.UygunlukBelgeNo)</div></div> }
+                @if (Model.UygunlukTarihi.HasValue) { <div class="info-item"><div class="info-label">Uygunluk Tarihi</div><div class="info-value">@Model.UygunlukTarihi.Value.ToString("dd.MM.yyyy")</div></div> }
             </div>
         </section>
 
-        <section class="df-detail-card">
-            <div class="df-detail-card-title df-detail-card-title--icon"><i class="bi bi-fire" aria-hidden="true"></i>Cihaz Bilgileri</div>
+        <section class="df-detail-card df-detail-card--device">
+            <div class="df-detail-card-title df-detail-card-title--icon"><i class="bi bi-fire"></i>Cihaz Bilgileri</div>
             <div class="df-detail-info">
-                <div class="info-item">
-                    <div class="info-label">Cihaz Tipi</div>
-                    <div class="info-value">@Deger(Model.CihazTipi)</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Cihaz Markası</div>
-                    <div class="info-value">@Deger(Model.CihazMarka)</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Model</div>
-                    <div class="info-value">@Deger(Model.CihazModeli)</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Seri No</div>
-                    <div class="info-value">@Deger(Model.SeriNo)</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Kapasite</div>
-                    <div class="info-value">@Deger(Model.CihazKapasite)</div>
-                </div>
+                @if (Gosterilebilir(Model.CihazTipi)) { <div class="info-item"><div class="info-label">Cihaz Tipi</div><div class="info-value">@Deger(Model.CihazTipi)</div></div> }
+                @if (Gosterilebilir(marka)) { <div class="info-item"><div class="info-label">Marka</div><div class="info-value">@Deger(marka)</div></div> }
+                @if (Gosterilebilir(Model.CihazModeli)) { <div class="info-item"><div class="info-label">Model</div><div class="info-value">@Deger(Model.CihazModeli)</div></div> }
+                @if (GecerliNumara(Model.SeriNo)) { <div class="info-item"><div class="info-label">Seri No</div><div class="info-value">@Deger(Model.SeriNo)</div></div> }
+                @if (Gosterilebilir(Model.CihazKapasite)) { <div class="info-item"><div class="info-label">Kapasite</div><div class="info-value">@Deger(Model.CihazKapasite)</div></div> }
             </div>
         </section>
 
-        <section class="df-detail-card">
-            <div class="df-detail-card-title df-detail-card-title--icon"><i class="bi bi-person-gear" aria-hidden="true"></i>Teknisyen Bilgileri</div>
+        <section class="df-detail-card df-detail-card--technician">
+            <div class="df-detail-card-title df-detail-card-title--icon"><i class="bi bi-person-gear"></i>Teknisyen Bilgileri</div>
             <div class="df-detail-info">
-                <div class="info-item">
-                    <div class="info-label">Teknisyen</div>
-                    <div class="info-value">@Deger(Model.TeknisyenAdi)</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Yetki Belgesi No</div>
-                    <div class="info-value">@Deger(Model.TeknisyenYetkiBelgesiNo)</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Kayıt Tarihi</div>
-                    <div class="info-value">@Model.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</div>
-                </div>
+                @if (Gosterilebilir(Model.TeknisyenAdi)) { <div class="info-item"><div class="info-label">Teknisyen</div><div class="info-value">@Deger(Model.TeknisyenAdi)</div></div> }
+                @if (GecerliNumara(Model.TeknisyenYetkiBelgesiNo)) { <div class="info-item"><div class="info-label">Yetki Belgesi No</div><div class="info-value">@Deger(Model.TeknisyenYetkiBelgesiNo)</div></div> }
+                <div class="info-item"><div class="info-label">Kayıt Tarihi</div><div class="info-value">@Model.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</div></div>
             </div>
         </section>
     </div>
@@ -145,7 +101,7 @@
     @if (!string.IsNullOrWhiteSpace(Model.Notlar))
     {
         <section class="df-detail-card">
-            <div class="df-detail-card-title">Notlar</div>
+            <div class="df-detail-card-title df-detail-card-title--icon"><i class="bi bi-sticky"></i>Notlar</div>
             <div class="df-detail-note">@Model.Notlar</div>
         </section>
     }

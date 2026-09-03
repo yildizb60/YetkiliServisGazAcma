@@ -1,122 +1,201 @@
+@using YetkiliServisGazAcma.Entities
 @{
-    ViewData["Title"] = "Kullanıcı Düzenle";
+    var hedef = ViewBag.Hedef as AppKullanici;
+    var sirketler = ViewBag.Sirketler as List<Dag_Sirket> ?? new();
+    var firmalar = ViewBag.Firmalar as List<Ys_Firma> ?? new();
+    var returnUrl = ViewBag.ReturnUrl as string ?? "/AdminPanel/kullanicilar";
+    var hedefTip = hedef?.KullaniciTipi ?? 0;
+    var sirketAlaniGoster = hedefTip == KullaniciTipiDegerleri.SirketAdmin || hedefTip == KullaniciTipiDegerleri.Personel;
+    var firmaAlaniGoster = hedefTip == KullaniciTipiDegerleri.YetkiliServis || hedefTip == KullaniciTipiDegerleri.SertifikaliFirma;
+    var rolMetni = hedefTip == KullaniciTipiDegerleri.GenelSistemAdmin
+        ? "Genel Sistem Admini"
+        : hedefTip == KullaniciTipiDegerleri.SirketAdmin
+            ? "Şirket Admini"
+            : hedefTip == KullaniciTipiDegerleri.Personel
+                ? "Personel"
+                : hedefTip == KullaniciTipiDegerleri.YetkiliServis
+                    ? "Yetkili Servis"
+                    : hedefTip == KullaniciTipiDegerleri.SertifikaliFirma
+                        ? "Sertifikalı Firma"
+                        : "Kullanıcı";
+    var sayfaBasligi = hedefTip == KullaniciTipiDegerleri.Personel
+        ? "Personel Düzenle"
+        : hedefTip == KullaniciTipiDegerleri.SirketAdmin
+            ? "Şirket Yöneticisi Düzenle"
+            : hedefTip == KullaniciTipiDegerleri.YetkiliServis
+                ? "Yetkili Servis Kullanıcısını Düzenle"
+                : hedefTip == KullaniciTipiDegerleri.SertifikaliFirma
+                    ? "Sertifikalı Firma Kullanıcısını Düzenle"
+                    : hedefTip == KullaniciTipiDegerleri.GenelSistemAdmin
+                        ? "Sistem Yöneticisi Düzenle"
+                        : "Kullanıcı Düzenle";
+    var baglantiMetni = firmaAlaniGoster
+        ? hedef?.Firma?.FirmaAdi
+        : sirketAlaniGoster
+            ? hedef?.Sirket?.SirketAdi
+            : "Sistem geneli";
+
+    ViewData["Title"] = sayfaBasligi;
     ViewData["PanelTitle"] = ViewData["Title"];
     ViewData["PanelSubtitle"] = "Admin Paneli";
-    ViewData["ActiveMenu"] = "Kullanicilar";
+    ViewData["ActiveMenu"] = hedefTip == KullaniciTipiDegerleri.Personel ? "Personeller" : "Kullanicilar";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
-    var Kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
-    var hedef = ViewBag.Hedef as YetkiliServisGazAcma.Entities.AppKullanici;
-    var sirketler = ViewBag.Sirketler as List<YetkiliServisGazAcma.Entities.Dag_Sirket> ?? new();
-    var firmalar = ViewBag.Firmalar as List<YetkiliServisGazAcma.Entities.Ys_Firma> ?? new();
-    var returnUrl = ViewBag.ReturnUrl as string ?? "/AdminPanel/kullanicilar";
-    string adSoyad = Kullanici?.AdSoyad ?? "Süper Admin";
-    string basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "A";
 }
 
-@section Styles {
-    <style>
-.content { padding: 28px 32px; }
-.back-link { display: inline-flex; align-items: center; gap: 8px; color: #1B9FD4; font-weight: 700; text-decoration: none; margin-bottom: 14px; }
-.page-title { font-size: 22px; font-weight: 800; margin: 4px 0 10px; }
-.card { background: #fff; border-radius: 12px; border: 1px solid #e6eef4; box-shadow: 0 10px 24px rgba(20,40,60,0.08); padding: 16px; max-width: none; width: 100%; }
-.card-title { font-size: 14px; font-weight: 800; color: #4CAF7D; margin-bottom: 10px; display:flex; align-items:center; gap:8px; }
-.info-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.info-item { background: #f7fafc; border: 1px solid #edf3f8; border-radius: 10px; padding: 10px 12px; }
-.info-label { font-size: 11px; color: #6f7b86; margin-bottom: 4px; font-weight: 700; }
-.info-help { font-size: 11px; color: #8b97a3; margin-top: 6px; }
-.info-input { width: 100%; padding: 10px 12px; border: 1.5px solid #e0e0e0; border-radius: 8px; font-size: 13px; color: #333; outline: none; background: #fff; }
-.info-input:focus { border-color: #4CAF7D; }
-.actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
-.btn { padding: 10px 16px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 13px; background: #1B9FD4; color: #fff; }
-.btn-secondary { background: #fff; color: #555; border: 1.5px solid #ddd; text-decoration: none; padding: 10px 16px; border-radius: 8px; font-size: 13px; }
-.alert { padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; font-size: 12px; font-weight: bold; }
-.alert-danger { background: #FCEBEB; color: #501313; border: 1px solid #eccaca; }
-    </style>
-}
+<div class="df-admin-workspace df-admin-editor df-user-edit-workspace">
+    <section class="df-page-panel df-admin-hero">
+        <div class="df-panel-head">
+            <div>
+                <div class="df-panel-kicker"><i class="bi bi-person-gear"></i> @rolMetni hesabı</div>
+                <div class="df-panel-title">@sayfaBasligi</div>
+                <div class="df-panel-subtitle">@(hedef?.AdSoyad ?? "-") · @(hedef?.Email ?? "-")</div>
+            </div>
+            <a class="df-btn df-btn-secondary df-btn-sm" href="@returnUrl"><i class="bi bi-arrow-left"></i> Listeye Dön</a>
+        </div>
+    </section>
 
-<a class="back-link" href="@returnUrl">&#8592; Kullanıcılara Dön</a>
-<div class="page-title">Kullanıcı Düzenle</div>
-<div class="card">
-    <div class="card-title">&#128100; Kullanıcı Bilgileri</div>
-    <div class="card-body">
-        @if (ViewBag.Hata != null) { <div class="alert alert-danger">@ViewBag.Hata</div> }
-        <form method="post">
-            @Html.AntiForgeryToken()
-            <input type="hidden" name="returnUrl" value="@returnUrl" />
-            <div class="info-grid">
-                <div class="info-item"><div class="info-label">Ad Soyad</div><input class="info-input" name="adSoyad" value="@(hedef?.AdSoyad ?? "")" required /></div>
-                <div class="info-item"><div class="info-label">E-Posta</div><input class="info-input" type="email" name="email" value="@(hedef?.Email ?? "")" required /></div>
-                <div class="info-item"><div class="info-label">Telefon</div><input class="info-input" name="telefon" value="@(hedef?.PhoneNumber ?? "")" /></div>
-                @if (hedef?.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin || hedef?.KullaniciTipi == KullaniciTipiDegerleri.Personel)
-                {
-                    <div class="info-item">
-                        <div class="info-label">@(hedef?.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin ? "Admin Şirketi" : "Şirket")</div>
-                        <select class="info-input" name="sirketId" required>
-                            <option value="">Seçiniz</option>
-                            @foreach (var s in sirketler)
-                            {
-                                if (hedef?.SirketId == s.Id)
+    <section class="df-admin-form-card">
+        <div class="df-admin-form-body">
+            @if (ViewBag.Hata != null)
+            {
+                <div class="df-alert df-alert-danger">@ViewBag.Hata</div>
+            }
+
+            <form method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="returnUrl" value="@returnUrl" />
+
+                <section class="df-admin-form-section">
+                    <div class="df-admin-form-section-head">
+                        <span><i class="bi bi-person-vcard"></i></span>
+                        <div>
+                            <h3>Kimlik ve İletişim</h3>
+                            <p>Kullanıcının görünen adı, iletişim bilgileri ve hesap durumunu güncelleyin.</p>
+                        </div>
+                    </div>
+                    <div class="df-admin-form-grid">
+                        <div class="df-admin-field is-half">
+                            <label>Ad Soyad *</label>
+                            <input name="adSoyad" value="@(hedef?.AdSoyad ?? "")" autocomplete="name" required />
+                        </div>
+                        <div class="df-admin-field is-half">
+                            <label>E-Posta *</label>
+                            <input type="email" name="email" value="@(hedef?.Email ?? "")" autocomplete="email" required />
+                        </div>
+                        <div class="df-admin-field is-half">
+                            <label>Telefon</label>
+                            <input name="telefon" value="@(hedef?.PhoneNumber ?? "")" autocomplete="tel" />
+                        </div>
+                        <div class="df-admin-field is-half">
+                            <label>Hesap Durumu</label>
+                            <select name="aktifMi">
+                                @if (hedef?.AktifMi == true)
                                 {
-                                    <option value="@s.Id" selected="selected">@s.SirketAdi</option>
+                                    <option value="true" selected="selected">Aktif</option>
+                                    <option value="false">Pasif</option>
                                 }
                                 else
                                 {
-                                    <option value="@s.Id">@s.SirketAdi</option>
+                                    <option value="true">Aktif</option>
+                                    <option value="false" selected="selected">Pasif</option>
                                 }
-                            }
-                        </select>
+                            </select>
+                        </div>
                     </div>
-                }
-                else if (hedef?.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis ||
-                         hedef?.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma)
-                {
-                    <div class="info-item">
-                        <div class="info-label">Firma</div>
-                        <select class="info-input" name="firmaId" required>
-                            <option value="">Seçiniz</option>
-                            @foreach (var f in firmalar)
-                            {
-                                var label = f.Sirket != null ? $"{f.FirmaAdi} ({f.Sirket.SirketAdi})" : f.FirmaAdi;
-                                if (hedef?.FirmaId == f.Id)
-                                {
-                                    <option value="@f.Id" selected="selected">@label</option>
-                                }
-                                else
-                                {
-                                    <option value="@f.Id">@label</option>
-                                }
-                            }
-                        </select>
+                </section>
+
+                <section class="df-admin-form-section">
+                    <div class="df-admin-form-section-head">
+                        <span><i class="bi bi-diagram-3"></i></span>
+                        <div>
+                            <h3>Rol ve Kurumsal Bağlantı</h3>
+                            <p>Rol bilgi amaçlı gösterilir; kullanıcının bağlı olduğu şirket veya firma güncellenebilir.</p>
+                        </div>
                     </div>
-                }
-                <div class="info-item"><div class="info-label">Durum</div>
-                    <select class="info-input" name="aktifMi">
-                        @if (hedef?.AktifMi == true)
+                    <div class="df-admin-form-grid">
+                        <div class="df-admin-field is-half">
+                            <label>Kullanıcı Rolü</label>
+                            <div class="df-admin-readonly-value">
+                                <i class="bi bi-shield-check"></i>
+                                <span>@rolMetni</span>
+                            </div>
+                        </div>
+                        @if (sirketAlaniGoster)
                         {
-                            <option value="true" selected="selected">Aktif</option>
-                            <option value="false">Pasif</option>
+                            <div class="df-admin-field is-half">
+                                <label>@(hedefTip == KullaniciTipiDegerleri.SirketAdmin ? "Yönetilen Şirket *" : "Çalıştığı Şirket *")</label>
+                                <select name="sirketId" required>
+                                    <option value="">Seçiniz</option>
+                                    @foreach (var sirket in sirketler)
+                                    {
+                                        if (hedef?.SirketId == sirket.Id)
+                                        {
+                                            <option value="@sirket.Id" selected="selected">@sirket.SirketAdi</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@sirket.Id">@sirket.SirketAdi</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+                        }
+                        else if (firmaAlaniGoster)
+                        {
+                            <div class="df-admin-field is-half">
+                                <label>Bağlı Firma *</label>
+                                <select name="firmaId" required>
+                                    <option value="">Seçiniz</option>
+                                    @foreach (var firma in firmalar)
+                                    {
+                                        var firmaEtiketi = firma.Sirket != null ? $"{firma.FirmaAdi} ({firma.Sirket.SirketAdi})" : firma.FirmaAdi;
+                                        if (hedef?.FirmaId == firma.Id)
+                                        {
+                                            <option value="@firma.Id" selected="selected">@firmaEtiketi</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@firma.Id">@firmaEtiketi</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
                         }
                         else
                         {
-                            <option value="true">Aktif</option>
-                            <option value="false" selected="selected">Pasif</option>
+                            <div class="df-admin-field is-half">
+                                <label>Kapsam</label>
+                                <div class="df-admin-readonly-value"><i class="bi bi-globe2"></i><span>@baglantiMetni</span></div>
+                            </div>
                         }
-                    </select>
+                    </div>
+                </section>
+
+                <details class="df-admin-password-panel">
+                    <summary>
+                        <span><i class="bi bi-key"></i><span><strong>Şifreyi Değiştir</strong><small>Mevcut şifre korunacaksa bu alanı açmanız gerekmez.</small></span></span>
+                        <i class="bi bi-chevron-down"></i>
+                    </summary>
+                    <div class="df-admin-password-body">
+                        <div class="df-admin-form-grid">
+                            <div class="df-admin-field is-half">
+                                <label>Yeni Şifre</label>
+                                <input type="password" name="yeniSifre" autocomplete="new-password" />
+                            </div>
+                            <div class="df-admin-field is-half">
+                                <label>Yeni Şifre Tekrar</label>
+                                <input type="password" name="yeniSifreTekrar" autocomplete="new-password" />
+                            </div>
+                        </div>
+                        <small class="df-admin-field-note">İki alan da doldurulmalı ve şifreler aynı olmalıdır.</small>
+                    </div>
+                </details>
+
+                <div class="df-admin-form-actions">
+                    <a class="df-btn df-btn-secondary df-btn-sm" href="@returnUrl"><i class="bi bi-x-lg"></i> Vazgeç</a>
+                    <button type="submit" class="df-btn df-btn-primary df-btn-sm"><i class="bi bi-check2"></i> Değişiklikleri Kaydet</button>
                 </div>
-                <div class="info-item">
-                    <div class="info-label">Yeni Şifre</div>
-                    <input class="info-input" type="password" name="yeniSifre" autocomplete="new-password" placeholder="Boş bırakırsanız değişmez" />
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Yeni Şifre Tekrar</div>
-                    <input class="info-input" type="password" name="yeniSifreTekrar" autocomplete="new-password" placeholder="Yeni şifreyi tekrar girin" />
-                    <div class="info-help">Şifre en az 6 karakter olmalı ve en az 1 rakam içermelidir.</div>
-                </div>
-            </div>
-            <div class="actions">
-                <button type="submit" class="btn">Kaydet</button>
-                <a class="btn-secondary" href="@returnUrl">Vazgeç</a>
-            </div>
-        </form>
-    </div>
+            </form>
+        </div>
+    </section>
 </div>

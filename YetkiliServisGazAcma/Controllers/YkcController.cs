@@ -13,11 +13,16 @@ namespace YetkiliServisGazAcma.Controllers
     {
         private readonly UserManager<AppKullanici> _userManager;
         private readonly YkcApiClient _ykcApiClient;
+        private readonly ILogger<YkcController> _logger;
 
-        public YkcController(UserManager<AppKullanici> userManager, YkcApiClient ykcApiClient)
+        public YkcController(
+            UserManager<AppKullanici> userManager,
+            YkcApiClient ykcApiClient,
+            ILogger<YkcController> logger)
         {
             _userManager = userManager;
             _ykcApiClient = ykcApiClient;
+            _logger = logger;
         }
 
         [HttpGet("")]
@@ -32,9 +37,8 @@ namespace YetkiliServisGazAcma.Controllers
 
             PanelViewBag(kullanici, "YkcOzet", "Ana Sayfa", "Cihaz değişim, FR265 önizleme, randevu ve dijital imza sürecinizi izleyin");
 
-            var sonuc = await _ykcApiClient.DashboardOzetAsync(kullanici) ?? new YkcDashboardOzetDto();
-            ViewBag.ImzaEntegrasyonu = await _ykcApiClient.ImzaEntegrasyonBilgisiAsync(kullanici)
-                ?? new YkcImzaEntegrasyonDto();
+            var sonuc = await DashboardOzetGuvenliAsync(kullanici);
+            ViewBag.ImzaEntegrasyonu = await ImzaEntegrasyonGuvenliAsync(kullanici);
             return View("~/Views/Ykc/Index.cshtml", sonuc);
         }
 
@@ -77,7 +81,7 @@ namespace YetkiliServisGazAcma.Controllers
 
             var sonuc = await _ykcApiClient.TaleplerAsync(kullanici, filtre) ?? new YkcTalepListeSonuc();
             ViewBag.Filtre = filtre;
-            ViewBag.Ozet = await _ykcApiClient.DashboardOzetAsync(kullanici) ?? new YkcDashboardOzetDto();
+            ViewBag.Ozet = await DashboardOzetGuvenliAsync(kullanici);
             return View("~/Views/Ykc/Talepler.cshtml", sonuc);
         }
 
@@ -221,8 +225,7 @@ namespace YetkiliServisGazAcma.Controllers
                 return RedirectToAction(nameof(Talepler));
             }
 
-            ViewBag.ImzaEntegrasyonu = await _ykcApiClient.ImzaEntegrasyonBilgisiAsync(kullanici)
-                ?? new YkcImzaEntegrasyonDto();
+            ViewBag.ImzaEntegrasyonu = await ImzaEntegrasyonGuvenliAsync(kullanici);
 
             return View("~/Views/Ykc/Detay.cshtml", detay);
         }
@@ -246,8 +249,7 @@ namespace YetkiliServisGazAcma.Controllers
                 return RedirectToAction(nameof(Talepler));
             }
 
-            ViewBag.ImzaEntegrasyonu = await _ykcApiClient.ImzaEntegrasyonBilgisiAsync(kullanici)
-                ?? new YkcImzaEntegrasyonDto();
+            ViewBag.ImzaEntegrasyonu = await ImzaEntegrasyonGuvenliAsync(kullanici);
 
             return View("~/Views/Ykc/Fr265Onizle.cshtml", detay);
         }
@@ -401,6 +403,34 @@ namespace YetkiliServisGazAcma.Controllers
         private YkcYetkiOzeti YkcYetkileri()
         {
             return ViewBag.YkcYetkileri as YkcYetkiOzeti ?? new YkcYetkiOzeti();
+        }
+
+        private async Task<YkcDashboardOzetDto> DashboardOzetGuvenliAsync(AppKullanici kullanici)
+        {
+            try
+            {
+                return await _ykcApiClient.DashboardOzetAsync(kullanici) ?? new YkcDashboardOzetDto();
+            }
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] ??= "Cihaz değişim özet bilgisi şu an alınamadı; sayfa boş özetle açıldı.";
+                _logger.LogWarning(ex, "YKC dashboard özeti alınamadı.");
+                return new YkcDashboardOzetDto();
+            }
+        }
+
+        private async Task<YkcImzaEntegrasyonDto> ImzaEntegrasyonGuvenliAsync(AppKullanici kullanici)
+        {
+            try
+            {
+                return await _ykcApiClient.ImzaEntegrasyonBilgisiAsync(kullanici) ?? new YkcImzaEntegrasyonDto();
+            }
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] ??= "Dijital imza entegrasyon bilgisi şu an alınamadı; ekran mevcut kayıtlarla açıldı.";
+                _logger.LogWarning(ex, "YKC imza entegrasyon bilgisi alınamadı.");
+                return new YkcImzaEntegrasyonDto();
+            }
         }
 
         private void PanelViewBag(AppKullanici kullanici, string activeMenu, string title, string subtitle)

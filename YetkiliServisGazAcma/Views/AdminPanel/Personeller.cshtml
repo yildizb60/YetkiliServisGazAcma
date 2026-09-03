@@ -14,6 +14,7 @@
     var pasifSayisi = personeller.Count - aktifSayisi;
 }
 
+<div class="df-admin-workspace df-person-directory">
 @if (TempData["Basarili"] != null)
 {
     <div class="df-alert df-alert-success">@TempData["Basarili"]</div>
@@ -24,19 +25,33 @@
 }
 
 <div class="section-label">
+    <i class="bi bi-people"></i>
     Personel y&ouml;netimi
 </div>
 
-<div class="df-page-panel">
+<div class="df-page-panel df-admin-hero">
     <div class="df-panel-head">
         <div>
+            <div class="df-panel-kicker"><i class="bi bi-person-badge"></i> İç kullanıcılar</div>
             <div class="df-panel-title">Personel Listesi</div>
             <div class="df-panel-subtitle">@personeller.Count kay&#305;t listeleniyor</div>
         </div>
-        <div class="df-status-tabs">
-            <span class="df-tab active">T&uuml;m&uuml; (@personeller.Count)</span>
-            <span class="df-tab">Aktif (@aktifSayisi)</span>
-            <span class="df-tab">Pasif (@pasifSayisi)</span>
+        <div class="df-admin-metrics" aria-label="Personel durum özeti">
+            <span class="df-admin-metric active">
+                <i class="bi bi-collection"></i>
+                <span>Tümü</span>
+                <strong>@personeller.Count</strong>
+            </span>
+            <span class="df-admin-metric is-active">
+                <i class="bi bi-check-circle"></i>
+                <span>Aktif</span>
+                <strong>@aktifSayisi</strong>
+            </span>
+            <span class="df-admin-metric is-passive">
+                <i class="bi bi-slash-circle"></i>
+                <span>Pasif</span>
+                <strong>@pasifSayisi</strong>
+            </span>
         </div>
     </div>
 
@@ -58,9 +73,18 @@
                     <option value="Pasif" selected="@(seciliDurum == "Pasif")">Pasif</option>
                 </select>
             </div>
-            <button class="df-btn df-btn-primary df-btn-sm" type="submit">Filtrele</button>
-            <a class="df-btn df-btn-secondary df-btn-sm" href="/AdminPanel/personeller">Temizle</a>
-            <a class="df-btn df-btn-success df-btn-sm" href="/AdminPanel/personeller/ekle">Yeni Personel</a>
+            <button class="df-btn df-btn-primary df-btn-sm" type="submit">
+                <i class="bi bi-search"></i>
+                Filtrele
+            </button>
+            <a class="df-btn df-btn-secondary df-btn-sm" href="/AdminPanel/personeller">
+                <i class="bi bi-x-lg"></i>
+                Temizle
+            </a>
+            <a class="df-btn df-btn-success df-btn-sm" href="/AdminPanel/personeller/ekle">
+                <i class="bi bi-person-plus"></i>
+                Yeni Personel
+            </a>
         </form>
     </div>
 
@@ -108,17 +132,24 @@
                             </td>
                             <td>
                                 <div class="df-actions">
-                                    <a class="df-btn df-btn-secondary df-btn-sm" href="/AdminPanel/kullanicilar/duzenle/@p.Id?returnUrl=/AdminPanel/personeller">D&uuml;zenle</a>
+                                    <a class="df-btn df-btn-secondary df-btn-sm" href="/AdminPanel/kullanicilar/duzenle/@p.Id?returnUrl=/AdminPanel/personeller">
+                                        <i class="bi bi-pencil-square"></i>
+                                        D&uuml;zenle
+                                    </a>
                                     <form method="post" action="/AdminPanel/personeller/durum/@p.Id">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="aktif" value="@(p.AktifMi ? "false" : "true")" />
                                         <button type="submit" class="df-btn df-btn-ghost df-btn-sm">
+                                            <i class="bi @(p.AktifMi ? "bi-slash-circle" : "bi-check-circle")"></i>
                                             @Html.Raw(p.AktifMi ? "Pasifle&#351;tir" : "Aktifle&#351;tir")
                                         </button>
                                     </form>
                                     <form method="post" action="/AdminPanel/personeller/sil/@p.Id" onsubmit="return confirm('Personel silinsin mi?');">
                                         @Html.AntiForgeryToken()
-                                        <button type="submit" class="df-btn df-btn-danger df-btn-sm">Sil</button>
+                                        <button type="submit" class="df-btn df-btn-danger df-btn-sm">
+                                            <i class="bi bi-trash"></i>
+                                            Sil
+                                        </button>
                                     </form>
                                 </div>
                             </td>
@@ -128,4 +159,5 @@
             </tbody>
         </table>
     </div>
+</div>
 </div>

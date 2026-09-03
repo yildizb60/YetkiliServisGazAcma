@@ -15,6 +15,12 @@
     var secilenDurum = Context.Request.Query["durum"].ToString();
     var secilenBas = Context.Request.Query["bas"].ToString();
     var secilenBit = Context.Request.Query["bit"].ToString();
+    var filtreAktif = !string.IsNullOrWhiteSpace(secilenMarka)
+        || !string.IsNullOrWhiteSpace(secilenServis)
+        || !string.IsNullOrWhiteSpace(secilenIl)
+        || !string.IsNullOrWhiteSpace(secilenDurum)
+        || !string.IsNullOrWhiteSpace(secilenBas)
+        || !string.IsNullOrWhiteSpace(secilenBit);
 }
 
 @section Styles {
@@ -218,7 +224,7 @@
     </style>
 }
 
-<div class="df-operations-list">
+<div class="df-operations-list df-admin-operation-list">
 <div class="istat-row">
     <div class="istat-kart"><div class="istat-icon mavi"><i class="bi bi-collection" aria-hidden="true"></i></div><div><div class="istat-sayi">@Model.Count</div><div class="istat-label">Toplam işlem</div></div></div>
     <div class="istat-kart"><div class="istat-icon yesil"><i class="bi bi-check-circle" aria-hidden="true"></i></div><div><div class="istat-sayi">@Model.Count(x => x.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi)</div><div class="istat-label">Tamamlanan</div></div></div>
@@ -226,8 +232,11 @@
     <div class="istat-kart"><div class="istat-icon mor"><i class="bi bi-building-check" aria-hidden="true"></i></div><div><div class="istat-sayi">@Model.Select(x => x.FirmaId).Distinct().Count()</div><div class="istat-label">Farklı Servis</div></div></div>
 </div>
 
-<div class="filtre-kart">
-    <div class="filtre-baslik"><i class="bi bi-funnel" aria-hidden="true"></i> Filtreler</div>
+<details class="filtre-kart" @(filtreAktif ? "open" : "")>
+    <summary class="filtre-baslik">
+        <span><i class="bi bi-funnel" aria-hidden="true"></i> Filtreler</span>
+        <span class="filtre-toggle-meta">@(filtreAktif ? "Filtre uygulandı" : "Aç") <i class="bi bi-chevron-down" aria-hidden="true"></i></span>
+    </summary>
     <form method="get" action="/AdminPanel/devreyealmalar">
         <div class="filtre-grid">
             <div class="filtre-alan">
@@ -270,47 +279,45 @@
             <div class="filtre-alan"><label>Bitiş</label><input type="date" name="bit" value="@secilenBit" /></div>
         </div>
         <div class="filtre-butonlar">
-            <button type="submit" class="btn-filtre">Filtrele</button>
-            <a class="btn-temizle" href="/AdminPanel/devreyealmalar">Temizle</a>
+            <a class="btn-temizle" href="/AdminPanel/devreyealmalar"><i class="bi bi-x-lg" aria-hidden="true"></i> Temizle</a>
+            <button type="submit" class="btn-filtre"><i class="bi bi-search" aria-hidden="true"></i> Filtrele</button>
         </div>
     </form>
-</div>
+</details>
 
 <div class="section">
     <div class="section-head">
         <div class="section-title"><i class="bi bi-list-check" aria-hidden="true"></i> Devreye Alma Listesi</div>
         <div class="section-sayi">@Model.Count kayıt</div>
     </div>
-    <div class="tablo-head">
-        <div>Tesisat No</div><div>İl</div><div>İlçe</div><div>Adres</div><div>Yetkili Servis</div><div>Marka</div><div>Müşteri</div><div>Teknisyen</div><div>Tarih</div><div>Durum</div><div>İşlem</div>
-    </div>
-    @if (!Model.Any())
-    {
-        <div class="empty">Kayıt bulunamadı</div>
-    }
-    else
-    {
-        foreach (var d in Model)
+    <div class="df-operations-table-scroll">
+        <div class="tablo-head">
+            <div>Tesisat No</div><div>İl</div><div>İlçe</div><div>Adres</div><div>Yetkili Servis</div><div>Marka</div><div>Müşteri</div><div>Teknisyen</div><div>Tarih</div><div>Durum</div><div>İşlem</div>
+        </div>
+        @if (!Model.Any())
         {
-            var ilce = firmaIlceleri.TryGetValue(d.FirmaId, out var bulunanIlce) ? bulunanIlce : "-";
-            <div class="tablo-row">
-                <div class="tesisat-no">@d.TesistatNo</div>
-                <div class="cell-overflow" title="@d.Firma?.FaaliyetIli">@(d.Firma?.FaaliyetIli ?? "-")</div>
-                <div class="cell-overflow" title="@ilce">@ilce</div>
-                <div class="cell-overflow" title="@d.Adres">@(d.Adres ?? "-")</div>
-                <div class="cell-overflow" title="@d.Firma?.FirmaAdi">@d.Firma?.FirmaAdi</div>
-                <div>@(d.Marka?.MarkaAdi ?? d.CihazMarka)</div>
-                <div class="cell-overflow" title="@d.MusteriAdi">@d.MusteriAdi</div>
-                <div class="cell-overflow" title="@d.TeknisyenAdi">@d.TeknisyenAdi</div>
-                <div>@d.OlusturmaTarihi.ToString("dd.MM.yyyy")</div>
-                <div>
-                    <span class="badge @(d.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? "b-green" : d.Durum == DevreyeAlmaDurumDegerleri.Iptal ? "b-red" : "b-yellow")">@(d.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? "Tamam" : d.Durum == DevreyeAlmaDurumDegerleri.Iptal ? "İptal" : "Bekliyor")</span>
-                </div>
-                <div>
-                    <a class="detay-btn" href="/AdminPanel/devreyealmalar/detay/@d.Id">Detay</a>
-                </div>
-            </div>
+            <div class="empty">Kayıt bulunamadı</div>
         }
-    }
+        else
+        {
+            foreach (var d in Model)
+            {
+                var ilce = firmaIlceleri.TryGetValue(d.FirmaId, out var bulunanIlce) ? bulunanIlce : "-";
+                <div class="tablo-row">
+                    <div class="tesisat-no">@d.TesistatNo</div>
+                    <div class="cell-overflow" title="@d.Firma?.FaaliyetIli">@(d.Firma?.FaaliyetIli ?? "-")</div>
+                    <div class="cell-overflow" title="@ilce">@ilce</div>
+                    <div class="cell-overflow" title="@d.Adres">@(d.Adres ?? "-")</div>
+                    <div class="cell-overflow" title="@d.Firma?.FirmaAdi">@d.Firma?.FirmaAdi</div>
+                    <div>@(d.Marka?.MarkaAdi ?? d.CihazMarka)</div>
+                    <div class="cell-overflow" title="@d.MusteriAdi">@d.MusteriAdi</div>
+                    <div class="cell-overflow" title="@d.TeknisyenAdi">@d.TeknisyenAdi</div>
+                    <div>@d.OlusturmaTarihi.ToString("dd.MM.yyyy")</div>
+                    <div><span class="badge @(d.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? "b-green" : d.Durum == DevreyeAlmaDurumDegerleri.Iptal ? "b-red" : "b-yellow")">@(d.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? "Tamam" : d.Durum == DevreyeAlmaDurumDegerleri.Iptal ? "İptal" : "Bekliyor")</span></div>
+                    <div><a class="detay-btn" href="/AdminPanel/devreyealmalar/detay/@d.Id"><i class="bi bi-eye" aria-hidden="true"></i> Detay</a></div>
+                </div>
+            }
+        }
+    </div>
 </div>
 </div>

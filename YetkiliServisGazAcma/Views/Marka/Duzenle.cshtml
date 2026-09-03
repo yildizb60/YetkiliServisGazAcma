@@ -7,38 +7,57 @@
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 }
 
-<div class="section-label">
-    Marka y&ouml;netimi
-</div>
-
-<div class="df-page-panel">
-    <div class="df-panel-head">
-        <div>
-            <div class="df-panel-title">Marka D&uuml;zenle</div>
-            <div class="df-panel-subtitle">Marka bilgisini ayn&#305; panel tasar&#305;m&#305;yla g&uuml;ncelleyin</div>
+<div class="df-admin-workspace df-admin-editor df-brand-workspace">
+    <section class="df-page-panel df-admin-hero">
+        <div class="df-panel-head">
+            <div>
+                <div class="df-panel-kicker"><i class="bi bi-pencil-square"></i> Marka kaydı</div>
+                <div class="df-panel-title">Marka Düzenle</div>
+                <div class="df-panel-subtitle">@Model.MarkaAdi markasının adını ve açıklamasını güncelleyin.</div>
+            </div>
+            <a class="df-btn df-btn-secondary df-btn-sm" href="/Marka"><i class="bi bi-arrow-left"></i> Markalara Dön</a>
         </div>
-        <a class="df-btn df-btn-secondary df-btn-sm" href="/Marka">Markalara D&ouml;n</a>
-    </div>
+    </section>
 
-    <div class="stats-body">
-        <form method="post" action="/Marka/Duzenle">
-            @Html.AntiForgeryToken()
-            <input type="hidden" name="Id" value="@Model.Id" />
-            <div class="df-form-row">
-                <div class="df-field">
-                    <label>Marka Ad&#305; *</label>
-                    <input class="df-control" type="text" name="MarkaAdi" value="@Model.MarkaAdi" required />
-                </div>
-                <div class="df-field df-field-wide">
-                    <label>A&ccedil;&#305;klama</label>
-                    <textarea class="df-control" name="Aciklama">@Model.Aciklama</textarea>
-                </div>
-            </div>
+    <section class="df-admin-form-card">
+        <div class="df-admin-form-body">
+            <form method="post" action="/Marka/Duzenle">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="Id" value="@Model.Id" />
 
-            <div class="df-form-actions">
-                <button type="submit" class="df-btn df-btn-primary df-btn-sm">Kaydet</button>
-                <a class="df-btn df-btn-secondary df-btn-sm" href="/Marka">&#304;ptal</a>
-            </div>
-        </form>
-    </div>
+                <section class="df-admin-form-section">
+                    <div class="df-admin-form-section-head">
+                        <span><i class="bi bi-bookmark-check"></i></span>
+                        <div>
+                            <h3>Marka Bilgileri</h3>
+                            <p>Servis yetkilendirmelerinde görünen marka bilgisini güncelleyin.</p>
+                        </div>
+                    </div>
+                    <div class="df-admin-form-grid">
+                        <div class="df-admin-field is-half">
+                            <label>Marka Adı *</label>
+                            <input type="text" name="MarkaAdi" value="@Model.MarkaAdi" required />
+                        </div>
+                        <div class="df-admin-field is-half">
+                            <label>Kayıt Durumu</label>
+                            <select name="AktifMi">
+                                <option value="true" selected="@(Model.AktifMi)">Aktif</option>
+                                <option value="false" selected="@(!Model.AktifMi)">Pasif</option>
+                            </select>
+                        </div>
+                        <div class="df-admin-field is-full">
+                            <label>Açıklama</label>
+                            <textarea name="Aciklama" placeholder="Gerekliyse kısa bir açıklama girin.">@Model.Aciklama</textarea>
+                            <small class="df-admin-field-note">Açıklama zorunlu değildir.</small>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="df-admin-form-actions">
+                    <a class="df-btn df-btn-secondary df-btn-sm" href="/Marka"><i class="bi bi-x-lg"></i> Vazgeç</a>
+                    <button type="submit" class="df-btn df-btn-primary df-btn-sm"><i class="bi bi-check2"></i> Değişiklikleri Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </section>
 </div>
