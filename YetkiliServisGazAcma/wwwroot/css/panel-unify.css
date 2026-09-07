@@ -184,10 +184,16 @@ textarea,
 .form-alan input,
 .form-alan select,
 .form-alan textarea,
+input:not([type]),
 input[type="text"],
 input[type="email"],
 input[type="password"],
+input[type="search"],
+input[type="tel"],
+input[type="url"],
 input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
 input[type="number"],
 select,
 textarea {
@@ -2285,20 +2291,38 @@ td {
 .df-approval-workspace .approval-metric.is-approved i { color: var(--op-green); }
 .df-approval-workspace .approval-metric.is-rejected i { color: var(--op-red); }
 
+.df-approval-workspace .approval-metric.is-waiting {
+    border-color: #efe2bf;
+    background: #fffbf2;
+}
+
+.df-approval-workspace .approval-metric.is-approved {
+    border-color: #d8ebe3;
+    background: #f5fbf8;
+}
+
+.df-approval-workspace .approval-metric.is-rejected {
+    border-color: #f2dce0;
+    background: #fff7f8;
+}
+
 .df-approval-workspace .approval-metric.is-waiting.active {
     border-color: #ead7a5;
     background: var(--op-amber-soft);
     color: var(--op-amber);
+    box-shadow: inset 0 -2px 0 var(--op-amber);
 }
 .df-approval-workspace .approval-metric.is-approved.active {
     border-color: #cce8dc;
     background: var(--op-green-soft);
     color: var(--op-green);
+    box-shadow: inset 0 -2px 0 var(--op-green);
 }
 .df-approval-workspace .approval-metric.is-rejected.active {
     border-color: #f0ccd2;
     background: var(--op-red-soft);
     color: var(--op-red);
+    box-shadow: inset 0 -2px 0 var(--op-red);
 }
 
 .df-approval-workspace .df-table th {
@@ -3760,5 +3784,304 @@ button.df-admin-metric {
 
     .df-admin-metric span {
         display: none;
+    }
+}
+
+/* Shared focused dialog used by compact list editing flows. */
+body.df-modal-open {
+    overflow: hidden;
+}
+
+.df-modal {
+    position: fixed;
+    z-index: 1085;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.df-modal.is-open {
+    display: flex;
+}
+
+.df-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(17, 24, 39, .46);
+}
+
+.df-modal-dialog {
+    width: min(900px, 100%);
+    max-height: calc(100vh - 40px);
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid #d8e0ea;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 22px 58px rgba(16, 24, 40, .24);
+}
+
+.df-modal-dialog-sm {
+    width: min(620px, 100%);
+}
+
+.df-modal-header,
+.df-modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.df-modal-header {
+    min-height: 68px;
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--df-border);
+    background: #f8fbff;
+}
+
+.df-modal-heading {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.df-modal-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 7px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    background: var(--df-primary-soft);
+    color: var(--df-primary);
+}
+
+.df-modal-heading h3 {
+    margin: 0;
+    color: var(--df-text);
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.df-modal-heading p {
+    margin: 3px 0 0;
+    color: var(--df-muted);
+    font-size: 10px;
+}
+
+.df-modal-close {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 1px solid #d8e0ea;
+    border-radius: 7px;
+    background: #fff;
+    color: #667085;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.df-modal-close:hover {
+    border-color: #efc5cb;
+    background: var(--df-danger-soft);
+    color: var(--df-danger);
+}
+
+.df-modal-body {
+    padding: 16px;
+    overflow-y: auto;
+    background: #fff;
+}
+
+.df-modal-form-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(160px, .6fr);
+    gap: 12px;
+}
+
+.df-modal-form-grid .is-wide {
+    grid-column: 1 / -1;
+}
+
+#markaEditModal .df-admin-field input,
+#markaEditModal .df-admin-field select {
+    padding: 0 12px !important;
+    line-height: 1.4;
+}
+
+#markaEditModal .df-admin-field textarea {
+    padding: 10px 12px !important;
+    line-height: 1.45;
+}
+
+.df-modal-footer {
+    min-height: 58px;
+    padding: 10px 16px;
+    justify-content: flex-end;
+    border-top: 1px solid var(--df-border);
+    background: #fbfcfe;
+}
+
+/* Admin approval and certificate warning screens use the same operation palette. */
+.df-approval-workspace .df-approval-hero,
+.df-warning-workspace .df-admin-hero {
+    border-top-color: #1f5fbf;
+}
+
+.df-approval-workspace .approval-panels {
+    border-top: 3px solid #1f5fbf;
+}
+
+.df-warning-metrics {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-wrap: wrap;
+}
+
+.df-warning-metric {
+    min-height: 36px;
+    padding: 5px 7px 5px 9px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    border: 1px solid var(--op-border);
+    border-radius: 7px;
+    background: #fff;
+}
+
+.df-warning-metric i {
+    font-size: 14px;
+}
+
+.df-warning-metric span {
+    color: var(--op-muted);
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.df-warning-metric strong {
+    min-width: 23px;
+    height: 23px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+}
+
+.df-warning-metric.is-soon {
+    border-color: #ead7a5;
+    color: var(--op-amber);
+}
+
+.df-warning-metric.is-soon strong {
+    background: var(--op-amber-soft);
+}
+
+.df-warning-metric.is-expired {
+    border-color: #f0ccd2;
+    color: var(--op-red);
+}
+
+.df-warning-metric.is-expired strong {
+    background: var(--op-red-soft);
+}
+
+.df-warning-list {
+    overflow: hidden;
+}
+
+.df-warning-list.is-soon {
+    border-top: 3px solid var(--op-amber);
+}
+
+.df-warning-list.is-expired {
+    border-top: 3px solid var(--op-red);
+}
+
+.df-warning-list.is-soon .df-service-list-head h3 i {
+    color: var(--op-amber);
+}
+
+.df-warning-list.is-expired .df-service-list-head h3 i {
+    color: var(--op-red);
+}
+
+.df-warning-row-critical td {
+    background: #fffbf2;
+}
+
+/* Profiles share a compact identity, editable account and context hierarchy. */
+.df-profile-workspace {
+    --op-ink: #172033;
+    --op-muted: #667085;
+    --op-border: #dce2ea;
+}
+
+.df-profile-grid-primary {
+    grid-template-columns: minmax(0, 1.15fr) minmax(300px, .85fr);
+}
+
+.df-profile-grid-primary > .is-account {
+    order: 1;
+}
+
+.df-profile-grid-primary > .is-context {
+    order: 2;
+}
+
+.df-profile-grid-primary > .is-security {
+    order: 3;
+}
+
+.df-profile-permission-body {
+    border-top: 1px solid var(--op-border);
+}
+
+.df-profile-header-meta .df-pill {
+    min-height: 28px;
+}
+
+.df-permission-list {
+    overflow: hidden;
+    border-top: 3px solid var(--df-primary);
+}
+
+.df-permission-list .legend-wrap {
+    border-bottom: 1px solid var(--df-border);
+    background: #fbfcfe;
+}
+
+@media (max-width: 800px) {
+    .df-modal {
+        padding: 8px;
+    }
+
+    .df-modal-dialog {
+        max-height: calc(100vh - 16px);
+    }
+
+    .df-modal-form-grid,
+    .df-profile-grid-primary {
+        grid-template-columns: 1fr;
+    }
+
+    .df-warning-metrics {
+        width: 100%;
+    }
+
+    .df-warning-metric {
+        flex: 1;
     }
 }

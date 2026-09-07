@@ -159,7 +159,7 @@
 <div class="fr265-toolbar">
     <div>
         <div class="fr265-toolbar-title">
-            <h2 class="df-panel-title" style="margin:0;">@(imzaliBelgeHazir ? "İmzalı FR265 Belgesi" : "FR265 Form Önizleme")</h2>
+            <h2 class="df-panel-title" style="margin:0;">@(imzaliBelgeHazir ? "İmzalı Form" : "Form Önizleme")</h2>
             @if (imzaliBelgeHazir)
             {
                 <span class="fr265-ready-badge"><i class="bi bi-patch-check-fill"></i> İmzalı nihai belge</span>
@@ -171,7 +171,7 @@
         <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/detay/@Model.Id">Detaya Dön</a>
         @if (imzaliBelgeHazir && imzaliBelge != null)
         {
-            <a class="df-btn df-btn-primary df-btn-sm" href="/ykc/dosya/@imzaliBelge.Id" target="_blank"><i class="bi bi-download"></i> İmzalı FR265'i İndir</a>
+            <a class="df-btn df-btn-primary df-btn-sm" href="/ykc/dosya/@imzaliBelge.Id" target="_blank"><i class="bi bi-download"></i> İmzalı Belgeyi İndir</a>
         }
         @if (imzayaGonderebilir)
         {

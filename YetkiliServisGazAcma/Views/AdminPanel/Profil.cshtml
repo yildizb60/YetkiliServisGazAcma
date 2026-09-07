@@ -38,7 +38,7 @@
         </div>
     </section>
 
-    <div class="df-profile-grid">
+    <div class="df-profile-grid df-profile-grid-primary">
         <section class="df-profile-section is-account">
             <div class="df-profile-section-head"><i class="bi bi-person-vcard"></i><div><strong>İletişim Bilgileri</strong><small>Profilde görünen temel bilgiler</small></div></div>
             <div class="df-profile-section-body">
@@ -54,8 +54,8 @@
             </div>
         </section>
 
-        <section class="df-profile-section is-security">
-            <div class="df-profile-section-head"><i class="bi bi-key"></i><div><strong>Şifre Değiştir</strong><small>Hesap güvenliği</small></div></div>
+        <details class="df-profile-section is-security is-wide df-profile-disclosure">
+            <summary><i class="bi bi-key"></i><div><strong>Şifre ve Güvenlik</strong><small>Şifrenizi gerektiğinde güncelleyin</small></div><i class="bi bi-chevron-down"></i></summary>
             <div class="df-profile-section-body">
                 <form method="post" action="/AdminPanel/sifre-degistir">
                     @Html.AntiForgeryToken()
@@ -67,9 +67,9 @@
                     <div class="df-profile-actions"><button type="submit" class="df-btn df-btn-secondary df-btn-sm"><i class="bi bi-lock"></i> Şifreyi Güncelle</button></div>
                 </form>
             </div>
-        </section>
+        </details>
 
-        <section class="df-profile-section is-context is-wide">
+        <section class="df-profile-section is-context">
             <div class="df-profile-section-head"><i class="bi bi-person-lock"></i><div><strong>Hesap Özeti</strong><small>Değiştirilemeyen sistem bilgileri</small></div></div>
             <dl class="df-profile-info-grid">
                 <div><dt>Kullanıcı Adı</dt><dd>@(kullanici?.UserName ?? "-")</dd></div>

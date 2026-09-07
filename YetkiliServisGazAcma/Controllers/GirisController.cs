@@ -10,22 +10,29 @@ namespace YetkiliServisGazAcma.Controllers
     {
         private const string SmsBekleyenKullaniciIdKey = "SmsBekleyenKullaniciId";
         private const string SifreSifirlaKullaniciIdKey = "SifreSifirlaKullaniciId";
+        private const string HariciKimlikDogrulamaReferansiKey = "HariciKimlikDogrulamaReferansi";
 
         private readonly SignInManager<AppKullanici> _signInManager;
         private readonly UserManager<AppKullanici> _userManager;
         private readonly AktifSirketService _aktifSirketService;
         private readonly SmsDogrulamaService _smsDogrulamaService;
+        private readonly ISertifikaliFirmaKimlikProvider _sertifikaliFirmaKimlikProvider;
+        private readonly SertifikaliFirmaKimlikOptions _kimlikOptions;
 
         public GirisController(
             SignInManager<AppKullanici> signInManager,
             UserManager<AppKullanici> userManager,
             AktifSirketService aktifSirketService,
-            SmsDogrulamaService smsDogrulamaService)
+            SmsDogrulamaService smsDogrulamaService,
+            ISertifikaliFirmaKimlikProvider sertifikaliFirmaKimlikProvider,
+            Microsoft.Extensions.Options.IOptions<SertifikaliFirmaKimlikOptions> kimlikOptions)
         {
             _signInManager = signInManager;
             _userManager = userManager;
             _aktifSirketService = aktifSirketService;
             _smsDogrulamaService = smsDogrulamaService;
+            _sertifikaliFirmaKimlikProvider = sertifikaliFirmaKimlikProvider;
+            _kimlikOptions = kimlikOptions.Value;
         }
 
         [HttpGet]
@@ -36,6 +43,7 @@ namespace YetkiliServisGazAcma.Controllers
             {
                 HttpContext.Session.Remove(SmsBekleyenKullaniciIdKey);
                 HttpContext.Session.Remove(SifreSifirlaKullaniciIdKey);
+                HttpContext.Session.Remove(HariciKimlikDogrulamaReferansiKey);
             }
 
             ViewBag.SmsBekleniyor = !string.IsNullOrWhiteSpace(HttpContext.Session.GetString(SmsBekleyenKullaniciIdKey));
@@ -54,10 +62,48 @@ namespace YetkiliServisGazAcma.Controllers
                 return View();
             }
 
+            HttpContext.Session.Remove(SmsBekleyenKullaniciIdKey);
+            HttpContext.Session.Remove(HariciKimlikDogrulamaReferansiKey);
+            kullaniciAdi = kullaniciAdi.Trim();
             var kullanici = await _userManager.FindByEmailAsync(kullaniciAdi)
                          ?? await _userManager.FindByNameAsync(kullaniciAdi);
+            SertifikaliFirmaKimlikSonucu? hariciKimlikSonucu = null;
+            var hariciKimlikKullanildi = _kimlikOptions.Enabled
+                && (kullanici == null || kullanici.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma);
 
-            if (kullanici == null)
+            if (hariciKimlikKullanildi)
+            {
+                if (!_sertifikaliFirmaKimlikProvider.KullanilabilirMi)
+                {
+                    ViewBag.Hata = "Firma giriş servisi henüz bağlanmadı. Lütfen sistem yöneticisine başvurun.";
+                    return View();
+                }
+                hariciKimlikSonucu = await _sertifikaliFirmaKimlikProvider.KimlikDogrulaAsync(
+                    kullaniciAdi,
+                    sifre,
+                    HttpContext.RequestAborted);
+
+                if (!hariciKimlikSonucu.Basarili)
+                {
+                    ViewBag.Hata = string.IsNullOrWhiteSpace(hariciKimlikSonucu.Mesaj)
+                        ? "Sertifikalı firma kullanıcı bilgileri doğrulanamadı."
+                        : hariciKimlikSonucu.Mesaj;
+                    return View();
+                }
+
+                var yerelKullaniciAdi = string.IsNullOrWhiteSpace(hariciKimlikSonucu.YerelKullaniciAdi)
+                    ? kullaniciAdi
+                    : hariciKimlikSonucu.YerelKullaniciAdi.Trim();
+                kullanici = await _userManager.FindByEmailAsync(yerelKullaniciAdi)
+                         ?? await _userManager.FindByNameAsync(yerelKullaniciAdi);
+
+                if (kullanici == null || kullanici.KullaniciTipi != KullaniciTipiDegerleri.SertifikaliFirma)
+                {
+                    ViewBag.Hata = "Kimlik servisi doğruladı ancak eşleşen yerel sertifikalı firma hesabı bulunamadı.";
+                    return View();
+                }
+            }
+            else if (kullanici == null)
             {
                 ViewBag.Hata = "Kullanıcı bulunamadı.";
                 return View();
@@ -69,39 +115,75 @@ namespace YetkiliServisGazAcma.Controllers
                 return View();
             }
 
-            var sonuc = await _signInManager.CheckPasswordSignInAsync(kullanici, sifre, true);
-
-            if (sonuc.Succeeded)
+            if (!hariciKimlikKullanildi)
             {
-                await RolSenkronizeEt(kullanici);
-
-                if (_smsDogrulamaService.SmsGirisAktifMi)
+                var sonuc = await _signInManager.CheckPasswordSignInAsync(kullanici, sifre, true);
+                if (!sonuc.Succeeded)
                 {
-                    var smsSonuc = await _smsDogrulamaService.KodGonderAsync(kullanici, "GIRIS");
-                    if (!smsSonuc.Basarili)
+                    if (sonuc.IsLockedOut)
                     {
-                        ViewBag.Hata = smsSonuc.Mesaj;
+                        ViewBag.Hata = "Çok fazla hatalı giriş denemesi yapıldı. Lütfen 15 dakika sonra tekrar deneyin.";
                         return View();
                     }
 
-                    HttpContext.Session.SetString(SmsBekleyenKullaniciIdKey, kullanici.Id);
-                    ViewBag.SmsBekleniyor = true;
-                    ViewBag.Bilgi = smsSonuc.Mesaj;
+                    ViewBag.Hata = "Kullanıcı adı veya şifre hatalı.";
+                    return View();
+                }
+            }
+
+            await RolSenkronizeEt(kullanici);
+
+            var smsGerekli = _smsDogrulamaService.SmsGirisAktifMi
+                || hariciKimlikSonucu?.TelefonDogrulamasiGerekliMi == true;
+            if (smsGerekli)
+            {
+                if (!_smsDogrulamaService.SmsGirisAktifMi)
+                {
+                    ViewBag.Hata = "Kimlik servisi telefon doğrulaması istiyor ancak SMS doğrulaması yapılandırılmamış.";
                     return View();
                 }
 
-                await _signInManager.SignInAsync(kullanici, false);
-                return await GirisSonrasiYonlendir(kullanici);
-            }
+                if (hariciKimlikKullanildi
+                    && string.IsNullOrWhiteSpace(hariciKimlikSonucu?.DogrulamaReferansi))
+                {
+                    ViewBag.Hata = "Kimlik servisi SMS sonrası doğrulama için bir işlem referansı döndürmedi.";
+                    return View();
+                }
 
-            if (sonuc.IsLockedOut)
-            {
-                ViewBag.Hata = "Çok fazla hatalı giriş denemesi yapıldı. Lütfen 15 dakika sonra tekrar deneyin.";
+                var smsSonuc = await _smsDogrulamaService.KodGonderAsync(kullanici, "GIRIS", hariciKimlikSonucu?.Telefon);
+                if (!smsSonuc.Basarili)
+                {
+                    ViewBag.Hata = smsSonuc.Mesaj;
+                    return View();
+                }
+
+                HttpContext.Session.SetString(SmsBekleyenKullaniciIdKey, kullanici.Id);
+                if (!string.IsNullOrWhiteSpace(hariciKimlikSonucu?.DogrulamaReferansi))
+                {
+                    HttpContext.Session.SetString(
+                        HariciKimlikDogrulamaReferansiKey,
+                        hariciKimlikSonucu.DogrulamaReferansi.Trim());
+                }
+
+                ViewBag.SmsBekleniyor = true;
+                ViewBag.Bilgi = smsSonuc.Mesaj;
                 return View();
             }
 
-            ViewBag.Hata = "Kullanıcı adı veya şifre hatalı.";
-            return View();
+            if (!string.IsNullOrWhiteSpace(hariciKimlikSonucu?.DogrulamaReferansi))
+            {
+                var tamamlama = await _sertifikaliFirmaKimlikProvider.DogrulamayiTamamlaAsync(
+                    hariciKimlikSonucu.DogrulamaReferansi,
+                    HttpContext.RequestAborted);
+                if (!tamamlama.Basarili)
+                {
+                    ViewBag.Hata = tamamlama.Mesaj;
+                    return View();
+                }
+            }
+
+            await _signInManager.SignInAsync(kullanici, false);
+            return await GirisSonrasiYonlendir(kullanici);
         }
 
         [HttpGet]
@@ -132,9 +214,33 @@ namespace YetkiliServisGazAcma.Controllers
                 return View("~/Views/Giris/Index.cshtml");
             }
 
+            var hariciDogrulamaReferansi = HttpContext.Session.GetString(HariciKimlikDogrulamaReferansiKey);
+            if (!string.IsNullOrWhiteSpace(hariciDogrulamaReferansi))
+            {
+                if (!_sertifikaliFirmaKimlikProvider.KullanilabilirMi)
+                {
+                    HttpContext.Session.Remove(SmsBekleyenKullaniciIdKey);
+                    HttpContext.Session.Remove(HariciKimlikDogrulamaReferansiKey);
+                    ViewBag.Hata = "Sertifikalı firma kimlik servisine ulaşılamadı. Lütfen yeniden giriş yapın.";
+                    return View("~/Views/Giris/Index.cshtml");
+                }
+
+                var tamamlama = await _sertifikaliFirmaKimlikProvider.DogrulamayiTamamlaAsync(
+                    hariciDogrulamaReferansi,
+                    HttpContext.RequestAborted);
+                if (!tamamlama.Basarili)
+                {
+                    HttpContext.Session.Remove(SmsBekleyenKullaniciIdKey);
+                    HttpContext.Session.Remove(HariciKimlikDogrulamaReferansiKey);
+                    ViewBag.Hata = tamamlama.Mesaj;
+                    return View("~/Views/Giris/Index.cshtml");
+                }
+            }
+
             await RolSenkronizeEt(kullanici);
             await _signInManager.SignInAsync(kullanici, false);
             HttpContext.Session.Remove(SmsBekleyenKullaniciIdKey);
+            HttpContext.Session.Remove(HariciKimlikDogrulamaReferansiKey);
             return await GirisSonrasiYonlendir(kullanici);
         }
 
@@ -144,6 +250,7 @@ namespace YetkiliServisGazAcma.Controllers
         {
             HttpContext.Session.Remove(SmsBekleyenKullaniciIdKey);
             HttpContext.Session.Remove(SifreSifirlaKullaniciIdKey);
+            HttpContext.Session.Remove(HariciKimlikDogrulamaReferansiKey);
             ViewBag.SifreUnuttum = true;
             return View("~/Views/Giris/Index.cshtml");
         }

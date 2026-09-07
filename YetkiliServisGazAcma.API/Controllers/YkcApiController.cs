@@ -26,6 +26,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         private readonly SehirFirmaKoduService _sehirFirmaKoduService;
         private readonly YkcImzaAkisService _ykcImzaAkisService;
         private readonly YkcYetkiService _ykcYetkiService;
+        private readonly YkcSorguKaydiService _sorguKayitlari;
 
         public YkcApiController(
             YkcTalepService ykcTalepService,
@@ -35,7 +36,8 @@ namespace YetkiliServisGazAcma.API.Controllers
             OnlineCihazBilgileriClient onlineCihazBilgileriClient,
             SehirFirmaKoduService sehirFirmaKoduService,
             YkcImzaAkisService ykcImzaAkisService,
-            YkcYetkiService ykcYetkiService)
+            YkcYetkiService ykcYetkiService,
+            YkcSorguKaydiService sorguKayitlari)
         {
             _ykcTalepService = ykcTalepService;
             _userManager = userManager;
@@ -45,6 +47,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             _sehirFirmaKoduService = sehirFirmaKoduService;
             _ykcImzaAkisService = ykcImzaAkisService;
             _ykcYetkiService = ykcYetkiService;
+            _sorguKayitlari = sorguKayitlari;
         }
 
         [HttpPost("tesisat-sorgula")]
@@ -140,13 +143,44 @@ namespace YetkiliServisGazAcma.API.Controllers
             }).ToList();
             var il = firma?.FaaliyetIli ?? sirket?.Il ?? IlFromFirmaKodu(kullanilanFirmaKodu);
 
+            foreach (var cihaz in cihazlar)
+            {
+                cihaz.SorguReferansi = _sorguKayitlari.Ekle(kullanici.Id, new YkcTalepKaydetDto
+                {
+                    FirmaId = firma?.Id,
+                    SirketId = sirket?.Id,
+                    Vkn = firma?.VergiNo,
+                    FirmaKodu = kullanilanFirmaKodu,
+                    TesisatNo = tesisatNo.ToString(CultureInfo.InvariantCulture),
+                    SozlesmeNo = sozlesmeNo.ToString(CultureInfo.InvariantCulture),
+                    AboneNo = servisSonuc.CariKod?.ToString(CultureInfo.InvariantCulture),
+                    SayacNo = servisSonuc.SayacNo?.ToString(CultureInfo.InvariantCulture),
+                    ProjeNo = cihaz.ProjeNo,
+                    MusteriAdi = servisSonuc.CariAd,
+                    Adres = servisSonuc.Adres,
+                    Il = il,
+                    Bolge = il,
+                    EskiCihazTipi = cihaz.CihazTipi,
+                    EskiCihazTipiKodu = cihaz.CihazTipKodu,
+                    EskiMarka = cihaz.CihazMarka,
+                    EskiKapasite = cihaz.CihazKapasite
+                });
+                if (roller.Contains("SertifikaliFirma"))
+                {
+                    cihaz.CihazMarka = null;
+                    cihaz.CihazKapasite = null;
+                    cihaz.ProjeNo = null;
+                    cihaz.CihazTipKodu = null;
+                }
+            }
+
             return Ok(new YkcTesisatSorguSonuc
             {
                 Basarili = cihazlar.Count > 0,
-                ManuelGirisSerbest = cihazlar.Count == 0,
+                ManuelGirisSerbest = false,
                 Mesaj = cihazlar.Count > 0
                     ? "Tesisat ve cihaz bilgileri alindi."
-                    : "Tesisat bulundu ancak cihaz listesi bos geldi. Manuel giris yapabilirsiniz.",
+                    : "Tesisata ait cihaz bulunamadı. Talep için cihaz kaydı gerekiyor.",
                 FirmaKodu = kullanilanFirmaKodu,
                 TesisatNo = (servisSonuc.TesisatNo ?? tesisatNo).ToString(CultureInfo.InvariantCulture),
                 SozlesmeNo = (servisSonuc.SozlesmeNo ?? sozlesmeNo).ToString(CultureInfo.InvariantCulture),
@@ -337,6 +371,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         }
 
         [HttpPost("dogalgaz-mobile/talepler/liste")]
+        [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel")]
         public async Task<IActionResult> DogalgazMobileTaleplerListe([FromBody] YkcTalepListeFiltre? filtre)
         {
             filtre ??= new YkcTalepListeFiltre();
@@ -345,6 +380,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         }
 
         [HttpPost("crm187/talepler/liste")]
+        [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel")]
         public async Task<IActionResult> Crm187TaleplerListe([FromBody] YkcTalepListeFiltre? filtre)
         {
             filtre ??= new YkcTalepListeFiltre();
@@ -353,6 +389,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         }
 
         [HttpPost("talepler/getir")]
+        [HttpPost("talepler/form-verisi")]
         public async Task<IActionResult> TalepGetir([FromBody] YkcTalepGetirIstek? istek)
         {
             var kullanici = await AktifKullaniciAsync();
@@ -369,7 +406,51 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (sonuc == null)
                 return NotFound(new { basarili = false, mesaj = "Cihaz değişim talebi bulunamadı." });
 
+            if (User.IsInRole("SertifikaliFirma") && !Request.Path.Value!.EndsWith("/form-verisi", StringComparison.Ordinal))
+            {
+                sonuc.EskiCihaz = null;
+                sonuc.EskiCihazTipi = null;
+                sonuc.EskiCihazTipiKodu = null;
+                sonuc.EskiMarka = null;
+                sonuc.EskiMarkaKodu = null;
+                sonuc.EskiBacaTipi = null;
+                sonuc.EskiBacaTipiKodu = null;
+                sonuc.EskiKapasite = null;
+                sonuc.Atamalar.Clear();
+                sonuc.AtananEkip = null;
+                sonuc.HedefUygulama = null;
+                foreach (var kayit in sonuc.Gecmis)
+                {
+                    kayit.KullaniciAdi = null;
+                    if (kayit.IslemTipi is "AtamaYapildi" or "DurumGuncellendi")
+                        kayit.Aciklama = null;
+                }
+            }
             return Ok(sonuc);
+        }
+
+        [HttpPost("takvim")]
+        [ProducesResponseType(typeof(YkcTakvimSonuc), StatusCodes.Status200OK)]
+        [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel")]
+        public async Task<IActionResult> Takvim([FromBody] YkcTakvimFiltre? filtre)
+        {
+            var kullanici = await AktifKullaniciAsync();
+            if (kullanici == null) return Unauthorized();
+            if (!await YkcYetkiliMiAsync(kullanici, YetkiTipleri.YKC_TALEP_GOR))
+                return YkcYetkisiz("Randevu takvimini görüntüleme yetkiniz bulunmuyor.");
+            return Ok(await _ykcTalepService.TakvimAsync(filtre ?? new(), kullanici, await GenelYetkiliMiAsync(kullanici)));
+        }
+
+        [HttpPost("talepler/ekipler")]
+        [ProducesResponseType(typeof(List<YkcEkipSecenegi>), StatusCodes.Status200OK)]
+        [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel")]
+        public async Task<IActionResult> Ekipler([FromBody] YkcTalepGetirIstek istek)
+        {
+            var kullanici = await AktifKullaniciAsync();
+            if (kullanici == null) return Unauthorized();
+            if (!await YkcYetkiliMiAsync(kullanici, YetkiTipleri.YKC_ATAMA_YAP))
+                return YkcYetkisiz("Atama yetkiniz bulunmuyor.");
+            return Ok(await _ykcTalepService.EkiplerAsync(istek.Id, kullanici, await GenelYetkiliMiAsync(kullanici)));
         }
 
         [HttpPost("talepler/olustur")]

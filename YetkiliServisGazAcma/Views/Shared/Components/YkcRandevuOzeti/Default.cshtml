@@ -1,0 +1,29 @@
+@model YkcTakvimSonuc
+<link rel="stylesheet" href="~/css/ykc-calendar.css" asp-append-version="true" />
+<section class="ykc-calendar ykc-dashboard-agenda">
+    <header class="ykc-calendar-header">
+        <h2>Bugünün Cihaz Değişim Randevuları</h2>
+        <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/takvim"><i class="bi bi-calendar3"></i> Takvimi Aç</a>
+    </header>
+    @if (Model == null)
+    {
+        <p>Randevu bilgisi şu anda alınamıyor.</p>
+    }
+    else if (Model.Toplam == 0)
+    {
+        <p>Bugün için randevu bulunmuyor.</p>
+    }
+    else
+    {
+        @foreach (var item in Model.Kayitlar.Take(5))
+        {
+            <a class="ykc-calendar-entry" href="/ykc/detay/@item.Id">
+                <time>@item.Saat</time>
+                <span><strong>@item.Musteri</strong><small>Tesisat @item.TesisatNo · @item.Adres</small></span>
+                <span><strong>@(item.Personel ?? item.Ekip)</strong><small>@item.Bolge</small></span>
+                <span>@YkcDurumSunumu.Etiket(item.Durum)</span><i class="bi bi-arrow-right"></i>
+            </a>
+        }
+        @if (Model.Toplam > 5) { <a href="/ykc/takvim">@Model.Toplam randevunun tümünü gör</a> }
+    }
+</section>

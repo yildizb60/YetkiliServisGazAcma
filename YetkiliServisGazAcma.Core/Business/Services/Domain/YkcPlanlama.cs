@@ -1,0 +1,111 @@
+using Microsoft.EntityFrameworkCore;
+using YetkiliServisGazAcma.Entities;
+
+namespace YetkiliServisGazAcma.Business.Services;
+
+public sealed class YkcPlanlamaOptions
+{
+    public int AsgariAralikDakika { get; set; }
+    public List<YkcEkipSecenegi> Ekipler { get; set; } = new();
+}
+
+public sealed class YkcEkipSecenegi
+{
+    public string Id { get; set; } = "";
+    public int SirketId { get; set; }
+    public string Il { get; set; } = "";
+    public string Bolge { get; set; } = "";
+    public string Ad { get; set; } = "";
+    public string YonlendirmeTipi { get; set; } = "";
+    public string? KullaniciId { get; set; }
+    public bool Secili { get; set; }
+}
+
+public sealed class YkcTakvimFiltre
+{
+    public DateTime Baslangic { get; set; } = DateTime.Today;
+    public DateTime Bitis { get; set; } = DateTime.Today.AddDays(6);
+    public string? Il { get; set; }
+    public string? Bolge { get; set; }
+    public string? Personel { get; set; }
+    public int Sayfa { get; set; } = 1;
+}
+
+public sealed class YkcTakvimKayit
+{
+    public int Id { get; set; }
+    public DateTime Tarih { get; set; }
+    public string? Saat { get; set; }
+    public string? Musteri { get; set; }
+    public string? TesisatNo { get; set; }
+    public string? Adres { get; set; }
+    public string? Il { get; set; }
+    public string? Bolge { get; set; }
+    public string? Personel { get; set; }
+    public string? Ekip { get; set; }
+    public int Durum { get; set; }
+}
+
+public sealed class YkcTakvimSonuc
+{
+    public YkcTakvimFiltre Filtre { get; set; } = new();
+    public int Toplam { get; set; }
+    public int SayfaBoyutu { get; set; } = 100;
+    public List<YkcTakvimKayit> Kayitlar { get; set; } = new();
+}
+
+public static class YkcRandevuKurali
+{
+    public static bool Cakisiyor(DateTime birinci, DateTime ikinci, int asgariAralikDakika)
+        => birinci == ikinci || Math.Abs((birinci - ikinci).TotalMinutes) < Math.Clamp(asgariAralikDakika, 0, 240);
+}
+
+public partial class YkcTalepService
+{
+    public async Task<List<YkcEkipSecenegi>> EkiplerAsync(int id, AppKullanici kullanici, bool genelYetkili)
+    {
+        var talep = await YetkiKapsamiUygula(_context.Ykc_Talepler.AsNoTracking().Where(x => !x.SilindiMi), kullanici, genelYetkili)
+            .FirstOrDefaultAsync(x => x.Id == id);
+        if (talep == null) return new();
+        return _planlama.Ekipler.Where(x => x.SirketId == talep.SirketId
+            && string.Equals(x.Il.Trim(), talep.Il?.Trim(), StringComparison.OrdinalIgnoreCase)
+            && string.Equals(x.Bolge.Trim(), talep.Bolge?.Trim(), StringComparison.OrdinalIgnoreCase))
+            .Select(x => new YkcEkipSecenegi {
+                Id = x.Id, SirketId = x.SirketId, Il = x.Il, Bolge = x.Bolge, Ad = x.Ad,
+                YonlendirmeTipi = x.YonlendirmeTipi, KullaniciId = x.KullaniciId,
+                Secili = x.Ad == talep.AtananEkip && x.KullaniciId == talep.AtananKullaniciId
+                    && x.YonlendirmeTipi == talep.AtananKullaniciTipi
+            })
+            .ToList();
+    }
+
+    public async Task<YkcTakvimSonuc> TakvimAsync(YkcTakvimFiltre filtre, AppKullanici kullanici, bool genelYetkili)
+    {
+        filtre.Baslangic = filtre.Baslangic.Date;
+        filtre.Bitis = filtre.Bitis.Date < filtre.Baslangic ? filtre.Baslangic.AddDays(6) : filtre.Bitis.Date;
+        if (filtre.Bitis > filtre.Baslangic.AddDays(31)) filtre.Bitis = filtre.Baslangic.AddDays(31);
+        var son = filtre.Bitis.AddDays(1);
+        var query = YetkiKapsamiUygula(_context.Ykc_Talepler.AsNoTracking().Where(x => !x.SilindiMi), kullanici, genelYetkili)
+            .Where(x => x.RandevuTarihi >= filtre.Baslangic && x.RandevuTarihi < son
+                && x.Durum != YkcDurumDegerleri.Iptal && x.Durum != YkcDurumDegerleri.Reddedildi);
+        if (!string.IsNullOrWhiteSpace(filtre.Il)) query = query.Where(x => x.Il == filtre.Il);
+        if (!string.IsNullOrWhiteSpace(filtre.Bolge)) query = query.Where(x => x.Bolge == filtre.Bolge);
+        var projected = from t in query
+                        join u in _context.Users.AsNoTracking() on t.AtananKullaniciId equals u.Id into users
+                        from u in users.DefaultIfEmpty()
+                        select new YkcTakvimKayit {
+                            Id = t.Id, Tarih = t.RandevuTarihi!.Value, Saat = t.RandevuSaati,
+                            Musteri = t.MusteriAdi, TesisatNo = t.TesisatNo, Adres = t.Adres,
+                            Il = t.Il, Bolge = t.Bolge, Personel = u == null ? null : u.AdSoyad,
+                            Ekip = t.AtananEkip, Durum = t.Durum
+                        };
+        if (!string.IsNullOrWhiteSpace(filtre.Personel)) projected = projected.Where(x => x.Personel != null && x.Personel.Contains(filtre.Personel));
+        var toplam = await projected.CountAsync();
+        filtre.Sayfa = Math.Clamp(filtre.Sayfa, 1, Math.Max(1, (int)Math.Ceiling(toplam / 100d)));
+        return new YkcTakvimSonuc {
+            Filtre = filtre, Toplam = toplam,
+            Kayitlar = await projected.OrderBy(x => x.Tarih).ThenBy(x => x.Saat).ThenBy(x => x.Id)
+                .Skip((filtre.Sayfa - 1) * 100).Take(100).ToListAsync()
+        };
+    }
+}

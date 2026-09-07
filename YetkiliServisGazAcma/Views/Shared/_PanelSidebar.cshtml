@@ -79,71 +79,82 @@
     <nav class="nav">
         @if (isYetkiliServisPanel)
         {
-            <div class="nav-section">Firma</div>
+            <div class="nav-section">Genel</div>
             <a class="@("nav-item" + ActiveExact("Dashboard", "/ys-panel"))" href="/ys-panel">
                 <span class="nav-ico"><i class="bi bi-house-door"></i></span> Ana Sayfa
             </a>
 
-            <div class="nav-section">İşlemler</div>
+            <div class="nav-section">Cihaz Devreye Alma İşlemleri</div>
             <a class="@("nav-item" + ActiveExact("DevreyeAl", "/ys-devreyeal"))" href="/ys-devreyeal">
-                <span class="nav-ico"><i class="bi bi-bag-check"></i></span> Cihaz Devreye Al
+                <span class="nav-ico"><i class="bi bi-bag-check"></i></span> Yeni Devreye Alma
             </a>
             <a class="@("nav-item" + Active("DevreyeGecmis", "/ys-devreyeal/gecmis", "/ys-devreyeal/detay"))" href="/ys-devreyeal/gecmis">
-                <span class="nav-ico"><i class="bi bi-clock-history"></i></span> İşlem Geçmişim
+                <span class="nav-ico"><i class="bi bi-clock-history"></i></span> Devreye Alma Geçmişi
             </a>
+            <div class="nav-section">Raporlama</div>
             <a class="@("nav-item" + Active("Raporlar", "/ys-panel/raporlar"))" href="/ys-panel/raporlar">
-                <span class="nav-ico"><i class="bi bi-bar-chart-line"></i></span> Raporlarım
+                <span class="nav-ico"><i class="bi bi-bar-chart-line"></i></span> Devreye Alma Raporları
             </a>
 
-            <div class="nav-section">Firma</div>
+            <div class="nav-section">Yetkili Servis Yönetimi</div>
             <a class="@("nav-item" + Active("YetkiBelgesi", "/ys-yetki-belgesi"))" href="/ys-yetki-belgesi">
                 <span class="nav-ico"><i class="bi bi-file-earmark-text"></i></span> Yetki Belgem
             </a>
             <a class="@("nav-item" + Active("Markalar", "/ys-panel/markalar"))" href="/ys-panel/markalar">
-                <span class="nav-ico"><i class="bi bi-building-check"></i></span> Markalarım
+                <span class="nav-ico"><i class="bi bi-building-check"></i></span> Hizmet Verdiğim Markalar
             </a>
             <a class="@("nav-item" + Active("Subeler", "/ys-panel/subeler"))" href="/ys-panel/subeler">
                 <span class="nav-ico"><i class="bi bi-building-gear"></i></span> Şube / Servis Noktaları
             </a>
+            <div class="nav-section">Hesabım</div>
             <a class="@("nav-item" + Active("Profil", "/ys-panel/profil"))" href="/ys-panel/profil">
                 <span class="nav-ico"><i class="bi bi-person"></i></span> Profilim
             </a>
         }
         else if (isSertifikaliFirmaPanel)
         {
-            <div class="nav-section">Cihaz Değişim</div>
+            <div class="nav-section">Genel</div>
             <a class="@("nav-item" + ActiveExact("YkcOzet", "/ykc"))" href="/ykc">
                 <span class="nav-ico"><i class="bi bi-house-door"></i></span> Ana Sayfa
             </a>
+            <div class="nav-section">Cihaz Değişim İşlemleri</div>
             <a class="@("nav-item" + Active("YkcYeni", "/ykc/yeni"))" href="/ykc/yeni">
-                <span class="nav-ico"><i class="bi bi-plus-lg"></i></span> Yeni Talep
+                <span class="nav-ico"><i class="bi bi-plus-lg"></i></span> Yeni Cihaz Değişim Talebi
             </a>
             <a class="@("nav-item" + Active("YkcTalepler", "/ykc/talepler", "/ykc/detay", "/ykc/fr265"))" href="/ykc/talepler">
-                <span class="nav-ico"><i class="bi bi-journal-text"></i></span> Taleplerim
+                <span class="nav-ico"><i class="bi bi-journal-text"></i></span> Cihaz Değişim Taleplerim
             </a>
         }
         else if (isPersonelPanel)
         {
-            <div class="nav-section">Panel</div>
+            <div class="nav-section">Genel</div>
             <a class="@("nav-item" + ActiveExact("Dashboard", "/personel-panel"))" href="/personel-panel">
                 <span class="nav-ico"><i class="bi bi-house-door"></i></span> Ana Sayfa
             </a>
 
-            <div class="nav-section">İşlemler</div>
+            <div class="nav-section">Yetki Belgesi İşlemleri</div>
             <a class="@("nav-item" + Active("OnayBekleyenler", "/personel-panel/onay-bekleyenler"))" href="/personel-panel/onay-bekleyenler">
-                <span class="nav-ico"><i class="bi bi-check2-circle"></i></span> Yetki Belgesi Onay
+                <span class="nav-ico"><i class="bi bi-check2-circle"></i></span> Onay Bekleyen Belgeler
                 @if (ViewBag.OnayBekleyen > 0)
                 {
                     <span class="nav-badge">@ViewBag.OnayBekleyen</span>
                 }
             </a>
-            <a class="@("nav-item" + Active("DevreyeAlmalar", "/personel-panel/devreyealmalar"))" href="/personel-panel/devreyealmalar">
-                <span class="nav-ico"><i class="bi bi-bag-check"></i></span> Devreye Almalar
+            <a class="@("nav-item" + Active("OnayGecmisi", "/personel-panel/onay-gecmisi"))" href="/personel-panel/onay-gecmisi">
+                <span class="nav-ico"><i class="bi bi-clock-history"></i></span> Yetki Belgesi Geçmişi
             </a>
+            <div class="nav-section">Cihaz Devreye Alma İşlemleri</div>
+            <a class="@("nav-item" + Active("DevreyeAlmalar", "/personel-panel/devreyealmalar"))" href="/personel-panel/devreyealmalar">
+                <span class="nav-ico"><i class="bi bi-bag-check"></i></span> Cihaz Devreye Alma Kayıtları
+            </a>
+            <div class="nav-section">Cihaz Değişim İşlemleri</div>
             @if (ykcYetkileri.TalepleriGorebilir)
             {
                 <a class="@("nav-item" + ActiveUnless("YkcTalepler", "YkcRaporlar", "/ykc/talepler", "/ykc/detay", "/ykc/fr265"))" href="/ykc/talepler">
                     <span class="nav-ico"><i class="bi bi-fire"></i></span> Cihaz Değişim Talepleri
+                </a>
+                <a class="@("nav-item" + Active("YkcTakvim", "/ykc/takvim"))" href="/ykc/takvim">
+                    <span class="nav-ico"><i class="bi bi-calendar3"></i></span> Randevu Takvimi
                 </a>
             }
             @if (ykcYetkileri.RaporlariGorebilir)
@@ -152,21 +163,19 @@
                     <span class="nav-ico"><i class="bi bi-bar-chart-line"></i></span> Cihaz Değişim Raporları
                 </a>
             }
-            <a class="@("nav-item" + Active("Markalar", "/personel-panel/markalar"))" href="/personel-panel/markalar">
-                <span class="nav-ico"><i class="bi bi-building-check"></i></span> Markalar
-            </a>
-            <a class="@("nav-item" + Active("YetkiliServisler", "/personel-panel/yetkiliservisler"))" href="/personel-panel/yetkiliservisler">
-                <span class="nav-ico"><i class="bi bi-tools"></i></span> Yetkili Servisler
-            </a>
             <div class="nav-section">Raporlar</div>
             <a class="@("nav-item" + Active("Raporlar", "/personel-panel/raporlar"))" href="/personel-panel/raporlar">
                 <span class="nav-ico"><i class="bi bi-graph-up"></i></span> Genel Raporlar
             </a>
-            <a class="@("nav-item" + Active("OnayGecmisi", "/personel-panel/onay-gecmisi"))" href="/personel-panel/onay-gecmisi">
-                <span class="nav-ico"><i class="bi bi-clock-history"></i></span> Onay Geçmişi
+            <div class="nav-section">Yetkili Servis Yönetimi</div>
+            <a class="@("nav-item" + Active("Markalar", "/personel-panel/markalar"))" href="/personel-panel/markalar">
+                <span class="nav-ico"><i class="bi bi-building-check"></i></span> Yetkili Servis Markaları
+            </a>
+            <a class="@("nav-item" + Active("YetkiliServisler", "/personel-panel/yetkiliservisler"))" href="/personel-panel/yetkiliservisler">
+                <span class="nav-ico"><i class="bi bi-tools"></i></span> Yetkili Servisler
             </a>
 
-            <div class="nav-section">Sistem</div>
+            <div class="nav-section">Hesabım</div>
             <a class="@("nav-item" + Active("Profil", "/personel-panel/profil"))" href="/personel-panel/profil">
                 <span class="nav-ico"><i class="bi bi-person"></i></span> Profilim
             </a>
@@ -175,44 +184,48 @@
         {
             <div class="nav-section">Genel</div>
             <a class="@("nav-item" + ActiveExact("Dashboard", "/AdminPanel", "/AdminPanel/index"))" href="/AdminPanel">
-                <span class="nav-ico"><i class="bi bi-house-door"></i></span> Dashboard
+                <span class="nav-ico"><i class="bi bi-house-door"></i></span> Ana Sayfa
             </a>
 
-            <div class="nav-section">Yönetim</div>
-            @if (genelSistemAdminMi)
-            {
-                <a class="@("nav-item" + Active("Markalar", "/Marka"))" href="/Marka">
-                    <span class="nav-ico"><i class="bi bi-building-check"></i></span> Markalar
-                </a>
-            }
+            <div class="nav-section">Yetki Belgesi İşlemleri</div>
             <a class="@("nav-item" + Active("OnayBekleyenler", "/AdminPanel/onay-bekleyenler"))" href="/AdminPanel/onay-bekleyenler">
-                <span class="nav-ico"><i class="bi bi-check2-circle"></i></span> Yetki Belgesi Onay
+                <span class="nav-ico"><i class="bi bi-check2-circle"></i></span> Onay Bekleyen Belgeler
                 @if (ViewBag.OnayBekleyen > 0)
                 {
                     <span class="nav-badge">@ViewBag.OnayBekleyen</span>
                 }
             </a>
             <a class="@("nav-item" + Active("YetkiBelgesiUyarilari", "/AdminPanel/yetki-belgesi-uyarilari"))" href="/AdminPanel/yetki-belgesi-uyarilari">
-                <span class="nav-ico"><i class="bi bi-exclamation-triangle"></i></span> Bitiş Uyarıları
+                <span class="nav-ico"><i class="bi bi-exclamation-triangle"></i></span> Yetki Belgesi Bitiş Uyarıları
             </a>
+            <div class="nav-section">Cihaz Devreye Alma İşlemleri</div>
             <a class="@("nav-item" + Active("DevreyeAlmalar", "/AdminPanel/devreyealmalar"))" href="/AdminPanel/devreyealmalar">
-                <span class="nav-ico"><i class="bi bi-bag-check"></i></span> Devreye Almalar
+                <span class="nav-ico"><i class="bi bi-bag-check"></i></span> Cihaz Devreye Alma Kayıtları
             </a>
+            <div class="nav-section">Cihaz Değişim İşlemleri</div>
             <a class="@("nav-item" + ActiveUnless("YkcTalepler", "YkcRaporlar", "/ykc/talepler", "/ykc/detay", "/ykc/yeni", "/ykc/fr265"))" href="/ykc/talepler">
                 <span class="nav-ico"><i class="bi bi-fire"></i></span> Cihaz Değişim Talepleri
+            </a>
+            <a class="@("nav-item" + Active("YkcTakvim", "/ykc/takvim"))" href="/ykc/takvim">
+                <span class="nav-ico"><i class="bi bi-calendar3"></i></span> Randevu Takvimi
             </a>
             <a class="@("nav-item" + Active("YkcRaporlar", "/ykc/raporlar"))" href="/ykc/raporlar">
                 <span class="nav-ico"><i class="bi bi-bar-chart-line"></i></span> Cihaz Değişim Raporları
             </a>
-            <a class="@("nav-item" + Active("Raporlar", "/AdminPanel/raporlar"))" href="/AdminPanel/raporlar">
-                <span class="nav-ico"><i class="bi bi-graph-up"></i></span> Raporlar
-            </a>
+            <div class="nav-section">Yetkili Servis Yönetimi</div>
+            @if (genelSistemAdminMi)
+            {
+                <a class="@("nav-item" + Active("Markalar", "/Marka"))" href="/Marka">
+                    <span class="nav-ico"><i class="bi bi-building-check"></i></span> Yetkili Servis Markaları
+                </a>
+            }
             <a class="@("nav-item" + Active("YetkiliServisler", "/AdminPanel/yetkiliservisler"))" href="/AdminPanel/yetkiliservisler">
                 <span class="nav-ico"><i class="bi bi-tools"></i></span> Yetkili Servisler
             </a>
             <a class="@("nav-item" + Active("Subeler", "/AdminPanel/subeler"))" href="/AdminPanel/subeler">
                 <span class="nav-ico"><i class="bi bi-building-gear"></i></span> Şube / Servis Noktaları
             </a>
+            <div class="nav-section">Kullanıcı ve Yetki Yönetimi</div>
             <a class="@("nav-item" + Active("Personeller", "/AdminPanel/personeller"))" href="/AdminPanel/personeller">
                 <span class="nav-ico"><i class="bi bi-people"></i></span> Personeller
             </a>
@@ -223,7 +236,12 @@
                 <span class="nav-ico"><i class="bi bi-shield-lock"></i></span> Yetkiler
             </a>
 
-            <div class="nav-section">Sistem</div>
+            <div class="nav-section">Raporlama</div>
+            <a class="@("nav-item" + Active("Raporlar", "/AdminPanel/raporlar"))" href="/AdminPanel/raporlar">
+                <span class="nav-ico"><i class="bi bi-graph-up"></i></span> Genel Raporlar
+            </a>
+
+            <div class="nav-section">Hesabım</div>
             <a class="@("nav-item" + Active("Profil", "/AdminPanel/profil"))" href="/AdminPanel/profil">
                 <span class="nav-ico"><i class="bi bi-person"></i></span> Profilim
             </a>

@@ -70,6 +70,7 @@ AddApiClient<YetkiliServisPanelApiClient>();
 AddApiClient<HomeOzetApiClient>();
 AddApiClient<PanelKapsamApiClient>();
 builder.Services.AddSmsServices(builder.Configuration);
+builder.Services.AddSertifikaliFirmaKimlikServices(builder.Configuration);
 
 void AddApiClient<TClient>() where TClient : class
 {

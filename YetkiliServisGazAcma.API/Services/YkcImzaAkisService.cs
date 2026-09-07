@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using System.IO.Compression;
 using System.Security.Cryptography;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
@@ -276,7 +275,7 @@ namespace YetkiliServisGazAcma.API.Services
                 {
                     var demoBelge = DemoImzaliNihaiBelgeOlustur(detay, surec);
                     nihaiBelgeBytes = demoBelge.Bytes;
-                    nihaiBelgeAdi = $"FR265_Imzali_Nihai_{talep.Id}.docx";
+                    nihaiBelgeAdi = demoBelge.DosyaAdi;
                     nihaiIcerikTipi = demoBelge.ContentType;
                 }
 
@@ -293,6 +292,14 @@ namespace YetkiliServisGazAcma.API.Services
                 nihaiIcerikTipi = string.IsNullOrWhiteSpace(nihaiIcerikTipi)
                     ? "application/pdf"
                     : nihaiIcerikTipi.Trim();
+                if (!PdfDosyasiMi(nihaiBelgeBytes, new Ykc_FormDosya { DosyaAdi = nihaiBelgeAdi, IcerikTipi = nihaiIcerikTipi }))
+                {
+                    surec.Durum = YkcImzaDurumDegerleri.ImzaBekliyor;
+                    surec.HataKodu = "NIHAI_BELGE_PDF_DEGIL";
+                    surec.HataMesaji = "İmza sağlayıcısının nihai belgesi PDF olmalıdır. Belge kaydedilmedi.";
+                    await _context.SaveChangesAsync(cancellationToken);
+                    return YkcIslemSonuc.HataliSonuc(surec.HataMesaji);
+                }
                 var nihaiHash = HashOlustur(nihaiBelgeBytes);
                 var kayit = await PrivateBelgeKaydetAsync(
                     talep.Id,
@@ -416,8 +423,7 @@ namespace YetkiliServisGazAcma.API.Services
             CancellationToken cancellationToken)
         {
             var mevcutBytes = await PrivateBelgeOkuAsync(nihaiDosya, cancellationToken);
-            if (mevcutBytes is { Length: > 0 }
-                && DocxMetniIcerir(mevcutBytes, "Dijital imza kaydı alındı"))
+            if (PdfDosyasiMi(mevcutBytes, nihaiDosya))
             {
                 return false;
             }
@@ -426,12 +432,12 @@ namespace YetkiliServisGazAcma.API.Services
             var belgeHash = HashOlustur(belge.Bytes);
             var kayit = await PrivateBelgeKaydetAsync(
                 talep.Id,
-                $"FR265_Imzali_Nihai_{talep.Id}.docx",
+                belge.DosyaAdi,
                 belge.ContentType,
                 belge.Bytes,
                 cancellationToken);
 
-            nihaiDosya.DosyaAdi = $"FR265_Imzali_Nihai_{talep.Id}.docx";
+            nihaiDosya.DosyaAdi = belge.DosyaAdi;
             nihaiDosya.DosyaYolu = kayit.DepolamaAnahtari;
             nihaiDosya.IcerikTipi = belge.ContentType;
             nihaiDosya.DosyaBoyutu = belge.Bytes.LongLength;
@@ -447,7 +453,7 @@ namespace YetkiliServisGazAcma.API.Services
             surec.GuncellemeTarihi = DateTime.Now;
             surec.GuncelleyenKullanici = kullanici.UserName;
 
-            GecmisEkle(talep, kullanici, "FR265DemoNihaiBelgeYenilendi", "Nihai FR265 belge kopyasına dijital imza kayıt bilgisi işlendi.");
+            GecmisEkle(talep, kullanici, "FR265DemoNihaiBelgeYenilendi", "Demo imza sonucu nihai PDF belge olarak yenilendi.");
             return true;
         }
 
@@ -458,7 +464,7 @@ namespace YetkiliServisGazAcma.API.Services
                 .Select(x => x.ImzaTarihi)
                 .Max() ?? surec.TamamlanmaTarihi ?? DateTime.Now;
 
-            return _fr265FormService.WordOlustur(detay, new YkcFr265BelgeSecenekleri
+            return YkcFr265PdfService.ImzaliNihaiOlustur(detay, new YkcFr265BelgeSecenekleri
             {
                 ImzaliNihaiMi = true,
                 ImzaTarihi = varsayilanImzaTarihi,
@@ -476,24 +482,16 @@ namespace YetkiliServisGazAcma.API.Services
             });
         }
 
-        private static bool DocxMetniIcerir(byte[] bytes, string arananMetin)
+        private static bool PdfDosyasiMi(byte[]? bytes, Ykc_FormDosya dosya)
         {
-            try
-            {
-                using var stream = new MemoryStream(bytes);
-                using var archive = new ZipArchive(stream, ZipArchiveMode.Read);
-                var documentEntry = archive.GetEntry("word/document.xml");
-                if (documentEntry == null)
-                    return false;
-
-                using var reader = new StreamReader(documentEntry.Open());
-                var xml = reader.ReadToEnd();
-                return xml.Contains(arananMetin, StringComparison.OrdinalIgnoreCase);
-            }
-            catch
-            {
-                return false;
-            }
+            return bytes is { Length: >= 5 }
+                && bytes[0] == (byte)'%'
+                && bytes[1] == (byte)'P'
+                && bytes[2] == (byte)'D'
+                && bytes[3] == (byte)'F'
+                && bytes[4] == (byte)'-'
+                && string.Equals(dosya.IcerikTipi, "application/pdf", StringComparison.OrdinalIgnoreCase)
+                && string.Equals(Path.GetExtension(dosya.DosyaAdi), ".pdf", StringComparison.OrdinalIgnoreCase);
         }
 
         private async Task<SaklananBelge> PrivateBelgeKaydetAsync(

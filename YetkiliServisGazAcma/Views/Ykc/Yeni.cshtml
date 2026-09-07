@@ -1,406 +1,68 @@
 @model YkcTalepKaydetDto
 @{
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
-    var baslangicAdimi = ViewData.ModelState.ErrorCount > 0 || !string.IsNullOrWhiteSpace(Model.TesisatNo) ? 3 : 1;
+    var sorgulandi = !string.IsNullOrWhiteSpace(Model.SorguReferansi);
 }
-
 @section PageStyles {
     <link rel="stylesheet" href="~/css/ykc-operations.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/ykc-request.css" asp-append-version="true" />
 }
-
-<div class="ykc-workspace ykc-create-workspace" data-initial-step="@baslangicAdimi">
+<div class="ykc-request">
+    <header class="ykc-request-header">
+        <h1>Yeni Cihaz Değişim Talebi</h1>
+        <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/talepler"><i class="bi bi-arrow-left"></i> Taleplerim</a>
+    </header>
     @if (TempData["Hata"] != null)
     {
-        <div class="df-alert df-alert-danger">@TempData["Hata"]</div>
+        <div class="df-alert df-alert-danger" role="alert">@TempData["Hata"]</div>
     }
-
-    <header class="ykc-page-header">
-        <div class="ykc-page-heading">
-            <div class="ykc-page-eyebrow">Yakıcı cihaz değişimi</div>
-            <h1>Yeni Cihaz Değişim Talebi</h1>
-            <p>Tesisatı bulun, projedeki cihazı seçin ve yeni cihaz bilgileriyle talebi oluşturun.</p>
-        </div>
-        <div class="ykc-header-actions">
-            <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/talepler"><i class="bi bi-arrow-left"></i> Talep Listesi</a>
-        </div>
-    </header>
-
-    <nav class="ykc-wizard-progress" aria-label="Yeni talep adımları">
-        <button class="ykc-wizard-step" type="button" data-ykc-step="1"><span>1</span><strong>Tesisat Sorgula</strong></button>
-        <button class="ykc-wizard-step" type="button" data-ykc-step="2"><span>2</span><strong>Projedeki Cihaz</strong></button>
-        <button class="ykc-wizard-step" type="button" data-ykc-step="3"><span>3</span><strong>Yeni Cihaz</strong></button>
-        <button class="ykc-wizard-step" type="button" data-ykc-step="4"><span>4</span><strong>Form Süreci</strong></button>
-        <button class="ykc-wizard-step" type="button" data-ykc-step="5"><span>5</span><strong>Önizleme</strong></button>
-    </nav>
-
-    <form method="post" action="/ykc/yeni" class="ykc-wizard-form" id="ykcCreateForm">
+    <form method="post" action="/ykc/yeni" id="ykcCreateForm">
         @Html.AntiForgeryToken()
-        @Html.ValidationSummary(false)
-
-        <section class="ykc-stage-panel" data-ykc-stage-panel="1">
-            <header class="ykc-stage-head">
-                <div><span class="ykc-stage-kicker">1. adım · Tesisat sorgula</span><h2>Tesisat bilgilerini bulun</h2><p>Müşteri, adres ve projedeki cihaz bilgileri servis kaydından alınır.</p></div>
-            </header>
-            <div class="ykc-stage-body ykc-query-layout">
-                <div class="ykc-stage-form-block">
-                    <div class="ykc-field-row">
-                        <div class="ykc-field"><label>Tesisat No <span class="ykc-required">*</span></label><input asp-for="TesisatNo" autocomplete="off" required /><span asp-validation-for="TesisatNo"></span></div>
-                        <div class="ykc-field"><label>Sözleşme No <span class="ykc-required">*</span></label><input asp-for="SozlesmeNo" autocomplete="off" required /></div>
-                    </div>
-                    <button type="button" class="df-btn df-btn-primary ykc-query-button" id="ykcTesisatSorgulaBtn"><i class="bi bi-search"></i> Tesisatı Sorgula</button>
-                    <div id="ykcSorguAlert" class="ykc-query-alert" role="status"></div>
-                </div>
-
-                <section class="ykc-query-result" aria-live="polite">
-                    <div class="ykc-query-result-head">
-                        <span><i class="bi bi-person-vcard"></i></span>
-                        <div><small>Sorgu sonucu</small><strong data-preview="MusteriAdi">@(Model.MusteriAdi ?? "Henüz sorgulanmadı")</strong></div>
-                    </div>
-                    <dl class="ykc-result-list">
-                        <div><dt>Abone</dt><dd data-preview="AboneNo">@(Model.AboneNo ?? "-")</dd></div>
-                        <div><dt>Tesisat</dt><dd data-preview="TesisatNo">@(Model.TesisatNo ?? "-")</dd></div>
-                        <div class="wide"><dt>Adres</dt><dd data-preview="Adres">@(Model.Adres ?? "-")</dd></div>
-                    </dl>
-                </section>
-
-                <details class="ykc-data-disclosure">
-                    <summary><span><i class="bi bi-database-check"></i> Sorgudan gelen tüm bilgiler</span><i class="bi bi-chevron-down"></i></summary>
-                    <div class="ykc-auto-grid">
-                        <div class="ykc-field"><label>Abone No</label><input asp-for="AboneNo" autocomplete="off" readonly /></div>
-                        <input type="hidden" asp-for="ProjeNo" />
-                        <div class="ykc-field"><label>Sayaç No</label><input asp-for="SayacNo" autocomplete="off" readonly /></div>
-                        <div class="ykc-field"><label>Firma Kodu</label><input asp-for="FirmaKodu" autocomplete="off" readonly /></div>
-                        <div class="ykc-field"><label>Müşteri</label><input asp-for="MusteriAdi" autocomplete="off" readonly /></div>
-                        <div class="ykc-field"><label>Telefon</label><input asp-for="MusteriTelefon" autocomplete="off" readonly /></div>
-                        <div class="ykc-field"><label>İl</label><input asp-for="Il" autocomplete="off" readonly /></div>
-                        <div class="ykc-field"><label>İlçe</label><input asp-for="Ilce" autocomplete="off" readonly /></div>
-                        <input type="hidden" asp-for="Bolge" />
-                        <div class="ykc-field full"><label>Adres</label><textarea asp-for="Adres" readonly></textarea></div>
-                    </div>
-                </details>
-                <input type="hidden" asp-for="KaynakTipi" />
+        <div asp-validation-summary="All" class="text-danger"></div>
+        <input type="hidden" asp-for="SorguReferansi" />
+        <input type="hidden" asp-for="KaynakTipi" value="OnlineServis" />
+        <input type="hidden" asp-for="MusteriAdi" />
+        <input type="hidden" asp-for="Adres" />
+        <section class="ykc-request-section">
+            <h2><i class="bi bi-house-check"></i> Tesisat</h2>
+            <div class="ykc-request-query">
+                <div class="ykc-field"><label for="TesisatNo">Tesisat No</label><input asp-for="TesisatNo" inputmode="numeric" autocomplete="off" required /></div>
+                <div class="ykc-field"><label for="SozlesmeNo">Sözleşme No</label><input asp-for="SozlesmeNo" inputmode="numeric" autocomplete="off" required /></div>
+                <button type="button" class="df-btn df-btn-primary" id="ykcTesisatSorgulaBtn"><i class="bi bi-search"></i> Sorgula</button>
             </div>
-            <footer class="ykc-stage-actions">
-                <span class="ykc-stage-help"><i class="bi bi-shield-check"></i> Servis hatasında manuel kayda geçilmez; yeniden sorgulama istenir.</span>
-                <button class="df-btn df-btn-primary" type="button" data-ykc-next="2" id="ykcQueryNext" disabled>Cihaz Seçimine Geç <i class="bi bi-arrow-right"></i></button>
-            </footer>
-        </section>
-
-        <section class="ykc-stage-panel" data-ykc-stage-panel="2">
-            <header class="ykc-stage-head">
-                <div><span class="ykc-stage-kicker">2. adım · Projedeki cihaz</span><h2>Değiştirilecek cihazı seçin</h2><p>Servisten gelen proje cihazı seçilir ve değiştirilemeden kayda alınır.</p></div>
-            </header>
-            <div class="ykc-stage-body">
-                <div class="ykc-device-picker">
-                    <label for="ykcServisCihazSecimi">Projedeki cihazlar</label>
-                    <select id="ykcServisCihazSecimi" disabled><option value="">Önce tesisat sorgulayınız</option></select>
-                    <span>Birden fazla cihaz varsa değiştirilecek olanı seçin.</span>
-                </div>
-                <input type="hidden" asp-for="EskiCihazTipiKodu" />
-                <input type="hidden" asp-for="EskiMarkaKodu" />
-                <input type="hidden" asp-for="EskiBacaTipiKodu" />
-                <input type="hidden" asp-for="YeniCihazTipiKodu" />
-                <input type="hidden" asp-for="YeniMarkaKodu" />
-                <input type="hidden" asp-for="YeniBacaTipiKodu" />
-                <div class="ykc-old-device-grid">
-                    <div class="ykc-field"><label>Cihaz Tipi</label><input asp-for="EskiCihazTipi" autocomplete="off" readonly /></div>
-                    <div class="ykc-field"><label>Marka</label><input asp-for="EskiMarka" autocomplete="off" readonly /></div>
-                    <div class="ykc-field"><label>Baca Tipi</label><input asp-for="EskiBacaTipi" autocomplete="off" readonly /></div>
-                    <div class="ykc-field"><label>Kapasite (kcal/h)</label><input asp-for="EskiKapasite" autocomplete="off" readonly /></div>
-                </div>
-                <div class="ykc-inline-status is-info"><i class="bi bi-lock"></i> Online servisten alınan proje cihazı bilgileri değiştirilemez.</div>
+            <p id="ykcSorguAlert" role="status" hidden></p>
+            <div id="ykcCustomer" class="ykc-request-customer" hidden="@(!sorgulandi)">
+                <strong id="ykcCustomerName">@Model.MusteriAdi</strong><span id="ykcCustomerAddress">@Model.Adres</span>
             </div>
-            <footer class="ykc-stage-actions">
-                <button class="df-btn df-btn-secondary" type="button" data-ykc-back="1"><i class="bi bi-arrow-left"></i> Geri</button>
-                <button class="df-btn df-btn-primary" type="button" data-ykc-next="3">Yeni Cihaz Bilgileri <i class="bi bi-arrow-right"></i></button>
-            </footer>
         </section>
-
-        <section class="ykc-stage-panel" data-ykc-stage-panel="3">
-            <header class="ykc-stage-head">
-                <div><span class="ykc-stage-kicker">3. adım · Yeni cihaz</span><h2>Cihazları yan yana karşılaştırın</h2><p>Soldaki proje bilgileri değiştirilemez; sağdaki alanlara takılacak cihazı girin.</p></div>
-            </header>
-            <div class="ykc-stage-body">
-                <div class="ykc-table-scroll">
-                    <table class="ykc-device-entry-table">
-                        <thead>
-                            <tr><th>Özellik</th><th>Projedeki Cihaz</th><th>Yeni Kullanılan Cihaz</th></tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <th>Yakıcı Cihaz Tipi</th>
-                                <td data-summary="old-type">@(Model.EskiCihazTipi ?? "-")</td>
-                                <td><div class="ykc-field"><label class="visually-hidden" for="YeniCihazTipi">Yeni Cihaz Tipi</label><input asp-for="YeniCihazTipi" autocomplete="off" placeholder="Cihaz tipi" required /><span asp-validation-for="YeniCihazTipi"></span></div></td>
-                            </tr>
-                            <tr>
-                                <th>Marka</th>
-                                <td data-summary="old-brand">@(Model.EskiMarka ?? "-")</td>
-                                <td>
-                                    <div class="ykc-field"><label class="visually-hidden" for="YeniMarka">Yeni Marka</label><input asp-for="YeniMarka" autocomplete="off" placeholder="Marka" required /><span asp-validation-for="YeniMarka"></span></div>
-                                    <input type="hidden" asp-for="YeniModel" />
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>Baca Tipi</th>
-                                <td data-summary="old-flue">@(Model.EskiBacaTipi ?? "-")</td>
-                                <td><div class="ykc-field"><label class="visually-hidden" for="YeniBacaTipi">Yeni Baca Tipi</label><input asp-for="YeniBacaTipi" autocomplete="off" placeholder="Baca tipi" required /><span asp-validation-for="YeniBacaTipi"></span></div></td>
-                            </tr>
-                            <tr>
-                                <th>Kapasite (kcal/h)</th>
-                                <td data-summary="old-capacity">@(Model.EskiKapasite ?? "-")</td>
-                                <td><div class="ykc-field"><label class="visually-hidden" for="YeniKapasite">Yeni Kapasite</label><input asp-for="YeniKapasite" autocomplete="off" placeholder="Kapasite" required /><span asp-validation-for="YeniKapasite"></span></div></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div class="ykc-device-supplement">
-                    <input type="hidden" asp-for="YeniSeriNo" />
-                    <fieldset class="ykc-secondhand-field">
-                        <legend>Takılan cihaz ikinci el mi?</legend>
-                        <label for="IkinciElHayir"><input id="IkinciElHayir" type="radio" name="IkinciElCihazMi" value="false" checked="@(Model.IkinciElCihazMi == false ? "checked" : null)" required /> Hayır</label>
-                        <label for="IkinciElEvet"><input id="IkinciElEvet" type="radio" name="IkinciElCihazMi" value="true" checked="@(Model.IkinciElCihazMi == true ? "checked" : null)" /> Evet</label>
-                    </fieldset>
-                </div>
+        <fieldset id="ykcDeviceFields" class="ykc-request-section" hidden="@(!sorgulandi)" disabled="@(!sorgulandi)">
+            <h2><i class="bi bi-arrow-left-right"></i> Cihaz Değişimi</h2>
+            <div class="ykc-field ykc-request-selection">
+                <label for="ykcServisCihazSecimi">Değiştirilecek Cihaz</label>
+                <select id="ykcServisCihazSecimi" required>
+                    @if (sorgulandi) { <option value="@Model.SorguReferansi">Seçilen proje cihazı</option> }
+                    else { <option value="">Cihaz seçin</option> }
+                </select>
             </div>
-            <footer class="ykc-stage-actions">
-                <button class="df-btn df-btn-secondary" type="button" data-ykc-back="2"><i class="bi bi-arrow-left"></i> Geri</button>
-                <button class="df-btn df-btn-primary" type="button" data-ykc-next="4">Belge Akışına Geç <i class="bi bi-arrow-right"></i></button>
-            </footer>
-        </section>
-
-        <section class="ykc-stage-panel" data-ykc-stage-panel="4">
-            <header class="ykc-stage-head">
-                <div><span class="ykc-stage-kicker">4. adım · Form süreci</span><h2>FR265 sürecini kontrol edin</h2><p>Talep oluşturulduğunda sistem, girilen bilgilerle doldurulmuş FR265 önizlemesini hazırlar.</p></div>
-            </header>
-            <div class="ykc-stage-body">
-                <ol class="ykc-document-flow">
-                    <li><span>1</span><div><strong>FR265 hazırlanır</strong><small>Talep verileri form alanlarına aktarılır.</small></div></li>
-                    <li><span>2</span><div><strong>Form önizlenir</strong><small>Talep detayında doldurulmuş belge kontrol edilir.</small></div></li>
-                    <li><span>3</span><div><strong>Dijital imza süreci izlenir</strong><small>Bağlantı etkin olduğunda onaylanan belge imza uygulamasına gönderilir.</small></div></li>
-                    <li><span>4</span><div><strong>İmzalı belge kayda eklenir</strong><small>İmza uygulamasından dönen nihai belge görüntülenir.</small></div></li>
-                </ol>
-                <div class="ykc-inline-status is-info"><i class="bi bi-info-circle"></i> Bu adımda dosya yüklemeniz gerekmez.</div>
+            <h3>Yeni Kullanılan Cihaz</h3>
+            <div class="ykc-request-grid">
+                <div class="ykc-field"><label for="YeniCihazTipi">Yakıcı Cihaz Tipi</label><input asp-for="YeniCihazTipi" required maxlength="100" /></div>
+                <div class="ykc-field"><label for="YeniMarka">Marka</label><input asp-for="YeniMarka" required maxlength="100" /></div>
+                <div class="ykc-field"><label for="YeniBacaTipi">Baca Tipi</label><input asp-for="YeniBacaTipi" required maxlength="100" /></div>
+                <div class="ykc-field"><label for="YeniKapasite">Kapasite (kcal/h)</label><input asp-for="YeniKapasite" inputmode="decimal" required maxlength="30" /></div>
             </div>
-            <footer class="ykc-stage-actions">
-                <button class="df-btn df-btn-secondary" type="button" data-ykc-back="3"><i class="bi bi-arrow-left"></i> Geri</button>
-                <button class="df-btn df-btn-primary" type="button" data-ykc-next="5">Son Kontrole Geç <i class="bi bi-arrow-right"></i></button>
+            <fieldset class="ykc-request-secondhand">
+                <legend>Takılan yakıcı cihaz ikinci el mi?</legend>
+                <label><input type="radio" name="IkinciElCihazMi" value="false" checked="@(Model.IkinciElCihazMi != true)" /> Hayır</label>
+                <label><input type="radio" name="IkinciElCihazMi" value="true" checked="@(Model.IkinciElCihazMi == true)" /> Evet</label>
+            </fieldset>
+            <p id="ykcSecondhandNote" hidden="@(Model.IkinciElCihazMi != true)" class="ykc-request-notice">İkinci el cihaz için Yetkili Servis Cihaz Kontrol Raporu gereklidir.</p>
+            <footer class="ykc-request-footer">
+                <button type="submit" id="ykcCreateButton" class="df-btn df-btn-primary"><i class="bi bi-check2"></i> Talebi Oluştur</button>
             </footer>
-        </section>
-
-        <section class="ykc-stage-panel" data-ykc-stage-panel="5">
-            <header class="ykc-stage-head">
-                <div><span class="ykc-stage-kicker">5. adım · Önizleme</span><h2>Talebi kontrol edip oluşturun</h2><p>Kaydetmeden önce tesisat ile projedeki ve yeni cihaz bilgisini son kez karşılaştırın.</p></div>
-            </header>
-            <div class="ykc-stage-body">
-                <dl class="ykc-review-installation">
-                    <div><dt>Tesisat</dt><dd data-summary="installation">@(Model.TesisatNo ?? "-")</dd></div>
-                    <div><dt>Müşteri</dt><dd data-summary="customer">@(Model.MusteriAdi ?? "-")</dd></div>
-                </dl>
-                <div class="ykc-table-scroll">
-                    <table class="ykc-comparison-table">
-                        <thead><tr><th>Özellik</th><th>Projedeki Cihaz</th><th>Yeni Kullanılan Cihaz</th></tr></thead>
-                        <tbody>
-                            <tr><th>Yakıcı Cihaz Tipi</th><td data-summary="old-type">@(Model.EskiCihazTipi ?? "-")</td><td data-summary="new-type">@(Model.YeniCihazTipi ?? "-")</td></tr>
-                            <tr><th>Marka</th><td data-summary="old-brand">@(Model.EskiMarka ?? "-")</td><td data-summary="new-brand">@(Model.YeniMarka ?? "-")</td></tr>
-                            <tr><th>Baca Tipi</th><td data-summary="old-flue">@(Model.EskiBacaTipi ?? "-")</td><td data-summary="new-flue">@(Model.YeniBacaTipi ?? "-")</td></tr>
-                            <tr><th>Kapasite (kcal/h)</th><td data-summary="old-capacity">@(Model.EskiKapasite ?? "-")</td><td data-summary="new-capacity">@(Model.YeniKapasite ?? "-")</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div class="ykc-inline-status is-info"><i class="bi bi-info-circle"></i> Talep oluşturulduktan sonra doldurulmuş FR265 önizlemesi talep detayında açılır.</div>
-            </div>
-            <footer class="ykc-stage-actions">
-                <button class="df-btn df-btn-secondary" type="button" data-ykc-back="4"><i class="bi bi-arrow-left"></i> Geri</button>
-                <button class="df-btn df-btn-primary" type="submit"><i class="bi bi-check2-circle"></i> Talep Kaydını Oluştur</button>
-            </footer>
-        </section>
+        </fieldset>
     </form>
 </div>
-
 @section Scripts {
-    <script>
-        (() => {
-            const workspace = document.querySelector('.ykc-create-workspace');
-            const form = document.getElementById('ykcCreateForm');
-            const steps = Array.from(document.querySelectorAll('[data-ykc-step]'));
-            const panels = Array.from(document.querySelectorAll('[data-ykc-stage-panel]'));
-            const sorgulaBtn = document.getElementById('ykcTesisatSorgulaBtn');
-            const queryNext = document.getElementById('ykcQueryNext');
-            const cihazSecimi = document.getElementById('ykcServisCihazSecimi');
-            const alertBox = document.getElementById('ykcSorguAlert');
-            let activeStep = Number(workspace?.dataset.initialStep || 1);
-            let maxStep = activeStep;
-            let servisCihazlari = [];
-
-            const field = id => document.getElementById(id);
-            const value = id => field(id)?.value?.trim() || '';
-            const token = () => document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
-            const prop = (obj, name) => obj?.[name] ?? obj?.[name.charAt(0).toUpperCase() + name.slice(1)] ?? '';
-            const displayValue = current => current && current.trim() ? current.trim() : '-';
-
-            function setStep(step) {
-                activeStep = Math.max(1, Math.min(5, step));
-                maxStep = Math.max(maxStep, activeStep);
-                panels.forEach(panel => panel.classList.toggle('is-active', Number(panel.dataset.ykcStagePanel) === activeStep));
-                steps.forEach(item => {
-                    const no = Number(item.dataset.ykcStep);
-                    item.classList.toggle('is-active', no === activeStep);
-                    item.classList.toggle('is-complete', no < activeStep);
-                    item.disabled = no > maxStep;
-                    item.setAttribute('aria-current', no === activeStep ? 'step' : 'false');
-                });
-                updateSummaries();
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-
-            function setValue(id, nextValue) { const element = field(id); if (element) element.value = nextValue ?? ''; }
-            function setValueIfPresent(id, nextValue) { if (nextValue !== null && nextValue !== undefined && nextValue !== '') setValue(id, nextValue); }
-            function setReadonly(ids, readonly) { ids.forEach(id => { const element = field(id); if (element) element.readOnly = readonly; }); }
-            function showAlert(type, message) { alertBox.className = `ykc-query-alert ${type}`; alertBox.textContent = message; }
-            function setPreview(id, nextValue) { document.querySelectorAll(`[data-preview="${id}"]`).forEach(item => item.textContent = displayValue(String(nextValue ?? ''))); }
-            function combine(values, separator) { return values.map(item => String(item || '').trim()).filter(Boolean).join(separator); }
-
-            function updateSummaries() {
-                const set = (key, text) => document.querySelectorAll('[data-summary="' + key + '"]').forEach(item => item.textContent = displayValue(text));
-                set('installation', value('TesisatNo'));
-                set('customer', value('MusteriAdi'));
-                set('old-type', value('EskiCihazTipi'));
-                set('old-brand', value('EskiMarka'));
-                set('old-flue', value('EskiBacaTipi'));
-                set('old-capacity', value('EskiKapasite'));
-                set('new-type', value('YeniCihazTipi'));
-                set('new-brand', value('YeniMarka'));
-                set('new-flue', value('YeniBacaTipi'));
-                set('new-capacity', value('YeniKapasite'));
-            }
-
-            const autoFieldIds = ['AboneNo', 'ProjeNo', 'SayacNo', 'FirmaKodu', 'MusteriAdi', 'MusteriTelefon', 'Il', 'Ilce', 'Bolge', 'Adres'];
-            const oldDeviceFieldIds = ['EskiCihazTipiKodu', 'EskiCihazTipi', 'EskiMarkaKodu', 'EskiMarka', 'EskiBacaTipiKodu', 'EskiBacaTipi', 'EskiKapasite'];
-
-            function fillTopFields(data) {
-                ['TesisatNo', 'SozlesmeNo', 'AboneNo', 'SayacNo', 'FirmaKodu', 'MusteriAdi', 'MusteriTelefon', 'Il', 'Ilce', 'Bolge', 'Adres']
-                    .forEach(id => setValueIfPresent(id, prop(data, id.charAt(0).toLowerCase() + id.slice(1))));
-                ['MusteriAdi', 'AboneNo', 'TesisatNo', 'Adres'].forEach(id => setPreview(id, value(id)));
-            }
-
-            function applyDevice(cihaz) {
-                if (!cihaz) return;
-                const tipKodu = prop(cihaz, 'cihazTipKodu');
-                const tip = prop(cihaz, 'cihazTipi');
-                const marka = prop(cihaz, 'cihazMarka');
-                const kapasite = prop(cihaz, 'cihazKapasite');
-                setValue('EskiCihazTipiKodu', tipKodu);
-                setValue('EskiCihazTipi', tip);
-                setValue('EskiMarka', marka);
-                setValue('EskiMarkaKodu', '');
-                setValue('EskiBacaTipiKodu', '');
-                setValue('EskiBacaTipi', '');
-                setValue('EskiKapasite', kapasite);
-                setValue('ProjeNo', prop(cihaz, 'projeNo'));
-                setValue('YeniCihazTipiKodu', tipKodu);
-                setValue('YeniCihazTipi', tip);
-                setValue('YeniKapasite', kapasite);
-                setReadonly(oldDeviceFieldIds, true);
-                updateSummaries();
-            }
-
-            function clearDevices(message) {
-                servisCihazlari = [];
-                cihazSecimi.innerHTML = '';
-                cihazSecimi.add(new Option(message, ''));
-                cihazSecimi.disabled = true;
-            }
-
-            function populateDevices(cihazlar) {
-                servisCihazlari = cihazlar;
-                cihazSecimi.innerHTML = '';
-                if (!cihazlar.length) { clearDevices('Servisten cihaz gelmedi'); return; }
-                if (cihazlar.length > 1) cihazSecimi.add(new Option('Değiştirilecek cihazı seçiniz', ''));
-                cihazlar.forEach((cihaz, index) => {
-                    const label = `${prop(cihaz, 'cihazMarka') || 'Marka yok'} / ${prop(cihaz, 'cihazTipi') || 'Cihaz tipi yok'} / ${prop(cihaz, 'cihazKapasite') || 'Kapasite yok'} kcal`;
-                    cihazSecimi.add(new Option(label, String(index)));
-                });
-                cihazSecimi.disabled = false;
-                if (cihazlar.length === 1) { cihazSecimi.value = '0'; applyDevice(cihazlar[0]); }
-            }
-
-            function validateStep(step) {
-                if (step === 1 && (!value('TesisatNo') || !value('SozlesmeNo') || !value('KaynakTipi') || value('KaynakTipi') === 'ServisHatasi')) {
-                    showAlert('warning', 'Devam etmek için tesisat ve sözleşme bilgisini başarıyla sorgulayın.');
-                    return false;
-                }
-                if (step === 2 && !value('EskiCihazTipi')) {
-                    showAlert('warning', 'Değiştirilecek proje cihazını seçin veya izin verilen manuel bilgileri girin.');
-                    return false;
-                }
-                if (step === 3) {
-                    const invalid = ['YeniCihazTipi', 'YeniMarka', 'YeniBacaTipi', 'YeniKapasite'].map(field).find(item => !item?.checkValidity());
-                    if (invalid) { invalid.reportValidity(); return false; }
-                    const secondHand = form.querySelector('input[name="IkinciElCihazMi"]:checked');
-                    if (!secondHand) { field('IkinciElHayir')?.reportValidity(); return false; }
-                }
-                return true;
-            }
-
-            steps.forEach(item => item.addEventListener('click', () => { const target = Number(item.dataset.ykcStep); if (target <= maxStep) setStep(target); }));
-            document.querySelectorAll('[data-ykc-next]').forEach(button => button.addEventListener('click', () => { if (validateStep(activeStep)) setStep(Number(button.dataset.ykcNext)); }));
-            document.querySelectorAll('[data-ykc-back]').forEach(button => button.addEventListener('click', () => setStep(Number(button.dataset.ykcBack))));
-            cihazSecimi?.addEventListener('change', () => { const index = Number(cihazSecimi.value); if (!Number.isNaN(index) && servisCihazlari[index]) applyDevice(servisCihazlari[index]); });
-            form?.addEventListener('input', updateSummaries);
-
-            sorgulaBtn?.addEventListener('click', async () => {
-                if (!value('TesisatNo') || !value('SozlesmeNo')) { showAlert('warning', 'Tesisat no ve sözleşme no giriniz.'); return; }
-                const originalHtml = sorgulaBtn.innerHTML;
-                sorgulaBtn.disabled = true;
-                sorgulaBtn.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Sorgulanıyor';
-                queryNext.disabled = true;
-                try {
-                    const formData = new FormData();
-                    formData.append('__RequestVerificationToken', token());
-                    formData.append('TesisatNo', value('TesisatNo'));
-                    formData.append('SozlesmeNo', value('SozlesmeNo'));
-                    const response = await fetch('/ykc/tesisat-sorgula', { method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-                    if (!response.ok) throw new Error('Sorgu yanıtı alınamadı.');
-                    const data = await response.json();
-                    const cihazlar = prop(data, 'cihazlar') || [];
-                    fillTopFields(data);
-                    if (prop(data, 'basarili') === true || cihazlar.length > 0) {
-                        setValue('KaynakTipi', 'OnlineServis');
-                        setReadonly(autoFieldIds, true);
-                        populateDevices(cihazlar);
-                        showAlert('success', prop(data, 'mesaj') || 'Tesisat bilgileri başarıyla alındı.');
-                        queryNext.disabled = false;
-                        maxStep = Math.max(maxStep, 2);
-                    } else if (prop(data, 'manuelGirisSerbest') === true) {
-                        setValue('KaynakTipi', 'Manuel');
-                        setReadonly(autoFieldIds, false);
-                        setReadonly(oldDeviceFieldIds, false);
-                        clearDevices('Manuel eski cihaz girişi');
-                        showAlert('warning', prop(data, 'mesaj') || 'Kayıt bulunamadı; tesisat ve eski cihaz bilgilerini manuel girin.');
-                        queryNext.disabled = false;
-                        maxStep = Math.max(maxStep, 2);
-                    } else {
-                        setValue('KaynakTipi', 'ServisHatasi');
-                        setReadonly(autoFieldIds, true);
-                        setReadonly(oldDeviceFieldIds, true);
-                        clearDevices('Servis yanıtı bekleniyor');
-                        showAlert('danger', prop(data, 'mesaj') || 'Servisten bilgi alınamadı. Servis çalışınca yeniden sorgulayın.');
-                    }
-                } catch (error) {
-                    setValue('KaynakTipi', 'ServisHatasi');
-                    setReadonly(autoFieldIds, true);
-                    setReadonly(oldDeviceFieldIds, true);
-                    clearDevices('Servis yanıtı bekleniyor');
-                    showAlert('danger', error.message || 'Tesisat sorgusu sırasında hata oluştu.');
-                } finally {
-                    sorgulaBtn.disabled = false;
-                    sorgulaBtn.innerHTML = originalHtml;
-                    updateSummaries();
-                }
-            });
-
-            if (value('KaynakTipi') && value('KaynakTipi') !== 'ServisHatasi') { queryNext.disabled = false; maxStep = Math.max(maxStep, activeStep); }
-            setStep(activeStep);
-        })();
-    </script>
+    <script src="~/js/ykc-request.js" asp-append-version="true"></script>
 }

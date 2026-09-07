@@ -1,0 +1,315 @@
+.df-admin-report-workspace {
+    --report-ink: #172033;
+    --report-muted: #667085;
+    --report-border: #dce2ea;
+    --report-blue: #1f5fbf;
+    --report-blue-soft: #edf4ff;
+    --report-green: #167a55;
+    --report-green-soft: #edf8f3;
+    --report-amber: #9a6500;
+    --report-amber-soft: #fff7e6;
+    --report-red: #b13a48;
+    --report-red-soft: #fff1f3;
+    display: grid;
+    gap: 12px;
+}
+
+.df-admin-report-filter {
+    overflow: hidden;
+    border-top: 3px solid var(--report-blue) !important;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, .04) !important;
+}
+
+.df-admin-report-filter .df-panel-head {
+    min-height: 68px;
+    padding: 12px 16px;
+    background: #f8fbff;
+}
+
+.df-admin-report-form {
+    display: grid;
+    grid-template-columns: minmax(360px, .9fr) minmax(520px, 1.4fr) auto;
+    align-items: end;
+    gap: 14px;
+    padding: 14px 16px 16px;
+    border-top: 1px solid var(--report-border);
+    background: #fff;
+}
+
+.df-admin-report-fields {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 9px;
+}
+
+.df-admin-report-form .df-admin-field {
+    grid-column: auto;
+}
+
+.df-report-type-control {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.df-report-type-control legend {
+    margin-bottom: 6px;
+    color: var(--report-muted);
+    font-size: 10px;
+    font-weight: 750;
+}
+
+.df-report-type-options {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    overflow: hidden;
+    border: 1px solid var(--report-border);
+    border-radius: 7px;
+    background: #fff;
+}
+
+.df-report-type-options label {
+    min-width: 0;
+    min-height: 40px;
+    padding: 7px 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border-right: 1px solid var(--report-border);
+    color: #526175;
+    cursor: pointer;
+    font-size: 10px;
+    font-weight: 700;
+    text-align: center;
+}
+
+.df-report-type-options label:last-child {
+    border-right: 0;
+}
+
+.df-report-type-options label:hover {
+    background: #f8fafc;
+    color: var(--report-blue);
+}
+
+.df-report-type-options label.active {
+    background: var(--report-blue-soft);
+    color: var(--report-blue);
+    box-shadow: inset 0 -2px 0 var(--report-blue);
+}
+
+.df-report-type-options input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+}
+
+.df-report-type-options label:has(input:focus-visible) {
+    box-shadow: inset 0 0 0 2px var(--report-blue);
+}
+
+.df-admin-report-submit .df-btn {
+    min-height: 40px;
+}
+
+.df-report-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    overflow: hidden;
+    border: 1px solid var(--report-border);
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, .035);
+}
+
+.df-report-summary > div {
+    min-width: 0;
+    min-height: 54px;
+    padding: 9px 12px;
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 9px;
+    border-right: 1px solid var(--report-border);
+}
+
+.df-report-summary > div:last-child {
+    border-right: 0;
+}
+
+.df-report-summary i {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--report-blue-soft);
+    color: var(--report-blue);
+}
+
+.df-report-summary span {
+    color: var(--report-muted);
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.df-report-summary strong {
+    color: var(--report-ink);
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.df-report-summary .is-success i { background: var(--report-green-soft); color: var(--report-green); }
+.df-report-summary .is-warning i { background: var(--report-amber-soft); color: var(--report-amber); }
+.df-report-summary .is-danger i { background: var(--report-red-soft); color: var(--report-red); }
+
+.df-report-charts {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 1fr;
+    gap: 10px;
+}
+
+.df-report-chart {
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid var(--report-border);
+    border-radius: 8px;
+    background: #fff;
+}
+
+.df-report-chart h3 {
+    margin: 0 0 8px;
+    color: var(--report-ink);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.df-report-chart .chart-wrap {
+    height: 180px;
+}
+
+.df-admin-report-results {
+    border-top: 3px solid var(--report-blue);
+}
+
+.df-report-results-head {
+    align-items: center;
+    gap: 12px;
+}
+
+.df-report-export-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.df-report-export-actions form {
+    margin: 0;
+    display: flex;
+}
+
+.df-btn-pdf,
+.df-btn-excel {
+    border: 1px solid currentColor !important;
+    box-shadow: none !important;
+}
+
+.df-btn-pdf {
+    background: var(--report-red-soft) !important;
+    color: var(--report-red) !important;
+}
+
+.df-btn-pdf:hover {
+    background: #ffe4e8 !important;
+}
+
+.df-btn-excel {
+    background: var(--report-green-soft) !important;
+    color: var(--report-green) !important;
+}
+
+.df-btn-excel:hover {
+    background: #dff3e9 !important;
+}
+
+.df-report-check {
+    width: 56px;
+}
+
+.df-admin-report-results input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--report-blue);
+}
+
+@media (max-width: 1280px) {
+    .df-admin-report-form {
+        grid-template-columns: 1fr;
+    }
+
+    .df-admin-report-submit {
+        display: flex;
+        justify-content: flex-end;
+    }
+}
+
+@media (max-width: 900px) {
+    .df-report-charts {
+        grid-template-columns: 1fr;
+    }
+
+    .df-report-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .df-report-summary > div:nth-child(2) {
+        border-right: 0;
+    }
+
+    .df-report-summary > div:nth-child(-n+2) {
+        border-bottom: 1px solid var(--report-border);
+    }
+}
+
+@media (max-width: 700px) {
+    .df-admin-report-fields,
+    .df-report-type-options,
+    .df-report-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .df-report-type-options label {
+        justify-content: flex-start;
+        border-right: 0;
+        border-bottom: 1px solid var(--report-border);
+    }
+
+    .df-report-type-options label:last-child {
+        border-bottom: 0;
+    }
+
+    .df-report-summary > div,
+    .df-report-summary > div:nth-child(2) {
+        border-right: 0;
+        border-bottom: 1px solid var(--report-border);
+    }
+
+    .df-report-summary > div:last-child {
+        border-bottom: 0;
+    }
+
+    .df-report-export-actions,
+    .df-report-export-actions .df-btn,
+    .df-report-export-actions form {
+        width: 100%;
+    }
+
+    .df-report-export-actions .df-btn {
+        justify-content: center;
+    }
+}

@@ -1,15 +1,24 @@
 @model YetkiliServisGazAcma.Entities.Ys_DevreyeAlma
 @{
-    ViewData["Title"] = "Devreye Alma Detay";
-    ViewData["PanelTitle"] = "Devreye Alma Detay";
+    ViewData["Title"] = "Devreye Alma Detayı";
+    ViewData["PanelTitle"] = "Devreye Alma Detayı";
     ViewData["PanelSubtitle"] = "Yetkili Servis";
     ViewData["ActiveMenu"] = "DevreyeGecmis";
     ViewData["PanelArea"] = "YetkiliServis";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
-    var marka = Model.Marka?.MarkaAdi ?? Model.CihazMarka ?? "-";
-    var durumClass = Model.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? "df-pill-success" : Model.Durum == DevreyeAlmaDurumDegerleri.Iptal ? "df-pill-danger" : "df-pill-warning";
-    var durumYazi = Model.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? "Tamamlandı" : Model.Durum == DevreyeAlmaDurumDegerleri.Iptal ? "İptal" : "Bekliyor";
+    var marka = Model.Marka?.MarkaAdi ?? Model.CihazMarka;
+    var firma = Model.Firma?.FirmaAdi;
+    var durumClass = Model.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi
+        ? "df-pill-success"
+        : Model.Durum == DevreyeAlmaDurumDegerleri.Iptal
+            ? "df-pill-danger"
+            : "df-pill-warning";
+    var durumYazi = Model.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi
+        ? "Tamamlandı"
+        : Model.Durum == DevreyeAlmaDurumDegerleri.Iptal
+            ? "İptal"
+            : "Bekliyor";
 }
 
 @functions {
@@ -18,136 +27,142 @@
         return string.IsNullOrWhiteSpace(value) ? "-" : System.Net.WebUtility.HtmlDecode(value);
     }
 
-    private static string Tarih(DateTime? value)
+    private static bool Var(string? value)
     {
-        return value.HasValue ? value.Value.ToString("dd.MM.yyyy") : "-";
+        return !string.IsNullOrWhiteSpace(value) && value.Trim() != "-";
     }
 }
 
-<div class="cert-stack">
-    <section class="df-page-panel">
-        <div class="df-panel-head">
-            <div>
-                <h2 class="df-panel-title">Tesisat No: @Deger(Model.TesistatNo)</h2>
-                <div class="df-panel-subtitle">@(Deger(Model.Firma?.FirmaAdi)) / @(Deger(marka))</div>
-            </div>
-            <div class="df-actions">
-                <a class="df-btn df-btn-secondary df-btn-sm" href="/ys-devreyeal/gecmis">Listeye Dön</a>
-                <a class="df-btn df-btn-primary df-btn-sm" href="/ys-devreyeal/pdf/@Model.Id" target="_blank">PDF</a>
-                <a class="df-btn df-btn-success df-btn-sm" href="/ys-devreyeal/excel/@Model.Id" target="_blank">Excel</a>
-                <span class="df-pill @durumClass">@durumYazi</span>
+@section PageStyles {
+    <link rel="stylesheet" href="~/css/ys-operations.css" asp-append-version="true" />
+}
+
+<div class="ys-workspace ys-detail-page">
+    <header class="ys-page-header">
+        <div class="ys-page-heading">
+            <span class="ys-page-icon"><i class="bi bi-clipboard2-check" aria-hidden="true"></i></span>
+            <div class="ys-page-copy">
+                <h1>Devreye Alma Kaydı #@Model.Id</h1>
+                <p>Tesisat @Deger(Model.TesistatNo) · @Deger(firma)</p>
             </div>
         </div>
-
-        <div class="df-toolbar">
-            <div class="df-form-row">
-                <div class="df-field">
-                    <label>Devreye Alma Tarihi</label>
-                    <div class="df-control">@Model.DevreyeAlmaTarihi.ToString("dd.MM.yyyy")</div>
-                </div>
-                <div class="df-field">
-                    <label>Marka</label>
-                    <div class="df-control">@Deger(marka)</div>
-                </div>
-                <div class="df-field">
-                    <label>Teknisyen</label>
-                    <div class="df-control">@Deger(Model.TeknisyenAdi)</div>
-                </div>
-                <div class="df-field">
-                    <label>Servis</label>
-                    <div class="df-control">@Deger(Model.Firma?.FirmaAdi)</div>
-                </div>
-            </div>
+        <div class="ys-page-actions">
+            <a class="df-btn df-btn-secondary df-btn-sm" href="/ys-devreyeal/gecmis">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i> Geçmişe Dön
+            </a>
+            <a class="df-btn ys-export-pdf df-btn-sm" href="/ys-devreyeal/pdf/@Model.Id" target="_blank" rel="noopener">
+                <i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF
+            </a>
+            <a class="df-btn ys-export-excel df-btn-sm" href="/ys-devreyeal/excel/@Model.Id" target="_blank" rel="noopener">
+                <i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel
+            </a>
         </div>
-    </section>
+    </header>
 
-    <div class="df-detail-grid">
-        <section class="df-detail-card">
-            <div class="df-detail-card-title">Müşteri Bilgileri</div>
-            <div class="df-detail-info">
-                <div class="info-item">
-                    <div class="info-label">Müşteri</div>
-                    <div class="info-value">@Deger(Model.MusteriAdi)</div>
+    <div class="ys-summary-strip" aria-label="Devreye alma özeti">
+        <div class="ys-summary-item @(Model.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? "is-success" : "is-warning")">
+            <span class="ys-summary-icon"><i class="bi bi-activity" aria-hidden="true"></i></span>
+            <span class="ys-summary-copy"><strong><span class="df-pill @durumClass">@durumYazi</span></strong><span>İşlem Durumu</span></span>
+        </div>
+        <div class="ys-summary-item is-info">
+            <span class="ys-summary-icon"><i class="bi bi-calendar2-check" aria-hidden="true"></i></span>
+            <span class="ys-summary-copy"><strong>@Model.DevreyeAlmaTarihi.ToString("dd.MM.yyyy")</strong><span>Devreye Alma Tarihi</span></span>
+        </div>
+        <div class="ys-summary-item">
+            <span class="ys-summary-icon"><i class="bi bi-fire" aria-hidden="true"></i></span>
+            <span class="ys-summary-copy"><strong>@Deger(Model.CihazTipi) / @Deger(marka)</strong><span>Cihaz</span></span>
+        </div>
+        <div class="ys-summary-item is-success">
+            <span class="ys-summary-icon"><i class="bi bi-person-gear" aria-hidden="true"></i></span>
+            <span class="ys-summary-copy"><strong>@Deger(Model.TeknisyenAdi)</strong><span>Teknisyen</span></span>
+        </div>
+    </div>
+
+    <div class="ys-detail-grid">
+        <section class="ys-panel is-blue">
+            <div class="ys-panel-head">
+                <div class="ys-panel-heading">
+                    <span class="ys-section-icon"><i class="bi bi-house-check" aria-hidden="true"></i></span>
+                    <div>
+                        <h2 class="ys-panel-title">Tesisat ve Müşteri</h2>
+                        <p class="ys-panel-subtitle">Doğrulanan abonelik ve iletişim bilgileri</p>
+                    </div>
                 </div>
-                <div class="info-item">
-                    <div class="info-label">Telefon</div>
-                    <div class="info-value">@Deger(Model.MusteriTelefon)</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">TC Kimlik No</div>
-                    <div class="info-value">@Deger(Model.MusteriTcNo ?? Model.AboneNo)</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Adres</div>
-                    <div class="info-value">@Deger(Model.Adres)</div>
-                </div>
+            </div>
+            <div class="ys-panel-body">
+                <dl class="ys-detail-facts">
+                    <div><dt>Tesisat No</dt><dd>@Deger(Model.TesistatNo)</dd></div>
+                    @if (Var(Model.AboneNo))
+                    {
+                        <div><dt>Servis Cari Kod</dt><dd>@Deger(Model.AboneNo)</dd></div>
+                    }
+                    <div><dt>Müşteri</dt><dd>@Deger(Model.MusteriAdi)</dd></div>
+                    @if (Var(Model.MusteriTelefon))
+                    {
+                        <div><dt>Telefon</dt><dd>@Deger(Model.MusteriTelefon)</dd></div>
+                    }
+                    @if (Var(Model.MusteriTcNo))
+                    {
+                        <div><dt>TC Kimlik No</dt><dd>@Deger(Model.MusteriTcNo)</dd></div>
+                    }
+                    @if (Var(Model.UygunlukBelgeNo))
+                    {
+                        <div><dt>Uygunluk Belgesi</dt><dd>@Deger(Model.UygunlukBelgeNo)</dd></div>
+                    }
+                    @if (Model.UygunlukTarihi.HasValue)
+                    {
+                        <div><dt>Uygunluk Tarihi</dt><dd>@Model.UygunlukTarihi.Value.ToString("dd.MM.yyyy")</dd></div>
+                    }
+                    @if (Var(Model.Adres))
+                    {
+                        <div class="is-wide"><dt>Adres</dt><dd>@Deger(Model.Adres)</dd></div>
+                    }
+                </dl>
             </div>
         </section>
 
-        <section class="df-detail-card">
-            <div class="df-detail-card-title">Tesisat Bilgileri</div>
-            <div class="df-detail-info">
-                <div class="info-item">
-                    <div class="info-label">Tesisat No</div>
-                    <div class="info-value">@Deger(Model.TesistatNo)</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Servis Cari Kod</div>
-                    <div class="info-value">@Deger(Model.AboneNo)</div>
+        <section class="ys-panel is-green">
+            <div class="ys-panel-head">
+                <div class="ys-panel-heading">
+                    <span class="ys-section-icon"><i class="bi bi-tools" aria-hidden="true"></i></span>
+                    <div>
+                        <h2 class="ys-panel-title">Cihaz ve Teknisyen</h2>
+                        <p class="ys-panel-subtitle">Devreye alınan cihaz ile işlemi gerçekleştiren kişi</p>
+                    </div>
                 </div>
             </div>
-        </section>
-
-        <section class="df-detail-card">
-            <div class="df-detail-card-title">Cihaz Bilgileri</div>
-            <div class="df-detail-info">
-                <div class="info-item">
-                    <div class="info-label">Cihaz Tipi</div>
-                    <div class="info-value">@Deger(Model.CihazTipi)</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Cihaz Markası</div>
-                    <div class="info-value">@Deger(Model.CihazMarka)</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Model</div>
-                    <div class="info-value">@Deger(Model.CihazModeli)</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Seri No</div>
-                    <div class="info-value">@Deger(Model.SeriNo)</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Kapasite</div>
-                    <div class="info-value">@Deger(Model.CihazKapasite)</div>
-                </div>
-            </div>
-        </section>
-
-        <section class="df-detail-card">
-            <div class="df-detail-card-title">Teknisyen Bilgileri</div>
-            <div class="df-detail-info">
-                <div class="info-item">
-                    <div class="info-label">Teknisyen</div>
-                    <div class="info-value">@Deger(Model.TeknisyenAdi)</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Yetki Belgesi No</div>
-                    <div class="info-value">@Deger(Model.TeknisyenYetkiBelgesiNo)</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Kayıt Tarihi</div>
-                    <div class="info-value">@Model.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</div>
-                </div>
+            <div class="ys-panel-body">
+                <dl class="ys-detail-facts">
+                    <div><dt>Cihaz Tipi</dt><dd>@Deger(Model.CihazTipi)</dd></div>
+                    <div><dt>Marka</dt><dd>@Deger(marka)</dd></div>
+                    @if (Var(Model.CihazModeli))
+                    {
+                        <div class="is-wide"><dt>Model</dt><dd>@Deger(Model.CihazModeli)</dd></div>
+                    }
+                    @if (Var(Model.CihazKapasite))
+                    {
+                        <div><dt>Kapasite</dt><dd>@Deger(Model.CihazKapasite)</dd></div>
+                    }
+                    @if (Var(Model.SeriNo))
+                    {
+                        <div><dt>Seri No</dt><dd>@Deger(Model.SeriNo)</dd></div>
+                    }
+                    <div><dt>Teknisyen</dt><dd>@Deger(Model.TeknisyenAdi)</dd></div>
+                    @if (Var(Model.TeknisyenYetkiBelgesiNo))
+                    {
+                        <div><dt>Yetki Belgesi No</dt><dd>@Deger(Model.TeknisyenYetkiBelgesiNo)</dd></div>
+                    }
+                    <div><dt>Kayıt Tarihi</dt><dd>@Model.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</dd></div>
+                </dl>
             </div>
         </section>
     </div>
 
-    @if (!string.IsNullOrWhiteSpace(Model.Notlar))
+    @if (Var(Model.Notlar))
     {
-        <section class="df-detail-card">
-            <div class="df-detail-card-title">Notlar</div>
-            <div class="df-detail-note">@Model.Notlar</div>
+        <section class="ys-note-panel" aria-label="İşlem notu">
+            <span class="ys-section-icon"><i class="bi bi-chat-left-text" aria-hidden="true"></i></span>
+            <div><strong>İşlem Notu</strong><p>@Model.Notlar</p></div>
         </section>
     }
 </div>

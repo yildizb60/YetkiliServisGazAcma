@@ -4,188 +4,371 @@
     Layout = "_PanelLayout";
     ViewData["ActiveMenu"] = "DevreyeGecmis";
     ViewData["PanelArea"] = "YetkiliServis";
-    var firma = ViewBag.Firma as YetkiliServisGazAcma.Entities.Ys_Firma;
     var markaList = ViewBag.MarkaList as List<string> ?? new List<string>();
     string seciliMarka = ViewBag.SeciliMarka as string ?? "";
     string seciliBas = ViewBag.SeciliBas as string ?? "";
     string seciliBit = ViewBag.SeciliBit as string ?? "";
     string seciliMusteri = ViewBag.SeciliMusteri as string ?? "";
     string seciliDurum = ViewBag.SeciliDurum as string ?? "";
-    string adSoyad = firma?.YetkiliKisi ?? "Yetkili Servis";
-    string basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "Y";
-}
-@section Styles {
-    <style>
-.btn-yeni { padding: 9px 20px; background: #4CAF7D; color: #fff; border: none; border-radius: 7px; font-size: 14px; font-weight: bold; text-decoration: none; }
-        .btn-yeni:hover { background: #3d9e6e; }
-.mesaj-basarili { background: #E1F5EE; color: #085041; padding: 14px 18px; border-radius: 8px; margin-bottom: 18px; font-size: 14px; border-left: 4px solid #4CAF7D; }
-
-        /* istatistik kartlari */
-        .istat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
-        .istat-kart { background: #fff; border-radius: 10px; border: 1px solid #eee; padding: 16px 20px; display: flex; align-items: center; gap: 14px; }
-        .istat-icon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
-        .istat-icon.yesil { background: #E1F5EE; }
-        .istat-icon.mavi { background: #E6F1FB; }
-        .istat-icon.sari { background: #FAEEDA; }
-        .istat-sayi { font-size: 22px; font-weight: bold; color: #1a1a1a; }
-        .istat-label { font-size: 12px; color: #888; margin-top: 2px; }
-
-        /* Filtre */
-        .filtre-kart { background: #fff; border-radius: 10px; border: 1px solid #eee; padding: 18px 22px; margin-bottom: 16px; display: flex; gap: 14px; align-items: flex-end; flex-wrap: wrap; }
-        .filtre-alan { display: flex; flex-direction: column; gap: 5px; min-width: 160px; }
-        .filtre-alan label { font-size: 12px; color: #555; font-weight: bold; }
-        .filtre-alan input, .filtre-alan select { padding: 9px 11px; border: 1.5px solid #ddd; border-radius: 7px; font-size: 14px; outline: none; color: #333; }
-        .filtre-alan input:focus, .filtre-alan select:focus { border-color: #4CAF7D; }
-        .btn-filtre { padding: 9px 20px; background: #1B9FD4; color: #fff; border: none; border-radius: 7px; font-size: 14px; cursor: pointer; font-weight: bold; }
-        .btn-filtre:hover { background: #0d7faa; }
-
-        /* Tablo */
-        .section { background: #fff; border-radius: 10px; border: 1px solid #eee; overflow: hidden; }
-        .tablo-head { display: grid; grid-template-columns: 1fr 1.2fr 1.5fr 1.2fr 0.8fr 0.8fr 0.6fr; padding: 12px 22px; background: #f4faf7; font-size: 12px; color: #4CAF7D; font-weight: bold; border-bottom: 2px solid #e0f0e8; }
-        .tablo-row { display: grid; grid-template-columns: 1fr 1.2fr 1.5fr 1.2fr 0.8fr 0.8fr 0.6fr; padding: 14px 22px; border-top: 1px solid #f0f0ee; font-size: 14px; color: #333; align-items: center; transition: background .1s; }
-        .tablo-row:hover { background: #f8fffe; }
-        .badge { display: inline-block; padding: 4px 12px; border-radius: 10px; font-size: 12px; font-weight: bold; }
-        .b-green { background: #E1F5EE; color: #085041; }
-        .b-yellow { background: #FAEEDA; color: #633806; }
-        .empty { padding: 50px; text-align: center; color: #bbb; font-size: 15px; }
-        .model-text { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .detay-btn { padding: 5px 12px; background: #f0f4f8; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; color: #555; text-decoration: none; cursor: pointer; }
-        .detay-btn:hover { background: #e0f0e8; border-color: #4CAF7D; color: #085041; }
-    </style>
+    bool filtreAktif = !string.IsNullOrWhiteSpace(seciliMarka)
+        || !string.IsNullOrWhiteSpace(seciliBas)
+        || !string.IsNullOrWhiteSpace(seciliBit)
+        || !string.IsNullOrWhiteSpace(seciliMusteri)
+        || !string.IsNullOrWhiteSpace(seciliDurum);
+    int tamamlanan = Model.Count(x => x.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi);
+    int bekleyen = Model.Count(x => x.Durum == DevreyeAlmaDurumDegerleri.Bekliyor);
 }
 
-@if (TempData["Basarili"] != null)
-            {
-                <div class="mesaj-basarili">&#9989; @TempData["Basarili"]</div>
-            }
+@functions {
+    private static string Deger(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? "-" : System.Net.WebUtility.HtmlDecode(value);
+    }
 
-            <!-- istatistikler -->
-            <div class="istat-row">
-                <div class="istat-kart">
-                    <div class="istat-icon yesil">&#9989;</div>
-                    <div>
-                        <div class="istat-sayi">@Model.Count(x => x.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi)</div>
-                        <div class="istat-label">Tamamlanan İşlem</div>
-                    </div>
-                </div>
-                <div class="istat-kart">
-                    <div class="istat-icon sari">&#9203;</div>
-                    <div>
-                        <div class="istat-sayi">@Model.Count(x => x.Durum == DevreyeAlmaDurumDegerleri.Bekliyor)</div>
-                        <div class="istat-label">Bekleyen İşlem</div>
-                    </div>
-                </div>
-                <div class="istat-kart">
-                    <div class="istat-icon mavi">&#128202;</div>
-                    <div>
-                        <div class="istat-sayi">@Model.Count</div>
-                        <div class="istat-label">Toplam İşlem</div>
-                    </div>
-                </div>
+    private static string DurumYazi(int durum)
+    {
+        return durum == DevreyeAlmaDurumDegerleri.Tamamlandi
+            ? "Tamamlandı"
+            : durum == DevreyeAlmaDurumDegerleri.Iptal
+                ? "İptal"
+                : "Bekliyor";
+    }
+
+    private static string DurumClass(int durum)
+    {
+        return durum == DevreyeAlmaDurumDegerleri.Tamamlandi
+            ? "df-pill-success"
+            : durum == DevreyeAlmaDurumDegerleri.Iptal
+                ? "df-pill-danger"
+                : "df-pill-warning";
+    }
+}
+
+@section PageStyles {
+    <link rel="stylesheet" href="~/css/ys-operations.css" asp-append-version="true" />
+}
+
+<div class="ys-workspace">
+    <header class="ys-page-header">
+        <div class="ys-page-heading">
+            <span class="ys-page-icon"><i class="bi bi-clock-history" aria-hidden="true"></i></span>
+            <div class="ys-page-copy">
+                <h1>İşlem Geçmişim</h1>
+                <p>Devreye alma kayıtlarınızı tarih, marka, müşteri ve duruma göre takip edin.</p>
             </div>
+        </div>
+        <div class="ys-page-actions">
+            <a class="df-btn df-btn-primary df-btn-sm" href="/ys-devreyeal">
+                <i class="bi bi-plus-lg" aria-hidden="true"></i> Yeni Devreye Alma
+            </a>
+        </div>
+    </header>
 
-            <!-- Filtreler -->
-            <form class="filtre-kart" method="get" action="/ys-devreyeal/gecmis">
-                <div class="filtre-alan">
-                    <label>Marka</label>
-                    <select name="marka">
-                        <option value="">Tüm</option>
+    @if (TempData["Basarili"] != null)
+    {
+        <div class="ys-alert is-success"><i class="bi bi-check-circle" aria-hidden="true"></i>@TempData["Basarili"]</div>
+    }
+
+    <div class="ys-summary-strip is-three" aria-label="İşlem özeti">
+        <div class="ys-summary-item">
+            <span class="ys-summary-icon"><i class="bi bi-collection" aria-hidden="true"></i></span>
+            <span class="ys-summary-copy"><strong>@Model.Count</strong><span>Toplam İşlem</span></span>
+        </div>
+        <div class="ys-summary-item is-success">
+            <span class="ys-summary-icon"><i class="bi bi-check2-circle" aria-hidden="true"></i></span>
+            <span class="ys-summary-copy"><strong>@tamamlanan</strong><span>Tamamlanan</span></span>
+        </div>
+        <div class="ys-summary-item is-warning">
+            <span class="ys-summary-icon"><i class="bi bi-hourglass-split" aria-hidden="true"></i></span>
+            <span class="ys-summary-copy"><strong>@bekleyen</strong><span>Bekleyen</span></span>
+        </div>
+    </div>
+
+    <details class="ys-panel ys-filter" open="@filtreAktif">
+        <summary>
+            <span class="ys-summary-heading">
+                <i class="bi bi-funnel" aria-hidden="true"></i>
+                <strong>Filtreler</strong>
+                <span>@(filtreAktif ? "Aktif filtre uygulanıyor" : "Marka, tarih, müşteri veya durum")</span>
+            </span>
+            <i class="bi bi-chevron-down" aria-hidden="true"></i>
+        </summary>
+        <div class="ys-filter-body">
+            <form class="ys-filter-grid" method="get" action="/ys-devreyeal/gecmis">
+                <div class="ys-field">
+                    <label for="gecmisMarka">Marka</label>
+                    <select id="gecmisMarka" name="marka">
+                        <option value="">Tümü</option>
                         @foreach (var m in markaList)
                         {
-                            if (string.Equals(seciliMarka, m, StringComparison.OrdinalIgnoreCase))
-                            {
-                                <option selected="selected">@m</option>
-                            }
-                            else
-                            {
-                                <option>@m</option>
-                            }
+                            <option selected="@(string.Equals(seciliMarka, m, StringComparison.OrdinalIgnoreCase))">@m</option>
                         }
                     </select>
                 </div>
-                <div class="filtre-alan">
-                    <label>Başlangıç Tarihi</label>
-                    <input type="date" name="bas" value="@seciliBas" />
-                </div>
-                <div class="filtre-alan">
-                    <label>Bitiş Tarihi</label>
-                    <input type="date" name="bit" value="@seciliBit" />
-                </div>
-                <div class="filtre-alan">
-                    <label>Müşteri Adı</label>
-                    <input type="text" name="musteri" placeholder="Müşteri ara..." value="@seciliMusteri" />
-                </div>
-                <div class="filtre-alan">
-                    <label>Durum</label>
-                    <select name="durum">
-                        @if (string.IsNullOrWhiteSpace(seciliDurum))
-                        {
-                            <option value="" selected="selected">Tüm</option>
-                        }
-                        else
-                        {
-                            <option value="">Tüm</option>
-                        }
-                        @if (string.Equals(seciliDurum, "tamamlandi", StringComparison.OrdinalIgnoreCase))
-                        {
-                            <option value="tamamlandi" selected="selected">Tamamlandı</option>
-                        }
-                        else
-                        {
-                            <option value="tamamlandi">Tamamlandı</option>
-                        }
-                        @if (string.Equals(seciliDurum, "bekliyor", StringComparison.OrdinalIgnoreCase))
-                        {
-                            <option value="bekliyor" selected="selected">Bekliyor</option>
-                        }
-                        else
-                        {
-                            <option value="bekliyor">Bekliyor</option>
-                        }
+                <div class="ys-field"><label for="gecmisBas">Başlangıç</label><input id="gecmisBas" type="date" name="bas" value="@seciliBas" /></div>
+                <div class="ys-field"><label for="gecmisBit">Bitiş</label><input id="gecmisBit" type="date" name="bit" value="@seciliBit" /></div>
+                <div class="ys-field"><label for="gecmisMusteri">Müşteri</label><input id="gecmisMusteri" type="search" name="musteri" placeholder="Müşteri ara" value="@seciliMusteri" /></div>
+                <div class="ys-field">
+                    <label for="gecmisDurum">Durum</label>
+                    <select id="gecmisDurum" name="durum">
+                        <option value="" selected="@(string.IsNullOrWhiteSpace(seciliDurum))">Tümü</option>
+                        <option value="tamamlandi" selected="@(string.Equals(seciliDurum, "tamamlandi", StringComparison.OrdinalIgnoreCase))">Tamamlandı</option>
+                        <option value="bekliyor" selected="@(string.Equals(seciliDurum, "bekliyor", StringComparison.OrdinalIgnoreCase))">Bekliyor</option>
                     </select>
                 </div>
-                <button class="btn-filtre" type="submit">Filtrele</button>
-            </form>
-
-            <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
-                <a class="btn-yeni" href="/ys-devreyeal">+ Yeni İşlem</a>
-            </div>
-
-            <div class="section">
-                <div class="tablo-head">
-                    <div>Tesisat No</div>
-                    <div>Müşteri</div>
-                    <div>Marka / Model</div>
-                    <div>Teknisyen</div>
-                    <div>Tarih</div>
-                    <div>Durum</div>
-                    <div></div>
-                </div>
-                @if (!Model.Any())
-                {
-                    <div class="empty">Henüz işlem bulunmuyor</div>
-                }
-                else
-                {
-                    @foreach (var i in Model)
+                <div class="ys-actions">
+                    @if (filtreAktif)
                     {
-                        <div class="tablo-row">
-                            <div><strong>@i.TesistatNo</strong></div>
-                            <div>@i.MusteriAdi</div>
-                            <div class="model-text" title="@i.CihazMarka / @i.CihazModeli">
-                                @i.CihazMarka / @i.CihazModeli
-                            </div>
-                            <div>@i.TeknisyenAdi</div>
-                            <div>@i.DevreyeAlmaTarihi.ToString("dd.MM.yyyy")</div>
-                            <div>
-                                <span class="badge @(i.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? "b-green" : "b-yellow")">
-                                    @(i.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? "Tamamlandı" : "Bekliyor")
-                                </span>
-                            </div>
-                            <div>
-                                <a class="detay-btn" href="/ys-devreyeal/detay/@i.Id">Detay</a>
-                            </div>
-                        </div>
+                        <a class="df-btn df-btn-secondary df-btn-sm" href="/ys-devreyeal/gecmis" title="Filtreleri temizle"><i class="bi bi-x-lg" aria-hidden="true"></i></a>
                     }
-                }
+                    <button class="df-btn df-btn-primary df-btn-sm" type="submit"><i class="bi bi-funnel" aria-hidden="true"></i> Uygula</button>
+                </div>
+            </form>
+        </div>
+    </details>
+
+    <section class="ys-panel is-blue">
+        <div class="ys-panel-head">
+            <div class="ys-panel-heading">
+                <span class="ys-section-icon"><i class="bi bi-list-check" aria-hidden="true"></i></span>
+                <div>
+                    <h2 class="ys-panel-title">Devreye Alma Kayıtları</h2>
+                    <p class="ys-panel-subtitle">@Model.Count kayıt listeleniyor</p>
+                </div>
             </div>
+        </div>
+        <div class="ys-table-wrap">
+            <table class="ys-table">
+                <thead>
+                    <tr>
+                        <th>Tesisat</th>
+                        <th>Müşteri</th>
+                        <th>Marka / Model</th>
+                        <th>Teknisyen</th>
+                        <th>Tarih</th>
+                        <th>Durum</th>
+                        <th><span class="visually-hidden">İşlem</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr><td colspan="7"><div class="ys-empty"><span>Seçilen ölçütlerde işlem bulunamadı.</span></div></td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var i in Model)
+                        {
+                            <tr>
+                                <td><span class="ys-table-primary">@i.TesistatNo</span></td>
+                                <td>@i.MusteriAdi</td>
+                                <td><span class="ys-table-primary">@i.CihazMarka</span><span class="ys-table-secondary">@i.CihazModeli</span></td>
+                                <td>@i.TeknisyenAdi</td>
+                                <td>@i.DevreyeAlmaTarihi.ToString("dd.MM.yyyy")</td>
+                                <td>
+                                    <span class="df-pill @DurumClass(i.Durum)">@DurumYazi(i.Durum)</span>
+                                </td>
+                                <td>
+                                    <div class="ys-table-actions">
+                                        <button class="df-btn df-btn-secondary df-btn-sm ys-history-detail"
+                                                type="button"
+                                                title="İşlem detayını görüntüle"
+                                                data-id="@i.Id"
+                                                data-detail-url="/ys-devreyeal/detay/@i.Id"
+                                                data-pdf-url="/ys-devreyeal/pdf/@i.Id"
+                                                data-excel-url="/ys-devreyeal/excel/@i.Id"
+                                                data-tesisat="@Deger(i.TesistatNo)"
+                                                data-cari-kod="@Deger(i.AboneNo)"
+                                                data-musteri="@Deger(i.MusteriAdi)"
+                                                data-telefon="@Deger(i.MusteriTelefon)"
+                                                data-tc="@Deger(i.MusteriTcNo)"
+                                                data-adres="@Deger(i.Adres)"
+                                                data-cihaz-tipi="@Deger(i.CihazTipi)"
+                                                data-marka="@Deger(i.Marka?.MarkaAdi ?? i.CihazMarka)"
+                                                data-model="@Deger(i.CihazModeli)"
+                                                data-kapasite="@Deger(i.CihazKapasite)"
+                                                data-seri-no="@Deger(i.SeriNo)"
+                                                data-teknisyen="@Deger(i.TeknisyenAdi)"
+                                                data-yetki-belgesi="@Deger(i.TeknisyenYetkiBelgesiNo)"
+                                                data-devreye-tarihi="@i.DevreyeAlmaTarihi.ToString("dd.MM.yyyy")"
+                                                data-kayit-tarihi="@i.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")"
+                                                data-durum="@DurumYazi(i.Durum)"
+                                                data-durum-class="@DurumClass(i.Durum)"
+                                                data-notlar="@Deger(i.Notlar)">
+                                            <i class="bi bi-eye" aria-hidden="true"></i> Detay
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+<div class="ys-report-modal" id="ysHistoryDetailModal" aria-hidden="true">
+    <div class="ys-report-modal-backdrop" data-ys-modal-close></div>
+    <div class="ys-report-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="ysHistoryModalTitle" tabindex="-1">
+        <div class="ys-report-modal-header">
+            <div class="ys-modal-title-wrap">
+                <span class="ys-page-icon"><i class="bi bi-clipboard2-check" aria-hidden="true"></i></span>
+                <div>
+                    <h2 id="ysHistoryModalTitle">Devreye Alma Detayı</h2>
+                    <p id="ysHistoryModalSubtitle">-</p>
+                </div>
+            </div>
+            <button class="ys-modal-close" type="button" data-ys-modal-close aria-label="Kapat">
+                <i class="bi bi-x-lg" aria-hidden="true"></i>
+            </button>
+        </div>
+
+        <div class="ys-report-modal-body">
+            <div class="ys-modal-summary">
+                <div class="ys-modal-summary-item is-status"><i class="bi bi-activity" aria-hidden="true"></i><span><small>Durum</small><strong><span class="df-pill" id="ysModalDurum">-</span></strong></span></div>
+                <div class="ys-modal-summary-item is-date"><i class="bi bi-calendar2-check" aria-hidden="true"></i><span><small>Devreye Alma</small><strong id="ysModalDevreyeTarihi">-</strong></span></div>
+                <div class="ys-modal-summary-item is-device"><i class="bi bi-fire" aria-hidden="true"></i><span><small>Cihaz</small><strong id="ysModalCihazOzeti">-</strong></span></div>
+                <div class="ys-modal-summary-item is-tech"><i class="bi bi-person-gear" aria-hidden="true"></i><span><small>Teknisyen</small><strong id="ysModalTeknisyenOzeti">-</strong></span></div>
+            </div>
+
+            <div class="ys-modal-grid">
+                <section class="ys-modal-section is-blue">
+                    <h3><i class="bi bi-house-check" aria-hidden="true"></i> Tesisat ve Müşteri</h3>
+                    <dl class="ys-modal-facts">
+                        <div><dt>Tesisat No</dt><dd id="ysModalTesisat">-</dd></div>
+                        <div data-optional="cariKod"><dt>Servis Cari Kod</dt><dd id="ysModalCariKod">-</dd></div>
+                        <div><dt>Müşteri</dt><dd id="ysModalMusteri">-</dd></div>
+                        <div data-optional="telefon"><dt>Telefon</dt><dd id="ysModalTelefon">-</dd></div>
+                        <div data-optional="tc"><dt>TC Kimlik No</dt><dd id="ysModalTc">-</dd></div>
+                        <div class="is-wide" data-optional="adres"><dt>Adres</dt><dd id="ysModalAdres">-</dd></div>
+                    </dl>
+                </section>
+
+                <section class="ys-modal-section is-green">
+                    <h3><i class="bi bi-tools" aria-hidden="true"></i> Cihaz ve Kayıt</h3>
+                    <dl class="ys-modal-facts">
+                        <div><dt>Cihaz Tipi</dt><dd id="ysModalCihazTipi">-</dd></div>
+                        <div><dt>Marka</dt><dd id="ysModalMarka">-</dd></div>
+                        <div class="is-wide" data-optional="model"><dt>Model</dt><dd id="ysModalModel">-</dd></div>
+                        <div data-optional="kapasite"><dt>Kapasite</dt><dd id="ysModalKapasite">-</dd></div>
+                        <div data-optional="seriNo"><dt>Seri No</dt><dd id="ysModalSeriNo">-</dd></div>
+                        <div data-optional="yetkiBelgesi"><dt>Teknisyen Yetki Belgesi</dt><dd id="ysModalYetkiBelgesi">-</dd></div>
+                        <div><dt>Kayıt Tarihi</dt><dd id="ysModalKayitTarihi">-</dd></div>
+                    </dl>
+                </section>
+            </div>
+
+            <section class="ys-modal-note" id="ysModalNotAlani" hidden>
+                <i class="bi bi-chat-left-text" aria-hidden="true"></i>
+                <div><strong>İşlem Notu</strong><p id="ysModalNotlar"></p></div>
+            </section>
+        </div>
+
+        <div class="ys-report-modal-footer">
+            <button class="df-btn df-btn-secondary df-btn-sm" type="button" data-ys-modal-close>Kapat</button>
+            <a class="df-btn ys-export-pdf df-btn-sm" id="ysModalPdfLink" href="#" target="_blank" rel="noopener"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF</a>
+            <a class="df-btn ys-export-excel df-btn-sm" id="ysModalExcelLink" href="#" target="_blank" rel="noopener"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel</a>
+            <a class="df-btn df-btn-primary df-btn-sm" id="ysModalDetailLink" href="#"><i class="bi bi-arrow-right-circle" aria-hidden="true"></i> Tam Detayı Aç</a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const modal = document.getElementById('ysHistoryDetailModal');
+            if (!modal) return;
+
+            const durum = document.getElementById('ysModalDurum');
+            const detailLink = document.getElementById('ysModalDetailLink');
+            const pdfLink = document.getElementById('ysModalPdfLink');
+            const excelLink = document.getElementById('ysModalExcelLink');
+            const notAlani = document.getElementById('ysModalNotAlani');
+            let sonTetikleyici = null;
+
+            function temiz(value) {
+                const sonuc = (value || '').trim();
+                return sonuc && sonuc !== '-' ? sonuc : '';
+            }
+
+            function yaz(id, value) {
+                const element = document.getElementById(id);
+                if (element) element.textContent = temiz(value) || '-';
+            }
+
+            function opsiyonelAlan(name, value) {
+                const element = modal.querySelector('[data-optional="' + name + '"]');
+                if (element) element.hidden = !temiz(value);
+            }
+
+            function birlestir() {
+                return Array.from(arguments).map(temiz).filter(Boolean).join(' / ') || '-';
+            }
+
+            function ac(button) {
+                const data = button.dataset;
+                sonTetikleyici = button;
+
+                yaz('ysHistoryModalTitle', 'Devreye Alma Kaydı #' + data.id);
+                yaz('ysHistoryModalSubtitle', birlestir('Tesisat ' + (temiz(data.tesisat) || '-'), data.musteri));
+                yaz('ysModalDevreyeTarihi', data.devreyeTarihi);
+                yaz('ysModalCihazOzeti', birlestir(data.cihazTipi, data.marka));
+                yaz('ysModalTeknisyenOzeti', data.teknisyen);
+                yaz('ysModalTesisat', data.tesisat);
+                yaz('ysModalCariKod', data.cariKod);
+                yaz('ysModalMusteri', data.musteri);
+                yaz('ysModalTelefon', data.telefon);
+                yaz('ysModalTc', data.tc);
+                yaz('ysModalAdres', data.adres);
+                yaz('ysModalCihazTipi', data.cihazTipi);
+                yaz('ysModalMarka', data.marka);
+                yaz('ysModalModel', data.model);
+                yaz('ysModalKapasite', data.kapasite);
+                yaz('ysModalSeriNo', data.seriNo);
+                yaz('ysModalYetkiBelgesi', data.yetkiBelgesi);
+                yaz('ysModalKayitTarihi', data.kayitTarihi);
+                yaz('ysModalNotlar', data.notlar);
+
+                ['cariKod', 'telefon', 'tc', 'adres', 'model', 'kapasite', 'seriNo', 'yetkiBelgesi']
+                    .forEach(function (alan) { opsiyonelAlan(alan, data[alan]); });
+
+                if (durum) {
+                    durum.textContent = temiz(data.durum) || '-';
+                    durum.className = 'df-pill ' + (data.durumClass || 'df-pill-secondary');
+                }
+
+                if (notAlani) notAlani.hidden = !temiz(data.notlar);
+                if (detailLink) detailLink.href = data.detailUrl;
+                if (pdfLink) pdfLink.href = data.pdfUrl;
+                if (excelLink) excelLink.href = data.excelUrl;
+
+                modal.classList.add('is-open');
+                modal.setAttribute('aria-hidden', 'false');
+                document.body.style.overflow = 'hidden';
+                modal.querySelector('[data-ys-modal-close]')?.focus();
+            }
+
+            function kapat() {
+                modal.classList.remove('is-open');
+                modal.setAttribute('aria-hidden', 'true');
+                document.body.style.overflow = '';
+                sonTetikleyici?.focus();
+            }
+
+            document.addEventListener('click', function (event) {
+                const detay = event.target.closest('.ys-history-detail');
+                if (detay) {
+                    ac(detay);
+                    return;
+                }
+
+                if (event.target.closest('[data-ys-modal-close]')) kapat();
+            });
+
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape' && modal.classList.contains('is-open')) kapat();
+            });
+        })();
+    </script>
+}

@@ -28,9 +28,9 @@ namespace YetkiliServisGazAcma.Business.Services
 
         public bool SmsGirisAktifMi => _options.Enabled;
 
-        public async Task<(bool Basarili, string Mesaj)> KodGonderAsync(AppKullanici kullanici, string amac = "GIRIS")
+        public async Task<(bool Basarili, string Mesaj)> KodGonderAsync(AppKullanici kullanici, string amac = "GIRIS", string? dogrulanacakTelefon = null)
         {
-            var telefon = TelefonNormalize(kullanici.PhoneNumber);
+            var telefon = TelefonNormalize(dogrulanacakTelefon ?? kullanici.PhoneNumber);
             if (string.IsNullOrWhiteSpace(telefon))
                 return (false, "SMS doğrulama için kullanıcı telefon numarası tanımlı olmalıdır.");
 

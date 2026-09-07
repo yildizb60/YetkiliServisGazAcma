@@ -6,154 +6,116 @@
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
     var subeler = ViewBag.Subeler as List<YetkiliServisGazAcma.Entities.Ys_Sube>
         ?? new List<YetkiliServisGazAcma.Entities.Ys_Sube>();
+    int aktifSube = subeler.Count(x => x.AktifMi);
 }
 
-@section Styles {
-    <style>
-        .sube-stack { display: grid; gap: 16px; }
-        .sube-card { background: #fff; border-radius: 12px; border: 1px solid #eee; overflow: hidden; }
-        .sube-card-head { display: flex; align-items: center; gap: 10px; padding: 16px 22px; border-bottom: 2px solid #f0f0ee; background: linear-gradient(to right, #f8f8f6, #fff); }
-        .sube-card-icon { width: 36px; height: 36px; border-radius: 9px; display: grid; place-items: center; font-size: 17px; background: #E6F1FB; }
-        .sube-card-title { font-size: 14px; font-weight: 800; color: #333; }
-        .sube-card-body { padding: 20px 22px; }
-        .sube-form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-        .sube-field { display: flex; flex-direction: column; gap: 6px; }
-        .sube-field.full { grid-column: span 3; }
-        .sube-field label { font-size: 12px; color: #555; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
-        .sube-field input,
-        .sube-field textarea { padding: 10px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; color: #333; background: #fafafa; }
-        .sube-field textarea { resize: vertical; min-height: 70px; }
-        .sube-field input:focus,
-        .sube-field textarea:focus { border-color: #4CAF7D; background: #fff; }
-        .aktif-row { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
-        .aktif-row input { width: auto; }
-        .sube-actions { margin-top: 14px; display: flex; justify-content: flex-end; gap: 10px; }
-        .btn-primary { padding: 10px 26px; background: #4CAF7D; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 800; cursor: pointer; }
-        .btn-primary:hover { background: #3d9e6e; }
-        .btn-mini { padding: 6px 10px; border-radius: 6px; font-size: 12px; text-decoration: none; border: 1px solid #ddd; background: #f9f9f9; color: #333; cursor: pointer; }
-        .btn-mini:hover { border-color: #4CAF7D; color: #085041; }
-        .btn-danger { border-color: #e24b4a; color: #e24b4a; background: #fff; }
-        .btn-danger:hover { background: #FCEBEB; }
-        .sube-table-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-        @@media (max-width: 900px) {
-            .sube-form-grid { grid-template-columns: 1fr; }
-            .sube-field.full { grid-column: auto; }
-        }
-    </style>
+@section PageStyles {
+    <link rel="stylesheet" href="~/css/ys-operations.css" asp-append-version="true" />
 }
 
-<div class="sube-stack">
+<div class="ys-workspace">
+    <header class="ys-page-header">
+        <div class="ys-page-heading">
+            <span class="ys-page-icon"><i class="bi bi-diagram-3" aria-hidden="true"></i></span>
+            <div class="ys-page-copy">
+                <h1>Şube / Servis Noktaları</h1>
+                <p>Hizmet noktalarınızın iletişim, konum ve çalışma durumunu yönetin.</p>
+            </div>
+        </div>
+        <div class="ys-page-actions">
+            <span class="df-pill df-pill-success">@aktifSube aktif</span>
+            <span class="df-pill df-pill-info">@subeler.Count toplam</span>
+        </div>
+    </header>
+
     @if (TempData["Basarili"] != null)
     {
-        <div class="df-alert df-alert-success">@TempData["Basarili"]</div>
+        <div class="ys-alert is-success"><i class="bi bi-check-circle" aria-hidden="true"></i>@TempData["Basarili"]</div>
     }
     @if (TempData["Hata"] != null)
     {
-        <div class="df-alert df-alert-danger">@TempData["Hata"]</div>
+        <div class="ys-alert is-danger"><i class="bi bi-exclamation-circle" aria-hidden="true"></i>@TempData["Hata"]</div>
     }
 
-    <section class="sube-card">
-        <div class="sube-card-head">
-            <div class="sube-card-icon">&#127970;</div>
-            <div class="sube-card-title">Yeni Şube Ekle</div>
-        </div>
-        <div class="sube-card-body">
+    <details class="ys-collapsible" open="@(!subeler.Any())">
+        <summary>
+            <span class="ys-summary-heading">
+                <i class="bi bi-building-add" aria-hidden="true"></i>
+                <strong>Yeni Şube Ekle</strong>
+                <span>Yeni hizmet noktasını tanımlayın</span>
+            </span>
+            <i class="bi bi-chevron-down" aria-hidden="true"></i>
+        </summary>
+        <div class="ys-collapsible-body">
             <form method="post" action="/ys-panel/subeler/ekle">
                 @Html.AntiForgeryToken()
-                <div class="sube-form-grid">
-                    <div class="sube-field">
-                        <label>Şube Adı</label>
-                        <input type="text" name="subeAdi" placeholder="Örn: Merkez Şube" required />
-                    </div>
-                    <div class="sube-field">
-                        <label>İl</label>
-                        <input type="text" name="il" placeholder="Örn: Çorum" />
-                    </div>
-                    <div class="sube-field">
-                        <label>İlçe</label>
-                        <input type="text" name="ilce" placeholder="Örn: Merkez" />
-                    </div>
-                    <div class="sube-field">
-                        <label>Telefon</label>
-                        <input type="text" name="telefon" placeholder="0XXX XXX XX XX" />
-                    </div>
-                    <div class="sube-field full">
-                        <label>Adres</label>
-                        <textarea name="adres" placeholder="Adres bilgisi"></textarea>
-                    </div>
-                    <div class="sube-field">
-                        <label>Aktif mi?</label>
-                        <div class="aktif-row">
-                            <input type="checkbox" name="aktifMi" value="true" checked />
-                            <span>Aktif</span>
-                        </div>
+                <div class="ys-form-grid is-three-column">
+                    <div class="ys-field"><label for="subeAdi">Şube Adı *</label><input type="text" id="subeAdi" name="subeAdi" placeholder="Örn. Merkez Şube" required /></div>
+                    <div class="ys-field"><label for="subeIl">İl</label><input type="text" id="subeIl" name="il" placeholder="Örn. Çorum" /></div>
+                    <div class="ys-field"><label for="subeIlce">İlçe</label><input type="text" id="subeIlce" name="ilce" placeholder="Örn. Merkez" /></div>
+                    <div class="ys-field"><label for="subeTelefon">Telefon</label><input type="tel" id="subeTelefon" name="telefon" placeholder="0XXX XXX XX XX" /></div>
+                    <div class="ys-field is-wide"><label for="subeAdres">Adres</label><textarea id="subeAdres" name="adres" placeholder="Şubenin açık adresi"></textarea></div>
+                    <div class="ys-field">
+                        <span class="ys-field-label">Kayıt Durumu</span>
+                        <label class="ys-check-row"><input type="checkbox" name="aktifMi" value="true" checked /> Aktif olarak oluştur</label>
                     </div>
                 </div>
-                <div class="sube-actions">
-                    <button type="submit" class="btn-primary">Kaydet</button>
+                <div class="ys-actions" style="margin-top:12px">
+                    <button type="submit" class="df-btn df-btn-primary"><i class="bi bi-plus-lg" aria-hidden="true"></i> Şubeyi Kaydet</button>
                 </div>
             </form>
         </div>
-    </section>
+    </details>
 
-    <section class="df-page-panel">
-        <div class="df-panel-head">
-            <div>
-                <h2 class="df-panel-title">Şube Listesi</h2>
-                <div class="df-panel-subtitle">@subeler.Count kayıt</div>
+    <section class="ys-panel is-blue">
+        <div class="ys-panel-head">
+            <div class="ys-panel-heading">
+                <span class="ys-section-icon"><i class="bi bi-buildings" aria-hidden="true"></i></span>
+                <div>
+                    <h2 class="ys-panel-title">Kayıtlı Servis Noktaları</h2>
+                    <p class="ys-panel-subtitle">@subeler.Count şube kaydı</p>
+                </div>
             </div>
         </div>
-        <div class="df-table-wrap">
-            <table class="df-table">
+        <div class="ys-table-wrap">
+            <table class="ys-table">
                 <thead>
                     <tr>
                         <th>Şube</th>
-                        <th>İl</th>
-                        <th>İlçe</th>
+                        <th>Konum</th>
                         <th>Telefon</th>
                         <th>Durum</th>
-                        <th>İşlem</th>
+                        <th><span class="visually-hidden">İşlemler</span></th>
                     </tr>
                 </thead>
                 <tbody>
                     @if (!subeler.Any())
                     {
-                        <tr>
-                            <td colspan="6">
-                                <div class="df-empty">
-                                    <div class="df-empty-title">Henüz şube kaydı yok.</div>
-                                </div>
-                            </td>
-                        </tr>
+                        <tr><td colspan="5"><div class="ys-empty">Henüz şube kaydı bulunmuyor.</div></td></tr>
                     }
                     else
                     {
-                        foreach (var s in subeler)
+                        @foreach (var s in subeler)
                         {
                             <tr>
-                                <td>@s.SubeAdi</td>
-                                <td>@s.Il</td>
-                                <td>@s.Ilce</td>
-                                <td>@s.Telefon</td>
+                                <td><span class="ys-table-primary">@s.SubeAdi</span><span class="ys-table-secondary">@(string.IsNullOrWhiteSpace(s.Adres) ? "Adres girilmemiş" : s.Adres)</span></td>
+                                <td>@(string.Join(" / ", new[] { s.Il, s.Ilce }.Where(x => !string.IsNullOrWhiteSpace(x))))</td>
+                                <td>@(string.IsNullOrWhiteSpace(s.Telefon) ? "-" : s.Telefon)</td>
+                                <td><span class="df-pill @(s.AktifMi ? "df-pill-success" : "df-pill-danger")">@(s.AktifMi ? "Aktif" : "Pasif")</span></td>
                                 <td>
-                                    <span class="df-pill @(s.AktifMi ? "df-pill-success" : "df-pill-danger")">
-                                        @(s.AktifMi ? "Aktif" : "Pasif")
-                                    </span>
-                                </td>
-                                <td>
-                                    <div class="sube-table-actions">
-                                        <a class="btn-mini" href="/ys-panel/subeler/duzenle/@s.Id">Düzenle</a>
+                                    <div class="ys-table-actions">
+                                        <a class="df-btn df-btn-secondary df-btn-sm" href="/ys-panel/subeler/duzenle/@s.Id" title="Şubeyi düzenle"><i class="bi bi-pencil" aria-hidden="true"></i> Düzenle</a>
                                         <form method="post" action="/ys-panel/subeler/durum">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="id" value="@s.Id" />
-                                            <button type="submit" class="btn-mini">
-                                                @(s.AktifMi ? "Pasife Al" : "Aktife Al")
+                                            <button type="submit" class="df-btn @(s.AktifMi ? "df-btn-warning" : "df-btn-success") df-btn-sm">
+                                                <i class="bi @(s.AktifMi ? "bi-pause-circle" : "bi-play-circle")" aria-hidden="true"></i> @(s.AktifMi ? "Pasife Al" : "Aktife Al")
                                             </button>
                                         </form>
                                         <form method="post" action="/ys-panel/subeler/sil" onsubmit="return confirm('Şubeyi silmek istiyor musunuz?');">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="id" value="@s.Id" />
-                                            <button type="submit" class="btn-mini btn-danger">Sil</button>
+                                            <button type="submit" class="df-btn df-btn-danger df-btn-sm" title="Şubeyi sil"><i class="bi bi-trash" aria-hidden="true"></i></button>
                                         </form>
                                     </div>
                                 </td>

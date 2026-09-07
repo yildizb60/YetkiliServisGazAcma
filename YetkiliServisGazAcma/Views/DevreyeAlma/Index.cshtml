@@ -3,261 +3,160 @@
     Layout = "_PanelLayout";
     ViewData["ActiveMenu"] = "DevreyeAl";
     ViewData["PanelArea"] = "YetkiliServis";
-    var firma = ViewBag.Firma as YetkiliServisGazAcma.Entities.Ys_Firma;
-    string adSoyad = firma?.YetkiliKisi ?? "Yetkili Servis";
-    string basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "Y";
-}
-@section Styles {
-    <style>
-        .devreye-workspace {
-            --dev-ink: #172033;
-            --dev-muted: #667085;
-            --dev-border: #dce2ea;
-            --dev-blue: #1f5fbf;
-            --dev-blue-soft: #edf4ff;
-            --dev-purple: #7658d8;
-            --dev-purple-soft: #f3efff;
-            --dev-cyan: #0e91bd;
-            --dev-cyan-soft: #eef9ff;
-            --dev-green: #167a55;
-            --dev-green-soft: #edf8f3;
-            --df-radius: 6px;
-            --df-shadow-soft: 0 8px 22px rgba(23, 32, 51, .05);
-            display: grid;
-            gap: 14px;
-        }
-
-        /* Adim gostergesi */
-        .devreye-workspace .adimlar { display: flex; align-items: center; margin: 0; padding: 12px 16px; background: #fff; border: 1px solid var(--dev-border); border-radius: 6px; }
-        .devreye-workspace .adim { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--dev-muted); }
-        .devreye-workspace .adim.aktif { color: var(--dev-purple); font-weight: 800; }
-        .devreye-workspace .adim.tamamlandi { color: var(--dev-green); font-weight: 700; }
-        .devreye-workspace .adim-no { width: 28px; height: 28px; border-radius: 50%; background: #eef1f5; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: var(--dev-muted); }
-        .devreye-workspace .adim.aktif .adim-no { background: var(--dev-purple); color: #fff; }
-        .devreye-workspace .adim.tamamlandi .adim-no { background: var(--dev-green); color: #fff; }
-        .devreye-workspace .adim-cizgi { flex: 1; height: 2px; background: #e6eaf0; margin: 0 12px; }
-        .devreye-workspace .adim-cizgi.tamamlandi { background: var(--dev-green); }
-
-        /* Islem bolumleri */
-        .devreye-workspace .kart { --detail-accent: var(--dev-blue); --kart-vurgu: var(--dev-blue); --kart-yuzey: var(--dev-blue-soft); --df-surface-2: var(--kart-yuzey); background: #fff; border-radius: 6px; border: 1px solid var(--dev-border); border-top: 3px solid var(--kart-vurgu); padding: 0 20px 20px; margin: 0; box-shadow: 0 8px 22px rgba(23, 32, 51, .05); overflow: hidden; }
-        .devreye-workspace .kart-sorgu { --detail-accent: var(--dev-purple); --kart-vurgu: var(--dev-purple); --kart-yuzey: var(--dev-purple-soft); }
-        .devreye-workspace .kart-musteri { --detail-accent: var(--dev-cyan); --kart-vurgu: var(--dev-cyan); --kart-yuzey: var(--dev-cyan-soft); }
-        .devreye-workspace .kart-form { --detail-accent: var(--dev-green); --kart-vurgu: var(--dev-green); --kart-yuzey: var(--dev-green-soft); }
-        .devreye-workspace .kart-baslik { font-size: 14px; font-weight: 800; color: var(--dev-ink); margin: 0 -20px 18px; padding: 12px 20px; border-bottom: 1px solid var(--dev-border); background: var(--kart-yuzey); display: flex; align-items: center; gap: 9px; }
-        .devreye-workspace .kart-baslik i { color: var(--kart-vurgu); font-size: 16px; }
-
-        /* Tesisat sorgulama */
-        .devreye-workspace .sorgula-row { display: flex; gap: 12px; align-items: flex-end; }
-        .devreye-workspace .sorgula-input { flex: 1; }
-        .devreye-workspace label { font-size: 12px; color: #475467; font-weight: 700; display: block; margin-bottom: 6px; }
-        .devreye-workspace input,
-        .devreye-workspace select { padding: 10px 12px; border: 1px solid #cfd7e3; border-radius: 5px; font-size: 14px; color: var(--dev-ink); outline: none; width: 100%; background: #fff; }
-        .devreye-workspace input:focus,
-        .devreye-workspace select:focus { border-color: var(--dev-purple); box-shadow: 0 0 0 3px rgba(118, 88, 216, .10); }
-        .devreye-workspace .btn-sorgula { min-height: 40px; padding: 10px 24px; background: var(--dev-purple); color: #fff; border: none; border-radius: 5px; font-size: 13px; font-weight: 800; cursor: pointer; white-space: nowrap; }
-        .devreye-workspace .btn-sorgula:hover { background: #6346c4; }
-
-        /* Musteri ve cihaz bilgileri */
-        .devreye-workspace .musteri-bilgi { display: none; }
-        .devreye-workspace .musteri-bilgi.goster { display: block; }
-        .devreye-workspace .bilgi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 0; }
-        .devreye-workspace .bilgi-alan { background: #fff; border: 1px solid #e4e9f1; border-radius: 5px; padding: 11px 12px; }
-        .devreye-workspace .bilgi-label { font-size: 11px; color: var(--dev-muted); margin-bottom: 4px; }
-        .devreye-workspace .bilgi-deger { font-size: 13px; font-weight: 700; color: var(--dev-ink); }
-        .devreye-workspace .uygunluk-badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 800; background: var(--dev-green-soft); color: var(--dev-green); }
-        .devreye-workspace .cihaz-listesi { display: grid; gap: 8px; }
-        .devreye-workspace .cihaz-listesi .cihaz-satir { padding: 9px 10px; border: 1px solid #dde5ef; border-left: 3px solid var(--dev-cyan); border-radius: 5px; background: #fff; }
-        .devreye-workspace .cihaz-secim { cursor: pointer; transition: border-color .15s, background .15s, box-shadow .15s; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-        .devreye-workspace .cihaz-secim::after { content: "\2713"; flex: 0 0 auto; width: 24px; height: 24px; border-radius: 999px; background: var(--dev-blue-soft); color: var(--dev-blue); font-size: 14px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; opacity: .55; }
-        .devreye-workspace .cihaz-secim:hover { border-color: var(--dev-blue); background: #f7faff; }
-        .devreye-workspace .cihaz-secim.secili { border-color: var(--dev-blue); background: var(--dev-blue-soft); box-shadow: 0 0 0 2px rgba(31, 95, 191, .10); }
-        .devreye-workspace .cihaz-secim.secili::after { background: var(--dev-green); color: #fff; opacity: 1; }
-
-        /* Form alanlari */
-        .devreye-workspace .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-        .devreye-workspace .alan { display: flex; flex-direction: column; gap: 5px; }
-        .devreye-workspace .alan.tam { grid-column: span 2; }
-
-        /* Bildirim */
-        .devreye-workspace .mesaj-hata { background: #fff1f2; color: #8f1d32; padding: 12px 16px; border-radius: 6px; font-size: 13px; border: 1px solid #fecdd3; }
-        .devreye-workspace .mesaj-basarili { background: var(--dev-green-soft); color: var(--dev-green); padding: 12px 16px; border-radius: 6px; font-size: 13px; border: 1px solid #caeadc; }
-        .devreye-workspace .marka-uyari { background: #fff1f2; color: #8f1d32; padding: 10px 14px; border-radius: 6px; font-size: 13px; display: none; margin-top: 10px; }
-        .devreye-workspace .marka-uyari.goster { display: block; }
-
-        /* Butonlar */
-        .devreye-workspace .butonlar { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
-        .devreye-workspace .btn-kKaydet { padding: 11px 28px; background: var(--dev-green); color: #fff; border: none; border-radius: 5px; font-size: 14px; font-weight: 800; cursor: pointer; }
-        .devreye-workspace .btn-kKaydet:hover { background: #116543; }
-        .devreye-workspace .btn-kKaydet:disabled { background: #aab2bf; cursor: not-allowed; }
-        .devreye-workspace .btn-iiptal { padding: 11px 20px; background: #fff; color: #b42336; border: 1px solid #d88b98; border-radius: 5px; font-size: 13px; text-decoration: none; }
-
-        /* Loading */
-        .devreye-workspace .loading { display: none; text-align: center; padding: 18px; color: var(--dev-muted); font-size: 13px; }
-        .devreye-workspace .loading.goster { display: block; }
-
-        @@media (max-width: 760px) {
-            .devreye-workspace .adimlar { align-items: flex-start; padding: 12px; }
-            .devreye-workspace .adim { flex-direction: column; text-align: center; gap: 5px; }
-            .devreye-workspace .adim-cizgi { margin: 14px 7px 0; }
-            .devreye-workspace .sorgula-row { align-items: stretch; flex-direction: column; }
-            .devreye-workspace .bilgi-grid,
-            .devreye-workspace .form-grid { grid-template-columns: 1fr; }
-            .devreye-workspace .bilgi-alan,
-            .devreye-workspace .alan.tam { grid-column: auto !important; }
-        }
-    </style>
 }
 
-<div class="devreye-workspace">
-@if (TempData["Hata"] != null)
-            {
-                <div class="mesaj-hata">&#10060; @TempData["Hata"]</div>
-            }
+@section PageStyles {
+    <link rel="stylesheet" href="~/css/ys-operations.css" asp-append-version="true" />
+}
 
-            <!-- Adım Göstergesi -->
-            <div class="adimlar">
-                <div class="adim aktif" id="adim1">
-                    <div class="adim-no">1</div>
-                    <span>Tesisat Sorgula</span>
-                </div>
-                <div class="adim-cizgi" id="cizgi1"></div>
-                <div class="adim" id="adim2">
-                    <div class="adim-no">2</div>
-                    <span>Devreye Alma Bilgileri</span>
-                </div>
-                <div class="adim-cizgi" id="cizgi2"></div>
-                <div class="adim" id="adim3">
-                    <div class="adim-no">3</div>
-                    <span>Tamamla</span>
+<div class="ys-workspace ys-commissioning-workspace">
+    <header class="ys-page-header">
+        <div class="ys-page-heading">
+            <span class="ys-page-icon"><i class="bi bi-wrench-adjustable-circle" aria-hidden="true"></i></span>
+            <div class="ys-page-copy">
+                <h1>Cihaz Devreye Alma</h1>
+                <p>Tesisatı doğrulayın, servisten gelen cihazı seçin ve devreye alma kaydını tamamlayın.</p>
+            </div>
+        </div>
+        <div class="ys-page-actions">
+            <a class="df-btn df-btn-secondary df-btn-sm" href="/ys-devreyeal/gecmis">
+                <i class="bi bi-clock-history" aria-hidden="true"></i> İşlem Geçmişim
+            </a>
+        </div>
+    </header>
+
+    @if (TempData["Hata"] != null)
+    {
+        <div class="ys-alert is-danger"><i class="bi bi-exclamation-circle" aria-hidden="true"></i>@TempData["Hata"]</div>
+    }
+
+    <nav class="ys-stepper" aria-label="Devreye alma adımları">
+        <div class="ys-step aktif" id="adim1">
+            <span class="ys-step-number">1</span>
+            <span>Tesisat ve Cihaz</span>
+        </div>
+        <span class="ys-step-line" id="cizgi1"></span>
+        <div class="ys-step" id="adim2">
+            <span class="ys-step-number">2</span>
+            <span>Devreye Alma Bilgileri</span>
+        </div>
+        <span class="ys-step-line" id="cizgi2"></span>
+        <div class="ys-step" id="adim3">
+            <span class="ys-step-number">3</span>
+            <span>Tamamla</span>
+        </div>
+    </nav>
+
+    <section class="ys-panel is-blue" aria-labelledby="tesisatSorguBaslik">
+        <div class="ys-panel-head">
+            <div class="ys-panel-heading">
+                <span class="ys-section-icon"><i class="bi bi-search" aria-hidden="true"></i></span>
+                <div>
+                    <h2 class="ys-panel-title" id="tesisatSorguBaslik">Tesisatı Sorgulayın</h2>
+                    <p class="ys-panel-subtitle">Tesisat ve sözleşme numarası birlikte doğrulanır.</p>
                 </div>
             </div>
-
-            <!-- Adım 1: Tesisat Sorgulama -->
-            <div class="kart kart-sorgu">
-                <div class="kart-baslik"><i class="bi bi-search" aria-hidden="true"></i>Ad&#305;m 1  Tesisat Sorgulama</div>
-                <div class="sorgula-row">
-                    <div class="sorgula-input">
-                        <label>Tesisat Numaras&#305;</label>
-                        <input type="text" id="tesistatNo" placeholder="Tesisat numaras&#305;n&#305; giriniz" />
-                    </div>
-                    <div class="sorgula-input">
-                        <label>S&#246;zle&#351;me Numaras&#305;</label>
-                        <input type="text" id="sozlesmeNo" placeholder="S&#246;zle&#351;me numaras&#305;n&#305; giriniz" />
-                    </div>
-                    <button type="button" class="btn-sorgula" onclick="tesistatSorgula()">
-                        Sorgula
-                    </button>
+        </div>
+        <div class="ys-panel-body">
+            <div class="ys-query-grid">
+                <div class="ys-field">
+                    <label for="tesistatNo">Tesisat Numarası</label>
+                    <input type="text" id="tesistatNo" inputmode="numeric" placeholder="Tesisat numarasını girin" />
                 </div>
-                <div class="loading" id="sorgulaLoading">&#9203; Sorgulan&#305;yor...</div>
+                <div class="ys-field">
+                    <label for="sozlesmeNo">Sözleşme Numarası</label>
+                    <input type="text" id="sozlesmeNo" inputmode="numeric" placeholder="Sözleşme numarasını girin" />
+                </div>
+                <button type="button" class="df-btn df-btn-primary" onclick="tesistatSorgula()">
+                    <i class="bi bi-search" aria-hidden="true"></i> Sorgula
+                </button>
             </div>
+            <div class="ys-loading" id="sorgulaLoading" role="status">
+                <i class="bi bi-arrow-repeat" aria-hidden="true"></i> Tesisat bilgileri alınıyor...
+            </div>
+        </div>
+    </section>
 
-            <!-- Müşteri Bilgileri (Sorgulama sonrası açılır) -->
-            <div class="kart musteri-bilgi kart-musteri" id="musteriBilgiKart">
-                <div class="kart-baslik"><i class="bi bi-person-vcard" aria-hidden="true"></i>M&#252;&#351;teri & Tesisat Bilgileri</div>
-                <div class="bilgi-grid">
-                    <div class="bilgi-alan">
-                        <div class="bilgi-label">M&#252;&#351;teri Ad&#305;</div>
-                        <div class="bilgi-deger" id="b-musteriAdi"></div>
-                    </div>
-                    <div class="bilgi-alan">
-                        <div class="bilgi-label">Telefon</div>
-                        <div class="bilgi-deger" id="b-musteriTelefon"></div>
-                    </div>
-                    <div class="bilgi-alan">
-                        <div class="bilgi-label">Servis Cari Kod</div>
-                        <div class="bilgi-deger" id="b-aboneNo"></div>
-                    </div>
-                    <div class="bilgi-alan">
-                        <div class="bilgi-label">S&#246;zle&#351;me No</div>
-                        <div class="bilgi-deger" id="b-sozlesmeNo"></div>
-                    </div>
-                    <div class="bilgi-alan">
-                        <div class="bilgi-label">Saya&#231; No</div>
-                        <div class="bilgi-deger" id="b-sayacNo"></div>
-                    </div>
-                    <div class="bilgi-alan" style="grid-column:span 2">
-                        <div class="bilgi-label">Adres</div>
-                        <div class="bilgi-deger" id="b-adres"></div>
-                    </div>
-                    <div class="bilgi-alan">
-                        <div class="bilgi-label">Tesisat Durumu</div>
-                        <div class="bilgi-deger">
-                            <span class="uygunluk-badge" id="b-durum"></span>
-                        </div>
-                    </div>
-                    <div class="bilgi-alan" style="grid-column:span 3">
-                        <div class="bilgi-label">Servisten Gelen Cihazlar</div>
-                        <div class="bilgi-deger cihaz-listesi" id="b-cihazlar"></div>
-                    </div>
+    <section class="ys-panel is-cyan ys-hidden-panel" id="musteriBilgiKart" aria-labelledby="tesisatSonucBaslik">
+        <div class="ys-panel-head">
+            <div class="ys-panel-heading">
+                <span class="ys-section-icon"><i class="bi bi-house-check" aria-hidden="true"></i></span>
+                <div>
+                    <h2 class="ys-panel-title" id="tesisatSonucBaslik">Tesisat ve Cihaz Bilgileri</h2>
+                    <p class="ys-panel-subtitle">Doğrulanan bilgiler değiştirilemez; işleme alınacak cihazı seçin.</p>
                 </div>
             </div>
-
-            <!-- Marka Seçimi -->
-            <!-- Devreye Alma Formu -->
-            <div class="kart musteri-bilgi kart-form" id="formKart">
-                <div class="kart-baslik"><i class="bi bi-tools" aria-hidden="true"></i>Ad&#305;m 2  Devreye Alma Bilgileri</div>
-                <form method="post" action="/ys-devreyeal/kaydet" id="devreyeAlmaForm">
-                    @Html.AntiForgeryToken()
-
-                    <!-- Gizli alanlar -->
-                    <input type="hidden" name="TesistatNo" id="f-tesistatNo" />
-                    <input type="hidden" name="AboneNo" id="f-aboneNo" />
-                    <input type="hidden" name="UygunlukBelgeNo" id="f-uygunlukBelgeNo" />
-                    <input type="hidden" name="UygunlukTarihi" id="f-uygunlukTarihi" />
-                    <input type="hidden" name="MusteriAdi" id="f-musteriAdi" />
-                    <input type="hidden" name="MusteriTcNo" id="f-musteriTcNo" />
-                    <input type="hidden" name="MusteriTelefon" id="f-musteriTelefon" />
-                    <input type="hidden" name="Adres" id="f-adres" />
-                    <input type="hidden" name="MarkaId" id="f-markaid" />
-                    <input type="hidden" name="CihazMarka" id="f-cihazMarka" />
-
-                    <div class="form-grid">
-                        <div class="alan">
-                            <label>Cihaz Tipi *</label>
-                            <select name="CihazTipi" required>
-                                <option value="">-- Se&#231;iniz --</option>
-                                <option value="Kombi">Kombi</option>
-                                <option value="&#350;ofben">&#350;ofben</option>
-                                <option value="Ocak">Ocak</option>
-                                <option value="Firin">Firin</option>
-                                <option value="Kazan">Kazan</option>
-                                <option value="Diger">Di&#287;er</option>
-                            </select>
-                        </div>
-                        <div class="alan">
-                            <label>Cihaz Modeli *</label>
-                            <input type="text" name="CihazModeli" placeholder="Cihaz modeli" required />
-                        </div>
-                        <div class="alan">
-                            <label>Seri No *</label>
-                            <input type="text" name="SeriNo" placeholder="Seri numarasi" required />
-                        </div>
-                        <div class="alan">
-                            <label>Kapasite (kcal/h)</label>
-                            <input type="text" name="CihazKapasite" placeholder="&#214;rn: 24000" />
-                        </div>
-                        <div class="alan">
-                            <label>Teknisyen Ad&#305; Soyad&#305; *</label>
-                            <input type="text" name="TeknisyenAdi" placeholder="Ad Soyad" required />
-                        </div>
-                        <div class="alan">
-                            <label>Teknisyen Yetki Belgesi No *</label>
-                            <input type="text" name="TeknisyenYetkiBelgesiNo" placeholder="Yetki Belgesi No" required />
-                        </div>
-                        <div class="alan tam">
-                            <label>Notlar</label>
-                            <input type="text" name="Notlar" placeholder="Ek notlar..." />
-                        </div>
-                    </div>
-
-                    <div class="butonlar">
-                        <a class="btn-iiptal" href="/ys-panel">&#10006; &#304;ptal</a>
-                        <button type="submit" class="btn-kKaydet" id="btnKKaydet">
-                            &#9989; Devreye Almay&#305; Tamamla
-                        </button>
-                    </div>
-                </form>
+            <span class="df-pill df-pill-success" id="b-durum"></span>
+        </div>
+        <div class="ys-panel-body ys-result-layout">
+            <dl class="ys-fact-grid">
+                <div class="ys-fact"><dt>Müşteri</dt><dd id="b-musteriAdi"></dd></div>
+                <div class="ys-fact"><dt>Telefon</dt><dd id="b-musteriTelefon"></dd></div>
+                <div class="ys-fact"><dt>Servis Cari Kod</dt><dd id="b-aboneNo"></dd></div>
+                <div class="ys-fact"><dt>Sözleşme No</dt><dd id="b-sozlesmeNo"></dd></div>
+                <div class="ys-fact"><dt>Sayaç No</dt><dd id="b-sayacNo"></dd></div>
+                <div class="ys-fact is-wide"><dt>Adres</dt><dd id="b-adres"></dd></div>
+            </dl>
+            <div class="ys-device-picker">
+                <h3>Servisten Gelen Cihazlar</h3>
+                <p>Devreye alınacak cihazı seçin.</p>
+                <div class="ys-device-list" id="b-cihazlar"></div>
             </div>
+        </div>
+    </section>
+
+    <section class="ys-panel is-green ys-hidden-panel" id="formKart" aria-labelledby="devreyeFormBaslik">
+        <div class="ys-panel-head">
+            <div class="ys-panel-heading">
+                <span class="ys-section-icon"><i class="bi bi-clipboard2-check" aria-hidden="true"></i></span>
+                <div>
+                    <h2 class="ys-panel-title" id="devreyeFormBaslik">Devreye Alma Bilgileri</h2>
+                    <p class="ys-panel-subtitle">Seçilen cihaza ait model, seri ve teknisyen bilgilerini tamamlayın.</p>
+                </div>
+            </div>
+        </div>
+        <div class="ys-panel-body">
+            <form method="post" action="/ys-devreyeal/kaydet" id="devreyeAlmaForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="TesistatNo" id="f-tesistatNo" />
+                <input type="hidden" name="AboneNo" id="f-aboneNo" />
+                <input type="hidden" name="UygunlukBelgeNo" id="f-uygunlukBelgeNo" />
+                <input type="hidden" name="UygunlukTarihi" id="f-uygunlukTarihi" />
+                <input type="hidden" name="MusteriAdi" id="f-musteriAdi" />
+                <input type="hidden" name="MusteriTcNo" id="f-musteriTcNo" />
+                <input type="hidden" name="MusteriTelefon" id="f-musteriTelefon" />
+                <input type="hidden" name="Adres" id="f-adres" />
+                <input type="hidden" name="MarkaId" id="f-markaid" />
+                <input type="hidden" name="CihazMarka" id="f-cihazMarka" />
+
+                <div class="ys-form-grid is-three-column">
+                    <div class="ys-field">
+                        <label for="cihazTipi">Cihaz Tipi *</label>
+                        <select name="CihazTipi" id="cihazTipi" required>
+                            <option value="">Seçiniz</option>
+                            <option value="Kombi">Kombi</option>
+                            <option value="Şofben">Şofben</option>
+                            <option value="Ocak">Ocak</option>
+                            <option value="Firin">Fırın</option>
+                            <option value="Kazan">Kazan</option>
+                            <option value="Diger">Diğer</option>
+                        </select>
+                    </div>
+                    <div class="ys-field"><label for="cihazModeli">Cihaz Modeli *</label><input type="text" name="CihazModeli" id="cihazModeli" placeholder="Cihaz modeli" required /></div>
+                    <div class="ys-field"><label for="seriNo">Seri No *</label><input type="text" name="SeriNo" id="seriNo" placeholder="Seri numarası" required /></div>
+                    <div class="ys-field"><label for="cihazKapasite">Kapasite (kcal/h)</label><input type="text" name="CihazKapasite" id="cihazKapasite" placeholder="Örn. 24000" /></div>
+                    <div class="ys-field"><label for="teknisyenAdi">Teknisyen Adı Soyadı *</label><input type="text" name="TeknisyenAdi" id="teknisyenAdi" placeholder="Ad soyad" required /></div>
+                    <div class="ys-field"><label for="teknisyenBelgeNo">Teknisyen Yetki Belgesi No *</label><input type="text" name="TeknisyenYetkiBelgesiNo" id="teknisyenBelgeNo" placeholder="Yetki belgesi numarası" required /></div>
+                    <div class="ys-field is-wide"><label for="notlar">Notlar</label><input type="text" name="Notlar" id="notlar" placeholder="İşleme ilişkin gerekli not" /></div>
+                </div>
+
+                <div class="ys-actions" style="margin-top:12px">
+                    <a class="df-btn df-btn-secondary" href="/ys-panel"><i class="bi bi-x-lg" aria-hidden="true"></i> Vazgeç</a>
+                    <button type="submit" class="df-btn df-btn-success" id="btnKKaydet"><i class="bi bi-check2-circle" aria-hidden="true"></i> Devreye Almayı Tamamla</button>
+                </div>
+            </form>
+        </div>
+    </section>
 </div>
 
 <script>
@@ -270,18 +169,22 @@
         for (let i = 1; i <= 3; i++) {
             const adim = document.getElementById("adim" + i);
             if (!adim) continue;
-            adim.classList.remove("aktif");
-            adim.classList.remove("tamamlandi");
+            adim.classList.remove("aktif", "tamamlandi");
             if (i < aktif) adim.classList.add("tamamlandi");
             if (i === aktif) adim.classList.add("aktif");
         }
-
         for (let i = 1; i <= 2; i++) {
             const cizgi = document.getElementById("cizgi" + i);
-            if (!cizgi) continue;
-            if (i < aktif) cizgi.classList.add("tamamlandi");
-            else cizgi.classList.remove("tamamlandi");
+            if (cizgi) cizgi.classList.toggle("tamamlandi", i < aktif);
         }
+    }
+
+    function alanaGit(element) {
+        if (!element) return;
+        window.requestAnimationFrame(function () {
+            const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+            element.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
+        });
     }
 
     function temizleSonrakiAdimlar() {
@@ -291,7 +194,7 @@
         seciliMarkaAdi = "";
         servisCihazlari = [];
         seciliServisCihazIndex = -1;
-        document.querySelectorAll(".cihaz-secim").forEach(x => x.classList.remove("secili"));
+        document.querySelectorAll(".ys-device-option").forEach(x => x.classList.remove("secili"));
         setAdim(1);
     }
 
@@ -312,10 +215,10 @@
         seciliServisCihazIndex = -1;
         document.getElementById("f-markaid").value = "";
         document.getElementById("f-cihazMarka").value = "";
-        document.querySelectorAll(".cihaz-secim").forEach(x => x.classList.remove("secili"));
+        document.querySelectorAll(".ys-device-option").forEach(x => x.classList.remove("secili"));
         cihazAlanlariniTemizle();
         document.getElementById("formKart")?.classList.remove("goster");
-        setAdim(2);
+        setAdim(1);
     }
 
     async function tesistatSorgula() {
@@ -325,36 +228,21 @@
         const tesisatNo = (tesisatNoInput?.value || "").trim();
         const sozlesmeNo = (sozlesmeNoInput?.value || "").trim();
 
-        if (!tesisatNo) {
-            alert("Lütfen tesisat numarası giriniz.");
-            return;
-        }
-
-        if (!sozlesmeNo) {
-            alert("Lütfen sözleşme numarası giriniz.");
-            return;
-        }
+        if (!tesisatNo) { alert("Lütfen tesisat numarası giriniz."); tesisatNoInput?.focus(); return; }
+        if (!sozlesmeNo) { alert("Lütfen sözleşme numarası giriniz."); sozlesmeNoInput?.focus(); return; }
 
         temizleSonrakiAdimlar();
-        if (loading) loading.classList.add("goster");
-
+        loading?.classList.add("goster");
         try {
             const response = await fetch("/ys-devreyeal/tesisat-sorgula", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ tesistatNo: tesisatNo, sozlesmeNo: sozlesmeNo })
             });
-
-            if (!response.ok) {
-                alert("Sorgu sırasında bir hata oluştu.");
-                return;
-            }
+            if (!response.ok) { alert("Sorgu sırasında bir hata oluştu."); return; }
 
             const data = await response.json();
-            if (!data.basarili) {
-                alert(data.mesaj || "Tesisat sorgulaması başarısız.");
-                return;
-            }
+            if (!data.basarili) { alert(data.mesaj || "Tesisat sorgulaması başarısız."); return; }
 
             document.getElementById("b-musteriAdi").textContent = data.musteriAdi || "-";
             document.getElementById("b-musteriTelefon").textContent = data.musteriTelefon || "-";
@@ -362,7 +250,7 @@
             document.getElementById("b-sozlesmeNo").textContent = data.sozlesmeNo || sozlesmeNo || "-";
             document.getElementById("b-sayacNo").textContent = data.sayacNo || "-";
             document.getElementById("b-adres").textContent = data.adres || "-";
-            document.getElementById("b-durum").textContent = data.durum || "-";
+            document.getElementById("b-durum").textContent = data.durum || "Tesisat bulundu";
 
             const cihazlar = Array.isArray(data.cihazlar) ? data.cihazlar : [];
             servisCihazlari = cihazlar;
@@ -373,20 +261,14 @@
                     cihazListesi.textContent = "Cihaz bilgisi bulunamadı.";
                 } else {
                     cihazlar.forEach(function (cihaz, index) {
-                        const marka = cihaz.cihazMarka || "-";
-                        const tip = cihaz.cihazTipi || "-";
-                        const kapasite = cihaz.cihazKapasite || "-";
                         const satir = document.createElement("div");
-                        satir.className = "cihaz-satir cihaz-secim";
+                        satir.className = "ys-device-option";
                         satir.setAttribute("role", "button");
                         satir.setAttribute("tabindex", "0");
-                        satir.textContent = marka + " / " + tip + " / " + kapasite + " kcal";
+                        satir.textContent = (cihaz.cihazMarka || "-") + " / " + (cihaz.cihazTipi || "-") + " / " + (cihaz.cihazKapasite || "-") + " kcal/h";
                         satir.addEventListener("click", function () { cihazSec(index); });
                         satir.addEventListener("keydown", function (event) {
-                            if (event.key === "Enter" || event.key === " ") {
-                                event.preventDefault();
-                                cihazSec(index);
-                            }
+                            if (event.key === "Enter" || event.key === " ") { event.preventDefault(); cihazSec(index); }
                         });
                         cihazListesi.appendChild(satir);
                     });
@@ -402,54 +284,43 @@
             document.getElementById("f-musteriTelefon").value = data.musteriTelefon || "";
             document.getElementById("f-adres").value = data.adres || "";
 
-            document.getElementById("musteriBilgiKart")?.classList.add("goster");
-            setAdim(2);
-        } catch (e) {
+            const sonuc = document.getElementById("musteriBilgiKart");
+            sonuc?.classList.add("goster");
+            setAdim(1);
+            alanaGit(sonuc);
+        } catch {
             alert("Bağlantı hatası oluştu. Lütfen tekrar deneyiniz.");
         } finally {
-            if (loading) loading.classList.remove("goster");
+            loading?.classList.remove("goster");
         }
     }
 
     async function cihazSec(index) {
         const cihaz = servisCihazlari[index];
         if (!cihaz) return;
-
-        if (seciliServisCihazIndex === index) {
-            secimleriTemizle();
-            return;
-        }
+        if (seciliServisCihazIndex === index) { secimleriTemizle(); return; }
 
         seciliServisCihazIndex = index;
-        document.querySelectorAll(".cihaz-secim").forEach(function (satir, satirIndex) {
+        document.querySelectorAll(".ys-device-option").forEach(function (satir, satirIndex) {
             satir.classList.toggle("secili", satirIndex === index);
         });
 
-        const cihazTipi = cihaz.cihazTipi || "";
         const tipSelect = document.querySelector('select[name="CihazTipi"]');
-        if (tipSelect && cihazTipi) {
-            const secenek = Array.from(tipSelect.options).find(function (option) {
-                return option.value.toLocaleLowerCase("tr-TR") === cihazTipi.toLocaleLowerCase("tr-TR");
-            });
+        if (tipSelect && cihaz.cihazTipi) {
+            const secenek = Array.from(tipSelect.options).find(option => option.value.toLocaleLowerCase("tr-TR") === cihaz.cihazTipi.toLocaleLowerCase("tr-TR"));
             if (secenek) tipSelect.value = secenek.value;
         }
-
         const kapasiteInput = document.querySelector('input[name="CihazKapasite"]');
         if (kapasiteInput) kapasiteInput.value = cihaz.cihazKapasite || "";
-
         const modelInput = document.querySelector('input[name="CihazModeli"]');
         if (modelInput && cihaz.cihazModeli) modelInput.value = cihaz.cihazModeli;
-
         document.getElementById("f-cihazMarka").value = cihaz.cihazMarka || "";
         await markaKontrolEt(cihaz);
     }
 
     async function markaKontrolEt(cihaz) {
         const tesistatNo = (document.getElementById("f-tesistatNo")?.value || "").trim();
-        if (!tesistatNo) {
-            alert("Önce tesisat sorgulaması yapınız.");
-            return;
-        }
+        if (!tesistatNo) { alert("Önce tesisat sorgulaması yapınız."); return; }
 
         try {
             const response = await fetch("/ys-devreyeal/marka-kontrol", {
@@ -457,39 +328,31 @@
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ cihazMarka: cihaz?.cihazMarka || "" })
             });
-
-            if (!response.ok) {
-                alert("Marka kontrolü sırasında hata oluştu.");
-                return;
-            }
+            if (!response.ok) { alert("Marka kontrolü sırasında hata oluştu."); return; }
 
             const data = await response.json();
-            if (!data.yetkili) {
-                secimleriTemizle();
-                alert(data.mesaj || "Bu marka için yetkiniz bulunmamaktadır.");
-                return;
-            }
+            if (!data.yetkili) { secimleriTemizle(); alert(data.mesaj || "Bu marka için yetkiniz bulunmamaktadır."); return; }
 
             seciliMarkaId = data.markaId || 0;
             seciliMarkaAdi = data.markaAdi || cihaz?.cihazMarka || "";
             document.getElementById("f-markaid").value = String(seciliMarkaId);
             document.getElementById("f-cihazMarka").value = seciliMarkaAdi;
-
-            document.getElementById("formKart")?.classList.add("goster");
+            const formKart = document.getElementById("formKart");
+            formKart?.classList.add("goster");
             setAdim(2);
-        } catch (e) {
+            alanaGit(formKart);
+            window.setTimeout(function () {
+                document.getElementById("cihazModeli")?.focus({ preventScroll: false });
+            }, 180);
+        } catch {
             alert("Bağlantı hatası oluştu. Lütfen tekrar deneyiniz.");
         }
     }
 
-    document.getElementById("devreyeAlmaForm")?.addEventListener("submit", function (e) {
-        if (!document.getElementById("f-tesistatNo").value) {
-            e.preventDefault();
-            alert("Önce tesisat sorgulaması yapınız.");
-            return;
-        }
+    document.getElementById("devreyeAlmaForm")?.addEventListener("submit", function (event) {
+        if (!document.getElementById("f-tesistatNo").value) { event.preventDefault(); alert("Önce tesisat sorgulaması yapınız."); return; }
         if (!document.getElementById("f-markaid").value || !document.getElementById("f-cihazMarka").value) {
-            e.preventDefault();
+            event.preventDefault();
             alert("Lütfen servisten gelen cihazlardan birini seçiniz.");
             return;
         }

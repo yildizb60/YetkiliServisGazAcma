@@ -1,17 +1,22 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using System.Globalization;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
 
 namespace YetkiliServisGazAcma.Business.Services
 {
-    public class YkcTalepService
+    public partial class YkcTalepService
     {
         private readonly AppDbContext _context;
+        private readonly YkcSorguKaydiService? _sorguKayitlari;
+        private readonly YkcPlanlamaOptions _planlama;
 
-        public YkcTalepService(AppDbContext context)
+        public YkcTalepService(AppDbContext context, YkcSorguKaydiService? sorguKayitlari = null, IOptions<YkcPlanlamaOptions>? planlama = null)
         {
             _context = context;
+            _sorguKayitlari = sorguKayitlari;
+            _planlama = planlama?.Value ?? new YkcPlanlamaOptions();
         }
 
         public async Task<YkcTalepListeSonuc> ListeAsync(
@@ -40,7 +45,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 Toplam = toplam,
                 Sayfa = sayfa,
                 SayfaBoyutu = sayfaBoyutu,
-                Talepler = talepler.Select(YkcTalepDto.FromEntity).ToList()
+                Talepler = talepler.Select(x => ListeGorunumu(x, kullanici)).ToList()
             };
         }
 
@@ -114,8 +119,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 x.Durum == YkcDurumDegerleri.AtamaBekliyor);
             var randevuSaha = await query.CountAsync(x =>
                 x.Durum == YkcDurumDegerleri.Atandi ||
-                x.Durum == YkcDurumDegerleri.SahaIsleminde ||
-                x.RandevuTarihi.HasValue);
+                x.Durum == YkcDurumDegerleri.SahaIsleminde);
             var tamamlanan = await query.CountAsync(x => x.Durum == YkcDurumDegerleri.Tamamlandi);
             var imzaliNihai = await query.CountAsync(x =>
                 x.ImzaSurecleri.Any(s =>
@@ -154,7 +158,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 ImzaliNihai = imzaliNihai,
                 ImzaBekleyen = imzaBekleyen,
                 RedIptal = redIptal,
-                SonTalepler = sonTalepler.Select(YkcTalepDto.FromEntity).ToList()
+                SonTalepler = sonTalepler.Select(x => ListeGorunumu(x, kullanici)).ToList()
             };
         }
 
@@ -167,6 +171,14 @@ namespace YetkiliServisGazAcma.Business.Services
                 return null;
 
             var dto = YkcTalepDetayDto.FromEntity(talep);
+            var kontrolcuIdleri = dto.Kontroller.Where(x => x.KontrolEdenKullaniciId != null)
+                .Select(x => x.KontrolEdenKullaniciId!).Distinct().ToList();
+            var kontrolcuAdlari = await _context.Users.AsNoTracking()
+                .Where(x => kontrolcuIdleri.Contains(x.Id))
+                .ToDictionaryAsync(x => x.Id, x => x.AdSoyad);
+            foreach (var kontrol in dto.Kontroller)
+                if (kontrol.KontrolEdenKullaniciId != null && kontrolcuAdlari.TryGetValue(kontrol.KontrolEdenKullaniciId, out var ad))
+                    kontrol.KontrolEdenAdi = ad;
             var sonKontrol = talep.Kontroller
                 .Where(x => !x.SilindiMi && !string.IsNullOrWhiteSpace(x.KontrolEdenKullaniciId))
                 .OrderByDescending(x => x.KontrolTarihi ?? x.OlusturmaTarihi)
@@ -198,6 +210,10 @@ namespace YetkiliServisGazAcma.Business.Services
 
         public async Task<YkcIslemSonuc> OlusturAsync(YkcTalepKaydetDto dto, AppKullanici kullanici)
         {
+            if (_sorguKayitlari?.Uygula(kullanici.Id, dto) != true)
+                return YkcIslemSonuc.HataliSonuc("Tesisatı yeniden sorgulayıp değiştirilecek cihazı seçin. Sorgu kaydının süresi dolmuş olabilir.");
+            if (!dto.SirketId.HasValue || !dto.FirmaId.HasValue)
+                return YkcIslemSonuc.HataliSonuc("Talep oluşturmak için aktif şirket ve sertifikalı firma kaydı gerekir.");
             var kontrol = TalepDogrula(dto);
             if (!kontrol.Basarili)
                 return kontrol;
@@ -254,14 +270,13 @@ namespace YetkiliServisGazAcma.Business.Services
             };
 
             _context.Ykc_Talepler.Add(talep);
-            await _context.SaveChangesAsync();
 
             VarsayilanKontrollerEkle(talep, kullanici);
             ImzaSureciHazirla(talep, kullanici, firma?.YetkiliKisi);
 
             _context.Ykc_IslemGecmisi.Add(new Ykc_IslemGecmisi
             {
-                TalepId = talep.Id,
+                Talep = talep,
                 IslemTipi = "TalepOlusturuldu",
                 YeniDurum = talep.Durum,
                 Aciklama = "Cihaz değişim talebi oluşturuldu.",
@@ -279,7 +294,11 @@ namespace YetkiliServisGazAcma.Business.Services
             YkcAtamaKaydetDto dto,
             AppKullanici kullanici,
             bool genelYetkili)
+            => await _context.Database.CreateExecutionStrategy().ExecuteAsync(() => AtamaKaydetAsync(dto, kullanici, genelYetkili));
+
+        private async Task<YkcIslemSonuc> AtamaKaydetAsync(YkcAtamaKaydetDto dto, AppKullanici kullanici, bool genelYetkili)
         {
+            await using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
             var talep = await YetkiKapsamiUygula(_context.Ykc_Talepler.Where(x => !x.SilindiMi), kullanici, genelYetkili)
                 .FirstOrDefaultAsync(x => x.Id == dto.TalepId);
 
@@ -326,7 +345,47 @@ namespace YetkiliServisGazAcma.Business.Services
 
             var eskiDurum = talep.Durum;
             var hedef = HedefUygulamaBelirle(yonlendirmeTipi);
-            var ekipAdi = YkcBolgeAtamaKurali.EkipAdi(bolge, hedef == YkcHedefUygulamaDegerleri.Crm187);
+            var ekipAdi = hedef == YkcHedefUygulamaDegerleri.Crm187 ? "187 Acil" : "Mühendis";
+
+            if (!string.IsNullOrWhiteSpace(dto.EkipId))
+            {
+                var ekip = (await EkiplerAsync(talep.Id, kullanici, genelYetkili))
+                    .SingleOrDefault(x => x.Id == dto.EkipId);
+                if (ekip == null)
+                    return YkcIslemSonuc.HataliSonuc("Seçilen ekip bu şirket, il ve tesisat bölgesine atanamaz.");
+                if (YonlendirmeTipiBelirle(new YkcAtamaKaydetDto { AtananKullaniciTipi = ekip.YonlendirmeTipi }) != yonlendirmeTipi)
+                    return YkcIslemSonuc.HataliSonuc("Ekip ile yönlendirme türü eşleşmiyor.");
+                dto.AtananKullaniciId = ekip.KullaniciId;
+                ekipAdi = ekip.Ad;
+            }
+            else
+            {
+                if (!string.IsNullOrWhiteSpace(dto.AtananKullaniciId))
+                    return YkcIslemSonuc.HataliSonuc("Personel yalnızca bölgeye tanımlı ekip listesinden atanabilir.");
+                ekipAdi = hedef == YkcHedefUygulamaDegerleri.Crm187 ? "187 Acil" : "Mühendis";
+            }
+            if (!string.IsNullOrWhiteSpace(dto.AtananKullaniciId)
+                && !await _context.Users.AnyAsync(x => x.Id == dto.AtananKullaniciId && x.AktifMi
+                    && x.FirmaId == null && (x.SirketId == talep.SirketId || _context.Dag_PersonelYetkiler.Any(p =>
+                        !p.SilindiMi && p.KullaniciId == x.Id && p.SirketId == talep.SirketId))))
+                return YkcIslemSonuc.HataliSonuc("Personelin bu şirkette aktif görevi bulunmuyor.");
+
+            if (!TimeSpan.TryParseExact(dto.RandevuSaati, @"hh\:mm", CultureInfo.InvariantCulture, out var saat))
+                return YkcIslemSonuc.HataliSonuc("Randevu saati SS:dd biçiminde olmalıdır.");
+            var randevu = dto.RandevuTarihi.Value.Date.Add(saat);
+            var gunBas = randevu.Date.AddDays(-1);
+            var gunSon = randevu.Date.AddDays(2);
+            var digerleri = await _context.Ykc_Talepler.AsNoTracking()
+                .Where(x => !x.SilindiMi && x.Id != talep.Id
+                    && x.Durum != YkcDurumDegerleri.Iptal && x.Durum != YkcDurumDegerleri.Reddedildi
+                    && x.RandevuTarihi >= gunBas && x.RandevuTarihi < gunSon
+                    && ((!string.IsNullOrEmpty(dto.AtananKullaniciId) && x.AtananKullaniciId == dto.AtananKullaniciId)
+                        || (x.SirketId == talep.SirketId && x.Bolge == bolge && x.AtananEkip == ekipAdi)))
+                .Select(x => new { x.RandevuTarihi, x.RandevuSaati }).ToListAsync();
+            if (digerleri.Any(x => TimeSpan.TryParse(x.RandevuSaati, out var digerSaat)
+                && YkcRandevuKurali.Cakisiyor(randevu, x.RandevuTarihi!.Value.Date.Add(digerSaat), _planlama.AsgariAralikDakika)))
+                return YkcIslemSonuc.HataliSonuc("Bu personel/ekip için seçilen saatte başka randevu var. Farklı bir saat seçin.");
+            dto.RandevuTarihi = randevu.Date;
 
             talep.AtananKullaniciId = dto.AtananKullaniciId;
             talep.AtananKullaniciTipi = yonlendirmeTipi;
@@ -371,6 +430,7 @@ namespace YetkiliServisGazAcma.Business.Services
             });
 
             await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
             return YkcIslemSonuc.BasariliSonuc("Cihaz değişim talebi için randevu ve atama kaydedildi.", talep.Id);
         }
 
@@ -394,6 +454,9 @@ namespace YetkiliServisGazAcma.Business.Services
             var eskiDurum = talep.Durum;
             if (eskiDurum == dto.Durum)
                 return YkcIslemSonuc.BasariliSonuc("Talep zaten secilen durumda.", talep.Id);
+
+            if (dto.Durum == YkcDurumDegerleri.SahaIsleminde && !RandevuZamaniGeldiMi(talep.RandevuTarihi, talep.RandevuSaati))
+                return YkcIslemSonuc.HataliSonuc("Randevu zamanı gelmeden saha kontrolü başlatılamaz.");
 
             var imzaliNihaiBelgeVar = await ImzaliNihaiBelgeVarMiAsync(talep.Id);
 
@@ -672,7 +735,7 @@ namespace YetkiliServisGazAcma.Business.Services
             {
                 var kontrol = new Ykc_Fr265Kontrol
                 {
-                    TalepId = talep.Id,
+                    Talep = talep,
                     KontrolNo = kontrolNo,
                     Sonuc = YkcFr265KontrolSonucDegerleri.Bekliyor,
                     OlusturmaTarihi = DateTime.Now,
@@ -680,7 +743,6 @@ namespace YetkiliServisGazAcma.Business.Services
                 };
 
                 _context.Ykc_Fr265Kontroller.Add(kontrol);
-                talep.Kontroller.Add(kontrol);
             }
         }
 
@@ -688,7 +750,7 @@ namespace YetkiliServisGazAcma.Business.Services
         {
             var surec = new Ykc_ImzaSureci
             {
-                TalepId = talep.Id,
+                Talep = talep,
                 BelgeVersiyonu = talep.Fr265BelgeVersiyonNo <= 0 ? 1 : talep.Fr265BelgeVersiyonNo,
                 Durum = YkcImzaDurumDegerleri.Hazir,
                 OlusturmaTarihi = DateTime.Now,
@@ -820,6 +882,9 @@ namespace YetkiliServisGazAcma.Business.Services
             var sirketId = PozitifId(filtre.SirketId);
             var firmaId = PozitifId(filtre.FirmaId);
             var tesisatNo = FiltreMetni(filtre.TesisatNo);
+            var musteriAdi = FiltreMetni(filtre.MusteriAdi);
+            var sozlesmeNo = FiltreMetni(filtre.SozlesmeNo);
+            var aboneNo = FiltreMetni(filtre.AboneNo);
             var firma = FiltreMetni(filtre.Firma);
             var il = FiltreMetni(filtre.Il);
             var ilce = FiltreMetni(filtre.Ilce);
@@ -839,6 +904,15 @@ namespace YetkiliServisGazAcma.Business.Services
 
             if (!string.IsNullOrWhiteSpace(tesisatNo))
                 query = query.Where(x => x.TesisatNo != null && x.TesisatNo.Contains(tesisatNo));
+
+            if (!string.IsNullOrWhiteSpace(musteriAdi))
+                query = query.Where(x => x.MusteriAdi != null && x.MusteriAdi.Contains(musteriAdi));
+
+            if (!string.IsNullOrWhiteSpace(sozlesmeNo))
+                query = query.Where(x => x.SozlesmeNo != null && x.SozlesmeNo.Contains(sozlesmeNo));
+
+            if (!string.IsNullOrWhiteSpace(aboneNo))
+                query = query.Where(x => x.AboneNo != null && x.AboneNo.Contains(aboneNo));
 
             if (!string.IsNullOrWhiteSpace(firma))
                 query = query.Where(x => x.Firma != null && x.Firma.FirmaAdi != null && x.Firma.FirmaAdi.Contains(firma));
@@ -895,6 +969,9 @@ namespace YetkiliServisGazAcma.Business.Services
             var metinlerdeOrnekVar = new[]
             {
                 filtre.TesisatNo,
+                filtre.MusteriAdi,
+                filtre.SozlesmeNo,
+                filtre.AboneNo,
                 filtre.Firma,
                 filtre.Il,
                 filtre.Ilce,
@@ -929,6 +1006,18 @@ namespace YetkiliServisGazAcma.Business.Services
             return query.Where(x => false);
         }
 
+        private static YkcTalepDto ListeGorunumu(Ykc_Talep talep, AppKullanici kullanici)
+        {
+            var dto = YkcTalepDto.FromEntity(talep);
+            if (kullanici.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma)
+            {
+                dto.EskiCihaz = null;
+                dto.AtananEkip = null;
+                dto.HedefUygulama = null;
+            }
+            return dto;
+        }
+
         private static YkcIslemSonuc TalepDogrula(YkcTalepKaydetDto dto)
         {
             if (string.IsNullOrWhiteSpace(dto.TesisatNo))
@@ -948,6 +1037,13 @@ namespace YetkiliServisGazAcma.Business.Services
 
             if (string.IsNullOrWhiteSpace(dto.YeniKapasite))
                 return YkcIslemSonuc.HataliSonuc("Yeni kapasite zorunludur.");
+
+            if (!YkcCihazUyumKurali.Kapasite(dto.YeniKapasite, out _))
+                return YkcIslemSonuc.HataliSonuc("Kapasite sıfırdan büyük bir sayı olmalıdır.");
+            if (new[] { dto.YeniCihazTipi, dto.YeniMarka, dto.YeniBacaTipi }.Any(x => x?.Length > 100))
+                return YkcIslemSonuc.HataliSonuc("Cihaz tipi, marka ve baca tipi en fazla 100 karakter olabilir.");
+            if (!dto.IkinciElCihazMi.HasValue)
+                return YkcIslemSonuc.HataliSonuc("İkinci el cihaz bilgisini seçin.");
 
             if (PlaceholderDegerVar(
                     dto.TesisatNo,
@@ -1056,6 +1152,9 @@ namespace YetkiliServisGazAcma.Business.Services
         public int? SirketId { get; set; }
         public int? FirmaId { get; set; }
         public string? TesisatNo { get; set; }
+        public string? MusteriAdi { get; set; }
+        public string? SozlesmeNo { get; set; }
+        public string? AboneNo { get; set; }
         public string? Firma { get; set; }
         public string? Il { get; set; }
         public string? Ilce { get; set; }
@@ -1117,6 +1216,7 @@ namespace YetkiliServisGazAcma.Business.Services
 
     public class YkcTalepKaydetDto
     {
+        public string? SorguReferansi { get; set; }
         public int? FirmaId { get; set; }
         public int? SirketId { get; set; }
         public string? Vkn { get; set; }
@@ -1201,6 +1301,7 @@ namespace YetkiliServisGazAcma.Business.Services
 
     public class YkcTesisatCihazDto
     {
+        public string? SorguReferansi { get; set; }
         public string? CihazKapasite { get; set; }
         public string? CihazMarka { get; set; }
         public string? CihazTipi { get; set; }
@@ -1211,6 +1312,7 @@ namespace YetkiliServisGazAcma.Business.Services
 
     public class YkcAtamaKaydetDto
     {
+        public string? EkipId { get; set; }
         public int TalepId { get; set; }
         public string? AtananKullaniciId { get; set; }
         public string? AtananKullaniciTipi { get; set; }
@@ -1279,6 +1381,8 @@ namespace YetkiliServisGazAcma.Business.Services
         public string? FirmaAdi { get; set; }
         public string? SirketAdi { get; set; }
         public string? TesisatNo { get; set; }
+        public string? SozlesmeNo { get; set; }
+        public string? AboneNo { get; set; }
         public string? ProjeNo { get; set; }
         public string? MusteriAdi { get; set; }
         public string? Il { get; set; }
@@ -1302,6 +1406,8 @@ namespace YetkiliServisGazAcma.Business.Services
                 FirmaAdi = talep.Firma?.FirmaAdi,
                 SirketAdi = talep.Sirket?.SirketAdi,
                 TesisatNo = talep.TesisatNo,
+                SozlesmeNo = talep.SozlesmeNo,
+                AboneNo = talep.AboneNo,
                 ProjeNo = talep.ProjeNo,
                 MusteriAdi = talep.MusteriAdi,
                 Il = talep.Il,
@@ -1413,8 +1519,6 @@ namespace YetkiliServisGazAcma.Business.Services
 
     public class YkcTalepDetayDto : YkcTalepDto
     {
-        public string? SozlesmeNo { get; set; }
-        public string? AboneNo { get; set; }
         public string? SayacNo { get; set; }
         public string? MusteriTelefon { get; set; }
         public string? Adres { get; set; }
@@ -1606,6 +1710,7 @@ namespace YetkiliServisGazAcma.Business.Services
         public string Sonuc { get; set; } = YkcFr265KontrolSonucDegerleri.Bekliyor;
         public string? Aciklama { get; set; }
         public string? KontrolEdenKullaniciId { get; set; }
+        public string? KontrolEdenAdi { get; set; }
         public DateTime? KontrolTarihi { get; set; }
 
         public static YkcFr265KontrolDto FromEntity(Ykc_Fr265Kontrol kontrol)

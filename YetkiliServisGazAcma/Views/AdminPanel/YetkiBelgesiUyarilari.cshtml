@@ -9,167 +9,92 @@
     var gecmis = ViewBag.Gecmis as List<YetkiliServisGazAcma.Entities.Ys_YetkiBelgesi> ?? new();
 }
 
-@section Styles {
-    <style>
-        .warning-stack {
-            display: grid;
-            gap: 16px;
-        }
-
-        .warning-summary {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 12px;
-        }
-
-        .warning-kpi {
-            background: var(--df-surface);
-            border: 1px solid var(--df-border);
-            border-radius: var(--df-radius);
-            box-shadow: var(--df-shadow-soft);
-            padding: 16px;
-        }
-
-        .warning-kpi-label {
-            color: var(--df-muted);
-            font-size: 12px;
-            font-weight: 700;
-        }
-
-        .warning-kpi-value {
-            color: var(--df-text-soft);
-            font-size: 28px;
-            font-weight: 800;
-            margin-top: 5px;
-        }
-
-        .warning-panel-accent {
-            border-left: 4px solid var(--df-warning);
-        }
-
-        .danger-panel-accent {
-            border-left: 4px solid var(--df-danger);
-        }
-
-        .warning-row-soon td {
-            background: var(--df-warning-soft);
-        }
-
-        .warning-row-expired td {
-            background: var(--df-danger-soft);
-        }
-
-        @@media (max-width: 860px) {
-            .warning-summary {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
-}
-
-<div class="warning-stack">
-    <div class="warning-summary">
-        <div class="warning-kpi">
-            <div class="warning-kpi-label">30 g&#252;n i&#231;inde bitecek</div>
-            <div class="warning-kpi-value">@yaklasan.Count</div>
-        </div>
-        <div class="warning-kpi">
-            <div class="warning-kpi-label">S&#252;resi dolan</div>
-            <div class="warning-kpi-value">@gecmis.Count</div>
-        </div>
-    </div>
-
-    <section class="df-page-panel warning-panel-accent">
+<div class="df-admin-workspace df-warning-workspace">
+    <section class="df-page-panel df-admin-hero">
         <div class="df-panel-head">
             <div>
-                <h2 class="df-panel-title">30 G&#252;n &#304;&#231;inde Bitenler</h2>
-                <div class="df-panel-subtitle">Yak&#305;n tarihte bitecek yetki belgeleri</div>
+                <div class="df-panel-kicker"><i class="bi bi-calendar2-exclamation"></i> BELGE TAKİBİ</div>
+                <h2 class="df-panel-title">Yetki Belgesi Bitiş Uyarıları</h2>
+                <div class="df-panel-subtitle">Süresi yaklaşan ve dolan belgeleri aynı çalışma alanından takip edin.</div>
             </div>
-            <span class="badge b-yellow">Dikkat</span>
+            <div class="df-warning-metrics" aria-label="Belge uyarı özeti">
+                <div class="df-warning-metric is-soon">
+                    <i class="bi bi-hourglass-split"></i>
+                    <span>30 gün içinde</span>
+                    <strong>@yaklasan.Count</strong>
+                </div>
+                <div class="df-warning-metric is-expired">
+                    <i class="bi bi-exclamation-octagon"></i>
+                    <span>Süresi dolan</span>
+                    <strong>@gecmis.Count</strong>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="df-admin-list-card df-warning-list is-soon">
+        <div class="df-service-list-head">
+            <div>
+                <h3><i class="bi bi-clock-history"></i> 30 Gün İçinde Bitenler</h3>
+                <span>Öncelikli yenileme gerektiren @yaklasan.Count belge</span>
+            </div>
+            <span class="df-pill df-pill-warning">Yaklaşan</span>
         </div>
 
         @if (yaklasan.Count == 0)
         {
-            <div class="df-empty">
-                <div class="df-empty-title">Yak&#305;n tarihte biten belge yok</div>
-                <div class="df-empty-text">S&#252;resi yakla&#351;an yetki belgeleri burada listelenecek.</div>
-            </div>
+            <div class="df-admin-empty">Yakın tarihte süresi bitecek belge bulunmuyor.</div>
         }
         else
         {
-            <div class="df-table-wrap">
+            <div class="df-admin-table-scroll">
                 <table class="df-table">
-                    <thead>
-                        <tr>
-                            <th>Firma</th>
-                            <th>&#350;irket</th>
-                            <th>Biti&#351;</th>
-                            <th>Kalan</th>
-                        </tr>
-                    </thead>
+                    <thead><tr><th>Firma</th><th>Şirket</th><th>Bitiş Tarihi</th><th>Kalan Süre</th></tr></thead>
                     <tbody>
-                        @foreach (var s in yaklasan)
-                        {
-                            var kalanGun = (s.YetkiBelgesiBitisTarihi.Date - DateTime.Now.Date).Days;
-                            <tr class="@(kalanGun <= 7 ? "warning-row-soon" : "")">
-                                <td>
-                                    <div class="df-cell-main">@(s.Firma?.FirmaAdi ?? "-")</div>
-                                </td>
-                                <td>
-                                    <div class="df-cell-sub">@(s.Firma?.Sirket?.SirketAdi ?? "-")</div>
-                                </td>
-                                <td>@s.YetkiBelgesiBitisTarihi.ToString("dd.MM.yyyy")</td>
-                                <td><span class="badge b-yellow">@kalanGun g&#252;n</span></td>
-                            </tr>
-                        }
+                    @foreach (var s in yaklasan)
+                    {
+                        var kalanGun = (s.YetkiBelgesiBitisTarihi.Date - DateTime.Now.Date).Days;
+                        <tr class="@(kalanGun <= 7 ? "df-warning-row-critical" : "")">
+                            <td><div class="df-cell-main">@(s.Firma?.FirmaAdi ?? "-")</div></td>
+                            <td><div class="df-cell-sub">@(s.Firma?.Sirket?.SirketAdi ?? "-")</div></td>
+                            <td>@s.YetkiBelgesiBitisTarihi.ToString("dd.MM.yyyy")</td>
+                            <td><span class="df-pill df-pill-warning">@kalanGun gün</span></td>
+                        </tr>
+                    }
                     </tbody>
                 </table>
             </div>
         }
     </section>
 
-    <section class="df-page-panel danger-panel-accent">
-        <div class="df-panel-head">
+    <section class="df-admin-list-card df-warning-list is-expired">
+        <div class="df-service-list-head">
             <div>
-                <h2 class="df-panel-title">S&#252;resi Dolanlar</h2>
-                <div class="df-panel-subtitle">Yetki belgesi ge&#231;erlili&#287;i bitmi&#351; kay&#305;tlar</div>
+                <h3><i class="bi bi-calendar-x"></i> Süresi Dolanlar</h3>
+                <span>Yenilenmesi gereken @gecmis.Count belge</span>
             </div>
-            <span class="badge b-red">Kritik</span>
+            <span class="df-pill df-pill-danger">Süresi Doldu</span>
         </div>
 
         @if (gecmis.Count == 0)
         {
-            <div class="df-empty">
-                <div class="df-empty-title">S&#252;resi dolan belge yok</div>
-                <div class="df-empty-text">Ge&#231;erlili&#287;i biten belgeler burada listelenecek.</div>
-            </div>
+            <div class="df-admin-empty">Süresi dolan yetki belgesi bulunmuyor.</div>
         }
         else
         {
-            <div class="df-table-wrap">
+            <div class="df-admin-table-scroll">
                 <table class="df-table">
-                    <thead>
-                        <tr>
-                            <th>Firma</th>
-                            <th>&#350;irket</th>
-                            <th>Biti&#351;</th>
-                            <th>Durum</th>
-                        </tr>
-                    </thead>
+                    <thead><tr><th>Firma</th><th>Şirket</th><th>Bitiş Tarihi</th><th>Durum</th></tr></thead>
                     <tbody>
-                        @foreach (var s in gecmis)
-                        {
-                            <tr class="warning-row-expired">
-                                <td>
-                                    <div class="df-cell-main">@(s.Firma?.FirmaAdi ?? "-")</div>
-                                </td>
-                                <td>
-                                    <div class="df-cell-sub">@(s.Firma?.Sirket?.SirketAdi ?? "-")</div>
-                                </td>
-                                <td>@s.YetkiBelgesiBitisTarihi.ToString("dd.MM.yyyy")</td>
-                                <td><span class="badge b-red">S&#252;resi Doldu</span></td>
-                            </tr>
-                        }
+                    @foreach (var s in gecmis)
+                    {
+                        <tr>
+                            <td><div class="df-cell-main">@(s.Firma?.FirmaAdi ?? "-")</div></td>
+                            <td><div class="df-cell-sub">@(s.Firma?.Sirket?.SirketAdi ?? "-")</div></td>
+                            <td>@s.YetkiBelgesiBitisTarihi.ToString("dd.MM.yyyy")</td>
+                            <td><span class="df-pill df-pill-danger">Süresi Doldu</span></td>
+                        </tr>
+                    }
                     </tbody>
                 </table>
             </div>

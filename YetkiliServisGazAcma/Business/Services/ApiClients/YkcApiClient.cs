@@ -79,13 +79,14 @@ namespace YetkiliServisGazAcma.Business.Services
                 "Cihaz değişim CRM187 talep listesi");
         }
 
-        public Task<YkcTalepDetayDto?> DetayAsync(AppKullanici kullanici, int id)
+        public Task<YkcTalepDetayDto?> DetayAsync(AppKullanici kullanici, int id, bool formVerisi = false)
         {
             return PostAsync<YkcTalepGetirIstek, YkcTalepDetayDto>(
                 kullanici,
-                "api/ykc/talepler/getir",
+                formVerisi ? "api/ykc/talepler/form-verisi" : "api/ykc/talepler/getir",
                 new YkcTalepGetirIstek { Id = id },
-                "Cihaz değişim talep detay");
+                "Cihaz değişim talep detay",
+                retryTransient: true);
         }
 
         public Task<YkcTesisatSorguSonuc?> TesisatSorgulaAsync(AppKullanici kullanici, YkcTesisatSorguIstek istek)
@@ -96,6 +97,12 @@ namespace YetkiliServisGazAcma.Business.Services
                 istek,
                 "Cihaz degisim tesisat sorgula");
         }
+
+        public Task<YkcTakvimSonuc?> TakvimAsync(AppKullanici kullanici, YkcTakvimFiltre filtre)
+            => PostAsync<YkcTakvimFiltre, YkcTakvimSonuc>(kullanici, "api/ykc/takvim", filtre, "Randevu takvimi", retryTransient: true);
+
+        public Task<List<YkcEkipSecenegi>?> EkiplerAsync(AppKullanici kullanici, int id)
+            => PostAsync<object, List<YkcEkipSecenegi>>(kullanici, "api/ykc/talepler/ekipler", new { Id = id }, "Bölge ekipleri");
 
         public Task<ApiDosyaSonuc?> DosyaIndirAsync(AppKullanici kullanici, int dosyaId)
         {
@@ -218,7 +225,8 @@ namespace YetkiliServisGazAcma.Business.Services
             AppKullanici kullanici,
             string url,
             TRequest istek,
-            string operasyon)
+            string operasyon,
+            bool retryTransient = false)
         {
             if (!_options.Enabled)
             {
@@ -235,24 +243,68 @@ namespace YetkiliServisGazAcma.Business.Services
                     return default;
                 }
 
-                using var request = new HttpRequestMessage(HttpMethod.Post, url);
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-                request.Content = JsonContent.Create(istek);
-
-                using var response = await _httpClient.SendAsync(request);
-                if (!response.IsSuccessStatusCode)
+                var denemeSayisi = retryTransient ? 5 : 1;
+                for (var deneme = 1; deneme <= denemeSayisi; deneme++)
                 {
-                    var hataCevabi = await TryReadResponseAsync<TResponse>(response);
-                    if (hataCevabi != null)
-                        return hataCevabi;
+                    try
+                    {
+                        using var request = new HttpRequestMessage(HttpMethod.Post, url);
+                        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                        request.Content = JsonContent.Create(istek);
 
-                    var hataMetni = await SafeReadBodyAsync(response);
-                    _logger.LogWarning("{Operasyon} API cagrisinda basarisiz yanit dondu. Url: {Url}, StatusCode: {StatusCode}, Body: {Body}", operasyon, url, response.StatusCode, hataMetni);
-                    ApiClientFallback.EnsureAllowed(_options, operasyon);
-                    return default;
+                        using var response = await _httpClient.SendAsync(request);
+                        if (response.IsSuccessStatusCode)
+                            return await response.Content.ReadFromJsonAsync<TResponse>();
+
+                        if (retryTransient && IsTransientStatusCode(response.StatusCode) && deneme < denemeSayisi)
+                        {
+                            _logger.LogWarning(
+                                "{Operasyon} API cagrisinda gecici hata alindi. Url: {Url}, StatusCode: {StatusCode}, Deneme: {Deneme}/{ToplamDeneme}",
+                                operasyon,
+                                url,
+                                response.StatusCode,
+                                deneme,
+                                denemeSayisi);
+                            await Task.Delay(TimeSpan.FromMilliseconds(750 * deneme));
+                            continue;
+                        }
+
+                        var hataCevabi = await TryReadResponseAsync<TResponse>(response);
+                        if (hataCevabi != null)
+                            return hataCevabi;
+
+                        var hataMetni = await SafeReadBodyAsync(response);
+                        _logger.LogWarning("{Operasyon} API cagrisinda basarisiz yanit dondu. Url: {Url}, StatusCode: {StatusCode}, Body: {Body}", operasyon, url, response.StatusCode, hataMetni);
+                        ApiClientFallback.EnsureAllowed(_options, operasyon);
+                        return default;
+                    }
+                    catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
+                    {
+                        if (retryTransient && deneme < denemeSayisi)
+                        {
+                            _logger.LogWarning(
+                                ex,
+                                "{Operasyon} API cagrisina gecici olarak ulasilamadi. Url: {Url}, Deneme: {Deneme}/{ToplamDeneme}",
+                                operasyon,
+                                url,
+                                deneme,
+                                denemeSayisi);
+                            await Task.Delay(TimeSpan.FromMilliseconds(750 * deneme));
+                            continue;
+                        }
+
+                        _logger.LogWarning(ex, "{Operasyon} API cagrisina ulasilamadi. Url: {Url}", operasyon, url);
+                        ApiClientFallback.EnsureAllowed(_options, operasyon);
+                        return default;
+                    }
                 }
 
-                return await response.Content.ReadFromJsonAsync<TResponse>();
+                ApiClientFallback.EnsureAllowed(_options, operasyon);
+                return default;
+            }
+            catch (ApiIntegrationException)
+            {
+                throw;
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
             {
@@ -260,6 +312,14 @@ namespace YetkiliServisGazAcma.Business.Services
                 ApiClientFallback.EnsureAllowed(_options, operasyon);
                 return default;
             }
+        }
+
+        private static bool IsTransientStatusCode(System.Net.HttpStatusCode statusCode)
+        {
+            var kod = (int)statusCode;
+            return statusCode is System.Net.HttpStatusCode.RequestTimeout
+                or System.Net.HttpStatusCode.TooManyRequests
+                || kod >= 500;
         }
 
         private async Task<ApiDosyaSonuc?> PostFileAsync<TRequest>(

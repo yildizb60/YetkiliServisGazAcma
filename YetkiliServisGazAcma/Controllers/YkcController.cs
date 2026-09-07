@@ -45,6 +45,9 @@ namespace YetkiliServisGazAcma.Controllers
         [HttpGet("talepler")]
         public async Task<IActionResult> Talepler(
             string? tesisatNo,
+            string? musteriAdi,
+            string? sozlesmeNo,
+            string? aboneNo,
             string? firma,
             string? il,
             string? ilce,
@@ -62,11 +65,14 @@ namespace YetkiliServisGazAcma.Controllers
             if (!YkcYetkileri().TalepleriGorebilir)
                 return Redirect("/yetkisiz-erisim");
 
-            PanelViewBag(kullanici, "YkcTalepler", "Cihaz Değişim Talepleri", "Yakıcı cihaz değişim formu, randevu ve atama süreci");
+            PanelViewBag(kullanici, "YkcTalepler", "Cihaz Değişim Talepleri", "Cihaz değişim formu, randevu ve atama süreci");
 
             var filtre = new YkcTalepListeFiltre
             {
                 TesisatNo = tesisatNo,
+                MusteriAdi = musteriAdi,
+                SozlesmeNo = sozlesmeNo,
+                AboneNo = aboneNo,
                 Firma = firma,
                 Il = il,
                 Ilce = ilce,
@@ -218,15 +224,33 @@ namespace YetkiliServisGazAcma.Controllers
                 : "YkcTalepler";
             PanelViewBag(kullanici, aktifMenu, "Cihaz Değişim Talebi Detayı", "Form, cihaz bilgileri ve atama süreci");
 
-            var detay = await _ykcApiClient.DetayAsync(kullanici, id);
+            YkcTalepDetayDto? detay;
+            try
+            {
+                detay = await _ykcApiClient.DetayAsync(kullanici, id);
+            }
+            catch (ApiIntegrationException ex)
+            {
+                _logger.LogWarning(ex, "YKC talep detayı alınamadı. TalepId: {TalepId}", id);
+                TempData["Hata"] = "Talep detayı şu anda alınamadı. Yerel API bağlantısı yeniden kuruluyor; lütfen kısa bir süre sonra tekrar deneyin.";
+                return string.Equals(kaynak, "rapor", StringComparison.OrdinalIgnoreCase)
+                    ? RedirectToAction(nameof(Raporlar))
+                    : RedirectToAction(nameof(Talepler));
+            }
+
             if (detay == null)
             {
                 TempData["Hata"] = "Cihaz değişim talebi bulunamadı.";
-                return RedirectToAction(nameof(Talepler));
+                return string.Equals(kaynak, "rapor", StringComparison.OrdinalIgnoreCase)
+                    ? RedirectToAction(nameof(Raporlar))
+                    : RedirectToAction(nameof(Talepler));
             }
 
             ViewBag.ImzaEntegrasyonu = await ImzaEntegrasyonGuvenliAsync(kullanici);
 
+            ViewBag.Ekipler = YkcYetkileri().AtamaYapabilir
+                ? await _ykcApiClient.EkiplerAsync(kullanici, id) ?? new List<YkcEkipSecenegi>()
+                : new List<YkcEkipSecenegi>();
             return View("~/Views/Ykc/Detay.cshtml", detay);
         }
 
@@ -240,9 +264,9 @@ namespace YetkiliServisGazAcma.Controllers
             if (!YkcYetkileri().TalepleriGorebilir)
                 return Redirect("/yetkisiz-erisim");
 
-            PanelViewBag(kullanici, "YkcTalepler", "FR265 Form Önizleme", "Proje tadilatı gerektirmeyen yakıcı cihaz değişim formu");
+            PanelViewBag(kullanici, "YkcTalepler", "Form Önizleme", "Cihaz değişim formu");
 
-            var detay = await _ykcApiClient.DetayAsync(kullanici, id);
+            var detay = await _ykcApiClient.DetayAsync(kullanici, id, formVerisi: true);
             if (detay == null)
             {
                 TempData["Hata"] = "Cihaz değişim talebi bulunamadı.";
@@ -252,6 +276,28 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.ImzaEntegrasyonu = await ImzaEntegrasyonGuvenliAsync(kullanici);
 
             return View("~/Views/Ykc/Fr265Onizle.cshtml", detay);
+        }
+
+        [HttpGet("takvim")]
+        [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel")]
+        public async Task<IActionResult> Takvim([FromQuery] YkcTakvimFiltre filtre)
+        {
+            var kullanici = await _userManager.GetUserAsync(User);
+            if (kullanici == null) return Redirect("/giris");
+            if (!YkcYetkileri().TalepleriGorebilir) return Redirect("/yetkisiz-erisim");
+            PanelViewBag(kullanici, "YkcTakvim", "Cihaz Değişim Randevuları", "");
+            try
+            {
+                var sonuc = await _ykcApiClient.TakvimAsync(kullanici, filtre);
+                if (sonuc == null) return StatusCode(503);
+                return View("~/Views/Ykc/Takvim.cshtml", sonuc);
+            }
+            catch (ApiIntegrationException ex)
+            {
+                _logger.LogWarning(ex, "Randevu takvimi alınamadı.");
+                TempData["Hata"] = "Takvim şu anda alınamadı. Lütfen yeniden deneyin.";
+                return RedirectToAction(nameof(Talepler));
+            }
         }
 
         [HttpPost("imzaya-gonder")]

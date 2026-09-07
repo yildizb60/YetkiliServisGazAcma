@@ -3,7 +3,7 @@ using Microsoft.Extensions.Options;
 
 namespace YetkiliServisGazAcma.Business.Services
 {
-    public class LocalApiProcessService : IHostedService
+    public class LocalApiProcessService : BackgroundService
     {
         private readonly ApiIntegrationOptions _options;
         private readonly IWebHostEnvironment _environment;
@@ -20,7 +20,7 @@ namespace YetkiliServisGazAcma.Business.Services
             _logger = logger;
         }
 
-        public async Task StartAsync(CancellationToken cancellationToken)
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             if (!_environment.IsDevelopment()
                 || !_options.Enabled
@@ -30,8 +30,53 @@ namespace YetkiliServisGazAcma.Business.Services
                 return;
             }
 
-            if (await IsApiReadyAsync(cancellationToken))
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                try
+                {
+                    var apiHazir = await IsApiReadyAsync(stoppingToken);
+                    if (stoppingToken.IsCancellationRequested)
+                        break;
+
+                    if (!apiHazir)
+                    {
+                        StartLocalApi();
+                        await WaitForApiAsync(stoppingToken);
+                    }
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Yerel API izlenirken beklenmeyen bir hata olustu.");
+                }
+
+                try
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    break;
+                }
+            }
+        }
+
+        private void StartLocalApi()
+        {
+            if (_process is { HasExited: false })
                 return;
+
+            if (_process != null)
+            {
+                _logger.LogWarning(
+                    "Yerel API sureci beklenmedik sekilde kapandi. ExitCode: {ExitCode}. Yeniden baslatiliyor.",
+                    _process.ExitCode);
+                _process.Dispose();
+                _process = null;
+            }
 
             var apiProjectPath = ResolveApiProjectPath();
             if (apiProjectPath == null)
@@ -42,7 +87,7 @@ namespace YetkiliServisGazAcma.Business.Services
 
             var apiProjectDirectory = Path.GetDirectoryName(apiProjectPath)!;
             var apiUrl = _options.BaseUrl.TrimEnd('/');
-
+            var apiAssemblyPath = ResolveApiAssemblyPath(apiProjectDirectory);
             var startInfo = new ProcessStartInfo
             {
                 FileName = "dotnet",
@@ -50,9 +95,20 @@ namespace YetkiliServisGazAcma.Business.Services
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
-            startInfo.ArgumentList.Add("run");
-            startInfo.ArgumentList.Add("--project");
-            startInfo.ArgumentList.Add(apiProjectPath);
+
+            if (apiAssemblyPath != null)
+            {
+                startInfo.ArgumentList.Add(apiAssemblyPath);
+            }
+            else
+            {
+                startInfo.ArgumentList.Add("run");
+                startInfo.ArgumentList.Add("--project");
+                startInfo.ArgumentList.Add(apiProjectPath);
+                startInfo.ArgumentList.Add("--no-launch-profile");
+                startInfo.ArgumentList.Add("-p:UseAppHost=false");
+            }
+
             startInfo.ArgumentList.Add("--urls");
             startInfo.ArgumentList.Add(apiUrl);
             startInfo.Environment["ASPNETCORE_ENVIRONMENT"] = "Development";
@@ -66,8 +122,11 @@ namespace YetkiliServisGazAcma.Business.Services
                     return;
                 }
 
-                _logger.LogInformation("Yerel API gelistirme icin baslatildi. Pid: {Pid}, Url: {Url}", _process.Id, apiUrl);
-                await WaitForApiAsync(cancellationToken);
+                _logger.LogInformation(
+                    "Yerel API gelistirme icin baslatildi. Pid: {Pid}, Url: {Url}, Kaynak: {Kaynak}",
+                    _process.Id,
+                    apiUrl,
+                    apiAssemblyPath ?? apiProjectPath);
             }
             catch (Exception ex)
             {
@@ -75,19 +134,22 @@ namespace YetkiliServisGazAcma.Business.Services
             }
         }
 
-        public Task StopAsync(CancellationToken cancellationToken)
+        public override async Task StopAsync(CancellationToken cancellationToken)
         {
             try
             {
                 if (_process is { HasExited: false })
                     _process.Kill(entireProcessTree: true);
+
+                _process?.Dispose();
+                _process = null;
             }
             catch (Exception ex)
             {
                 _logger.LogDebug(ex, "Yerel API sureci kapatilirken hata olustu.");
             }
 
-            return Task.CompletedTask;
+            await base.StopAsync(cancellationToken);
         }
 
         private async Task WaitForApiAsync(CancellationToken cancellationToken)
@@ -98,6 +160,9 @@ namespace YetkiliServisGazAcma.Business.Services
             while (!timeoutCts.IsCancellationRequested)
             {
                 if (await IsApiReadyAsync(timeoutCts.Token))
+                    return;
+
+                if (_process is { HasExited: true })
                     return;
 
                 await Task.Delay(750, timeoutCts.Token).ContinueWith(_ => { }, CancellationToken.None);
@@ -135,6 +200,22 @@ namespace YetkiliServisGazAcma.Business.Services
                 "YetkiliServisGazAcma.API.csproj"));
 
             return File.Exists(candidate) ? candidate : null;
+        }
+
+        private static string? ResolveApiAssemblyPath(string apiProjectDirectory)
+        {
+            var debugDirectory = Path.Combine(apiProjectDirectory, "bin", "Debug");
+            if (!Directory.Exists(debugDirectory))
+                return null;
+
+            return Directory
+                .EnumerateFiles(
+                    debugDirectory,
+                    "YetkiliServisGazAcma.API.dll",
+                    SearchOption.AllDirectories)
+                .Where(path => File.Exists(Path.ChangeExtension(path, ".deps.json")))
+                .OrderByDescending(File.GetLastWriteTimeUtc)
+                .FirstOrDefault();
         }
 
         private static bool IsLocalApiUrl(string? baseUrl)

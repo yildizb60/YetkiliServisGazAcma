@@ -153,10 +153,15 @@
                                     <div class="df-actions">
                                         @if (genelSistemAdminMi)
                                         {
-                                            <a class="df-icon-action" href="/Marka/Duzenle/@m.Id">
+                                            <button class="df-icon-action" type="button"
+                                                    data-marka-modal-open
+                                                    data-id="@m.Id"
+                                                    data-name="@m.MarkaAdi"
+                                                    data-description="@m.Aciklama"
+                                                    data-active="@m.AktifMi.ToString().ToLowerInvariant()">
                                                 <i class="bi bi-pencil-square"></i>
                                                 Düzenle
-                                            </a>
+                                            </button>
                                             <a class="df-icon-action is-danger" href="/Marka/Sil/@m.Id"
                                                onclick="return confirm('Silmek istediğinize emin misiniz?')">
                                                 <i class="bi bi-trash"></i>
@@ -177,3 +182,116 @@
         </div>
     </section>
 </div>
+
+@if (genelSistemAdminMi)
+{
+    <div class="df-modal" id="markaEditModal" aria-hidden="true">
+        <div class="df-modal-backdrop" data-marka-modal-close></div>
+        <div class="df-modal-dialog df-modal-dialog-sm" role="dialog" aria-modal="true" aria-labelledby="markaEditTitle" tabindex="-1">
+            <div class="df-modal-header">
+                <div class="df-modal-heading">
+                    <span class="df-modal-icon"><i class="bi bi-pencil-square"></i></span>
+                    <div>
+                        <h3 id="markaEditTitle">Markayı Düzenle</h3>
+                        <p id="markaEditSubtitle">Marka adı, açıklama ve kayıt durumunu güncelleyin.</p>
+                    </div>
+                </div>
+                <button class="df-modal-close" type="button" data-marka-modal-close aria-label="Kapat">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+
+            <form method="post" action="/Marka/Duzenle" id="markaEditForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="Id" id="markaEditId" />
+                <div class="df-modal-body">
+                    <div class="df-modal-form-grid">
+                        <div class="df-admin-field is-wide">
+                            <label for="markaEditName">Marka Adı *</label>
+                            <input type="text" name="MarkaAdi" id="markaEditName" required autocomplete="off" />
+                        </div>
+                        <div class="df-admin-field">
+                            <label for="markaEditStatus">Kayıt Durumu</label>
+                            <select name="AktifMi" id="markaEditStatus">
+                                <option value="true">Aktif</option>
+                                <option value="false">Pasif</option>
+                            </select>
+                        </div>
+                        <div class="df-admin-field is-wide">
+                            <label for="markaEditDescription">Açıklama</label>
+                            <textarea name="Aciklama" id="markaEditDescription" rows="4" placeholder="Gerekliyse kısa bir açıklama girin."></textarea>
+                            <small class="df-admin-field-note">Açıklama zorunlu değildir.</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="df-modal-footer">
+                    <button class="df-btn df-btn-secondary df-btn-sm" type="button" data-marka-modal-close>
+                        <i class="bi bi-x-lg"></i> Vazgeç
+                    </button>
+                    <button class="df-btn df-btn-primary df-btn-sm" type="submit">
+                        <i class="bi bi-check2"></i> Değişiklikleri Kaydet
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
+@section Scripts {
+<script>
+(function () {
+    var modal = document.getElementById('markaEditModal');
+    if (!modal) return;
+
+    var dialog = modal.querySelector('.df-modal-dialog');
+    var idInput = document.getElementById('markaEditId');
+    var nameInput = document.getElementById('markaEditName');
+    var statusInput = document.getElementById('markaEditStatus');
+    var descriptionInput = document.getElementById('markaEditDescription');
+    var subtitle = document.getElementById('markaEditSubtitle');
+    var lastTrigger = null;
+
+    function openModal(trigger) {
+        lastTrigger = trigger;
+        idInput.value = trigger.dataset.id || '';
+        nameInput.value = trigger.dataset.name || '';
+        statusInput.value = trigger.dataset.active === 'true' ? 'true' : 'false';
+        descriptionInput.value = trigger.dataset.description || '';
+        subtitle.textContent = (trigger.dataset.name || 'Marka') + ' kaydını güncelleyin.';
+        modal.classList.add('is-open');
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('df-modal-open');
+        window.setTimeout(function () { nameInput.focus(); nameInput.select(); }, 0);
+    }
+
+    function closeModal() {
+        modal.classList.remove('is-open');
+        modal.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('df-modal-open');
+        if (lastTrigger) lastTrigger.focus();
+    }
+
+    document.addEventListener('click', function (event) {
+        var openButton = event.target.closest('[data-marka-modal-open]');
+        if (openButton) openModal(openButton);
+        if (event.target.closest('[data-marka-modal-close]')) closeModal();
+    });
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && modal.classList.contains('is-open')) closeModal();
+    });
+
+    dialog.addEventListener('keydown', function (event) {
+        if (event.key !== 'Tab') return;
+        var focusable = Array.from(dialog.querySelectorAll('button, input, select, textarea, [href]')).filter(function (item) {
+            return !item.disabled && item.offsetParent !== null;
+        });
+        if (focusable.length === 0) return;
+        var first = focusable[0];
+        var last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    });
+})();
+</script>
+}

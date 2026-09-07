@@ -13,73 +13,59 @@
     var tel = kullanici?.PhoneNumber ?? "";
     var basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "P";
 }
-<div class="df-profile-workspace df-personnel-profile">
+<div class="df-profile-workspace">
     @if (TempData["Basarili"] != null) { <div class="df-alert df-alert-success">@TempData["Basarili"]</div> }
     @if (TempData["SifreBasarili"] != null) { <div class="df-alert df-alert-success">@TempData["SifreBasarili"]</div> }
     @if (TempData["SifreHata"] != null) { <div class="df-alert df-alert-danger">@TempData["SifreHata"]</div> }
 
-    <section class="df-personnel-profile-shell">
-        <aside class="df-personnel-identity">
+    <section class="df-page-panel df-profile-header">
+        <div class="df-profile-header-inner">
             <div class="df-profile-avatar">@basHarf</div>
-            <span class="df-profile-eyebrow">PERSONEL PROFİLİ</span>
-            <h2>@adSoyad</h2>
-            <span class="df-pill df-pill-info"><i class="bi bi-person-badge"></i> Şirket Personeli</span>
-            <div class="df-personnel-contact">
-                <div><i class="bi bi-envelope"></i><span>@email</span></div>
-                <div><i class="bi bi-telephone"></i><span>@(string.IsNullOrWhiteSpace(tel) ? "Telefon tanımlı değil" : tel)</span></div>
+            <div class="df-profile-heading">
+                <h2>@adSoyad</h2>
+                <p>@email · @(sirket?.SirketAdi ?? "Şirket tanımlı değil")</p>
             </div>
-        </aside>
-
-        <div class="df-personnel-profile-main">
-            <div class="df-personnel-profile-title">
-                <span><i class="bi bi-person-vcard"></i></span>
-                <div>
-                    <h3>Profil Bilgileri</h3>
-                    <p>İletişim bilgilerinizi güncel tutun.</p>
-                </div>
+            <div class="df-profile-header-meta">
+                <span class="df-pill df-pill-info"><i class="bi bi-person-badge"></i> Şirket Personeli</span>
+                @if (kullanici?.AktifMi == true) { <span class="df-pill df-pill-success">Aktif</span> }
             </div>
-
-            <form method="post" action="/personel-panel/profil-guncelle">
-                @Html.AntiForgeryToken()
-                <div class="df-personnel-form-grid">
-                    <div class="df-profile-field"><label>Ad Soyad</label><input type="text" name="adSoyad" value="@adSoyad" required /></div>
-                    <div class="df-profile-field"><label>E-posta</label><input type="email" name="email" value="@email" required /></div>
-                    <div class="df-profile-field"><label>Telefon</label><input type="text" name="telefon" value="@tel" autocomplete="tel" /></div>
-                </div>
-
-                <div class="df-personnel-scope-strip" aria-label="Çalışma kapsamı">
-                    <div class="df-personnel-scope-item is-company">
-                        <i class="bi bi-building-check"></i>
-                        <span>Bağlı Şirket</span>
-                        <strong>@(sirket?.SirketAdi ?? "Tanımlı değil")</strong>
-                    </div>
-                    <div class="df-personnel-scope-item is-location">
-                        <i class="bi bi-geo-alt"></i>
-                        <span>Görev İli</span>
-                        <strong>@(sirket?.Il ?? "Tanımlı değil")</strong>
-                    </div>
-                    <div class="df-personnel-scope-item is-permission">
-                        <i class="bi bi-shield-check"></i>
-                        <span>Yetkiler</span>
-                        <div class="df-profile-permissions">
-                            @if (yetkilerim.Count == 0) { <span class="df-profile-permission">Yetki tanımlı değil</span> }
-                            else { foreach (var yetki in yetkilerim) { <span class="df-profile-permission"><i class="bi bi-check2"></i>@yetki</span> } }
-                        </div>
-                    </div>
-                </div>
-
-                <div class="df-personnel-profile-actions">
-                    <div class="df-personnel-company-contact">
-                        @if (!string.IsNullOrWhiteSpace(sirket?.Telefon)) { <span><i class="bi bi-telephone"></i>@sirket.Telefon</span> }
-                        @if (!string.IsNullOrWhiteSpace(sirket?.Email)) { <span><i class="bi bi-envelope"></i>@sirket.Email</span> }
-                    </div>
-                    <button type="submit" class="df-btn df-btn-primary df-btn-sm"><i class="bi bi-check2"></i> Bilgileri Kaydet</button>
-                </div>
-            </form>
         </div>
     </section>
 
-    <details class="df-profile-section is-security df-profile-disclosure df-personnel-security">
+    <div class="df-profile-grid df-profile-grid-primary">
+        <section class="df-profile-section is-account">
+            <div class="df-profile-section-head"><i class="bi bi-person-vcard"></i><div><strong>İletişim Bilgileri</strong><small>Profilde görünen temel bilgiler</small></div></div>
+            <div class="df-profile-section-body">
+            <form method="post" action="/personel-panel/profil-guncelle">
+                @Html.AntiForgeryToken()
+                <div class="df-profile-form-grid">
+                    <div class="df-profile-field is-wide"><label>Ad Soyad</label><input type="text" name="adSoyad" value="@adSoyad" required /></div>
+                    <div class="df-profile-field"><label>E-posta</label><input type="email" name="email" value="@email" required /></div>
+                    <div class="df-profile-field"><label>Telefon</label><input type="text" name="telefon" value="@tel" autocomplete="tel" /></div>
+                </div>
+                <div class="df-profile-actions"><button type="submit" class="df-btn df-btn-primary df-btn-sm"><i class="bi bi-check2"></i> Bilgileri Kaydet</button></div>
+            </form>
+            </div>
+        </section>
+
+        <section class="df-profile-section is-context">
+            <div class="df-profile-section-head"><i class="bi bi-building-check"></i><div><strong>Çalışma Kapsamı</strong><small>Bağlı şirket ve tanımlı yetkiler</small></div></div>
+            <dl class="df-profile-info-grid">
+                <div><dt>Bağlı Şirket</dt><dd>@(sirket?.SirketAdi ?? "Tanımlı değil")</dd></div>
+                <div><dt>Görev İli</dt><dd>@(sirket?.Il ?? "Tanımlı değil")</dd></div>
+                @if (!string.IsNullOrWhiteSpace(sirket?.Telefon)) { <div><dt>Şirket Telefonu</dt><dd>@sirket.Telefon</dd></div> }
+                @if (!string.IsNullOrWhiteSpace(sirket?.Email)) { <div><dt>Şirket E-postası</dt><dd>@sirket.Email</dd></div> }
+            </dl>
+            <div class="df-profile-section-body df-profile-permission-body">
+                <div class="df-profile-context-title">YETKİLERİM</div>
+                <div class="df-profile-permissions">
+                    @if (yetkilerim.Count == 0) { <span class="df-profile-permission">Yetki tanımlı değil</span> }
+                    else { foreach (var yetki in yetkilerim) { <span class="df-profile-permission"><i class="bi bi-check2"></i>@yetki</span> } }
+                </div>
+            </div>
+        </section>
+
+        <details class="df-profile-section is-security is-wide df-profile-disclosure">
         <summary><i class="bi bi-shield-lock"></i><div><strong>Şifre ve Güvenlik</strong><small>Şifrenizi gerektiğinde güncelleyin</small></div><i class="bi bi-chevron-down"></i></summary>
         <div class="df-profile-section-body">
             <form method="post" action="/personel-panel/sifre-degistir">
@@ -92,7 +78,8 @@
                 <div class="df-profile-actions"><button type="submit" class="df-btn df-btn-secondary df-btn-sm"><i class="bi bi-lock"></i> Şifreyi Güncelle</button></div>
             </form>
         </div>
-    </details>
+        </details>
+    </div>
 </div>
 
 @section Scripts {

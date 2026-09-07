@@ -84,6 +84,14 @@ namespace YetkiliServisGazAcma.Models
             modelBuilder.Entity<Ys_YetkiBelgesi>()
                 .HasIndex(x => new { x.YetkiBelgesiBitisTarihi, x.SilindiMi });
 
+            modelBuilder.Entity<Ys_YetkiBelgesi>()
+                .HasIndex(x => new { x.FirmaId, x.SilindiMi, x.OlusturmaTarihi })
+                .IsDescending(false, false, true);
+
+            modelBuilder.Entity<Ys_YetkiBelgesi>()
+                .HasIndex(x => new { x.Durum, x.SilindiMi, x.OlusturmaTarihi })
+                .IsDescending(false, false, true);
+
             modelBuilder.Entity<Ys_FirmaMarka>()
                 .HasIndex(x => new { x.FirmaId, x.MarkaId, x.SilindiMi });
 
@@ -107,6 +115,9 @@ namespace YetkiliServisGazAcma.Models
 
             modelBuilder.Entity<Ykc_Talep>()
                 .HasIndex(x => new { x.TesisatNo, x.SilindiMi });
+
+            modelBuilder.Entity<Ykc_Talep>()
+                .HasIndex(x => new { x.RandevuTarihi, x.SilindiMi });
 
             modelBuilder.Entity<Ykc_Talep>()
                 .HasOne(x => x.Firma)

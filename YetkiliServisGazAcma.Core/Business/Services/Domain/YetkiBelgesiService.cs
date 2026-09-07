@@ -67,9 +67,19 @@ namespace YetkiliServisGazAcma.Business.Services
             if (!await DosyaIcerigiGecerliMi(dosya, uzanti))
                 return (false, "Yuklenen dosyanin icerigi PDF, JPG veya PNG formatinda degil.");
 
-            var klasor = Path.Combine(PrivateYetkiBelgesiRoot(), firmaId.ToString());
-            if (!Directory.Exists(klasor))
-                Directory.CreateDirectory(klasor);
+            var firma = await _context.Ys_Firmalar
+                .AsNoTracking()
+                .Where(x => x.Id == firmaId && !x.SilindiMi)
+                .Select(x => new { x.Id, x.SirketId })
+                .FirstOrDefaultAsync();
+
+            if (firma == null)
+                return (false, "Yetki belgesi yuklenecek firma bulunamadi.");
+
+            var yil = DateTime.UtcNow.Year.ToString();
+            var goreliKlasor = Path.Combine($"sirket-{firma.SirketId}", $"firma-{firma.Id}", yil);
+            var klasor = Path.Combine(PrivateYetkiBelgesiRoot(), goreliKlasor);
+            Directory.CreateDirectory(klasor);
 
             var dosyaAdi = $"yb_{firmaId}_{DateTime.UtcNow:yyyyMMddHHmmss}_{Guid.NewGuid():N}{uzanti}";
             var dosyaYolu = Path.Combine(klasor, dosyaAdi);
@@ -80,7 +90,7 @@ namespace YetkiliServisGazAcma.Business.Services
             var yetkiBelgesi = new Ys_YetkiBelgesi
             {
                 FirmaId = firmaId,
-                DosyaYolu = $"{PrivateStoragePrefix}{firmaId}/{dosyaAdi}",
+                DosyaYolu = $"{PrivateStoragePrefix}{goreliKlasor.Replace('\\', '/')}/{dosyaAdi}",
                 YetkiBelgesiBaslangicTarihi = baslangic,
                 YetkiBelgesiBitisTarihi = bitis,
                 Durum = YetkiBelgesiDurumDegerleri.OnaydaBekliyor,
@@ -90,7 +100,16 @@ namespace YetkiliServisGazAcma.Business.Services
             };
 
             _context.Ys_YetkiBelgeleri.Add(yetkiBelgesi);
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch
+            {
+                if (File.Exists(dosyaYolu))
+                    File.Delete(dosyaYolu);
+                throw;
+            }
 
             return (true, "Yetki belgeniz basariyla yuklendi. Onay bekleniyor.");
         }

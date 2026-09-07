@@ -1,0 +1,62 @@
+@model YkcTakvimSonuc
+@{
+    Layout = "~/Views/Shared/_PanelLayout.cshtml";
+    var filtre = Model.Filtre;
+    string Link(DateTime tarih, int sayfa = 1, bool ayniAralik = false) => "/ykc/takvim?Baslangic=" + tarih.ToString("yyyy-MM-dd")
+        + "&Bitis=" + (ayniAralik ? filtre.Bitis : tarih.AddDays(6)).ToString("yyyy-MM-dd")
+        + "&Il=" + Uri.EscapeDataString(filtre.Il ?? "")
+        + "&Bolge=" + Uri.EscapeDataString(filtre.Bolge ?? "")
+        + "&Personel=" + Uri.EscapeDataString(filtre.Personel ?? "") + "&Sayfa=" + sayfa;
+}
+@section PageStyles {
+    <link rel="stylesheet" href="~/css/ykc-operations.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/ykc-calendar.css" asp-append-version="true" />
+}
+<div class="ykc-workspace ykc-calendar">
+    <header class="ykc-calendar-header">
+        <h1>Cihaz Değişim Randevuları</h1>
+        <div>
+            <a class="df-btn df-btn-secondary df-btn-sm" href="@Link(filtre.Baslangic.AddDays(-7))" title="Önceki hafta" aria-label="Önceki hafta"><i class="bi bi-chevron-left"></i></a>
+            <a class="df-btn df-btn-secondary df-btn-sm" href="@Link(DateTime.Today)">Bugün</a>
+            <a class="df-btn df-btn-secondary df-btn-sm" href="@Link(filtre.Baslangic.AddDays(7))" title="Sonraki hafta" aria-label="Sonraki hafta"><i class="bi bi-chevron-right"></i></a>
+        </div>
+    </header>
+    <form method="get" action="/ykc/takvim" class="ykc-calendar-filters">
+        <div><label for="calDate">Başlangıç</label><input id="calDate" type="date" name="Baslangic" value="@filtre.Baslangic.ToString("yyyy-MM-dd")" /></div>
+        <div><label for="calEnd">Bitiş</label><input id="calEnd" type="date" name="Bitis" value="@filtre.Bitis.ToString("yyyy-MM-dd")" /></div>
+        <div><label for="calCity">İl</label><input id="calCity" name="Il" value="@filtre.Il" /></div>
+        <div><label for="calRegion">Bölge</label><input id="calRegion" name="Bolge" value="@filtre.Bolge" /></div>
+        <div><label for="calPerson">Personel</label><input id="calPerson" name="Personel" value="@filtre.Personel" /></div>
+        <button class="df-btn df-btn-primary df-btn-sm" type="submit"><i class="bi bi-funnel"></i> Filtrele</button>
+        <a href="/ykc/takvim" class="df-btn df-btn-secondary df-btn-sm">Temizle</a>
+    </form>
+    <div class="ykc-calendar-caption"><span>@filtre.Baslangic.ToString("dd.MM.yyyy") - @filtre.Bitis.ToString("dd.MM.yyyy")</span><span>@Model.Toplam randevu</span></div>
+    @if (Model.Kayitlar.Count == 0)
+    {
+        <p class="ykc-calendar-empty">Bu aralıkta randevu bulunmuyor.</p>
+    }
+    @foreach (var gun in Model.Kayitlar.GroupBy(x => x.Tarih.Date))
+    {
+        <section class="ykc-calendar-day">
+            <h2>@gun.Key.ToString("dd MMMM dddd", System.Globalization.CultureInfo.GetCultureInfo("tr-TR"))</h2>
+            @foreach (var item in gun)
+            {
+                <a class="ykc-calendar-entry" href="/ykc/detay/@item.Id">
+                    <time>@item.Saat</time>
+                    <span><strong>@item.Musteri</strong><small>Tesisat @item.TesisatNo · @item.Adres</small></span>
+                    <span><strong>@(item.Personel ?? item.Ekip ?? "Personel atanmadı")</strong><small>@item.Il · @item.Bolge</small></span>
+                    <span class="@YkcDurumSunumu.CssSinifi(item.Durum)">@YkcDurumSunumu.Etiket(item.Durum)</span>
+                    <i class="bi bi-arrow-right"></i>
+                </a>
+            }
+        </section>
+    }
+    @if (Model.Toplam > Model.SayfaBoyutu)
+    {
+        <nav class="ykc-calendar-pagination" aria-label="Randevu sayfaları">
+            @if (filtre.Sayfa > 1) { <a href="@Link(filtre.Baslangic, filtre.Sayfa - 1, true)">Önceki</a> }
+            <span>@filtre.Sayfa / @Math.Ceiling(Model.Toplam / (double)Model.SayfaBoyutu)</span>
+            @if (filtre.Sayfa * Model.SayfaBoyutu < Model.Toplam) { <a href="@Link(filtre.Baslangic, filtre.Sayfa + 1, true)">Sonraki</a> }
+        </nav>
+    }
+</div>
