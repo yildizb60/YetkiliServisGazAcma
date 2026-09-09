@@ -82,7 +82,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 .ToListAsync(cancellationToken);
 
             if (yetkiler.Contains(YetkiTipleri.TAM_YETKI))
-                return TumYetkiler();
+                return TumYetkiler(talepOlusturabilir: false);
 
             return new YkcYetkiOzeti
             {
@@ -104,12 +104,12 @@ namespace YetkiliServisGazAcma.Business.Services
             return ozet.YetkiliMi(yetkiTipi);
         }
 
-        private static YkcYetkiOzeti TumYetkiler()
+        private static YkcYetkiOzeti TumYetkiler(bool talepOlusturabilir = true)
         {
             return new YkcYetkiOzeti
             {
                 TalepleriGorebilir = true,
-                TalepOlusturabilir = true,
+                TalepOlusturabilir = talepOlusturabilir,
                 AtamaYapabilir = true,
                 Fr265ImzaIslemiYapabilir = true,
                 RaporlariGorebilir = true

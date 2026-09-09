@@ -1,0 +1,60 @@
+@model YetkiliServisGazAcma.Entities.Ys_DevreyeAlma
+@{
+    var alan = ViewData["DevreyeAlmaAlan"] as string ?? "/personel-panel";
+    var liste = alan + "/devreyealmalar";
+    var pdf = alan == "/AdminPanel" ? $"{liste}/pdf/{Model.Id}" : $"{alan}/devreyealma-pdf/{Model.Id}";
+    var excel = alan == "/AdminPanel" ? $"{liste}/excel/{Model.Id}" : $"{alan}/devreyealma-excel/{Model.Id}";
+    var durum = Model.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? ("Tamamlandı", "df-pill-success")
+        : Model.Durum == DevreyeAlmaDurumDegerleri.Iptal ? ("İptal", "df-pill-danger") : ("Bekliyor", "df-pill-warning");
+}
+@functions {
+    private static bool Var(string? value) => !string.IsNullOrWhiteSpace(value) && value.Trim() != "-" && !string.Equals(value.Trim(), "string", StringComparison.OrdinalIgnoreCase);
+    private static string Metin(string? value) => Var(value) ? System.Net.WebUtility.HtmlDecode(value!) : "Bilgi bulunmuyor";
+    private static bool NumaraVar(string? value) => Var(value) && value!.Any(c => char.IsLetterOrDigit(c) && c != '0');
+}
+<article class="commission-record">
+    <header class="commission-record-head">
+        <div><span class="commission-reference">Devreye Alma #@Model.Id</span><h1>@Metin(Model.MusteriAdi)</h1></div>
+        <div class="commission-actions">
+            <span class="df-pill @durum.Item2">@durum.Item1</span>
+            <a class="df-btn df-btn-secondary df-btn-sm" href="@liste"><i class="bi bi-arrow-left" aria-hidden="true"></i> Listeye Dön</a>
+            <a class="df-btn df-btn-danger df-btn-sm" href="@pdf" target="_blank" rel="noopener"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF</a>
+            <a class="df-btn df-btn-success df-btn-sm" href="@excel" target="_blank" rel="noopener"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel</a>
+        </div>
+    </header>
+    <section class="commission-band is-customer" aria-labelledby="commission-customer">
+        <h2 id="commission-customer"><i class="bi bi-person-vcard" aria-hidden="true"></i>Müşteri ve Tesisat</h2>
+        <dl>
+            <div><dt>Tesisat No</dt><dd>@Metin(Model.TesistatNo)</dd></div>
+            <div><dt>Abone No</dt><dd>@Metin(Model.AboneNo)</dd></div>
+            @if (Var(Model.MusteriTelefon)) { <div><dt>Telefon</dt><dd>@Metin(Model.MusteriTelefon)</dd></div> }
+            @if (Var(Model.MusteriTcNo) && Model.MusteriTcNo?.Trim() != Model.AboneNo?.Trim()) { <div><dt>TC Kimlik No</dt><dd>@Metin(Model.MusteriTcNo)</dd></div> }
+            <div class="is-wide"><dt>Adres</dt><dd>@Metin(Model.Adres)</dd></div>
+        </dl>
+    </section>
+    <section class="commission-band is-device" aria-labelledby="commission-device">
+        <h2 id="commission-device"><i class="bi bi-fire" aria-hidden="true"></i>Cihaz Bilgileri</h2>
+        <dl>
+            <div><dt>Cihaz Tipi</dt><dd>@Metin(Model.CihazTipi)</dd></div>
+            <div><dt>Marka</dt><dd>@Metin(Model.Marka?.MarkaAdi ?? Model.CihazMarka)</dd></div>
+            @if (Var(Model.CihazKapasite)) { <div><dt>Kapasite</dt><dd>@Metin(Model.CihazKapasite)</dd></div> }
+            @if (NumaraVar(Model.SeriNo)) { <div><dt>Seri No</dt><dd>@Metin(Model.SeriNo)</dd></div> }
+            @if (Var(Model.CihazModeli)) { <div class="is-wide"><dt>Model</dt><dd>@Metin(Model.CihazModeli)</dd></div> }
+        </dl>
+    </section>
+    <section class="commission-band is-operation" aria-labelledby="commission-operation">
+        <h2 id="commission-operation"><i class="bi bi-person-gear" aria-hidden="true"></i>İşlem Bilgileri</h2>
+        <dl>
+            <div><dt>Yetkili Servis</dt><dd>@Metin(Model.Firma?.FirmaAdi)</dd></div>
+            <div><dt>Teknisyen</dt><dd>@Metin(Model.TeknisyenAdi)</dd></div>
+            <div><dt>Devreye Alma Tarihi</dt><dd>@Model.DevreyeAlmaTarihi.ToString("dd.MM.yyyy")</dd></div>
+            @if (NumaraVar(Model.TeknisyenYetkiBelgesiNo)) { <div><dt>Teknisyen Yetki Belgesi No</dt><dd>@Metin(Model.TeknisyenYetkiBelgesiNo)</dd></div> }
+        </dl>
+    </section>
+    @if (Var(Model.Notlar)) {
+        <section class="commission-band is-notes" aria-labelledby="commission-notes">
+            <h2 id="commission-notes"><i class="bi bi-sticky" aria-hidden="true"></i>Notlar</h2>
+            <p>@Metin(Model.Notlar)</p>
+        </section>
+    }
+</article>

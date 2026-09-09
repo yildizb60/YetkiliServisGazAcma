@@ -89,7 +89,7 @@
                 </div>
             </div>
             <div class="ys-actions">
-                <form id="pdfSeçlectedForm" method="get" action="/ys-panel/raporlar/pdf">
+                <form id="pdfSelectedForm" method="get" action="/ys-panel/raporlar/pdf">
                     <input type="hidden" name="bas" value="@basTarih.ToString("yyyy-MM-dd")" />
                     <input type="hidden" name="bit" value="@bitTarih.ToString("yyyy-MM-dd")" />
                     <button class="df-btn df-btn-sm ys-export-pdf" type="submit"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> Seçili PDF</button>
@@ -122,7 +122,7 @@
                         @foreach (var d in sonIslemler)
                         {
                             <tr>
-                                <td><input type="checkbox" name="ids" value="@d.Id" form="pdfSeçlectedForm" aria-label="@d.TesistatNo tesisatını seç" /></td>
+                                <td><input type="checkbox" name="ids" value="@d.Id" form="pdfSelectedForm" aria-label="@d.TesistatNo tesisatını seç" /></td>
                                 <td><span class="ys-table-primary">@d.TesistatNo</span></td>
                                 <td>@d.MusteriAdi</td>
                                 <td>@(d.Marka?.MarkaAdi ?? d.CihazMarka ?? "-")</td>

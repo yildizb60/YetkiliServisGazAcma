@@ -1,18 +1,16 @@
 @{
-    ViewData["Title"] = "Genel Raporlar";
+    ViewData["Title"] = "Operasyon Raporları";
     ViewData["PanelTitle"] = ViewData["Title"];
     ViewData["PanelSubtitle"] = "Personel Paneli";
     ViewData["ActiveMenu"] = "Raporlar";
+    ViewData["PanelArea"] = "Personel";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
-    var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
     var sonIslemler = ViewBag.SonIslemler as List<YetkiliServisGazAcma.Entities.Ys_DevreyeAlma>;
     var yetkiBelgesiIslemler = ViewBag.YetkiBelgesiIslemler as List<YetkiliServisGazAcma.Entities.Ys_YetkiBelgesi>;
     var listeTipi = ViewBag.ListeTipi as string ?? "devreye";
     var raporTipi = ViewBag.RaporTipi as string ?? "devreye";
     DateTime basTarih = ViewBag.BasTarih ?? DateTime.Now.Date.AddDays(-30);
     DateTime bitTarih = ViewBag.BitTarih ?? DateTime.Now.Date;
-    bool yYetkiBelgesi = ViewBag.YetkiBelgesi != false;
-    bool yRapor = ViewBag.YetkiRapor != false;
     var raporAylarJson = System.Text.Json.JsonSerializer.Serialize(ViewBag.RaporAylar ?? new List<string>());
     var raporAylikJson = System.Text.Json.JsonSerializer.Serialize(ViewBag.RaporAylik ?? new List<int>());
     var raporMarkaJson = System.Text.Json.JsonSerializer.Serialize(ViewBag.RaporMarka ?? new List<string>());
@@ -20,84 +18,86 @@
 }
 
 @section Styles {
-    <style>
-.content { padding: 28px 32px; display: grid; gap: 14px; }
-        .hero { background: linear-gradient(135deg, rgba(27,159,212,0.2), rgba(76,175,125,0.2)); border: 1px solid #dbe7f2; border-radius: 14px; padding: 16px; }
-        .hero-title { font-size: 15px; font-weight: 700; margin-bottom: 10px; }
-        .filter-bar { background: #fff; border: 1px solid #e8eff6; border-radius: 10px; padding: 12px; display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end; }
-        .filter-group { display: flex; flex-direction: column; gap: 6px; }
-        .filter-group label { font-size: 11px; color: #777; font-weight: 700; text-transform: uppercase; }
-        .filter-group input { padding: 9px 10px; border: 1px solid #d9e4ef; border-radius: 8px; font-size: 13px; background: #f8fbff; }
-        .btn-filter { padding: 9px 14px; border-radius: 8px; font-size: 12px; font-weight: bold; border: none; cursor: pointer; background: #1B9FD4; color: #fff; }
-
-        .report-select { background: #fff; border: 1px solid #e8eff6; border-radius: 10px; padding: 10px 12px; display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
-        .report-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; background: #f6f9fc; border: 1px solid #e6eef8; padding: 7px 12px; border-radius: 999px; cursor: pointer; }
-        .report-pill.active { background: #e7f6ef; border-color: #bfe6d3; color: #1b6d4a; font-weight: 700; }
-
-        .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-        .card { background: #fff; border-radius: 12px; border: 1px solid #e8eff6; padding: 14px; }
-        .card-title { font-size: 11px; color: #6b7785; text-transform: uppercase; }
-        .card-value { font-size: 22px; font-weight: 800; margin-top: 4px; }
-
-        .charts { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 10px; }
-        .chart-card { background: #fff; border-radius: 12px; border: 1px solid #e8eff6; padding: 12px; }
-        .chart-title { font-size: 12px; font-weight: 700; margin-bottom: 8px; }
-        .chart-wrap { position: relative; height: 220px; }
-        .chart-wrap canvas { width: 100% !important; height: 100% !important; }
-        .chart-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #9aa6b2; font-size: 12px; }
-        .chart-wrap.has-data .chart-empty { display: none; }
-
-        .section { background: #fff; border-radius: 12px; border: 1px solid #e8eff6; overflow: hidden; }
-        .section-head { padding: 14px 20px; border-bottom: 1px solid #eef3f8; display: flex; justify-content: space-between; align-items: center; }
-        .section-title { font-size: 14px; font-weight: 700; }
-        .tablo-head { padding: 10px 20px; background: #f8f8f6; font-size: 11px; color: #888; font-weight: 700; display: grid; }
-        .tablo-row { padding: 12px 20px; border-top: 1px solid #f0f0ee; font-size: 13px; color: #333; display: grid; align-items: center; }
-        .tablo-devreye { grid-template-columns: 1.3fr 1.3fr 1fr 1fr; }
-        .tablo-yetki-belgesi { grid-template-columns: 1.6fr 1fr 1fr 0.8fr; }
-        .badge { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 11px; font-weight: bold; }
-        .b-yellow { background: #FAEEDA; color: #633806; }
-        .b-green { background: #E1F5EE; color: #085041; }
-        .b-red { background: #FCEBEB; color: #501313; }
-        .empty { padding: 24px; text-align: center; color: #999; font-size: 13px; }
-
-        @@media (max-width: 1200px) {
-            .cards { grid-template-columns: repeat(2, 1fr); }
-            .charts { grid-template-columns: 1fr; }
-            .filter-bar { grid-template-columns: 1fr 1fr; }
-        }
-    </style>
+    <link rel="stylesheet" href="~/css/admin-reports.css" asp-append-version="true" />
 }
 
-<div class="hero">
-    <div class="hero-title">Rapor Filtreleri</div>
-    <form class="filter-bar" method="get" action="/personel-panel/raporlar">
-        <div class="filter-group">
-            <label>Başlangıç</label>
-            <input type="date" name="bas" value="@(basTarih.ToString("yyyy-MM-dd"))" />
+<div class="df-admin-report-workspace">
+    <section class="df-page-panel df-admin-report-filter">
+        <div class="df-panel-head">
+            <div>
+                <h1 class="df-panel-title"><i class="bi bi-bar-chart-line" aria-hidden="true"></i> Operasyon Raporları</h1>
+            </div>
         </div>
-        <div class="filter-group">
-            <label>Bitiş</label>
-            <input type="date" name="bit" value="@(bitTarih.ToString("yyyy-MM-dd"))" />
-        </div>
-        <input type="hidden" name="tip" value="@raporTipi" />
-        <button class="btn-filter" type="submit">Raporla</button>
-    </form>
-    <form class="report-select" method="get" action="/personel-panel/raporlar">
-        <input type="hidden" name="bas" value="@(basTarih.ToString("yyyy-MM-dd"))" />
-        <input type="hidden" name="bit" value="@(bitTarih.ToString("yyyy-MM-dd"))" />
-        <label class="report-pill @(raporTipi == "devreye" ? "active" : "")"><input type="radio" name="tip" value="devreye" @(raporTipi == "devreye" ? "checked" : "") /> Devreye Alma</label>
-        <label class="report-pill @(raporTipi == "onayli" ? "active" : "")"><input type="radio" name="tip" value="onayli" @(raporTipi == "onayli" ? "checked" : "") /> Yetki Belgesi Onaylı</label>
-        <label class="report-pill @(raporTipi == "bekleyen" ? "active" : "")"><input type="radio" name="tip" value="bekleyen" @(raporTipi == "bekleyen" ? "checked" : "") /> Yetki Belgesi Bekleyen</label>
-        <label class="report-pill @(raporTipi == "reddedilen" ? "active" : "")"><input type="radio" name="tip" value="reddedilen" @(raporTipi == "reddedilen" ? "checked" : "") /> Yetki Belgesi Reddedilen</label>
-        <button class="btn-filter" type="submit">Filtrele</button>
-    </form>
-</div>
+        <form method="get" action="/personel-panel/raporlar" class="df-admin-report-form">
+            <div class="df-admin-report-fields is-two">
+                <div class="df-admin-field"><label for="bas">Başlangıç</label><input id="bas" type="date" name="bas" value="@basTarih.ToString("yyyy-MM-dd")" /></div>
+                <div class="df-admin-field"><label for="bit">Bitiş</label><input id="bit" type="date" name="bit" value="@bitTarih.ToString("yyyy-MM-dd")" /></div>
+            </div>
+            <fieldset class="df-report-type-control">
+                <legend>Rapor Türü</legend>
+                <div class="df-report-type-options">
+                    <label class="@(raporTipi == "devreye" ? "active" : "")"><input type="radio" name="tip" value="devreye" checked="@(raporTipi == "devreye" ? "checked" : null)" /><i class="bi bi-bag-check" aria-hidden="true"></i><span>Cihaz Devreye Alma</span></label>
+                    <label class="@(raporTipi == "onayli" ? "active" : "")"><input type="radio" name="tip" value="onayli" checked="@(raporTipi == "onayli" ? "checked" : null)" /><i class="bi bi-patch-check" aria-hidden="true"></i><span>Onaylı Belgeler</span></label>
+                    <label class="@(raporTipi == "bekleyen" ? "active" : "")"><input type="radio" name="tip" value="bekleyen" checked="@(raporTipi == "bekleyen" ? "checked" : null)" /><i class="bi bi-hourglass-split" aria-hidden="true"></i><span>Bekleyen Belgeler</span></label>
+                    <label class="@(raporTipi == "reddedilen" ? "active" : "")"><input type="radio" name="tip" value="reddedilen" checked="@(raporTipi == "reddedilen" ? "checked" : null)" /><i class="bi bi-x-circle" aria-hidden="true"></i><span>Reddedilen Belgeler</span></label>
+                </div>
+            </fieldset>
+            <div class="df-admin-report-submit"><button class="df-btn df-btn-primary" type="submit"><i class="bi bi-funnel-fill" aria-hidden="true"></i> Raporla</button></div>
+        </form>
+    </section>
 
-<div class="cards">
-    <div class="card"><div class="card-title">Toplam İşlem</div><div class="card-value">@ViewBag.RaporToplam</div></div>
-    <div class="card"><div class="card-title">Tamamlanan</div><div class="card-value">@ViewBag.RaporTamam</div></div>
-    <div class="card"><div class="card-title">Bekleyen</div><div class="card-value">@ViewBag.RaporBekleyen</div></div>
-    <div class="card"><div class="card-title">İptal</div><div class="card-value">@ViewBag.RaporIptal</div></div>
+    <section class="df-report-summary" aria-label="Rapor özeti">
+        <div><i class="bi bi-collection" aria-hidden="true"></i><span>Toplam İşlem</span><strong>@ViewBag.RaporToplam</strong></div>
+        <div class="is-success"><i class="bi bi-check-circle" aria-hidden="true"></i><span>Tamamlanan</span><strong>@ViewBag.RaporTamam</strong></div>
+        <div class="is-warning"><i class="bi bi-hourglass-split" aria-hidden="true"></i><span>Bekleyen</span><strong>@ViewBag.RaporBekleyen</strong></div>
+        <div class="is-danger"><i class="bi bi-x-circle" aria-hidden="true"></i><span>İptal</span><strong>@ViewBag.RaporIptal</strong></div>
+    </section>
+
+    <section class="df-report-charts" aria-label="Rapor grafikleri">
+        <div class="df-report-chart"><h3>Aylık İşlem</h3><div class="chart-wrap" id="wrapAylik"><div class="chart-empty">Veri bulunamadı</div><canvas id="aylikChart"></canvas></div></div>
+        <div class="df-report-chart"><h3>Durum Dağılımı</h3><div class="chart-wrap" id="wrapDurum"><div class="chart-empty">Veri bulunamadı</div><canvas id="durumChart"></canvas></div></div>
+        <div class="df-report-chart"><h3>Marka Dağılımı</h3><div class="chart-wrap" id="wrapMarka"><div class="chart-empty">Veri bulunamadı</div><canvas id="markaChart"></canvas></div></div>
+    </section>
+
+    <section class="df-admin-list-card df-admin-report-results">
+        <div class="df-service-list-head df-report-results-head">
+            <div><h3><i class="bi bi-table" aria-hidden="true"></i> @((listeTipi == "devreye") ? "Son Cihaz Devreye Alma Kayıtları" : "Yetki Belgesi İşlemleri")</h3><span>@basTarih.ToString("dd.MM.yyyy") - @bitTarih.ToString("dd.MM.yyyy") tarih aralığı</span></div>
+        </div>
+        @if (listeTipi == "devreye")
+        {
+            if (sonIslemler == null || sonIslemler.Count == 0)
+            {
+                <div class="df-admin-empty"><i class="bi bi-inbox" aria-hidden="true"></i> Bu aralıkta işlem bulunamadı.</div>
+            }
+            else
+            {
+                <div class="df-admin-table-scroll"><table class="df-table"><thead><tr><th>Müşteri</th><th>Tesisat No</th><th>Yetkili Servis</th><th>Marka</th><th>Devreye Alma Tarihi</th></tr></thead><tbody>
+                @foreach (var d in sonIslemler)
+                {
+                    <tr><td><div class="df-cell-main">@(d.MusteriAdi ?? "-")</div></td><td><div class="df-cell-main">@d.TesistatNo</div></td><td><div class="df-cell-main">@(d.Firma?.FirmaAdi ?? "-")</div></td><td>@(d.Marka?.MarkaAdi ?? d.CihazMarka ?? "-")</td><td>@d.DevreyeAlmaTarihi.ToString("dd.MM.yyyy")</td></tr>
+                }
+                </tbody></table></div>
+            }
+        }
+        else
+        {
+            if (yetkiBelgesiIslemler == null || yetkiBelgesiIslemler.Count == 0)
+            {
+                <div class="df-admin-empty"><i class="bi bi-inbox" aria-hidden="true"></i> Bu aralıkta yetki belgesi kaydı bulunamadı.</div>
+            }
+            else
+            {
+                <div class="df-admin-table-scroll"><table class="df-table"><thead><tr><th>Firma</th><th>Şirket</th><th>Tarih</th><th>Durum</th></tr></thead><tbody>
+                @foreach (var belge in yetkiBelgesiIslemler)
+                {
+                    var durumSinif = belge.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "df-pill-success" : belge.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor ? "df-pill-warning" : "df-pill-danger";
+                    var durumYazi = belge.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "Onaylandı" : belge.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor ? "Bekliyor" : "Reddedildi";
+                    <tr><td><div class="df-cell-main">@(belge.Firma?.FirmaAdi ?? "-")</div></td><td>@(belge.Firma?.Sirket?.SirketAdi ?? "-")</td><td>@belge.OlusturmaTarihi.ToString("dd.MM.yyyy")</td><td><span class="df-pill @durumSinif">@durumYazi</span></td></tr>
+                }
+                </tbody></table></div>
+            }
+        }
+    </section>
 </div>
 
 <div id="raporData"
@@ -107,130 +107,39 @@
      data-marka-sayi='@Html.Raw(raporMarkaSayiJson)'
      hidden></div>
 
-<div class="charts">
-    <div class="chart-card">
-        <div class="chart-title">Aylık İşlem</div>
-        <div class="chart-wrap" id="wrapAylik"><div class="chart-empty">Veri bulunamadı</div><canvas id="aylikChart"></canvas></div>
-    </div>
-    <div class="chart-card">
-        <div class="chart-title">Durum Dağılımı</div>
-        <div class="chart-wrap" id="wrapDurum"><div class="chart-empty">Veri bulunamadı</div><canvas id="durumChart"></canvas></div>
-    </div>
-    <div class="chart-card">
-        <div class="chart-title">Marka Dağılımı</div>
-        <div class="chart-wrap" id="wrapMarka"><div class="chart-empty">Veri bulunamadı</div><canvas id="markaChart"></canvas></div>
-    </div>
-</div>
-
-<div class="section">
-    <div class="section-head">
-        <div class="section-title">@((listeTipi == "devreye") ? "Son Devreye Almalar" : "Yetki Belgesi İşlemleri")</div>
-    </div>
-    @if (listeTipi == "devreye")
-    {
-        <div class="tablo-head tablo-devreye"><div>Tesisat No</div><div>Servis</div><div>Marka</div><div>Tarih</div></div>
-        if (sonIslemler == null || sonIslemler.Count == 0)
-        {
-            <div class="empty">Bu aralıkta kayıt yok</div>
-        }
-        else
-        {
-            foreach (var d in sonIslemler)
-            {
-                <div class="tablo-row tablo-devreye"><div>@d.TesistatNo</div><div>@d.Firma?.FirmaAdi</div><div>@d.Marka?.MarkaAdi</div><div>@d.DevreyeAlmaTarihi.ToString("dd.MM.yyyy")</div></div>
-            }
-        }
-    }
-    else
-    {
-        <div class="tablo-head tablo-yetki-belgesi"><div>Firma</div><div>Şirket</div><div>Tarih</div><div>Durum</div></div>
-        if (yetkiBelgesiIslemler == null || yetkiBelgesiIslemler.Count == 0)
-        {
-            <div class="empty">Bu aralıkta yetki belgesi kaydı yok</div>
-        }
-        else
-        {
-            foreach (var s in yetkiBelgesiIslemler)
-            {
-                <div class="tablo-row tablo-yetki-belgesi">
-                    <div>@s.Firma?.FirmaAdi</div>
-                    <div>@s.Firma?.Sirket?.SirketAdi</div>
-                    <div>@s.OlusturmaTarihi.ToString("dd.MM.yyyy")</div>
-                    <div>
-                        @if (s.Durum == YetkiBelgesiDurumDegerleri.Onaylandi) { <span class="badge b-green">Onaylandı</span> }
-                        else if (s.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor) { <span class="badge b-yellow">Bekliyor</span> }
-                        else { <span class="badge b-red">Reddedildi</span> }
-                    </div>
-                </div>
-            }
-        }
-    }
-</div>
-
 @section Scripts {
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
 (function () {
+    document.querySelectorAll('.df-report-type-options input[type="radio"]').forEach(function (input) {
+        input.addEventListener('change', function () {
+            document.querySelectorAll('.df-report-type-options label').forEach(function (label) { label.classList.toggle('active', label.contains(input)); });
+        });
+    });
+
     const dataEl = document.getElementById('raporData');
     if (!dataEl || typeof Chart === 'undefined') return;
-    const aylikLabels = JSON.parse(dataEl.dataset.aylar || '[]');
-    const aylikData = JSON.parse(dataEl.dataset.aylik || '[]');
-    const markaLabels = JSON.parse(dataEl.dataset.marka || '[]');
-    const markaData = JSON.parse(dataEl.dataset.markaSayi || '[]');
-    const durumData = [@ViewBag.RaporTamam, @ViewBag.RaporBekleyen, @ViewBag.RaporIptal];
+    const parse = function (value) { try { const result = JSON.parse(value || '[]'); return Array.isArray(result) ? result : []; } catch { return []; } };
+    const aylikLabels = parse(dataEl.dataset.aylar);
+    const aylikData = parse(dataEl.dataset.aylik).map(Number);
+    const markaLabels = parse(dataEl.dataset.marka);
+    const markaData = parse(dataEl.dataset.markaSayi).map(Number);
+    const durumData = [Number('@ViewBag.RaporTamam'), Number('@ViewBag.RaporBekleyen'), Number('@ViewBag.RaporIptal')];
+    const hasData = function (arr) { return arr.some(function (value) { return Number(value) > 0; }); };
+    const showChart = function (id) { const wrap = document.getElementById(id); if (wrap) wrap.classList.add('has-data'); };
 
-    function hasData(arr){ return Array.isArray(arr) && arr.some(x => Number(x) > 0); }
-
-    if (hasData(aylikData)) {
-        document.getElementById('wrapAylik').classList.add('has-data');
-        new Chart(document.getElementById('aylikChart'), {
-            type: 'bar',
-            data: { labels: aylikLabels, datasets: [{ data: aylikData, backgroundColor: '#1B9FD4', borderRadius: 6 }] },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
-        });
+    if (aylikLabels.length && hasData(aylikData)) {
+        showChart('wrapAylik');
+        new Chart(document.getElementById('aylikChart'), { type: 'line', data: { labels: aylikLabels, datasets: [{ data: aylikData, borderColor: '#1f5fbf', backgroundColor: 'rgba(31,95,191,.12)', fill: true, borderWidth: 2, tension: .3, pointRadius: 2 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } } });
     }
-
     if (hasData(durumData)) {
-        document.getElementById('wrapDurum').classList.add('has-data');
-        new Chart(document.getElementById('durumChart'), {
-            type: 'doughnut',
-            data: { labels: ['Tamam', 'Bekleyen', 'İptal'], datasets: [{ data: durumData, backgroundColor: ['#4CAF7D', '#F9D65C', '#E57373'] }] },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
-        });
+        showChart('wrapDurum');
+        new Chart(document.getElementById('durumChart'), { type: 'doughnut', data: { labels: ['Tamamlandı', 'Bekliyor', 'İptal'], datasets: [{ data: durumData, backgroundColor: ['#167a55', '#d08a00', '#b13a48'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } } });
     }
-
-    if (hasData(markaData)) {
-        document.getElementById('wrapMarka').classList.add('has-data');
-        new Chart(document.getElementById('markaChart'), {
-            type: 'bar',
-            data: { labels: markaLabels, datasets: [{ data: markaData, backgroundColor: '#4CAF7D', borderRadius: 6 }] },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
-        });
+    if (markaLabels.length && hasData(markaData)) {
+        showChart('wrapMarka');
+        new Chart(document.getElementById('markaChart'), { type: 'bar', data: { labels: markaLabels, datasets: [{ data: markaData, backgroundColor: '#167a55', borderRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } } });
     }
-})();
-</script>
-<script>
-(function () {
-    // PERSONEL_YETKI_MENU
-    var yetki = {
-        yetkiBelgesi: @((ViewBag.YetkiBelgesi == true).ToString().ToLower()),
-        rapor: @((ViewBag.YetkiRapor == true).ToString().ToLower())
-    };
-
-    function hide(selector, allowed) {
-        if (allowed) return;
-        var list = document.querySelectorAll(selector);
-        list.forEach(function (el) { el.style.display = 'none'; });
-    }
-
-    hide('a[href="/personel-panel/onay-bekleyenler"]', yetki.yetkiBelgesi);
-    hide('a[href="/personel-panel/onay-gecmisi"]', yetki.yetkiBelgesi);
-    hide('a[href="/personel-panel/raporlar"]', yetki.rapor);
-
-    var raporSection = Array.from(document.querySelectorAll('.nav-section')).find(function (x) {
-        return (x.textContent || '').toLowerCase().indexOf('rapor') >= 0;
-    });
-    if (!yetki.rapor && raporSection) raporSection.style.display = 'none';
 })();
 </script>
 }

@@ -1,17 +1,29 @@
 @model YkcTakvimSonuc
 <link rel="stylesheet" href="~/css/ykc-calendar.css" asp-append-version="true" />
-<section class="ykc-calendar ykc-dashboard-agenda">
+<section class="ykc-calendar ykc-dashboard-agenda" aria-labelledby="today-appointments-title">
     <header class="ykc-calendar-header">
-        <h2>Bugünün Cihaz Değişim Randevuları</h2>
-        <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/takvim"><i class="bi bi-calendar3"></i> Takvimi Aç</a>
+        <div class="ykc-dashboard-agenda-title">
+            <span class="ykc-dashboard-agenda-icon"><i class="bi bi-calendar2-check" aria-hidden="true"></i></span>
+            <div>
+                <h2 id="today-appointments-title">Bugünkü Randevular</h2>
+                <small>@DateTime.Today.ToString("dd MMMM yyyy", new System.Globalization.CultureInfo("tr-TR"))</small>
+            </div>
+        </div>
+        <div class="ykc-dashboard-agenda-actions">
+            @if (Model != null)
+            {
+                <span class="ykc-dashboard-agenda-count">@Model.Toplam planlı ziyaret</span>
+            }
+            <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/takvim"><i class="bi bi-calendar3" aria-hidden="true"></i> Takvim</a>
+        </div>
     </header>
     @if (Model == null)
     {
-        <p>Randevu bilgisi şu anda alınamıyor.</p>
+        <div class="ykc-dashboard-agenda-empty"><i class="bi bi-exclamation-circle" aria-hidden="true"></i><span>Randevu bilgisi şu anda alınamıyor.</span></div>
     }
     else if (Model.Toplam == 0)
     {
-        <p>Bugün için randevu bulunmuyor.</p>
+        <div class="ykc-dashboard-agenda-empty"><i class="bi bi-calendar2" aria-hidden="true"></i><span>Bugün planlı ziyaret yok.</span></div>
     }
     else
     {
@@ -24,6 +36,6 @@
                 <span>@YkcDurumSunumu.Etiket(item.Durum)</span><i class="bi bi-arrow-right"></i>
             </a>
         }
-        @if (Model.Toplam > 5) { <a href="/ykc/takvim">@Model.Toplam randevunun tümünü gör</a> }
+        @if (Model.Toplam > 5) { <a class="ykc-dashboard-agenda-more" href="/ykc/takvim">Tüm randevuları gör <i class="bi bi-arrow-right" aria-hidden="true"></i></a> }
     }
 </section>

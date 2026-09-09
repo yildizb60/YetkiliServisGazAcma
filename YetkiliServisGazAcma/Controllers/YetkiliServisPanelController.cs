@@ -381,6 +381,7 @@ namespace YetkiliServisGazAcma.Controllers
 
         [HttpPost]
         [Route("profil-guncelle")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> ProfilGuncelle(
             string? adSoyad, string? telefon, string? email)
         {
@@ -399,6 +400,7 @@ namespace YetkiliServisGazAcma.Controllers
 
         [HttpPost]
         [Route("sifre-degistir")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> SifreDegistir(
             string mevcutSifre, string yeniSifre, string yeniSifreTekrar)
         {

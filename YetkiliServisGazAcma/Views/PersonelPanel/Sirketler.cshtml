@@ -1,70 +1,83 @@
 @model List<YetkiliServisGazAcma.Entities.Dag_Sirket>
-@{    ViewData["Title"] = "Sirketler";    ViewData["PanelTitle"] = ViewData["Title"];
+@{
+    ViewData["Title"] = "Dağıtım Şirketleri";
+    ViewData["PanelTitle"] = ViewData["Title"];
     ViewData["PanelSubtitle"] = "Personel Paneli";
     ViewData["ActiveMenu"] = "Sirketler";
-    Layout = "~/Views/Shared/_PanelLayout.cshtml";    var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;    var q = ViewBag.Query as string ?? "";    bool yYetkiBelgesi = ViewBag.YetkiBelgesi != false;    bool yRapor = ViewBag.YetkiRapor != false;    bool ySirket = ViewBag.YetkiSirket != false;    bool yMarka = ViewBag.YetkiMarka != false;    bool ySirketYonet = ViewBag.YetkiSirketYonet != false;    bool yMarkaYonet = ViewBag.YetkiMarkaYonet != false;    bool yServis = ViewBag.YetkiServis != false;}
-
-@section Styles {
-    <style>
-.content { padding: 28px 32px; }        .filter { background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 16px 20px; margin-bottom: 16px; display: flex; gap: 10px; align-items: center; }        .btn-ekle { display:inline-flex; align-items:center; gap:8px; background:#4CAF7D; color:#fff; font-weight:700; padding:8px 14px; border-radius:8px; text-decoration:none; margin-bottom:12px; }        .filter input { flex: 1; padding: 10px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 13px; background: #fafafa; }        .filter button { padding: 9px 16px; border-radius: 8px; border: none; background: #1B9FD4; color: #fff; font-weight: bold; cursor: pointer; }        .section { background: #fff; border-radius: 12px; border: 1px solid #eee; overflow: hidden; }        .tablo-head { padding: 10px 20px; background: #f8f8f6; font-size: 11px; color: #888; font-weight: bold; display: grid; grid-template-columns: 1.6fr 1fr 1fr 0.8fr 0.9fr; }        .tablo-row { padding: 12px 20px; border-top: 1px solid #f0f0ee; font-size: 13px; color: #333; display: grid; grid-template-columns: 1.6fr 1fr 1fr 0.8fr 0.9fr; }        .empty { padding: 30px; text-align: center; color: #bbb; font-size: 13px; }            .notif-wrap { position: relative; }
-        .notif { position: relative; width: 32px; height: 32px; border-radius: 50%; background: #f0f4f8; border: none; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #4CAF7D; cursor: pointer; }
-        .notif-badge { position: absolute; top: -4px; right: -4px; background: #e24b4a; color: #fff; font-size: 9px; font-weight: bold; padding: 2px 5px; border-radius: 10px; }
-        .notif-panel { position: absolute; right: 0; top: 38px; width: 280px; background: #fff; border: 1px solid #e7e7e7; border-radius: 10px; box-shadow: 0 10px 24px rgba(0,0,0,0.08); padding: 10px; display: none; z-index: 50; }
-        .notif-panel.open { display: block; }
-        .notif-title { font-size: 12px; font-weight: bold; color: #555; padding: 6px 8px 8px; border-bottom: 1px solid #f0f0f0; margin-bottom: 6px; }
-        .notif-item { display: flex; gap: 10px; padding: 8px; border-radius: 8px; transition: background .12s; }
-        .notif-item:hover { background: #f7fafc; }
-        .notif-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; background: #4CAF7D; flex-shrink: 0; }
-        .notif-text { font-size: 13px; color: #333; line-height: 1.35; }
-        .notif-meta { font-size: 11px; color: #888; margin-top: 2px; }
-        .notif-empty { padding: 10px 8px; font-size: 12px; color: #999; }            .notif-panel { display: none; position: absolute; right: 0; top: 38px; width: 280px; background: #fff; border: 1px solid #e7e7e7; border-radius: 10px; box-shadow: 0 10px 24px rgba(0,0,0,0.08); padding: 10px; z-index: 50; }
-        .notif-panel.open { display: block; }            
-        .notif-panel.open { display: block !important; }
-    </style>
+    ViewData["PanelArea"] = "Personel";
+    Layout = "~/Views/Shared/_PanelLayout.cshtml";
+    var q = ViewBag.Query as string ?? "";
+    var aktifSayisi = Model.Count(x => x.AktifMi);
+    var pasifSayisi = Model.Count - aktifSayisi;
 }
 
-@if (ySirketYonet) { <a class="btn-ekle" href="/personel-panel/sirketler/ekle">+ Yeni &#350;irket</a> } <form class="filter" method="get" action="/personel-panel/sirketler">                <input type="text" name="q" placeholder="&#350;irket ad&#305; veya il ara..." value="@q" />                <button type="submit">Filtrele</button>            </form>            <div class="section">                <div class="tablo-head">                    <div>&#350;irket Ad&#305;</div><div>&#304;l</div><div>Telefon</div><div>Durum</div><div>&#304;&#351;lem</div>                </div>                @if (Model == null || Model.Count == 0)                {                    <div class="empty">Kay&#305;t bulunamad&#305;.</div>                }                else                {                    foreach (var s in Model)                    {                        <div class="tablo-row">                            <div>@s.SirketAdi</div>                            <div>@s.Il</div>                            <div>@s.Telefon</div>                            <div>@(s.AktifMi ? "Aktif" : "Pasif")</div>                            <div class="action-cell">@if (ySirketYonet) { <a class="action-badge" style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:10px;font-size:11px;font-weight:bold;border:1px solid #d7e5f2;background:#f7fbff;color:#1B9FD4;text-decoration:none;line-height:1.2;box-shadow:0 6px 12px rgba(15,40,80,0.08);" href="/personel-panel/sirketler/duzenle/@s.Id">D&#252;zenle</a> <form method="post" action="/personel-panel/sirketler/sil/@s.Id" style="display:inline;">@Html.AntiForgeryToken()<button type="submit" class="action-badge danger" style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:10px;font-size:11px;font-weight:bold;border:1px solid #f1c6c6;background:#fff4f4;color:#b02020;text-decoration:none;line-height:1.2;box-shadow:0 6px 12px rgba(15,40,80,0.08);">Sil</button></form> } else { <span>-</span> }</div>                        </div>                    }                }            </div>
+<div class="df-admin-workspace df-company-directory">
+    <section class="df-page-panel df-admin-hero">
+        <div class="df-panel-head">
+            <div>
+                <div class="df-panel-kicker"><i class="bi bi-buildings" aria-hidden="true"></i> ŞİRKET YÖNETİMİ</div>
+                <h1 class="df-panel-title">Dağıtım Şirketleri</h1>
+                <div class="df-panel-subtitle">Şirket kayıtlarını ve iletişim bilgilerini yönetin.</div>
+            </div>
+            <a class="df-btn df-btn-primary df-btn-sm" href="/personel-panel/sirketler/ekle"><i class="bi bi-plus-lg" aria-hidden="true"></i> Yeni Şirket</a>
+        </div>
+        <div class="df-admin-metrics" aria-label="Şirket özeti">
+            <span class="df-admin-metric is-company"><i class="bi bi-buildings" aria-hidden="true"></i><span>Toplam</span><strong>@Model.Count</strong></span>
+            <span class="df-admin-metric is-active"><i class="bi bi-check-circle" aria-hidden="true"></i><span>Aktif</span><strong>@aktifSayisi</strong></span>
+            <span class="df-admin-metric is-passive"><i class="bi bi-dash-circle" aria-hidden="true"></i><span>Pasif</span><strong>@pasifSayisi</strong></span>
+        </div>
+    </section>
 
-@section Scripts {
-<script>
-    (function () {
-        var btns = document.querySelectorAll('.notif');
-        btns.forEach(function(btn){
-            var panel = btn.parentElement.querySelector('.notif-panel');
-            if (!panel) return;
-            btn.addEventListener('click', function(e){
-                e.stopPropagation();
-                panel.style.display = (panel.style.display === "block" ? "none" : "block");
-            });
-            panel.addEventListener('click', function(e){ e.stopPropagation(); });
-        });
-        document.addEventListener('click', function(){
-            document.querySelectorAll('.notif-panel').forEach(function(p){ p.style.display = "none"; });
-        });
-    })();
-</script>
-<script>
-(function () {
-    // PERSONEL_YETKI_MENU
-    var yetki = {
-        yetkiBelgesi: @((ViewBag.YetkiBelgesi == true).ToString().ToLower()),
-        rapor: @((ViewBag.YetkiRapor == true).ToString().ToLower())
-    };
+    @if (TempData["Hata"] != null) { <div class="df-alert df-alert-danger">@TempData["Hata"]</div> }
+    @if (TempData["Basarili"] != null) { <div class="df-alert df-alert-success">@TempData["Basarili"]</div> }
 
-    function hide(selector, allowed) {
-        if (allowed) return;
-        var list = document.querySelectorAll(selector);
-        list.forEach(function (el) { el.style.display = 'none'; });
-    }
+    <details class="df-admin-filter" open="@(!string.IsNullOrWhiteSpace(q) ? "open" : null)">
+        <summary>
+            <span><i class="bi bi-search" aria-hidden="true"></i><strong>Şirket Ara</strong><small>Şirket adı, il veya telefon</small></span>
+            <span>@(!string.IsNullOrWhiteSpace(q) ? "Arama uygulandı" : "Aramayı aç") <i class="bi bi-chevron-down" aria-hidden="true"></i></span>
+        </summary>
+        <div class="df-admin-filter-body">
+            <form method="get" action="/personel-panel/sirketler">
+                <div class="df-admin-filter-grid">
+                    <div class="df-admin-field is-full"><label for="q">Arama</label><input id="q" type="search" name="q" value="@q" placeholder="Şirket adı, il veya telefon" /></div>
+                </div>
+                <div class="df-admin-filter-actions">
+                    <a class="df-btn df-btn-secondary df-btn-sm" href="/personel-panel/sirketler"><i class="bi bi-x-lg" aria-hidden="true"></i> Temizle</a>
+                    <button class="df-btn df-btn-primary df-btn-sm" type="submit"><i class="bi bi-search" aria-hidden="true"></i> Ara</button>
+                </div>
+            </form>
+        </div>
+    </details>
 
-    hide('a[href="/personel-panel/onay-bekleyenler"]', yetki.yetkiBelgesi);
-    hide('a[href="/personel-panel/onay-gecmisi"]', yetki.yetkiBelgesi);
-    hide('a[href="/personel-panel/raporlar"]', yetki.rapor);
-
-    var raporSection = Array.from(document.querySelectorAll('.nav-section')).find(function (x) {
-        return (x.textContent || '').toLowerCase().indexOf('rapor') >= 0;
-    });
-    if (!yetki.rapor && raporSection) raporSection.style.display = 'none';
-})();
-</script>
-}
+    <section class="df-admin-list-card">
+        <div class="df-service-list-head">
+            <div><h3><i class="bi bi-building-check" aria-hidden="true"></i> Şirket Listesi</h3><span>Kurumsal kayıt ve iletişim bilgileri</span></div>
+            <strong>@Model.Count kayıt</strong>
+        </div>
+        @if (Model.Count == 0)
+        {
+            <div class="df-admin-empty"><i class="bi bi-inbox" aria-hidden="true"></i> Aramanıza uygun şirket bulunamadı.</div>
+        }
+        else
+        {
+            <div class="df-admin-table-scroll"><table class="df-table">
+                <thead><tr><th>Şirket</th><th>İl</th><th>İletişim</th><th>Durum</th><th>İşlemler</th></tr></thead>
+                <tbody>
+                @foreach (var sirket in Model)
+                {
+                    <tr>
+                        <td><div class="df-cell-main">@sirket.SirketAdi</div><div class="df-cell-sub">Dağıtım şirketi</div></td>
+                        <td>@(string.IsNullOrWhiteSpace(sirket.Il) ? "-" : sirket.Il)</td>
+                        <td><div class="df-cell-main">@(string.IsNullOrWhiteSpace(sirket.Telefon) ? "-" : sirket.Telefon)</div><div class="df-cell-sub">@(string.IsNullOrWhiteSpace(sirket.Email) ? "E-posta bilgisi yok" : sirket.Email)</div></td>
+                        <td><span class="df-pill @(sirket.AktifMi ? "df-pill-success" : "df-pill-muted")">@(sirket.AktifMi ? "Aktif" : "Pasif")</span></td>
+                        <td><div class="df-actions">
+                            <a class="df-icon-action" href="/personel-panel/sirketler/duzenle/@sirket.Id" title="Şirketi düzenle"><i class="bi bi-pencil" aria-hidden="true"></i><span>Düzenle</span></a>
+                            <form method="post" action="/personel-panel/sirketler/sil/@sirket.Id" onsubmit="return confirm('Bu şirket kaydını silmek istiyor musunuz?');">@Html.AntiForgeryToken()<button class="df-icon-action is-danger" type="submit" title="Şirketi sil"><i class="bi bi-trash3" aria-hidden="true"></i><span>Sil</span></button></form>
+                        </div></td>
+                    </tr>
+                }
+                </tbody>
+            </table></div>
+        }
+    </section>
+</div>

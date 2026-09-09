@@ -123,6 +123,7 @@ namespace YetkiliServisGazAcma.Controllers
 
         // Yeni ekle kaydet
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Ekle(Dag_Sirket sirket)
         {
             var kullanici = await GetCurrentUser();
@@ -160,6 +161,7 @@ namespace YetkiliServisGazAcma.Controllers
 
         // Düzenle kaydet
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Duzenle(Dag_Sirket sirket)
         {
             var kullanici = await GetCurrentUser();
@@ -174,6 +176,8 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         // Sil
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Sil(int id)
         {
             var kullanici = await GetCurrentUser();

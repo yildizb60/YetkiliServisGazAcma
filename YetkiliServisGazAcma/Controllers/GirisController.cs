@@ -53,6 +53,7 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         [Route("giris")]
         public async Task<IActionResult> Index(string kullaniciAdi, string sifre)
         {

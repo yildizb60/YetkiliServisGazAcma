@@ -117,6 +117,7 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Ekle(Ys_Marka marka)
         {
             var kullanici = await GetCurrentUser();
@@ -148,6 +149,7 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Duzenle(Ys_Marka marka)
         {
             var kullanici = await GetCurrentUser();
@@ -159,6 +161,8 @@ namespace YetkiliServisGazAcma.Controllers
             return RedirectToAction("Index");
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Sil(int id)
         {
             var kullanici = await GetCurrentUser();

@@ -5,7 +5,21 @@
     var adSoyad = kullanici?.AdSoyad ?? "Sistem Kullanıcısı";
     var basHarf = !string.IsNullOrWhiteSpace(adSoyad) ? adSoyad.Trim().Substring(0, 1).ToUpper(new System.Globalization.CultureInfo("tr-TR")) : "K";
     var baslik = (ViewData["PanelTitle"] ?? ViewData["Title"])?.ToString() ?? "Panel";
-    var altBaslik = ViewData["PanelSubtitle"]?.ToString();
+    var activeMenu = (ViewData["ActiveMenu"] ?? ViewBag.ActiveMenu)?.ToString() ?? "";
+    var altBaslik = activeMenu switch
+    {
+        "DevreyeAl" or "DevreyeGecmis" or "DevreyeAlmalar" => "Cihaz Devreye Alma",
+        "YetkiliServisler" or "Markalar" => "Yetkili Servis Yönetimi",
+        "YetkiBelgesi" or "OnayBekleyenler" or "OnayGecmisi" or "YetkiBelgesiUyarilari" => "Yetki Belgesi İşlemleri",
+        "Kullanicilar" or "Personeller" => "Kullanıcı Yönetimi",
+        "Yetkiler" => "Yetki Yönetimi",
+        "Sirketler" or "DagitimSirketler" => "Şirket Yönetimi",
+        "Subeler" => "Şube Yönetimi",
+        "Raporlar" => "Raporlama",
+        "Profil" => "Hesabım",
+        "YkcOzet" or "YkcYeni" or "YkcTalepler" or "YkcTakvim" or "YkcRaporlar" => "Cihaz Değişimi",
+        _ => null
+    };
     var sirketAdi = ViewBag.PanelSirketAdi as string ?? "Genel Yönetim";
     var panelUrl = kullanici?.KullaniciTipi switch
     {
@@ -34,9 +48,14 @@
             <i class="bi bi-list"></i>
         </button>
         <nav class="df-breadcrumb" id="site-form-path" aria-label="Sayfa yolu">
-            <a href="@panelUrl"><i class="bi bi-house"></i> @(altBaslik ?? "Panel")</a>
-            <span>/</span>
-            <span>@baslik</span>
+            <a href="@panelUrl" aria-label="Ana Sayfa" title="Ana Sayfa"><i class="bi bi-house" aria-hidden="true"></i></a>
+            @if (!string.IsNullOrWhiteSpace(altBaslik) && !string.Equals(altBaslik, baslik, StringComparison.CurrentCultureIgnoreCase))
+            {
+                <span aria-hidden="true">/</span>
+                <span class="df-breadcrumb-module">@altBaslik</span>
+            }
+            <span aria-hidden="true">/</span>
+            <span aria-current="page">@baslik</span>
         </nav>
     </div>
 

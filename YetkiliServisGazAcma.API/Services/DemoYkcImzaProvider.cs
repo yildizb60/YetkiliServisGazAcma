@@ -17,13 +17,13 @@ namespace YetkiliServisGazAcma.API.Services
             cancellationToken.ThrowIfCancellationRequested();
 
             if (istek.TalepId <= 0 || istek.BelgeBytes.Length == 0)
-                return Task.FromResult(YkcImzaGonderSonuc.Basarisiz("DEMO_BELGE_GECERSIZ", "Demo imza için geçerli bir FR265 belgesi gerekir."));
+                return Task.FromResult(YkcImzaGonderSonuc.Basarisiz("DEMO_BELGE_GECERSIZ", "Demo imza için geçerli bir form belgesi gerekir."));
 
             var gercekHash = Convert.ToHexString(SHA256.HashData(istek.BelgeBytes));
             if (!string.IsNullOrWhiteSpace(istek.BelgeHash)
                 && !string.Equals(gercekHash, istek.BelgeHash.Trim(), StringComparison.OrdinalIgnoreCase))
             {
-                return Task.FromResult(YkcImzaGonderSonuc.Basarisiz("DEMO_HASH_UYUSMAZLIGI", "FR265 belge özeti doğrulanamadı."));
+                return Task.FromResult(YkcImzaGonderSonuc.Basarisiz("DEMO_HASH_UYUSMAZLIGI", "Form belge özeti doğrulanamadı."));
             }
 
             var belgeNo = $"DEMO-YKC-{istek.TalepId}-V{Math.Max(istek.BelgeVersiyonu, 1)}-{gercekHash[..12]}";

@@ -1,0 +1,68 @@
+@model YetkiliServisGazAcma.Entities.Ys_Firma
+@{
+    var edit = ViewData["ServisDuzenleme"] as bool? ?? false;
+    var sehirler = ViewBag.Sehirler as List<string> ?? new();
+    var kategoriler = ViewBag.Kategoriler as List<YetkiliServisGazAcma.Entities.UrunKategori> ?? new();
+    var markalar = ViewBag.Markalar as List<YetkiliServisGazAcma.Entities.Ys_Marka> ?? new();
+    var seciliKategoriler = ViewBag.SeciliKategoriler as List<int> ?? new();
+    var seciliMarkalar = ViewBag.SeciliMarkalar as List<int> ?? new();
+}
+<div class="service-editor">
+    <header class="service-editor-heading">
+        <h1><i class="bi @(edit ? "bi-building-gear" : "bi-building-add")" aria-hidden="true"></i>@ViewData["Title"]</h1>
+        <a class="df-btn df-btn-secondary df-btn-sm" href="/personel-panel/yetkiliservisler"><i class="bi bi-arrow-left" aria-hidden="true"></i>Listeye Dön</a>
+    </header>
+    @if (TempData["Hata"] is string hata) { <div class="df-alert df-alert-danger" role="alert">@hata</div> }
+    <form method="post" action="@(edit ? "/personel-panel/yetkiliservisler/duzenle/" + Model.Id : "/personel-panel/yetkiliservisler/ekle")">
+        @Html.AntiForgeryToken()
+        <div class="service-editor-columns">
+            <section class="service-editor-identity" aria-labelledby="service-identity-title">
+                <div class="service-section-heading">
+                    <h2 id="service-identity-title"><i class="bi bi-building" aria-hidden="true"></i>Firma ve İletişim</h2>
+                    @if (edit) {
+                        <label class="service-active"><input type="checkbox" name="aktifMi" value="true" checked="@Model.AktifMi" />Aktif</label>
+                        <input type="hidden" name="aktifMi" value="false" />
+                    }
+                </div>
+                <div class="service-editor-fields">
+                    <label class="service-wide" for="service-name">Firma Adı *<input id="service-name" name="firmaAdi" value="@Model.FirmaAdi" autocomplete="organization" required /></label>
+                    <label for="service-contact">Yetkili Kişi<input id="service-contact" name="yetkiliKisi" value="@Model.YetkiliKisi" /></label>
+                    <label for="service-phone">Telefon<input id="service-phone" name="telefon" type="tel" value="@Model.Telefon" autocomplete="tel" /></label>
+                    <label for="service-email">E-posta<input id="service-email" name="email" type="email" value="@Model.Email" autocomplete="email" /></label>
+                    <label for="service-city">Şehir *
+                        <select id="service-city" name="faaliyetIli" required>
+                            <option value="">Şehir seçin</option>
+                            @foreach (var sehir in sehirler) { <option value="@sehir" selected="@(string.Equals(Model.FaaliyetIli, sehir, StringComparison.CurrentCultureIgnoreCase))">@sehir</option> }
+                        </select>
+                    </label>
+                    <label for="service-tax-id">Vergi No<input id="service-tax-id" name="vergiNo" value="@Model.VergiNo" /></label>
+                    <label for="service-tax-office">Vergi Dairesi<input id="service-tax-office" name="vergiDairesi" value="@Model.VergiDairesi" /></label>
+                    <label class="service-wide" for="service-address">Adres<input id="service-address" name="adres" value="@Model.Adres" autocomplete="street-address" /></label>
+                </div>
+            </section>
+            <section class="service-editor-choices" aria-labelledby="service-brands-title">
+                <div class="service-section-heading"><h2 id="service-brands-title"><i class="bi bi-tags" aria-hidden="true"></i>Yetkili Markalar</h2><output id="service-brand-count" aria-live="polite"></output></div>
+                <input id="service-brand-search" type="search" aria-label="Marka ara" placeholder="Marka ara" autocomplete="off" />
+                <label class="service-all"><input id="service-all-brands" type="checkbox" />Tüm markalar</label>
+                <div class="service-brand-list">
+                    @foreach (var marka in markalar) {
+                        <label data-brand-name="@marka.MarkaAdi"><input type="checkbox" name="markaIds" value="@marka.Id" checked="@seciliMarkalar.Contains(marka.Id)" />@marka.MarkaAdi</label>
+                    }
+                    @if (markalar.Count == 0) { <p>Kayıtlı marka bulunmuyor.</p> }
+                    <p id="service-brand-empty" hidden>Eşleşen marka bulunamadı.</p>
+                </div>
+                <h2 class="service-category-title"><i class="bi bi-tools" aria-hidden="true"></i>Hizmet Türleri</h2>
+                <div class="service-category-list">
+                    @foreach (var kategori in kategoriler) {
+                        <label><input type="checkbox" name="kategoriIds" value="@kategori.Id" checked="@seciliKategoriler.Contains(kategori.Id)" />@kategori.Ad</label>
+                    }
+                    @if (kategoriler.Count == 0) { <p>Kayıtlı hizmet türü bulunmuyor.</p> }
+                </div>
+            </section>
+        </div>
+        <footer class="service-editor-actions">
+            <a href="/personel-panel/yetkiliservisler" class="df-btn df-btn-secondary df-btn-sm"><i class="bi bi-x-lg" aria-hidden="true"></i>Vazgeç</a>
+            <button type="submit" class="df-btn df-btn-primary df-btn-sm"><i class="bi bi-check2" aria-hidden="true"></i>@(edit ? "Değişiklikleri Kaydet" : "Servisi Kaydet")</button>
+        </footer>
+    </form>
+</div>

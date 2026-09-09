@@ -259,7 +259,9 @@ namespace YetkiliServisGazAcma.API.Controllers
                 AboneNo = cariKod,
                 SayacNo = servisSonuc.SayacNo?.ToString(CultureInfo.InvariantCulture) ?? "",
                 MusteriAdi = servisSonuc.CariAd ?? "",
-                MusteriTcNo = cariKod,
+                // Online servis bu akista TC kimlik numarasi dondurmuyor.
+                // Cari kodu TC alani olarak etiketlemek veri dogrulugunu bozar.
+                MusteriTcNo = "",
                 MusteriTelefon = "",
                 Adres = servisSonuc.Adres ?? "",
                 UygunlukBelgeNo = "",
@@ -445,7 +447,9 @@ namespace YetkiliServisGazAcma.API.Controllers
                 UygunlukBelgeNo = dto.UygunlukBelgeNo,
                 UygunlukTarihi = dto.UygunlukTarihi,
                 MusteriAdi = dto.MusteriAdi,
-                MusteriTcNo = dto.MusteriTcNo,
+                // TC bilgisi mevcut online servis sozlesmesinde bulunmuyor.
+                // Istemciden gelen gizli alan guvenilir kaynak kabul edilmez.
+                MusteriTcNo = null,
                 MusteriTelefon = dto.MusteriTelefon,
                 Adres = dto.Adres,
                 CihazTipi = dto.CihazTipi,

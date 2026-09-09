@@ -45,7 +45,7 @@
                         <span><i class="bi bi-diagram-3"></i></span>
                         <div>
                             <h3>Rol ve Bağlantı</h3>
-                            <p>Kullanıcının sistemde ne yapacağını ve hangi şirket kapsamında çalışacağını belirleyin.</p>
+                            <p>Kullanıcının sistemde ne yapacağını ve hangi şirkette çalışacağını belirleyin.</p>
                         </div>
                     </div>
                     <div class="df-admin-form-grid">
@@ -141,7 +141,7 @@
             } else if (rol === "Personel") {
                 roleHelp.textContent = "Personelin ek işlem yetkileri Yetkiler ekranından belirlenir.";
             } else if (rol === "SirketAdmin" || rol === "SuperAdmin") {
-                roleHelp.textContent = "Şirket yöneticisi yalnızca bağlı şirket kapsamındaki kayıtları yönetir.";
+                roleHelp.textContent = "Şirket yöneticisi yalnızca bağlı şirketteki kayıtları yönetir.";
             } else {
                 roleHelp.textContent = "Sistem genelindeki yönetim hesabıdır.";
             }

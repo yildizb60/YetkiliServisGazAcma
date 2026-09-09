@@ -1,312 +1,65 @@
 @{
     Layout = "_AuthLayout";
-    ViewData["Title"] = "Şirket Seç";
+    ViewData["Title"] = "Çalışma Şirketini Seçin";
     var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
-    var sirketler = ViewBag.Sirketler as List<YetkiliServisGazAcma.Entities.Dag_Sirket>
-        ?? new List<YetkiliServisGazAcma.Entities.Dag_Sirket>();
+    var sirketler = ViewBag.Sirketler as List<YetkiliServisGazAcma.Entities.Dag_Sirket> ?? new();
     int? aktifSirketId = ViewBag.AktifSirketId as int?;
     var genelSistemAdminMi = ViewBag.GenelSistemAdminMi as bool? ?? false;
     string returnUrl = ViewBag.ReturnUrl as string ?? "/personel-panel";
 }
 
 @section Styles {
-    <style>
-        :root {
-            --blue: #1B9FD4;
-            --blue-dark: #0d7faa;
-            --green: #4CAF7D;
-            --ink: #102a43;
-            --muted: #667085;
-            --line: #dbe7f1;
-            --soft: #f6fafc;
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { min-height: 100%; }
-        body {
-            font-family: "Plus Jakarta Sans", "Segoe UI", Arial, sans-serif;
-            background: #f4f8fb;
-            color: var(--ink);
-        }
-
-        .select-page {
-            min-height: 100vh;
-            display: grid;
-            grid-template-columns: minmax(320px, 0.9fr) minmax(420px, 1.1fr);
-        }
-
-        .select-hero {
-            position: relative;
-            overflow: hidden;
-            background: linear-gradient(145deg, #13233a 0%, #1B9FD4 100%);
-            color: #fff;
-            padding: 48px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-
-        .select-hero::before,
-        .select-hero::after {
-            content: "";
-            position: absolute;
-            border-radius: 999px;
-            border: 52px solid rgba(255,255,255,.13);
-            pointer-events: none;
-        }
-
-        .select-hero::before { width: 360px; height: 360px; right: -130px; top: -120px; }
-        .select-hero::after { width: 260px; height: 260px; left: -100px; bottom: -90px; }
-
-        .brand, .hero-copy, .hero-stats { position: relative; z-index: 1; }
-
-        .brand {
-            display: inline-flex;
-            width: fit-content;
-            align-items: center;
-            gap: 10px;
-            background: rgba(255,255,255,.94);
-            color: #153b5b;
-            padding: 10px 16px;
-            border-radius: 999px;
-            font-size: 13px;
-            font-weight: 900;
-        }
-
-        .brand-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 999px;
-            background: var(--blue);
-            box-shadow: 0 0 0 4px rgba(27,159,212,.16);
-        }
-
-        .hero-copy h1 {
-            font-size: 34px;
-            line-height: 1.12;
-            margin-bottom: 14px;
-            max-width: 460px;
-        }
-
-        .hero-copy p {
-            color: rgba(255,255,255,.86);
-            line-height: 1.7;
-            max-width: 460px;
-            font-size: 14px;
-        }
-
-        .hero-stats {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 10px;
-            border-top: 1px solid rgba(255,255,255,.22);
-            padding-top: 18px;
-        }
-
-        .hero-stat {
-            background: rgba(255,255,255,.12);
-            border: 1px solid rgba(255,255,255,.2);
-            border-radius: 10px;
-            padding: 12px;
-        }
-
-        .hero-stat strong { display: block; font-size: 20px; }
-        .hero-stat span { display: block; color: rgba(255,255,255,.72); font-size: 11px; margin-top: 4px; }
-
-        .select-main {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 42px;
-        }
-
-        .select-card {
-            width: min(720px, 100%);
-            background: #fff;
-            border: 1px solid var(--line);
-            border-radius: 14px;
-            box-shadow: 0 22px 70px rgba(16,42,67,.10);
-            overflow: hidden;
-        }
-
-        .select-head {
-            padding: 24px 26px;
-            border-bottom: 1px solid var(--line);
-            background: linear-gradient(90deg, #f4fbff, #fff);
-        }
-
-        .eyebrow {
-            font-size: 11px;
-            color: var(--blue-dark);
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: .08em;
-            margin-bottom: 8px;
-        }
-
-        .select-head h2 { font-size: 24px; margin-bottom: 8px; }
-        .select-head p { color: var(--muted); font-size: 13px; line-height: 1.6; max-width: 560px; }
-
-        .select-body { padding: 22px 26px 26px; }
-        .alert { background: #fff5f5; color: #7f1d1d; border: 1px solid #fecaca; border-radius: 10px; padding: 10px 12px; font-size: 13px; margin-bottom: 14px; }
-        .company-list { display: grid; gap: 10px; }
-
-        .company-card {
-            display: grid;
-            grid-template-columns: auto 1fr auto;
-            align-items: center;
-            gap: 13px;
-            border: 1.5px solid var(--line);
-            border-radius: 10px;
-            background: var(--soft);
-            padding: 14px 15px;
-            cursor: pointer;
-            transition: border-color .15s, background .15s, box-shadow .15s, transform .15s;
-        }
-
-        .company-card:hover {
-            border-color: var(--blue);
-            background: #fff;
-        }
-
-        .company-card.selected {
-            border-color: var(--blue-dark);
-            background: #eef8fd;
-            box-shadow: 0 0 0 3px rgba(27,159,212,.13);
-            transform: translateY(-1px);
-        }
-
-        .company-radio {
-            width: 18px;
-            height: 18px;
-            accent-color: var(--blue-dark);
-        }
-
-        .company-name { font-size: 14px; font-weight: 900; color: var(--ink); }
-        .company-sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
-        .company-pill { font-size: 11px; font-weight: 900; color: var(--green); background: #edfaf4; border-radius: 999px; padding: 5px 9px; }
-
-        .actions {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            margin-top: 20px;
-            border-top: 1px solid var(--line);
-            padding-top: 18px;
-        }
-
-        .btn {
-            border-radius: 10px;
-            padding: 11px 18px;
-            font-size: 13px;
-            font-weight: 900;
-            cursor: pointer;
-            text-decoration: none;
-            border: 1px solid transparent;
-        }
-
-        .primary { background: var(--blue); color: #fff; }
-        .secondary { background: #fff; color: #344054; border-color: var(--line); }
-
-        @@media (max-width: 960px) {
-            .select-page { grid-template-columns: 1fr; }
-            .select-hero { min-height: 320px; gap: 42px; padding: 34px; }
-            .select-main { min-height: auto; padding: 24px; }
-        }
-
-        @@media (max-width: 620px) {
-            .hero-stats { grid-template-columns: 1fr; }
-            .company-card { grid-template-columns: auto 1fr; }
-            .company-pill { grid-column: 2; width: fit-content; }
-            .actions { flex-direction: column-reverse; }
-            .btn { width: 100%; text-align: center; }
-        }
-    </style>
+    <link rel="stylesheet" href="~/css/login.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/lib/bootstrap-icons/font/bootstrap-icons.min.css" asp-append-version="true" />
 }
 
-<div class="select-page">
-    <aside class="select-hero">
-        <div class="brand">
-            <span class="brand-dot"></span>
-            <span>Yetkili Servis Gaz Açma</span>
-        </div>
-
-        <div class="hero-copy">
-            <h1>İşlem yapılacak şirketi seçin</h1>
-            <p>Bu seçimden sonra paneldeki kayıtlar, onaylar ve raporlar seçilen şirket kapsamına göre görüntülenir.</p>
-        </div>
-
-        <div class="hero-stats">
-            <div class="hero-stat"><strong>@(sirketler.Count + (genelSistemAdminMi ? 1 : 0))</strong><span>Seçenek</span></div>
-            <div class="hero-stat"><strong>Tek</strong><span>Aktif kapsam</span></div>
-            <div class="hero-stat"><strong>Güvenli</strong><span>Yetki kontrolü</span></div>
-        </div>
-    </aside>
-
-    <main class="select-main">
-        <section class="select-card">
-            <div class="select-head">
-                <div class="eyebrow">Aktif şirket</div>
-                <h2>Hoş geldiniz, @(kullanici?.AdSoyad ?? "Kullanıcı")</h2>
-                <p>Birden fazla şirket yetkiniz varsa, devam etmeden önce çalışmak istediğiniz kapsamı seçin.</p>
+<main class="login-shell">
+    <section class="login-side" aria-label="Çalışma şirketi seçimi">
+    <div class="login-card" data-company-step>
+        <a class="login-brand" href="/giris" aria-label="Giriş sayfası"><img src="/images/company/corumgaz-kargaz-surmeligaz-logo.png" alt="Çorumgaz, Kargaz ve Sürmeligaz" /></a>
+        <header class="login-card-head">
+            <div>
+                <h1 id="company-select-title">Çalışma Şirketi</h1>
+                <p>@(kullanici?.AdSoyad ?? "Kullanıcı")</p>
             </div>
-
-            <div class="select-body">
-                @if (TempData["Hata"] != null)
-                {
-                    <div class="alert">@TempData["Hata"]</div>
-                }
-
-                <form method="post" action="/panel/sirket-sec">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="returnUrl" value="@returnUrl" />
-
-                    <div class="company-list">
-                        @if (genelSistemAdminMi)
-                        {
-                            var selectedAll = !aktifSirketId.HasValue;
-                            <label class="company-card @(selectedAll ? "selected" : "")">
-                                <input class="company-radio" type="radio" name="sirketId" value="0" checked="@selectedAll" />
-                                <span>
-                                    <span class="company-name">Tüm Şirketler</span>
-                                    <span class="company-sub">Genel yönetim ve tüm kayıtları izleme kapsamı</span>
-                                </span>
-                                <span class="company-pill">Genel</span>
-                            </label>
-                        }
-
-                        @foreach (var sirket in sirketler)
-                        {
-                            var selected = aktifSirketId == sirket.Id;
-                            <label class="company-card @(selected ? "selected" : "")">
-                                <input class="company-radio" type="radio" name="sirketId" value="@sirket.Id" checked="@selected" />
-                                <span>
-                                    <span class="company-name">@sirket.SirketAdi</span>
-                                    <span class="company-sub">Bu şirketin servisleri, onayları ve raporları</span>
-                                </span>
-                                <span class="company-pill">Şirket</span>
-                            </label>
-                        }
-                    </div>
-
-                    <div class="actions">
-                        <a class="btn secondary" href="/cikis">Vazgeç</a>
-                        <button class="btn primary" type="submit">Devam Et</button>
-                    </div>
-                </form>
-            </div>
-        </section>
-    </main>
-</div>
+        </header>
+        <div>
+            @if (TempData["Hata"] != null) { <div class="login-message is-error">@TempData["Hata"]</div> }
+            <form method="post" action="/panel/sirket-sec">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="returnUrl" value="@returnUrl" />
+                <div class="company-select-list" role="radiogroup" aria-label="Dağıtım şirketi">
+                    @if (genelSistemAdminMi)
+                    {
+                        var selectedAll = !aktifSirketId.HasValue;
+                        <label class="company-select-option @(selectedAll ? "is-selected" : "")">
+                            <input type="radio" name="sirketId" value="0" required checked="@(selectedAll ? "checked" : null)" />
+                            <span class="company-select-option-icon"><i class="bi bi-grid" aria-hidden="true"></i></span>
+                            <span><strong>Tüm Şirketler</strong><small>Genel yönetim ve tüm kayıtlar</small></span>
+                            <i class="bi bi-check-circle-fill company-select-check" aria-hidden="true"></i>
+                        </label>
+                    }
+                    @foreach (var sirket in sirketler)
+                    {
+                        var selected = aktifSirketId == sirket.Id;
+                        <label class="company-select-option @(selected ? "is-selected" : "")">
+                            <input type="radio" name="sirketId" value="@sirket.Id" required checked="@(selected ? "checked" : null)" />
+                            <span class="company-select-option-icon"><i class="bi bi-building" aria-hidden="true"></i></span>
+                            <span><strong>@sirket.SirketAdi</strong><small>@(string.IsNullOrWhiteSpace(sirket.Il) ? "Şirket kaydı" : sirket.Il)</small></span>
+                            <i class="bi bi-check-circle-fill company-select-check" aria-hidden="true"></i>
+                        </label>
+                    }
+                </div>
+                <div class="company-select-actions">
+                    <a class="login-secondary" href="/cikis"><i class="bi bi-box-arrow-left" aria-hidden="true"></i> Güvenli Çıkış</a>
+                    <button class="login-submit" type="submit"><span>Panele Geç</span><i class="bi bi-arrow-right" aria-hidden="true"></i></button>
+                </div>
+            </form>
+        </div>
+    </div>
+    </section>
+</main>
 
 @section Scripts {
-    <script>
-        document.querySelectorAll(".company-radio").forEach(function (radio) {
-            radio.addEventListener("change", function () {
-                document.querySelectorAll(".company-card").forEach(x => x.classList.remove("selected"));
-                radio.closest(".company-card")?.classList.add("selected");
-            });
-        });
-    </script>
+    <script src="~/js/login-flow.js" asp-append-version="true"></script>
 }

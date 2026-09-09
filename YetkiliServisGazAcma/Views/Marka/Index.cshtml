@@ -1,6 +1,6 @@
 @model List<YetkiliServisGazAcma.Entities.Ys_Marka>
 @{
-    ViewData["Title"] = "Markalar";
+    ViewData["Title"] = "Cihaz Markaları";
     ViewData["PanelTitle"] = ViewData["Title"];
     ViewData["PanelSubtitle"] = "Admin Paneli";
     ViewData["ActiveMenu"] = "Markalar";
@@ -24,17 +24,10 @@
         <div class="df-alert df-alert-danger">@TempData["Hata"]</div>
     }
 
-    <div class="section-label">
-        <i class="bi bi-tags"></i>
-        Marka yönetimi
-    </div>
-
     <section class="df-page-panel df-admin-hero">
         <div class="df-panel-head">
             <div>
-                <div class="df-panel-kicker"><i class="bi bi-ui-checks-grid"></i> Marka kataloğu</div>
-                <div class="df-panel-title">Markalar</div>
-                <div class="df-panel-subtitle">Cihaz devreye alma ve yetki kapsamlarında kullanılan marka kayıtlarını yönetin.</div>
+                <h1 class="df-panel-title"><i class="bi bi-tags" aria-hidden="true"></i> Cihaz Markaları</h1>
             </div>
             <div class="df-actions">
                 @if (genelSistemAdminMi)
@@ -110,7 +103,6 @@
         <div class="df-service-list-head">
             <div>
                 <h3><i class="bi bi-tags"></i> Marka Listesi</h3>
-                <span>@Model.Count kayıt listeleniyor</span>
             </div>
         </div>
 
@@ -162,11 +154,14 @@
                                                 <i class="bi bi-pencil-square"></i>
                                                 Düzenle
                                             </button>
-                                            <a class="df-icon-action is-danger" href="/Marka/Sil/@m.Id"
-                                               onclick="return confirm('Silmek istediğinize emin misiniz?')">
-                                                <i class="bi bi-trash"></i>
-                                                Sil
-                                            </a>
+                                            <form method="post" action="/Marka/Sil/@m.Id" class="df-inline-form"
+                                                  onsubmit="return confirm('Silmek istediğinize emin misiniz?')">
+                                                @Html.AntiForgeryToken()
+                                                <button class="df-icon-action is-danger" type="submit">
+                                                    <i class="bi bi-trash"></i>
+                                                    Sil
+                                                </button>
+                                            </form>
                                         }
                                         else
                                         {

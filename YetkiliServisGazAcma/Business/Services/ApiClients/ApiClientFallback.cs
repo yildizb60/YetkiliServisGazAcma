@@ -2,10 +2,13 @@ namespace YetkiliServisGazAcma.Business.Services
 {
     public class ApiIntegrationException : Exception
     {
-        public ApiIntegrationException(string message)
+        public ApiIntegrationException(string operation, string message)
             : base(message)
         {
+            Operation = operation;
         }
+
+        public string Operation { get; }
     }
 
     internal static class ApiClientFallback
@@ -16,7 +19,8 @@ namespace YetkiliServisGazAcma.Business.Services
                 return;
 
             throw new ApiIntegrationException(
-                $"{operation} icin API yaniti alinamadi. Canli ayrik mimaride veritabani fallback kapali.");
+                operation,
+                "Veri servisine şu anda ulaşılamıyor. Lütfen kısa bir süre sonra yeniden deneyin.");
         }
     }
 }

@@ -55,7 +55,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         {
             var kullanici = await AktifKullaniciAsync();
             if (kullanici == null)
-                return Unauthorized(new { basarili = false, mesaj = "Oturum bulunamadi." });
+                return Unauthorized(new { basarili = false, mesaj = "Oturum bulunamadı." });
 
             var ykcYetkileri = await _ykcYetkiService.OzetAsync(kullanici, kullanici.SirketId, HttpContext.RequestAborted);
             if (!ykcYetkileri.TalepOlusturabilir)
@@ -65,13 +65,13 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return Ok(YkcTesisatSorguSonuc.Basarisiz("Tesisat no zorunludur."));
 
             if (string.IsNullOrWhiteSpace(istek.SozlesmeNo))
-                return Ok(YkcTesisatSorguSonuc.Basarisiz("Sozlesme no zorunludur."));
+                return Ok(YkcTesisatSorguSonuc.Basarisiz("Sözleşme no zorunludur."));
 
-            if (!long.TryParse(istek.TesisatNo.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var tesisatNo))
-                return Ok(YkcTesisatSorguSonuc.Basarisiz("Tesisat no sayisal olmalidir."));
+            if (!long.TryParse(istek.TesisatNo.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var tesisatNo) || tesisatNo <= 0)
+                return Ok(YkcTesisatSorguSonuc.Basarisiz("Tesisat no sıfırdan büyük ve yalnızca rakamlardan oluşmalıdır."));
 
-            if (!long.TryParse(istek.SozlesmeNo.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var sozlesmeNo))
-                return Ok(YkcTesisatSorguSonuc.Basarisiz("Sozlesme no sayisal olmalidir."));
+            if (!long.TryParse(istek.SozlesmeNo.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var sozlesmeNo) || sozlesmeNo <= 0)
+                return Ok(YkcTesisatSorguSonuc.Basarisiz("Sözleşme no sıfırdan büyük ve yalnızca rakamlardan oluşmalıdır."));
 
             var firma = kullanici.FirmaId.HasValue
                 ? await _context.Ys_Firmalar
@@ -129,7 +129,13 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (servisSonuc == null || !servisSonuc.Basarili)
             {
                 return Ok(YkcTesisatSorguSonuc.Basarisiz(
-                    servisSonuc?.HataMesaji ?? "Servisten bilgi alinamadi. Lutfen daha sonra tekrar sorgulayin."));
+                    servisSonuc?.HataMesaji ?? "Servisten bilgi alınamadı. Lütfen daha sonra yeniden sorgulayın."));
+            }
+
+            if (servisSonuc.TesisatNo != tesisatNo || servisSonuc.SozlesmeNo != sozlesmeNo
+                || servisSonuc.Cihazlar.Any(c => c.TesisatNo.HasValue && c.TesisatNo != tesisatNo))
+            {
+                return Ok(YkcTesisatSorguSonuc.Basarisiz("Servisten gelen tesisat veya sözleşme bilgileri sorguyla eşleşmiyor. Lütfen yeniden sorgulayın."));
             }
 
             var cihazlar = servisSonuc.Cihazlar.Select(c => new YkcTesisatCihazDto
@@ -321,7 +327,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         {
             var kullanici = await AktifKullaniciAsync();
             if (kullanici == null)
-                return Unauthorized(new { basarili = false, mesaj = "Oturum bulunamadi." });
+                return Unauthorized(new { basarili = false, mesaj = "Oturum bulunamadı." });
 
             if (istek == null || istek.Id <= 0)
                 return BadRequest(new { basarili = false, mesaj = "Dosya id zorunludur." });
@@ -335,7 +341,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 .FirstOrDefaultAsync(x => x.Id == istek.Id && !x.SilindiMi && x.Talep != null && !x.Talep.SilindiMi);
 
             if (dosya?.Talep == null)
-                return NotFound(new { basarili = false, mesaj = "Cihaz degisim form dosyasi bulunamadi." });
+                return NotFound(new { basarili = false, mesaj = "Cihaz değişim form dosyası bulunamadı." });
 
             if (!await TalepDosyasinaYetkiliMiAsync(dosya.Talep, kullanici))
                 return Forbid();
@@ -344,7 +350,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return Forbid();
 
             if (string.IsNullOrWhiteSpace(dosya.DosyaYolu))
-                return NotFound(new { basarili = false, mesaj = "Dosya yolu bulunamadi." });
+                return NotFound(new { basarili = false, mesaj = "Dosya yolu bulunamadı." });
 
             var fizikselYol = ResolveYkcBelgeYolu(dosya);
             if (string.IsNullOrWhiteSpace(fizikselYol))
@@ -356,7 +362,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return Forbid();
 
             if (!System.IO.File.Exists(fizikselYol))
-                return NotFound(new { basarili = false, mesaj = "Dosya fiziksel olarak bulunamadi." });
+                return NotFound(new { basarili = false, mesaj = "Dosya fiziksel olarak bulunamadı." });
 
             var bytes = await System.IO.File.ReadAllBytesAsync(fizikselYol, HttpContext.RequestAborted);
             Response.Headers.CacheControl = "private, no-store";
@@ -406,25 +412,9 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (sonuc == null)
                 return NotFound(new { basarili = false, mesaj = "Cihaz değişim talebi bulunamadı." });
 
-            if (User.IsInRole("SertifikaliFirma") && !Request.Path.Value!.EndsWith("/form-verisi", StringComparison.Ordinal))
+            if (User.IsInRole("SertifikaliFirma"))
             {
-                sonuc.EskiCihaz = null;
-                sonuc.EskiCihazTipi = null;
-                sonuc.EskiCihazTipiKodu = null;
-                sonuc.EskiMarka = null;
-                sonuc.EskiMarkaKodu = null;
-                sonuc.EskiBacaTipi = null;
-                sonuc.EskiBacaTipiKodu = null;
-                sonuc.EskiKapasite = null;
-                sonuc.Atamalar.Clear();
-                sonuc.AtananEkip = null;
-                sonuc.HedefUygulama = null;
-                foreach (var kayit in sonuc.Gecmis)
-                {
-                    kayit.KullaniciAdi = null;
-                    if (kayit.IslemTipi is "AtamaYapildi" or "DurumGuncellendi")
-                        kayit.Aciklama = null;
-                }
+                YkcFirmaSunumu.Hazirla(sonuc, Request.Path.Value!.EndsWith("/form-verisi", StringComparison.Ordinal));
             }
             return Ok(sonuc);
         }
@@ -480,7 +470,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return Unauthorized(new { basarili = false, mesaj = "Oturum bulunamadı." });
 
             if (dto == null || dto.TalepId <= 0)
-                return BadRequest(YkcIslemSonuc.HataliSonuc("Atama icin talep id zorunludur."));
+                return BadRequest(YkcIslemSonuc.HataliSonuc("Atama için talep id zorunludur."));
 
             if (!await YkcYetkiliMiAsync(kullanici, YetkiTipleri.YKC_ATAMA_YAP))
                 return YkcYetkisiz("YKC atama ve randevu işlemi yetkiniz bulunmuyor.");
@@ -533,7 +523,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return Unauthorized(new { basarili = false, mesaj = "Oturum bulunamadı." });
 
             if (dto == null || dto.TalepId <= 0)
-                return BadRequest(YkcIslemSonuc.HataliSonuc("Dosya kaydi icin talep id zorunludur."));
+                return BadRequest(YkcIslemSonuc.HataliSonuc("Dosya kaydı için talep id zorunludur."));
 
             if (!await YkcYetkiliMiAsync(kullanici, YetkiTipleri.YKC_FR265_IMZA_ISLEM))
                 return YkcYetkisiz("YKC teknik belge işlemi yetkiniz bulunmuyor.");
@@ -571,7 +561,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return Unauthorized(new { basarili = false, mesaj = "Oturum bulunamadı." });
 
             if (istek.TalepId <= 0)
-                return BadRequest(YkcIslemSonuc.HataliSonuc("Form yukleme icin talep id zorunludur."));
+                return BadRequest(YkcIslemSonuc.HataliSonuc("Form yükleme için talep id zorunludur."));
 
             if (!await YkcYetkiliMiAsync(kullanici, YetkiTipleri.YKC_FR265_IMZA_ISLEM))
                 return YkcYetkisiz("YKC teknik belge işlemi yetkiniz bulunmuyor.");
@@ -581,6 +571,9 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             if (!YkcFormDosyasiGecerliMi(istek.Dosya.FileName, istek.Dosya.ContentType, icerikTipiZorunlu: true))
                 return BadRequest(YkcIslemSonuc.HataliSonuc("Sadece PDF, JPG veya PNG form dosyasi yuklenebilir."));
+
+            if (!await YkcFormDosyaIcerigiGecerliMiAsync(istek.Dosya))
+                return BadRequest(YkcIslemSonuc.HataliSonuc("Dosya içeriği seçilen PDF veya görsel türüyle uyuşmuyor."));
 
             var roller = await _userManager.GetRolesAsync(kullanici);
             var dosyaTuru = string.IsNullOrWhiteSpace(istek.DosyaTuru)
@@ -791,6 +784,29 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return !icerikTipiZorunlu;
 
             return izinliTipler.Contains(icerikTipi.Trim(), StringComparer.OrdinalIgnoreCase);
+        }
+
+        private static async Task<bool> YkcFormDosyaIcerigiGecerliMiAsync(IFormFile dosya)
+        {
+            var uzanti = Path.GetExtension(dosya.FileName).ToLowerInvariant();
+            var header = new byte[8];
+            await using var stream = dosya.OpenReadStream();
+            var okunan = await stream.ReadAsync(header.AsMemory(0, header.Length));
+
+            return uzanti switch
+            {
+                ".pdf" => okunan >= 4
+                    && header[0] == 0x25 && header[1] == 0x50
+                    && header[2] == 0x44 && header[3] == 0x46,
+                ".jpg" or ".jpeg" => okunan >= 3
+                    && header[0] == 0xFF && header[1] == 0xD8 && header[2] == 0xFF,
+                ".png" => okunan >= 8
+                    && header[0] == 0x89 && header[1] == 0x50
+                    && header[2] == 0x4E && header[3] == 0x47
+                    && header[4] == 0x0D && header[5] == 0x0A
+                    && header[6] == 0x1A && header[7] == 0x0A,
+                _ => false
+            };
         }
 
         private string? OnlineFirmaKodu(Ys_Firma? firma, Dag_Sirket? sirket)

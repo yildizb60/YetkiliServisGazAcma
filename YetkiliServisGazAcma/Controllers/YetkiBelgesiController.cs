@@ -27,6 +27,7 @@ namespace YetkiliServisGazAcma.Controllers
         [HttpGet]
         [Route("")]
         [Route("index")]
+        [Authorize(Roles = "YetkiliServis")]
         public async Task<IActionResult> Index()
         {
             var kullanici = await _userManager.GetUserAsync(User);
@@ -64,6 +65,8 @@ namespace YetkiliServisGazAcma.Controllers
 
         [HttpPost]
         [Route("yukle")]
+        [Authorize(Roles = "YetkiliServis")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Yukle(
             IFormFile dosya,
             DateTime bitisTarihi,
@@ -96,6 +99,7 @@ namespace YetkiliServisGazAcma.Controllers
 
         [HttpPost]
         [Route("sil")]
+        [Authorize(Roles = "YetkiliServis")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Sil(int id)
         {
@@ -176,6 +180,7 @@ namespace YetkiliServisGazAcma.Controllers
         [Authorize(Roles = "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin")]
         [HttpPost]
         [Route("onayla")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Onayla(int id)
         {
             var kullanici = await _userManager.GetUserAsync(User);
@@ -197,6 +202,7 @@ namespace YetkiliServisGazAcma.Controllers
         [Authorize(Roles = "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin")]
         [HttpPost]
         [Route("reddet")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Reddet(int id, string? gerekce)
         {
             var kullanici = await _userManager.GetUserAsync(User);

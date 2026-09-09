@@ -1,0 +1,26 @@
+.personnel-account { background:#fff; border:1px solid #dce5ef; border-top:3px solid #2563b4; border-radius:6px; overflow:hidden; color:#33475b; }
+.account-heading { display:flex; gap:14px; align-items:center; padding:18px 22px; background:#f5f9fd; }
+.account-heading > i { font-size:32px; color:#286ab3; }
+.account-heading h1 { margin:0; font-size:20px; font-weight:600; }
+.account-heading p { margin:4px 0 0; font-size:14px; }
+.account-heading .df-pill { margin-left:auto; }
+.account-tabs { display:flex; gap:16px; padding:0 22px; border-bottom:1px solid #dce5ef; overflow-x:auto; }
+.account-tabs button { border:0; border-bottom:3px solid transparent; background:transparent; padding:15px 4px; color:#596d80; font-family:inherit; font-size:14px; font-weight:500; white-space:nowrap; }
+.account-tabs button i { margin-right:8px; }
+.account-tabs button[aria-selected=true] { border-bottom-color:#246aaf; color:#205e9b; }
+.account-tabs button:focus-visible { outline:2px solid #246aaf; outline-offset:-4px; }
+.account-section { padding:24px 22px 18px; }
+.account-section[hidden] { display:none; }
+.account-fields { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:20px; }
+.account-fields label { display:grid; gap:8px; font-size:13px; font-weight:500; min-width:0; }
+.account-fields input { box-sizing:border-box; width:100%; min-width:0; border:1px solid #cbd8e5; border-radius:5px; padding:10px 12px; height:42px; background:#fff; color:#33475b; font-family:inherit; font-size:14px; font-weight:400; }
+.account-fields input:focus { border-color:#367cb5; outline:2px solid #e1effb; }
+.account-section footer { display:flex; justify-content:flex-end; margin-top:24px; padding-top:16px; border-top:1px solid #e5ebf1; }
+.account-work-data { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px 28px; margin:0 0 20px; }
+.account-work-data dt { color:#687b8e; font-size:12px; font-weight:500; }
+.account-work-data dd { margin:5px 0 0; font-size:14px; overflow-wrap:anywhere; }
+.account-section h2 { font-size:14px; font-weight:600; margin:18px 0 12px; border-top:1px solid #e5ebf1; padding-top:18px; }
+.account-permissions { display:flex; flex-wrap:wrap; gap:12px; font-size:14px; color:#237759; }
+.account-permissions i { margin-right:5px; }
+@media(max-width:1000px) { .account-fields { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:600px) { .account-fields,.account-work-data { grid-template-columns:1fr; } .account-heading,.account-section { padding:16px; } .account-tabs { padding:0 16px; } }

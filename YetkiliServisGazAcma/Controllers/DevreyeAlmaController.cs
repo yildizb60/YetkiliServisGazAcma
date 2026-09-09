@@ -69,6 +69,7 @@ namespace YetkiliServisGazAcma.Controllers
 
         [HttpPost]
         [Route("tesisat-sorgula")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> TesistatSorgula([FromBody] TesistatSorguDto dto)
         {
             var kullanici = await _userManager.GetUserAsync(User);
@@ -92,6 +93,7 @@ namespace YetkiliServisGazAcma.Controllers
 
         [HttpPost]
         [Route("marka-kontrol")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> MarkaKontrol([FromBody] MarkaKontrolDto dto)
         {
             var kullanici = await _userManager.GetUserAsync(User);
@@ -160,6 +162,7 @@ namespace YetkiliServisGazAcma.Controllers
 
         [HttpPost]
         [Route("kaydet")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Kaydet(Ys_DevreyeAlma model)
         {
             var kullanici = await _userManager.GetUserAsync(User);

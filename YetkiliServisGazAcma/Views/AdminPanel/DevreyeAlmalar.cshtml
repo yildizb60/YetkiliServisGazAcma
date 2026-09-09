@@ -1,12 +1,12 @@
 @model List<YetkiliServisGazAcma.Entities.Ys_DevreyeAlma>
 @{
-    ViewData["Title"] = "Devreye Almalar";
-    ViewData["PanelTitle"] = "Devreye Almalar";
+    ViewData["Title"] = "Cihaz Devreye Alma Kayıtları";
+    ViewData["PanelTitle"] = ViewData["Title"];
     ViewData["PanelSubtitle"] = "Admin Paneli";
     ViewData["ActiveMenu"] = "DevreyeAlmalar";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
-    var markalar = ViewBag.Markalar as List<YetkiliServisGazAcma.Entities.Ys_Marka>;
+    var markalar = ViewBag.Markalar as List<YetkiliServisGazAcma.Entities.Ys_Marka> ?? new();
     var sehirler = ViewBag.Sehirler as List<string> ?? new();
     var firmaIlceleri = ViewBag.FirmaIlceleri as Dictionary<int, string> ?? new();
     var secilenMarka = Context.Request.Query["marka"].ToString();
@@ -21,303 +21,83 @@
         || !string.IsNullOrWhiteSpace(secilenDurum)
         || !string.IsNullOrWhiteSpace(secilenBas)
         || !string.IsNullOrWhiteSpace(secilenBit);
+    var tamamlanan = Model.Count(x => x.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi);
+    var bekleyen = Model.Count(x => x.Durum == DevreyeAlmaDurumDegerleri.Bekliyor);
+    var servisSayisi = Model.Select(x => x.FirmaId).Distinct().Count();
 }
 
-@section Styles {
-    <style>
-        .istat-row {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 14px;
-            margin-bottom: 22px;
-        }
-
-        .istat-kart {
-            background: #fff;
-            border-radius: 12px;
-            border: 1px solid #eee;
-            padding: 18px 20px;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            transition: all .15s;
-        }
-
-        .istat-kart:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, .07);
-        }
-
-        .istat-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 22px;
-        }
-
-        .istat-icon.yesil { background: #E1F5EE; }
-        .istat-icon.mavi { background: #E6F1FB; }
-        .istat-icon.sari { background: #FAEEDA; }
-        .istat-icon.mor { background: #F0EBFF; }
-        .istat-sayi { font-size: 24px; font-weight: 800; color: #1a1a1a; }
-        .istat-label { font-size: 12px; color: #888; margin-top: 2px; }
-
-        .filtre-kart {
-            background: #fff;
-            border-radius: 12px;
-            border: 1px solid #eee;
-            padding: 20px 24px;
-            margin-bottom: 18px;
-        }
-
-        .filtre-baslik {
-            font-size: 14px;
-            font-weight: 800;
-            color: #333;
-            margin-bottom: 16px;
-            border-bottom: 1px solid #f0f0ee;
-            padding-bottom: 12px;
-        }
-
-        .filtre-grid {
-            display: grid;
-            grid-template-columns: repeat(6, minmax(130px, 1fr));
-            gap: 14px;
-            align-items: end;
-        }
-
-        .filtre-alan {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            min-width: 0;
-        }
-
-        .filtre-alan label {
-            font-size: 11px;
-            color: #555;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: .04em;
-        }
-
-        .filtre-alan input,
-        .filtre-alan select {
-            padding: 10px 12px;
-            border: 1.5px solid #ddd;
-            border-radius: 8px;
-            font-size: 13px;
-            outline: none;
-            color: #333;
-            background: #fafafa;
-            min-width: 0;
-            width: 100%;
-        }
-
-        .filtre-alan input:focus,
-        .filtre-alan select:focus {
-            border-color: #4CAF7D;
-            background: #fff;
-        }
-
-        .filtre-butonlar {
-            display: flex;
-            gap: 10px;
-            margin-top: 16px;
-        }
-
-        .btn-filtre {
-            padding: 10px 22px;
-            background: linear-gradient(135deg, #1B9FD4, #0d7faa);
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            font-size: 13px;
-            cursor: pointer;
-            font-weight: 800;
-        }
-
-        .btn-temizle {
-            padding: 10px 16px;
-            background: #fff;
-            color: #888;
-            border: 1.5px solid #ddd;
-            border-radius: 8px;
-            font-size: 13px;
-            text-decoration: none;
-        }
-
-        .btn-temizle:hover {
-            border-color: #e24b4a;
-            color: #e24b4a;
-        }
-
-        .section-head {
-            background: linear-gradient(to right, #f1f7fc, #fff);
-        }
-
-        .section-sayi {
-            font-size: 12px;
-            color: #1B9FD4;
-            background: #E6F1FB;
-            padding: 5px 12px;
-            border-radius: 10px;
-            font-weight: 800;
-        }
-
-        .tablo-head,
-        .tablo-row {
-            grid-template-columns: .8fr .75fr .75fr 1.35fr 1.15fr .9fr 1fr 1fr .85fr .8fr .7fr;
-        }
-
-        .cell-overflow {
-            max-width: 180px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .tesisat-no {
-            font-weight: 800;
-            color: #1B9FD4;
-            font-family: monospace;
-            font-size: 13px;
-        }
-
-        .detay-btn {
-            padding: 5px 11px;
-            background: #f0f4f8;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 11px;
-            color: #555;
-            text-decoration: none;
-            font-weight: 800;
-        }
-
-        .detay-btn:hover {
-            background: #e6f1fb;
-            border-color: #1B9FD4;
-            color: #0d7faa;
-        }
-
-        @@media (max-width: 1250px) {
-            .filtre-grid { grid-template-columns: repeat(3, minmax(160px, 1fr)); }
-            .istat-row { grid-template-columns: repeat(2, 1fr); }
-        }
-
-        @@media (max-width: 900px) {
-            .tablo-head,
-            .tablo-row {
-                grid-template-columns: 1fr;
-                gap: 6px;
-            }
-
-            .filtre-grid,
-            .istat-row {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
-}
-
-<div class="df-operations-list df-admin-operation-list">
-<div class="istat-row">
-    <div class="istat-kart"><div class="istat-icon mavi"><i class="bi bi-collection" aria-hidden="true"></i></div><div><div class="istat-sayi">@Model.Count</div><div class="istat-label">Toplam işlem</div></div></div>
-    <div class="istat-kart"><div class="istat-icon yesil"><i class="bi bi-check-circle" aria-hidden="true"></i></div><div><div class="istat-sayi">@Model.Count(x => x.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi)</div><div class="istat-label">Tamamlanan</div></div></div>
-    <div class="istat-kart"><div class="istat-icon sari"><i class="bi bi-hourglass-split" aria-hidden="true"></i></div><div><div class="istat-sayi">@Model.Count(x => x.Durum == DevreyeAlmaDurumDegerleri.Bekliyor)</div><div class="istat-label">Bekleyen</div></div></div>
-    <div class="istat-kart"><div class="istat-icon mor"><i class="bi bi-building-check" aria-hidden="true"></i></div><div><div class="istat-sayi">@Model.Select(x => x.FirmaId).Distinct().Count()</div><div class="istat-label">Farklı Servis</div></div></div>
-</div>
-
-<details class="filtre-kart" @(filtreAktif ? "open" : "")>
-    <summary class="filtre-baslik">
-        <span><i class="bi bi-funnel" aria-hidden="true"></i> Filtreler</span>
-        <span class="filtre-toggle-meta">@(filtreAktif ? "Filtre uygulandı" : "Aç") <i class="bi bi-chevron-down" aria-hidden="true"></i></span>
-    </summary>
-    <form method="get" action="/AdminPanel/devreyealmalar">
-        <div class="filtre-grid">
-            <div class="filtre-alan">
-                <label>Marka</label>
-                <select name="marka">
-                    <option value="">Tüm</option>
-                    @if (markalar != null)
-                    {
-                        foreach (var m in markalar)
-                        {
-                            <option value="@m.MarkaAdi" selected="@(secilenMarka == m.MarkaAdi ? "selected" : null)">@m.MarkaAdi</option>
-                        }
-                    }
-                </select>
+<div class="df-admin-workspace df-operations-directory">
+    <section class="df-page-panel df-admin-hero">
+        <div class="df-panel-head">
+            <div>
+                <div class="df-panel-kicker"><i class="bi bi-bag-check" aria-hidden="true"></i> CİHAZ DEVREYE ALMA</div>
+                <h1 class="df-panel-title">İşlem Kayıtları</h1>
+                <div class="df-panel-subtitle">Tesisat, servis ve işlem durumunu tek listeden inceleyin.</div>
             </div>
-            <div class="filtre-alan">
-                <label>Yetkili Servis</label>
-                <input type="text" name="servis" value="@secilenServis" placeholder="Servis adı..." />
-            </div>
-            <div class="filtre-alan">
-                <label>İl</label>
-                <select name="il">
-                    <option value="">Tüm</option>
-                    @foreach (var sehir in sehirler)
-                    {
-                        <option value="@sehir" selected="@(secilenIl == sehir ? "selected" : null)">@sehir</option>
-                    }
-                </select>
-            </div>
-            <div class="filtre-alan">
-                <label>Durum</label>
-                <select name="durum">
-                    <option value="">Tüm</option>
-                    <option value="1" selected="@(secilenDurum == "1" ? "selected" : null)">Tamamlandı</option>
-                    <option value="0" selected="@(secilenDurum == "0" ? "selected" : null)">Bekliyor</option>
-                    <option value="2" selected="@(secilenDurum == "2" ? "selected" : null)">İptal</option>
-                </select>
-            </div>
-            <div class="filtre-alan"><label>Başlangıç</label><input type="date" name="bas" value="@secilenBas" /></div>
-            <div class="filtre-alan"><label>Bitiş</label><input type="date" name="bit" value="@secilenBit" /></div>
         </div>
-        <div class="filtre-butonlar">
-            <a class="btn-temizle" href="/AdminPanel/devreyealmalar"><i class="bi bi-x-lg" aria-hidden="true"></i> Temizle</a>
-            <button type="submit" class="btn-filtre"><i class="bi bi-search" aria-hidden="true"></i> Filtrele</button>
+        <div class="df-admin-metrics" aria-label="Kayıt özeti">
+            <span class="df-admin-metric"><i class="bi bi-collection" aria-hidden="true"></i><span>Toplam</span><strong>@Model.Count</strong></span>
+            <span class="df-admin-metric is-approved"><i class="bi bi-check-circle" aria-hidden="true"></i><span>Tamamlanan</span><strong>@tamamlanan</strong></span>
+            <span class="df-admin-metric is-waiting"><i class="bi bi-hourglass-split" aria-hidden="true"></i><span>Bekleyen</span><strong>@bekleyen</strong></span>
+            <span class="df-admin-metric is-service"><i class="bi bi-tools" aria-hidden="true"></i><span>Yetkili Servis</span><strong>@servisSayisi</strong></span>
         </div>
-    </form>
-</details>
+    </section>
 
-<div class="section">
-    <div class="section-head">
-        <div class="section-title"><i class="bi bi-list-check" aria-hidden="true"></i> Devreye Alma Listesi</div>
-        <div class="section-sayi">@Model.Count kayıt</div>
-    </div>
-    <div class="df-operations-table-scroll">
-        <div class="tablo-head">
-            <div>Tesisat No</div><div>İl</div><div>İlçe</div><div>Adres</div><div>Yetkili Servis</div><div>Marka</div><div>Müşteri</div><div>Teknisyen</div><div>Tarih</div><div>Durum</div><div>İşlem</div>
+    <details class="df-admin-filter" open="@(filtreAktif ? "open" : null)">
+        <summary>
+            <span><i class="bi bi-funnel" aria-hidden="true"></i><strong>Filtreler</strong><small>Servis, konum, durum veya tarih</small></span>
+            <span>@(filtreAktif ? "Filtre uygulandı" : "Filtreleri aç") <i class="bi bi-chevron-down" aria-hidden="true"></i></span>
+        </summary>
+        <div class="df-admin-filter-body">
+            <form method="get" action="/AdminPanel/devreyealmalar">
+                <div class="df-admin-filter-grid">
+                    <div class="df-admin-field"><label for="marka">Marka</label><select id="marka" name="marka"><option value="">Tümü</option>@foreach (var m in markalar) { <option value="@m.MarkaAdi" selected="@(secilenMarka == m.MarkaAdi ? "selected" : null)">@m.MarkaAdi</option> }</select></div>
+                    <div class="df-admin-field"><label for="servis">Yetkili Servis</label><input id="servis" type="search" name="servis" value="@secilenServis" placeholder="Servis adı" /></div>
+                    <div class="df-admin-field"><label for="il">İl</label><select id="il" name="il"><option value="">Tümü</option>@foreach (var sehir in sehirler) { <option value="@sehir" selected="@(secilenIl == sehir ? "selected" : null)">@sehir</option> }</select></div>
+                    <div class="df-admin-field"><label for="durum">Durum</label><select id="durum" name="durum"><option value="">Tümü</option><option value="1" selected="@(secilenDurum == "1" ? "selected" : null)">Tamamlandı</option><option value="0" selected="@(secilenDurum == "0" ? "selected" : null)">Bekliyor</option><option value="2" selected="@(secilenDurum == "2" ? "selected" : null)">İptal</option></select></div>
+                    <div class="df-admin-field is-half"><label for="bas">Başlangıç Tarihi</label><input id="bas" type="date" name="bas" value="@secilenBas" /></div>
+                    <div class="df-admin-field is-half"><label for="bit">Bitiş Tarihi</label><input id="bit" type="date" name="bit" value="@secilenBit" /></div>
+                </div>
+                <div class="df-admin-filter-actions">
+                    <a class="df-btn df-btn-secondary df-btn-sm" href="/AdminPanel/devreyealmalar"><i class="bi bi-x-lg" aria-hidden="true"></i> Temizle</a>
+                    <button class="df-btn df-btn-primary df-btn-sm" type="submit"><i class="bi bi-search" aria-hidden="true"></i> Sonuçları Göster</button>
+                </div>
+            </form>
+        </div>
+    </details>
+
+    <section class="df-admin-list-card">
+        <div class="df-service-list-head">
+            <div><h3><i class="bi bi-list-check" aria-hidden="true"></i> Devreye Alma Listesi</h3><span>Tesisat, servis ve işlem sonucu</span></div>
+            <strong>@Model.Count kayıt</strong>
         </div>
         @if (!Model.Any())
         {
-            <div class="empty">Kayıt bulunamadı</div>
+            <div class="df-admin-empty"><i class="bi bi-inbox" aria-hidden="true"></i> Filtrelere uygun kayıt bulunamadı.</div>
         }
         else
         {
-            foreach (var d in Model)
-            {
-                var ilce = firmaIlceleri.TryGetValue(d.FirmaId, out var bulunanIlce) ? bulunanIlce : "-";
-                <div class="tablo-row">
-                    <div class="tesisat-no">@d.TesistatNo</div>
-                    <div class="cell-overflow" title="@d.Firma?.FaaliyetIli">@(d.Firma?.FaaliyetIli ?? "-")</div>
-                    <div class="cell-overflow" title="@ilce">@ilce</div>
-                    <div class="cell-overflow" title="@d.Adres">@(d.Adres ?? "-")</div>
-                    <div class="cell-overflow" title="@d.Firma?.FirmaAdi">@d.Firma?.FirmaAdi</div>
-                    <div>@(d.Marka?.MarkaAdi ?? d.CihazMarka)</div>
-                    <div class="cell-overflow" title="@d.MusteriAdi">@d.MusteriAdi</div>
-                    <div class="cell-overflow" title="@d.TeknisyenAdi">@d.TeknisyenAdi</div>
-                    <div>@d.OlusturmaTarihi.ToString("dd.MM.yyyy")</div>
-                    <div><span class="badge @(d.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? "b-green" : d.Durum == DevreyeAlmaDurumDegerleri.Iptal ? "b-red" : "b-yellow")">@(d.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? "Tamam" : d.Durum == DevreyeAlmaDurumDegerleri.Iptal ? "İptal" : "Bekliyor")</span></div>
-                    <div><a class="detay-btn" href="/AdminPanel/devreyealmalar/detay/@d.Id"><i class="bi bi-eye" aria-hidden="true"></i> Detay</a></div>
-                </div>
-            }
+            <div class="df-admin-table-scroll">
+                <table class="df-table">
+                    <thead><tr><th>Tesisat / Konum</th><th>Yetkili Servis / Marka</th><th>Müşteri / Teknisyen</th><th>Devreye Alma</th><th>Durum</th><th>İşlem</th></tr></thead>
+                    <tbody>
+                    @foreach (var d in Model)
+                    {
+                        var ilce = firmaIlceleri.TryGetValue(d.FirmaId, out var bulunanIlce) ? bulunanIlce : "-";
+                        var durumYazi = d.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? "Tamamlandı" : d.Durum == DevreyeAlmaDurumDegerleri.Iptal ? "İptal" : "Bekliyor";
+                        var durumSinif = d.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? "df-pill-success" : d.Durum == DevreyeAlmaDurumDegerleri.Iptal ? "df-pill-danger" : "df-pill-warning";
+                        <tr>
+                            <td><div class="df-cell-main">@d.TesistatNo</div><div class="df-cell-sub">@(d.Firma?.FaaliyetIli ?? "-") / @ilce</div><div class="df-cell-sub" title="@d.Adres">@(string.IsNullOrWhiteSpace(d.Adres) ? "Adres bilgisi yok" : d.Adres)</div></td>
+                            <td><div class="df-cell-main">@(d.Firma?.FirmaAdi ?? "-")</div><div class="df-cell-sub">@(d.Marka?.MarkaAdi ?? d.CihazMarka ?? "Marka bilgisi yok")</div></td>
+                            <td><div class="df-cell-main">@(string.IsNullOrWhiteSpace(d.MusteriAdi) ? "-" : d.MusteriAdi)</div><div class="df-cell-sub">Teknisyen: @(string.IsNullOrWhiteSpace(d.TeknisyenAdi) ? "-" : d.TeknisyenAdi)</div></td>
+                            <td><div class="df-cell-main">@d.DevreyeAlmaTarihi.ToString("dd.MM.yyyy")</div><div class="df-cell-sub">Kayıt: @d.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</div></td>
+                            <td><span class="df-pill @durumSinif">@durumYazi</span></td>
+                            <td><a class="df-icon-action" href="/AdminPanel/devreyealmalar/detay/@d.Id" title="İşlem detayını görüntüle"><i class="bi bi-eye" aria-hidden="true"></i><span>Detay</span></a></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
         }
-    </div>
-</div>
+    </section>
 </div>

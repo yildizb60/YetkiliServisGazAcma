@@ -165,7 +165,7 @@
                 <span class="fr265-ready-badge"><i class="bi bi-patch-check-fill"></i> İmzalı nihai belge</span>
             }
         </div>
-        <div class="df-panel-subtitle">Cihaz değişim talebi #@Model.Id için @(imzaliBelgeHazir ? "kayda gelen nihai FR265 belgesi." : "imzaya gönderilecek FR265 belgesi.")</div>
+        <div class="df-panel-subtitle">Cihaz değişim talebi #@Model.Id için @(imzaliBelgeHazir ? "kayda gelen nihai form." : "imzaya gönderilecek form.")</div>
     </div>
     <div class="df-actions">
         <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/detay/@Model.Id">Detaya Dön</a>
@@ -196,7 +196,7 @@
     </div>
 </div>
 
-<div class="fr265-page-tabs" aria-label="FR265 sayfaları">
+<div class="fr265-page-tabs" aria-label="Form sayfaları">
     <a href="#fr265-page-1">1. Sayfa</a>
     <a href="#fr265-page-2">2. Sayfa</a>
 </div>
@@ -205,12 +205,12 @@
 {
     <div class="fr265-note">
         <i class="bi bi-info-circle"></i>
-        <span>İmzalı nihai belge hazır olduğunda indirilen dosya FR265 kaydına bağlı nihai belgedir.</span>
+        <span>İmzalı nihai belge hazır olduğunda indirilen dosya bu talebe bağlı nihai formdur.</span>
     </div>
 }
 
 <div class="fr265-document">
-    <section class="fr265-paper" id="fr265-page-1" aria-label="FR265 birinci sayfa">
+    <section class="fr265-paper" id="fr265-page-1" aria-label="Formun birinci sayfası">
         <div class="fr265-paper-head">
             <img class="fr265-logo" src="@LogoUrl(Model)" alt="Şirket logosu" />
             <div class="fr265-title">FR265 PROJE TADİLATI GEREKTİRMEYEN YAKICI CİHAZ DEĞİŞİM FORMU</div>
@@ -311,7 +311,7 @@ Tarih: @(imzaliBelgeHazir ? Deger(ImzaTarihi(Model, 1) ?? formTarihi) : "")
         </table>
     </section>
 
-    <section class="fr265-paper fr265-control-page" id="fr265-page-2" aria-label="FR265 ikinci sayfa">
+    <section class="fr265-paper fr265-control-page" id="fr265-page-2" aria-label="Formun ikinci sayfası">
         <div class="fr265-paper-head">
             <img class="fr265-logo" src="@LogoUrl(Model)" alt="Şirket logosu" />
             <div class="fr265-title">FR265 PROJE TADİLATI GEREKTİRMEYEN YAKICI CİHAZ DEĞİŞİM FORMU</div>

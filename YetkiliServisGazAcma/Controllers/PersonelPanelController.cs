@@ -262,10 +262,16 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await _userManager.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
-            kullanici.AdSoyad = adSoyad;
-            kullanici.Email = email;
-            kullanici.UserName = email;
-            kullanici.PhoneNumber = telefon;
+            if (string.IsNullOrWhiteSpace(adSoyad) || string.IsNullOrWhiteSpace(email) ||
+                !new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(email.Trim()))
+            {
+                TempData["Hata"] = "Ad soyad ve geçerli bir e-posta adresi girin.";
+                return RedirectToAction(nameof(Profil));
+            }
+            kullanici.AdSoyad = adSoyad.Trim();
+            kullanici.Email = email.Trim();
+            kullanici.UserName = email.Trim();
+            kullanici.PhoneNumber = telefon?.Trim();
 
             var sonuc = await _userManager.UpdateAsync(kullanici);
             if (sonuc.Succeeded) TempData["Basarili"] = "Profil bilgileriniz başarıyla güncellendi.";
@@ -281,6 +287,11 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await _userManager.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
+            if (string.IsNullOrWhiteSpace(mevcutSifre) || string.IsNullOrWhiteSpace(yeniSifre))
+            {
+                TempData["SifreHata"] = "Mevcut ve yeni şifreyi girin.";
+                return RedirectToAction(nameof(Profil));
+            }
             if (yeniSifre != yeniSifreTekrar)
             {
                 TempData["SifreHata"] = "Yeni şifreler eşleşmiyor.";
@@ -289,13 +300,13 @@ namespace YetkiliServisGazAcma.Controllers
 
             var sonuc = await _userManager.ChangePasswordAsync(kullanici, mevcutSifre, yeniSifre);
             if (sonuc.Succeeded) TempData["SifreBasarili"] = "Şifreniz başarıyla değiştirildi.";
-            else TempData["SifreHata"] = "Mevcut şifreniz yanlış.";
+            else TempData["SifreHata"] = "Şifre güncellenemedi. Mevcut şifrenizi ve yeni şifrenin kurallara uygunluğunu kontrol edin.";
 
             return RedirectToAction(nameof(Profil));
         }
 
         [HttpGet("devreyealmalar")]
-        public async Task<IActionResult> DevreyeAlmalar(string? tesisat, string? marka, string? servis, string? il, string? ilce, string? durum, DateTime? bas, DateTime? bit)
+        public async Task<IActionResult> DevreyeAlmalar(string? tesisat, string? musteri, string? marka, string? servis, string? il, string? ilce, string? durum, DateTime? bas, DateTime? bit)
         {
             var kullanici = await _userManager.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
@@ -325,8 +336,20 @@ namespace YetkiliServisGazAcma.Controllers
                 sonuc = new AdminDevreyeAlmaListeSonuc();
             }
 
+            if (!string.IsNullOrWhiteSpace(musteri))
+            {
+                var aranacak = musteri.Trim();
+                sonuc.Islemler = sonuc.Islemler
+                    .Where(x =>
+                        (!string.IsNullOrWhiteSpace(x.MusteriAdi) && x.MusteriAdi.Contains(aranacak, StringComparison.CurrentCultureIgnoreCase)) ||
+                        (!string.IsNullOrWhiteSpace(x.AboneNo) && x.AboneNo.Contains(aranacak, StringComparison.OrdinalIgnoreCase)) ||
+                        (!string.IsNullOrWhiteSpace(x.MusteriTelefon) && x.MusteriTelefon.Contains(aranacak, StringComparison.OrdinalIgnoreCase)))
+                    .ToList();
+            }
+
             ViewBag.Markalar = sonuc.Markalar;
             ViewBag.FirmaIlceleri = sonuc.FirmaIlceleri;
+            ViewBag.Musteri = musteri ?? "";
             ViewBag.Sehirler = _sehirFirmaKoduService.Sehirler();
             ViewBag.Kullanici = kullanici;
             await SetPersonelYetkiViewBags(kullanici);
@@ -528,7 +551,7 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpGet("sirketler")]
-        public async Task<IActionResult> Sirketler()
+        public async Task<IActionResult> Sirketler(string? q)
         {
             var yetkiResult = await YetkiKontrol(YetkiTipleri.DAGITIM_SIRKET_YONET);
             if (yetkiResult != null) return yetkiResult;
@@ -547,7 +570,19 @@ namespace YetkiliServisGazAcma.Controllers
                 sirketler = new List<Dag_Sirket>();
             }
 
+            if (!string.IsNullOrWhiteSpace(q))
+            {
+                var aranacak = q.Trim();
+                sirketler = sirketler
+                    .Where(x =>
+                        (!string.IsNullOrWhiteSpace(x.SirketAdi) && x.SirketAdi.Contains(aranacak, StringComparison.CurrentCultureIgnoreCase)) ||
+                        (!string.IsNullOrWhiteSpace(x.Il) && x.Il.Contains(aranacak, StringComparison.CurrentCultureIgnoreCase)) ||
+                        (!string.IsNullOrWhiteSpace(x.Telefon) && x.Telefon.Contains(aranacak, StringComparison.OrdinalIgnoreCase)))
+                    .ToList();
+            }
+
             ViewBag.Kullanici = kullanici;
+            ViewBag.Query = q ?? "";
             await SetPersonelYetkiViewBags(kullanici);
             await SetPersonelNotifViewBags(kullanici);
             return View("~/Views/PersonelPanel/Sirketler.cshtml", sirketler);
@@ -1013,7 +1048,7 @@ namespace YetkiliServisGazAcma.Controllers
                     vergiDairesi,
                     aktifMi,
                     kategoriIds,
-                    markaIds?.Count > 0 ? markaIds : null);
+                    markaIds ?? new List<int>());
 
                 TempData[sonuc?.Basarili == true ? "Basarili" : "Hata"] =
                     sonuc?.Basarili == true

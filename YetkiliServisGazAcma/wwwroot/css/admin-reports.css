@@ -42,6 +42,10 @@
     gap: 9px;
 }
 
+.df-admin-report-fields.is-two {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .df-admin-report-form .df-admin-field {
     grid-column: auto;
 }
@@ -189,7 +193,27 @@
 }
 
 .df-report-chart .chart-wrap {
+    position: relative;
     height: 180px;
+}
+
+.df-report-chart .chart-wrap canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.df-report-chart .chart-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--report-muted);
+    font-size: 11px;
+}
+
+.df-report-chart .chart-wrap.has-data .chart-empty {
+    display: none;
 }
 
 .df-admin-report-results {

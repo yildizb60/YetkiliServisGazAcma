@@ -29,9 +29,7 @@
     <section class="df-page-panel df-admin-hero">
         <div class="df-panel-head">
             <div>
-                <div class="df-panel-kicker"><i class="bi bi-building-gear"></i> Şube ağı</div>
-                <div class="df-panel-title">Şube / Servis Noktaları</div>
-                <div class="df-panel-subtitle">Firmalara bağlı servis noktalarını izleyin; gerektiğinde yeni şube kaydı açın.</div>
+                <h1 class="df-panel-title"><i class="bi bi-building-gear" aria-hidden="true"></i> Şube / Servis Noktaları</h1>
             </div>
             <div class="df-actions">
                 <button type="button" class="df-btn df-btn-primary df-btn-sm" id="subeCreateToggle" aria-expanded="false" aria-controls="subeCreatePanel">
@@ -110,7 +108,7 @@
     <section class="df-admin-form-card df-admin-create-card df-branch-create-card" id="subeCreatePanel" hidden>
         <div class="df-branch-create-head">
             <span><i class="bi bi-diagram-3"></i></span>
-            <div><h3>Yeni Şube</h3><p>Firma, şube adı ve hizmet noktasını tek adımda tanımlayın.</p></div>
+            <div><h3>Yeni Şube</h3></div>
         </div>
         <form method="post" action="/AdminPanel/subeler/ekle">
             @Html.AntiForgeryToken()
@@ -138,7 +136,7 @@
                 <label class="df-branch-status-switch">
                     <input type="checkbox" name="aktifMi" value="true" checked />
                     <span class="df-branch-switch-track" aria-hidden="true"></span>
-                    <span><strong>Aktif şube</strong><small>Kayıt oluşturulduğunda kullanıma açık olur.</small></span>
+                    <span><strong>Aktif şube</strong></span>
                 </label>
                 <div class="df-admin-form-actions">
                     <button type="button" class="df-btn df-btn-secondary df-btn-sm" id="subeCreateCancel">
@@ -158,7 +156,6 @@
         <div class="df-service-list-head">
             <div>
                 <h3><i class="bi bi-diagram-3"></i> Şube Listesi</h3>
-                <span>@subeler.Count kayıt listeleniyor</span>
             </div>
         </div>
 

@@ -23,7 +23,7 @@ namespace YetkiliServisGazAcma.Business.Services
             if (exception == null)
                 return;
 
-            _logger.LogWarning(exception, "API entegrasyon hatasi yakalandi.");
+            _logger.LogWarning(exception, "API entegrasyon hatasi yakalandi. Operasyon: {Operation}", exception.Operation);
 
             var tempData = _tempDataFactory.GetTempData(context.HttpContext);
             tempData["Hata"] = exception.Message;
@@ -57,6 +57,8 @@ namespace YetkiliServisGazAcma.Business.Services
                 ? "/AdminPanel"
                 : path.StartsWith("/personel-panel", StringComparison.OrdinalIgnoreCase)
                     ? "/personel-panel"
+                    : path.StartsWith("/ykc", StringComparison.OrdinalIgnoreCase)
+                        ? "/ykc/talepler"
                     : path.StartsWith("/ys-", StringComparison.OrdinalIgnoreCase)
                         ? "/ys-panel"
                         : "/giris";

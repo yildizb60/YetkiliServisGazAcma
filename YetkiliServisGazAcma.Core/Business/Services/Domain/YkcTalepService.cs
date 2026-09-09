@@ -306,7 +306,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 return YkcIslemSonuc.HataliSonuc("Cihaz değişim talebi bulunamadı.");
 
             if (DurumTerminalMi(talep.Durum))
-                return YkcIslemSonuc.HataliSonuc("Tamamlanan, reddedilen veya iptal edilen talep icin atama yapilamaz.");
+                return YkcIslemSonuc.HataliSonuc("Tamamlanan, reddedilen veya iptal edilen talep için atama yapılamaz.");
 
             var imzaSureciBasladi = await _context.Ykc_ImzaSurecleri.AnyAsync(x =>
                 x.TalepId == talep.Id &&
@@ -318,21 +318,21 @@ namespace YetkiliServisGazAcma.Business.Services
                  x.Durum == YkcImzaDurumDegerleri.Tamamlandi));
 
             if (imzaSureciBasladi)
-                return YkcIslemSonuc.HataliSonuc("FR265 imza sureci basladiktan sonra randevu ve yonlendirme degistirilemez.");
+                return YkcIslemSonuc.HataliSonuc("Formun imza süreci başladıktan sonra randevu ve yönlendirme değiştirilemez.");
 
             if (talep.Durum == YkcDurumDegerleri.TalepAlindi)
-                return YkcIslemSonuc.HataliSonuc("Randevu ve atama icin talep once Ic Tesisat Incelemesinde durumuna alinmalidir.");
+                return YkcIslemSonuc.HataliSonuc("Randevu planlamak için talebi önce incelemeye alın.");
 
             if (!AtamaYapilabilirMi(talep.Durum))
-                return YkcIslemSonuc.HataliSonuc("Bu durumdaki talep icin randevu ve atama yapilamaz.");
+                return YkcIslemSonuc.HataliSonuc("Talebin mevcut aşamasında randevu ve atama yapılamaz.");
 
             var bolge = YkcBolgeAtamaKurali.BolgeBelirle(talep.Bolge, talep.Il);
             if (string.IsNullOrWhiteSpace(bolge))
-                return YkcIslemSonuc.HataliSonuc("Randevu icin bolge bilgisi zorunludur.");
+                return YkcIslemSonuc.HataliSonuc("Tesisatın planlama bölgesi belirlenemedi. Tesisat bilgilerini kontrol edin.");
 
             var yonlendirmeTipi = YonlendirmeTipiBelirle(dto);
             if (string.IsNullOrWhiteSpace(yonlendirmeTipi))
-                return YkcIslemSonuc.HataliSonuc("Randevu icin bolgeye uygun 187 Acil veya Muhendis ekibi secilmelidir.");
+                return YkcIslemSonuc.HataliSonuc("Bölge için 187 Acil veya Mühendis yönlendirmesi seçin.");
 
             if (!dto.RandevuTarihi.HasValue)
                 return YkcIslemSonuc.HataliSonuc("Randevu tarihi zorunludur.");
@@ -341,7 +341,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 return YkcIslemSonuc.HataliSonuc("Randevu saati zorunludur.");
 
             if (RandevuZamaniGecmisteMi(dto.RandevuTarihi, dto.RandevuSaati))
-                return YkcIslemSonuc.HataliSonuc("Gecmis tarih veya saat icin randevu kaydedilemez.");
+                return YkcIslemSonuc.HataliSonuc("Geçmiş tarih veya saate randevu verilemez.");
 
             var eskiDurum = talep.Durum;
             var hedef = HedefUygulamaBelirle(yonlendirmeTipi);
@@ -446,14 +446,14 @@ namespace YetkiliServisGazAcma.Business.Services
                 return YkcIslemSonuc.HataliSonuc("Cihaz değişim talebi bulunamadı.");
 
             if (dto.Durum == YkcDurumDegerleri.Reddedildi && string.IsNullOrWhiteSpace(dto.Aciklama))
-                return YkcIslemSonuc.HataliSonuc("Red islemi icin aciklama zorunludur.");
+                return YkcIslemSonuc.HataliSonuc("Red işlemi için açıklama zorunludur.");
 
             if (dto.Durum == YkcDurumDegerleri.Iptal && string.IsNullOrWhiteSpace(dto.Aciklama))
-                return YkcIslemSonuc.HataliSonuc("Iptal islemi icin aciklama zorunludur.");
+                return YkcIslemSonuc.HataliSonuc("İptal işlemi için açıklama zorunludur.");
 
             var eskiDurum = talep.Durum;
             if (eskiDurum == dto.Durum)
-                return YkcIslemSonuc.BasariliSonuc("Talep zaten secilen durumda.", talep.Id);
+                return YkcIslemSonuc.BasariliSonuc("Talep zaten seçilen durumda.", talep.Id);
 
             if (dto.Durum == YkcDurumDegerleri.SahaIsleminde && !RandevuZamaniGeldiMi(talep.RandevuTarihi, talep.RandevuSaati))
                 return YkcIslemSonuc.HataliSonuc("Randevu zamanı gelmeden saha kontrolü başlatılamaz.");
@@ -461,13 +461,13 @@ namespace YetkiliServisGazAcma.Business.Services
             var imzaliNihaiBelgeVar = await ImzaliNihaiBelgeVarMiAsync(talep.Id);
 
             if (dto.Durum == YkcDurumDegerleri.Tamamlandi && !imzaliNihaiBelgeVar)
-                return YkcIslemSonuc.HataliSonuc("İşlemi tamamlamak için FR265'in imza/arşiv sisteminden dönmüş imzalı nihai belgesi gerekir. Dijital imza entegrasyonu bağlanmadan bu talep canlı olarak tamamlanamaz.");
+                return YkcIslemSonuc.HataliSonuc("İşlemi tamamlamak için imza/arşiv sisteminden dönmüş imzalı nihai belge gerekir. Dijital imza bağlantısı kurulmadan bu talep canlı olarak tamamlanamaz.");
 
             if (dto.Durum == YkcDurumDegerleri.Tamamlandi && !RandevuZamaniGeldiMi(talep.RandevuTarihi, talep.RandevuSaati))
-                return YkcIslemSonuc.HataliSonuc("Randevu zamani gelmeden talep tamamlandi durumuna alinamaz.");
+                return YkcIslemSonuc.HataliSonuc("Randevu saati gelmeden talep tamamlanamaz.");
 
             if (!DurumGecisiGecerliMi(eskiDurum, dto.Durum, imzaliNihaiBelgeVar))
-                return YkcIslemSonuc.HataliSonuc("Bu durum gecisi icin onceki adimlar tamamlanmalidir.");
+                return YkcIslemSonuc.HataliSonuc("Bu işlem için önceki adımlar tamamlanmalıdır.");
 
             talep.Durum = dto.Durum;
             talep.RedAciklama = dto.Durum == YkcDurumDegerleri.Reddedildi ? dto.Aciklama?.Trim() : talep.RedAciklama;
@@ -527,7 +527,7 @@ namespace YetkiliServisGazAcma.Business.Services
                         or YkcImzaDurumDegerleri.KismiImzali
                         or YkcImzaDurumDegerleri.Tamamlandi))
             {
-                return YkcIslemSonuc.HataliSonuc("İmzaya gönderilen FR265 üzerindeki kontroller değiştirilemez.");
+                return YkcIslemSonuc.HataliSonuc("İmzaya gönderilen form üzerindeki kontroller değiştirilemez.");
             }
 
             var gecerliSonuclar = new[]
@@ -559,7 +559,7 @@ namespace YetkiliServisGazAcma.Business.Services
 
             var beklenenKontrolNo = (mevcutSonKontrol?.KontrolNo ?? 0) + 1;
             if (beklenenKontrolNo > 5)
-                return YkcIslemSonuc.HataliSonuc("FR265 formunda kullanılabilir kontrol alanı kalmadı.");
+                return YkcIslemSonuc.HataliSonuc("Formda kullanılabilir kontrol alanı kalmadı.");
 
             if (kontrolSatirlari.Count != 1 || kontrolSatirlari[0].KontrolNo != beklenenKontrolNo)
                 return YkcIslemSonuc.HataliSonuc($"{beklenenKontrolNo}. kontrol sonucu bekleniyor.");
@@ -608,7 +608,7 @@ namespace YetkiliServisGazAcma.Business.Services
             }
 
             if (!degisiklikVar)
-                return YkcIslemSonuc.BasariliSonuc("FR265 kontrol adımlarında değişiklik bulunmadı.", talep.Id);
+                return YkcIslemSonuc.BasariliSonuc("Kontrol kayıtlarında değişiklik bulunmadı.", talep.Id);
 
             talep.Fr265BelgeVersiyonNo = Math.Max(talep.Fr265BelgeVersiyonNo, 1) + 1;
             talep.Fr265BelgeOlusturmaTarihi = null;
@@ -637,7 +637,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 TalepId = talep.Id,
                 IslemTipi = "FR265KontrolleriGuncellendi",
                 YeniDurum = talep.Durum,
-                Aciklama = "FR265 kontrol adımları güncellendi.",
+                Aciklama = "Form kontrol sonucu güncellendi.",
                 KullaniciId = kullanici.Id,
                 KullaniciAdi = kullanici.UserName,
                 OlusturmaTarihi = DateTime.Now,
@@ -645,7 +645,7 @@ namespace YetkiliServisGazAcma.Business.Services
             });
 
             await _context.SaveChangesAsync();
-            return YkcIslemSonuc.BasariliSonuc("FR265 kontrol adımları kaydedildi.", talep.Id);
+            return YkcIslemSonuc.BasariliSonuc("Kontrol sonucu kaydedildi.", talep.Id);
         }
 
         public async Task<YkcIslemSonuc> DosyaEkleAsync(
@@ -1024,7 +1024,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 return YkcIslemSonuc.HataliSonuc("Tesisat no zorunludur.");
 
             if (string.Equals(dto.KaynakTipi?.Trim(), "ServisHatasi", StringComparison.OrdinalIgnoreCase))
-                return YkcIslemSonuc.HataliSonuc("Online tesisat servisi yanit vermeden cihaz degisim talebi olusturulamaz. Lutfen servisi tekrar sorgulayin.");
+                return YkcIslemSonuc.HataliSonuc("Online tesisat servisi yanıt vermeden cihaz değişim talebi oluşturulamaz. Lütfen servisi yeniden sorgulayın.");
 
             if (string.IsNullOrWhiteSpace(dto.YeniCihazTipi) && string.IsNullOrWhiteSpace(dto.YeniCihazTipiKodu))
                 return YkcIslemSonuc.HataliSonuc("Yeni cihaz tipi zorunludur.");
@@ -1063,7 +1063,7 @@ namespace YetkiliServisGazAcma.Business.Services
                     dto.YeniModel,
                     dto.YeniSeriNo))
             {
-                return YkcIslemSonuc.HataliSonuc("Test amacli placeholder degerlerle cihaz degisim talebi olusturulamaz. Lutfen gercek tesisat ve cihaz bilgilerini giriniz.");
+                return YkcIslemSonuc.HataliSonuc("Geçici örnek değerlerle cihaz değişim talebi oluşturulamaz. Gerçek tesisat ve cihaz bilgilerini girin.");
             }
 
             return YkcIslemSonuc.BasariliSonuc("Uygun.");
@@ -1139,12 +1139,6 @@ namespace YetkiliServisGazAcma.Business.Services
             return kultur.TextInfo.ToTitleCase(deger.Trim().ToLower(kultur));
         }
 
-        public static string EkipAdi(string bolge, bool acilEkipMi)
-        {
-            return acilEkipMi
-                ? $"{bolge} 187 Acil Ekibi"
-                : $"{bolge} Mühendis Ekibi";
-        }
     }
 
     public class YkcTalepListeFiltre

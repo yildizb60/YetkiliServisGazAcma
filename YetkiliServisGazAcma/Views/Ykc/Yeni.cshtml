@@ -1,5 +1,9 @@
 @model YkcTalepKaydetDto
 @{
+    ViewData["Title"] = "Yeni Talep";
+    ViewData["PanelTitle"] = "Yeni Talep";
+    ViewData["PanelSubtitle"] = "Cihaz Değişimi";
+    ViewData["ActiveMenu"] = "YkcYeni";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
     var sorgulandi = !string.IsNullOrWhiteSpace(Model.SorguReferansi);
 }
@@ -7,59 +11,86 @@
     <link rel="stylesheet" href="~/css/ykc-operations.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/ykc-request.css" asp-append-version="true" />
 }
-<div class="ykc-request">
+<div class="ykc-request" data-has-query="@sorgulandi.ToString().ToLowerInvariant()">
     <header class="ykc-request-header">
-        <h1>Yeni Cihaz Değişim Talebi</h1>
-        <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/talepler"><i class="bi bi-arrow-left"></i> Taleplerim</a>
+        <h1>Yeni Talep</h1>
+        <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/talepler"><i class="bi bi-list-ul"></i> Taleplerim</a>
     </header>
+
     @if (TempData["Hata"] != null)
     {
         <div class="df-alert df-alert-danger" role="alert">@TempData["Hata"]</div>
     }
-    <form method="post" action="/ykc/yeni" id="ykcCreateForm">
+
+    <form method="post" action="/ykc/yeni" id="ykcCreateForm" class="ykc-request-workspace">
         @Html.AntiForgeryToken()
         <div asp-validation-summary="All" class="text-danger"></div>
         <input type="hidden" asp-for="SorguReferansi" />
         <input type="hidden" asp-for="KaynakTipi" value="OnlineServis" />
         <input type="hidden" asp-for="MusteriAdi" />
         <input type="hidden" asp-for="Adres" />
-        <section class="ykc-request-section">
-            <h2><i class="bi bi-house-check"></i> Tesisat</h2>
+        <input type="hidden" name="secilenCihazAdi" id="ykcSelectedDeviceName" value="@ViewData["SecilenCihazAdi"]" />
+
+        <section class="ykc-request-section ykc-request-lookup" aria-labelledby="ykc-query-title">
+            <header class="ykc-request-section-head">
+                <div><span class="ykc-request-section-icon"><i class="bi bi-house-check" aria-hidden="true"></i></span><h2 id="ykc-query-title">Tesisat Sorgusu</h2></div>
+                <span id="ykcQueryStatus" class="ykc-query-status @(sorgulandi ? "is-success" : null)" role="status" hidden="@(!sorgulandi)"><i class="bi bi-check2-circle" id="ykcQueryStatusIcon" aria-hidden="true"></i><span id="ykcQueryStatusText">@(sorgulandi ? "Tesisat bulundu" : "")</span></span>
+            </header>
             <div class="ykc-request-query">
-                <div class="ykc-field"><label for="TesisatNo">Tesisat No</label><input asp-for="TesisatNo" inputmode="numeric" autocomplete="off" required /></div>
-                <div class="ykc-field"><label for="SozlesmeNo">Sözleşme No</label><input asp-for="SozlesmeNo" inputmode="numeric" autocomplete="off" required /></div>
-                <button type="button" class="df-btn df-btn-primary" id="ykcTesisatSorgulaBtn"><i class="bi bi-search"></i> Sorgula</button>
+                <div class="ykc-request-query-fields">
+                    <div class="ykc-field"><label for="TesisatNo">Tesisat No</label><input asp-for="TesisatNo" inputmode="numeric" pattern="[0-9]+" maxlength="19" autocomplete="off" required /></div>
+                    <div class="ykc-field"><label for="SozlesmeNo">Sözleşme No</label><input asp-for="SozlesmeNo" inputmode="numeric" pattern="[0-9]+" maxlength="19" autocomplete="off" required /></div>
+                    <button type="button" class="df-btn df-btn-primary" id="ykcTesisatSorgulaBtn"><i class="bi bi-search"></i> Tesisatı Sorgula</button>
+                </div>
             </div>
-            <p id="ykcSorguAlert" role="status" hidden></p>
-            <div id="ykcCustomer" class="ykc-request-customer" hidden="@(!sorgulandi)">
-                <strong id="ykcCustomerName">@Model.MusteriAdi</strong><span id="ykcCustomerAddress">@Model.Adres</span>
-            </div>
+            <p id="ykcSorguAlert" role="alert" hidden></p>
         </section>
-        <fieldset id="ykcDeviceFields" class="ykc-request-section" hidden="@(!sorgulandi)" disabled="@(!sorgulandi)">
-            <h2><i class="bi bi-arrow-left-right"></i> Cihaz Değişimi</h2>
-            <div class="ykc-field ykc-request-selection">
-                <label for="ykcServisCihazSecimi">Değiştirilecek Cihaz</label>
-                <select id="ykcServisCihazSecimi" required>
-                    @if (sorgulandi) { <option value="@Model.SorguReferansi">Seçilen proje cihazı</option> }
-                    else { <option value="">Cihaz seçin</option> }
-                </select>
+
+        <fieldset id="ykcDeviceFields" class="ykc-request-section ykc-request-device" hidden="@(!sorgulandi)" disabled="@(!sorgulandi)">
+            <legend class="visually-hidden">Cihaz değişim bilgileri</legend>
+            <div class="ykc-device-entry-layout">
+                <section class="ykc-source-device" aria-labelledby="ykc-customer-title">
+                    <header>
+                        <div><span class="ykc-request-section-icon"><i class="bi bi-person-vcard" aria-hidden="true"></i></span><h2 id="ykc-customer-title">Müşteri ve Tesisat</h2></div>
+                    </header>
+                    <dl id="ykcCustomer" class="ykc-request-customer">
+                        <div><dt>Müşteri</dt><dd id="ykcCustomerName">@Model.MusteriAdi</dd></div>
+                        <div><dt>Adres</dt><dd id="ykcCustomerAddress">@Model.Adres</dd></div>
+                    </dl>
+                    <div class="ykc-field ykc-request-selection">
+                        <label for="ykcServisCihazSecimi"><i class="bi bi-house-gear" aria-hidden="true"></i> Projedeki Cihaz</label>
+                        <select id="ykcServisCihazSecimi" required>
+                            @if (sorgulandi) { <option value="@Model.SorguReferansi">@(ViewData["SecilenCihazAdi"] ?? "Seçilen proje cihazı")</option> }
+                            else { <option value="">Cihaz seçin</option> }
+                        </select>
+                    </div>
+                </section>
+
+                <section class="ykc-new-device" aria-labelledby="ykc-new-device-title">
+                    <header>
+                        <div><span class="ykc-request-section-icon is-green"><i class="bi bi-pencil-square" aria-hidden="true"></i></span><h2 id="ykc-new-device-title">Yeni Kullanılan Cihaz</h2></div>
+                    </header>
+                    <div class="ykc-request-grid">
+                        <div class="ykc-field"><label for="YeniCihazTipi">Yakıcı Cihaz Tipi</label><input asp-for="YeniCihazTipi" required maxlength="100" /></div>
+                        <div class="ykc-field"><label for="YeniMarka">Marka</label><input asp-for="YeniMarka" required maxlength="100" /></div>
+                        <div class="ykc-field"><label for="YeniBacaTipi">Baca Tipi</label><input asp-for="YeniBacaTipi" required maxlength="100" /></div>
+                        <div class="ykc-field"><label for="YeniKapasite">Kapasite (kcal/h)</label><input asp-for="YeniKapasite" inputmode="decimal" required maxlength="30" /></div>
+                    </div>
+            <div class="ykc-request-completion">
+                <div>
+                    <fieldset class="ykc-request-secondhand">
+                        <legend>Takılan yakıcı cihaz ikinci el mi?</legend>
+                        <label><input type="radio" name="IkinciElCihazMi" value="false" checked="@(Model.IkinciElCihazMi != true)" /> Hayır</label>
+                        <label><input type="radio" name="IkinciElCihazMi" value="true" checked="@(Model.IkinciElCihazMi == true)" /> Evet</label>
+                    </fieldset>
+                    <p id="ykcSecondhandNote" hidden="@(Model.IkinciElCihazMi != true)" class="ykc-request-notice">İkinci el cihaz için Yetkili Servis Cihaz Kontrol Raporu gereklidir.</p>
+                </div>
+                <footer class="ykc-request-footer">
+                    <button type="submit" id="ykcCreateButton" class="df-btn df-btn-primary"><i class="bi bi-check2-circle"></i> Talebi Oluştur</button>
+                </footer>
             </div>
-            <h3>Yeni Kullanılan Cihaz</h3>
-            <div class="ykc-request-grid">
-                <div class="ykc-field"><label for="YeniCihazTipi">Yakıcı Cihaz Tipi</label><input asp-for="YeniCihazTipi" required maxlength="100" /></div>
-                <div class="ykc-field"><label for="YeniMarka">Marka</label><input asp-for="YeniMarka" required maxlength="100" /></div>
-                <div class="ykc-field"><label for="YeniBacaTipi">Baca Tipi</label><input asp-for="YeniBacaTipi" required maxlength="100" /></div>
-                <div class="ykc-field"><label for="YeniKapasite">Kapasite (kcal/h)</label><input asp-for="YeniKapasite" inputmode="decimal" required maxlength="30" /></div>
+                </section>
             </div>
-            <fieldset class="ykc-request-secondhand">
-                <legend>Takılan yakıcı cihaz ikinci el mi?</legend>
-                <label><input type="radio" name="IkinciElCihazMi" value="false" checked="@(Model.IkinciElCihazMi != true)" /> Hayır</label>
-                <label><input type="radio" name="IkinciElCihazMi" value="true" checked="@(Model.IkinciElCihazMi == true)" /> Evet</label>
-            </fieldset>
-            <p id="ykcSecondhandNote" hidden="@(Model.IkinciElCihazMi != true)" class="ykc-request-notice">İkinci el cihaz için Yetkili Servis Cihaz Kontrol Raporu gereklidir.</p>
-            <footer class="ykc-request-footer">
-                <button type="submit" id="ykcCreateButton" class="df-btn df-btn-primary"><i class="bi bi-check2"></i> Talebi Oluştur</button>
-            </footer>
         </fieldset>
     </form>
 </div>

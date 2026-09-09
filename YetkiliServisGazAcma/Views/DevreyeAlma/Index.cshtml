@@ -15,12 +15,11 @@
             <span class="ys-page-icon"><i class="bi bi-wrench-adjustable-circle" aria-hidden="true"></i></span>
             <div class="ys-page-copy">
                 <h1>Cihaz Devreye Alma</h1>
-                <p>Tesisatı doğrulayın, servisten gelen cihazı seçin ve devreye alma kaydını tamamlayın.</p>
             </div>
         </div>
         <div class="ys-page-actions">
             <a class="df-btn df-btn-secondary df-btn-sm" href="/ys-devreyeal/gecmis">
-                <i class="bi bi-clock-history" aria-hidden="true"></i> İşlem Geçmişim
+                <i class="bi bi-clock-history" aria-hidden="true"></i> Devreye Alma Geçmişi
             </a>
         </div>
     </header>
@@ -53,7 +52,6 @@
                 <span class="ys-section-icon"><i class="bi bi-search" aria-hidden="true"></i></span>
                 <div>
                     <h2 class="ys-panel-title" id="tesisatSorguBaslik">Tesisatı Sorgulayın</h2>
-                    <p class="ys-panel-subtitle">Tesisat ve sözleşme numarası birlikte doğrulanır.</p>
                 </div>
             </div>
         </div>
@@ -83,7 +81,6 @@
                 <span class="ys-section-icon"><i class="bi bi-house-check" aria-hidden="true"></i></span>
                 <div>
                     <h2 class="ys-panel-title" id="tesisatSonucBaslik">Tesisat ve Cihaz Bilgileri</h2>
-                    <p class="ys-panel-subtitle">Doğrulanan bilgiler değiştirilemez; işleme alınacak cihazı seçin.</p>
                 </div>
             </div>
             <span class="df-pill df-pill-success" id="b-durum"></span>
@@ -99,7 +96,6 @@
             </dl>
             <div class="ys-device-picker">
                 <h3>Servisten Gelen Cihazlar</h3>
-                <p>Devreye alınacak cihazı seçin.</p>
                 <div class="ys-device-list" id="b-cihazlar"></div>
             </div>
         </div>
@@ -111,7 +107,6 @@
                 <span class="ys-section-icon"><i class="bi bi-clipboard2-check" aria-hidden="true"></i></span>
                 <div>
                     <h2 class="ys-panel-title" id="devreyeFormBaslik">Devreye Alma Bilgileri</h2>
-                    <p class="ys-panel-subtitle">Seçilen cihaza ait model, seri ve teknisyen bilgilerini tamamlayın.</p>
                 </div>
             </div>
         </div>
@@ -160,6 +155,7 @@
 </div>
 
 <script>
+    const antiForgeryToken = document.querySelector('#devreyeAlmaForm input[name="__RequestVerificationToken"]')?.value || "";
     let seciliMarkaId = 0;
     let seciliMarkaAdi = "";
     let servisCihazlari = [];
@@ -236,7 +232,10 @@
         try {
             const response = await fetch("/ys-devreyeal/tesisat-sorgula", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    "RequestVerificationToken": antiForgeryToken
+                },
                 body: JSON.stringify({ tesistatNo: tesisatNo, sozlesmeNo: sozlesmeNo })
             });
             if (!response.ok) { alert("Sorgu sırasında bir hata oluştu."); return; }
@@ -280,7 +279,7 @@
             document.getElementById("f-uygunlukBelgeNo").value = "";
             document.getElementById("f-uygunlukTarihi").value = "";
             document.getElementById("f-musteriAdi").value = data.musteriAdi || "";
-            document.getElementById("f-musteriTcNo").value = data.musteriTcNo || data.aboneNo || "";
+            document.getElementById("f-musteriTcNo").value = data.musteriTcNo || "";
             document.getElementById("f-musteriTelefon").value = data.musteriTelefon || "";
             document.getElementById("f-adres").value = data.adres || "";
 
@@ -325,7 +324,10 @@
         try {
             const response = await fetch("/ys-devreyeal/marka-kontrol", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    "RequestVerificationToken": antiForgeryToken
+                },
                 body: JSON.stringify({ cihazMarka: cihaz?.cihazMarka || "" })
             });
             if (!response.ok) { alert("Marka kontrolü sırasında hata oluştu."); return; }

@@ -86,7 +86,7 @@
             <div><span>Yetkili Kişi</span><strong>@(Gosterilebilir(servis?.YetkiliKisi) ? servis!.YetkiliKisi : "Tanımlı değil")</strong></div>
             <div><span>Marka Yetkisi</span><strong>@markalar.Count marka</strong></div>
             <div><span>Şube</span><strong>@subeler.Count şube</strong></div>
-            <div><span>Devreye Alma</span><strong>@devreye.Count işlem</strong></div>
+            <div><span>Cihaz Devreye Alma</span><strong>@devreye.Count işlem</strong></div>
         </div>
     </section>
 
@@ -174,7 +174,7 @@
     </details>
 
     <details class="df-service-detail-section df-service-detail-disclosure">
-        <summary class="df-service-detail-title"><i class="bi bi-clock-history"></i><span><strong>Son Devreye Almalar</strong><small>@devreye.Count işlem kaydı</small></span><i class="bi bi-chevron-down"></i></summary>
+        <summary class="df-service-detail-title"><i class="bi bi-clock-history"></i><span><strong>Son Cihaz Devreye Alma Kayıtları</strong><small>@devreye.Count işlem kaydı</small></span><i class="bi bi-chevron-down"></i></summary>
         @if (devreye.Count == 0)
         {
             <span class="df-service-empty-inline">Devreye alma kaydı yok.</span>

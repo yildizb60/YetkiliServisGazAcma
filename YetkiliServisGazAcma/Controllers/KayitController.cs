@@ -56,6 +56,7 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         [Route("kayit/yetkili-servis")]
         public async Task<IActionResult> YetkiliServis(
             Ys_Firma firma,
@@ -82,6 +83,7 @@ namespace YetkiliServisGazAcma.Controllers
                 FaaliyetIli = firma.FaaliyetIli,
                 VergiNo = firma.VergiNo,
                 VergiDairesi = firma.VergiDairesi,
+                TcKimlikNo = firma.TcKimlikNo,
                 Sifre = sifre,
                 MarkaIdleri = markaIdleri ?? new List<int>(),
                 KategoriIdleri = kategoriIdleri ?? new List<int>()

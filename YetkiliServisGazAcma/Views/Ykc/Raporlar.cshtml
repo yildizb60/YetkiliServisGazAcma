@@ -4,14 +4,16 @@
     var filtre = ViewBag.Filtre as YkcTalepListeFiltre ?? new YkcTalepListeFiltre();
     var sertifikaliFirmaMi = User.IsInRole("SertifikaliFirma");
     var icOperasyonGorsun = !sertifikaliFirmaMi;
-    ViewData["PanelSubtitle"] = sertifikaliFirmaMi
-        ? "Tesisat, tarih ve durum bazında talepler"
-        : "Firma, tesisat, durum ve tarih bazında kayıtlar";
+    ViewData["Title"] = "Cihaz Değişim Raporları";
+    ViewData["PanelTitle"] = "Cihaz Değişim Raporları";
+    ViewData["ActiveMenu"] = "YkcRaporlar";
+    ViewData["PanelSubtitle"] = "Cihaz Değişimi";
     var sayfaBoyutu = Model.SayfaBoyutu > 0 ? Model.SayfaBoyutu : 10;
     var toplamSayfa = Math.Max(1, (int)Math.Ceiling(Model.Toplam / (double)sayfaBoyutu));
     var aktifSayfa = Math.Clamp(Model.Sayfa > 0 ? Model.Sayfa : 1, 1, toplamSayfa);
     var ilkKayit = Model.Toplam == 0 ? 0 : ((aktifSayfa - 1) * sayfaBoyutu) + 1;
     var sonKayit = Math.Min(aktifSayfa * sayfaBoyutu, Model.Toplam);
+    var raporKolonSayisi = icOperasyonGorsun ? 10 : 8;
     var aktifFiltreler = new List<(string Etiket, string Deger)>();
 
     string SayfaUrl(int sayfaNo)
@@ -95,7 +97,7 @@
             return "Form süreci başlamadı";
 
         if (durum == YkcDurumDegerleri.Atandi || durum == YkcDurumDegerleri.SahaIsleminde)
-            return "FR265 hazırlanıyor";
+            return "Form hazırlanıyor";
 
         return "İmzalı belge bekleniyor";
     }
@@ -125,9 +127,7 @@
 <div class="ykc-workspace">
     <header class="ykc-page-header">
         <div class="ykc-page-heading">
-            <div class="ykc-page-eyebrow">Yakıcı cihaz değişimi</div>
             <h1>Cihaz Değişim Raporları</h1>
-            <p>@(sertifikaliFirmaMi ? "Taleplerinizin durumunu, randevusunu ve FR265 sonucunu filtreleyin." : "Cihaz değişim kayıtlarını dönem, firma ve durum bazında inceleyin.")</p>
         </div>
         <div class="ykc-header-actions">
             <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/talepler"><i class="bi bi-journal-text"></i> Talep Listesi</a>
@@ -220,12 +220,12 @@
         </form>
     </details>
 
-    <dl class="ykc-report-summary" aria-label="Rapor özeti">
-        <div><dt>Toplam</dt><dd>@Model.Toplam</dd></div>
-        <div><dt>İncelenen</dt><dd>@DurumToplam(Model.DurumOzetleri, YkcDurumDegerleri.TalepAlindi, YkcDurumDegerleri.AtamaBekliyor)</dd></div>
-        <div><dt>Randevu / İşlem</dt><dd>@DurumToplam(Model.DurumOzetleri, YkcDurumDegerleri.Atandi, YkcDurumDegerleri.SahaIsleminde)</dd></div>
-        <div><dt>Tamamlanan</dt><dd>@DurumToplam(Model.DurumOzetleri, YkcDurumDegerleri.Tamamlandi)</dd></div>
-        <div><dt>Red / İptal</dt><dd>@DurumToplam(Model.DurumOzetleri, YkcDurumDegerleri.Reddedildi, YkcDurumDegerleri.Iptal)</dd></div>
+    <dl class="ykc-report-strip" aria-label="Rapor özeti">
+        <div><i class="bi bi-collection" aria-hidden="true"></i><dt>Toplam</dt><dd>@Model.Toplam</dd></div>
+        <div><i class="bi bi-search" aria-hidden="true"></i><dt>İncelenen</dt><dd>@DurumToplam(Model.DurumOzetleri, YkcDurumDegerleri.TalepAlindi, YkcDurumDegerleri.AtamaBekliyor)</dd></div>
+        <div><i class="bi bi-calendar2-check" aria-hidden="true"></i><dt>Randevu / İşlem</dt><dd>@DurumToplam(Model.DurumOzetleri, YkcDurumDegerleri.Atandi, YkcDurumDegerleri.SahaIsleminde)</dd></div>
+        <div><i class="bi bi-check-circle" aria-hidden="true"></i><dt>Tamamlanan</dt><dd>@DurumToplam(Model.DurumOzetleri, YkcDurumDegerleri.Tamamlandi)</dd></div>
+        <div><i class="bi bi-x-circle" aria-hidden="true"></i><dt>Red / İptal</dt><dd>@DurumToplam(Model.DurumOzetleri, YkcDurumDegerleri.Reddedildi, YkcDurumDegerleri.Iptal)</dd></div>
     </dl>
 
     <section class="ykc-data-panel ykc-results">
@@ -234,49 +234,67 @@
                 <span class="ykc-data-title-icon"><i class="bi bi-table"></i></span>
                 <div>
                     <div class="ykc-data-title">Cihaz Değişim Kayıtları</div>
-                    <div class="ykc-data-subtitle">Filtrelenen talepleri durum, randevu ve FR265 sonucuyla inceleyin.</div>
                 </div>
             </div>
             <span class="ykc-record-count"><i class="bi bi-database"></i> @ilkKayit-@sonKayit / @Model.Toplam kayıt</span>
         </div>
         <div class="ykc-table-scroll">
-            <table class="ykc-report-table">
+            <table class="ykc-report-table @(icOperasyonGorsun ? "is-internal" : "is-firm")">
+                <colgroup>
+                    @if (icOperasyonGorsun)
+                    {
+                        <col style="width:7%" /><col style="width:8%" /><col style="width:10%" /><col style="width:13%" /><col style="width:10%" /><col style="width:10%" /><col style="width:15%" /><col style="width:10%" /><col style="width:9%" /><col style="width:8%" />
+                    }
+                    else
+                    {
+                        <col style="width:9%" /><col style="width:12%" /><col style="width:15%" /><col style="width:15%" /><col style="width:17%" /><col style="width:12%" /><col style="width:10%" /><col style="width:10%" />
+                    }
+                </colgroup>
                 <thead>
                     <tr>
-                        <th>Tesisat / Form</th>
-                        <th>Firma / Müşteri</th>
-                        <th>Projedeki Cihaz / Yeni Kullanılan Cihaz</th>
-                        <th>@(icOperasyonGorsun ? "Randevu / Yönlendirme" : "Randevu")</th>
-                        <th>Durum / İmza</th>
+                        <th>Talep</th>
+                        <th>Tesisat</th>
+                        <th>Müşteri</th>
+                        @if (icOperasyonGorsun)
+                        {
+                            <th>Firma</th>
+                            <th>Projedeki Cihaz</th>
+                        }
+                        <th>Yeni Kullanılan Cihaz</th>
+                        <th>Randevu</th>
+                        <th>Durum</th>
+                        <th>Form</th>
                         <th>İşlem</th>
                     </tr>
                 </thead>
                 <tbody>
                     @if (!Model.Kayitlar.Any())
                     {
-                        <tr><td colspan="6"><div class="ykc-empty-state"><i class="bi bi-search"></i>Filtreye uygun cihaz değişim kaydı bulunamadı.</div></td></tr>
+                        <tr><td colspan="@raporKolonSayisi"><div class="ykc-empty-state"><i class="bi bi-search"></i>Filtreye uygun cihaz değişim kaydı bulunamadı.</div></td></tr>
                     }
                     else
                     {
                         foreach (var kayit in Model.Kayitlar)
                         {
                             <tr>
-                                <td data-label="Tesisat / Form"><div class="ykc-cell-main"><span class="ykc-code">@Deger(kayit.TesisatNo)</span></div><div class="ykc-muted">FR265 #@kayit.Id · @kayit.TalepTarihi.ToString("dd.MM.yyyy HH:mm")</div></td>
-                                <td data-label="Firma / Müşteri"><div class="ykc-cell-main">@Deger(kayit.FirmaAdi)</div><div class="ykc-muted">@Deger(kayit.MusteriAdi)</div></td>
-                                <td data-label="Projedeki Cihaz / Yeni Kullanılan Cihaz">
-                                    <div class="ykc-device-change" title="@($"Projedeki Cihaz: {kayit.EskiCihazTipi} / {kayit.EskiMarka} - Yeni Kullanılan Cihaz: {kayit.YeniCihazTipi} / {kayit.YeniMarka}")">
-                                        <div class="ykc-device-line"><span>Projedeki Cihaz</span><strong>@Deger(kayit.EskiCihazTipi) / @Deger(kayit.EskiMarka)</strong></div>
-                                        <div class="ykc-device-line"><span>Yeni Kullanılan Cihaz</span><strong>@Deger(kayit.YeniCihazTipi) / @Deger(kayit.YeniMarka)</strong></div>
-                                    </div>
-                                </td>
-                                <td data-label="@(icOperasyonGorsun ? "Randevu / Yönlendirme" : "Randevu")">
+                                <td data-label="Talep"><div class="ykc-cell-main"><span class="ykc-code">#@kayit.Id</span></div><div class="ykc-muted">@kayit.TalepTarihi.ToString("dd.MM.yyyy HH:mm")</div></td>
+                                <td data-label="Tesisat"><div class="ykc-cell-main">@Deger(kayit.TesisatNo)</div><div class="ykc-muted">Proje: @Deger(kayit.ProjeNo)</div></td>
+                                <td data-label="Müşteri"><div class="ykc-cell-main">@Deger(kayit.MusteriAdi)</div></td>
+                                @if (icOperasyonGorsun)
+                                {
+                                    <td data-label="Firma"><div class="ykc-cell-main">@Deger(kayit.FirmaAdi)</div><div class="ykc-muted">@Deger(kayit.SirketAdi)</div></td>
+                                    <td data-label="Projedeki Cihaz"><div class="ykc-device-column is-project"><span>Projedeki</span><strong>@Deger(kayit.EskiCihazTipi)</strong><small>@Deger(kayit.EskiMarka)</small></div></td>
+                                }
+                                <td data-label="Yeni Kullanılan Cihaz"><div class="ykc-device-column is-new"><span>Yeni Kullanılan</span><strong>@Deger(kayit.YeniCihazTipi)</strong><small>@Deger(kayit.YeniMarka)</small></div></td>
+                                <td data-label="Randevu">
                                     <div class="ykc-cell-main">@RandevuYazi(kayit.RandevuTarihi, kayit.RandevuSaati)</div>
                                     @if (icOperasyonGorsun)
                                     {
                                         <div class="ykc-muted">@Deger(kayit.AtananEkip) / @Deger(kayit.Bolge)</div>
                                     }
                                 </td>
-                                <td data-label="Durum / İmza"><span class="df-pill @DurumClass(kayit.Durum)">@DurumYazi(kayit.Durum)</span><div class="ykc-file-pills"><span class="df-pill @ImzaDurumClass(kayit.Durum, kayit.ImzaliNihaiBelgeVar)">@ImzaDurumYazi(kayit.Durum, kayit.ImzaliNihaiBelgeVar)</span></div></td>
+                                <td data-label="Durum"><span class="df-pill @DurumClass(kayit.Durum)">@DurumYazi(kayit.Durum)</span></td>
+                                <td data-label="Form"><span class="df-pill @ImzaDurumClass(kayit.Durum, kayit.ImzaliNihaiBelgeVar)">@ImzaDurumYazi(kayit.Durum, kayit.ImzaliNihaiBelgeVar)</span></td>
                                 <td data-label="İşlem">
                                     <button class="ykc-detail-action ykc-row-view-details"
                                             type="button"
@@ -288,10 +306,10 @@
                                             data-musteri="@Deger(kayit.MusteriAdi)"
                                             data-proje="@Deger(kayit.ProjeNo)"
                                             data-sayac="@Deger(kayit.SayacNo)"
-                                            data-eski-cihaz="@Deger(kayit.EskiCihazTipi)"
+                                            data-eski-cihaz="@(icOperasyonGorsun ? Deger(kayit.EskiCihazTipi) : "-")"
                                             data-yeni-cihaz="@Deger(kayit.YeniCihazTipi)"
-                                            data-eski-marka="@Deger(kayit.EskiMarka)"
-                                            data-eski-kapasite="@Deger(kayit.EskiKapasite)"
+                                            data-eski-marka="@(icOperasyonGorsun ? Deger(kayit.EskiMarka) : "-")"
+                                            data-eski-kapasite="@(icOperasyonGorsun ? Deger(kayit.EskiKapasite) : "-")"
                                             data-yeni-marka="@Deger(kayit.YeniMarka)"
                                             data-yeni-model="@Deger(kayit.YeniModel)"
                                             data-yeni-kapasite="@Deger(kayit.YeniKapasite)"
@@ -365,7 +383,7 @@
                 </section>
 
                 <section class="ykc-modal-section ykc-modal-section-company">
-                    <div class="ykc-modal-section-title"><i class="bi bi-building-check"></i> Firma ve Kapsam</div>
+                    <div class="ykc-modal-section-title"><i class="bi bi-building-check"></i> Firma Bilgileri</div>
                     <div class="ykc-modal-info">
                         <div class="ykc-modal-item"><div class="ykc-modal-label">Firma</div><div class="ykc-modal-value" id="ykcModalFirma">-</div></div>
                         <div class="ykc-modal-item"><div class="ykc-modal-label">Şirket</div><div class="ykc-modal-value" id="ykcModalSirket">-</div></div>
@@ -377,9 +395,12 @@
                 <section class="ykc-modal-section ykc-modal-section-device">
                     <div class="ykc-modal-section-title"><i class="bi bi-arrow-left-right"></i> Cihaz Bilgisi</div>
                     <div class="ykc-modal-info">
-                        <div class="ykc-modal-item"><div class="ykc-modal-label">Projedeki Cihaz</div><div class="ykc-modal-value" id="ykcModalEskiCihaz">-</div></div>
+                        @if (icOperasyonGorsun)
+                        {
+                            <div class="ykc-modal-item"><div class="ykc-modal-label">Projedeki Cihaz</div><div class="ykc-modal-value" id="ykcModalEskiCihaz">-</div></div>
+                        }
                         <div class="ykc-modal-item"><div class="ykc-modal-label">Yeni Kullanılan Cihaz</div><div class="ykc-modal-value" id="ykcModalYeniCihaz">-</div></div>
-                        <div class="ykc-modal-item"><div class="ykc-modal-label">Kapasite (kcal/h)</div><div class="ykc-modal-value" id="ykcModalKapasite">-</div></div>
+                        <div class="ykc-modal-item"><div class="ykc-modal-label">@(icOperasyonGorsun ? "Kapasite Karşılaştırması (kcal/h)" : "Yeni Kapasite (kcal/h)")</div><div class="ykc-modal-value" id="ykcModalKapasite">-</div></div>
                         <div class="ykc-modal-item"><div class="ykc-modal-label">İkinci El Cihaz</div><div class="ykc-modal-value" id="ykcModalIkinciEl">-</div></div>
                     </div>
                 </section>
@@ -401,7 +422,8 @@
 
 @section Scripts {
     <script>
-        (function () {
+(function () {
+    var icOperasyonGorsun = @icOperasyonGorsun.ToString().ToLowerInvariant();
             const modal = document.getElementById('ykcReportDetailModal');
             const detailLink = document.getElementById('ykcModalDetailLink');
             const durum = document.getElementById('ykcModalDurum');
@@ -430,7 +452,7 @@
                 const data = button.dataset;
                 sonTetikleyici = button;
 
-                text('ykcReportModalTitle', 'FR265 #' + data.id + ' Talep Detayı');
+                text('ykcReportModalTitle', 'Talep #' + data.id + ' Detayı');
                 text('ykcReportModalSubtitle', birlestir(data.firma, data.musteri));
                 text('ykcModalRandevu', data.randevu);
                 text('ykcModalEkipBolge', birlestir(data.ekip, data.bolge));
@@ -442,10 +464,12 @@
                 text('ykcModalFirma', data.firma);
                 text('ykcModalSirket', data.sirket);
                 text('ykcModalTalepTarihi', data.talepTarihi);
-                text('ykcModalKayit', 'FR265 #' + data.id);
+                text('ykcModalKayit', 'Talep #' + data.id);
                 text('ykcModalEskiCihaz', birlestir(data.eskiCihaz, data.eskiMarka));
                 text('ykcModalYeniCihaz', birlestir(data.yeniCihaz, birlestir(data.yeniMarka, data.yeniModel)));
-                text('ykcModalKapasite', 'Projedeki: ' + (data.eskiKapasite || '-') + ' / Yeni Kullanılan: ' + (data.yeniKapasite || '-'));
+                text('ykcModalKapasite', icOperasyonGorsun
+                    ? 'Projedeki: ' + (data.eskiKapasite || '-') + ' / Yeni Kullanılan: ' + (data.yeniKapasite || '-')
+                    : (data.yeniKapasite || '-'));
                 text('ykcModalIkinciEl', data.ikinciEl);
                 text('ykcModalImzaDurumu', data.imzaDurumu);
 

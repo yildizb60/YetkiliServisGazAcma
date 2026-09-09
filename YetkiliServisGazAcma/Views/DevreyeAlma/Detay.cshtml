@@ -9,6 +9,9 @@
 
     var marka = Model.Marka?.MarkaAdi ?? Model.CihazMarka;
     var firma = Model.Firma?.FirmaAdi;
+    var musteriBasligi = !string.IsNullOrWhiteSpace(Model.MusteriAdi)
+        ? System.Net.WebUtility.HtmlDecode(Model.MusteriAdi)
+        : $"Devreye Alma Kaydı #{Model.Id}";
     var durumClass = Model.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi
         ? "df-pill-success"
         : Model.Durum == DevreyeAlmaDurumDegerleri.Iptal
@@ -42,8 +45,8 @@
         <div class="ys-page-heading">
             <span class="ys-page-icon"><i class="bi bi-clipboard2-check" aria-hidden="true"></i></span>
             <div class="ys-page-copy">
-                <h1>Devreye Alma Kaydı #@Model.Id</h1>
-                <p>Tesisat @Deger(Model.TesistatNo) · @Deger(firma)</p>
+                <h1>@musteriBasligi</h1>
+                <p>Devreye Alma Kaydı #@Model.Id <span aria-hidden="true">·</span> Tesisat @Deger(Model.TesistatNo) <span aria-hidden="true">·</span> @Deger(firma)</p>
             </div>
         </div>
         <div class="ys-page-actions">
@@ -85,7 +88,6 @@
                     <span class="ys-section-icon"><i class="bi bi-house-check" aria-hidden="true"></i></span>
                     <div>
                         <h2 class="ys-panel-title">Tesisat ve Müşteri</h2>
-                        <p class="ys-panel-subtitle">Doğrulanan abonelik ve iletişim bilgileri</p>
                     </div>
                 </div>
             </div>
@@ -127,7 +129,6 @@
                     <span class="ys-section-icon"><i class="bi bi-tools" aria-hidden="true"></i></span>
                     <div>
                         <h2 class="ys-panel-title">Cihaz ve Teknisyen</h2>
-                        <p class="ys-panel-subtitle">Devreye alınan cihaz ile işlemi gerçekleştiren kişi</p>
                     </div>
                 </div>
             </div>

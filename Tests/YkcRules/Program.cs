@@ -58,4 +58,21 @@ Check(YkcCihazUyumKurali.Uyarilar("Kombi", "Kombi", "A", "B", "X", "Y", "20000",
     "Mismatches produce warnings without mutating values");
 Check(YkcCihazUyumKurali.Uyarilar("Kombi", "Kombi", "A", "A", null, null, "20000", "20000.0").Count == 0,
     "Equal device values do not warn");
+YkcTalepDetayDto Detail() => new() {
+    EskiMarka = "Source brand", EskiKapasite = "20000", YeniMarka = "New brand", MusteriAdi = "Customer",
+    AtananEkip = "Internal team", HedefUygulama = "Internal target",
+    Atamalar = new() { new YkcAtamaDto() },
+    Gecmis = new() { new YkcGecmisDto { IslemTipi = "AtamaYapildi", KullaniciAdi = "Internal user", Aciklama = "Internal note" } }
+};
+var official = Detail();
+YkcFirmaSunumu.Hazirla(official, resmiForm: true);
+Check(official.EskiMarka == "Source brand" && official.EskiKapasite == "20000", "Official form retains source device fields");
+Check(official.Atamalar.Count == 0 && official.AtananEkip == null && official.HedefUygulama == null,
+    "Official form response does not expose internal routing");
+Check(official.Gecmis[0].Aciklama == null && official.Gecmis[0].KullaniciAdi == null,
+    "Official form response does not expose internal assignment note");
+var screen = Detail();
+YkcFirmaSunumu.Hazirla(screen, resmiForm: false);
+Check(screen.EskiMarka == null && screen.EskiKapasite == null && screen.YeniMarka == "New brand" && screen.MusteriAdi == "Customer",
+    "Firm screen hides source device without losing request data");
 Console.WriteLine($"{passed} checks passed. No application data changed.");

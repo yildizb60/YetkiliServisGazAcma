@@ -1,105 +1,66 @@
 @{
-    ViewData["Title"] = "Profil Yönetimi";
-    ViewData["PanelTitle"] = ViewData["Title"];
-    ViewData["PanelSubtitle"] = "Personel Paneli";
+    ViewData["Title"] = "Profilim";
     ViewData["ActiveMenu"] = "Profil";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
-
     var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
     var sirket = ViewBag.Sirket as YetkiliServisGazAcma.Entities.Dag_Sirket;
-    var yetkilerim = ViewBag.Yetkilerim as List<string> ?? new List<string>();
-    var adSoyad = kullanici?.AdSoyad ?? "Personel";
-    var email = kullanici?.Email ?? "-";
-    var tel = kullanici?.PhoneNumber ?? "";
-    var basHarf = !string.IsNullOrEmpty(adSoyad) ? adSoyad.Substring(0, 1).ToUpper() : "P";
+    var yetkilerim = ViewBag.Yetkilerim as List<string> ?? new();
+    var adSoyad = kullanici?.AdSoyad ?? "";
+    var sifreAcik = TempData.ContainsKey("SifreHata") || TempData.ContainsKey("SifreBasarili");
 }
-<div class="df-profile-workspace">
-    @if (TempData["Basarili"] != null) { <div class="df-alert df-alert-success">@TempData["Basarili"]</div> }
-    @if (TempData["SifreBasarili"] != null) { <div class="df-alert df-alert-success">@TempData["SifreBasarili"]</div> }
-    @if (TempData["SifreHata"] != null) { <div class="df-alert df-alert-danger">@TempData["SifreHata"]</div> }
-
-    <section class="df-page-panel df-profile-header">
-        <div class="df-profile-header-inner">
-            <div class="df-profile-avatar">@basHarf</div>
-            <div class="df-profile-heading">
-                <h2>@adSoyad</h2>
-                <p>@email · @(sirket?.SirketAdi ?? "Şirket tanımlı değil")</p>
+@section PageStyles { <link rel="stylesheet" href="~/css/personnel-profile.css" asp-append-version="true" /> }
+<div class="personnel-account">
+    <header class="account-heading">
+        <i class="bi bi-person-circle" aria-hidden="true"></i>
+        <div><h1>Profilim</h1><p>@adSoyad</p></div>
+        @if (kullanici != null) {
+            <span class="df-pill @(kullanici.AktifMi ? "df-pill-success" : "df-pill-muted")">@(kullanici.AktifMi ? "Aktif" : "Pasif")</span>
+        }
+    </header>
+    @foreach (var key in new[] { "Basarili", "Hata", "SifreBasarili", "SifreHata" }) {
+        if (TempData[key] is string mesaj) {
+            <div class="df-alert @(key.Contains("Hata") ? "df-alert-danger" : "df-alert-success")" role="alert">@mesaj</div>
+        }
+    }
+    <div class="account-tabs" role="tablist" aria-label="Profil bölümleri" data-initial-tab="@(sifreAcik ? "security" : "personal")">
+        <button type="button" role="tab" id="tab-personal" aria-controls="account-personal" aria-selected="true"><i class="bi bi-person-vcard" aria-hidden="true"></i>Kişisel Bilgiler</button>
+        <button type="button" role="tab" id="tab-work" aria-controls="account-work" aria-selected="false"><i class="bi bi-building-check" aria-hidden="true"></i>Şirket ve Yetkiler</button>
+        <button type="button" role="tab" id="tab-security" aria-controls="account-security" aria-selected="false"><i class="bi bi-shield-lock" aria-hidden="true"></i>Şifre ve Güvenlik</button>
+    </div>
+    <section class="account-section" id="account-personal" role="tabpanel" aria-labelledby="tab-personal">
+        <form method="post" action="/personel-panel/profil-guncelle">
+            @Html.AntiForgeryToken()
+            <div class="account-fields">
+                <label for="profile-name">Ad Soyad<input id="profile-name" name="adSoyad" value="@adSoyad" autocomplete="name" required /></label>
+                <label for="profile-email">E-posta<input id="profile-email" name="email" type="email" value="@kullanici?.Email" autocomplete="email" required /></label>
+                <label for="profile-phone">Telefon<input id="profile-phone" name="telefon" type="tel" value="@kullanici?.PhoneNumber" autocomplete="tel" /></label>
             </div>
-            <div class="df-profile-header-meta">
-                <span class="df-pill df-pill-info"><i class="bi bi-person-badge"></i> Şirket Personeli</span>
-                @if (kullanici?.AktifMi == true) { <span class="df-pill df-pill-success">Aktif</span> }
-            </div>
+            <footer><button type="submit" class="df-btn df-btn-primary df-btn-sm"><i class="bi bi-check2" aria-hidden="true"></i>Bilgileri Kaydet</button></footer>
+        </form>
+    </section>
+    <section class="account-section" id="account-work" role="tabpanel" aria-labelledby="tab-work">
+        <dl class="account-work-data">
+            <div><dt>Aktif Şirket</dt><dd>@(sirket?.SirketAdi ?? "Tanımlı değil")</dd></div>
+            <div><dt>Şirket İli</dt><dd>@(sirket?.Il ?? "Tanımlı değil")</dd></div>
+            <div><dt>Şirket Telefonu</dt><dd>@(sirket?.Telefon ?? "Tanımlı değil")</dd></div>
+            <div><dt>Şirket E-postası</dt><dd>@(sirket?.Email ?? "Tanımlı değil")</dd></div>
+        </dl>
+        <h2>Tanımlı Yetkiler</h2>
+        <div class="account-permissions">
+            @if (yetkilerim.Count == 0) { <span>Yetki tanımlı değil</span> }
+            @foreach (var yetki in yetkilerim) { <span><i class="bi bi-check2" aria-hidden="true"></i>@yetki</span> }
         </div>
     </section>
-
-    <div class="df-profile-grid df-profile-grid-primary">
-        <section class="df-profile-section is-account">
-            <div class="df-profile-section-head"><i class="bi bi-person-vcard"></i><div><strong>İletişim Bilgileri</strong><small>Profilde görünen temel bilgiler</small></div></div>
-            <div class="df-profile-section-body">
-            <form method="post" action="/personel-panel/profil-guncelle">
-                @Html.AntiForgeryToken()
-                <div class="df-profile-form-grid">
-                    <div class="df-profile-field is-wide"><label>Ad Soyad</label><input type="text" name="adSoyad" value="@adSoyad" required /></div>
-                    <div class="df-profile-field"><label>E-posta</label><input type="email" name="email" value="@email" required /></div>
-                    <div class="df-profile-field"><label>Telefon</label><input type="text" name="telefon" value="@tel" autocomplete="tel" /></div>
-                </div>
-                <div class="df-profile-actions"><button type="submit" class="df-btn df-btn-primary df-btn-sm"><i class="bi bi-check2"></i> Bilgileri Kaydet</button></div>
-            </form>
+    <section class="account-section" id="account-security" role="tabpanel" aria-labelledby="tab-security">
+        <form method="post" action="/personel-panel/sifre-degistir">
+            @Html.AntiForgeryToken()
+            <div class="account-fields">
+                <label for="profile-current-password">Mevcut Şifre<input id="profile-current-password" type="password" name="mevcutSifre" autocomplete="current-password" required /></label>
+                <label for="profile-new-password">Yeni Şifre<input id="profile-new-password" type="password" name="yeniSifre" autocomplete="new-password" required /></label>
+                <label for="profile-confirm-password">Yeni Şifre Tekrar<input id="profile-confirm-password" type="password" name="yeniSifreTekrar" autocomplete="new-password" required /></label>
             </div>
-        </section>
-
-        <section class="df-profile-section is-context">
-            <div class="df-profile-section-head"><i class="bi bi-building-check"></i><div><strong>Çalışma Kapsamı</strong><small>Bağlı şirket ve tanımlı yetkiler</small></div></div>
-            <dl class="df-profile-info-grid">
-                <div><dt>Bağlı Şirket</dt><dd>@(sirket?.SirketAdi ?? "Tanımlı değil")</dd></div>
-                <div><dt>Görev İli</dt><dd>@(sirket?.Il ?? "Tanımlı değil")</dd></div>
-                @if (!string.IsNullOrWhiteSpace(sirket?.Telefon)) { <div><dt>Şirket Telefonu</dt><dd>@sirket.Telefon</dd></div> }
-                @if (!string.IsNullOrWhiteSpace(sirket?.Email)) { <div><dt>Şirket E-postası</dt><dd>@sirket.Email</dd></div> }
-            </dl>
-            <div class="df-profile-section-body df-profile-permission-body">
-                <div class="df-profile-context-title">YETKİLERİM</div>
-                <div class="df-profile-permissions">
-                    @if (yetkilerim.Count == 0) { <span class="df-profile-permission">Yetki tanımlı değil</span> }
-                    else { foreach (var yetki in yetkilerim) { <span class="df-profile-permission"><i class="bi bi-check2"></i>@yetki</span> } }
-                </div>
-            </div>
-        </section>
-
-        <details class="df-profile-section is-security is-wide df-profile-disclosure">
-        <summary><i class="bi bi-shield-lock"></i><div><strong>Şifre ve Güvenlik</strong><small>Şifrenizi gerektiğinde güncelleyin</small></div><i class="bi bi-chevron-down"></i></summary>
-        <div class="df-profile-section-body">
-            <form method="post" action="/personel-panel/sifre-degistir">
-                @Html.AntiForgeryToken()
-                <div class="df-profile-form-grid">
-                    <div class="df-profile-field"><label>Mevcut Şifre</label><input type="password" name="mevcutSifre" autocomplete="current-password" required /></div>
-                    <div class="df-profile-field"><label>Yeni Şifre</label><input type="password" name="yeniSifre" autocomplete="new-password" required /></div>
-                    <div class="df-profile-field"><label>Yeni Şifre Tekrar</label><input type="password" name="yeniSifreTekrar" autocomplete="new-password" required /></div>
-                </div>
-                <div class="df-profile-actions"><button type="submit" class="df-btn df-btn-secondary df-btn-sm"><i class="bi bi-lock"></i> Şifreyi Güncelle</button></div>
-            </form>
-        </div>
-        </details>
-    </div>
+            <footer><button type="submit" class="df-btn df-btn-primary df-btn-sm"><i class="bi bi-lock" aria-hidden="true"></i>Şifreyi Güncelle</button></footer>
+        </form>
+    </section>
 </div>
-
-@section Scripts {
-<script>
-(function () {
-    var yetki = {
-        yetkiBelgesi: @((ViewBag.YetkiBelgesi == true).ToString().ToLower()),
-        rapor: @((ViewBag.YetkiRapor == true).ToString().ToLower())
-    };
-    function hide(selector, allowed) {
-        if (allowed) return;
-        document.querySelectorAll(selector).forEach(function (element) { element.style.display = 'none'; });
-    }
-    hide('a[href="/personel-panel/onay-bekleyenler"]', yetki.yetkiBelgesi);
-    hide('a[href="/personel-panel/onay-gecmisi"]', yetki.yetkiBelgesi);
-    hide('a[href="/personel-panel/raporlar"]', yetki.rapor);
-    var raporSection = Array.from(document.querySelectorAll('.nav-section')).find(function (element) {
-        return (element.textContent || '').toLocaleLowerCase('tr-TR').indexOf('rapor') >= 0;
-    });
-    if (!yetki.rapor && raporSection) raporSection.style.display = 'none';
-})();
-</script>
-}
+@section Scripts { <script src="~/js/personnel-profile.js" asp-append-version="true"></script> }

@@ -115,10 +115,11 @@
         initMobileMenu();
     }
 
-    document.addEventListener("click", function () {
+    document.addEventListener("click", function (event) {
         closeAll();
         var sidebar = document.querySelector(".sidebar.open");
-        if (sidebar && window.innerWidth <= 900) sidebar.classList.remove("open");
+        if (sidebar && window.innerWidth <= 900
+            && (!sidebar.contains(event.target) || event.target.closest("a[href]"))) sidebar.classList.remove("open");
     });
 
     if (document.readyState === "loading") {

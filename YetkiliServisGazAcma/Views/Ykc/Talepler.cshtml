@@ -5,9 +5,10 @@
     var ozet = ViewBag.Ozet as YkcDashboardOzetDto ?? new YkcDashboardOzetDto();
     var sertifikaliFirmaMi = User.IsInRole("SertifikaliFirma");
     var icOperasyonGorsun = !sertifikaliFirmaMi;
-    ViewData["PanelSubtitle"] = sertifikaliFirmaMi
-        ? "Talep, randevu ve form takibi"
-        : "Gelen cihaz değişim talepleri";
+    ViewData["Title"] = sertifikaliFirmaMi ? "Taleplerim" : "Gelen Talepler";
+    ViewData["PanelTitle"] = ViewData["Title"];
+    ViewData["PanelSubtitle"] = "Cihaz Değişimi";
+    ViewData["ActiveMenu"] = "YkcTalepler";
     var aktifFiltreler = new List<(string Etiket, string Deger)>();
     var toplamSayfa = Model.SayfaBoyutu > 0
         ? Math.Max((int)Math.Ceiling(Model.Toplam / (double)Model.SayfaBoyutu), 1)
@@ -15,6 +16,7 @@
     var aktifSayfa = Math.Clamp(Model.Sayfa, 1, toplamSayfa);
     var ilkKayit = Model.Toplam == 0 ? 0 : ((aktifSayfa - 1) * Model.SayfaBoyutu) + 1;
     var sonKayit = Math.Min(aktifSayfa * Model.SayfaBoyutu, Model.Toplam);
+    var kolonSayisi = icOperasyonGorsun ? 9 : 7;
 
     void AktifFiltreEkle(string etiket, string? deger)
     {
@@ -56,7 +58,10 @@
 
     private static string KonumYazi(params string?[] parcalar)
     {
-        var sonuc = string.Join(" / ", parcalar.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x!.Trim()));
+        var sonuc = string.Join(" / ", parcalar
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x!.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase));
         return string.IsNullOrWhiteSpace(sonuc) ? "-" : sonuc;
     }
 
@@ -120,7 +125,7 @@
 
     <header class="ykc-list-header">
         <div class="ykc-list-title-row">
-            <h1>@(sertifikaliFirmaMi ? "Cihaz Değişim Taleplerim" : "Cihaz Değişim Talepleri")</h1>
+            <h1>@(sertifikaliFirmaMi ? "Taleplerim" : "Gelen Talepler")</h1>
             <dl class="ykc-inline-overview" aria-label="Talep özeti">
                 <div><dt>Toplam</dt><dd>@ozet.Toplam</dd></div>
                 <div><dt>İncelenen</dt><dd>@ozet.Incelemede</dd></div>
@@ -233,26 +238,28 @@
                     <div class="ykc-data-title">Talep Listesi</div>
                 </div>
             </div>
-            <span class="ykc-record-count"><i class="bi bi-database"></i> @Model.Toplam kayıt</span>
         </div>
 
         <div class="ykc-table-scroll">
-            <table class="ykc-data-table">
+            <table class="ykc-data-table @(icOperasyonGorsun ? "is-internal" : "is-firm")">
                 <colgroup>
-                    <col style="width:8%" />
-                    <col style="width:16%" />
-                    <col style="width:18%" />
-                    <col style="width:19%" />
-                    <col style="width:13%" />
-                    <col style="width:12%" />
-                    <col style="width:14%" />
+                    @if (icOperasyonGorsun)
+                    {
+                        <col style="width:6%" /><col style="width:10%" /><col style="width:10%" /><col style="width:14%" /><col style="width:11%" /><col style="width:11%" /><col style="width:15%" /><col style="width:9%" /><col style="width:14%" />
+                    }
+                    else
+                    {
+                        <col style="width:8%" /><col style="width:17%" /><col style="width:20%" /><col style="width:17%" /><col style="width:15%" /><col style="width:9%" /><col style="width:14%" />
+                    }
                 </colgroup>
                 <thead>
                     <tr>
                         <th>Talep</th>
-                        <th>@(icOperasyonGorsun ? "Müşteri / Firma" : "Müşteri / Konum")</th>
-                        <th>Tesisat / Sözleşme / Abone</th>
-                        <th>@(icOperasyonGorsun ? "Projedeki Cihaz / Yeni Kullanılan Cihaz" : "Yeni Kullanılan Cihaz")</th>
+                        <th>@(icOperasyonGorsun ? "Müşteri" : "Müşteri / Konum")</th>
+                        @if (icOperasyonGorsun) { <th>Firma</th> }
+                        <th>Tesisat Bilgileri</th>
+                        @if (icOperasyonGorsun) { <th>Projedeki Cihaz</th> }
+                        <th>Yeni Kullanılan Cihaz</th>
                         <th>@(icOperasyonGorsun ? "Randevu / Yönlendirme" : "Randevu")</th>
                         <th>Durum</th>
                         <th>Gereken İşlem</th>
@@ -262,7 +269,7 @@
                     @if (!Model.Talepler.Any())
                     {
                         <tr>
-                            <td colspan="7">
+                            <td colspan="@kolonSayisi">
                                 <div class="ykc-empty-state"><i class="bi bi-inbox"></i>Filtreye uygun cihaz değişim talebi bulunamadı.</div>
                             </td>
                         </tr>
@@ -277,24 +284,23 @@
                                     <div class="ykc-primary-cell"><span class="ykc-code">#@talep.Id</span></div>
                                     <div class="ykc-cell-meta">@talep.TalepTarihi.ToString("dd.MM.yyyy HH:mm")</div>
                                 </td>
-                                <td data-label="Müşteri / Firma">
+                                <td data-label="Müşteri">
                                     <div class="ykc-primary-cell">@Deger(talep.MusteriAdi)</div>
-                                    <div class="ykc-cell-meta">@(icOperasyonGorsun ? Deger(talep.FirmaAdi) : KonumYazi(talep.Il, talep.Ilce, talep.Bolge))</div>
+                                    @if (!icOperasyonGorsun) { <div class="ykc-cell-meta">@KonumYazi(talep.Il, talep.Ilce, talep.Bolge)</div> }
                                 </td>
-                                <td data-label="Tesisat / Sözleşme / Abone">
-                                    <div class="ykc-primary-cell"><span class="ykc-code">@Deger(talep.TesisatNo)</span></div>
-                                    <div class="ykc-cell-meta">Sözleşme: @Deger(talep.SozlesmeNo)</div>
-                                    <div class="ykc-cell-meta">Abone: @Deger(talep.AboneNo)</div>
+                                @if (icOperasyonGorsun)
+                                {
+                                    <td data-label="Firma"><div class="ykc-primary-cell is-regular">@Deger(talep.FirmaAdi)</div></td>
+                                }
+                                <td data-label="Tesisat Bilgileri">
+                                    <dl class="ykc-id-list">
+                                        <div><dt>Tesisat</dt><dd>@Deger(talep.TesisatNo)</dd></div>
+                                        <div><dt>Sözleşme</dt><dd>@Deger(talep.SozlesmeNo)</dd></div>
+                                        <div><dt>Abone</dt><dd>@Deger(talep.AboneNo)</dd></div>
+                                    </dl>
                                 </td>
-                                <td data-label="Projedeki Cihaz / Yeni Kullanılan Cihaz">
-                                    <div class="ykc-device-change">
-                                        @if (icOperasyonGorsun)
-                                        {
-                                        <div class="ykc-device-line"><span>Projedeki Cihaz</span><strong>@Deger(talep.EskiCihaz)</strong></div>
-                                        }
-                                        <div class="ykc-device-line">@if (icOperasyonGorsun) { <span>Yeni Kullanılan Cihaz</span> }<strong>@Deger(talep.YeniCihaz)</strong></div>
-                                    </div>
-                                </td>
+                                @if (icOperasyonGorsun) { <td data-label="Projedeki Cihaz"><div class="ykc-device-column is-project">@Deger(talep.EskiCihaz)</div></td> }
+                                <td data-label="Yeni Kullanılan Cihaz"><div class="ykc-device-column is-new">@Deger(talep.YeniCihaz)</div></td>
                                 <td data-label="@(icOperasyonGorsun ? "Randevu / Yönlendirme" : "Randevu")">
                                     <div class="ykc-primary-cell">@RandevuYazi(talep.RandevuTarihi, talep.RandevuSaati)</div>
                                     @if (icOperasyonGorsun)

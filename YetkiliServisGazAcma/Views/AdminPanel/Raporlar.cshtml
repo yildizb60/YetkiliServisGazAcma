@@ -1,6 +1,6 @@
 @{
-    ViewData["Title"] = "Raporlar";
-    ViewData["PanelTitle"] = "Raporlar";
+    ViewData["Title"] = "Operasyon Raporları";
+    ViewData["PanelTitle"] = "Operasyon Raporları";
     ViewData["PanelSubtitle"] = "Admin Paneli";
     ViewData["ActiveMenu"] = "Raporlar";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
@@ -16,264 +16,6 @@
 }
 
 @section PageStyles {
-    <style>
-        body {
-            background: #eef3f8;
-            color: #1b2733;
-        }
-
-        .content {
-            display: grid;
-            gap: 16px;
-        }
-
-        .hero {
-            background: linear-gradient(135deg, rgba(27, 159, 212, .2), rgba(76, 175, 125, .2));
-            border: 1px solid #dbe7f2;
-            border-radius: 16px;
-            padding: 18px 20px;
-            display: grid;
-            gap: 12px;
-        }
-
-        .hero-title {
-            font-size: 16px;
-            font-weight: 800;
-            color: #1a1a1a;
-        }
-
-        .filter-bar {
-            background: #fff;
-            border: 1px solid #e8eff6;
-            border-radius: 12px;
-            padding: 14px 16px;
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr auto;
-            gap: 10px;
-            align-items: end;
-        }
-
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .filter-group label {
-            font-size: 11px;
-            color: #777;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: .04em;
-        }
-
-        .filter-group input,
-        .filter-group select {
-            padding: 9px 10px;
-            border: 1px solid #d9e4ef;
-            border-radius: 8px;
-            font-size: 13px;
-            background: #f8fbff;
-        }
-
-        .btn-filter {
-            padding: 9px 14px;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: 800;
-            border: none;
-            cursor: pointer;
-            background: #1B9FD4;
-            color: #fff;
-        }
-
-        .report-select {
-            background: #fff;
-            border: 1px solid #e8eff6;
-            border-radius: 12px;
-            padding: 12px 14px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .report-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 12px;
-            background: #f6f9fc;
-            border: 1px solid #e6eef8;
-            padding: 7px 12px;
-            border-radius: 999px;
-            cursor: pointer;
-        }
-
-        .report-pill input {
-            transform: translateY(1px);
-        }
-
-        .report-pill.active {
-            background: #e7f6ef;
-            border-color: #bfe6d3;
-            color: #1b6d4a;
-            font-weight: 800;
-        }
-
-        .cards {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
-        }
-
-        .card {
-            background: #fff;
-            border-radius: 14px;
-            padding: 16px;
-            border: 1px solid #e8eff6;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .card::after {
-            content: "";
-            position: absolute;
-            inset: -60% auto auto -60%;
-            width: 140px;
-            height: 140px;
-            background: radial-gradient(circle, rgba(76, 175, 125, .18), transparent 60%);
-        }
-
-        .card-title {
-            font-size: 11px;
-            color: #6b7785;
-            text-transform: uppercase;
-            letter-spacing: .04em;
-        }
-
-        .card-value {
-            font-size: 22px;
-            font-weight: 800;
-            margin-top: 6px;
-        }
-
-        .charts {
-            display: grid;
-            grid-template-columns: 1.2fr 1fr 1fr;
-            gap: 12px;
-        }
-
-        .chart-card {
-            background: #fff;
-            border-radius: 14px;
-            border: 1px solid #e8eff6;
-            padding: 14px;
-        }
-
-        .chart-title {
-            font-size: 12px;
-            font-weight: 800;
-            color: #334155;
-            margin-bottom: 8px;
-        }
-
-        .chart-wrap {
-            position: relative;
-            height: 220px;
-        }
-
-        .chart-wrap canvas {
-            width: 100% !important;
-            height: 100% !important;
-        }
-
-        .chart-empty {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #9aa6b2;
-            font-size: 12px;
-        }
-
-        .chart-wrap.has-data .chart-empty {
-            display: none;
-        }
-
-        .section {
-            border-color: #e8eff6;
-        }
-
-        .section-head {
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .section-actions {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            align-items: stretch;
-        }
-
-        .section-actions form {
-            margin: 0;
-            display: flex;
-        }
-
-        .btn-pdf {
-            padding: 8px 14px;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: 800;
-            border: 1px solid #1B9FD4;
-            color: #1B9FD4;
-            background: #eef7ff;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 36px;
-            line-height: 1;
-        }
-
-        .btn-pdf:hover {
-            background: #e2f1ff;
-        }
-
-        .tablo-devreye {
-            grid-template-columns: .4fr 1.2fr 1.2fr 1fr 1fr;
-        }
-
-        .tablo-yetki-belgesi {
-            grid-template-columns: 1.6fr 1fr 1fr .8fr;
-        }
-
-        @@media (max-width: 1200px) {
-            .filter-bar {
-                grid-template-columns: 1fr 1fr;
-            }
-
-            .charts {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        @@media (max-width: 720px) {
-            .cards,
-            .filter-bar {
-                grid-template-columns: 1fr;
-            }
-
-            .tablo-head,
-            .tablo-row {
-                grid-template-columns: 1fr;
-                gap: 8px;
-            }
-        }
-    </style>
     <link rel="stylesheet" href="~/css/admin-reports.css" asp-append-version="true" />
 }
 
@@ -281,9 +23,7 @@
     <section class="df-page-panel df-admin-report-filter">
         <div class="df-panel-head">
             <div>
-                <div class="df-panel-kicker"><i class="bi bi-bar-chart-line"></i> RAPOR MERKEZİ</div>
-                <h2 class="df-panel-title">Raporlar</h2>
-                <div class="df-panel-subtitle">Tarih, şirket ve kayıt türüne göre sonuçları karşılaştırın.</div>
+                <h1 class="df-panel-title"><i class="bi bi-bar-chart-line" aria-hidden="true"></i> Operasyon Raporları</h1>
             </div>
         </div>
         <form method="get" action="/AdminPanel/raporlar" class="df-admin-report-form">
@@ -307,7 +47,7 @@
             <fieldset class="df-report-type-control">
                 <legend>Rapor Türü</legend>
                 <div class="df-report-type-options">
-                    <label class="@(raporTipi == "devreye" ? "active" : "")"><input type="radio" name="tip" value="devreye" checked="@(raporTipi == "devreye" ? "checked" : null)" /><i class="bi bi-fire"></i><span>Devreye Alma</span></label>
+                    <label class="@(raporTipi == "devreye" ? "active" : "")"><input type="radio" name="tip" value="devreye" checked="@(raporTipi == "devreye" ? "checked" : null)" /><i class="bi bi-fire"></i><span>Cihaz Devreye Alma</span></label>
                     <label class="@(raporTipi == "onayli" ? "active" : "")"><input type="radio" name="tip" value="onayli" checked="@(raporTipi == "onayli" ? "checked" : null)" /><i class="bi bi-patch-check"></i><span>Onaylı Belgeler</span></label>
                     <label class="@(raporTipi == "bekleyen" ? "active" : "")"><input type="radio" name="tip" value="bekleyen" checked="@(raporTipi == "bekleyen" ? "checked" : null)" /><i class="bi bi-hourglass-split"></i><span>Bekleyen Belgeler</span></label>
                     <label class="@(raporTipi == "reddedilen" ? "active" : "")"><input type="radio" name="tip" value="reddedilen" checked="@(raporTipi == "reddedilen" ? "checked" : null)" /><i class="bi bi-x-circle"></i><span>Reddedilen Belgeler</span></label>
@@ -318,7 +58,7 @@
     </section>
 
     <section class="df-report-summary" aria-label="Rapor özeti">
-        <div><i class="bi bi-fire"></i><span>Devreye Alma</span><strong>@ViewBag.DevreyeSayisi</strong></div>
+        <div><i class="bi bi-fire"></i><span>Cihaz Devreye Alma</span><strong>@ViewBag.DevreyeSayisi</strong></div>
         <div class="is-success"><i class="bi bi-check-circle"></i><span>Onaylı Belge</span><strong>@ViewBag.YetkiBelgesiOnayli</strong></div>
         <div class="is-warning"><i class="bi bi-hourglass-split"></i><span>Bekleyen Belge</span><strong>@ViewBag.YetkiBelgesiBekleyen</strong></div>
         <div class="is-danger"><i class="bi bi-x-circle"></i><span>Reddedilen Belge</span><strong>@ViewBag.YetkiBelgesiReddedilen</strong></div>
@@ -332,7 +72,7 @@
 
     <section class="df-admin-list-card df-admin-report-results">
         <div class="df-service-list-head df-report-results-head">
-            <div><h3><i class="bi bi-table"></i> @((listeTipi == "devreye") ? "Son Devreye Almalar" : "Yetki Belgesi İşlemleri")</h3><span>@basTarih.ToString("dd.MM.yyyy") - @bitTarih.ToString("dd.MM.yyyy") tarih aralığı</span></div>
+            <div><h3><i class="bi bi-table"></i> @((listeTipi == "devreye") ? "Son Cihaz Devreye Alma Kayıtları" : "Yetki Belgesi İşlemleri")</h3><span>@basTarih.ToString("dd.MM.yyyy") - @bitTarih.ToString("dd.MM.yyyy") tarih aralığı</span></div>
         @if (listeTipi == "devreye")
         {
             <div class="df-report-export-actions">

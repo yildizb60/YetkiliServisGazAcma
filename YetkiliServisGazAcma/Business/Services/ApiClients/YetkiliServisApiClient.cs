@@ -223,6 +223,7 @@ namespace YetkiliServisGazAcma.Business.Services
             public string? FaaliyetIli { get; set; }
             public string? VergiNo { get; set; }
             public string? VergiDairesi { get; set; }
+            public string? TcKimlikNo { get; set; }
             public string Sifre { get; set; } = string.Empty;
             public List<int> MarkaIdleri { get; set; } = new();
             public List<int> KategoriIdleri { get; set; } = new();

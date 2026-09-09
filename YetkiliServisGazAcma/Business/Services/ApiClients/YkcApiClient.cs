@@ -31,7 +31,8 @@ namespace YetkiliServisGazAcma.Business.Services
                 kullanici,
                 "api/ykc/talepler/liste",
                 filtre,
-                "Cihaz değişim talep listesi");
+                "Cihaz değişim talep listesi",
+                retryTransient: true);
         }
 
         public Task<YkcRaporSonuc?> RaporAsync(AppKullanici kullanici, YkcTalepListeFiltre filtre)
@@ -40,7 +41,8 @@ namespace YetkiliServisGazAcma.Business.Services
                 kullanici,
                 "api/ykc/talepler/rapor",
                 filtre,
-                "Cihaz değişim raporu");
+                "Cihaz değişim raporu",
+                retryTransient: true);
         }
 
         public Task<YkcDashboardOzetDto?> DashboardOzetAsync(AppKullanici kullanici)
@@ -49,7 +51,8 @@ namespace YetkiliServisGazAcma.Business.Services
                 kullanici,
                 "api/ykc/dashboard/ozet",
                 new { },
-                "Cihaz değişim dashboard özeti");
+                "Cihaz değişim dashboard özeti",
+                retryTransient: true);
         }
 
         public Task<YkcImzaEntegrasyonDto?> ImzaEntegrasyonBilgisiAsync(AppKullanici kullanici)
@@ -58,7 +61,8 @@ namespace YetkiliServisGazAcma.Business.Services
                 kullanici,
                 "api/ykc/imza/entegrasyon",
                 new { },
-                "YKC dijital imza entegrasyon bilgisi");
+                "YKC dijital imza entegrasyon bilgisi",
+                retryTransient: true);
         }
 
         public Task<YkcTalepListeSonuc?> DogalgazMobileTaleplerAsync(AppKullanici kullanici, YkcTalepListeFiltre filtre)
@@ -67,7 +71,8 @@ namespace YetkiliServisGazAcma.Business.Services
                 kullanici,
                 "api/ykc/dogalgaz-mobile/talepler/liste",
                 filtre,
-                "Cihaz değişim doğalgaz mobile talep listesi");
+                "Cihaz değişim doğalgaz mobile talep listesi",
+                retryTransient: true);
         }
 
         public Task<YkcTalepListeSonuc?> Crm187TaleplerAsync(AppKullanici kullanici, YkcTalepListeFiltre filtre)
@@ -76,7 +81,8 @@ namespace YetkiliServisGazAcma.Business.Services
                 kullanici,
                 "api/ykc/crm187/talepler/liste",
                 filtre,
-                "Cihaz değişim CRM187 talep listesi");
+                "Cihaz değişim CRM187 talep listesi",
+                retryTransient: true);
         }
 
         public Task<YkcTalepDetayDto?> DetayAsync(AppKullanici kullanici, int id, bool formVerisi = false)
@@ -95,14 +101,20 @@ namespace YetkiliServisGazAcma.Business.Services
                 kullanici,
                 "api/ykc/tesisat-sorgula",
                 istek,
-                "Cihaz degisim tesisat sorgula");
+                "Cihaz degisim tesisat sorgula",
+                retryTransient: true);
         }
 
         public Task<YkcTakvimSonuc?> TakvimAsync(AppKullanici kullanici, YkcTakvimFiltre filtre)
             => PostAsync<YkcTakvimFiltre, YkcTakvimSonuc>(kullanici, "api/ykc/takvim", filtre, "Randevu takvimi", retryTransient: true);
 
         public Task<List<YkcEkipSecenegi>?> EkiplerAsync(AppKullanici kullanici, int id)
-            => PostAsync<object, List<YkcEkipSecenegi>>(kullanici, "api/ykc/talepler/ekipler", new { Id = id }, "Bölge ekipleri");
+            => PostAsync<object, List<YkcEkipSecenegi>>(
+                kullanici,
+                "api/ykc/talepler/ekipler",
+                new { Id = id },
+                "Bölge ekipleri",
+                retryTransient: true);
 
         public Task<ApiDosyaSonuc?> DosyaIndirAsync(AppKullanici kullanici, int dosyaId)
         {
@@ -243,7 +255,7 @@ namespace YetkiliServisGazAcma.Business.Services
                     return default;
                 }
 
-                var denemeSayisi = retryTransient ? 5 : 1;
+                var denemeSayisi = retryTransient ? 10 : 1;
                 for (var deneme = 1; deneme <= denemeSayisi; deneme++)
                 {
                     try
@@ -265,7 +277,7 @@ namespace YetkiliServisGazAcma.Business.Services
                                 response.StatusCode,
                                 deneme,
                                 denemeSayisi);
-                            await Task.Delay(TimeSpan.FromMilliseconds(750 * deneme));
+                            await Task.Delay(GeciciHataBeklemeSuresi(deneme));
                             continue;
                         }
 
@@ -289,7 +301,7 @@ namespace YetkiliServisGazAcma.Business.Services
                                 url,
                                 deneme,
                                 denemeSayisi);
-                            await Task.Delay(TimeSpan.FromMilliseconds(750 * deneme));
+                            await Task.Delay(GeciciHataBeklemeSuresi(deneme));
                             continue;
                         }
 
@@ -321,6 +333,9 @@ namespace YetkiliServisGazAcma.Business.Services
                 or System.Net.HttpStatusCode.TooManyRequests
                 || kod >= 500;
         }
+
+        private static TimeSpan GeciciHataBeklemeSuresi(int deneme)
+            => TimeSpan.FromMilliseconds(Math.Min(500 * deneme, 2000));
 
         private async Task<ApiDosyaSonuc?> PostFileAsync<TRequest>(
             AppKullanici kullanici,

@@ -17,7 +17,7 @@
         .OrderByDescending(x => x.OlusturmaTarihi)
         .ToList() ?? new List<YetkiliServisGazAcma.Entities.Ys_YetkiBelgesi>();
     var onayliBelgeler = tumBelgeler
-        .Where(x => x.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi)
+        .Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi)
         .OrderBy(x => x.YetkiBelgesiBitisTarihi)
         .ToList();
     var gecerliBelgeler = onayliBelgeler

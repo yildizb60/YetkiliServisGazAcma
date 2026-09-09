@@ -259,6 +259,12 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (!string.IsNullOrWhiteSpace(dto.Telefon) && !TelefonFormatiGecerliMi(dto.Telefon))
                 return BadRequest(new { basarili = false, mesaj = "Telefon numarasi 05XXXXXXXXX veya 90XXXXXXXXXX formatinda olmalidir" });
 
+            if (!string.IsNullOrWhiteSpace(dto.TcKimlikNo)
+                && (dto.TcKimlikNo.Length != 11 || dto.TcKimlikNo.Any(ch => !char.IsDigit(ch))))
+            {
+                return BadRequest(new { basarili = false, mesaj = "TC kimlik no 11 haneli ve sayisal olmalidir" });
+            }
+
             var firma = new Ys_Firma
             {
                 FirmaAdi = dto.FirmaAdi,
@@ -269,6 +275,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 FaaliyetIli = dto.FaaliyetIli,
                 VergiNo = dto.VergiNo,
                 VergiDairesi = dto.VergiDairesi,
+                TcKimlikNo = dto.TcKimlikNo,
                 SirketId = await _sehirFirmaKoduService.SirketIdBulVeyaOlustur(
                     dto.FaaliyetIli,
                     dto.Email ?? dto.VergiNo ?? "api-kayit")
@@ -567,6 +574,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         public string? FaaliyetIli { get; set; }
         public string? VergiNo { get; set; }
         public string? VergiDairesi { get; set; }
+        public string? TcKimlikNo { get; set; }
         public string Sifre { get; set; } = string.Empty;
         public List<int>? MarkaIdleri { get; set; }
         public List<int>? KategoriIdleri { get; set; }

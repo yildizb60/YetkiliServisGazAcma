@@ -1,137 +1,24 @@
 @model YkcDashboardOzetDto
 @{
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
-    var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
+    ViewData["Title"] = "Cihaz Değişimi";
+    ViewData["PanelTitle"] = "Ana Sayfa";
+    ViewData["PanelSubtitle"] = "Cihaz Değişimi";
+    ViewData["ActiveMenu"] = "Dashboard";
+
     var toplam = Model.Toplam;
     var incelemede = Model.Incelemede;
     var randevuda = Model.RandevuSaha;
     var tamamlanan = Model.Tamamlanan;
     var imzaBekleyen = Model.ImzaBekleyen;
-    var imzaliNihai = Model.ImzaliNihai;
-    var imzaEntegrasyonu = ViewBag.ImzaEntegrasyonu as YkcImzaEntegrasyonDto ?? new YkcImzaEntegrasyonDto();
-    var bekleyen = Math.Max(toplam - tamamlanan - Model.RedIptal, 0);
-    var sonTalepler = Model.SonTalepler;
-    var adSoyad = kullanici?.AdSoyad ?? kullanici?.Email ?? "Sertifikalı Firma";
-    var basHarf = !string.IsNullOrWhiteSpace(adSoyad)
-        ? adSoyad.Trim().Substring(0, 1).ToUpper(new System.Globalization.CultureInfo("tr-TR"))
-        : "S";
-
-    var bugun = DateTime.Now.Date;
-    var ay = DateTime.Now;
-    var ayIlkGun = new DateTime(ay.Year, ay.Month, 1);
-    var ayGunSayisi = DateTime.DaysInMonth(ay.Year, ay.Month);
-    var ilkGunOffset = ((int)ayIlkGun.DayOfWeek + 6) % 7;
-    var oncekiAy = ayIlkGun.AddMonths(-1);
-    var oncekiAyGunSayisi = DateTime.DaysInMonth(oncekiAy.Year, oncekiAy.Month);
-    var takvimHucre = 42;
-
-    var kartlar = new List<DashboardTile>
-    {
-        new DashboardTile
-        {
-            Title = "Yeni Talep",
-            Url = "/ykc/yeni",
-            Icon = "bi bi-plus-lg",
-            Done = 1,
-            Total = 1,
-            Subtitle = "Hazır İşlem",
-            Stat1Label = "Toplam",
-            Stat1Value = toplam.ToString(),
-            Stat2Label = "İncelemede",
-            Stat2Value = incelemede.ToString(),
-            Stat2Class = incelemede > 0 ? "df-badge-pulse" : "df-tile-stat-val",
-            Stat3Label = "Durum",
-            Stat3Value = "Aktif",
-            Featured = toplam == 0
-        },
-        new DashboardTile
-        {
-            Title = "Taleplerim",
-            Url = "/ykc/talepler",
-            Icon = "bi bi-journal-text",
-            Done = tamamlanan,
-            Total = Math.Max(toplam, 1),
-            Subtitle = "Tamamlanan / Toplam",
-            Stat1Label = "Toplam",
-            Stat1Value = toplam.ToString(),
-            Stat2Label = "Bekleyen",
-            Stat2Value = bekleyen.ToString(),
-            Stat2Class = bekleyen > 0 ? "df-badge-pulse" : "df-tile-stat-val",
-            Stat3Label = "Tamamlanan",
-            Stat3Value = tamamlanan.ToString()
-        },
-        new DashboardTile
-        {
-            Title = "İnceleme ve Randevu",
-            Url = "/ykc/talepler",
-            Icon = "bi bi-calendar-check",
-            Done = randevuda,
-            Total = Math.Max(incelemede + randevuda, 1),
-            Subtitle = "Randevu / Açık İş",
-            Stat1Label = "İnceleme",
-            Stat1Value = incelemede.ToString(),
-            Stat1Class = incelemede > 0 ? "df-badge-pulse" : "df-tile-stat-val",
-            Stat2Label = "Randevu",
-            Stat2Value = randevuda.ToString(),
-            Stat3Label = "Süreç",
-            Stat3Value = "İç Tesisat"
-        },
-        new DashboardTile
-        {
-            Title = "Dijital İmza",
-            Url = "/ykc/talepler",
-            Icon = "bi bi-send-check",
-            Done = imzaliNihai,
-            Total = Math.Max(toplam, 1),
-            Subtitle = "Nihai Belge / Toplam",
-            Stat1Label = "FR265",
-            Stat1Value = toplam.ToString(),
-            Stat2Label = "Bekleyen",
-            Stat2Value = imzaBekleyen.ToString(),
-            Stat2Class = imzaBekleyen > 0 ? "df-badge-pulse" : "df-tile-stat-val",
-            Stat3Label = "Nihai",
-            Stat3Value = imzaliNihai.ToString()
-        }
-    };
+    var devamEden = Math.Max(toplam - tamamlanan - Model.RedIptal, 0);
+    var sonTalepler = Model.SonTalepler.Take(6).ToList();
 }
 
 @functions {
-    private sealed class DashboardTile
-    {
-        public string Title { get; set; } = "";
-        public string Url { get; set; } = "";
-        public string Icon { get; set; } = "";
-        public int Done { get; set; }
-        public int Total { get; set; }
-        public string Subtitle { get; set; } = "";
-        public string Stat1Label { get; set; } = "";
-        public string Stat1Value { get; set; } = "";
-        public string Stat1Class { get; set; } = "df-tile-stat-val";
-        public string Stat2Label { get; set; } = "";
-        public string Stat2Value { get; set; } = "";
-        public string Stat2Class { get; set; } = "df-tile-stat-val";
-        public string Stat3Label { get; set; } = "";
-        public string Stat3Value { get; set; } = "";
-        public string Stat3Class { get; set; } = "df-tile-stat-val";
-        public bool Featured { get; set; }
-    }
-
-    private static int RingPct(int done, int total)
-    {
-        if (total <= 0) return 0;
-        return Math.Clamp((int)Math.Round(done * 100.0 / total), 0, 100);
-    }
-
-    private static string RingOffset(int done, int total)
-    {
-        const double length = 175.9;
-        var pct = RingPct(done, total);
-        return (length - (length * pct / 100.0)).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
-    }
-
     private static string Deger(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
-
     private static string DurumYazi(int durum) => YkcDurumSunumu.Etiket(durum);
+    private static string DurumClass(int durum) => YkcDurumSunumu.CssSinifi(durum);
 
     private static string RandevuYazi(DateTime? tarih, string? saat)
     {
@@ -146,207 +33,75 @@
     }
 }
 
-<div class="df-dashboard">
-    <div class="section-label">
-        <i class="bi bi-lightning-charge-fill"></i>
-        Bekleyen İşlemlerim
-    </div>
+<div class="df-dashboard df-personnel-home ykc-firm-home">
+    <section class="df-home-section" aria-labelledby="firm-actions-title">
+        <header class="df-home-section-head">
+            <div>
+                <span class="df-home-kicker"><i class="bi bi-grid" aria-hidden="true"></i> Cihaz değişimi</span>
+                <h1 id="firm-actions-title">İşlemlerim</h1>
+            </div>
+            <dl class="ykc-home-status" aria-label="Talep durumu özeti">
+                <div><dt>İncelenen</dt><dd>@incelemede</dd></div>
+                <div><dt>Randevu / İşlem</dt><dd>@randevuda</dd></div>
+                <div><dt>İmza Bekleyen</dt><dd>@imzaBekleyen</dd></div>
+                <div><dt>Tamamlanan</dt><dd>@tamamlanan</dd></div>
+            </dl>
+        </header>
 
-    <div class="df-approval-grid" id="approval-grid">
-        @foreach (var kart in kartlar)
-        {
-            <a class="df-atile @(kart.Featured ? "is-featured" : "")" href="@kart.Url">
-                <div class="df-atile-top">
-                    <div class="df-atile-icon"><i class="@kart.Icon"></i></div>
-                    <div>
-                        <div class="df-atile-name">@kart.Title</div>
-                        <span class="df-atile-link">Sayfaya git <i class="bi bi-arrow-right"></i></span>
-                    </div>
-                </div>
-                <div class="df-ring-wrap">
-                    <div class="df-ring-container">
-                        <svg class="df-ring-svg" width="72" height="72" viewBox="0 0 72 72">
-                            <circle class="df-ring-bg" cx="36" cy="36" r="28"></circle>
-                            <circle class="df-ring-fill" cx="36" cy="36" r="28" stroke-dasharray="175.9" stroke-dashoffset="@RingOffset(kart.Done, kart.Total)"></circle>
-                        </svg>
-                        <div class="df-ring-center"><span class="df-ring-pct">@RingPct(kart.Done, kart.Total)%</span></div>
-                    </div>
-                    <div class="df-ring-meta"><span class="df-ring-sub">@kart.Subtitle</span></div>
-                </div>
-                <div class="df-tile-stats">
-                    <div class="df-tile-stat"><span class="df-tile-stat-lbl">@kart.Stat1Label</span><span class="@kart.Stat1Class">@kart.Stat1Value</span></div>
-                    <div class="df-tile-stat"><span class="df-tile-stat-lbl">@kart.Stat2Label</span><span class="@kart.Stat2Class">@kart.Stat2Value</span></div>
-                    <div class="df-tile-stat"><span class="df-tile-stat-lbl">@kart.Stat3Label</span><span class="@kart.Stat3Class">@kart.Stat3Value</span></div>
-                </div>
+        <div class="df-home-action-grid ykc-home-actions">
+            <a class="df-home-action" href="/ykc/yeni">
+                <span class="df-home-action-icon"><i class="bi bi-plus-lg" aria-hidden="true"></i></span>
+                <span class="df-home-action-copy"><strong>Yeni Talep</strong><small>Tesisat ve cihaz bilgilerini girin</small></span>
+                <i class="bi bi-chevron-right df-home-action-arrow" aria-hidden="true"></i>
             </a>
+            <a class="df-home-action is-green" href="/ykc/talepler">
+                <span class="df-home-action-icon"><i class="bi bi-journal-text" aria-hidden="true"></i></span>
+                <span class="df-home-action-copy"><strong>Taleplerim</strong><small>@devamEden işlem devam ediyor</small></span>
+                <span class="df-home-action-value">@toplam</span>
+                <i class="bi bi-chevron-right df-home-action-arrow" aria-hidden="true"></i>
+            </a>
+            <a class="df-home-action is-purple" href="/ykc/talepler?durum=@YkcDurumDegerleri.Tamamlandi">
+                <span class="df-home-action-icon"><i class="bi bi-file-earmark-check" aria-hidden="true"></i></span>
+                <span class="df-home-action-copy"><strong>Tamamlanan Talepler</strong><small>Form ve işlem sonucunu görüntüleyin</small></span>
+                <span class="df-home-action-value">@tamamlanan</span>
+                <i class="bi bi-chevron-right df-home-action-arrow" aria-hidden="true"></i>
+            </a>
+        </div>
+    </section>
+
+    <section class="df-home-feed ykc-home-recent" aria-labelledby="firm-recent-title">
+        <header>
+            <div>
+                <span class="df-home-feed-icon"><i class="bi bi-clock-history" aria-hidden="true"></i></span>
+                <h2 id="firm-recent-title">Son Talepler</h2>
+            </div>
+            <a href="/ykc/talepler">Tümünü Gör <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+        </header>
+
+        @if (!sonTalepler.Any())
+        {
+            <div class="df-home-empty"><i class="bi bi-inbox" aria-hidden="true"></i><span>Henüz cihaz değişim talebi bulunmuyor.</span></div>
         }
-    </div>
-
-    <div class="section-label">
-        <i class="bi bi-bar-chart-line-fill"></i>
-        İstatistikler & Takvim
-    </div>
-
-    <div class="stats-grid">
-        <div class="stats-card">
-            <div class="stats-card-header">
-                <h2><i class="bi bi-bar-chart-line"></i> Cihaz Değişim İstatistikleri</h2>
-                <div class="df-tab-pills mb-0">
-                    <button class="df-tab-pill-item active" type="button" data-panel-target="panel-islem">Talepler</button>
-                    <button class="df-tab-pill-item" type="button" data-panel-target="panel-imza">İmza Süreci</button>
-                </div>
+        else
+        {
+            <div class="ykc-home-request-list">
+                @foreach (var talep in sonTalepler)
+                {
+                    <a class="ykc-home-request" href="/ykc/detay/@talep.Id">
+                        <span class="ykc-home-request-id">#@talep.Id</span>
+                        <span class="ykc-home-request-customer">
+                            <strong>@Deger(talep.MusteriAdi)</strong>
+                            <small>Tesisat @Deger(talep.TesisatNo)</small>
+                        </span>
+                        <span class="ykc-home-request-appointment">
+                            <small>Randevu</small>
+                            <strong>@RandevuYazi(talep.RandevuTarihi, talep.RandevuSaati)</strong>
+                        </span>
+                        <span class="df-pill @DurumClass(talep.Durum)">@DurumYazi(talep.Durum)</span>
+                        <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                    </a>
+                }
             </div>
-
-            <div class="panel active" id="panel-islem">
-                <div class="stats-body split">
-                    <div class="user-pane">
-                        <div class="user-row">
-                            <div class="user-ava">@basHarf</div>
-                            <div>
-                                <div class="user-lbl">Kullanıcı</div>
-                                <div class="user-name">@adSoyad</div>
-                            </div>
-                        </div>
-                        <div class="kpi-grid">
-                            <div class="kpi-tile"><div class="kpi-icon"><i class="bi bi-journal-text"></i></div><div class="kpi-n">@toplam</div><div class="kpi-lbl">Toplam Talep</div></div>
-                            <div class="kpi-tile"><div class="kpi-icon ic-warn"><i class="bi bi-hourglass-split"></i></div><div class="kpi-n">@incelemede</div><div class="kpi-lbl">İncelemede</div></div>
-                            <div class="kpi-tile"><div class="kpi-icon ic-purple"><i class="bi bi-calendar-check"></i></div><div class="kpi-n">@randevuda</div><div class="kpi-lbl">Randevu / Saha</div></div>
-                            <div class="kpi-tile"><div class="kpi-icon ic-green"><i class="bi bi-check-circle"></i></div><div class="kpi-n">@tamamlanan</div><div class="kpi-lbl">Tamamlanan</div></div>
-                        </div>
-                    </div>
-                    <div class="chart-pane">
-                        @if (!sonTalepler.Any())
-                        {
-                            <div class="df-empty">
-                                <div class="df-empty-icon"><i class="bi bi-journal-plus"></i></div>
-                                <div class="df-empty-title">Talep Bulunamadı.</div>
-                                <p class="df-empty-text">Yeni cihaz değişim talebi oluşturduğunuzda burada görüntülenecektir.</p>
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="dash-list">
-                                @foreach (var talep in sonTalepler)
-                                {
-                                    <a class="dash-list-item dash-list-link" href="/ykc/detay/@talep.Id">
-                                        <div class="dash-list-title">@Deger(talep.MusteriAdi)</div>
-                                        <div class="dash-list-sub">@DurumYazi(talep.Durum) - @Deger(talep.TesisatNo) - @RandevuYazi(talep.RandevuTarihi, talep.RandevuSaati)</div>
-                                    </a>
-                                }
-                            </div>
-                        }
-                    </div>
-                </div>
-            </div>
-
-            <div class="panel" id="panel-imza">
-                <div class="stats-body split">
-                    <div class="user-pane">
-                        <div class="user-row">
-                            <div class="user-ava"><i class="bi bi-send-check"></i></div>
-                            <div>
-                                <div class="user-lbl">Dijital Akış</div>
-                                <div class="user-name">@(imzaEntegrasyonu.DemoModuMu ? "Form ve Demo İmza Akışı" : "Form Önizleme ve İmza")</div>
-                            </div>
-                        </div>
-                        <div class="kpi-grid">
-                            <div class="kpi-tile"><div class="kpi-icon"><i class="bi bi-eye"></i></div><div class="kpi-n">@toplam</div><div class="kpi-lbl">Önizlenebilir</div></div>
-                            <div class="kpi-tile"><div class="kpi-icon ic-warn"><i class="bi bi-send"></i></div><div class="kpi-n">@imzaBekleyen</div><div class="kpi-lbl">İmza Bekleyen</div></div>
-                            <div class="kpi-tile"><div class="kpi-icon ic-green"><i class="bi bi-file-earmark-check"></i></div><div class="kpi-n">@imzaliNihai</div><div class="kpi-lbl">Nihai Belge</div></div>
-                            <div class="kpi-tile"><div class="kpi-icon ic-teal"><i class="bi bi-plug"></i></div><div class="kpi-n">@(imzaEntegrasyonu.DemoModuMu ? "Demo" : imzaEntegrasyonu.KullanilabilirMi ? "Aktif" : "Bekliyor")</div><div class="kpi-lbl">Entegrasyon</div></div>
-                        </div>
-                    </div>
-                    <div class="chart-pane">
-                        <div class="dash-list">
-                            <div class="dash-list-item">
-                                <div class="dash-list-title">Form önizlenir</div>
-                                <div class="dash-list-sub">Belge doğruysa imza uygulamasına gönderilecek.</div>
-                            </div>
-                            <div class="dash-list-item">
-                                <div class="dash-list-title">@(imzaEntegrasyonu.DemoModuMu ? "Sunum akışı test sağlayıcısıyla tamamlanır" : "Eksik imzalar dış uygulamada tamamlanır")</div>
-                                <div class="dash-list-sub">@(imzaEntegrasyonu.DemoModuMu ? "Demo akış FR265 formu üzerinden ilerler; hukuki elektronik imza değildir." : "Callback/API entegrasyonu ile durum otomatik izlenir.")</div>
-                            </div>
-                            <div class="dash-list-item">
-                                <div class="dash-list-title">İmzalı nihai belge arşivden gelir</div>
-                                <div class="dash-list-sub">İndirme aksiyonu yalnızca nihai belge için kullanılacak.</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="stats-card calendar-card">
-            <div class="stats-card-header">
-                <h2><i class="bi bi-calendar-check"></i> Takvim & Bilgilendirme</h2>
-            </div>
-            <div class="stats-body split">
-                <div class="user-pane">
-                    <div class="mini-calendar">
-                        <div class="mini-calendar-head">
-                            <span>@ay.ToString("MMMM", new System.Globalization.CultureInfo("tr-TR"))</span>
-                            <span>@ay.Year</span>
-                        </div>
-                        <div class="mini-calendar-grid">
-                            @foreach (var gun in new[] { "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz" })
-                            {
-                                <div class="mini-calendar-cell weekday">@gun</div>
-                            }
-                            @for (var i = 0; i < takvimHucre; i++)
-                            {
-                                var gunNo = i - ilkGunOffset + 1;
-                                if (gunNo < 1)
-                                {
-                                    <div class="mini-calendar-cell muted">@(oncekiAyGunSayisi + gunNo)</div>
-                                }
-                                else if (gunNo > ayGunSayisi)
-                                {
-                                    <div class="mini-calendar-cell muted">@(gunNo - ayGunSayisi)</div>
-                                }
-                                else
-                                {
-                                    var hucreTarih = new DateTime(ay.Year, ay.Month, gunNo);
-                                    <div class="mini-calendar-cell @(hucreTarih.Date == bugun ? "today" : "")">@gunNo</div>
-                                }
-                            }
-                        </div>
-                    </div>
-                </div>
-                <div class="chart-pane">
-                    <div class="dash-list">
-                        <div class="dash-list-item">
-                            <div class="dash-list-title">Ana akış dijital form ve imza sürecidir.</div>
-                            <div class="dash-list-sub">Çıktı alıp elle ilerlemek ana hedef değildir.</div>
-                        </div>
-                        <div class="dash-list-item">
-                            <div class="dash-list-title">İç tesisat ekibi talebi manuel yönlendirir.</div>
-                            <div class="dash-list-sub">187 Acil veya mühendis seçimi kullanıcı kararıyla yapılır.</div>
-                        </div>
-                        <div class="dash-list-item">
-                            <div class="dash-list-title">Bölge bilgisi tesisattan gelir.</div>
-                            <div class="dash-list-sub">Ekip seçimi bölgeye göre ekranda desteklenir.</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+        }
+    </section>
 </div>
-
-@section Scripts {
-<script>
-(function () {
-    document.querySelectorAll('.df-dashboard [data-panel-target]').forEach(function (button) {
-        button.addEventListener('click', function () {
-            var card = button.closest('.stats-card');
-            if (!card) return;
-            card.querySelectorAll('[data-panel-target]').forEach(function (item) { item.classList.remove('active'); });
-            card.querySelectorAll('.panel').forEach(function (panel) { panel.classList.remove('active'); });
-            button.classList.add('active');
-            var panel = card.querySelector('#' + button.getAttribute('data-panel-target'));
-            if (panel) panel.classList.add('active');
-        });
-    });
-})();
-</script>
-}

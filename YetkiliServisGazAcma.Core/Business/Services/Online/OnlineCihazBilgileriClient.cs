@@ -40,7 +40,7 @@ namespace YetkiliServisGazAcma.Business.Services.Online
 
             var firmaKodu = string.IsNullOrWhiteSpace(firma) ? _options.Firma : firma;
             if (string.IsNullOrWhiteSpace(firmaKodu))
-                return OnlineCihazBilgileriSonuc.Basarisiz("Firma kodu bulunamadi.");
+                return OnlineCihazBilgileriSonuc.Basarisiz("Firma kodu bulunamadı.");
 
             try
             {
@@ -75,7 +75,7 @@ namespace YetkiliServisGazAcma.Business.Services.Online
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Online cihaz servisi cagrilirken hata olustu.");
-                return OnlineCihazBilgileriSonuc.Basarisiz("Online cihaz servisine baglanilamadi.");
+                return OnlineCihazBilgileriSonuc.Basarisiz("Online cihaz servisine bağlanılamadı. Lütfen daha sonra yeniden deneyin.");
             }
         }
 

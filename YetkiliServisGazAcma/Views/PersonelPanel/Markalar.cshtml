@@ -1,6 +1,6 @@
 @model List<YetkiliServisGazAcma.Entities.Ys_Marka>
 @{
-    ViewData["Title"] = "Markalar";
+    ViewData["Title"] = "Cihaz Markaları";
     ViewData["PanelTitle"] = ViewData["Title"];
     ViewData["PanelSubtitle"] = "Personel Paneli";
     ViewData["ActiveMenu"] = "Markalar";
@@ -25,9 +25,7 @@
     <section class="df-page-panel df-admin-hero">
         <div class="df-panel-head">
             <div>
-                <div class="df-panel-kicker"><i class="bi bi-tags"></i> Marka kataloğu</div>
-                <div class="df-panel-title">Markalar</div>
-                <div class="df-panel-subtitle">Yetkili servislerin işlem yapabildiği cihaz markalarını görüntüleyin ve yönetin.</div>
+                <h1 class="df-panel-title"><i class="bi bi-tags" aria-hidden="true"></i> Cihaz Markaları</h1>
             </div>
             @if (markaYonetebilir)
             {
@@ -37,32 +35,25 @@
                 </a>
             }
         </div>
-        <div class="df-admin-metrics" aria-label="Marka durum özeti">
-            <button class="df-admin-metric active" type="button" data-brand-status="all">
-                <i class="bi bi-collection"></i><span>Tüm Markalar</span><strong>@markalar.Count</strong>
-            </button>
-            <button class="df-admin-metric is-active" type="button" data-brand-status="active">
-                <i class="bi bi-check-circle"></i><span>Aktif</span><strong>@aktifSayisi</strong>
-            </button>
-            <button class="df-admin-metric is-passive" type="button" data-brand-status="passive">
-                <i class="bi bi-slash-circle"></i><span>Pasif</span><strong>@pasifSayisi</strong>
-            </button>
-        </div>
     </section>
 
     <details class="df-admin-filter">
         <summary>
             <span>
                 <i class="bi bi-funnel"></i>
-                <span><strong>Filtreler</strong><small>Marka adı veya açıklama ile listede arayın.</small></span>
+                <span><strong>Filtreler</strong><small>Marka adı, açıklama veya durum</small></span>
             </span>
             <span>Filtreleri aç <i class="bi bi-chevron-down"></i></span>
         </summary>
         <div class="df-admin-filter-body">
             <div class="df-admin-filter-grid">
-                <div class="df-admin-field is-wide">
+                <div class="df-admin-field">
                     <label for="brandSearch">Arama</label>
                     <input id="brandSearch" type="search" placeholder="Marka adı veya açıklama..." autocomplete="off" />
+                </div>
+                <div class="df-admin-field">
+                    <label for="brandStatus">Durum</label>
+                    <select id="brandStatus"><option value="all">Tümü</option><option value="active">Aktif</option><option value="passive">Pasif</option></select>
                 </div>
             </div>
         </div>
@@ -72,7 +63,11 @@
         <div class="df-service-list-head">
             <div>
                 <h3><i class="bi bi-tags"></i> Marka Listesi</h3>
-                <span><strong id="brandVisibleCount">@markalar.Count</strong> kayıt listeleniyor</span>
+            </div>
+            <div class="df-admin-metrics df-inline-metrics" aria-label="Marka durum özeti">
+                <button class="df-admin-metric active" type="button" data-brand-status="all"><i class="bi bi-collection"></i><span>Tümü</span><strong>@markalar.Count</strong></button>
+                <button class="df-admin-metric is-active" type="button" data-brand-status="active"><i class="bi bi-check-circle"></i><span>Aktif</span><strong>@aktifSayisi</strong></button>
+                <button class="df-admin-metric is-passive" type="button" data-brand-status="passive"><i class="bi bi-slash-circle"></i><span>Pasif</span><strong>@pasifSayisi</strong></button>
             </div>
         </div>
         <div class="df-admin-table-scroll">
@@ -97,7 +92,7 @@
                                     @if (markaYonetebilir)
                                     {
                                         <div class="df-actions">
-                                            <a class="df-icon-action" href="/personel-panel/markalar/duzenle/@marka.Id"><i class="bi bi-pencil-square"></i> Düzenle</a>
+                                            <button class="df-icon-action js-personnel-brand-edit" type="button" data-id="@marka.Id" data-name="@marka.MarkaAdi" data-description="@marka.Aciklama" data-active="@marka.AktifMi.ToString().ToLowerInvariant()"><i class="bi bi-pencil-square"></i> Düzenle</button>
                                             <form method="post" action="/personel-panel/markalar/sil/@marka.Id" onsubmit="return confirm('Bu markayı silmek istediğinize emin misiniz?');">
                                                 @Html.AntiForgeryToken()
                                                 <button type="submit" class="df-icon-action is-danger"><i class="bi bi-trash"></i> Sil</button>
@@ -121,14 +116,38 @@
     </section>
 </div>
 
+@if (markaYonetebilir)
+{
+    <div class="df-modal" id="personnelBrandEditModal" aria-hidden="true">
+        <div class="df-modal-backdrop" data-brand-modal-close></div>
+        <div class="df-modal-dialog df-modal-dialog-sm" role="dialog" aria-modal="true" aria-labelledby="personnelBrandModalTitle" tabindex="-1">
+            <form id="personnelBrandEditForm" method="post">
+                @Html.AntiForgeryToken()
+                <div class="df-modal-header">
+                    <div class="df-modal-heading"><span class="df-modal-icon"><i class="bi bi-pencil-square"></i></span><div><h3 id="personnelBrandModalTitle">Cihaz Markasını Düzenle</h3><p id="personnelBrandModalSubtitle">Marka kaydını güncelleyin.</p></div></div>
+                    <button class="df-modal-close" type="button" data-brand-modal-close aria-label="Kapat"><i class="bi bi-x-lg"></i></button>
+                </div>
+                <div class="df-modal-body">
+                    <div class="df-modal-form-grid">
+                        <div class="df-admin-field"><label for="personnelBrandName">Marka Adı *</label><input id="personnelBrandName" type="text" name="MarkaAdi" required /></div>
+                        <div class="df-admin-field"><label for="personnelBrandStatus">Kayıt Durumu</label><select id="personnelBrandStatus" name="AktifMi"><option value="true">Aktif</option><option value="false">Pasif</option></select></div>
+                        <div class="df-admin-field is-wide"><label for="personnelBrandDescription">Açıklama</label><textarea id="personnelBrandDescription" name="Aciklama" rows="3"></textarea></div>
+                    </div>
+                </div>
+                <div class="df-modal-footer"><button class="df-btn df-btn-secondary" type="button" data-brand-modal-close>Vazgeç</button><button class="df-btn df-btn-primary" type="submit"><i class="bi bi-check2"></i> Değişiklikleri Kaydet</button></div>
+            </form>
+        </div>
+    </div>
+}
+
 @section Scripts {
 <script>
     (function () {
         var search = document.getElementById("brandSearch");
-        var statusButtons = Array.from(document.querySelectorAll("[data-brand-status]"));
+        var statusButtons = Array.from(document.querySelectorAll("button[data-brand-status]"));
+        var statusSelect = document.getElementById("brandStatus");
         var rows = Array.from(document.querySelectorAll("[data-brand-row]"));
         var emptyRow = document.querySelector("[data-filter-empty]");
-        var count = document.getElementById("brandVisibleCount");
         var currentStatus = "all";
 
         function filterRows() {
@@ -141,18 +160,54 @@
                 row.hidden = !show;
                 if (show) visible += 1;
             });
-            if (count) count.textContent = String(visible);
             if (emptyRow) emptyRow.hidden = visible !== 0 || rows.length === 0;
         }
 
         statusButtons.forEach(function (button) {
             button.addEventListener("click", function () {
                 currentStatus = button.dataset.brandStatus || "all";
+                if (statusSelect) statusSelect.value = currentStatus;
                 statusButtons.forEach(function (item) { item.classList.toggle("active", item === button); });
                 filterRows();
             });
         });
+        if (statusSelect) {
+            statusSelect.addEventListener("change", function () {
+                currentStatus = statusSelect.value || "all";
+                statusButtons.forEach(function (item) { item.classList.toggle("active", item.dataset.brandStatus === currentStatus); });
+                filterRows();
+            });
+        }
         if (search) search.addEventListener("input", filterRows);
+
+        var editModal = document.getElementById("personnelBrandEditModal");
+        var editForm = document.getElementById("personnelBrandEditForm");
+        var lastEditTrigger = null;
+        function closeEditModal() {
+            if (!editModal) return;
+            editModal.classList.remove("is-open");
+            editModal.setAttribute("aria-hidden", "true");
+            document.body.classList.remove("df-modal-open");
+            lastEditTrigger?.focus();
+        }
+        document.addEventListener("click", function (event) {
+            var button = event.target.closest(".js-personnel-brand-edit");
+            if (button && editModal && editForm) {
+                lastEditTrigger = button;
+                editForm.action = "/personel-panel/markalar/duzenle/" + button.dataset.id;
+                document.getElementById("personnelBrandName").value = button.dataset.name || "";
+                document.getElementById("personnelBrandStatus").value = button.dataset.active === "true" ? "true" : "false";
+                document.getElementById("personnelBrandDescription").value = button.dataset.description || "";
+                document.getElementById("personnelBrandModalSubtitle").textContent = (button.dataset.name || "Marka") + " kaydını güncelleyin.";
+                editModal.classList.add("is-open");
+                editModal.setAttribute("aria-hidden", "false");
+                document.body.classList.add("df-modal-open");
+                document.getElementById("personnelBrandName").focus();
+                return;
+            }
+            if (event.target.closest("[data-brand-modal-close]")) closeEditModal();
+        });
+        document.addEventListener("keydown", function (event) { if (event.key === "Escape" && editModal?.classList.contains("is-open")) closeEditModal(); });
     })();
 </script>
 <script>

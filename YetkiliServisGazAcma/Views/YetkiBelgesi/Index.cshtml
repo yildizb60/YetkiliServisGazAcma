@@ -1,223 +1,122 @@
 @model List<YetkiliServisGazAcma.Entities.Ys_YetkiBelgesi>
 @{
     ViewData["Title"] = "Yetki Belgem";
-    ViewData["PanelTitle"] = "Yetki Belgem";
+    ViewData["PanelTitle"] = ViewData["Title"];
     ViewData["PanelSubtitle"] = "Yetkili Servis";
     ViewData["ActiveMenu"] = "YetkiBelgesi";
     ViewData["PanelArea"] = "YetkiliServis";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
+    var bekleyen = Model.Count(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor);
+    var onaylanan = Model.Count(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi);
+    var reddedilen = Model.Count(x => x.Durum == YetkiBelgesiDurumDegerleri.Reddedildi);
 }
 
-@section Styles {
-    <style>
-        .cert-stack {
-            display: grid;
-            gap: 16px;
-        }
-
-        .cert-message {
-            padding: 12px 14px;
-            border-radius: var(--df-radius);
-            border: 1px solid var(--df-border);
-            font-size: 13px;
-            font-weight: 700;
-        }
-
-        .cert-upload {
-            padding: 16px;
-        }
-
-        .cert-upload .df-btn {
-            min-width: 104px;
-            padding-inline: 22px;
-            align-self: end;
-        }
-
-        .cert-file-cell {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            min-width: 220px;
-        }
-
-        .cert-file-icon {
-            width: 38px;
-            height: 38px;
-            border-radius: var(--df-radius);
-            background: var(--df-primary-soft);
-            color: var(--df-primary);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 800;
-        }
-
-        .cert-reason {
-            margin-top: 5px;
-            color: var(--df-danger);
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        @@media (max-width: 860px) {
-            .cert-upload .df-form-row,
-            .cert-upload .df-field,
-            .cert-upload .df-btn {
-                width: 100%;
-            }
-        }
-    </style>
-}
-
-<div class="cert-stack">
-    @if (TempData["Basarili"] != null)
-    {
-        <div class="cert-message mesaj-basarili">@TempData["Basarili"]</div>
-    }
-    @if (TempData["Hata"] != null)
-    {
-        <div class="cert-message mesaj-hata">@TempData["Hata"]</div>
-    }
-
-    <section class="df-page-panel">
+<div class="df-admin-workspace df-certificate-workspace">
+    <section class="df-page-panel df-admin-hero">
         <div class="df-panel-head">
             <div>
-                <h2 class="df-panel-title">Yeni Yetki Belgesi Y&#252;kle</h2>
-                <div class="df-panel-subtitle">PDF, JPG veya PNG dosyas&#305; ekleyin.</div>
+                <div class="df-panel-kicker"><i class="bi bi-file-earmark-check" aria-hidden="true"></i> YETKİ BELGESİ</div>
+                <h1 class="df-panel-title">Yetki Belgem</h1>
+                <div class="df-panel-subtitle">Yeni belgenizi yükleyin, inceleme sonucunu ve geçerlilik tarihini takip edin.</div>
             </div>
         </div>
-        <form class="cert-upload" method="post" action="/ys-yetki-belgesi/yukle" enctype="multipart/form-data">
-            @Html.AntiForgeryToken()
-            <div class="df-form-row">
-                <div class="df-field df-field-wide">
-                    <label>Yetki Belgesi Dosyas&#305;</label>
-                    <input class="df-control" type="file" name="dosya" accept=".pdf,.jpg,.jpeg,.png" required />
-                </div>
-                <div class="df-field">
-                    <label>Ba&#351;lang&#305;&#231; Tarihi</label>
-                    <input class="df-control" type="date" name="baslangicTarihi" value="@DateTime.Now.ToString("yyyy-MM-dd")" />
-                </div>
-                <div class="df-field">
-                    <label>Biti&#351; Tarihi</label>
-                    <input class="df-control" type="date" name="bitisTarihi" required />
-                </div>
-                <button type="submit" class="df-btn df-btn-primary">Y&#252;kle</button>
-            </div>
-        </form>
+        <div class="df-admin-metrics" aria-label="Belge özeti">
+            <span class="df-admin-metric"><i class="bi bi-files" aria-hidden="true"></i><span>Toplam</span><strong>@Model.Count</strong></span>
+            <span class="df-admin-metric is-waiting"><i class="bi bi-hourglass-split" aria-hidden="true"></i><span>Onay Bekleyen</span><strong>@bekleyen</strong></span>
+            <span class="df-admin-metric is-approved"><i class="bi bi-check-circle" aria-hidden="true"></i><span>Onaylanan</span><strong>@onaylanan</strong></span>
+            <span class="df-admin-metric is-rejected"><i class="bi bi-x-circle" aria-hidden="true"></i><span>Reddedilen</span><strong>@reddedilen</strong></span>
+        </div>
     </section>
 
-    <section class="df-page-panel">
-        <div class="df-panel-head">
-            <div>
-                <h2 class="df-panel-title">Yetki Belgesi Ge&#231;mi&#351;i</h2>
-                <div class="df-panel-subtitle">@Model.Count kay&#305;t</div>
-            </div>
-        </div>
-        <div class="df-toolbar">
-            <div class="df-form-row">
-                <div class="df-field">
-                    <label>Arama</label>
-                    <input class="df-control" type="text" id="yetkiBelgesiSearch" placeholder="Tarih veya durum ara" />
-                </div>
-                <div class="df-field">
-                    <label>Durum</label>
-                    <select class="df-control" id="yetkiBelgesiDurum">
-                        <option value="">T&#252;m&#252;</option>
-                        <option value="Onay Bekliyor">Onay Bekliyor</option>
-                        <option value="Onaylandı">Onayland&#305;</option>
-                        <option value="Reddedildi">Reddedildi</option>
-                    </select>
-                </div>
-            </div>
-        </div>
+    @if (TempData["Basarili"] != null) { <div class="df-alert df-alert-success">@TempData["Basarili"]</div> }
+    @if (TempData["Hata"] != null) { <div class="df-alert df-alert-danger">@TempData["Hata"]</div> }
 
-        @if (!Model.Any())
-        {
-            <div class="df-empty">
-                <div class="df-empty-title">Hen&#252;z yetki belgesi yok</div>
-                <div class="df-empty-text">Y&#252;klenen belgeler burada listelenecek.</div>
+    <details class="df-admin-filter" open="@(Model.Count == 0 ? "open" : null)">
+        <summary>
+            <span><i class="bi bi-cloud-arrow-up" aria-hidden="true"></i><strong>Yeni Yetki Belgesi Yükle</strong><small>PDF, JPG veya PNG</small></span>
+            <span>Yükleme alanını aç <i class="bi bi-chevron-down" aria-hidden="true"></i></span>
+        </summary>
+        <div class="df-admin-filter-body">
+            <form method="post" action="/ys-yetki-belgesi/yukle" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <div class="df-admin-filter-grid">
+                    <div class="df-admin-field is-wide"><label for="dosya">Belge Dosyası *</label><input id="dosya" type="file" name="dosya" accept=".pdf,.jpg,.jpeg,.png" required /></div>
+                    <div class="df-admin-field"><label for="baslangicTarihi">Başlangıç Tarihi</label><input id="baslangicTarihi" type="date" name="baslangicTarihi" value="@DateTime.Now.ToString("yyyy-MM-dd")" /></div>
+                    <div class="df-admin-field"><label for="bitisTarihi">Bitiş Tarihi *</label><input id="bitisTarihi" type="date" name="bitisTarihi" required /></div>
+                </div>
+                <div class="df-admin-filter-actions"><button class="df-btn df-btn-primary" type="submit"><i class="bi bi-cloud-arrow-up" aria-hidden="true"></i> Belgeyi Yükle</button></div>
+            </form>
+        </div>
+    </details>
+
+    <details class="df-admin-filter">
+        <summary>
+            <span><i class="bi bi-funnel" aria-hidden="true"></i><strong>Liste Filtreleri</strong><small>Tarih veya duruma göre daraltın</small></span>
+            <span>Filtreleri aç <i class="bi bi-chevron-down" aria-hidden="true"></i></span>
+        </summary>
+        <div class="df-admin-filter-body">
+            <div class="df-admin-filter-grid">
+                <div class="df-admin-field is-wide"><label for="yetkiBelgesiSearch">Arama</label><input id="yetkiBelgesiSearch" type="search" placeholder="Tarih veya durum" /></div>
+                <div class="df-admin-field"><label for="yetkiBelgesiDurum">Durum</label><select id="yetkiBelgesiDurum"><option value="">Tümü</option><option value="Onay Bekliyor">Onay Bekliyor</option><option value="Onaylandı">Onaylandı</option><option value="Reddedildi">Reddedildi</option></select></div>
             </div>
+        </div>
+    </details>
+
+    <section class="df-admin-list-card">
+        <div class="df-service-list-head">
+            <div><h3><i class="bi bi-clock-history" aria-hidden="true"></i> Belge Geçmişi</h3><span>Yükleme tarihi, geçerlilik ve inceleme sonucu</span></div>
+            <strong>@Model.Count kayıt</strong>
+        </div>
+        @if (Model.Count == 0)
+        {
+            <div class="df-admin-empty"><i class="bi bi-file-earmark" aria-hidden="true"></i> Henüz yetki belgesi yüklenmedi.</div>
         }
         else
         {
-            <div class="df-table-wrap">
-                <table class="df-table">
-                    <thead>
-                        <tr>
-                            <th>Belge</th>
-                            <th>Ba&#351;lang&#305;&#231;</th>
-                            <th>Biti&#351;</th>
-                            <th>Durum</th>
-                            <th>&#304;&#351;lem</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var s in Model)
-                        {
-                            var baslangic = s.YetkiBelgesiBaslangicTarihi ?? s.OlusturmaTarihi;
-                            var durumText = s.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor ? "Onay Bekliyor" : s.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "Onaylandı" : "Reddedildi";
-                            var durumClass = s.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor ? "b-yellow" : s.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "b-green" : "b-red";
-                            var searchText = $"{s.OlusturmaTarihi:dd.MM.yyyy} {baslangic:dd.MM.yyyy} {s.YetkiBelgesiBitisTarihi:dd.MM.yyyy} {durumText}";
-                            <tr class="sert-row" data-search="@searchText" data-durum="@durumText">
-                                <td>
-                                    <div class="cert-file-cell">
-                                        <span class="cert-file-icon">PDF</span>
-                                        <div>
-                                            <div class="df-cell-main">Yetki Belgesi</div>
-                                            <div class="df-cell-sub">@s.OlusturmaTarihi.ToString("dd.MM.yyyy") tarihinde y&#252;klendi</div>
-                                            @if (!string.IsNullOrEmpty(s.RedGerekce))
-                                            {
-                                                <div class="cert-reason">Red gerek&#231;esi: @s.RedGerekce</div>
-                                            }
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>@baslangic.ToString("dd.MM.yyyy")</td>
-                                <td>@s.YetkiBelgesiBitisTarihi.ToString("dd.MM.yyyy")</td>
-                                <td><span class="badge @durumClass">@durumText</span></td>
-                                <td>
-                                    <div class="df-actions">
-                                        <a class="df-btn df-btn-secondary df-btn-sm" href="/ys-yetki-belgesi/dosya/@s.Id" target="_blank">G&#246;r&#252;nt&#252;le</a>
-                                        <form method="post" action="/ys-yetki-belgesi/sil" onsubmit="return confirm('Yetki belgesini silmek istiyor musunuz?');">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="id" value="@s.Id" />
-                                            <button type="submit" class="df-btn df-btn-danger df-btn-sm">Sil</button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
+            <div class="df-admin-table-scroll"><table class="df-table">
+                <thead><tr><th>Belge</th><th>Başlangıç</th><th>Bitiş</th><th>Durum</th><th>İşlemler</th></tr></thead>
+                <tbody>
+                @foreach (var belge in Model)
+                {
+                    var baslangic = belge.YetkiBelgesiBaslangicTarihi ?? belge.OlusturmaTarihi;
+                    var durumText = belge.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor ? "Onay Bekliyor" : belge.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "Onaylandı" : "Reddedildi";
+                    var durumClass = belge.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor ? "df-pill-warning" : belge.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "df-pill-success" : "df-pill-danger";
+                    var searchText = $"{belge.OlusturmaTarihi:dd.MM.yyyy} {baslangic:dd.MM.yyyy} {belge.YetkiBelgesiBitisTarihi:dd.MM.yyyy} {durumText}";
+                    <tr class="sert-row" data-search="@searchText" data-durum="@durumText">
+                        <td><div class="df-cell-main"><i class="bi bi-file-earmark-text" aria-hidden="true"></i> Yetki Belgesi</div><div class="df-cell-sub">@belge.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm") tarihinde yüklendi</div>@if (!string.IsNullOrWhiteSpace(belge.RedGerekce)) { <div class="df-cell-sub">Red gerekçesi: @belge.RedGerekce</div> }</td>
+                        <td>@baslangic.ToString("dd.MM.yyyy")</td>
+                        <td>@belge.YetkiBelgesiBitisTarihi.ToString("dd.MM.yyyy")</td>
+                        <td><span class="df-pill @durumClass">@durumText</span></td>
+                        <td><div class="df-actions">
+                            <a class="df-icon-action" href="/ys-yetki-belgesi/dosya/@belge.Id" target="_blank" rel="noopener" title="Belgeyi görüntüle"><i class="bi bi-eye" aria-hidden="true"></i><span>Görüntüle</span></a>
+                            <form method="post" action="/ys-yetki-belgesi/sil" onsubmit="return confirm('Yetki belgesini silmek istiyor musunuz?');">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@belge.Id" /><button class="df-icon-action is-danger" type="submit" title="Belgeyi sil"><i class="bi bi-trash3" aria-hidden="true"></i><span>Sil</span></button></form>
+                        </div></td>
+                    </tr>
+                }
+                </tbody>
+            </table></div>
         }
     </section>
 </div>
 
 @section Scripts {
-    <script>
-        (function () {
-            const searchInput = document.getElementById("yetkiBelgesiSearch");
-            const durumSelect = document.getElementById("yetkiBelgesiDurum");
-            const rows = Array.from(document.querySelectorAll(".sert-row"));
-
-            if (!searchInput || !durumSelect || rows.length === 0) return;
-
-            function filtrele() {
-                const q = (searchInput.value || "").toLowerCase().trim();
-                const durum = (durumSelect.value || "").toLowerCase().trim();
-
-                rows.forEach(function (row) {
-                    const metin = (row.getAttribute("data-search") || "").toLowerCase();
-                    const satirDurum = (row.getAttribute("data-durum") || "").toLowerCase();
-                    const aramaUygun = q === "" || metin.indexOf(q) !== -1;
-                    const durumUygun = durum === "" || satirDurum === durum;
-                    row.hidden = !(aramaUygun && durumUygun);
-                });
-            }
-
-            searchInput.addEventListener("input", filtrele);
-            durumSelect.addEventListener("change", filtrele);
-        })();
-    </script>
+<script>
+(function () {
+    const searchInput = document.getElementById('yetkiBelgesiSearch');
+    const durumSelect = document.getElementById('yetkiBelgesiDurum');
+    const rows = Array.from(document.querySelectorAll('.sert-row'));
+    if (!searchInput || !durumSelect || rows.length === 0) return;
+    function filtrele() {
+        const q = (searchInput.value || '').toLocaleLowerCase('tr-TR').trim();
+        const durum = (durumSelect.value || '').toLocaleLowerCase('tr-TR').trim();
+        rows.forEach(function (row) {
+            const metin = (row.dataset.search || '').toLocaleLowerCase('tr-TR');
+            const satirDurum = (row.dataset.durum || '').toLocaleLowerCase('tr-TR');
+            row.hidden = !((q === '' || metin.includes(q)) && (durum === '' || satirDurum === durum));
+        });
+    }
+    searchInput.addEventListener('input', filtrele);
+    durumSelect.addEventListener('change', filtrele);
+})();
+</script>
 }

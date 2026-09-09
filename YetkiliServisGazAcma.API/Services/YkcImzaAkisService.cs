@@ -80,7 +80,7 @@ namespace YetkiliServisGazAcma.API.Services
                     or YkcImzaDurumDegerleri.KismiImzali
                     or YkcImzaDurumDegerleri.Tamamlandi)
             {
-                return YkcIslemSonuc.HataliSonuc("FR265 daha önce imza uygulamasına gönderilmiş. Güncel durumu sorgulayın.");
+                return YkcIslemSonuc.HataliSonuc("Form daha önce imza uygulamasına gönderilmiş. Güncel durumu sorgulayın.");
             }
 
             ImzaciListesiniTamamla(surec, detay, kullanici.UserName);
@@ -125,18 +125,18 @@ namespace YetkiliServisGazAcma.API.Services
                 surec.HataKodu = null;
                 surec.HataMesaji = null;
 
-                GecmisEkle(talep, kullanici, "FR265TaslakOlusturuldu", $"FR265 sürüm {surec.BelgeVersiyonu} gerçek belge snapshot'ı oluşturuldu.");
+                GecmisEkle(talep, kullanici, "FR265TaslakOlusturuldu", $"Formun {surec.BelgeVersiyonu}. sürümü hazırlandı.");
                 await _context.SaveChangesAsync(cancellationToken);
             }
             else
             {
                 belgeBytes = await PrivateBelgeOkuAsync(taslak, cancellationToken)
-                    ?? throw new InvalidOperationException("Kayıtlı FR265 taslak dosyası okunamadı.");
+                    ?? throw new InvalidOperationException("Kayıtlı form taslağı okunamadı.");
             }
 
             await _context.SaveChangesAsync(cancellationToken);
             if (!await GonderimiSahiplenAsync(surec, kullanici.UserName, cancellationToken))
-                return YkcIslemSonuc.HataliSonuc("FR265 için başka bir gönderim işlemi devam ediyor.");
+                return YkcIslemSonuc.HataliSonuc("Form için başka bir gönderim işlemi devam ediyor.");
 
             YkcImzaGonderSonuc providerSonucu;
             try
@@ -191,10 +191,10 @@ namespace YetkiliServisGazAcma.API.Services
             surec.HataMesaji = null;
             surec.GuncellemeTarihi = DateTime.Now;
             surec.GuncelleyenKullanici = kullanici.UserName;
-            GecmisEkle(talep, kullanici, "FR265ImzayaGonderildi", $"FR265 sürüm {surec.BelgeVersiyonu} dijital imza sağlayıcısına gönderildi.");
+                GecmisEkle(talep, kullanici, "FR265ImzayaGonderildi", $"Formun {surec.BelgeVersiyonu}. sürümü dijital imza uygulamasına gönderildi.");
             await _context.SaveChangesAsync(cancellationToken);
 
-            return YkcIslemSonuc.BasariliSonuc("FR265 dijital imza uygulamasına gönderildi.", talep.Id);
+            return YkcIslemSonuc.BasariliSonuc("Form dijital imza uygulamasına gönderildi.", talep.Id);
         }
 
         public async Task<YkcIslemSonuc> ImzaDurumunuSorgulaAsync(
@@ -218,7 +218,7 @@ namespace YetkiliServisGazAcma.API.Services
 
             var surec = talep == null ? null : AktifSurec(talep);
             if (talep == null || surec == null || string.IsNullOrWhiteSpace(surec.ProviderDocumentId))
-                return YkcIslemSonuc.HataliSonuc("İmza uygulamasına gönderilmiş bir FR265 belgesi bulunamadı.");
+                return YkcIslemSonuc.HataliSonuc("İmza uygulamasına gönderilmiş bir form bulunamadı.");
 
             if (ImzaliNihaiBelgeHazirMi(surec, talep.FormDosyalari))
             {
@@ -328,7 +328,7 @@ namespace YetkiliServisGazAcma.API.Services
                 surec.TamamlanmaTarihi = DateTime.Now;
                 surec.HataKodu = null;
                 surec.HataMesaji = null;
-                GecmisEkle(talep, kullanici, "FR265ImzaliNihaiBelgeAlindi", "İmzalı nihai FR265 belgesi dijital imza sağlayıcısından alındı.");
+                GecmisEkle(talep, kullanici, "FR265ImzaliNihaiBelgeAlindi", "İmzalı nihai belge dijital imza uygulamasından alındı.");
             }
             else
             {
@@ -719,13 +719,13 @@ namespace YetkiliServisGazAcma.API.Services
         {
             if (detay.Durum != YkcDurumDegerleri.SahaIsleminde)
             {
-                mesaj = "FR265 yalnız randevu gerçekleşip kontrol aşamasına geçtikten sonra imzaya gönderilebilir.";
+                mesaj = "Form yalnız randevu gerçekleşip kontrol aşamasına geçtikten sonra imzaya gönderilebilir.";
                 return false;
             }
 
             if (!detay.RandevuTarihi.HasValue || string.IsNullOrWhiteSpace(detay.RandevuSaati))
             {
-                mesaj = "FR265 imzaya gönderilmeden önce randevu tarih ve saat bilgisi kaydedilmelidir.";
+                mesaj = "Form imzaya gönderilmeden önce randevu tarih ve saat bilgisi kaydedilmelidir.";
                 return false;
             }
 
@@ -739,7 +739,7 @@ namespace YetkiliServisGazAcma.API.Services
 
             if (sonKontrol == null)
             {
-                mesaj = "FR265 imzaya gönderilmeden önce randevu sonrası en az bir kontrol sonucu girilmelidir.";
+                mesaj = "Form imzaya gönderilmeden önce randevu sonrası en az bir kontrol sonucu girilmelidir.";
                 return false;
             }
 

@@ -24,16 +24,16 @@
 @inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment HostEnvironment
 @section Styles {
     <link rel="stylesheet" href="~/css/login.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/lib/bootstrap-icons/font/bootstrap-icons.min.css" asp-append-version="true" />
 }
 
-<header class="login-topbar">
-    <img src="/images/company/corumgaz-kargaz-surmeligaz-logo.png" alt="Çorumgaz, Kargaz ve Sürmeligaz" />
-    <span>Online İşlemler</span>
-</header>
 <main class="login-shell">
     <div class="login-visual" aria-hidden="true"></div>
     <section class="login-side" aria-label="Kullanıcı girişi">
         <div class="login-card">
+            <a class="login-brand" href="/giris" aria-label="Giriş sayfası">
+                <img src="/images/company/corumgaz-kargaz-surmeligaz-logo.png" alt="Çorumgaz, Kargaz ve Sürmeligaz" />
+            </a>
             <header class="login-card-head">
                 <h1>@baslik</h1>
                 <p>@altBaslik</p>
@@ -82,13 +82,20 @@
             }
             else
             {
-                <form method="post" action="/giris">
+                <div class="nav nav-underline nav-justified login-tabs" role="tablist" aria-label="Giriş türü">
+                    <button type="button" id="login-firma" role="tab" aria-selected="true" aria-controls="login-panel" data-login-mode="firma" data-demo-user="@(HostEnvironment.EnvironmentName == "Development" ? "test.sertifikalifirma@demo.com" : "")" data-demo-password="@(HostEnvironment.EnvironmentName == "Development" ? "Demo123!" : "")"><i class="bi bi-building-check" aria-hidden="true"></i><span>Sertifikalı Firma</span></button>
+                    <button type="button" id="login-servis" role="tab" aria-selected="false" aria-controls="login-panel" tabindex="-1" data-login-mode="servis" data-demo-user="@(HostEnvironment.EnvironmentName == "Development" ? "test.servis@demo.com" : "")" data-demo-password="@(HostEnvironment.EnvironmentName == "Development" ? "Demo123!" : "")"><i class="bi bi-tools" aria-hidden="true"></i><span>Yetkili Servis</span></button>
+                    <button type="button" id="login-personel" role="tab" aria-selected="false" aria-controls="login-panel" tabindex="-1" data-login-mode="personel" data-demo-user="@(HostEnvironment.EnvironmentName == "Development" ? "test.personel@demo.com" : "")" data-demo-password="@(HostEnvironment.EnvironmentName == "Development" ? "Demo123!" : "")"><i class="bi bi-person-badge" aria-hidden="true"></i><span>Personel</span></button>
+                </div>
+                <div id="login-panel" role="tabpanel" aria-labelledby="login-firma">
+                <form method="post" action="/giris" id="login-form">
                     @Html.AntiForgeryToken()
                     <div class="login-field"><label for="kullanici-adi">VKN veya E-posta</label><input id="kullanici-adi" type="text" name="kullaniciAdi" placeholder="VKN veya e-posta adresiniz" autocomplete="username" required /></div>
                     <div class="login-field"><label for="sifre">Şifre</label><input id="sifre" type="password" name="sifre" placeholder="Şifreniz" autocomplete="current-password" required /></div>
                     <button type="submit" class="login-submit">Giriş Yap</button>
                 </form>
                 <a class="login-link" href="/giris/sifre-unuttum">Şifremi unuttum</a>
+                </div>
 
                 @if (HostEnvironment.EnvironmentName == "Development")
                 {
@@ -114,20 +121,11 @@
                 }
             }
 
-            <div class="login-divider">Yeni kayıt</div>
-            <a class="login-register" href="/kayit/yetkili-servis">Yetkili Servis Kaydı</a>
+            <div class="login-registration" hidden="@(!smsBekleniyor && !sifreUnuttum && !sifreSifirlaKodBekleniyor)">
+                <a class="login-register" href="/kayit/yetkili-servis">Yetkili Servis Kaydı</a>
+            </div>
         </div>
     </section>
 </main>
 
-<script>
-    document.querySelectorAll('[data-demo-user]').forEach(button => {
-        button.addEventListener('click', () => {
-            const userInput = document.querySelector('input[name="kullaniciAdi"]');
-            const passwordInput = document.querySelector('input[name="sifre"]');
-            if (userInput) userInput.value = button.dataset.demoUser || '';
-            if (passwordInput) passwordInput.value = button.dataset.demoPassword || '';
-            userInput?.focus();
-        });
-    });
-</script>
+<script src="~/js/login-flow.js" asp-append-version="true"></script>
