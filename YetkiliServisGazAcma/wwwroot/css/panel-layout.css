@@ -18,12 +18,12 @@ body {
 }
 
 .sidebar {
-    --df-primary: #28698f;
+    --df-primary: #8ed4ec;
     --df-primary-soft: #ffffff;
-    --df-muted: #526b7c;
+    --df-muted: #bed0dc;
     width: 230px;
-    background: #e8f0f6;
-    border-right: 1px solid #c7d8e4;
+    background: #163d55;
+    border-right: 1px solid #0f3045;
     display: flex;
     flex-direction: column;
     position: fixed;
@@ -34,7 +34,7 @@ body {
 
 .logo {
     padding: 20px 16px;
-    border-bottom: 1px solid var(--df-border, #e3e7f0);
+    border-bottom: 1px solid rgba(255, 255, 255, .13);
     text-decoration: none;
     display: flex;
     align-items: center;
@@ -72,19 +72,19 @@ body {
 }
 
 .logo-text {
-    color: var(--df-text, #1e2d4a);
+    color: #ffffff;
     font-size: 15px;
     font-weight: 600;
 }
 
 .logo-sub {
-    color: var(--df-muted, #566280);
+    color: #c8d9e3;
     font-size: 11px;
     margin-top: 2px;
 }
 
 .logo-company {
-    color: var(--df-muted, #566280);
+    color: #9eb7c7;
     font-size: 10px;
     margin-top: 4px;
     font-weight: 400;
@@ -117,7 +117,7 @@ body {
     align-items: center;
     gap: 10px;
     padding: 11px 12px;
-    color: var(--df-text-soft, #3d4f6e);
+    color: #dce8ef;
     font-size: 13px;
     border-radius: 5px;
     text-decoration: none;
@@ -138,31 +138,25 @@ body {
     color: rgba(255, 255, 255, 0.78);
 }
 
-.nav-item:hover {
-    background: #f4f7fa;
-    color: var(--df-primary, #2e4ec8);
-}
+.nav-item:hover { background: #214b64; color: #ffffff; }
 
-.nav-item.active {
-    background: var(--df-primary-soft, #eef1fb);
-    color: var(--df-primary, #2e4ec8);
-}
+.nav-item.active { background: #ffffff; color: #17547a; box-shadow: inset 3px 0 #4aafcf; }
 
-.nav-section-title { padding: 0 12px 10px; color: var(--df-muted); font-size: 11px; font-weight: 500; }
+.nav-section-title { padding: 0 12px 10px; color: #91adbd; font-size: 10px; font-weight: 600; text-transform: uppercase; }
 .nav-item-group { margin: 3px 0; }
-.nav-item-group > summary { display: grid; grid-template-columns: 18px minmax(0, 1fr) 12px; align-items: center; gap: 10px; padding: 12px; color: var(--df-text-soft); font-size: 13px; font-weight: 500; border-radius: 5px; list-style: none; cursor: pointer; }
+.nav-item-group > summary { display: grid; grid-template-columns: 18px minmax(0, 1fr) 12px; align-items: center; gap: 10px; padding: 12px; color: #dce8ef; font-size: 13px; font-weight: 500; border-radius: 5px; list-style: none; cursor: pointer; }
 .nav-item-group > summary::marker { content: ''; }
-.nav-item-group > summary:hover { background: #f4f7fa; }
-.nav-item-group[open] > summary { color: var(--df-primary); }
+.nav-item-group > summary:hover { background: #214b64; color: #fff; }
+.nav-item-group[open] > summary { color: #ffffff; background: rgba(255, 255, 255, .06); }
 .nav-item-group .submenu-arrow { font-size: 11px; transition: transform .15s; }
 .nav-item-group[open] .submenu-arrow { transform: rotate(180deg); }
-.nav-submenu { margin: 0 4px 6px 20px; padding-left: 10px; border-left: 1px solid var(--df-border); }
-.nav-subitem { display: flex; align-items: center; gap: 9px; padding: 10px 8px; border-radius: 4px; text-decoration: none; color: var(--df-muted); font-size: 12px; line-height: 1.5; }
+.nav-submenu { margin: 0 4px 6px 20px; padding-left: 10px; border-left: 1px solid rgba(255, 255, 255, .17); }
+.nav-subitem { display: flex; align-items: center; gap: 9px; padding: 10px 8px; border-radius: 4px; text-decoration: none; color: #bfd2de; font-size: 12px; line-height: 1.5; }
 .nav-subitem > i { width: 16px; flex: 0 0 16px; font-size: 14px; }
 .nav-subitem > span { min-width: 0; overflow-wrap: anywhere; }
-.nav-subitem:hover { background: #f4f7fa; color: var(--df-primary); }
-.nav-subitem.active { background: var(--df-primary-soft); color: var(--df-primary); font-weight: 500; box-shadow: inset 3px 0 #28698f; }
-.sidebar-nav a:focus-visible, .nav-item-group > summary:focus-visible { outline: 2px solid var(--df-primary); outline-offset: -2px; }
+.nav-subitem:hover { background: #214b64; color: #fff; }
+.nav-subitem.active { background: #ffffff; color: #17547a; font-weight: 650; box-shadow: inset 3px 0 #4aafcf; }
+.sidebar-nav a:focus-visible, .nav-item-group > summary:focus-visible { outline: 2px solid #8ed4ec; outline-offset: -2px; }
 
 .nav-item.active .nav-ico {
     background: rgba(255, 255, 255, 0.18);
@@ -231,9 +225,9 @@ body {
 }
 
 .cikis-btn {
-    background: transparent;
-    border: 1px solid var(--df-border, #e3e7f0);
-    color: var(--df-muted, #566280);
+    background: rgba(255, 255, 255, .05);
+    border: 1px solid rgba(255, 255, 255, .18);
+    color: #dce8ef;
     padding: 9px 16px;
     border-radius: 6px;
     font-size: 13px;
@@ -242,6 +236,8 @@ body {
     text-align: center;
     text-decoration: none;
 }
+
+.cikis-btn:hover { background: #214b64; color: #fff; }
 
 .main {
     margin-left: 230px;

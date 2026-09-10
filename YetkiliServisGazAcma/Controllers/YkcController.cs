@@ -333,6 +333,27 @@ namespace YetkiliServisGazAcma.Controllers
             return View("~/Views/Ykc/Fr265Onizle.cshtml", detay);
         }
 
+        [HttpGet("fr265/pdf/{id:int}")]
+        public async Task<IActionResult> FormPdf(int id, bool indir = false)
+        {
+            var kullanici = await _userManager.GetUserAsync(User);
+            if (kullanici == null) return Unauthorized();
+            if (!YkcYetkileri().TalepleriGorebilir) return Forbid();
+            ApiDosyaSonuc? pdf;
+            try { pdf = await _ykcApiClient.FormPdfAsync(kullanici, id); }
+            catch (ApiIntegrationException ex)
+            {
+                _logger.LogWarning(ex, "Form PDF alınamadı. TalepId: {TalepId}", id);
+                return StatusCode(503, "Form şu anda alınamadı. Lütfen yeniden deneyin.");
+            }
+            if (pdf == null || pdf.Bytes.Length == 0) return NotFound();
+            if (pdf.ContentType != "application/pdf")
+                return StatusCode(409, "Bu eski kayıt PDF biçiminde değil. Belge dönüştürülmeden önizlenemez.");
+            Response.Headers.CacheControl = "private, no-store";
+            Response.Headers["X-Frame-Options"] = "SAMEORIGIN";
+            return indir ? File(pdf.Bytes, pdf.ContentType, pdf.DosyaAdi) : File(pdf.Bytes, pdf.ContentType);
+        }
+
         [HttpGet("takvim")]
         [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel")]
         public async Task<IActionResult> Takvim([FromQuery] YkcTakvimFiltre filtre)

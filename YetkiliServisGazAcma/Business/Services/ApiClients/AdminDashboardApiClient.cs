@@ -127,6 +127,8 @@ namespace YetkiliServisGazAcma.Business.Services
 
         private class AdminDevreyeAlmaOzetCevap
         {
+            public string? MusteriAdi { get; set; }
+            public DateTime DevreyeAlmaTarihi { get; set; }
             public int Id { get; set; }
             public int FirmaId { get; set; }
             public string? FirmaAdi { get; set; }
@@ -139,6 +141,8 @@ namespace YetkiliServisGazAcma.Business.Services
             {
                 return new Ys_DevreyeAlma
                 {
+                    MusteriAdi = MusteriAdi,
+                    DevreyeAlmaTarihi = DevreyeAlmaTarihi,
                     Id = Id,
                     FirmaId = FirmaId,
                     TesistatNo = TesistatNo,

@@ -6,6 +6,7 @@
     const selector = field('ykcServisCihazSecimi');
     const alert = field('ykcSorguAlert');
     const deviceFields = field('ykcDeviceFields');
+    const pendingState = field('ykcRequestPending');
     const reference = field('SorguReferansi');
     let pendingQuery = null;
 
@@ -32,6 +33,7 @@
         field('Adres').value = '';
         deviceFields.hidden = true;
         deviceFields.disabled = true;
+        pendingState.hidden = false;
         selector.replaceChildren();
         query.disabled = false;
         query.classList.add('df-btn-primary');
@@ -89,6 +91,7 @@
             updateSelectedDevice();
             deviceFields.hidden = false;
             deviceFields.disabled = false;
+            pendingState.hidden = true;
             setQueryStatus('success', 'Tesisat bulundu');
             query.classList.remove('df-btn-primary');
             query.classList.add('df-btn-secondary');

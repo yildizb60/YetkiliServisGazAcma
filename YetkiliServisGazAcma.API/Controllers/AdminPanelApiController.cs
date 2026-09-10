@@ -1015,6 +1015,8 @@ namespace YetkiliServisGazAcma.API.Controllers
 
     public class AdminDevreyeAlmaOzetDto
     {
+        public string? MusteriAdi { get; set; }
+        public DateTime DevreyeAlmaTarihi { get; set; }
         public int Id { get; set; }
         public int FirmaId { get; set; }
         public string? FirmaAdi { get; set; }

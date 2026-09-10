@@ -13,7 +13,7 @@
 }
 <div class="ykc-request" data-has-query="@sorgulandi.ToString().ToLowerInvariant()">
     <header class="ykc-request-header">
-        <h1>Yeni Talep</h1>
+        <div class="ykc-request-title"><span><i class="bi bi-file-earmark-plus" aria-hidden="true"></i></span><div><h1>Yeni Cihaz Değişim Talebi</h1></div></div>
         <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/talepler"><i class="bi bi-list-ul"></i> Taleplerim</a>
     </header>
 
@@ -45,6 +45,11 @@
             </div>
             <p id="ykcSorguAlert" role="alert" hidden></p>
         </section>
+
+        <div id="ykcRequestPending" class="ykc-request-pending" hidden="@(sorgulandi)">
+            <span><i class="bi bi-house-dash" aria-hidden="true"></i></span>
+            <strong>Tesisat bilgisi bekleniyor</strong>
+        </div>
 
         <fieldset id="ykcDeviceFields" class="ykc-request-section ykc-request-device" hidden="@(!sorgulandi)" disabled="@(!sorgulandi)">
             <legend class="visually-hidden">Cihaz değişim bilgileri</legend>

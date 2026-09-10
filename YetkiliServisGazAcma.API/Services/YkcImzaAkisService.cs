@@ -90,7 +90,7 @@ namespace YetkiliServisGazAcma.API.Services
 
             if (taslak == null)
             {
-                var belge = _fr265FormService.WordOlustur(detay);
+                var belge = YkcFr265PdfService.Olustur(detay);
                 belgeBytes = belge.Bytes;
                 var belgeHash = HashOlustur(belgeBytes);
                 var kayit = await PrivateBelgeKaydetAsync(
@@ -407,7 +407,7 @@ namespace YetkiliServisGazAcma.API.Services
 
             foreach (var taslak in taslaklar)
             {
-                if (await PrivateBelgeOkuAsync(taslak, cancellationToken) != null)
+                if (PdfDosyasiMi(await PrivateBelgeOkuAsync(taslak, cancellationToken), taslak))
                     return taslak;
             }
 
@@ -422,8 +422,11 @@ namespace YetkiliServisGazAcma.API.Services
             AppKullanici kullanici,
             CancellationToken cancellationToken)
         {
+            if (!_imzaProvider.DemoModuMu || surec.ProviderDocumentId?.StartsWith("DEMO-YKC-", StringComparison.Ordinal) != true)
+                return false;
             var mevcutBytes = await PrivateBelgeOkuAsync(nihaiDosya, cancellationToken);
-            if (PdfDosyasiMi(mevcutBytes, nihaiDosya))
+            if (PdfDosyasiMi(mevcutBytes, nihaiDosya)
+                && nihaiDosya.DosyaAdi?.Contains(YkcFr265PdfService.TasarimSurumu, StringComparison.Ordinal) == true)
             {
                 return false;
             }

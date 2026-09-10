@@ -1,376 +1,188 @@
+using System.Globalization;
+using System.IO.Compression;
+using System.Xml.Linq;
 using QuestPDF.Fluent;
-using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 
-namespace YetkiliServisGazAcma.Business.Services
+namespace YetkiliServisGazAcma.Business.Services;
+
+public static class YkcFr265PdfService
 {
-    public static class YkcFr265PdfService
+    public const string TasarimSurumu = "WordV2";
+    private static readonly XNamespace W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+    private static readonly XNamespace A = "http://schemas.openxmlformats.org/drawingml/2006/main";
+    private static readonly XNamespace R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+
+    public static YkcFr265BelgeSonuc ImzaliNihaiOlustur(YkcTalepDetayDto talep, YkcFr265BelgeSecenekleri secenekler)
+        => Olustur(talep, secenekler);
+
+    public static YkcFr265BelgeSonuc Olustur(YkcTalepDetayDto talep, YkcFr265BelgeSecenekleri? secenekler = null)
     {
-        private const string Baslik = "FR265 PROJE TADİLATI GEREKTİRMEYEN YAKICI CİHAZ DEĞİŞİM FORMU";
-
-        public static YkcFr265BelgeSonuc ImzaliNihaiOlustur(
-            YkcTalepDetayDto talep,
-            YkcFr265BelgeSecenekleri secenekler)
+        secenekler ??= new();
+        QuestPDF.Settings.License = LicenseType.Community;
+        var word = new YkcFr265FormService().WordOlustur(talep, secenekler);
+        using var archive = new ZipArchive(new MemoryStream(word.Bytes), ZipArchiveMode.Read);
+        XDocument Xml(string name)
         {
-            QuestPDF.Settings.License = LicenseType.Community;
+            using var stream = (archive.GetEntry(name)
+                ?? throw new InvalidOperationException($"Form şablonunda {name} bulunamadı.")).Open();
+            return XDocument.Load(stream);
+        }
 
-            var bytes = Document.Create(document =>
+        var body = Xml("word/document.xml").Root!.Element(W + "body")!;
+        var tables = body.Elements(W + "tbl").ToList();
+        // This renderer targets the supplied two-page form, not arbitrary Word documents.
+        if (tables.Count != 12)
+            throw new InvalidOperationException("Form şablonunun tablo yapısı değişmiş. PDF eşlemesi güncellenmeli.");
+        var header = Xml("word/header2.xml");
+        var title = Text(header.Root!);
+        var imageId = header.Descendants(A + "blip").FirstOrDefault()?.Attribute(R + "embed")?.Value;
+        var target = Xml("word/_rels/header2.xml.rels").Root!.Elements()
+            .FirstOrDefault(x => (string?)x.Attribute("Id") == imageId)?.Attribute("Target")?.Value;
+        using var imageStream = (archive.GetEntry("word/" + target)
+            ?? throw new InvalidOperationException("Form şablonunun logosu bulunamadı.")).Open();
+        using var logo = new MemoryStream();
+        imageStream.CopyTo(logo);
+        var logoBytes = logo.ToArray();
+
+        var bytes = Document.Create(document =>
+        {
+            for (var number = 1; number <= 2; number++)
             {
+                var firstPage = number == 1;
                 document.Page(page =>
                 {
-                    SayfaAyarla(page);
-                    page.Content().Element(container => BirinciSayfa(container, talep, secenekler));
-                    page.Footer().Element(SayfaAltligi);
-                });
-
-                document.Page(page =>
-                {
-                    SayfaAyarla(page);
-                    page.Content().Element(container => IkinciSayfa(container, talep, secenekler));
-                    page.Footer().Element(SayfaAltligi);
-                });
-            }).GeneratePdf();
-
-            return new YkcFr265BelgeSonuc
-            {
-                Bytes = bytes,
-                ContentType = "application/pdf",
-                DosyaAdi = $"Form_Demo_Nihai_{talep.Id}.pdf"
-            };
-        }
-
-        private static void SayfaAyarla(PageDescriptor page)
-        {
-            page.Size(PageSizes.A4);
-            page.Margin(1.25f, Unit.Centimetre);
-            page.DefaultTextStyle(style => style.FontFamily("Arial").FontSize(8.5f).FontColor(Colors.Black));
-        }
-
-        private static void BirinciSayfa(
-            IContainer container,
-            YkcTalepDetayDto talep,
-            YkcFr265BelgeSecenekleri secenekler)
-        {
-            container.Column(column =>
-            {
-                column.Spacing(7);
-                column.Item().Element(c => BelgeBasligi(c, talep));
-                column.Item().Element(c => FirmaBilgileri(c, talep));
-                column.Item().Element(c => TesisatBilgileri(c, talep));
-                column.Item().Element(c => CihazKarsilastirmasi(c, talep));
-                column.Item().Element(c => IkinciElBilgisi(c, talep));
-                column.Item().PaddingHorizontal(4).Text(
-                    "Cihazın ikinci el olması durumunda, bu evrakla birlikte yetkili servis tarafından düzenlenecek " +
-                    "“Yetkili Servis Cihaz Kontrol Raporu” bu forma eklenmelidir.")
-                    .FontSize(8)
-                    .LineHeight(1.2f);
-                column.Item().PaddingTop(3).Text(
-                    "Yukarıda bilgileri verilen abonenin (tesisatın), mevcut onaylı projesinde bulunan yakıcı cihazın " +
-                    "tip, yerleşim ve kapasite değişikliği yapılmamıştır.")
-                    .LineHeight(1.25f);
-                column.Item().Text(
-                    "Aynı yerde, aynı tip ve kapasitedeki yeni yakıcı cihaz, tesisat üzerindeki cihaz vanasına, cihaz " +
-                    "bağlantı parçaları ve atık sistemleri ile tesis edilmiş olup, değişimle ilgili tüm idari ve teknik " +
-                    "sorumluluk tarafımıza aittir. Mevcut onaylı projesine göre yerinde gerekli tesisat kontrollerinin " +
-                    "yapılması sonrası, yakıcı cihaz ile cihaz bağlantı hattı ve atık sistemleri devreye alma işlemleri " +
-                    "tarafımızca yapılacak olup, sorumluluğu tarafımıza aittir.")
-                    .LineHeight(1.25f);
-                column.Item().PaddingTop(3).Element(c => IlkSayfaImzalari(c, talep, secenekler));
-            });
-        }
-
-        private static void IkinciSayfa(
-            IContainer container,
-            YkcTalepDetayDto talep,
-            YkcFr265BelgeSecenekleri secenekler)
-        {
-            container.Column(column =>
-            {
-                column.Spacing(5);
-                column.Item().AlignCenter().Text(Baslik).Bold().FontSize(10);
-
-                for (var kontrolNo = 1; kontrolNo <= 5; kontrolNo++)
-                {
-                    var kontrol = talep.Kontroller.FirstOrDefault(x => x.KontrolNo == kontrolNo);
-                    column.Item().Element(c => KontrolBlogu(c, kontrolNo, kontrol, talep, secenekler));
-                }
-            });
-        }
-
-        private static void BelgeBasligi(IContainer container, YkcTalepDetayDto talep)
-        {
-            container.Column(column =>
-            {
-                column.Item().AlignCenter().Text(Baslik).Bold().FontSize(12);
-                column.Item().PaddingTop(5).AlignRight().Text($"Tarih : {FormTarihi(talep):dd.MM.yyyy}").Bold();
-            });
-        }
-
-        private static void FirmaBilgileri(IContainer container, YkcTalepDetayDto talep)
-        {
-            container.Table(table =>
-            {
-                table.ColumnsDefinition(columns =>
-                {
-                    columns.RelativeColumn(1.1f);
-                    columns.RelativeColumn(2f);
-                });
-
-                BilgiSatiri(table, "Sertifikalı Firma Unvanı", talep.FirmaAdi);
-                BilgiSatiri(table, "Sertifika Numarası", talep.YetkiBelgesiNo);
-            });
-        }
-
-        private static void TesisatBilgileri(IContainer container, YkcTalepDetayDto talep)
-        {
-            container.Table(table =>
-            {
-                table.ColumnsDefinition(columns =>
-                {
-                    columns.RelativeColumn(1.1f);
-                    columns.RelativeColumn(2f);
-                });
-
-                BilgiSatiri(table, "Adı Soyadı", talep.MusteriAdi);
-                BilgiSatiri(table, "Tesisat Numarası", talep.TesisatNo);
-                BilgiSatiri(table, "Tüketim Noktası (Daire/İş Yeri Numarası)", talep.TuketimNoktasi);
-                BilgiSatiri(table, "Bina Kodu", talep.BaglantiNesnesi);
-                BilgiSatiri(table, "Adres", talep.Adres, 34);
-            });
-        }
-
-        private static void CihazKarsilastirmasi(IContainer container, YkcTalepDetayDto talep)
-        {
-            container.Table(table =>
-            {
-                table.ColumnsDefinition(columns =>
-                {
-                    columns.RelativeColumn(1.1f);
-                    columns.RelativeColumn();
-                    columns.RelativeColumn();
-                });
-
-                BaslikHucresi(table, string.Empty);
-                BaslikHucresi(table, "Projedeki Cihaz");
-                BaslikHucresi(table, "Yeni Kullanılan Cihaz");
-                KarsilastirmaSatiri(table, "Yakıcı Cihaz Tipi", talep.EskiCihazTipi, talep.YeniCihazTipi);
-                KarsilastirmaSatiri(table, "Marka", talep.EskiMarka, talep.YeniMarka);
-                KarsilastirmaSatiri(table, "Baca Tipi", talep.EskiBacaTipi, talep.YeniBacaTipi);
-                KarsilastirmaSatiri(table, "Kapasite (kcal/h)", talep.EskiKapasite, talep.YeniKapasite);
-            });
-        }
-
-        private static void IkinciElBilgisi(IContainer container, YkcTalepDetayDto talep)
-        {
-            container.Table(table =>
-            {
-                table.ColumnsDefinition(columns =>
-                {
-                    columns.RelativeColumn(1.1f);
-                    columns.RelativeColumn();
-                    columns.RelativeColumn();
-                });
-
-                Hucre(table, "Takılan Yakıcı Cihaz İkinci El Cihaz Mı?", true, 28);
-                Hucre(table, talep.IkinciElCihazMi == true ? "[X] Evet" : "[ ] Evet", false, 28, true);
-                Hucre(table, talep.IkinciElCihazMi == false ? "[X] Hayır" : "[ ] Hayır", false, 28, true);
-            });
-        }
-
-        private static void IlkSayfaImzalari(
-            IContainer container,
-            YkcTalepDetayDto talep,
-            YkcFr265BelgeSecenekleri secenekler)
-        {
-            var firmaImzasi = Imza(secenekler, 1);
-            var dagitimImzasi = Imza(secenekler, 2);
-            var aboneImzasi = Imza(secenekler, 3);
-
-            container.Column(column =>
-            {
-                column.Item().Element(c => ImzaKutusu(
-                    c,
-                    "Sertifikalı Firma Yetkilisi",
-                    Deger(firmaImzasi?.AdSoyad, talep.FirmaYetkiliKisi),
-                    ImzaTarihi(firmaImzasi, secenekler)));
-
-                column.Item().PaddingVertical(5).Text("Yukarıdaki bilgileri verilen yeni cihaz belirtilen adreste görülmüştür.")
-                    .Bold();
-
-                column.Item().Row(row =>
-                {
-                    row.RelativeItem().Element(c => ImzaKutusu(
-                        c,
-                        "İşlemi Yapan Gaz Dağıtım Şirketi Yetkilisi",
-                        Deger(dagitimImzasi?.AdSoyad, talep.GazDagitimYetkilisiAdi),
-                        ImzaTarihi(dagitimImzasi, secenekler)));
-                    row.ConstantItem(8);
-                    row.RelativeItem().Element(c => ImzaKutusu(
-                        c,
-                        "İşlem Yapılan Abone/Kullanıcı",
-                        Deger(aboneImzasi?.AdSoyad, talep.MusteriAdi),
-                        ImzaTarihi(aboneImzasi, secenekler)));
-                });
-            });
-        }
-
-        private static void KontrolBlogu(
-            IContainer container,
-            int kontrolNo,
-            YkcFr265KontrolDto? kontrol,
-            YkcTalepDetayDto talep,
-            YkcFr265BelgeSecenekleri secenekler)
-        {
-            var uygun = kontrol?.Sonuc == YkcFr265KontrolSonucDegerleri.Uygun;
-            var uygunDegil = kontrol?.Sonuc == YkcFr265KontrolSonucDegerleri.UygunDegil;
-            var kontrolKayitli = uygun || uygunDegil;
-            var firmaImzasi = Imza(secenekler, 1);
-            var dagitimImzasi = Imza(secenekler, 2);
-            var aboneImzasi = Imza(secenekler, 3);
-
-            container.Border(0.75f).BorderColor(Colors.Black).Padding(6).Column(column =>
-            {
-                column.Spacing(3);
-                column.Item().Text($"{kontrolNo}. KONTROL").Bold().FontSize(9.5f);
-                column.Item().Text($"{(uygun ? "[X]" : "[ ]")} Uygun      {(uygunDegil ? "[X]" : "[ ]")} Uygun Değil");
-                column.Item().Text(text =>
-                {
-                    text.Span("Uygun değil ise nedeni: ").Bold();
-                    text.Span(uygunDegil ? Deger(kontrol?.Aciklama) : string.Empty);
-                });
-                column.Item().BorderBottom(0.5f).BorderColor(Colors.Grey.Medium).Height(12);
-                column.Item().Table(table =>
-                {
-                    table.ColumnsDefinition(columns =>
+                    page.Size(595.3f, 841.9f);
+                    page.MarginHorizontal(21);
+                    page.MarginVertical(28.35f);
+                    page.DefaultTextStyle(style => style.FontFamily("Calibri", "Carlito", "Arial")
+                        .FontSize(10.5f).LineHeight(1).FontColor("#000000"));
+                    page.Header().PaddingBottom(15).Row(row =>
                     {
-                        columns.RelativeColumn();
-                        columns.RelativeColumn();
-                        columns.RelativeColumn();
+                        row.ConstantItem(92).AlignCenter().AlignMiddle().Width(44.4f).Height(30).Image(logoBytes).FitUnproportionally();
+                        row.RelativeItem().AlignMiddle().Text(title).FontSize(16).Bold().FontColor("#7f7f7f").AlignCenter();
                     });
-
-                    KontrolImzaHucresi(
-                        table,
-                        "Gaz Dağıtım Şirketi Yetkilisi",
-                        kontrolKayitli ? Deger(kontrol?.KontrolEdenAdi) : string.Empty,
-                        kontrolKayitli ? kontrol?.KontrolTarihi ?? dagitimImzasi?.ImzaTarihi : null,
-                        "İmza",
-                        kontrolKayitli);
-                    KontrolImzaHucresi(
-                        table,
-                        "Abone / Kullanıcı",
-                        kontrolKayitli ? Deger(aboneImzasi?.AdSoyad, talep.MusteriAdi) : string.Empty,
-                        kontrolKayitli ? aboneImzasi?.ImzaTarihi : null,
-                        "İmza",
-                        kontrolKayitli);
-                    KontrolImzaHucresi(
-                        table,
-                        "Sertifikalı Firma",
-                        kontrolKayitli ? Deger(firmaImzasi?.AdSoyad, talep.FirmaYetkiliKisi, talep.FirmaAdi) : string.Empty,
-                        kontrolKayitli ? firmaImzasi?.ImzaTarihi : null,
-                        "Kaşe / İmza",
-                        kontrolKayitli);
+                    page.Content().Column(column =>
+                    {
+                        if (firstPage)
+                        {
+                            column.Item().PaddingBottom(13).AlignRight().Text($"Tarih : {talep.TalepTarihi:dd.MM.yyyy}").Bold();
+                            for (var i = 0; i < 7; i++)
+                            {
+                                var index = i;
+                                column.Item().PaddingBottom(i < 2 ? 14 : 8)
+                                    .Element(c => Table(c, tables[index], index));
+                            }
+                        }
+                        else
+                        {
+                            var elements = body.Elements().ToList();
+                            for (var i = 1; i <= 5; i++)
+                            {
+                                var index = elements.FindIndex(x => x.Name == W + "p" && Text(x).StartsWith($"{i}. KONTROL"));
+                                if (index < 0) throw new InvalidOperationException("Form kontrol başlığı eksik.");
+                                var paragraphs = elements.Skip(index).TakeWhile(x => x.Name != W + "tbl").ToList();
+                                var tableIndex = i + 6;
+                                column.Item().ShowEntire().PaddingBottom(10).Column(block =>
+                                {
+                                    foreach (var paragraph in paragraphs)
+                                        block.Item().Element(c => Paragraph(c, paragraph));
+                                    block.Item().PaddingTop(3).Element(c => Table(c, tables[tableIndex], tableIndex));
+                                });
+                            }
+                        }
+                    });
+                    if (secenekler.ImzaliNihaiMi)
+                        page.Footer().AlignCenter().Text("DEMO BELGESİ - Gerçek elektronik imza içermez.")
+                            .FontSize(8).FontColor("#666666");
                 });
-            });
-        }
-
-        private static void BilgiSatiri(TableDescriptor table, string etiket, string? deger, float? yukseklik = null)
+            }
+        }).GeneratePdf();
+        return new YkcFr265BelgeSonuc
         {
-            Hucre(table, etiket, true, yukseklik);
-            Hucre(table, Deger(deger), false, yukseklik);
-        }
-
-        private static void KarsilastirmaSatiri(TableDescriptor table, string etiket, string? eski, string? yeni)
-        {
-            Hucre(table, etiket, true);
-            Hucre(table, Deger(eski));
-            Hucre(table, Deger(yeni));
-        }
-
-        private static void BaslikHucresi(TableDescriptor table, string metin)
-        {
-            table.Cell().Element(HucreStili).AlignCenter().AlignMiddle().Text(metin).Bold();
-        }
-
-        private static void Hucre(
-            TableDescriptor table,
-            string metin,
-            bool kalin = false,
-            float? yukseklik = null,
-            bool ortala = false)
-        {
-            var container = table.Cell().Element(HucreStili);
-            if (yukseklik.HasValue)
-                container = container.MinHeight(yukseklik.Value);
-            if (ortala)
-                container = container.AlignCenter().AlignMiddle();
-
-            var text = container.Text(metin);
-            if (kalin)
-                text.Bold();
-        }
-
-        private static IContainer HucreStili(IContainer container)
-        {
-            return container.Border(0.65f).BorderColor(Colors.Black).PaddingVertical(3).PaddingHorizontal(5);
-        }
-
-        private static void ImzaKutusu(IContainer container, string baslik, string adSoyad, DateTime? tarih)
-        {
-            container.Border(0.65f).BorderColor(Colors.Black).Padding(5).MinHeight(60).Column(column =>
-            {
-                column.Item().Text(baslik).Bold();
-                column.Item().PaddingTop(3).Text($"Adı ve Soyadı: {adSoyad}");
-                column.Item().Text($"Tarih: {(tarih.HasValue ? tarih.Value.ToString("dd.MM.yyyy HH:mm") : string.Empty)}");
-                column.Item().Text("İmza: Demo onayı (gerçek e-imza değildir)");
-            });
-        }
-
-        private static void KontrolImzaHucresi(
-            TableDescriptor table,
-            string baslik,
-            string adSoyad,
-            DateTime? tarih,
-            string imzaEtiketi,
-            bool imzali)
-        {
-            table.Cell().Border(0.5f).BorderColor(Colors.Black).Padding(4).MinHeight(42).Column(column =>
-            {
-                column.Item().Text(baslik).Bold().FontSize(7.5f);
-                column.Item().Text($"Adı Soyadı: {adSoyad}").FontSize(7.5f);
-                column.Item().Text($"Tarih: {(tarih.HasValue ? tarih.Value.ToString("dd.MM.yyyy") : string.Empty)}").FontSize(7.5f);
-                column.Item().Text($"{imzaEtiketi}: {(imzali ? "Demo onayı" : string.Empty)}").FontSize(7.5f);
-            });
-        }
-
-        private static void SayfaAltligi(IContainer container)
-        {
-            container.AlignRight().Text(text =>
-            {
-                text.Span("Sayfa ").FontSize(7);
-                text.CurrentPageNumber().FontSize(7);
-                text.Span(" / ").FontSize(7);
-                text.TotalPages().FontSize(7);
-            });
-        }
-
-        private static YkcFr265ImzaSatiri? Imza(YkcFr265BelgeSecenekleri secenekler, int siraNo)
-        {
-            return secenekler.Imzalar.FirstOrDefault(x => x.SiraNo == siraNo);
-        }
-
-        private static DateTime? ImzaTarihi(YkcFr265ImzaSatiri? imza, YkcFr265BelgeSecenekleri secenekler)
-        {
-            return imza?.ImzaTarihi ?? secenekler.ImzaTarihi;
-        }
-
-        private static DateTime FormTarihi(YkcTalepDetayDto talep)
-        {
-            return talep.Fr265BelgeOlusturmaTarihi ?? talep.TalepTarihi;
-        }
-
-        private static string Deger(params string?[] degerler)
-        {
-            return degerler.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x))?.Trim() ?? string.Empty;
-        }
+            Bytes = bytes,
+            ContentType = "application/pdf",
+            DosyaAdi = secenekler.ImzaliNihaiMi
+                ? $"Form_Demo_Nihai_{TasarimSurumu}_{talep.Id}.pdf"
+                : $"Cihaz_Degisim_Formu_{talep.Id}.pdf"
+        };
     }
+
+    private static void Table(IContainer container, XElement source, int index)
+    {
+        container.Table(table =>
+        {
+            table.ColumnsDefinition(columns =>
+            {
+                foreach (var width in source.Element(W + "tblGrid")!.Elements(W + "gridCol"))
+                    columns.RelativeColumn(Number(width.Attribute(W + "w"), 1));
+            });
+            var rows = source.Elements(W + "tr").ToList();
+            for (var row = 0; row < rows.Count; row++)
+            {
+                uint column = 1;
+                foreach (var cell in rows[row].Elements(W + "tc"))
+                {
+                    var properties = cell.Element(W + "tcPr");
+                    var span = (uint)Number(properties?.Element(W + "gridSpan")?.Attribute(W + "val"), 1);
+                    var merge = properties?.Element(W + "vMerge");
+                    if (merge != null && (string?)merge.Attribute(W + "val") != "restart")
+                    {
+                        column += span;
+                        continue;
+                    }
+                    var slot = table.Cell().Row((uint)row + 1).Column(column).ColumnSpan(span);
+                    if (merge != null) slot = slot.RowSpan(2);
+                    var height = Number(rows[row].Element(W + "trPr")?.Element(W + "trHeight")?.Attribute(W + "val"), 280) / 20;
+                    var content = slot.Border(0.5f).MinHeight(height).PaddingHorizontal(index < 2 ? 1 : 5).PaddingVertical(1);
+                    if (index < 2 || index == 4) content = content.AlignMiddle();
+                    content.Column(block =>
+                    {
+                        foreach (var paragraph in cell.Elements(W + "p"))
+                            block.Item().Element(c => Paragraph(c, paragraph, index >= 7));
+                    });
+                    column += span;
+                }
+            }
+        });
+    }
+
+    private static void Paragraph(IContainer container, XElement paragraph, bool centered = false)
+    {
+        if (string.IsNullOrWhiteSpace(Text(paragraph)))
+        {
+            container.Height(10.5f);
+            return;
+        }
+        if (paragraph.Descendants(W + "tab").Any())
+        {
+            var parts = string.Concat(paragraph.Descendants().Where(x => x.Name == W + "t" || x.Name == W + "tab")
+                .Select(x => x.Name == W + "tab" ? "\t" : x.Value)).Split('\t', StringSplitOptions.RemoveEmptyEntries);
+            container.Row(row =>
+            {
+                foreach (var part in parts) row.RelativeItem().Text(part).FontSize(10);
+            });
+            return;
+        }
+        container.Text(text =>
+        {
+            var alignment = (string?)paragraph.Element(W + "pPr")?.Element(W + "jc")?.Attribute(W + "val");
+            if (centered || alignment == "center") text.AlignCenter();
+            else if (alignment == "right") text.AlignRight();
+            else if (alignment == "both") text.Justify();
+            foreach (var run in paragraph.Elements(W + "r"))
+            {
+                var value = string.Concat(run.Elements().Where(x => x.Name == W + "t" || x.Name == W + "br")
+                    .Select(x => x.Name == W + "br" ? "\n" : x.Value));
+                var properties = run.Element(W + "rPr");
+                var span = text.Span(value).FontSize(Math.Clamp(Number(properties?.Element(W + "sz")?.Attribute(W + "val"), 21) / 2, 9, 12));
+                if (properties?.Element(W + "b") is { } bold && (string?)bold.Attribute(W + "val") != "0") span.Bold();
+                if (properties?.Element(W + "i") is { } italic && (string?)italic.Attribute(W + "val") != "0") span.Italic();
+                if (value.Contains('☒') || value.Contains('☐')) span.FontFamily("Segoe UI Symbol", "DejaVu Sans");
+            }
+        });
+    }
+
+    private static string Text(XElement element) => string.Concat(element.Descendants(W + "t").Select(x => x.Value)).Trim();
+    private static float Number(XAttribute? value, float fallback) => float.TryParse(value?.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var number) ? number : fallback;
 }

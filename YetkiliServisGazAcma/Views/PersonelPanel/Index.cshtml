@@ -39,18 +39,22 @@
     private sealed record DashboardAction(string Title, string Url, string Icon, string Value, string Meta, string Tone);
 }
 
+@section PageStyles {
+    <link rel="stylesheet" href="~/css/personnel-home.css" asp-append-version="true" />
+}
+
 <div class="df-dashboard df-personnel-home">
-    @await Component.InvokeAsync("YkcRandevuOzeti")
+    <header class="personnel-home-header">
+        <div><span><i class="bi bi-speedometer2" aria-hidden="true"></i></span><div><h1>Günlük Operasyonlar</h1><p>@DateTime.Today.ToString("dd MMMM yyyy, dddd", System.Globalization.CultureInfo.GetCultureInfo("tr-TR"))</p></div></div>
+        <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/takvim"><i class="bi bi-calendar3" aria-hidden="true"></i> Randevu Takvimi</a>
+    </header>
 
     <section class="df-home-section" aria-labelledby="personnel-actions-title">
         <div class="df-home-section-head">
-            <div>
-                <span class="df-home-kicker"><i class="bi bi-grid" aria-hidden="true"></i> Çalışma alanı</span>
-                <h1 id="personnel-actions-title">İşlemler</h1>
-            </div>
+            <div><h1 id="personnel-actions-title">Öncelikli İşler</h1></div>
         </div>
         <div class="df-home-action-grid">
-            @foreach (var item in islemler)
+            @foreach (var item in islemler.Take(3))
             {
                 <a class="df-home-action is-@item.Tone" href="@item.Url">
                     <span class="df-home-action-icon"><i class="@item.Icon" aria-hidden="true"></i></span>
@@ -65,7 +69,9 @@
         </div>
     </section>
 
-    <div class="df-home-feed-grid">
+    <div class="personnel-home-overview">
+        @await Component.InvokeAsync("YkcRandevuOzeti")
+        <div class="df-home-feed-grid">
         @if (belgeYetkisi)
         {
             <section class="df-home-feed" aria-labelledby="pending-documents-title">
@@ -80,11 +86,11 @@
                 else
                 {
                     <div class="df-home-feed-list">
-                        @foreach (var belge in sonBekleyenler.Take(4))
+                        @foreach (var belge in sonBekleyenler.Take(2))
                         {
                             <a href="/personel-panel/onay-bekleyenler" class="df-home-feed-row">
-                                <span><strong>@(belge.Firma?.FirmaAdi ?? "Firma bilgisi yok")</strong><small>@(belge.Firma?.Sirket?.SirketAdi ?? "Şirket bilgisi yok")</small></span>
-                                <time datetime="@belge.OlusturmaTarihi.ToString("O")">@belge.OlusturmaTarihi.ToString("dd.MM.yyyy")</time>
+                                <span><small>Firma</small><strong>@(belge.Firma?.FirmaAdi ?? "Firma bilgisi yok")</strong><em>@(belge.Firma?.Sirket?.SirketAdi ?? "Şirket bilgisi yok")</em></span>
+                                <time datetime="@belge.OlusturmaTarihi.ToString("O")"><small>Başvuru</small><strong>@belge.OlusturmaTarihi.ToString("dd.MM.yyyy")</strong></time>
                             </a>
                         }
                     </div>
@@ -105,15 +111,17 @@
             else
             {
                 <div class="df-home-feed-list">
-                    @foreach (var islem in sonIslemler.Take(4))
+                    @foreach (var islem in sonIslemler.Take(2))
                     {
+                        var tarihVar = islem.DevreyeAlmaTarihi.Year > 1900;
                         <a href="/personel-panel/devreyealmalar/detay/@islem.Id" class="df-home-feed-row">
-                            <span><strong>@(string.IsNullOrWhiteSpace(islem.MusteriAdi) ? $"Tesisat {islem.TesistatNo}" : islem.MusteriAdi)</strong><small>@islem.TesistatNo · @(islem.Firma?.FirmaAdi ?? "Yetkili servis bilgisi yok")</small></span>
-                            <time datetime="@islem.DevreyeAlmaTarihi.ToString("O")">@islem.DevreyeAlmaTarihi.ToString("dd.MM.yyyy")</time>
+                            <span><small>Müşteri</small><strong>@(string.IsNullOrWhiteSpace(islem.MusteriAdi) ? "Müşteri bilgisi yok" : islem.MusteriAdi)</strong><em>Tesisat No: @(islem.TesistatNo ?? "-") · @(islem.Firma?.FirmaAdi ?? "Servis bilgisi yok")</em></span>
+                            <time datetime="@(tarihVar ? islem.DevreyeAlmaTarihi.ToString("O") : null)"><small>Devreye Alma</small><strong>@(tarihVar ? islem.DevreyeAlmaTarihi.ToString("dd.MM.yyyy") : "Tarih yok")</strong></time>
                         </a>
                     }
                 </div>
             }
         </section>
+        </div>
     </div>
 </div>

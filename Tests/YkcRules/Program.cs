@@ -75,4 +75,32 @@ var screen = Detail();
 YkcFirmaSunumu.Hazirla(screen, resmiForm: false);
 Check(screen.EskiMarka == null && screen.EskiKapasite == null && screen.YeniMarka == "New brand" && screen.MusteriAdi == "Customer",
     "Firm screen hides source device without losing request data");
+var form = new YkcTalepDetayDto {
+    Id = 42, TesisatNo = "1000132", MusteriAdi = "Test Abone",
+    FirmaAdi = "Test Sertifikali Firma", FirmaYetkiliKisi = "Test Yetkili",
+    TalepTarihi = new DateTime(2026, 9, 10), TuketimNoktasi = "Daire 4", BaglantiNesnesi = "Bina 12",
+    Adres = "Test Mahallesi, Test Sokak No: 4/2, Merkez",
+    EskiCihazTipi = "Kombi", YeniCihazTipi = "Kombi", EskiMarka = "Proje markasi", YeniMarka = "Yeni marka",
+    EskiKapasite = "20000", YeniKapasite = "20000", IkinciElCihazMi = false,
+    Kontroller = new() { new YkcFr265KontrolDto { KontrolNo = 1, Sonuc = YkcFr265KontrolSonucDegerleri.Uygun } }
+};
+var wordForm = new YkcFr265FormService().WordOlustur(form);
+using (var zip = new System.IO.Compression.ZipArchive(new MemoryStream(wordForm.Bytes)))
+using (var reader = new StreamReader(zip.GetEntry("word/document.xml")!.Open()))
+{
+    var xml = reader.ReadToEnd();
+    Check(xml.Contains("Daire 4") && xml.Contains("Bina 12"), "Official form retains supplied unit and building fields");
+}
+var formPdf = YkcFr265PdfService.Olustur(form);
+var demoPdf = YkcFr265PdfService.ImzaliNihaiOlustur(form, new() { ImzaliNihaiMi = true, ImzaTarihi = form.TalepTarihi });
+Check(System.Text.Encoding.ASCII.GetString(formPdf.Bytes, 0, 5) == "%PDF-", "Draft renders as PDF");
+Check(demoPdf.ContentType == "application/pdf" && demoPdf.DosyaAdi.Contains(YkcFr265PdfService.TasarimSurumu),
+    "Demo final uses the versioned Word-template PDF layout");
+if (args.Length == 2 && args[0] == "--form-output")
+{
+    Directory.CreateDirectory(args[1]);
+    File.WriteAllBytes(Path.Combine(args[1], "form-draft.pdf"), formPdf.Bytes);
+    File.WriteAllBytes(Path.Combine(args[1], "form-demo.pdf"), demoPdf.Bytes);
+    File.WriteAllBytes(Path.Combine(args[1], "form-source.docx"), wordForm.Bytes);
+}
 Console.WriteLine($"{passed} checks passed. No application data changed.");

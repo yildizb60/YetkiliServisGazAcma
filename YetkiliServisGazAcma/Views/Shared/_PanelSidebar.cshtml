@@ -17,12 +17,12 @@
     var personelMi = User.IsInRole("Personel");
     var ykcYetkileri = ViewBag.YkcYetkileri as YkcYetkiOzeti ?? new YkcYetkiOzeti();
 
-    var panelAltBaslik = isSertifikaliFirmaPanel
+    string? panelAltBaslik = isSertifikaliFirmaPanel
         ? "Sertifikalı Firma"
         : isYetkiliServisPanel
-        ? "Yetkili Servis"
+        ? null
         : isPersonelPanel
-            ? "Personel Paneli"
+            ? null
             : genelSistemAdminMi
                 ? "Genel Sistem Admini"
                 : sirketAdminMi
@@ -30,6 +30,13 @@
                     : personelMi
                         ? "Personel Paneli"
                         : "Admin Paneli";
+    var panelAnaBaslik = isSertifikaliFirmaPanel
+        ? "Cihaz Değişim"
+        : isYetkiliServisPanel
+            ? "Yetkili Servis"
+            : isPersonelPanel
+                ? "Personel Paneli"
+                : "Yönetim Paneli";
 
     string Active(string key, params string[] prefixes)
     {
@@ -142,8 +149,11 @@
             <div class="logo-circle"><i class="bi bi-fire" aria-hidden="true"></i></div>
         }
         <div>
-            <div class="logo-text">Cihaz Operasyonları</div>
-            <div class="logo-sub">@panelAltBaslik</div>
+            <div class="logo-text">@panelAnaBaslik</div>
+            @if (!string.IsNullOrWhiteSpace(panelAltBaslik))
+            {
+                <div class="logo-sub">@panelAltBaslik</div>
+            }
             <div class="logo-company">@(ViewBag.PanelSirketAdi as string ?? "Genel Yönetim")</div>
         </div>
     </a>

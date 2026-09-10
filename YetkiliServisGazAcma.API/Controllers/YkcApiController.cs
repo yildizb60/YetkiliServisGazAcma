@@ -419,6 +419,28 @@ namespace YetkiliServisGazAcma.API.Controllers
             return Ok(sonuc);
         }
 
+        [HttpPost("talepler/form-pdf")]
+        [Produces("application/pdf")]
+        public async Task<IActionResult> FormPdf([FromBody] YkcTalepGetirIstek? istek)
+        {
+            var kullanici = await AktifKullaniciAsync();
+            if (kullanici == null) return Unauthorized();
+            if (istek == null || istek.Id <= 0) return BadRequest();
+            if (!await YkcYetkiliMiAsync(kullanici, YetkiTipleri.YKC_TALEP_GOR))
+                return YkcYetkisiz("Form görüntüleme yetkiniz bulunmuyor.");
+            var detay = await _ykcTalepService.GetirAsync(istek.Id, kullanici, await GenelYetkiliMiAsync(kullanici));
+            if (detay == null) return NotFound();
+
+            // A signed document is immutable: preview the stored bytes, never regenerate it.
+            if (detay.ImzaSureci?.Durum == YkcImzaDurumDegerleri.Tamamlandi
+                && detay.ImzaSureci.NihaiDosyaId is int dosyaId)
+                return await DosyaIndir(new YkcDosyaGetirIstek { Id = dosyaId });
+
+            var pdf = YkcFr265PdfService.Olustur(detay);
+            Response.Headers.CacheControl = "private, no-store";
+            return File(pdf.Bytes, pdf.ContentType, pdf.DosyaAdi);
+        }
+
         [HttpPost("takvim")]
         [ProducesResponseType(typeof(YkcTakvimSonuc), StatusCodes.Status200OK)]
         [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel")]

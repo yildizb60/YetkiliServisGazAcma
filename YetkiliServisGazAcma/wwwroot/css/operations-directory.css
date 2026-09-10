@@ -1,0 +1,85 @@
+.df-operations-directory,
+.df-approval-history-workspace { gap: 10px; }
+.df-operations-directory .df-service-list-head,
+.df-approval-history-workspace .df-service-list-head {
+    min-height: 50px;
+    padding: 8px 11px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px 12px;
+}
+.df-approval-history-workspace .df-service-list-head { grid-template-columns: auto minmax(0, 1fr); }
+.df-operations-directory .df-service-list-head h3,
+.df-approval-history-workspace .df-service-list-head h3 { font-size: 13px; font-weight: 700; white-space: nowrap; }
+.df-operations-directory .df-inline-metrics,
+.df-approval-history-workspace .df-inline-metrics {
+    width: auto;
+    margin-left: 0;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    gap: 4px;
+}
+.df-operations-directory .df-inline-metrics .df-admin-metric,
+.df-approval-history-workspace .df-inline-metrics .df-admin-metric {
+    min-height: 28px;
+    padding: 3px 5px;
+    gap: 4px;
+    border-color: #dfe6ed;
+    border-radius: 5px;
+    font-size: 9px;
+}
+.df-operations-directory .df-inline-metrics .df-admin-metric i,
+.df-approval-history-workspace .df-inline-metrics .df-admin-metric i { font-size: 11px; }
+.df-operations-directory .df-inline-metrics .df-admin-metric span,
+.df-approval-history-workspace .df-inline-metrics .df-admin-metric span { margin: 0; font-size: 9px; }
+.df-operations-directory .df-inline-metrics .df-admin-metric strong,
+.df-approval-history-workspace .df-inline-metrics .df-admin-metric strong { min-width: 20px; height: 20px; font-size: 9px; }
+.df-operations-directory .df-service-list-head > .df-actions { margin-left: 0; justify-content: flex-end; flex-wrap: nowrap; }
+.df-operations-directory .df-icon-action { min-height: 30px; padding: 5px 7px; font-size: 9px; }
+.df-commissioning-table { min-width: 1220px; }
+.df-commissioning-table th:first-child,
+.df-commissioning-table td:first-child { width: 38px; text-align: center; }
+.df-commissioning-table th:nth-child(2) { width: 160px; }
+.df-commissioning-table th:nth-child(3) { width: 160px; }
+.df-commissioning-table th:nth-child(4) { width: 120px; }
+.df-commissioning-table th:nth-child(5) { width: 170px; }
+.df-commissioning-table th:nth-child(6) { width: 130px; }
+.df-commissioning-table th:nth-child(7) { width: 150px; }
+.df-commissioning-table th:nth-child(8) { width: 105px; }
+.df-commissioning-table th:nth-child(9) { width: 96px; }
+.df-commissioning-table .df-cell-main,
+.df-commissioning-table .df-cell-sub { overflow-wrap: anywhere; }
+.df-commissioning-table .df-pill-success { background: #e7f6ef; color: #167a5b; border-color: #bfe4d5; }
+.ys-commissioning-modal .ykc-report-modal-dialog { width: min(940px, calc(100vw - 28px)); border-radius: 7px; border-top: 3px solid #2674ae; box-shadow: 0 24px 60px rgba(16, 42, 61, .24); }
+.ys-commissioning-modal .ykc-report-modal-header { min-height: 60px; padding: 10px 14px; background: #f6f9fc; border-bottom: 1px solid #dce5ec; }
+.ys-commissioning-modal .ykc-modal-icon { width: 34px; height: 34px; border-radius: 6px; background: #eaf3fa; color: #2674ae; }
+.ys-commissioning-modal .ykc-modal-title { color: #233d52; font-size: 16px; font-weight: 700; }
+.ys-commissioning-modal .ykc-modal-subtitle { color: #667d8f; font-size: 10px; font-weight: 500; }
+.ys-commissioning-modal .ykc-report-modal-body { padding: 12px; background: #f8fafc; }
+.ys-commissioning-modal .ykc-modal-stats { border: 1px solid #dce5ec; border-radius: 6px; overflow: hidden; background: #fff; }
+.ys-commissioning-modal .ykc-modal-stat { min-height: 54px; padding: 8px 10px; }
+.ys-commissioning-modal .ykc-modal-stat small { color: #6e8191; font-size: 9px; font-weight: 600; }
+.ys-commissioning-modal .ykc-modal-stat strong { color: #2c4559; font-size: 11px; font-weight: 650; }
+.ys-commissioning-modal .ykc-modal-grid { gap: 10px; margin-top: 10px; }
+.ys-commissioning-modal .ykc-modal-section { overflow: hidden; border: 1px solid #dce5ec; border-radius: 6px; background: #fff; }
+.ys-commissioning-modal .ykc-modal-section-title { min-height: 40px; padding: 8px 10px; color: #2d4a60; background: #f2f7fb; border-bottom: 1px solid #dce5ec; font-size: 11px; font-weight: 700; }
+.ys-commissioning-modal .ykc-modal-section-device .ykc-modal-section-title,
+.ys-commissioning-modal .ykc-modal-section-signature .ykc-modal-section-title { background: #f0f8f4; color: #27604f; }
+.ys-commissioning-modal .ykc-modal-info { padding: 9px 10px; gap: 8px; }
+.ys-commissioning-modal .ykc-modal-item { padding: 0; border: 0; background: transparent; }
+.ys-commissioning-modal .ykc-modal-label { color: #768999; font-size: 8.5px; font-weight: 600; }
+.ys-commissioning-modal .ykc-modal-value { color: #2d4558; font-size: 10.5px; font-weight: 550; }
+.ys-commissioning-modal .ykc-report-modal-footer { min-height: 52px; padding: 8px 12px; background: #fff; border-top: 1px solid #dce5ec; }
+
+@media (max-width: 1050px) {
+    .df-operations-directory .df-service-list-head { grid-template-columns: minmax(0, 1fr) auto; }
+    .df-operations-directory .df-service-list-head > .df-actions { grid-column: 1 / -1; justify-content: flex-start; }
+}
+@media (max-width: 760px) {
+    .df-operations-directory .df-service-list-head,
+    .df-approval-history-workspace .df-service-list-head { grid-template-columns: 1fr; align-items: stretch; }
+    .df-operations-directory .df-inline-metrics,
+    .df-approval-history-workspace .df-inline-metrics { width: 100%; overflow-x: auto; }
+    .df-operations-directory .df-service-list-head > .df-actions { width: 100%; overflow-x: auto; }
+}

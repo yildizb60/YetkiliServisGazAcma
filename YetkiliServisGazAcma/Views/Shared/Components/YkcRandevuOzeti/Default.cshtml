@@ -27,7 +27,7 @@
     }
     else
     {
-        @foreach (var item in Model.Kayitlar.Take(5))
+        @foreach (var item in Model.Kayitlar.Take(2))
         {
             <a class="ykc-calendar-entry" href="/ykc/detay/@item.Id">
                 <time>@item.Saat</time>
@@ -36,6 +36,6 @@
                 <span>@YkcDurumSunumu.Etiket(item.Durum)</span><i class="bi bi-arrow-right"></i>
             </a>
         }
-        @if (Model.Toplam > 5) { <a class="ykc-dashboard-agenda-more" href="/ykc/takvim">Tüm randevuları gör <i class="bi bi-arrow-right" aria-hidden="true"></i></a> }
+        @if (Model.Toplam > 2) { <a class="ykc-dashboard-agenda-more" href="/ykc/takvim">Tüm randevuları gör <i class="bi bi-arrow-right" aria-hidden="true"></i></a> }
     }
 </section>

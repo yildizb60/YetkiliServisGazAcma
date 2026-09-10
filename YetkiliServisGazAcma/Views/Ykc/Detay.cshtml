@@ -291,12 +291,17 @@
 
 @section PageStyles {
     <link rel="stylesheet" href="~/css/ykc-operations.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/ykc-detail-refresh.css" asp-append-version="true" />
 }
 
 <div class="ykc-workspace ykc-detail-page is-streamlined" data-return-context="@kaynak">
     @if (TempData["Basarili"] != null)
     {
-        <div class="df-alert df-alert-success">@TempData["Basarili"]</div>
+        <div class="ykc-operation-toast" role="status" aria-live="polite" data-operation-toast>
+            <span class="ykc-operation-toast-icon"><i class="bi bi-check-circle-fill" aria-hidden="true"></i></span>
+            <span><strong>İşlem Başarılı</strong><small>@TempData["Basarili"]</small></span>
+            <button type="button" data-operation-toast-close aria-label="Bildirimi kapat"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+        </div>
     }
     @if (TempData["Hata"] != null)
     {
@@ -339,14 +344,6 @@
                 <strong>@adim.Baslik</strong>
             </div>
         }
-    </nav>
-
-    <nav class="ykc-detail-index" aria-label="Talep bölümleri">
-        <a href="#current-task-title">@(terminalDurum ? "Sonuç" : "İşlem")</a>
-        @if (icOperasyonGorsun) { <a href="#device-comparison">Cihaz Karşılaştırması</a> }
-        <a href="#record-details">Tesisat ve Firma</a>
-        @if (imzaBolumuGorsun) { <a href="#fr265-signature">Belgeler</a> }
-        <a href="#request-history">Geçmiş</a>
     </nav>
 
     <section class="ykc-focus-section @(terminalDurum ? "is-resolved" : null)" aria-labelledby="current-task-title">
@@ -635,7 +632,7 @@
 
     @if (icOperasyonGorsun)
     {
-    <details class="ykc-detail-section ykc-device-comparison" id="device-comparison" open="@(Model.Durum <= YkcDurumDegerleri.AtamaBekliyor || terminalDurum)">
+    <details class="ykc-detail-section ykc-device-comparison" id="device-comparison" open="@(Model.Durum <= YkcDurumDegerleri.AtamaBekliyor)">
         <summary><span class="ykc-disclosure-title"><i class="bi bi-arrow-left-right" aria-hidden="true"></i><strong>Cihaz Karşılaştırması</strong></span><i class="bi bi-chevron-down"></i></summary>
         <div class="ykc-detail-section-body">
         @foreach (var uyari in YkcCihazUyumKurali.Uyarilar(Model.EskiCihazTipi, Model.YeniCihazTipi, Model.EskiMarka, Model.YeniMarka, Model.EskiBacaTipi, Model.YeniBacaTipi, Model.EskiKapasite, Model.YeniKapasite))
@@ -726,12 +723,14 @@
 
 @section Scripts {
     <script>
-        document.querySelectorAll('.ykc-detail-index a').forEach(link => {
-            link.addEventListener('click', () => {
-                const target = document.querySelector(link.getAttribute('href'));
-                if (target?.tagName === 'DETAILS') target.open = true;
-            });
-        });
+        (() => {
+            const toast = document.querySelector('[data-operation-toast]');
+            if (!toast) return;
+            const close = () => toast.classList.add('is-leaving');
+            toast.querySelector('[data-operation-toast-close]')?.addEventListener('click', close);
+            window.setTimeout(close, 5200);
+            toast.addEventListener('animationend', event => { if (event.animationName === 'ykcToastOut') toast.remove(); });
+        })();
         document.querySelectorAll('.ykc-detail-page form[method="post"]').forEach(form => {
             const context = document.querySelector('.ykc-detail-page').dataset.returnContext;
             if (!context) return;

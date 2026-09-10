@@ -69,8 +69,8 @@ namespace YetkiliServisGazAcma.Business.Services
 
             SetCellText(tesisatTablosu, 0, 1, talep.MusteriAdi);
             SetCellText(tesisatTablosu, 1, 1, talep.TesisatNo);
-            SetCellText(tesisatTablosu, 2, 1, null);
-            SetCellText(tesisatTablosu, 3, 1, null);
+            SetCellText(tesisatTablosu, 2, 1, talep.TuketimNoktasi);
+            SetCellText(tesisatTablosu, 3, 1, talep.BaglantiNesnesi);
             SetCellText(tesisatTablosu, 4, 1, talep.Adres);
 
             SetCellText(cihazTablosu, 1, 1, talep.EskiCihazTipi);
@@ -82,8 +82,8 @@ namespace YetkiliServisGazAcma.Business.Services
             SetCellText(cihazTablosu, 4, 1, talep.EskiKapasite);
             SetCellText(cihazTablosu, 4, 2, talep.YeniKapasite);
 
-            SetCellText(ikinciElTablosu, 0, 1, talep.IkinciElCihazMi == true ? "☒ Evet" : "☐ Evet");
-            SetCellText(ikinciElTablosu, 0, 2, talep.IkinciElCihazMi == false ? "☒ Hayır" : "☐ Hayır");
+            SetCellText(ikinciElTablosu, 1, 1, talep.IkinciElCihazMi == true ? "☒" : "☐");
+            SetCellText(ikinciElTablosu, 1, 2, talep.IkinciElCihazMi == false ? "☒" : "☐");
 
             FirmaImzaTablosunuDoldur(firmaImzaTablosu, talep, secenekler, formTarihi);
             KontrolleriDoldur(document, talep.Kontroller);

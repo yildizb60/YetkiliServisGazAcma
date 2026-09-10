@@ -116,6 +116,10 @@ namespace YetkiliServisGazAcma.Business.Services
                 "Bölge ekipleri",
                 retryTransient: true);
 
+        public Task<ApiDosyaSonuc?> FormPdfAsync(AppKullanici kullanici, int talepId)
+            => PostFileAsync(kullanici, "api/ykc/talepler/form-pdf",
+                new YkcTalepGetirIstek { Id = talepId }, $"Cihaz_Degisim_Formu_{talepId}.pdf", "Cihaz değişim formu PDF");
+
         public Task<ApiDosyaSonuc?> DosyaIndirAsync(AppKullanici kullanici, int dosyaId)
         {
             return PostFileAsync(

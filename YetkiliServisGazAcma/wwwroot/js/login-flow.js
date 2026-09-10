@@ -65,9 +65,15 @@
             if (destination.origin !== location.origin) throw new Error('Güvenli giriş yönlendirmesi alınamadı.');
             const html = await response.text();
             const documentResult = new DOMParser().parseFromString(html, 'text/html');
-            const nextCard = documentResult.querySelector('.login-shell .login-card');
+            const nextShell = documentResult.querySelector('.login-shell');
+            const nextCard = nextShell?.querySelector('.login-card');
             if (!nextCard) { location.assign(destination.href); return; }
-            shell.querySelector('.login-card').replaceWith(document.importNode(nextCard, true));
+            if (nextShell.classList.contains('company-select-shell')) {
+                shell.className = nextShell.className;
+                shell.querySelector('.login-card')?.replaceWith(document.importNode(nextCard, true));
+            } else {
+                shell.querySelector('.login-card').replaceWith(document.importNode(nextCard, true));
+            }
             // Scripts in returned HTML are deliberately not executed.
             selectMode(mode || 'firma', false);
             const heading = shell.querySelector('h1');

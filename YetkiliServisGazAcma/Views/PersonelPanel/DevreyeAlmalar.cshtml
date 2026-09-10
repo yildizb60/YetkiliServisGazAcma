@@ -34,17 +34,11 @@
 
 @section PageStyles {
     <link rel="stylesheet" href="~/css/ykc-operations.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/ys-operations.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/operations-directory.css" asp-append-version="true" />
 }
 
 <div class="df-admin-workspace df-operations-directory">
-    <section class="df-page-panel df-admin-hero">
-        <div class="df-panel-head">
-            <div>
-                <h1 class="df-panel-title"><i class="bi bi-bag-check" aria-hidden="true"></i> Cihaz Devreye Alma Kayıtları</h1>
-            </div>
-        </div>
-    </section>
-
     <details class="df-admin-filter" open="@(filtreAktif ? "open" : null)">
         <summary>
             <span><i class="bi bi-funnel" aria-hidden="true"></i><strong>Filtreler</strong><small>Tesisat, servis, konum, marka, durum veya tarih</small></span>
@@ -73,7 +67,7 @@
 
     <section class="df-admin-list-card">
         <div class="df-service-list-head">
-            <div><h3><i class="bi bi-list-check" aria-hidden="true"></i> Devreye Alma Listesi</h3></div>
+            <div><h3><i class="bi bi-list-check" aria-hidden="true"></i> Cihaz Devreye Alma Kayıtları</h3></div>
             <div class="df-admin-metrics df-inline-metrics" aria-label="Kayıt özeti">
                 <span class="df-admin-metric"><i class="bi bi-collection" aria-hidden="true"></i><span>Toplam</span><strong>@Model.Count</strong></span>
                 <span class="df-admin-metric is-approved"><i class="bi bi-check-circle" aria-hidden="true"></i><span>Tamamlanan</span><strong>@tamamlanan</strong></span>
@@ -94,20 +88,23 @@
         else
         {
             <div class="df-admin-table-scroll">
-                <table class="df-table">
-                    <thead><tr><th><input id="tumunuSec" type="checkbox" aria-label="Tüm kayıtları seç" /></th><th>Müşteri</th><th>Tesisat / Abone</th><th>Yetkili Servis / Marka</th><th>Devreye Alma</th><th>Durum</th><th>İşlem</th></tr></thead>
+                <table class="df-table df-commissioning-table">
+                    <thead><tr><th><input id="tumunuSec" type="checkbox" aria-label="Tüm kayıtları seç" /></th><th>Müşteri</th><th>Tesisat ve Abone</th><th>Servis Konumu</th><th>Yetkili Servis / Marka</th><th>Devreye Alma Tarihi</th><th>Teknisyen</th><th>Durum</th><th>İşlem</th></tr></thead>
                     <tbody>
                     @foreach (var d in Model)
                     {
                         var ilce = firmaIlceleri.TryGetValue(d.FirmaId, out var firmaIlce) ? firmaIlce : "";
                         var durumYazi = d.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? "Tamamlandı" : d.Durum == DevreyeAlmaDurumDegerleri.Iptal ? "İptal" : "Bekliyor";
                         var durumSinif = d.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? "df-pill-success" : d.Durum == DevreyeAlmaDurumDegerleri.Iptal ? "df-pill-danger" : "df-pill-warning";
+                        var tarihVar = d.DevreyeAlmaTarihi.Year > 1900;
                         <tr>
                             <td><input class="row-check" type="checkbox" value="@d.Id" aria-label="@d.TesistatNo kaydını seç" /></td>
                             <td><div class="df-cell-main">@(string.IsNullOrWhiteSpace(d.MusteriAdi) ? "Müşteri bilgisi yok" : d.MusteriAdi)</div><div class="df-cell-sub">@(string.IsNullOrWhiteSpace(d.MusteriTelefon) ? "Telefon bilgisi yok" : d.MusteriTelefon)</div></td>
-                            <td><div class="df-cell-main">Tesisat: @(d.TesistatNo ?? "-")</div><div class="df-cell-sub">Abone: @(d.AboneNo ?? "-") · @(d.Firma?.FaaliyetIli ?? "-") / @(string.IsNullOrWhiteSpace(ilce) ? "-" : ilce)</div></td>
+                            <td><div class="df-cell-main">Tesisat No: @(d.TesistatNo ?? "-")</div><div class="df-cell-sub">Abone No: @(d.AboneNo ?? "-")</div></td>
+                            <td><div class="df-cell-main">@(d.Firma?.FaaliyetIli ?? "-")</div><div class="df-cell-sub">@(string.IsNullOrWhiteSpace(ilce) ? "İlçe bilgisi yok" : ilce)</div></td>
                             <td><div class="df-cell-main">@(d.Firma?.FirmaAdi ?? "-")</div><div class="df-cell-sub">@(d.CihazMarka ?? d.Marka?.MarkaAdi ?? "Marka bilgisi yok")</div></td>
-                            <td><div class="df-cell-main">@d.DevreyeAlmaTarihi.ToString("dd.MM.yyyy")</div><div class="df-cell-sub">Teknisyen: @(string.IsNullOrWhiteSpace(d.TeknisyenAdi) ? "-" : d.TeknisyenAdi)</div></td>
+                            <td><div class="df-cell-main">@(tarihVar ? d.DevreyeAlmaTarihi.ToString("dd.MM.yyyy") : "Tarih bilgisi yok")</div></td>
+                            <td><div class="df-cell-main">@(string.IsNullOrWhiteSpace(d.TeknisyenAdi) ? "Teknisyen bilgisi yok" : d.TeknisyenAdi)</div></td>
                             <td><span class="df-pill @durumSinif">@durumYazi</span></td>
                             <td><button class="df-icon-action ys-commissioning-row-view" type="button"
                                         title="İşlem detayını görüntüle"
@@ -128,7 +125,7 @@
                                         data-kapasite="@(d.CihazKapasite ?? "-")"
                                         data-teknisyen="@(d.TeknisyenAdi ?? "-")"
                                         data-notlar="@(d.Notlar ?? "-")"
-                                        data-tarih="@d.DevreyeAlmaTarihi.ToString("dd.MM.yyyy")"
+                                        data-tarih="@(tarihVar ? d.DevreyeAlmaTarihi.ToString("dd.MM.yyyy") : "-")"
                                         data-durum="@durumYazi"
                                         data-durum-class="@durumSinif"><i class="bi bi-eye" aria-hidden="true"></i><span>Görüntüle</span></button></td>
                         </tr>
@@ -140,7 +137,7 @@
     </section>
 </div>
 
-<div class="ykc-report-modal" id="commissioningDetailModal" aria-hidden="true">
+<div class="ykc-report-modal ys-commissioning-modal" id="commissioningDetailModal" aria-hidden="true">
     <div class="ykc-report-modal-backdrop" data-commissioning-modal-close></div>
     <div class="ykc-report-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="commissioningModalTitle" tabindex="-1">
         <div class="ykc-report-modal-header">

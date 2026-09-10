@@ -33,6 +33,8 @@ namespace YetkiliServisGazAcma.API.Controllers
                 }).ToList(),
                 SonDevreyeAlmalar = ozet.SonDevreyeAlmalar.Select(x => new AdminDevreyeAlmaOzetDto
                 {
+                    MusteriAdi = x.MusteriAdi,
+                    DevreyeAlmaTarihi = x.DevreyeAlmaTarihi,
                     Id = x.Id,
                     FirmaId = x.FirmaId,
                     FirmaAdi = x.Firma?.FirmaAdi,
