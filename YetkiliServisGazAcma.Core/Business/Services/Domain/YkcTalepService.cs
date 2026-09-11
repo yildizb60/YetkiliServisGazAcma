@@ -109,9 +109,9 @@ namespace YetkiliServisGazAcma.Business.Services
             };
         }
 
-        public async Task<YkcDashboardOzetDto> DashboardOzetAsync(AppKullanici kullanici, bool genelYetkili)
+        public async Task<YkcDashboardOzetDto> DashboardOzetAsync(AppKullanici kullanici, bool genelYetkili, int? aktifSirketId = null)
         {
-            var query = YetkiKapsamiUygula(TalepQuery(), kullanici, genelYetkili);
+            var query = YetkiKapsamiUygula(TalepQuery(), kullanici, genelYetkili, aktifSirketId);
 
             var toplam = await query.CountAsync();
             var incelemede = await query.CountAsync(x =>
@@ -992,8 +992,15 @@ namespace YetkiliServisGazAcma.Business.Services
         private static IQueryable<Ykc_Talep> YetkiKapsamiUygula(
             IQueryable<Ykc_Talep> query,
             AppKullanici kullanici,
-            bool genelYetkili)
+            bool genelYetkili,
+            int? dogrulanmisSirketId = null)
         {
+            // Explicit company selection is authorized by the API before querying.
+            if (dogrulanmisSirketId.HasValue)
+                return kullanici.FirmaId.HasValue
+                    ? query.Where(x => x.FirmaId == kullanici.FirmaId.Value && x.SirketId == dogrulanmisSirketId.Value)
+                    : query.Where(x => x.SirketId == dogrulanmisSirketId.Value);
+
             if (genelYetkili)
                 return query;
 
@@ -1012,6 +1019,7 @@ namespace YetkiliServisGazAcma.Business.Services
             if (kullanici.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma)
             {
                 dto.EskiCihaz = null;
+                dto.ProjedekiCihazBilgisi = null;
                 dto.AtananEkip = null;
                 dto.HedefUygulama = null;
             }
@@ -1369,6 +1377,13 @@ namespace YetkiliServisGazAcma.Business.Services
         }
     }
 
+    public class YkcCihazListeBilgisi
+    {
+        public string? Tip { get; set; }
+        public string? Marka { get; set; }
+        public string? Kapasite { get; set; }
+    }
+
     public class YkcTalepDto
     {
         public int Id { get; set; }
@@ -1384,6 +1399,8 @@ namespace YetkiliServisGazAcma.Business.Services
         public string? Bolge { get; set; }
         public string? EskiCihaz { get; set; }
         public string? YeniCihaz { get; set; }
+        public YkcCihazListeBilgisi? ProjedekiCihazBilgisi { get; set; }
+        public YkcCihazListeBilgisi? YeniCihazBilgisi { get; set; }
         public int Durum { get; set; }
         public DateTime TalepTarihi { get; set; }
         public string? AtananEkip { get; set; }
@@ -1409,6 +1426,8 @@ namespace YetkiliServisGazAcma.Business.Services
                 Bolge = YkcBolgeAtamaKurali.BolgeBelirle(talep.Bolge, talep.Il),
                 EskiCihaz = CihazOzeti(talep.EskiMarka, talep.EskiCihazTipi, talep.EskiKapasite),
                 YeniCihaz = CihazOzeti(talep.YeniMarka, talep.YeniCihazTipi, talep.YeniKapasite),
+                ProjedekiCihazBilgisi = new() { Tip = talep.EskiCihazTipi, Marka = talep.EskiMarka, Kapasite = talep.EskiKapasite },
+                YeniCihazBilgisi = new() { Tip = talep.YeniCihazTipi, Marka = talep.YeniMarka, Kapasite = talep.YeniKapasite },
                 Durum = talep.Durum,
                 TalepTarihi = talep.TalepTarihi,
                 AtananEkip = talep.AtananEkip,

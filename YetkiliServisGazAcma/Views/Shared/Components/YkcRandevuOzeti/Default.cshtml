@@ -1,41 +1,86 @@
-@model YkcTakvimSonuc
-<link rel="stylesheet" href="~/css/ykc-calendar.css" asp-append-version="true" />
-<section class="ykc-calendar ykc-dashboard-agenda" aria-labelledby="today-appointments-title">
-    <header class="ykc-calendar-header">
-        <div class="ykc-dashboard-agenda-title">
-            <span class="ykc-dashboard-agenda-icon"><i class="bi bi-calendar2-check" aria-hidden="true"></i></span>
-            <div>
-                <h2 id="today-appointments-title">Bugünkü Randevular</h2>
-                <small>@DateTime.Today.ToString("dd MMMM yyyy", new System.Globalization.CultureInfo("tr-TR"))</small>
-            </div>
-        </div>
-        <div class="ykc-dashboard-agenda-actions">
-            @if (Model != null)
-            {
-                <span class="ykc-dashboard-agenda-count">@Model.Toplam planlı ziyaret</span>
-            }
-            <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/takvim"><i class="bi bi-calendar3" aria-hidden="true"></i> Takvim</a>
-        </div>
+@model YetkiliServisGazAcma.ViewComponents.YkcRandevuOzetiModel
+@{
+    var tr = System.Globalization.CultureInfo.GetCultureInfo("tr-TR");
+    var ayBasi = new DateTime(Model.Tarih.Year, Model.Tarih.Month, 1);
+    var ilkGun = ayBasi.AddDays(-(((int)ayBasi.DayOfWeek + 6) % 7));
+    var action = Context.Request.Path.ToString();
+    var filtreAktif = new[] { Model.Filtre.Il, Model.Filtre.Bolge, Model.Filtre.Personel, Model.Filtre.Musteri }.Any(x => !string.IsNullOrWhiteSpace(x));
+    string GunLink(DateTime gun) => Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString(action, new Dictionary<string,string?> {
+        ["takvimTarih"] = gun.ToString("yyyy-MM-dd"), ["takvimIl"] = Model.Filtre.Il, ["takvimBolge"] = Model.Filtre.Bolge,
+        ["takvimPersonel"] = Model.Filtre.Personel, ["takvimAbone"] = Model.Filtre.Musteri
+    }) + "#home-calendar";
+    var takvimLink = Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString("/ykc/takvim", new Dictionary<string,string?> {
+        ["Baslangic"] = Model.Tarih.ToString("yyyy-MM-dd"), ["Bitis"] = Model.Tarih.ToString("yyyy-MM-dd"),
+        ["Il"] = Model.Filtre.Il, ["Bolge"] = Model.Filtre.Bolge, ["Personel"] = Model.Filtre.Personel, ["Musteri"] = Model.Filtre.Musteri
+    });
+}
+<link rel="stylesheet" href="~/css/home-calendar.css" asp-append-version="true" />
+<section class="home-calendar" id="home-calendar" aria-labelledby="home-calendar-title">
+    <header class="home-calendar-heading">
+        <h2 id="home-calendar-title"><i class="bi bi-calendar2-week" aria-hidden="true"></i>Cihaz Değişim Kontrol Takvimi</h2>
+        <a href="@takvimLink">Takvimi Aç <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
     </header>
-    @if (Model == null)
-    {
-        <div class="ykc-dashboard-agenda-empty"><i class="bi bi-exclamation-circle" aria-hidden="true"></i><span>Randevu bilgisi şu anda alınamıyor.</span></div>
-    }
-    else if (Model.Toplam == 0)
-    {
-        <div class="ykc-dashboard-agenda-empty"><i class="bi bi-calendar2" aria-hidden="true"></i><span>Bugün planlı ziyaret yok.</span></div>
-    }
-    else
-    {
-        @foreach (var item in Model.Kayitlar.Take(2))
-        {
-            <a class="ykc-calendar-entry" href="/ykc/detay/@item.Id">
-                <time>@item.Saat</time>
-                <span><strong>@item.Musteri</strong><small>Tesisat @item.TesisatNo · @item.Adres</small></span>
-                <span><strong>@(item.Personel ?? item.Ekip)</strong><small>@item.Bolge</small></span>
-                <span>@YkcDurumSunumu.Etiket(item.Durum)</span><i class="bi bi-arrow-right"></i>
-            </a>
-        }
-        @if (Model.Toplam > 2) { <a class="ykc-dashboard-agenda-more" href="/ykc/takvim">Tüm randevuları gör <i class="bi bi-arrow-right" aria-hidden="true"></i></a> }
-    }
+    <details class="home-calendar-filter-panel" open="@(filtreAktif ? "open" : null)">
+    <summary><span><i class="bi bi-funnel" aria-hidden="true"></i>Randevuları Filtrele</span><span>@(filtreAktif ? "Filtre uygulandı" : "")<i class="bi bi-chevron-down" aria-hidden="true"></i></span></summary>
+    <form method="get" action="@action#home-calendar" class="home-calendar-filters">
+        <input type="hidden" name="takvimTarih" value="@Model.Tarih.ToString("yyyy-MM-dd")" />
+        <label>Abone Adı Soyadı<input name="takvimAbone" value="@Model.Filtre.Musteri" maxlength="120" /></label>
+        <label>Personel / Ekip<input name="takvimPersonel" value="@Model.Filtre.Personel" maxlength="120" /></label>
+        <label>İl<input name="takvimIl" value="@Model.Filtre.Il" maxlength="120" /></label>
+        <label>Bölge<input name="takvimBolge" value="@Model.Filtre.Bolge" maxlength="120" /></label>
+        <button type="submit" class="df-btn df-btn-primary df-btn-sm"><i class="bi bi-funnel" aria-hidden="true"></i>Filtrele</button>
+        <a href="@action#home-calendar" class="home-calendar-icon" aria-label="Takvim filtrelerini temizle" title="Filtreleri temizle"><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i></a>
+    </form>
+    </details>
+    <div class="home-calendar-body">
+        <nav class="home-month" aria-label="Randevu günü seçimi">
+            <div class="home-month-nav">
+                <a class="home-calendar-icon" href="@GunLink(ayBasi.AddMonths(-1))" title="Önceki ay" aria-label="Önceki ay"><i class="bi bi-chevron-left" aria-hidden="true"></i></a>
+                <strong>@Model.Tarih.ToString("MMMM yyyy", tr)</strong>
+                <a class="home-calendar-icon" href="@GunLink(ayBasi.AddMonths(1))" title="Sonraki ay" aria-label="Sonraki ay"><i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+            </div>
+            <div class="home-month-days">
+                @foreach (var gun in new[] { "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz" }) { <span>@gun</span> }
+                @for (var i = 0; i < 42; i++)
+                {
+                    var gun = ilkGun.AddDays(i);
+                    var count = Model.AyGunleri.FirstOrDefault(x => x.Tarih.Date == gun)?.Toplam ?? 0;
+                    <a href="@GunLink(gun)" class="@(gun.Month != Model.Tarih.Month ? "is-other" : "") @(gun == DateTime.Today ? "is-today" : "")"
+                       aria-current="@(gun == Model.Tarih ? "date" : null)"
+                       aria-label="@($"{gun.ToString("dd MMMM yyyy", tr)}{(count > 0 ? $", {count} kontrol randevusu" : "")}")">
+                        @gun.Day @if (count > 0) { <i class="home-month-dot" aria-hidden="true"></i> }
+                    </a>
+                }
+            </div>
+            <a class="home-calendar-today" href="@GunLink(DateTime.Today)">Bugüne Dön</a>
+        </nav>
+        <div class="home-visits">
+            <header><h3>@(Model.Tarih == DateTime.Today ? "Bugün · " : "")@Model.Tarih.ToString("dd MMMM dddd", tr)</h3>
+                @if (Model.Gun != null) { <span>@Model.Gun.Toplam kontrol randevusu</span> }
+            </header>
+            @if (Model.Gun == null)
+            {
+                <div class="home-visits-empty"><i class="bi bi-exclamation-circle" aria-hidden="true"></i><p>Randevular alınamadı.</p><a href="@GunLink(Model.Tarih)">Yeniden Dene</a></div>
+            }
+            else if (Model.Gun.Toplam == 0)
+            {
+                <div class="home-visits-empty"><i class="bi bi-calendar2-check" aria-hidden="true"></i><p>Seçili gün ve filtrelerde kontrol randevusu yok.</p></div>
+            }
+            else
+            {
+                <div class="home-visit-list" tabindex="0" role="region" aria-label="Seçili günün kontrol randevuları">
+                    @foreach (var item in Model.Gun.Kayitlar)
+                    {
+                        <a class="home-visit @(item.Durum == YkcDurumDegerleri.Tamamlandi ? "is-complete" : "")" href="/ykc/detay/@item.Id?kaynak=takvim">
+                            <time>@(string.IsNullOrWhiteSpace(item.Saat) ? "Saat yok" : item.Saat)</time>
+                            <span class="home-visit-person"><strong>@(string.IsNullOrWhiteSpace(item.Musteri) ? "Abone adı kayıtlı değil" : item.Musteri)</strong><span>Tesisat No: @item.TesisatNo</span><small><i class="bi bi-geo-alt" aria-hidden="true"></i>@item.Adres</small></span>
+                            <span class="home-visit-owner"><span><i class="bi bi-people" aria-hidden="true"></i>@(item.Personel ?? item.Ekip ?? "Atanmadı")</span><small>@item.Il / @item.Bolge</small><span class="df-pill @YkcDurumSunumu.CssSinifi(item.Durum)">@YkcDurumSunumu.Etiket(item.Durum)</span></span>
+                            <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                        </a>
+                    }
+                </div>
+                @if (Model.Gun.Toplam > Model.Gun.Kayitlar.Count) { <a class="home-calendar-more" href="@takvimLink">Günün tüm @Model.Gun.Toplam randevusunu gör <i class="bi bi-arrow-right" aria-hidden="true"></i></a> }
+            }
+        </div>
+    </div>
 </section>

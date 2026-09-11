@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Microsoft.EntityFrameworkCore;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
@@ -129,7 +128,7 @@ namespace YetkiliServisGazAcma.Controllers
             kullanici.UserName = email;
             kullanici.PhoneNumber = telefon;
 
-            var sonuc = await _userManager.UpdateAsync(kullanici);
+            var sonuc = await _kullaniciOturumu.UpdateAsync(kullanici);
             if (sonuc.Succeeded) TempData["Basarili"] = "Profil bilgileriniz başarıyla güncellendi.";
             else TempData["Hata"] = "Güncelleme sırasında hata oluştu.";
 
@@ -149,7 +148,7 @@ namespace YetkiliServisGazAcma.Controllers
                 return RedirectToAction(nameof(Profil));
             }
 
-            var sonuc = await _userManager.ChangePasswordAsync(kullanici, mevcutSifre, yeniSifre);
+            var sonuc = await _kullaniciOturumu.ChangePasswordAsync(kullanici, mevcutSifre, yeniSifre);
             if (sonuc.Succeeded) TempData["SifreBasarili"] = "Şifreniz başarıyla değiştirildi.";
             else TempData["SifreHata"] = "Mevcut şifreniz yanlış.";
 

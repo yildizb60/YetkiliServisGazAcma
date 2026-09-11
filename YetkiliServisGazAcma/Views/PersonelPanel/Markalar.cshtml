@@ -22,26 +22,24 @@
         <div class="df-alert df-alert-danger">@TempData["Hata"]</div>
     }
 
-    <section class="df-page-panel df-admin-hero">
-        <div class="df-panel-head">
-            <div>
-                <h1 class="df-panel-title"><i class="bi bi-tags" aria-hidden="true"></i> Cihaz Markaları</h1>
+    <section class="df-admin-list-card">
+        <div class="df-service-list-head">
+            <div><h3><i class="bi bi-tags" aria-hidden="true"></i> Marka Listesi</h3></div>
+            <div class="df-admin-metrics df-inline-metrics" aria-label="Marka durum özeti">
+                <button class="df-admin-metric active" type="button" data-brand-status="all"><i class="bi bi-collection"></i><span>Tümü</span><strong>@markalar.Count</strong></button>
+                <button class="df-admin-metric is-active" type="button" data-brand-status="active"><i class="bi bi-check-circle"></i><span>Aktif</span><strong>@aktifSayisi</strong></button>
+                <button class="df-admin-metric is-passive" type="button" data-brand-status="passive"><i class="bi bi-slash-circle"></i><span>Pasif</span><strong>@pasifSayisi</strong></button>
             </div>
             @if (markaYonetebilir)
             {
-                <a class="df-btn df-btn-primary df-btn-sm" href="/personel-panel/markalar/ekle">
-                    <i class="bi bi-plus-lg"></i>
-                    Yeni Marka
-                </a>
+                <a class="df-btn df-btn-primary df-btn-sm" href="/personel-panel/markalar/ekle"><i class="bi bi-plus-lg"></i> Yeni Marka</a>
             }
         </div>
-    </section>
-
     <details class="df-admin-filter">
         <summary>
             <span>
                 <i class="bi bi-funnel"></i>
-                <span><strong>Filtreler</strong><small>Marka adı, açıklama veya durum</small></span>
+                <span><strong>Kayıtları Filtrele</strong></span>
             </span>
             <span>Filtreleri aç <i class="bi bi-chevron-down"></i></span>
         </summary>
@@ -59,17 +57,6 @@
         </div>
     </details>
 
-    <section class="df-admin-list-card">
-        <div class="df-service-list-head">
-            <div>
-                <h3><i class="bi bi-tags"></i> Marka Listesi</h3>
-            </div>
-            <div class="df-admin-metrics df-inline-metrics" aria-label="Marka durum özeti">
-                <button class="df-admin-metric active" type="button" data-brand-status="all"><i class="bi bi-collection"></i><span>Tümü</span><strong>@markalar.Count</strong></button>
-                <button class="df-admin-metric is-active" type="button" data-brand-status="active"><i class="bi bi-check-circle"></i><span>Aktif</span><strong>@aktifSayisi</strong></button>
-                <button class="df-admin-metric is-passive" type="button" data-brand-status="passive"><i class="bi bi-slash-circle"></i><span>Pasif</span><strong>@pasifSayisi</strong></button>
-            </div>
-        </div>
         <div class="df-admin-table-scroll">
             <table class="df-table">
                 <thead>

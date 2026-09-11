@@ -9,6 +9,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Threading.RateLimiting;
 using System.Text;
+using System.Security.Claims;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
 using YetkiliServisGazAcma.Business.Services;
@@ -27,6 +28,7 @@ builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
 builder.Services.AddControllers();
+builder.Services.AddHostedService<DevelopmentParentProcessService>();
 
 var publicCorsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
 builder.Services.AddCors(options =>
@@ -59,6 +61,13 @@ var publicQueueLimit = Math.Max(0, builder.Configuration.GetValue<int?>("RateLim
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("MobilImza", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = Math.Clamp(builder.Configuration.GetValue<int?>("RateLimiting:ImzaPermitLimit") ?? 120, 1, 1000), Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+    options.AddPolicy("Authentication", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = 30, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
     options.AddFixedWindowLimiter("PublicApi", limiter =>
     {
         limiter.PermitLimit = publicPermitLimit;
@@ -79,6 +88,11 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Identity
 builder.Services.AddIdentity<AppKullanici, IdentityRole>(options =>
 {
+    options.Password.RequireDigit = true;
+    options.Password.RequiredLength = 6;
+    options.Password.RequireUppercase = false;
+    options.Password.RequireNonAlphanumeric = false;
+    options.User.RequireUniqueEmail = true;
     options.Lockout.AllowedForNewUsers = true;
     options.Lockout.MaxFailedAccessAttempts = 5;
     options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
@@ -115,7 +129,12 @@ builder.Services.AddScoped<YkcFr265FormService>();
 builder.Services.AddScoped<YkcYetkiService>();
 builder.Services.AddScoped<YkcImzaAkisService>();
 var ykcImzaProvider = builder.Configuration["YkcImza:Provider"];
-if (builder.Environment.IsDevelopment()
+builder.Services.Configure<MobilImzaOptions>(builder.Configuration.GetSection("YkcImza:Mobil"));
+if (string.Equals(ykcImzaProvider, "Mobil", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.AddSingleton<IYkcImzaProvider, MobilYkcImzaProvider>();
+}
+else if (builder.Environment.IsDevelopment()
     && string.Equals(ykcImzaProvider, "Demo", StringComparison.OrdinalIgnoreCase))
 {
     builder.Services.AddSingleton<IYkcImzaProvider, DemoYkcImzaProvider>();
@@ -125,6 +144,13 @@ else
     builder.Services.AddSingleton<IYkcImzaProvider, YapilandirilmamisYkcImzaProvider>();
 }
 builder.Services.AddSmsServices(builder.Configuration);
+builder.Services.AddSertifikaliFirmaKimlikServices(builder.Configuration);
+builder.Services.AddDataProtection();
+builder.Services.AddScoped<OturumTokenService>();
+builder.Services.AddOptions<SmsOptions>()
+    .Validate(options => builder.Environment.IsDevelopment() || !options.TestMode,
+        "SMS TestMode yalnızca Development ortamında kullanılabilir.")
+    .ValidateOnStart();
 builder.Services.Configure<OnlineServiceOptions>(builder.Configuration.GetSection("OnlineService"));
 builder.Services.AddHttpClient<OnlineCihazBilgileriClient>((serviceProvider, client) =>
 {
@@ -156,7 +182,28 @@ builder.Services.AddAuthentication(options =>
             IssuerSigningKey = new SymmetricSecurityKey(
                                            Encoding.UTF8.GetBytes(jwtKey))
         };
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                var users = context.HttpContext.RequestServices.GetRequiredService<UserManager<AppKullanici>>();
+                var user = await users.GetUserAsync(context.Principal!);
+                var stamp = context.Principal!.FindFirstValue("stamp");
+                if (user?.AktifMi != true || string.IsNullOrEmpty(stamp)
+                    || stamp != await users.GetSecurityStampAsync(user)
+                    || context.Principal!.FindFirstValue("KullaniciTipi") != user.KullaniciTipi.ToString())
+                {
+                    context.Fail("Oturum geçersiz.");
+                    return;
+                }
+                var roles = await users.GetRolesAsync(user);
+                if (!roles.OrderBy(x => x).SequenceEqual(context.Principal!.FindAll(ClaimTypes.Role).Select(x => x.Value).OrderBy(x => x)))
+                    context.Fail("Kullanıcı yetkileri değişti.");
+            }
+        };
     });
+
+builder.Services.AddAuthentication().AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, MobilImzaAuthenticationHandler>(MobilImzaAuthenticationHandler.SchemeName, _ => { });
 
 builder.Services.ConfigureApplicationCookie(options =>
 {
@@ -187,6 +234,8 @@ builder.Services.ConfigureApplicationCookie(options =>
 
 builder.Services.AddAuthorization(options =>
 {
+    options.AddPolicy(MobilImzaAuthenticationHandler.SchemeName, new AuthorizationPolicyBuilder(MobilImzaAuthenticationHandler.SchemeName)
+        .RequireAuthenticatedUser().RequireClaim(MobilImzaAuthenticationHandler.CompanyClaim).Build());
     options.DefaultPolicy = new AuthorizationPolicyBuilder(JwtBearerDefaults.AuthenticationScheme)
         .RequireAuthenticatedUser()
         .Build();
@@ -210,6 +259,11 @@ builder.Services.AddSwaggerGen(c =>
     });
 
     // JWT desteği
+    c.AddSecurityDefinition("MobilImzaKey", new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.ApiKey, In = ParameterLocation.Header, Name = "X-Imza-Key",
+        Description = "Mobil imza entegrasyonu için şirketlerle sınırlandırılmış anahtar. Kullanıcı JWT token'ı değildir."
+    });
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Type = SecuritySchemeType.Http,
@@ -243,6 +297,8 @@ app.Use(async (context, next) =>
     context.Response.Headers["X-Content-Type-Options"] = "nosniff";
     context.Response.Headers["X-Frame-Options"] = "DENY";
     context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    if (context.Request.Path.StartsWithSegments("/api/auth"))
+        context.Response.Headers.CacheControl = "no-store";
     await next();
 });
 
@@ -301,8 +357,20 @@ app.Use(async (context, next) =>
 app.UseStaticFiles();
 app.UseRouting();
 app.UseCors("PublicApiCors");
-app.UseRateLimiter();
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 app.MapControllers();
+if (app.Environment.IsDevelopment()
+    && (app.Configuration.GetValue<bool>("Seed:CreateDefaultUsers") || app.Configuration.GetValue<bool>("TestData:SeedDemoUsers")))
+{
+    using var scope = app.Services.CreateScope();
+    var users = scope.ServiceProvider.GetRequiredService<UserManager<AppKullanici>>();
+    await YetkiliServisGazAcma.API.Infrastructure.SeedData.Initialize(users,
+        scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>(),
+        app.Configuration.GetValue<bool>("Seed:CreateDefaultUsers"));
+    if (app.Configuration.GetValue<bool>("TestData:SeedDemoUsers"))
+        await YetkiliServisGazAcma.API.Infrastructure.TestDataSeed.Initialize(
+            scope.ServiceProvider.GetRequiredService<AppDbContext>(), users);
+}
 app.Run();

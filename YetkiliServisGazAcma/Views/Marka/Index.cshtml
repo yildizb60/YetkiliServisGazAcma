@@ -24,40 +24,6 @@
         <div class="df-alert df-alert-danger">@TempData["Hata"]</div>
     }
 
-    <section class="df-page-panel df-admin-hero">
-        <div class="df-panel-head">
-            <div>
-                <h1 class="df-panel-title"><i class="bi bi-tags" aria-hidden="true"></i> Cihaz Markaları</h1>
-            </div>
-            <div class="df-actions">
-                @if (genelSistemAdminMi)
-                {
-                    <a class="df-btn df-btn-primary df-btn-sm" href="/Marka/Ekle">
-                        <i class="bi bi-plus-lg"></i>
-                        Yeni Marka
-                    </a>
-                }
-            </div>
-        </div>
-        <div class="df-admin-metrics" aria-label="Marka durum özeti">
-            <span class="df-admin-metric active">
-                <i class="bi bi-collection"></i>
-                <span>Tüm Markalar</span>
-                <strong>@Model.Count</strong>
-            </span>
-            <span class="df-admin-metric is-active">
-                <i class="bi bi-check-circle"></i>
-                <span>Aktif</span>
-                <strong>@aktifSayisi</strong>
-            </span>
-            <span class="df-admin-metric is-passive">
-                <i class="bi bi-slash-circle"></i>
-                <span>Pasif</span>
-                <strong>@pasifSayisi</strong>
-            </span>
-        </div>
-    </section>
-
     <details class="df-admin-filter" @(filtreAktif ? "open" : "")>
         <summary>
             <span>
@@ -104,6 +70,15 @@
             <div>
                 <h3><i class="bi bi-tags"></i> Marka Listesi</h3>
             </div>
+            <div class="df-admin-metrics df-inline-metrics" aria-label="Marka durum özeti">
+                <span class="df-admin-metric"><i class="bi bi-collection"></i><span>Tüm Markalar</span><strong>@Model.Count</strong></span>
+                <span class="df-admin-metric is-active"><i class="bi bi-check-circle"></i><span>Aktif</span><strong>@aktifSayisi</strong></span>
+                <span class="df-admin-metric is-passive"><i class="bi bi-slash-circle"></i><span>Pasif</span><strong>@pasifSayisi</strong></span>
+            </div>
+            @if (genelSistemAdminMi)
+            {
+                <a class="df-btn df-btn-primary df-btn-sm" href="/Marka/Ekle"><i class="bi bi-plus-lg"></i> Yeni Marka</a>
+            }
         </div>
 
         <div class="df-admin-table-scroll">

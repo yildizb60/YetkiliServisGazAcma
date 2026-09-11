@@ -158,6 +158,19 @@ namespace YetkiliServisGazAcma.API.Swagger
             if (route == null)
                 return;
 
+            if (route.StartsWith("api/entegrasyon/imza/", StringComparison.OrdinalIgnoreCase))
+            {
+                operation.Security = new List<OpenApiSecurityRequirement>
+                {
+                    new() { [new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "MobilImzaKey" } }] = Array.Empty<string>() }
+                };
+                operation.Description = "Varsayılan kapalı mobil imza sözleşmesi. HTTPS ve X-Imza-Key gerekir; yalnız anahtara tanımlı şirketlerin belgeleri erişilebilir. İmzalı sonuç için PDF Base64 zorunludur; URL-only sonuç kabul edilmez.";
+                operation.Responses.TryAdd("401", new OpenApiResponse { Description = "Entegrasyon kapalı veya kimlik geçersiz." });
+                operation.Responses.TryAdd("404", new OpenApiResponse { Description = "Bu şirkette imzaya açık belge bulunamadı." });
+                operation.Responses.TryAdd("409", new OpenApiResponse { Description = "Belge sürümü, kaynak hash veya sonuç çakışması." });
+                return;
+            }
+
             var authorizationNote = AuthorizationNote(context);
             if (!string.IsNullOrWhiteSpace(authorizationNote))
             {

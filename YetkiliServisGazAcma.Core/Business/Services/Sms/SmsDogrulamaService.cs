@@ -39,7 +39,7 @@ namespace YetkiliServisGazAcma.Business.Services
 
             amac = string.IsNullOrWhiteSpace(amac) ? "GIRIS" : amac.Trim().ToUpperInvariant();
             var kod = KodUret(_options.CodeLength);
-            var mesaj = amac == "SIFRE_SIFIRLA"
+            var mesaj = amac == "SIFRE_SIFIRLA" || amac.StartsWith("S:", StringComparison.Ordinal)
                 ? $"Yetkili Servis Devreye Alma şifre sıfırlama kodunuz: {kod}"
                 : $"Yetkili Servis Devreye Alma giriş doğrulama kodunuz: {kod}";
 
@@ -93,26 +93,21 @@ namespace YetkiliServisGazAcma.Business.Services
             if (kayit == null)
                 return (false, "Doğrulama kodu bulunamadı veya süresi doldu.");
 
-            kayit.DenemeSayisi++;
-            kayit.GuncellemeTarihi = DateTime.Now;
-
-            if (kayit.DenemeSayisi > Math.Max(1, _options.MaxAttempts))
-            {
-                kayit.SilindiMi = true;
-                kayit.SilinmeTarihi = DateTime.Now;
-                await _context.SaveChangesAsync();
-                return (false, "Çok fazla hatalı deneme yapıldı. Lütfen yeniden giriş yapın.");
-            }
-
-            if (!string.Equals(kayit.KodHash, Hashle(kullaniciId, kod.Trim(), _options.HashSecret), StringComparison.Ordinal))
-            {
-                await _context.SaveChangesAsync();
-                return (false, "Doğrulama kodu hatalı.");
-            }
-
-            kayit.KullanildiMi = true;
-            kayit.KullanildiTarihi = DateTime.Now;
-            await _context.SaveChangesAsync();
+            var valid = CryptographicOperations.FixedTimeEquals(
+                Encoding.UTF8.GetBytes(kayit.KodHash),
+                Encoding.UTF8.GetBytes(Hashle(kullaniciId, kod.Trim(), _options.HashSecret)));
+            // Conditional SQL update consumes a code once, even across concurrent API instances.
+            var eligible = _context.SmsDogrulamaKodlari.Where(x => x.Id == kayit.Id
+                && !x.KullanildiMi && !x.SilindiMi && x.GecerlilikTarihi >= DateTime.Now
+                && x.DenemeSayisi < Math.Max(1, _options.MaxAttempts));
+            var updated = valid
+                ? await eligible.ExecuteUpdateAsync(setters => setters
+                    .SetProperty(x => x.KullanildiMi, true).SetProperty(x => x.KullanildiTarihi, DateTime.Now)
+                    .SetProperty(x => x.DenemeSayisi, x => x.DenemeSayisi + 1))
+                : await eligible.ExecuteUpdateAsync(setters => setters
+                    .SetProperty(x => x.DenemeSayisi, x => x.DenemeSayisi + 1));
+            if (updated == 0) return (false, "Kod kullanılmış, süresi dolmuş veya deneme sınırı aşılmış. Yeniden kod isteyin.");
+            if (!valid) return (false, "Doğrulama kodu hatalı.");
             return (true, "SMS doğrulama tamamlandı.");
         }
 

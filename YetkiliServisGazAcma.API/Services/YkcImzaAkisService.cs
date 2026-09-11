@@ -6,7 +6,7 @@ using YetkiliServisGazAcma.Models;
 
 namespace YetkiliServisGazAcma.API.Services
 {
-    public sealed class YkcImzaAkisService
+    public sealed partial class YkcImzaAkisService
     {
         private static readonly TimeSpan GonderimKilidiSuresi = TimeSpan.FromMinutes(5);
         private readonly AppDbContext _context;
@@ -145,8 +145,9 @@ namespace YetkiliServisGazAcma.API.Services
                 {
                     TalepId = talep.Id,
                     BelgeVersiyonu = surec.BelgeVersiyonu,
-                    BelgeAdi = taslak.DosyaAdi ?? $"FR265_{talep.Id}.docx",
-                    IcerikTipi = taslak.IcerikTipi ?? "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    KontrolNo = detay.Kontroller.Where(x => x.Sonuc is YkcFr265KontrolSonucDegerleri.Uygun or YkcFr265KontrolSonucDegerleri.UygunDegil).Max(x => x.KontrolNo),
+                    BelgeAdi = taslak.DosyaAdi ?? $"Cihaz_Degisim_Formu_{talep.Id}.pdf",
+                    IcerikTipi = taslak.IcerikTipi ?? "application/pdf",
                     BelgeBytes = belgeBytes,
                     BelgeHash = taslak.BelgeHash ?? HashOlustur(belgeBytes),
                     TekrarsizIstekAnahtari = TekrarsizIstekAnahtari(talep.Id, surec.BelgeVersiyonu, taslak.BelgeHash),
@@ -233,6 +234,7 @@ namespace YetkiliServisGazAcma.API.Services
                         && await DemoNihaiBelgeyiYenileGerekiyorsaAsync(detay, talep, surec, mevcutNihaiDosya, kullanici, cancellationToken))
                     {
                         await _context.SaveChangesAsync(cancellationToken);
+                        return YkcIslemSonuc.BasariliSonuc("Demo PDF güncel form düzeniyle yenilendi.", talep.Id);
                     }
                 }
 

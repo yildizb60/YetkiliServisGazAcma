@@ -11,13 +11,13 @@ namespace YetkiliServisGazAcma.Controllers
         private readonly YetkiliServisApiClient _yetkiliServisApiClient;
         private readonly MarkaApiClient _markaApiClient;
         private readonly UrunKategoriApiClient _urunKategoriApiClient;
-        private readonly SehirFirmaKoduService _sehirFirmaKoduService;
+        private readonly SehirFirmaKodlari _sehirFirmaKoduService;
 
         public KayitController(
             YetkiliServisApiClient yetkiliServisApiClient,
             MarkaApiClient markaApiClient,
             UrunKategoriApiClient urunKategoriApiClient,
-            SehirFirmaKoduService sehirFirmaKoduService)
+            SehirFirmaKodlari sehirFirmaKoduService)
         {
             _yetkiliServisApiClient = yetkiliServisApiClient;
             _markaApiClient = markaApiClient;

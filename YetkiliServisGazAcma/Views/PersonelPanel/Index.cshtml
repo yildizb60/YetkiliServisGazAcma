@@ -1,127 +1,38 @@
 @using YetkiliServisGazAcma.Entities
 @{
-    ViewData["Title"] = "Personel Paneli";
-    ViewData["PanelTitle"] = "Genel Bakış";
-    ViewData["PanelSubtitle"] = "Personel Paneli";
+    ViewData["Title"] = "Ana Sayfa";
+    ViewData["PanelTitle"] = "Ana Sayfa";
     ViewData["ActiveMenu"] = "Dashboard";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
-
-    var sonBekleyenler = ViewBag.SonBekleyenler as List<Ys_YetkiBelgesi> ?? new();
-    var sonIslemler = ViewBag.SonIslemler as List<Ys_DevreyeAlma> ?? new();
-    var onayBekleyen = ViewBag.OnayBekleyen is int ob ? ob : 0;
-    var toplamFirma = ViewBag.ToplamFirma is int tf ? tf : 0;
-    var toplamDevreyeAlma = ViewBag.ToplamDevreyeAlma is int td ? td : sonIslemler.Count;
-    var toplamMarka = ViewBag.ToplamMarka is int tm ? tm : 0;
-    var toplamSirket = ViewBag.ToplamSirket is int ts ? ts : 0;
-    var buAy = ViewBag.BuAy is int ba ? ba : 0;
+    var ykc = ViewBag.YkcOzet as YkcDashboardOzetDto;
     var belgeYetkisi = ViewBag.YetkiBelgesi == true;
-    var raporYetkisi = ViewBag.YetkiRapor == true;
-    var sirketYetkisi = ViewBag.YetkiSirket == true;
-    var islemler = new List<DashboardAction>();
+    string Sayi(object? value) => value?.ToString() ?? "-";
+    var actions = new List<(string Title, string Url, string Icon, string Value, string Caption, string Tone, string Label1, string Stat1, string Label2, string Stat2)>();
     if (belgeYetkisi)
-    {
-        islemler.Add(new DashboardAction("Yetki Belgesi Onayları", "/personel-panel/onay-bekleyenler", "bi bi-file-earmark-check", onayBekleyen.ToString(), "bekleyen başvuru", "blue"));
-    }
-    islemler.Add(new DashboardAction("Cihaz Devreye Alma", "/personel-panel/devreyealmalar", "bi bi-bag-check", toplamDevreyeAlma.ToString(), $"toplam kayıt · bu ay {buAy}", "green"));
-    islemler.Add(new DashboardAction("Yetkili Servisler", "/personel-panel/yetkiliservisler", "bi bi-building-check", toplamFirma.ToString(), "kayıtlı servis", "cyan"));
-    islemler.Add(new DashboardAction("Cihaz Markaları", "/personel-panel/markalar", "bi bi-tags", toplamMarka.ToString(), "tanımlı marka", "amber"));
-    if (sirketYetkisi)
-    {
-        islemler.Add(new DashboardAction("Dağıtım Şirketleri", "/personel-panel/sirketler", "bi bi-buildings", toplamSirket.ToString(), "tanımlı şirket", "purple"));
-    }
-    if (raporYetkisi)
-    {
-        islemler.Add(new DashboardAction("Raporlar", "/personel-panel/raporlar", "bi bi-bar-chart-line", "", "işlem ve belge raporları", "gray"));
-    }
+        actions.Add(("Yetki Belgesi Onayları", "/personel-panel/onay-bekleyenler", "bi-file-earmark-check", Sayi(ViewBag.OnayBekleyen), "İnceleme bekleyen belge", "amber", "Onaylanan", Sayi(ViewBag.OnaylananBelge), "Reddedilen", Sayi(ViewBag.ReddedilenBelge)));
+    if (ViewBag.YetkiYkcTalep == true)
+        actions.Add(("Cihaz Değişim Talepleri", "/ykc/talepler", "bi-fire", Sayi(ykc?.Incelemede), "İnceleme / atama bekleyen", "blue", "Kontrolde", Sayi(ykc?.RandevuSaha), "Tamamlanan", Sayi(ykc?.Tamamlanan)));
+    var sonIslem = (ViewBag.SonIslemler as List<Ys_DevreyeAlma>)?.FirstOrDefault(x => x.DevreyeAlmaTarihi.Year > 1900);
+    actions.Add(("Cihaz Devreye Alma", "/personel-panel/devreyealmalar", "bi-tools", Sayi(ViewBag.BuAy), "Bu ayki devreye alma kaydı", "green", "Toplam kayıt", Sayi(ViewBag.ToplamDevreyeAlma), "Son işlem", sonIslem?.DevreyeAlmaTarihi.ToString("dd.MM.yyyy") ?? "-"));
+    if (ViewBag.YetkiServis == true)
+        actions.Add(("Yetkili Servisler", "/personel-panel/yetkiliservisler", "bi-building-check", Sayi(ViewBag.ServisToplam), "Kayıtlı yetkili servis", "cyan", "Aktif", Sayi(ViewBag.ServisAktif), "Pasif", Sayi(ViewBag.ServisPasif)));
 }
-
-@functions {
-    private sealed record DashboardAction(string Title, string Url, string Icon, string Value, string Meta, string Tone);
-}
-
-@section PageStyles {
-    <link rel="stylesheet" href="~/css/personnel-home.css" asp-append-version="true" />
-}
-
-<div class="df-dashboard df-personnel-home">
-    <header class="personnel-home-header">
-        <div><span><i class="bi bi-speedometer2" aria-hidden="true"></i></span><div><h1>Günlük Operasyonlar</h1><p>@DateTime.Today.ToString("dd MMMM yyyy, dddd", System.Globalization.CultureInfo.GetCultureInfo("tr-TR"))</p></div></div>
-        <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/takvim"><i class="bi bi-calendar3" aria-hidden="true"></i> Randevu Takvimi</a>
-    </header>
-
-    <section class="df-home-section" aria-labelledby="personnel-actions-title">
-        <div class="df-home-section-head">
-            <div><h1 id="personnel-actions-title">Öncelikli İşler</h1></div>
-        </div>
-        <div class="df-home-action-grid">
-            @foreach (var item in islemler.Take(3))
-            {
-                <a class="df-home-action is-@item.Tone" href="@item.Url">
-                    <span class="df-home-action-icon"><i class="@item.Icon" aria-hidden="true"></i></span>
-                    <span class="df-home-action-copy"><strong>@item.Title</strong><small>@item.Meta</small></span>
-                    @if (!string.IsNullOrWhiteSpace(item.Value))
-                    {
-                        <span class="df-home-action-value">@item.Value</span>
-                    }
-                    <i class="bi bi-chevron-right df-home-action-arrow" aria-hidden="true"></i>
-                </a>
-            }
-        </div>
-    </section>
-
-    <div class="personnel-home-overview">
-        @await Component.InvokeAsync("YkcRandevuOzeti")
-        <div class="df-home-feed-grid">
-        @if (belgeYetkisi)
+@section PageStyles { <link rel="stylesheet" href="~/css/operations-home.css" asp-append-version="true" /> }
+<div class="ops-home ops-personnel-home">
+    <nav class="ops-tiles" aria-label="Yetkili olduğum işlemler">
+        @foreach (var item in actions)
         {
-            <section class="df-home-feed" aria-labelledby="pending-documents-title">
-                <header>
-                    <div><span class="df-home-feed-icon is-blue"><i class="bi bi-file-earmark-check" aria-hidden="true"></i></span><h2 id="pending-documents-title">Bekleyen Yetki Belgeleri</h2></div>
-                    <a href="/personel-panel/onay-bekleyenler">Tümünü Gör <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
-                </header>
-                @if (!sonBekleyenler.Any())
-                {
-                    <div class="df-home-empty"><i class="bi bi-check2-circle" aria-hidden="true"></i><span>Bekleyen başvuru bulunmuyor.</span></div>
-                }
-                else
-                {
-                    <div class="df-home-feed-list">
-                        @foreach (var belge in sonBekleyenler.Take(2))
-                        {
-                            <a href="/personel-panel/onay-bekleyenler" class="df-home-feed-row">
-                                <span><small>Firma</small><strong>@(belge.Firma?.FirmaAdi ?? "Firma bilgisi yok")</strong><em>@(belge.Firma?.Sirket?.SirketAdi ?? "Şirket bilgisi yok")</em></span>
-                                <time datetime="@belge.OlusturmaTarihi.ToString("O")"><small>Başvuru</small><strong>@belge.OlusturmaTarihi.ToString("dd.MM.yyyy")</strong></time>
-                            </a>
-                        }
-                    </div>
-                }
-                <footer><a href="/personel-panel/onay-gecmisi"><i class="bi bi-clock-history" aria-hidden="true"></i> Sonuçlanan yetki belgeleri</a></footer>
-            </section>
+            <a class="ops-tile is-@item.Tone" href="@item.Url">
+                <div class="ops-tile-heading"><i class="bi @item.Icon" aria-hidden="true"></i><h2>@item.Title</h2></div>
+                <strong class="ops-tile-number">@item.Value</strong>
+                <span class="ops-tile-caption">@item.Caption</span>
+                <dl class="ops-tile-breakdown">
+                    <div><dt>@item.Label1</dt><dd>@item.Stat1</dd></div>
+                    <div><dt>@item.Label2</dt><dd>@item.Stat2</dd></div>
+                </dl>
+                <i class="bi bi-arrow-up-right ops-tile-arrow" aria-hidden="true"></i>
+            </a>
         }
-
-        <section class="df-home-feed" aria-labelledby="recent-commissioning-title">
-            <header>
-                <div><span class="df-home-feed-icon is-green"><i class="bi bi-bag-check" aria-hidden="true"></i></span><h2 id="recent-commissioning-title">Son Devreye Alma Kayıtları</h2></div>
-                <a href="/personel-panel/devreyealmalar">Tümünü Gör <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
-            </header>
-            @if (!sonIslemler.Any())
-            {
-                <div class="df-home-empty"><i class="bi bi-inbox" aria-hidden="true"></i><span>Henüz işlem kaydı bulunmuyor.</span></div>
-            }
-            else
-            {
-                <div class="df-home-feed-list">
-                    @foreach (var islem in sonIslemler.Take(2))
-                    {
-                        var tarihVar = islem.DevreyeAlmaTarihi.Year > 1900;
-                        <a href="/personel-panel/devreyealmalar/detay/@islem.Id" class="df-home-feed-row">
-                            <span><small>Müşteri</small><strong>@(string.IsNullOrWhiteSpace(islem.MusteriAdi) ? "Müşteri bilgisi yok" : islem.MusteriAdi)</strong><em>Tesisat No: @(islem.TesistatNo ?? "-") · @(islem.Firma?.FirmaAdi ?? "Servis bilgisi yok")</em></span>
-                            <time datetime="@(tarihVar ? islem.DevreyeAlmaTarihi.ToString("O") : null)"><small>Devreye Alma</small><strong>@(tarihVar ? islem.DevreyeAlmaTarihi.ToString("dd.MM.yyyy") : "Tarih yok")</strong></time>
-                        </a>
-                    }
-                </div>
-            }
-        </section>
-        </div>
-    </div>
+    </nav>
+    @await Component.InvokeAsync("YkcRandevuOzeti")
 </div>

@@ -11,23 +11,9 @@
     var reddedilen = Model.Count(x => x.Durum == YetkiBelgesiDurumDegerleri.Reddedildi);
 }
 
-<div class="df-admin-workspace df-certificate-workspace">
-    <section class="df-page-panel df-admin-hero">
-        <div class="df-panel-head">
-            <div>
-                <div class="df-panel-kicker"><i class="bi bi-file-earmark-check" aria-hidden="true"></i> YETKİ BELGESİ</div>
-                <h1 class="df-panel-title">Yetki Belgem</h1>
-                <div class="df-panel-subtitle">Yeni belgenizi yükleyin, inceleme sonucunu ve geçerlilik tarihini takip edin.</div>
-            </div>
-        </div>
-        <div class="df-admin-metrics" aria-label="Belge özeti">
-            <span class="df-admin-metric"><i class="bi bi-files" aria-hidden="true"></i><span>Toplam</span><strong>@Model.Count</strong></span>
-            <span class="df-admin-metric is-waiting"><i class="bi bi-hourglass-split" aria-hidden="true"></i><span>Onay Bekleyen</span><strong>@bekleyen</strong></span>
-            <span class="df-admin-metric is-approved"><i class="bi bi-check-circle" aria-hidden="true"></i><span>Onaylanan</span><strong>@onaylanan</strong></span>
-            <span class="df-admin-metric is-rejected"><i class="bi bi-x-circle" aria-hidden="true"></i><span>Reddedilen</span><strong>@reddedilen</strong></span>
-        </div>
-    </section>
+@section PageStyles { <link rel="stylesheet" href="~/css/operations-directory.css" asp-append-version="true" /> }
 
+<div class="df-admin-workspace df-certificate-workspace">
     @if (TempData["Basarili"] != null) { <div class="df-alert df-alert-success">@TempData["Basarili"]</div> }
     @if (TempData["Hata"] != null) { <div class="df-alert df-alert-danger">@TempData["Hata"]</div> }
 
@@ -37,14 +23,12 @@
             <span>Yükleme alanını aç <i class="bi bi-chevron-down" aria-hidden="true"></i></span>
         </summary>
         <div class="df-admin-filter-body">
-            <form method="post" action="/ys-yetki-belgesi/yukle" enctype="multipart/form-data">
+            <form method="post" action="/ys-yetki-belgesi/yukle" enctype="multipart/form-data" class="ys-certificate-upload">
                 @Html.AntiForgeryToken()
-                <div class="df-admin-filter-grid">
-                    <div class="df-admin-field is-wide"><label for="dosya">Belge Dosyası *</label><input id="dosya" type="file" name="dosya" accept=".pdf,.jpg,.jpeg,.png" required /></div>
-                    <div class="df-admin-field"><label for="baslangicTarihi">Başlangıç Tarihi</label><input id="baslangicTarihi" type="date" name="baslangicTarihi" value="@DateTime.Now.ToString("yyyy-MM-dd")" /></div>
-                    <div class="df-admin-field"><label for="bitisTarihi">Bitiş Tarihi *</label><input id="bitisTarihi" type="date" name="bitisTarihi" required /></div>
-                </div>
-                <div class="df-admin-filter-actions"><button class="df-btn df-btn-primary" type="submit"><i class="bi bi-cloud-arrow-up" aria-hidden="true"></i> Belgeyi Yükle</button></div>
+                <div class="df-admin-field is-file"><label for="dosya">Belge Dosyası *</label><input id="dosya" type="file" name="dosya" accept=".pdf,.jpg,.jpeg,.png" required /></div>
+                <div class="df-admin-field"><label for="baslangicTarihi">Başlangıç Tarihi</label><input id="baslangicTarihi" type="date" name="baslangicTarihi" value="@DateTime.Now.ToString("yyyy-MM-dd")" /></div>
+                <div class="df-admin-field"><label for="bitisTarihi">Bitiş Tarihi *</label><input id="bitisTarihi" type="date" name="bitisTarihi" required /></div>
+                <button class="df-btn df-btn-primary" type="submit"><i class="bi bi-cloud-arrow-up" aria-hidden="true"></i> Belgeyi Yükle</button>
             </form>
         </div>
     </details>
@@ -64,8 +48,13 @@
 
     <section class="df-admin-list-card">
         <div class="df-service-list-head">
-            <div><h3><i class="bi bi-clock-history" aria-hidden="true"></i> Belge Geçmişi</h3><span>Yükleme tarihi, geçerlilik ve inceleme sonucu</span></div>
-            <strong>@Model.Count kayıt</strong>
+            <div><h3><i class="bi bi-clock-history" aria-hidden="true"></i> Belge Geçmişi</h3></div>
+            <div class="df-admin-metrics df-inline-metrics" aria-label="Belge özeti">
+                <span class="df-admin-metric"><i class="bi bi-files" aria-hidden="true"></i><span>Toplam</span><strong>@Model.Count</strong></span>
+                <span class="df-admin-metric is-waiting"><i class="bi bi-hourglass-split" aria-hidden="true"></i><span>Onay Bekleyen</span><strong>@bekleyen</strong></span>
+                <span class="df-admin-metric is-approved"><i class="bi bi-check-circle" aria-hidden="true"></i><span>Onaylanan</span><strong>@onaylanan</strong></span>
+                <span class="df-admin-metric is-rejected"><i class="bi bi-x-circle" aria-hidden="true"></i><span>Reddedilen</span><strong>@reddedilen</strong></span>
+            </div>
         </div>
         @if (Model.Count == 0)
         {

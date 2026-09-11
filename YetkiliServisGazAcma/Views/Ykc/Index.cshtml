@@ -3,96 +3,63 @@
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
     ViewData["Title"] = "Ana Sayfa";
     ViewData["PanelTitle"] = "Ana Sayfa";
-    ViewData["PanelSubtitle"] = "Cihaz Değişimi";
     ViewData["ActiveMenu"] = "Dashboard";
-    var toplam = Model.Toplam;
-    var tamamlanan = Model.Tamamlanan;
-    var devamEden = Math.Max(toplam - tamamlanan - Model.RedIptal, 0);
-    var sonTalepler = Model.SonTalepler.Take(5).ToList();
-    var yaklasanRandevular = Model.SonTalepler
-        .Where(x => x.RandevuTarihi.HasValue && x.RandevuTarihi.Value.Date >= DateTime.Today)
-        .OrderBy(x => x.RandevuTarihi).ThenBy(x => x.RandevuSaati).Take(4).ToList();
     var tr = System.Globalization.CultureInfo.GetCultureInfo("tr-TR");
-}
-@functions {
-    private static string Deger(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
-    private static string DurumYazi(int durum) => YkcDurumSunumu.Etiket(durum);
-    private static string DurumClass(int durum) => YkcDurumSunumu.CssSinifi(durum);
-    private static string RandevuYazi(DateTime? tarih, string? saat)
-    {
-        if (!tarih.HasValue && string.IsNullOrWhiteSpace(saat)) return "Henüz planlanmadı";
-        return string.Join(" ", new[] { tarih?.ToString("dd.MM.yyyy"), string.IsNullOrWhiteSpace(saat) ? null : saat }.Where(x => !string.IsNullOrWhiteSpace(x)));
-    }
+    var ozetler = new[] {
+        ("bi-journal-text", "Tüm taleplerim", Model.Toplam, "Kayıtlı cihaz değişim talebi", "blue"),
+        ("bi-hourglass-split", "İnceleme / atama bekleyen", Model.Incelemede, "Cihaz değişim talebi", "amber"),
+        ("bi-calendar2-check", "Kontrol sürecindeki", Model.RandevuSaha, "Randevu verilen / kontrolü süren talep", "cyan"),
+        ("bi-check2-circle", "Tamamlanan", Model.Tamamlanan, "Sonuçlanan cihaz değişim talebi", "green")
+    };
 }
 @section PageStyles {
-    <link rel="stylesheet" href="~/css/ykc-home.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/operations-home.css" asp-append-version="true" />
 }
-<div class="ykc-home">
-    <header class="ykc-home-header">
-        <div class="ykc-home-title">
-            <span class="ykc-home-title-icon"><i class="bi bi-grid-1x2" aria-hidden="true"></i></span>
-            <div><h1>Ana Sayfa</h1><p>@DateTime.Today.ToString("dd MMMM yyyy, dddd", tr)</p></div>
-        </div>
-        <a class="df-btn df-btn-primary" href="/ykc/yeni"><i class="bi bi-plus-lg" aria-hidden="true"></i> Yeni Talep</a>
+<div class="ops-home">
+    <header class="ops-home-toolbar">
+        <time datetime="@DateTime.Today.ToString("yyyy-MM-dd")"><i class="bi bi-calendar3" aria-hidden="true"></i>@DateTime.Today.ToString("dd MMMM yyyy, dddd", tr)</time>
+        <a class="df-btn df-btn-primary" href="/ykc/yeni"><i class="bi bi-plus-lg" aria-hidden="true"></i>Yeni Cihaz Değişim Talebi</a>
     </header>
-
-    <dl class="ykc-home-metrics" aria-label="Talep durumu özeti">
-        <div><i class="bi bi-collection" aria-hidden="true"></i><dt>Toplam Talep</dt><dd>@toplam</dd></div>
-        <div class="is-blue"><i class="bi bi-search" aria-hidden="true"></i><dt>İncelenen</dt><dd>@Model.Incelemede</dd></div>
-        <div class="is-amber"><i class="bi bi-calendar2-check" aria-hidden="true"></i><dt>Randevu / İşlem</dt><dd>@Model.RandevuSaha</dd></div>
-        <div class="is-violet"><i class="bi bi-pen" aria-hidden="true"></i><dt>İmza Bekleyen</dt><dd>@Model.ImzaBekleyen</dd></div>
-        <div class="is-green"><i class="bi bi-check2-circle" aria-hidden="true"></i><dt>Tamamlanan</dt><dd>@tamamlanan</dd></div>
-    </dl>
-
-    <nav class="ykc-home-shortcuts" aria-label="Sık kullanılan işlemler">
-        <a href="/ykc/talepler"><i class="bi bi-journal-text" aria-hidden="true"></i><span><strong>Taleplerim</strong><small>@devamEden devam eden işlem</small></span><i class="bi bi-chevron-right" aria-hidden="true"></i></a>
-        <a href="/ykc/talepler?durum=@YkcDurumDegerleri.Tamamlandi"><i class="bi bi-file-earmark-check" aria-hidden="true"></i><span><strong>Tamamlanan Talepler</strong><small>Form ve işlem sonuçları</small></span><i class="bi bi-chevron-right" aria-hidden="true"></i></a>
-    </nav>
-
-    <div class="ykc-home-grid">
-        <section class="ykc-home-panel ykc-home-recent" aria-labelledby="recent-requests-title">
-            <header><div><i class="bi bi-clock-history" aria-hidden="true"></i><h2 id="recent-requests-title">Son Talepler</h2></div><a href="/ykc/talepler">Tümünü Gör <i class="bi bi-arrow-right" aria-hidden="true"></i></a></header>
-            @if (!sonTalepler.Any())
-            {
-                <div class="ykc-home-empty"><i class="bi bi-inbox" aria-hidden="true"></i><span>Henüz cihaz değişim talebi bulunmuyor.</span></div>
-            }
-            else
-            {
-                <div class="ykc-home-request-head" aria-hidden="true"><span>Talep</span><span>Müşteri ve Tesisat</span><span>Randevu</span><span>Durum</span></div>
-                <div class="ykc-home-request-list">
-                    @foreach (var talep in sonTalepler)
-                    {
-                        <a class="ykc-home-request" href="/ykc/detay/@talep.Id">
-                            <span class="ykc-home-request-id"><small>Talep No</small><strong>#@talep.Id</strong></span>
-                            <span class="ykc-home-request-customer"><small>Müşteri</small><strong>@Deger(talep.MusteriAdi)</strong><em>Tesisat No: @Deger(talep.TesisatNo)</em></span>
-                            <span class="ykc-home-request-appointment"><small>Randevu</small><strong>@RandevuYazi(talep.RandevuTarihi, talep.RandevuSaati)</strong></span>
-                            <span class="df-pill @DurumClass(talep.Durum)">@DurumYazi(talep.Durum)</span>
-                            <i class="bi bi-chevron-right" aria-hidden="true"></i>
-                        </a>
-                    }
-                </div>
-            }
-        </section>
-
-        <section class="ykc-home-panel ykc-home-agenda" aria-labelledby="upcoming-appointments-title">
-            <header><div><i class="bi bi-calendar2-week" aria-hidden="true"></i><h2 id="upcoming-appointments-title">Yaklaşan Randevular</h2></div><a href="/ykc/talepler">Tümünü Gör <i class="bi bi-arrow-right" aria-hidden="true"></i></a></header>
-            @if (!yaklasanRandevular.Any())
-            {
-                <div class="ykc-home-empty"><i class="bi bi-calendar2" aria-hidden="true"></i><span>Planlanmış yaklaşan randevu bulunmuyor.</span></div>
-            }
-            else
-            {
-                <div class="ykc-home-agenda-list">
-                    @foreach (var talep in yaklasanRandevular)
-                    {
-                        <a class="ykc-home-agenda-row" href="/ykc/detay/@talep.Id">
-                            <time><strong>@Deger(talep.RandevuSaati)</strong><small>@talep.RandevuTarihi?.ToString("dd MMM")</small></time>
-                            <span><small>Müşteri</small><strong>@Deger(talep.MusteriAdi)</strong><em>Tesisat No: @Deger(talep.TesisatNo)</em></span>
-                            <i class="bi bi-chevron-right" aria-hidden="true"></i>
-                        </a>
-                    }
-                </div>
-            }
-        </section>
+    <div class="ops-tiles" aria-label="Cihaz değişim taleplerimin durumu">
+        @foreach (var (icon, title, count, caption, tone) in ozetler)
+        {
+            <section class="ops-tile is-@tone">
+                <div class="ops-tile-heading"><i class="bi @icon" aria-hidden="true"></i><h2>@title</h2></div>
+                <strong class="ops-tile-number">@count</strong>
+                <span class="ops-tile-caption">@caption</span>
+            </section>
+        }
     </div>
+    <section class="ops-records" aria-labelledby="recent-title">
+        <header class="ops-section-heading">
+            <h2 id="recent-title"><i class="bi bi-clock-history" aria-hidden="true"></i>Son Cihaz Değişim Taleplerim</h2>
+            <a href="/ykc/talepler">Tüm Taleplerim<i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+        </header>
+        @if (Model.SonTalepler.Count == 0)
+        {
+            <div class="ops-empty"><i class="bi bi-inbox" aria-hidden="true"></i><p>Henüz cihaz değişim talebiniz bulunmuyor.</p></div>
+        }
+        else
+        {
+            <div class="ops-table-scroll">
+                <table class="ops-table">
+                    <thead><tr><th>Talep No</th><th>Abone Adı Soyadı</th><th>Tesisat No</th><th>Kontrol Randevusu</th><th>Talep Durumu</th><th><span class="visually-hidden">Detay</span></th></tr></thead>
+                    <tbody>
+                    @foreach (var item in Model.SonTalepler.Take(5))
+                    {
+                        <tr>
+                            <td><a class="ops-record-link" href="/ykc/detay/@item.Id">#@item.Id</a></td>
+                            <td>@(string.IsNullOrWhiteSpace(item.MusteriAdi) ? "Kayıtlı değil" : item.MusteriAdi)</td>
+                            <td>@item.TesisatNo</td>
+                            <td>@if (item.RandevuTarihi.HasValue) { <time>@item.RandevuTarihi.Value.ToString("dd.MM.yyyy") <b>@item.RandevuSaati</b></time> } else { <span class="ops-muted">Planlanmadı</span> }</td>
+                            <td><span class="df-pill @YkcDurumSunumu.CssSinifi(item.Durum)">@(item.Durum == YkcDurumDegerleri.TalepAlindi ? "İnceleme Bekleniyor" : YkcDurumSunumu.Etiket(item.Durum))</span></td>
+                            <td><a class="ops-icon-button" href="/ykc/detay/@item.Id" aria-label="@($"Talep {item.Id} detayını aç")" title="Talep detayını aç"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+        @if (Model.RedIptal > 0) { <footer class="ops-section-footer">@Model.RedIptal talep ret / iptal ile sonuçlandı.</footer> }
+    </section>
 </div>

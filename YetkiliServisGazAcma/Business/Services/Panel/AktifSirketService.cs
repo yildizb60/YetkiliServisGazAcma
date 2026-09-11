@@ -8,16 +8,16 @@ namespace YetkiliServisGazAcma.Business.Services
         private const string SessionPrefix = "AktifSirketId:";
 
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly UserManager<AppKullanici> _userManager;
+        private readonly ApiKullaniciOturumu _kullaniciOturumu;
         private readonly PanelKapsamApiClient _panelKapsamApiClient;
 
         public AktifSirketService(
             IHttpContextAccessor httpContextAccessor,
-            UserManager<AppKullanici> userManager,
+            ApiKullaniciOturumu kullaniciOturumu,
             PanelKapsamApiClient panelKapsamApiClient)
         {
             _httpContextAccessor = httpContextAccessor;
-            _userManager = userManager;
+            _kullaniciOturumu = kullaniciOturumu;
             _panelKapsamApiClient = panelKapsamApiClient;
         }
 
@@ -39,7 +39,7 @@ namespace YetkiliServisGazAcma.Business.Services
             if (GenelSistemAdminTipi(kullanici))
                 return true;
 
-            return await _userManager.IsInRoleAsync(kullanici, KullaniciRolAdlari.GenelSistemAdmin);
+            return await _kullaniciOturumu.IsInRoleAsync(kullanici, KullaniciRolAdlari.GenelSistemAdmin);
         }
 
         public async Task<bool> SirketAdminMi(AppKullanici? kullanici)
@@ -49,7 +49,7 @@ namespace YetkiliServisGazAcma.Business.Services
             if (SirketAdminTipi(kullanici))
                 return true;
 
-            return await _userManager.IsInRoleAsync(kullanici, KullaniciRolAdlari.SirketAdmin);
+            return await _kullaniciOturumu.IsInRoleAsync(kullanici, KullaniciRolAdlari.SirketAdmin);
         }
 
         public async Task<List<Dag_Sirket>> KullaniciSirketleriAsync(AppKullanici? kullanici)

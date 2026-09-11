@@ -15,6 +15,11 @@ function Check($Condition, $Name) {
 }
 function Token($Email) {
     $result = Post-Json '/api/auth/token' @{ email = $Email; sifre = 'Demo123!' } $null
+    if ($result.Data.dogrulama) {
+        if ($result.Data.mesaj -notmatch 'Test SMS modu:.*?(\d{6})') { throw "Demo login requires an unavailable live SMS code: $Email" }
+        $code = $Matches[1]
+        $result = Post-Json '/api/auth/sms-dogrula' @{ dogrulama = $result.Data.dogrulama; kod = $code } $null
+    }
     if ($result.Status -ne 200 -or -not $result.Data.token) { throw "Demo login failed: $Email" }
     return $result.Data.token
 }

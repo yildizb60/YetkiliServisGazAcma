@@ -16,7 +16,7 @@
     var aktifSayfa = Math.Clamp(Model.Sayfa, 1, toplamSayfa);
     var ilkKayit = Model.Toplam == 0 ? 0 : ((aktifSayfa - 1) * Model.SayfaBoyutu) + 1;
     var sonKayit = Math.Min(aktifSayfa * Model.SayfaBoyutu, Model.Toplam);
-    var kolonSayisi = icOperasyonGorsun ? 9 : 7;
+    var kolonSayisi = icOperasyonGorsun ? 10 : 8;
 
     void AktifFiltreEkle(string etiket, string? deger)
     {
@@ -25,7 +25,7 @@
     }
 
     AktifFiltreEkle("Tesisat", filtre.TesisatNo);
-    AktifFiltreEkle("Müşteri", filtre.MusteriAdi);
+    AktifFiltreEkle("Abone adı soyadı", filtre.MusteriAdi);
     AktifFiltreEkle("Sözleşme", filtre.SozlesmeNo);
     AktifFiltreEkle("Abone", filtre.AboneNo);
     AktifFiltreEkle("Firma", filtre.Firma);
@@ -100,7 +100,7 @@
         (YkcDurumDegerleri.SahaIsleminde, true) => "Form ve imzayı kontrol et",
         (YkcDurumDegerleri.TalepAlindi, false) => "Talebin durumunu gör",
         (YkcDurumDegerleri.AtamaBekliyor, false) => "İnceleme durumunu gör",
-        (YkcDurumDegerleri.Atandi, false) => "Randevuyu gör",
+        (YkcDurumDegerleri.Atandi, false) => "Kontrol randevusunu gör",
         (YkcDurumDegerleri.SahaIsleminde, false) => "Form sürecini gör",
         (YkcDurumDegerleri.Tamamlandi, _) => "Tamamlanan kaydı gör",
         (YkcDurumDegerleri.Reddedildi, _) => "Red gerekçesini gör",
@@ -125,10 +125,7 @@
     }
 
     <header class="ykc-list-header">
-        <div class="ykc-list-heading">
-            <span class="ykc-list-heading-icon"><i class="bi bi-journal-text" aria-hidden="true"></i></span>
-            <div><h1>@(sertifikaliFirmaMi ? "Taleplerim" : "Gelen Talepler")</h1><small>Cihaz değişim kayıtları</small></div>
-        </div>
+        <h1 class="ykc-list-accessible-title">@ViewData["Title"]</h1>
         @if (sertifikaliFirmaMi)
         {
             <div class="ykc-header-actions">
@@ -136,10 +133,10 @@
             </div>
         }
         <dl class="ykc-inline-overview" aria-label="Talep özeti">
-            <div><dt>Toplam</dt><dd>@ozet.Toplam</dd></div>
-            <div><dt>İncelenen</dt><dd>@ozet.Incelemede</dd></div>
-            <div><dt>Randevu / İşlem</dt><dd>@ozet.RandevuSaha</dd></div>
-            <div><dt>Tamamlanan</dt><dd>@ozet.Tamamlanan</dd></div>
+            <div><dt>Toplam talep</dt><dd>@ozet.Toplam</dd></div>
+            <div><dt>İnceleme / atama bekleyen talep</dt><dd>@ozet.Incelemede</dd></div>
+            <div><dt>Kontrol sürecindeki talep</dt><dd>@ozet.RandevuSaha</dd></div>
+            <div><dt>Tamamlanan talep</dt><dd>@ozet.Tamamlanan</dd></div>
         </dl>
     </header>
 
@@ -154,29 +151,25 @@
                         <span class="ykc-filter-chip"><b>@item.Etiket</b>@item.Deger</span>
                     }
                 }
-                else
-                {
-                    <span class="ykc-filter-hint">@(sertifikaliFirmaMi ? "Tesisat, durum veya tarih ile taleplerinizi daraltın." : "Tesisat, durum, firma, bölge veya tarih ile listeyi daraltın.")</span>
-                }
             </span>
             <span class="ykc-filter-chevron"><i class="bi bi-chevron-down"></i></span>
         </summary>
         <form method="get" action="/ykc/talepler" class="ykc-filter-form">
             <div class="ykc-filter-grid">
                 <div class="ykc-filter-field">
-                    <label>Tesisat</label>
+                    <label>Tesisat No</label>
                     <input type="text" name="tesisatNo" value="@filtre.TesisatNo" placeholder="Tesisat no" />
                 </div>
                 <div class="ykc-filter-field">
-                    <label>Müşteri</label>
-                    <input type="text" name="musteriAdi" value="@filtre.MusteriAdi" placeholder="Müşteri adı" />
+                    <label for="talepAboneAdi">Abone Adı Soyadı</label>
+                    <input id="talepAboneAdi" type="text" name="musteriAdi" value="@filtre.MusteriAdi" />
                 </div>
                 <div class="ykc-filter-field">
-                    <label>Sözleşme</label>
+                    <label>Sözleşme No</label>
                     <input type="text" name="sozlesmeNo" value="@filtre.SozlesmeNo" placeholder="Sözleşme no" />
                 </div>
                 <div class="ykc-filter-field">
-                    <label>Abone</label>
+                    <label>Abone No</label>
                     <input type="text" name="aboneNo" value="@filtre.AboneNo" placeholder="Abone no" />
                 </div>
                 @if (icOperasyonGorsun)
@@ -247,24 +240,25 @@
                 <colgroup>
                     @if (icOperasyonGorsun)
                     {
-                        <col style="width:6%" /><col style="width:10%" /><col style="width:10%" /><col style="width:14%" /><col style="width:11%" /><col style="width:11%" /><col style="width:15%" /><col style="width:9%" /><col style="width:14%" />
+                        <col style="width:6%" /><col style="width:9%" /><col style="width:9%" /><col style="width:15%" /><col style="width:7%" /><col style="width:10%" /><col style="width:10%" /><col style="width:12%" /><col style="width:10%" /><col style="width:12%" />
                     }
                     else
                     {
-                        <col style="width:8%" /><col style="width:17%" /><col style="width:20%" /><col style="width:17%" /><col style="width:15%" /><col style="width:9%" /><col style="width:14%" />
+                        <col style="width:7%" /><col style="width:13%" /><col style="width:19%" /><col style="width:9%" /><col style="width:15%" /><col style="width:13%" /><col style="width:11%" /><col style="width:13%" />
                     }
                 </colgroup>
                 <thead>
                     <tr>
                         <th>Talep</th>
-                        <th>@(icOperasyonGorsun ? "Müşteri" : "Müşteri / Konum")</th>
+                        <th>Abone Adı Soyadı</th>
                         @if (icOperasyonGorsun) { <th>Firma</th> }
                         <th>Tesisat ve Abone Bilgileri</th>
+                        <th>Cihaz Türü</th>
                         @if (icOperasyonGorsun) { <th>Projedeki Cihaz</th> }
                         <th>Yeni Kullanılan Cihaz</th>
-                        <th>@(icOperasyonGorsun ? "Randevu / Yönlendirme" : "Randevu")</th>
+                        <th>Kontrol Randevusu</th>
                         <th>Durum</th>
-                        <th>Gereken İşlem</th>
+                        <th>@(icOperasyonGorsun ? "Gereken İşlem" : "Görüntüle")</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -286,9 +280,8 @@
                                     <div class="ykc-primary-cell"><span class="ykc-code">#@talep.Id</span></div>
                                     <div class="ykc-cell-meta">@talep.TalepTarihi.ToString("dd.MM.yyyy HH:mm")</div>
                                 </td>
-                                <td data-label="Müşteri">
+                                <td data-label="Abone Adı Soyadı">
                                     <div class="ykc-primary-cell">@Deger(talep.MusteriAdi)</div>
-                                    @if (!icOperasyonGorsun) { <div class="ykc-cell-meta">@KonumYazi(talep.Il, talep.Ilce, talep.Bolge)</div> }
                                 </td>
                                 @if (icOperasyonGorsun)
                                 {
@@ -296,14 +289,18 @@
                                 }
                                 <td data-label="Tesisat ve Abone Bilgileri">
                                     <dl class="ykc-id-list">
-                                        <div><dt>Tesisat No</dt><dd>@Deger(talep.TesisatNo)</dd></div>
-                                        <div><dt>Sözleşme No</dt><dd>@Deger(talep.SozlesmeNo)</dd></div>
-                                        <div><dt>Abone No</dt><dd>@Deger(talep.AboneNo)</dd></div>
+                                        <div><dt>Tesisat No:</dt><dd>@Deger(talep.TesisatNo)</dd></div>
+                                        <div><dt>Sözleşme No:</dt><dd>@Deger(talep.SozlesmeNo)</dd></div>
+                                        <div><dt>Abone No:</dt><dd>@Deger(talep.AboneNo)</dd></div>
                                     </dl>
                                 </td>
-                                @if (icOperasyonGorsun) { <td data-label="Projedeki Cihaz"><div class="ykc-device-column is-project">@Deger(talep.EskiCihaz)</div></td> }
-                                <td data-label="Yeni Kullanılan Cihaz"><div class="ykc-device-column is-new">@Deger(talep.YeniCihaz)</div></td>
-                                <td data-label="@(icOperasyonGorsun ? "Randevu / Yönlendirme" : "Randevu")">
+                                <td data-label="Cihaz Türü">@Deger(talep.YeniCihazBilgisi?.Tip)</td>
+                                @if (icOperasyonGorsun)
+                                {
+                                    <td data-label="Projedeki Cihaz"><dl class="ykc-device-fields"><div><dt>Tür:</dt><dd>@Deger(talep.ProjedekiCihazBilgisi?.Tip)</dd></div><div><dt>Marka:</dt><dd>@Deger(talep.ProjedekiCihazBilgisi?.Marka)</dd></div><div><dt>Kapasite:</dt><dd>@Deger(talep.ProjedekiCihazBilgisi?.Kapasite) kcal/h</dd></div></dl></td>
+                                }
+                                <td data-label="Yeni Kullanılan Cihaz"><dl class="ykc-device-fields"><div><dt>Marka:</dt><dd>@Deger(talep.YeniCihazBilgisi?.Marka)</dd></div><div><dt>Kapasite:</dt><dd>@Deger(talep.YeniCihazBilgisi?.Kapasite) kcal/h</dd></div></dl></td>
+                                <td data-label="Kontrol Randevusu">
                                     <div class="ykc-primary-cell">@RandevuYazi(talep.RandevuTarihi, talep.RandevuSaati)</div>
                                     @if (icOperasyonGorsun)
                                     {

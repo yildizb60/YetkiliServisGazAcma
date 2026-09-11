@@ -19,8 +19,9 @@ namespace YetkiliServisGazAcma.Business.Services
     {
         public int TalepId { get; set; }
         public int BelgeVersiyonu { get; set; }
-        public string BelgeAdi { get; set; } = "FR265.docx";
-        public string IcerikTipi { get; set; } = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+        public int KontrolNo { get; set; }
+        public string BelgeAdi { get; set; } = "Cihaz_Degisim_Formu.pdf";
+        public string IcerikTipi { get; set; } = "application/pdf";
         public byte[] BelgeBytes { get; set; } = Array.Empty<byte>();
         public string BelgeHash { get; set; } = "";
         public string TekrarsizIstekAnahtari { get; set; } = "";

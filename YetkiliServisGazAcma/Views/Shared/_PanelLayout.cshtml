@@ -5,6 +5,16 @@
         .Where(message => !string.IsNullOrWhiteSpace(message))
         .Distinct()
         .ToList();
+    var errorMessages = new[] { "Hata", "SifreHata" }
+        .Select(key => TempData[key]?.ToString())
+        .Where(message => !string.IsNullOrWhiteSpace(message))
+        .Distinct()
+        .ToList();
+    var bodyClasses = string.Join(" ", new[]
+    {
+        successMessages.Count > 0 ? "has-operation-toast-success" : null,
+        errorMessages.Count > 0 ? "has-operation-toast-error" : null
+    }.Where(value => value != null));
 }
 <!DOCTYPE html>
 <html lang="tr">
@@ -18,14 +28,23 @@
     <link rel="stylesheet" href="~/lib/bootstrap-icons/font/bootstrap-icons.min.css" asp-append-version="true" />
     @await RenderSectionAsync("PageStyles", required: false)
     <link rel="stylesheet" href="~/css/operation-toast.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/record-tabs.css" asp-append-version="true" />
 </head>
-<body class="@(successMessages.Count > 0 ? "has-operation-toast-success" : null)" data-onay="@(ViewBag.OnayBekleyen ?? 0)" data-sure="@(ViewBag.SuresiBitecek ?? 0)">
+<body class="@bodyClasses" data-onay="@(ViewBag.OnayBekleyen ?? 0)" data-sure="@(ViewBag.SuresiBitecek ?? 0)">
     <div class="df-toast-stack" data-operation-toast-stack aria-live="polite" aria-atomic="true">
         @foreach (var message in successMessages)
         {
-            <div class="df-operation-toast" data-operation-toast data-timeout="5000" role="status">
+            <div class="df-operation-toast" data-operation-toast data-timeout="9000" role="status">
                 <span class="df-operation-toast-icon"><i class="bi bi-check-circle-fill" aria-hidden="true"></i></span>
                 <span class="df-operation-toast-copy"><strong>İşlem Başarılı</strong><span>@message</span></span>
+                <button class="df-operation-toast-close" type="button" data-operation-toast-close aria-label="Bildirimi kapat"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+            </div>
+        }
+        @foreach (var message in errorMessages)
+        {
+            <div class="df-operation-toast is-error" data-operation-toast data-timeout="9000" role="alert">
+                <span class="df-operation-toast-icon"><i class="bi bi-exclamation-circle-fill" aria-hidden="true"></i></span>
+                <span class="df-operation-toast-copy"><strong>İşlem Tamamlanamadı</strong><span>@message</span></span>
                 <button class="df-operation-toast-close" type="button" data-operation-toast-close aria-label="Bildirimi kapat"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
             </div>
         }
@@ -42,5 +61,6 @@
     <script src="/js/notification-panel.js" asp-append-version="true"></script>
     <script src="/js/operation-toast.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
+    <script src="~/js/record-tabs.js" asp-append-version="true"></script>
 </body>
 </html>

@@ -23,6 +23,7 @@ public sealed class YkcEkipSecenegi
 
 public sealed class YkcTakvimFiltre
 {
+    public int? AktifSirketId { get; set; }
     public DateTime Baslangic { get; set; } = DateTime.Today;
     public DateTime Bitis { get; set; } = DateTime.Today;
     public string? Il { get; set; }
@@ -94,7 +95,10 @@ public partial class YkcTalepService
         filtre.Bitis = filtre.Bitis.Date < filtre.Baslangic ? filtre.Baslangic.AddDays(6) : filtre.Bitis.Date;
         if (filtre.Bitis > filtre.Baslangic.AddDays(31)) filtre.Bitis = filtre.Baslangic.AddDays(31);
         var son = filtre.Bitis.AddDays(1);
-        var query = YetkiKapsamiUygula(_context.Ykc_Talepler.AsNoTracking().Where(x => !x.SilindiMi), kullanici, genelYetkili)
+        filtre.Il = filtre.Il?.Trim();
+        filtre.Bolge = filtre.Bolge?.Trim();
+        filtre.Personel = filtre.Personel?.Trim();
+        var query = YetkiKapsamiUygula(_context.Ykc_Talepler.AsNoTracking().Where(x => !x.SilindiMi), kullanici, genelYetkili, filtre.AktifSirketId)
             .Where(x => x.RandevuTarihi >= filtre.Baslangic && x.RandevuTarihi < son
                 && x.Durum != YkcDurumDegerleri.Iptal && x.Durum != YkcDurumDegerleri.Reddedildi);
         if (!string.IsNullOrWhiteSpace(filtre.Il)) query = query.Where(x => x.Il == filtre.Il);
@@ -118,7 +122,9 @@ public partial class YkcTalepService
                             Il = t.Il, Bolge = t.Bolge, Personel = u == null ? null : u.AdSoyad,
                             Ekip = t.AtananEkip, Durum = t.Durum
                         };
-        if (!string.IsNullOrWhiteSpace(filtre.Personel)) projected = projected.Where(x => x.Personel != null && x.Personel.Contains(filtre.Personel));
+        if (!string.IsNullOrWhiteSpace(filtre.Personel))
+            projected = projected.Where(x => (x.Personel != null && x.Personel.Contains(filtre.Personel))
+                || (x.Ekip != null && x.Ekip.Contains(filtre.Personel)));
         var toplam = await projected.CountAsync();
         var gunler = await projected.GroupBy(x => x.Tarih.Date)
             .Select(x => new YkcTakvimGunOzeti { Tarih = x.Key, Toplam = x.Count() }).ToListAsync();

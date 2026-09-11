@@ -17,17 +17,12 @@
     var raporMarkaSayiJson = System.Text.Json.JsonSerializer.Serialize(ViewBag.RaporMarkaSayi ?? new List<int>());
 }
 
-@section Styles {
+@section PageStyles {
     <link rel="stylesheet" href="~/css/admin-reports.css" asp-append-version="true" />
 }
 
 <div class="df-admin-report-workspace">
     <section class="df-page-panel df-admin-report-filter">
-        <div class="df-panel-head">
-            <div>
-                <h1 class="df-panel-title"><i class="bi bi-bar-chart-line" aria-hidden="true"></i> Operasyon Raporları</h1>
-            </div>
-        </div>
         <form method="get" action="/personel-panel/raporlar" class="df-admin-report-form">
             <div class="df-admin-report-fields is-two">
                 <div class="df-admin-field"><label for="bas">Başlangıç</label><input id="bas" type="date" name="bas" value="@basTarih.ToString("yyyy-MM-dd")" /></div>
@@ -46,13 +41,6 @@
         </form>
     </section>
 
-    <section class="df-report-summary" aria-label="Rapor özeti">
-        <div><i class="bi bi-collection" aria-hidden="true"></i><span>Toplam İşlem</span><strong>@ViewBag.RaporToplam</strong></div>
-        <div class="is-success"><i class="bi bi-check-circle" aria-hidden="true"></i><span>Tamamlanan</span><strong>@ViewBag.RaporTamam</strong></div>
-        <div class="is-warning"><i class="bi bi-hourglass-split" aria-hidden="true"></i><span>Bekleyen</span><strong>@ViewBag.RaporBekleyen</strong></div>
-        <div class="is-danger"><i class="bi bi-x-circle" aria-hidden="true"></i><span>İptal</span><strong>@ViewBag.RaporIptal</strong></div>
-    </section>
-
     <section class="df-report-charts" aria-label="Rapor grafikleri">
         <div class="df-report-chart"><h3>Aylık İşlem</h3><div class="chart-wrap" id="wrapAylik"><div class="chart-empty">Veri bulunamadı</div><canvas id="aylikChart"></canvas></div></div>
         <div class="df-report-chart"><h3>Durum Dağılımı</h3><div class="chart-wrap" id="wrapDurum"><div class="chart-empty">Veri bulunamadı</div><canvas id="durumChart"></canvas></div></div>
@@ -62,6 +50,12 @@
     <section class="df-admin-list-card df-admin-report-results">
         <div class="df-service-list-head df-report-results-head">
             <div><h3><i class="bi bi-table" aria-hidden="true"></i> @((listeTipi == "devreye") ? "Son Cihaz Devreye Alma Kayıtları" : "Yetki Belgesi İşlemleri")</h3><span>@basTarih.ToString("dd.MM.yyyy") - @bitTarih.ToString("dd.MM.yyyy") tarih aralığı</span></div>
+            <div class="df-admin-metrics df-inline-metrics" aria-label="Rapor özeti">
+                <span class="df-admin-metric"><i class="bi bi-collection" aria-hidden="true"></i><span>Toplam İşlem</span><strong>@ViewBag.RaporToplam</strong></span>
+                <span class="df-admin-metric is-approved"><i class="bi bi-check-circle" aria-hidden="true"></i><span>Tamamlanan</span><strong>@ViewBag.RaporTamam</strong></span>
+                <span class="df-admin-metric is-waiting"><i class="bi bi-hourglass-split" aria-hidden="true"></i><span>Bekleyen</span><strong>@ViewBag.RaporBekleyen</strong></span>
+                <span class="df-admin-metric is-rejected"><i class="bi bi-x-circle" aria-hidden="true"></i><span>İptal</span><strong>@ViewBag.RaporIptal</strong></span>
+            </div>
         </div>
         @if (listeTipi == "devreye")
         {

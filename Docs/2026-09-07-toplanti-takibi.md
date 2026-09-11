@@ -1,5 +1,7 @@
 # Toplantı İstekleri ve Bağlantı Sınırları
 
+> Bu dosya önceki çalışmanın tarihsel notudur. Giriş yerleşimi, PDF ve son test sonuçları için güncel kaynak: [10 Eylül test hazırlık ve toplantı notu](2026-09-10-test-hazirlik-ve-toplanti-notu.md). Aşağıdaki eski tamamlanma ifadeleri güncel kabul raporu olarak kullanılmamalıdır.
+
 Bu not mevcut yerel değişikliklerin durumunu gösterir; canlı entegrasyon kabul raporu değildir. Commit/push yapılmadı. Dış servisler gelmediği için mevcut ekranlar kapatılmadı.
 
 ## Bugünkü Çalışma Biçimi

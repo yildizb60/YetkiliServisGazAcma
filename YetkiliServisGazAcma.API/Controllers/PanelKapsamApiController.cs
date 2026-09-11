@@ -16,15 +16,18 @@ namespace YetkiliServisGazAcma.API.Controllers
         private readonly AppDbContext _context;
         private readonly UserManager<AppKullanici> _userManager;
         private readonly SehirFirmaKoduService _sehirFirmaKoduService;
+        private readonly YkcYetkiService _ykcYetkiService;
 
         public PanelKapsamApiController(
             AppDbContext context,
             UserManager<AppKullanici> userManager,
-            SehirFirmaKoduService sehirFirmaKoduService)
+            SehirFirmaKoduService sehirFirmaKoduService,
+            YkcYetkiService ykcYetkiService)
         {
             _context = context;
             _userManager = userManager;
             _sehirFirmaKoduService = sehirFirmaKoduService;
+            _ykcYetkiService = ykcYetkiService;
         }
 
         [HttpPost("sirketler")]
@@ -45,8 +48,30 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (kullanici == null)
                 return Unauthorized();
 
+            if (dto?.AktifSirketId is int sirketId
+                && !(await KullaniciSirketleriAsync(kullanici)).Any(x => x.Id == sirketId))
+                return Forbid();
+
             var sonuc = await PanelKimlikAsync(kullanici, dto?.AktifSirketId);
             return Ok(sonuc);
+        }
+
+        [HttpPost("ykc-yetkileri")]
+        public async Task<IActionResult> YkcYetkileri([FromBody] PanelKimlikIstekDto? dto)
+        {
+            var kullanici = await AktifKullaniciAsync();
+            if (kullanici == null)
+                return Unauthorized();
+
+            var sirketler = await KullaniciSirketleriAsync(kullanici);
+            if (dto?.AktifSirketId is int seciliId && !sirketler.Any(x => x.Id == seciliId))
+                return Forbid();
+
+            var sirketId = dto?.AktifSirketId ?? kullanici.SirketId ?? sirketler.FirstOrDefault()?.Id;
+            if (sirketId == null && !await GenelSistemAdminMi(kullanici))
+                return Ok(new YkcYetkiOzeti());
+
+            return Ok(await _ykcYetkiService.OzetAsync(kullanici, sirketId, HttpContext.RequestAborted));
         }
 
         private async Task<AppKullanici?> AktifKullaniciAsync()

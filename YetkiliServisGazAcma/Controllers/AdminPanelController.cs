@@ -18,8 +18,8 @@ namespace YetkiliServisGazAcma.Controllers
     [Route("AdminPanel")]
     public partial class AdminPanelController : Controller
     {
-        private readonly UserManager<AppKullanici> _userManager;
-        private readonly SehirFirmaKoduService _sehirFirmaKoduService;
+        private readonly ApiKullaniciOturumu _kullaniciOturumu;
+        private readonly SehirFirmaKodlari _sehirFirmaKoduService;
         private readonly AktifSirketService _aktifSirketService;
         private readonly AdminDashboardApiClient _adminDashboardApiClient;
         private readonly AdminKullaniciApiClient _adminKullaniciApiClient;
@@ -31,8 +31,8 @@ namespace YetkiliServisGazAcma.Controllers
         private readonly UrunKategoriApiClient _urunKategoriApiClient;
 
         public AdminPanelController(
-            UserManager<AppKullanici> userManager,
-            SehirFirmaKoduService sehirFirmaKoduService,
+            ApiKullaniciOturumu kullaniciOturumu,
+            SehirFirmaKodlari sehirFirmaKoduService,
             AktifSirketService aktifSirketService,
             AdminDashboardApiClient adminDashboardApiClient,
             AdminKullaniciApiClient adminKullaniciApiClient,
@@ -43,7 +43,7 @@ namespace YetkiliServisGazAcma.Controllers
             MarkaApiClient markaApiClient,
             UrunKategoriApiClient urunKategoriApiClient)
         {
-            _userManager = userManager;
+            _kullaniciOturumu = kullaniciOturumu;
             _sehirFirmaKoduService = sehirFirmaKoduService;
             _aktifSirketService = aktifSirketService;
             _adminDashboardApiClient = adminDashboardApiClient;
@@ -103,7 +103,7 @@ namespace YetkiliServisGazAcma.Controllers
 
         private async Task<AppKullanici?> GetCurrentUser()
         {
-            return await _userManager.GetUserAsync(User);
+            return await _kullaniciOturumu.GetUserAsync(User);
         }
 
         private async Task<int> GetOnayBekleyenCount()

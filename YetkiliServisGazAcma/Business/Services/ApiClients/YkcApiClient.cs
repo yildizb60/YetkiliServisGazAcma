@@ -12,17 +12,20 @@ namespace YetkiliServisGazAcma.Business.Services
         private readonly ApiIntegrationOptions _options;
         private readonly ApiJwtTokenService _tokenService;
         private readonly ILogger<YkcApiClient> _logger;
+        private readonly AktifSirketService _aktifSirket;
 
         public YkcApiClient(
             HttpClient httpClient,
             IOptions<ApiIntegrationOptions> options,
             ApiJwtTokenService tokenService,
-            ILogger<YkcApiClient> logger)
+            ILogger<YkcApiClient> logger,
+            AktifSirketService aktifSirket)
         {
             _httpClient = httpClient;
             _options = options.Value;
             _tokenService = tokenService;
             _logger = logger;
+            _aktifSirket = aktifSirket;
         }
 
         public Task<YkcTalepListeSonuc?> TaleplerAsync(AppKullanici kullanici, YkcTalepListeFiltre filtre)
@@ -45,12 +48,12 @@ namespace YetkiliServisGazAcma.Business.Services
                 retryTransient: true);
         }
 
-        public Task<YkcDashboardOzetDto?> DashboardOzetAsync(AppKullanici kullanici)
+        public async Task<YkcDashboardOzetDto?> DashboardOzetAsync(AppKullanici kullanici)
         {
-            return PostAsync<object, YkcDashboardOzetDto>(
+            return await PostAsync<object, YkcDashboardOzetDto>(
                 kullanici,
                 "api/ykc/dashboard/ozet",
-                new { },
+                new { AktifSirketId = await _aktifSirket.AktifSirketIdAsync(kullanici) },
                 "Cihaz değişim dashboard özeti",
                 retryTransient: true);
         }
@@ -105,8 +108,11 @@ namespace YetkiliServisGazAcma.Business.Services
                 retryTransient: true);
         }
 
-        public Task<YkcTakvimSonuc?> TakvimAsync(AppKullanici kullanici, YkcTakvimFiltre filtre)
-            => PostAsync<YkcTakvimFiltre, YkcTakvimSonuc>(kullanici, "api/ykc/takvim", filtre, "Randevu takvimi", retryTransient: true);
+        public async Task<YkcTakvimSonuc?> TakvimAsync(AppKullanici kullanici, YkcTakvimFiltre filtre)
+        {
+            filtre.AktifSirketId = await _aktifSirket.AktifSirketIdAsync(kullanici);
+            return await PostAsync<YkcTakvimFiltre, YkcTakvimSonuc>(kullanici, "api/ykc/takvim", filtre, "Randevu takvimi", retryTransient: true);
+        }
 
         public Task<List<YkcEkipSecenegi>?> EkiplerAsync(AppKullanici kullanici, int id)
             => PostAsync<object, List<YkcEkipSecenegi>>(

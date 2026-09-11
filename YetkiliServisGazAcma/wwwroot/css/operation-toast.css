@@ -1,6 +1,6 @@
 .df-toast-stack {
     position: fixed;
-    top: 70px;
+    top: 64px;
     right: 18px;
     z-index: 2200;
     width: min(390px, calc(100vw - 28px));
@@ -27,15 +27,18 @@
 }
 
 .df-operation-toast.is-info { border-color: #c7dced; border-left-color: #2475a8; color: #173f59; }
+.df-operation-toast.is-warning { border-color: #ecd7a1; border-left-color: #b47b0d; color: #6b4b0e; }
 .df-operation-toast.is-error { border-color: #efc7c7; border-left-color: #c74444; color: #742f34; }
 .df-operation-toast.is-leaving { animation: dfToastOut .2s ease both; }
 .df-operation-toast-icon { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 6px; background: #e5f5ed; color: #19875f; font-size: 18px; }
 .df-operation-toast.is-info .df-operation-toast-icon { background: #eaf4fb; color: #2475a8; }
+.df-operation-toast.is-warning .df-operation-toast-icon { background: #fff7df; color: #a46d06; }
 .df-operation-toast.is-error .df-operation-toast-icon { background: #fff0f0; color: #c74444; }
 .df-operation-toast-copy { min-width: 0; display: grid; gap: 2px; }
 .df-operation-toast-copy strong { color: currentColor; font-size: 13px; line-height: 1.25; font-weight: 700; }
 .df-operation-toast-copy span { color: #587064; font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; }
 .df-operation-toast.is-info .df-operation-toast-copy span { color: #587286; }
+.df-operation-toast.is-warning .df-operation-toast-copy span { color: #765f30; }
 .df-operation-toast.is-error .df-operation-toast-copy span { color: #86565a; }
 .df-operation-toast-close { width: 30px; height: 30px; padding: 0; display: grid; place-items: center; border: 0; border-radius: 5px; background: transparent; color: #688076; cursor: pointer; }
 .df-operation-toast-close:hover { background: #f1f5f3; }
@@ -43,12 +46,14 @@
 body.has-operation-toast-success .df-alert-success,
 body.has-operation-toast-success .ys-alert.is-success,
 body.has-operation-toast-success .ykc-operation-toast { display: none !important; }
+body.has-operation-toast-error .df-alert-danger,
+body.has-operation-toast-error .ys-alert.is-danger { display: none !important; }
 
 @keyframes dfToastIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes dfToastOut { to { opacity: 0; transform: translateY(-8px); } }
 
 @media (max-width: 640px) {
-    .df-toast-stack { top: 62px; right: 10px; width: calc(100vw - 20px); }
+    .df-toast-stack { top: 10px; right: 10px; width: calc(100vw - 20px); }
 }
 
 @media (prefers-reduced-motion: reduce) {

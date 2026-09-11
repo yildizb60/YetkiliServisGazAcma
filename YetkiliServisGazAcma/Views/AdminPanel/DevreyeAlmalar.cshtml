@@ -26,23 +26,11 @@
     var servisSayisi = Model.Select(x => x.FirmaId).Distinct().Count();
 }
 
-<div class="df-admin-workspace df-operations-directory">
-    <section class="df-page-panel df-admin-hero">
-        <div class="df-panel-head">
-            <div>
-                <div class="df-panel-kicker"><i class="bi bi-bag-check" aria-hidden="true"></i> CİHAZ DEVREYE ALMA</div>
-                <h1 class="df-panel-title">İşlem Kayıtları</h1>
-                <div class="df-panel-subtitle">Tesisat, servis ve işlem durumunu tek listeden inceleyin.</div>
-            </div>
-        </div>
-        <div class="df-admin-metrics" aria-label="Kayıt özeti">
-            <span class="df-admin-metric"><i class="bi bi-collection" aria-hidden="true"></i><span>Toplam</span><strong>@Model.Count</strong></span>
-            <span class="df-admin-metric is-approved"><i class="bi bi-check-circle" aria-hidden="true"></i><span>Tamamlanan</span><strong>@tamamlanan</strong></span>
-            <span class="df-admin-metric is-waiting"><i class="bi bi-hourglass-split" aria-hidden="true"></i><span>Bekleyen</span><strong>@bekleyen</strong></span>
-            <span class="df-admin-metric is-service"><i class="bi bi-tools" aria-hidden="true"></i><span>Yetkili Servis</span><strong>@servisSayisi</strong></span>
-        </div>
-    </section>
+@section PageStyles {
+    <link rel="stylesheet" href="~/css/operations-directory.css" asp-append-version="true" />
+}
 
+<div class="df-admin-workspace df-operations-directory">
     <details class="df-admin-filter" open="@(filtreAktif ? "open" : null)">
         <summary>
             <span><i class="bi bi-funnel" aria-hidden="true"></i><strong>Filtreler</strong><small>Servis, konum, durum veya tarih</small></span>
@@ -68,8 +56,13 @@
 
     <section class="df-admin-list-card">
         <div class="df-service-list-head">
-            <div><h3><i class="bi bi-list-check" aria-hidden="true"></i> Devreye Alma Listesi</h3><span>Tesisat, servis ve işlem sonucu</span></div>
-            <strong>@Model.Count kayıt</strong>
+            <div><h3><i class="bi bi-list-check" aria-hidden="true"></i> Cihaz Devreye Alma Kayıtları</h3></div>
+            <div class="df-admin-metrics df-inline-metrics" aria-label="Kayıt özeti">
+                <span class="df-admin-metric"><i class="bi bi-collection" aria-hidden="true"></i><span>Toplam</span><strong>@Model.Count</strong></span>
+                <span class="df-admin-metric is-approved"><i class="bi bi-check-circle" aria-hidden="true"></i><span>Tamamlanan</span><strong>@tamamlanan</strong></span>
+                <span class="df-admin-metric is-waiting"><i class="bi bi-hourglass-split" aria-hidden="true"></i><span>Bekleyen</span><strong>@bekleyen</strong></span>
+                <span class="df-admin-metric is-service"><i class="bi bi-tools" aria-hidden="true"></i><span>Yetkili Servis</span><strong>@servisSayisi</strong></span>
+            </div>
         </div>
         @if (!Model.Any())
         {

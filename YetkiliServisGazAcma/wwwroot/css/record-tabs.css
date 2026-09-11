@@ -1,0 +1,29 @@
+.record-tabs { display:flex; flex-wrap:wrap; gap:0; border-bottom:1px solid var(--df-border,#dce2ea); background:#f8fafc; }
+.record-tabs [role=tab] { display:flex; align-items:center; justify-content:center; gap:7px; padding:11px 14px; border:0; border-bottom:2px solid transparent; background:transparent; color:#61778a; font:inherit; font-size:12px; font-weight:500; cursor:pointer; }
+.record-tabs [role=tab][aria-selected=true] { color:#216d98; border-bottom-color:#2684a8; background:#fff; }
+.record-tabs [role=tab]:focus-visible { outline:2px solid #2684a8; outline-offset:-3px; }
+[role=tabpanel][hidden] { display:none !important; }
+.is-tabbed-dialog { width:min(880px,100%); }
+.is-tabbed-dialog .record-tabs { margin-top:12px; border:1px solid #dce2ea; border-radius:5px 5px 0 0; }
+.is-tabbed-dialog .record-tabs [role=tab] { flex:1; }
+.is-tabbed-dialog .ykc-modal-grid,.is-tabbed-dialog .ys-modal-grid { display:block; margin-top:0; }
+.is-tabbed-dialog [role=tabpanel] { border-top:0; border-radius:0 0 5px 5px; }
+.is-tabbed-dialog [role=tabpanel] > .ykc-modal-section-title,.is-tabbed-dialog [role=tabpanel] > h3 { display:none; }
+.is-tabbed-dialog .ykc-modal-info,.is-tabbed-dialog .ys-modal-facts { grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px 24px; padding:16px; }
+.is-tabbed-dialog .ykc-modal-stats,.is-tabbed-dialog .ys-modal-summary { grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); }
+.is-tabbed-dialog .ykc-modal-stat,.is-tabbed-dialog .ys-modal-summary-item { padding:9px 10px; min-height:54px; }
+.is-tabbed-dialog .ykc-modal-subtitle { font-size:11px; }
+.is-tabbed-dialog .ys-modal-facts dt { font-size:11px; font-weight:500; }
+.is-tabbed-dialog .ys-modal-facts dd { font-size:12px; font-weight:500; }
+@media(max-width:600px) {
+ .record-tabs [role=tab] { padding:10px 8px; font-size:11px; }
+ .is-tabbed-dialog .record-tabs [role=tab] { flex:1 1 40%; }
+ .is-tabbed-dialog .ykc-modal-stats,.is-tabbed-dialog .ys-modal-summary { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .is-tabbed-dialog .ykc-modal-stat > i,.is-tabbed-dialog .ys-modal-summary-item > i { width:24px; height:24px; font-size:13px; }
+ .is-tabbed-dialog .ykc-modal-stat small,.is-tabbed-dialog .ykc-modal-stat strong { font-size:10px; }
+ .is-tabbed-dialog .ykc-modal-info,.is-tabbed-dialog .ys-modal-facts { gap:12px; padding:12px; }
+ .is-tabbed-dialog .ykc-modal-value,.is-tabbed-dialog .ys-modal-facts dd { font-size:12px; overflow-wrap:anywhere; }
+ .is-tabbed-dialog .ykc-report-modal-body,.is-tabbed-dialog .ys-report-modal-body { padding:10px; }
+ .is-tabbed-dialog .ys-report-modal-footer { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+ .is-tabbed-dialog .ys-report-modal-footer .df-btn { width:100%; min-width:0; }
+}

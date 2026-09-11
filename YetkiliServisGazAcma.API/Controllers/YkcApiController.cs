@@ -222,18 +222,18 @@ namespace YetkiliServisGazAcma.API.Controllers
         }
 
         [HttpPost("dashboard/ozet")]
-        public async Task<IActionResult> DashboardOzet()
+        public async Task<IActionResult> DashboardOzet([FromBody] PanelKimlikIstekDto? filtre)
         {
             var kullanici = await AktifKullaniciAsync();
             if (kullanici == null)
                 return Unauthorized(new { basarili = false, mesaj = "Oturum bulunamadı." });
 
-            if (!await YkcYetkiliMiAsync(kullanici, YetkiTipleri.YKC_TALEP_GOR))
-                return YkcYetkisiz("YKC özetini görüntüleme yetkiniz bulunmuyor.");
+            if (!await OkumaSirketineYetkiliMiAsync(kullanici, filtre?.AktifSirketId))
+                return YkcYetkisiz("Bu şirketin cihaz değişim özetini görüntüleme yetkiniz bulunmuyor.");
 
             var sonuc = await _ykcTalepService.DashboardOzetAsync(
                 kullanici,
-                await GenelYetkiliMiAsync(kullanici));
+                await GenelYetkiliMiAsync(kullanici), filtre?.AktifSirketId);
 
             return Ok(sonuc);
         }
@@ -448,7 +448,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         {
             var kullanici = await AktifKullaniciAsync();
             if (kullanici == null) return Unauthorized();
-            if (!await YkcYetkiliMiAsync(kullanici, YetkiTipleri.YKC_TALEP_GOR))
+            if (!await OkumaSirketineYetkiliMiAsync(kullanici, filtre?.AktifSirketId))
                 return YkcYetkisiz("Randevu takvimini görüntüleme yetkiniz bulunmuyor.");
             return Ok(await _ykcTalepService.TakvimAsync(filtre ?? new(), kullanici, await GenelYetkiliMiAsync(kullanici)));
         }
@@ -636,6 +636,28 @@ namespace YetkiliServisGazAcma.API.Controllers
                 System.IO.File.Delete(fizikselYol);
 
             return sonuc.Basarili ? Ok(sonuc) : BadRequest(sonuc);
+        }
+
+        private async Task<bool> OkumaSirketineYetkiliMiAsync(AppKullanici kullanici, int? sirketId)
+        {
+            if (sirketId.HasValue)
+            {
+                if (!await _context.Dag_Sirketler.AnyAsync(x => x.Id == sirketId.Value && x.AktifMi && !x.SilindiMi))
+                    return false;
+                if (!await GenelYetkiliMiAsync(kullanici))
+                {
+                    if (kullanici.FirmaId.HasValue)
+                    {
+                        if (!await _context.Ys_Firmalar.AnyAsync(x => x.Id == kullanici.FirmaId.Value
+                            && x.SirketId == sirketId.Value && !x.SilindiMi)) return false;
+                    }
+                    else if (kullanici.SirketId != sirketId && !await _context.Dag_PersonelYetkiler.AnyAsync(x =>
+                        x.KullaniciId == kullanici.Id && x.SirketId == sirketId.Value && !x.SilindiMi))
+                        return false;
+                }
+            }
+            return await _ykcYetkiService.YetkiliMiAsync(kullanici, YetkiTipleri.YKC_TALEP_GOR,
+                sirketId ?? kullanici.SirketId, HttpContext.RequestAborted);
         }
 
         private async Task<bool> YkcYetkiliMiAsync(AppKullanici kullanici, string yetkiTipi)

@@ -11,14 +11,14 @@ namespace YetkiliServisGazAcma.Controllers
     [Route("ys-panel")]
     public class YetkiliServisPanelController : Controller
     {
-        private readonly UserManager<AppKullanici> _userManager;
+        private readonly ApiKullaniciOturumu _kullaniciOturumu;
         private readonly YetkiliServisPanelApiClient _yetkiliServisPanelApiClient;
 
         public YetkiliServisPanelController(
-            UserManager<AppKullanici> userManager,
+            ApiKullaniciOturumu kullaniciOturumu,
             YetkiliServisPanelApiClient yetkiliServisPanelApiClient)
         {
-            _userManager = userManager;
+            _kullaniciOturumu = kullaniciOturumu;
             _yetkiliServisPanelApiClient = yetkiliServisPanelApiClient;
         }
 
@@ -41,7 +41,7 @@ namespace YetkiliServisGazAcma.Controllers
 
         private async Task<AppKullanici?> GetYetkiliServisKullanici()
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return null;
             if (kullanici.KullaniciTipi != KullaniciTipiDegerleri.YetkiliServis) return null;
             return kullanici;
@@ -419,7 +419,7 @@ namespace YetkiliServisGazAcma.Controllers
                 return Redirect("/ys-panel/profil");
             }
 
-            var sonuc = await _userManager.ChangePasswordAsync(
+            var sonuc = await _kullaniciOturumu.ChangePasswordAsync(
                 kullanici, mevcutSifre, yeniSifre);
 
             if (sonuc.Succeeded)

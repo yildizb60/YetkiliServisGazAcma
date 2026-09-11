@@ -11,30 +11,14 @@
 }
 .df-approval-history-workspace .df-service-list-head { grid-template-columns: auto minmax(0, 1fr); }
 .df-operations-directory .df-service-list-head h3,
-.df-approval-history-workspace .df-service-list-head h3 { font-size: 13px; font-weight: 700; white-space: nowrap; }
+.df-approval-history-workspace .df-service-list-head h3 { font-size: 14px; font-weight: 650; }
 .df-operations-directory .df-inline-metrics,
 .df-approval-history-workspace .df-inline-metrics {
     width: auto;
     margin-left: 0;
-    justify-content: flex-start;
-    flex-wrap: nowrap;
-    gap: 4px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
 }
-.df-operations-directory .df-inline-metrics .df-admin-metric,
-.df-approval-history-workspace .df-inline-metrics .df-admin-metric {
-    min-height: 28px;
-    padding: 3px 5px;
-    gap: 4px;
-    border-color: #dfe6ed;
-    border-radius: 5px;
-    font-size: 9px;
-}
-.df-operations-directory .df-inline-metrics .df-admin-metric i,
-.df-approval-history-workspace .df-inline-metrics .df-admin-metric i { font-size: 11px; }
-.df-operations-directory .df-inline-metrics .df-admin-metric span,
-.df-approval-history-workspace .df-inline-metrics .df-admin-metric span { margin: 0; font-size: 9px; }
-.df-operations-directory .df-inline-metrics .df-admin-metric strong,
-.df-approval-history-workspace .df-inline-metrics .df-admin-metric strong { min-width: 20px; height: 20px; font-size: 9px; }
 .df-operations-directory .df-service-list-head > .df-actions { margin-left: 0; justify-content: flex-end; flex-wrap: nowrap; }
 .df-operations-directory .df-icon-action { min-height: 30px; padding: 5px 7px; font-size: 9px; }
 .df-commissioning-table { min-width: 1220px; }
@@ -51,26 +35,34 @@
 .df-commissioning-table .df-cell-main,
 .df-commissioning-table .df-cell-sub { overflow-wrap: anywhere; }
 .df-commissioning-table .df-pill-success { background: #e7f6ef; color: #167a5b; border-color: #bfe4d5; }
-.ys-commissioning-modal .ykc-report-modal-dialog { width: min(940px, calc(100vw - 28px)); border-radius: 7px; border-top: 3px solid #2674ae; box-shadow: 0 24px 60px rgba(16, 42, 61, .24); }
-.ys-commissioning-modal .ykc-report-modal-header { min-height: 60px; padding: 10px 14px; background: #f6f9fc; border-bottom: 1px solid #dce5ec; }
-.ys-commissioning-modal .ykc-modal-icon { width: 34px; height: 34px; border-radius: 6px; background: #eaf3fa; color: #2674ae; }
-.ys-commissioning-modal .ykc-modal-title { color: #233d52; font-size: 16px; font-weight: 700; }
-.ys-commissioning-modal .ykc-modal-subtitle { color: #667d8f; font-size: 10px; font-weight: 500; }
-.ys-commissioning-modal .ykc-report-modal-body { padding: 12px; background: #f8fafc; }
-.ys-commissioning-modal .ykc-modal-stats { border: 1px solid #dce5ec; border-radius: 6px; overflow: hidden; background: #fff; }
-.ys-commissioning-modal .ykc-modal-stat { min-height: 54px; padding: 8px 10px; }
-.ys-commissioning-modal .ykc-modal-stat small { color: #6e8191; font-size: 9px; font-weight: 600; }
-.ys-commissioning-modal .ykc-modal-stat strong { color: #2c4559; font-size: 11px; font-weight: 650; }
-.ys-commissioning-modal .ykc-modal-grid { gap: 10px; margin-top: 10px; }
-.ys-commissioning-modal .ykc-modal-section { overflow: hidden; border: 1px solid #dce5ec; border-radius: 6px; background: #fff; }
-.ys-commissioning-modal .ykc-modal-section-title { min-height: 40px; padding: 8px 10px; color: #2d4a60; background: #f2f7fb; border-bottom: 1px solid #dce5ec; font-size: 11px; font-weight: 700; }
-.ys-commissioning-modal .ykc-modal-section-device .ykc-modal-section-title,
-.ys-commissioning-modal .ykc-modal-section-signature .ykc-modal-section-title { background: #f0f8f4; color: #27604f; }
-.ys-commissioning-modal .ykc-modal-info { padding: 9px 10px; gap: 8px; }
-.ys-commissioning-modal .ykc-modal-item { padding: 0; border: 0; background: transparent; }
-.ys-commissioning-modal .ykc-modal-label { color: #768999; font-size: 8.5px; font-weight: 600; }
-.ys-commissioning-modal .ykc-modal-value { color: #2d4558; font-size: 10.5px; font-weight: 550; }
-.ys-commissioning-modal .ykc-report-modal-footer { min-height: 52px; padding: 8px 12px; background: #fff; border-top: 1px solid #dce5ec; }
+.df-approval-history-workspace .df-admin-list-card > .df-admin-filter { margin:0; border:0; border-bottom:1px solid var(--df-border); border-radius:0; }
+.df-operations-directory .df-service-list-head.is-operation-toolbar {
+    min-height: 54px;
+    grid-template-columns: minmax(160px, 1fr) auto auto;
+    gap: 14px;
+    padding: 8px 12px;
+    overflow: visible;
+}
+.df-operation-list-title span { margin-top: 2px; }
+.df-operation-summary { display:flex; align-items:stretch; margin:0; border:1px solid var(--df-border); border-radius:5px; background:#fff; }
+.df-operation-summary > div { min-width:82px; padding:6px 10px; }
+.df-operation-summary > div + div { border-left:1px solid var(--df-border); }
+.df-operation-summary dt { color:#718394; font-size:9px; font-weight:500; white-space:nowrap; }
+.df-operation-summary dd { margin:2px 0 0; color:#29475e; font-size:13px; font-weight:650; }
+.df-export-menu { position:relative; z-index:15; }
+.df-export-menu > summary { min-width:112px; list-style:none; cursor:pointer; }
+.df-export-menu > summary::-webkit-details-marker { display:none; }
+.df-export-menu > summary .bi-chevron-down { margin-left:auto; transition:transform .15s ease; }
+.df-export-menu[open] > summary .bi-chevron-down { transform:rotate(180deg); }
+.df-export-menu-panel { position:absolute; top:calc(100% + 6px); right:0; width:245px; display:grid; gap:4px; padding:7px; border:1px solid var(--df-border); border-radius:6px; background:#fff; box-shadow:0 14px 30px rgba(30,55,72,.16); }
+.df-operations-directory .df-export-menu-panel .df-icon-action { width:100%; min-height:34px; justify-content:flex-start; padding:7px 9px; font-size:11px; }
+.df-export-menu-panel .df-icon-action span { margin:0; color:inherit; font-size:11px; }
+.ys-certificate-upload { display:grid; grid-template-columns:minmax(280px,1fr) 170px 170px auto; align-items:end; gap:12px; }
+.ys-certificate-upload .df-admin-field { min-width:0; grid-column:auto; }
+.ys-certificate-upload .df-admin-field input { width:100%; }
+.ys-certificate-upload > .df-btn { min-height:38px; white-space:nowrap; }
+.ys-certificate-upload input[type="file"] { min-height:38px; padding:4px; border:1px solid var(--df-border); border-radius:5px; background:#fff; color:#607587; font-size:11px; }
+.ys-certificate-upload input[type="file"]::file-selector-button { height:28px; margin-right:8px; padding:0 10px; border:0; border-radius:4px; background:#edf4f8; color:#31566f; font:600 11px inherit; cursor:pointer; }
 
 @media (max-width: 1050px) {
     .df-operations-directory .df-service-list-head { grid-template-columns: minmax(0, 1fr) auto; }
@@ -80,6 +72,6 @@
     .df-operations-directory .df-service-list-head,
     .df-approval-history-workspace .df-service-list-head { grid-template-columns: 1fr; align-items: stretch; }
     .df-operations-directory .df-inline-metrics,
-    .df-approval-history-workspace .df-inline-metrics { width: 100%; overflow-x: auto; }
+    .df-approval-history-workspace .df-inline-metrics { width: 100%; justify-content: flex-start; }
     .df-operations-directory .df-service-list-head > .df-actions { width: 100%; overflow-x: auto; }
 }

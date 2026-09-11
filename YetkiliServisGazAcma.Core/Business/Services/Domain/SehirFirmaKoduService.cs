@@ -5,58 +5,9 @@ using YetkiliServisGazAcma.Models;
 
 namespace YetkiliServisGazAcma.Business.Services
 {
-    public class SehirFirmaKoduService
+    public class SehirFirmaKoduService(IConfiguration configuration, AppDbContext context) : SehirFirmaKodlari(configuration)
     {
-        private static readonly Dictionary<string, string> VarsayilanKodlar =
-            new(StringComparer.CurrentCultureIgnoreCase)
-            {
-                ["Çorum"] = "CORUMGAZ",
-                ["Kastamonu"] = "KARGAZ",
-                ["Karabük"] = "KARGAZ",
-                ["Yozgat"] = "SURMELIGAZ",
-                ["Yalova"] = "MARMARAGAZ_YALOVA",
-                ["Tekirdağ"] = "MARMARAGAZ_CORLU"
-            };
-
-        private readonly IConfiguration _configuration;
-        private readonly AppDbContext _context;
-
-        public SehirFirmaKoduService(IConfiguration configuration, AppDbContext context)
-        {
-            _configuration = configuration;
-            _context = context;
-        }
-
-        public Dictionary<string, string> TumKodlar()
-        {
-            var appSettingsKodlari = _configuration
-                .GetSection("SehirFirmaKodlari")
-                .Get<Dictionary<string, string>>();
-
-            var kaynak = appSettingsKodlari?.Count > 0 ? appSettingsKodlari : VarsayilanKodlar;
-
-            return kaynak
-                .Where(x => !string.IsNullOrWhiteSpace(x.Key) && !string.IsNullOrWhiteSpace(x.Value))
-                .ToDictionary(x => x.Key.Trim(), x => x.Value.Trim(), StringComparer.CurrentCultureIgnoreCase);
-        }
-
-        public List<string> Sehirler()
-        {
-            return TumKodlar()
-                .Keys
-                .OrderBy(x => x)
-                .ToList();
-        }
-
-        public string? FirmaKodu(string? sehir)
-        {
-            if (string.IsNullOrWhiteSpace(sehir))
-                return null;
-
-            var kodlar = TumKodlar();
-            return kodlar.TryGetValue(sehir.Trim(), out var kod) ? kod : null;
-        }
-
+        private readonly AppDbContext _context = context;
         public async Task<int> SirketIdBulVeyaOlustur(string? sehir, string? kullanici)
         {
             var temizSehir = string.IsNullOrWhiteSpace(sehir) ? "Genel" : sehir.Trim();

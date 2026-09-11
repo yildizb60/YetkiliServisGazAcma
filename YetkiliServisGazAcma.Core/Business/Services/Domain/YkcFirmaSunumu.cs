@@ -7,6 +7,7 @@ public static class YkcFirmaSunumu
         if (!resmiForm)
         {
             talep.EskiCihaz = null;
+            talep.ProjedekiCihazBilgisi = null;
             talep.EskiCihazTipi = null;
             talep.EskiCihazTipiKodu = null;
             talep.EskiMarka = null;

@@ -13,17 +13,16 @@
     <link rel="stylesheet" href="~/lib/bootstrap-icons/font/bootstrap-icons.min.css" asp-append-version="true" />
 }
 
+<partial name="_LoginHeader" />
 <main class="login-shell company-select-shell">
     <div class="login-visual" aria-hidden="true"></div>
-    <section class="login-side" aria-label="Çalışma şirketi seçimi">
+    <section class="login-side" aria-label="İşlem yapılacak şirket">
         <div class="login-card company-select-card" data-company-step>
-            <a class="login-brand" href="/giris" aria-label="Giriş sayfası"><img src="/images/company/corumgaz-kargaz-surmeligaz-logo.png" alt="Çorumgaz, Kargaz ve Sürmeligaz" /></a>
             <header class="login-card-head company-select-head">
                 <div>
                     <h1 id="company-select-title">İşlem Yapacağınız Şirketi Seçin</h1>
                     <p>@(kullanici?.AdSoyad ?? "Kullanıcı") hesabıyla devam ediyorsunuz.</p>
                 </div>
-                <img class="company-select-illustration" src="/images/company/company-selection-building.png" alt="" aria-hidden="true" />
             </header>
             @if (TempData["Hata"] != null) { <div class="login-message is-error">@TempData["Hata"]</div> }
             <form method="post" action="/panel/sirket-sec">
@@ -35,7 +34,6 @@
                         var selectedAll = !aktifSirketId.HasValue;
                         <label class="company-select-option @(selectedAll ? "is-selected" : "")">
                             <input type="radio" name="sirketId" value="0" required checked="@(selectedAll ? "checked" : null)" />
-                            <span class="company-select-option-icon"><i class="bi bi-grid" aria-hidden="true"></i></span>
                             <span><strong>Tüm Şirketler</strong><small>Genel yönetim ve tüm kayıtlar</small></span>
                             <i class="bi bi-check-circle-fill company-select-check" aria-hidden="true"></i>
                         </label>
@@ -45,7 +43,6 @@
                         var selected = aktifSirketId == sirket.Id;
                         <label class="company-select-option @(selected ? "is-selected" : "")">
                             <input type="radio" name="sirketId" value="@sirket.Id" required checked="@(selected ? "checked" : null)" />
-                            <span class="company-select-option-icon"><img src="/images/company/corumgaz-symbol-mark.svg" alt="" aria-hidden="true" /></span>
                             <span><strong>@sirket.SirketAdi</strong><small>@(string.IsNullOrWhiteSpace(sirket.Il) ? "Şirket kaydı" : sirket.Il)</small></span>
                             <i class="bi bi-check-circle-fill company-select-check" aria-hidden="true"></i>
                         </label>

@@ -11,8 +11,8 @@ namespace YetkiliServisGazAcma.Controllers
     [Route("personel-panel")]
     public class PersonelPanelController : Controller
     {
-        private readonly UserManager<AppKullanici> _userManager;
-        private readonly SehirFirmaKoduService _sehirFirmaKoduService;
+        private readonly ApiKullaniciOturumu _kullaniciOturumu;
+        private readonly SehirFirmaKodlari _sehirFirmaKoduService;
         private readonly AktifSirketService _aktifSirketService;
         private readonly AdminDashboardApiClient _adminDashboardApiClient;
         private readonly PersonelPanelApiClient _personelPanelApiClient;
@@ -25,8 +25,8 @@ namespace YetkiliServisGazAcma.Controllers
         private readonly AdminYetkiliServisApiClient _adminYetkiliServisApiClient;
 
         public PersonelPanelController(
-            UserManager<AppKullanici> userManager,
-            SehirFirmaKoduService sehirFirmaKoduService,
+            ApiKullaniciOturumu kullaniciOturumu,
+            SehirFirmaKodlari sehirFirmaKoduService,
             AktifSirketService aktifSirketService,
             AdminDashboardApiClient adminDashboardApiClient,
             PersonelPanelApiClient personelPanelApiClient,
@@ -38,7 +38,7 @@ namespace YetkiliServisGazAcma.Controllers
             UrunKategoriApiClient urunKategoriApiClient,
             AdminYetkiliServisApiClient adminYetkiliServisApiClient)
         {
-            _userManager = userManager;
+            _kullaniciOturumu = kullaniciOturumu;
             _sehirFirmaKoduService = sehirFirmaKoduService;
             _aktifSirketService = aktifSirketService;
             _adminDashboardApiClient = adminDashboardApiClient;
@@ -189,7 +189,7 @@ namespace YetkiliServisGazAcma.Controllers
 
         private async Task<IActionResult?> YetkiKontrol(string yetki)
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             var yetkili = await KullaniciYetkiliMi(kullanici, yetki);
@@ -201,29 +201,60 @@ namespace YetkiliServisGazAcma.Controllers
 
         [HttpGet("")]
         [HttpGet("index")]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index([FromServices] YkcApiClient ykcApi)
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             // Panel ana sayfasi personel icin goruntulenebilir olsun
             // Yetki yoksa onay islemleri gibi aksiyonlar zaten ilgili sayfalarda kontrol edilir.
 
             var dashboard = await GetPersonelDashboardOzetAsync(kullanici) ?? new AdminDashboardOzet();
-            var markalar = await _markaApiClient.TumunuGetirAsync() ?? new List<Ys_Marka>();
-
             ViewBag.OnayBekleyen = dashboard.OnayBekleyen;
             ViewBag.ToplamFirma = dashboard.ToplamFirma;
             ViewBag.ToplamDevreyeAlma = dashboard.ToplamDevreyeAlma;
-            ViewBag.ToplamMarka = markalar.Count;
             ViewBag.ToplamSirket = dashboard.ToplamSirket;
             ViewBag.BuAy = dashboard.BuAyDevreyeAlma;
             ViewBag.SuresiBitecek = dashboard.SuresiBitecek;
-            ViewBag.SonBekleyenler = dashboard.SonYetkiBelgeleri;
             ViewBag.SonIslemler = dashboard.SonDevreyeAlmalar;
 
             ViewBag.Kullanici = kullanici;
             await SetPersonelYetkiViewBags(kullanici);
+            if (ViewBag.YetkiBelgesi == true)
+            {
+                try
+                {
+                    var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
+                    var belgeler = await _yetkiBelgesiOnayApiClient.ListeleAsync(kullanici, sirketId);
+                    ViewBag.SonBekleyenler = belgeler?.Bekleyenler
+                        .OrderByDescending(x => x.OlusturmaTarihi).Take(3).ToList();
+                    ViewBag.OnayBekleyen = belgeler?.Bekleyenler.Count;
+                    ViewBag.OnaylananBelge = belgeler?.Onaylananlar.Count;
+                    ViewBag.ReddedilenBelge = belgeler?.Reddedilenler.Count;
+                }
+                catch (ApiIntegrationException ex)
+                {
+                    ViewBag.BekleyenBelgelerAlinamadi = true;
+                    TempData["Hata"] = ex.Message;
+                }
+            }
+            if (ViewBag.YetkiYkcTalep == true)
+            {
+                try { ViewBag.YkcOzet = await ykcApi.DashboardOzetAsync(kullanici); }
+                catch (ApiIntegrationException ex) { TempData["Hata"] = ex.Message; }
+            }
+            if (ViewBag.YetkiServis == true)
+            {
+                try
+                {
+                    var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
+                    var sonuc = await _adminYetkiliServisApiClient.ListeleAsync(kullanici, sirketId, null, null, null, null);
+                    ViewBag.ServisToplam = sonuc?.Servisler.Count;
+                    ViewBag.ServisAktif = sonuc?.Servisler.Count(x => x.AktifMi);
+                    ViewBag.ServisPasif = sonuc?.Servisler.Count(x => !x.AktifMi);
+                }
+                catch (ApiIntegrationException ex) { TempData["Hata"] = ex.Message; }
+            }
             await SetPersonelNotifViewBags(kullanici);
             return View("~/Views/PersonelPanel/Index.cshtml");
         }
@@ -231,7 +262,7 @@ namespace YetkiliServisGazAcma.Controllers
         [HttpGet("profil")]
         public async Task<IActionResult> Profil()
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
@@ -259,7 +290,7 @@ namespace YetkiliServisGazAcma.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ProfilGuncelle(string adSoyad, string email, string telefon)
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             if (string.IsNullOrWhiteSpace(adSoyad) || string.IsNullOrWhiteSpace(email) ||
@@ -273,7 +304,7 @@ namespace YetkiliServisGazAcma.Controllers
             kullanici.UserName = email.Trim();
             kullanici.PhoneNumber = telefon?.Trim();
 
-            var sonuc = await _userManager.UpdateAsync(kullanici);
+            var sonuc = await _kullaniciOturumu.UpdateAsync(kullanici);
             if (sonuc.Succeeded) TempData["Basarili"] = "Profil bilgileriniz başarıyla güncellendi.";
             else TempData["Hata"] = "Güncelleme sırasında hata oluştu.";
 
@@ -284,7 +315,7 @@ namespace YetkiliServisGazAcma.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SifreDegistir(string mevcutSifre, string yeniSifre, string yeniSifreTekrar)
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             if (string.IsNullOrWhiteSpace(mevcutSifre) || string.IsNullOrWhiteSpace(yeniSifre))
@@ -298,7 +329,7 @@ namespace YetkiliServisGazAcma.Controllers
                 return RedirectToAction(nameof(Profil));
             }
 
-            var sonuc = await _userManager.ChangePasswordAsync(kullanici, mevcutSifre, yeniSifre);
+            var sonuc = await _kullaniciOturumu.ChangePasswordAsync(kullanici, mevcutSifre, yeniSifre);
             if (sonuc.Succeeded) TempData["SifreBasarili"] = "Şifreniz başarıyla değiştirildi.";
             else TempData["SifreHata"] = "Şifre güncellenemedi. Mevcut şifrenizi ve yeni şifrenin kurallara uygunluğunu kontrol edin.";
 
@@ -308,7 +339,7 @@ namespace YetkiliServisGazAcma.Controllers
         [HttpGet("devreyealmalar")]
         public async Task<IActionResult> DevreyeAlmalar(string? tesisat, string? musteri, string? marka, string? servis, string? il, string? ilce, string? durum, DateTime? bas, DateTime? bit)
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             // Devreye almalar raporu personel icin goruntulenebilir olsun.
@@ -360,7 +391,7 @@ namespace YetkiliServisGazAcma.Controllers
         [HttpGet("devreyealmalar/detay/{id}")]
         public async Task<IActionResult> DevreyeAlmaDetay(int id)
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
@@ -386,7 +417,7 @@ namespace YetkiliServisGazAcma.Controllers
         [HttpGet("devreyealma-pdf/{id}")]
         public async Task<IActionResult> DevreyeAlmaPdf(int id)
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
@@ -407,7 +438,7 @@ namespace YetkiliServisGazAcma.Controllers
         [HttpGet("devreyealma-excel/{id}")]
         public async Task<IActionResult> DevreyeAlmaExcel(int id)
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
@@ -431,7 +462,7 @@ namespace YetkiliServisGazAcma.Controllers
             var yetkiResult = await YetkiKontrol(YetkiTipleri.YETKI_BELGESI_ONAY);
             if (yetkiResult != null) return yetkiResult;
 
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
@@ -473,7 +504,7 @@ namespace YetkiliServisGazAcma.Controllers
             var yetkiResult = await YetkiKontrol(YetkiTipleri.YETKI_BELGESI_ONAY);
             if (yetkiResult != null) return yetkiResult;
 
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             try
@@ -499,7 +530,7 @@ namespace YetkiliServisGazAcma.Controllers
             var yetkiResult = await YetkiKontrol(YetkiTipleri.YETKI_BELGESI_ONAY);
             if (yetkiResult != null) return yetkiResult;
 
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             try
@@ -524,7 +555,7 @@ namespace YetkiliServisGazAcma.Controllers
             var yetkiResult = await YetkiKontrol(YetkiTipleri.YETKI_BELGESI_ONAY);
             if (yetkiResult != null) return yetkiResult;
 
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
@@ -556,7 +587,7 @@ namespace YetkiliServisGazAcma.Controllers
             var yetkiResult = await YetkiKontrol(YetkiTipleri.DAGITIM_SIRKET_YONET);
             if (yetkiResult != null) return yetkiResult;
 
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             List<Dag_Sirket> sirketler;
@@ -594,7 +625,7 @@ namespace YetkiliServisGazAcma.Controllers
             var yetkiResult = await YetkiKontrol(YetkiTipleri.DAGITIM_SIRKET_YONET);
             if (yetkiResult != null) return yetkiResult;
 
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             ViewBag.Kullanici = kullanici;
@@ -610,7 +641,7 @@ namespace YetkiliServisGazAcma.Controllers
             var yetkiResult = await YetkiKontrol(YetkiTipleri.DAGITIM_SIRKET_YONET);
             if (yetkiResult != null) return yetkiResult;
 
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             try
@@ -635,7 +666,7 @@ namespace YetkiliServisGazAcma.Controllers
             var yetkiResult = await YetkiKontrol(YetkiTipleri.DAGITIM_SIRKET_YONET);
             if (yetkiResult != null) return yetkiResult;
 
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             Dag_Sirket? sirket;
@@ -664,7 +695,7 @@ namespace YetkiliServisGazAcma.Controllers
             var yetkiResult = await YetkiKontrol(YetkiTipleri.DAGITIM_SIRKET_YONET);
             if (yetkiResult != null) return yetkiResult;
 
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             model.Id = id;
@@ -691,7 +722,7 @@ namespace YetkiliServisGazAcma.Controllers
             var yetkiResult = await YetkiKontrol(YetkiTipleri.DAGITIM_SIRKET_YONET);
             if (yetkiResult != null) return yetkiResult;
 
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             try
@@ -713,7 +744,7 @@ namespace YetkiliServisGazAcma.Controllers
         [HttpGet("markalar")]
         public async Task<IActionResult> Markalar()
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             List<Ys_Marka> markalar;
@@ -739,7 +770,7 @@ namespace YetkiliServisGazAcma.Controllers
             var yetkiResult = await YetkiKontrol(YetkiTipleri.MARKA_YONET);
             if (yetkiResult != null) return yetkiResult;
 
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             ViewBag.Kullanici = kullanici;
@@ -755,7 +786,7 @@ namespace YetkiliServisGazAcma.Controllers
             var yetkiResult = await YetkiKontrol(YetkiTipleri.MARKA_YONET);
             if (yetkiResult != null) return yetkiResult;
 
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             try
@@ -780,7 +811,7 @@ namespace YetkiliServisGazAcma.Controllers
             var yetkiResult = await YetkiKontrol(YetkiTipleri.MARKA_YONET);
             if (yetkiResult != null) return yetkiResult;
 
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             Ys_Marka? marka;
@@ -809,7 +840,7 @@ namespace YetkiliServisGazAcma.Controllers
             var yetkiResult = await YetkiKontrol(YetkiTipleri.MARKA_YONET);
             if (yetkiResult != null) return yetkiResult;
 
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             model.Id = id;
@@ -836,7 +867,7 @@ namespace YetkiliServisGazAcma.Controllers
             var yetkiResult = await YetkiKontrol(YetkiTipleri.MARKA_YONET);
             if (yetkiResult != null) return yetkiResult;
 
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             try
@@ -858,7 +889,7 @@ namespace YetkiliServisGazAcma.Controllers
         [HttpGet("yetkiliservisler")]
         public async Task<IActionResult> YetkiliServisler(string? q, string? il, string? durum, string? siralama)
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
@@ -894,7 +925,7 @@ namespace YetkiliServisGazAcma.Controllers
         [HttpGet("yetkiliservisler/detay/{id}")]
         public async Task<IActionResult> YetkiliServisDetay(int id)
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
@@ -925,7 +956,7 @@ namespace YetkiliServisGazAcma.Controllers
             var yetkiResult = await YetkiKontrol(YetkiTipleri.KULLANICI_YONET);
             if (yetkiResult != null) return yetkiResult;
 
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             ViewBag.Kullanici = kullanici;
@@ -945,7 +976,7 @@ namespace YetkiliServisGazAcma.Controllers
             var yetkiResult = await YetkiKontrol(YetkiTipleri.KULLANICI_YONET);
             if (yetkiResult != null) return yetkiResult;
 
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             if (string.IsNullOrWhiteSpace(firmaAdi))
@@ -990,7 +1021,7 @@ namespace YetkiliServisGazAcma.Controllers
             var yetkiResult = await YetkiKontrol(YetkiTipleri.KULLANICI_YONET);
             if (yetkiResult != null) return yetkiResult;
 
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
@@ -1028,7 +1059,7 @@ namespace YetkiliServisGazAcma.Controllers
             var yetkiResult = await YetkiKontrol(YetkiTipleri.KULLANICI_YONET);
             if (yetkiResult != null) return yetkiResult;
 
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
@@ -1070,7 +1101,7 @@ namespace YetkiliServisGazAcma.Controllers
             var yetkiResult = await YetkiKontrol(YetkiTipleri.KULLANICI_YONET);
             if (yetkiResult != null) return yetkiResult;
 
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
@@ -1096,7 +1127,7 @@ namespace YetkiliServisGazAcma.Controllers
             var yetkiResult = await YetkiKontrol(YetkiTipleri.RAPOR_GOR);
             if (yetkiResult != null) return yetkiResult;
 
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);

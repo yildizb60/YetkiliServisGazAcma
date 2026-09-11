@@ -1,0 +1,19 @@
+.form-pdf-viewer { border:1px solid #d8e1e8; border-radius:6px; overflow:hidden; background:#e8edf1; }
+.form-pdf-controls { display:flex; align-items:center; justify-content:center; gap:8px; min-height:48px; padding:6px 12px; border-bottom:1px solid #d8e1e8; background:#fff; }
+.form-pdf-controls button,.form-pdf-download { display:inline-flex; align-items:center; justify-content:center; flex:0 0 32px; width:32px; height:32px; border:1px solid #d8e1e8; border-radius:4px; color:#246b93; background:#fff; }
+.form-pdf-controls button:disabled { opacity:.4; cursor:default; }
+.form-pdf-controls button:not(:disabled):hover,.form-pdf-download:hover { background:#edf5fa; }
+.form-pdf-controls output { min-width:56px; text-align:center; font-size:13px; font-variant-numeric:tabular-nums; color:#415263; }
+.form-pdf-controls select { width:160px; min-height:32px; padding:4px 8px; border:1px solid #d8e1e8; border-radius:4px; color:#415263; background:#fff; font-size:13px; }
+.form-pdf-scroll { height:calc(100dvh - 260px); min-height:380px; padding:16px; overflow:auto; }
+.form-pdf-scroll canvas { display:block; margin:0 auto; background:#fff; box-shadow:0 2px 8px #26394a20; }
+.form-pdf-scroll canvas[hidden] { display:none; }
+.form-pdf-accessible-text { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+.form-pdf-message { margin:0; padding:16px; color:#415263; background:#fff; font-size:13px; }
+.form-pdf-message[role="alert"] { color:#a02936; background:#fff3f4; }
+.form-pdf-message[hidden] { display:none; }
+@media (max-width:600px) {
+    .form-pdf-controls { gap:5px; padding:6px; }
+    .form-pdf-controls select { width:140px; }
+    .form-pdf-scroll { padding:8px; min-height:360px; }
+}

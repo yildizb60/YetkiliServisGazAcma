@@ -80,7 +80,7 @@
         Group("Cihaz Devreye Alma", "bi-bag-check",
             ("Yeni Devreye Alma", "/ys-devreyeal", "bi-plus-lg", ActiveExact("DevreyeAl", "/ys-devreyeal")),
             ("İşlem Geçmişi", "/ys-devreyeal/gecmis", "bi-clock-history", Active("DevreyeGecmis", "/ys-devreyeal/gecmis", "/ys-devreyeal/detay")),
-            ("Raporlar", "/ys-panel/raporlar", "bi-bar-chart-line", Active("Raporlar", "/ys-panel/raporlar")));
+            ("Cihaz Devreye Alma Raporları", "/ys-panel/raporlar", "bi-bar-chart-line", Active("Raporlar", "/ys-panel/raporlar")));
         Group("Yetkili Servis İşlemleri", "bi-tools",
             ("Yetki Belgem", "/ys-yetki-belgesi", "bi-file-earmark-check", Active("YetkiBelgesi", "/ys-yetki-belgesi")),
             ("Hizmet Verdiğim Markalar", "/ys-panel/markalar", "bi-tag", Active("Markalar", "/ys-panel/markalar")),
@@ -91,8 +91,8 @@
     else if (isSertifikaliFirmaPanel)
     {
         Group("Cihaz Değişim İşlemleri", "bi-fire",
-            ("Yeni Talep", "/ykc/yeni", "bi-plus-lg", Active("YkcYeni", "/ykc/yeni")),
-            ("Taleplerim", "/ykc/talepler", "bi-journal-text", Active("YkcTalepler", "/ykc/talepler", "/ykc/detay", "/ykc/fr265")));
+            ("Yeni Cihaz Değişim Talebi", "/ykc/yeni", "bi-plus-lg", Active("YkcYeni", "/ykc/yeni")),
+            ("Cihaz Değişim Taleplerim", "/ykc/talepler", "bi-journal-text", Active("YkcTalepler", "/ykc/talepler", "/ykc/detay", "/ykc/fr265")));
     }
     else
     {
@@ -110,11 +110,11 @@
         var ykc = new List<(string, string, string, string)>();
         if (!isPersonelPanel || ykcYetkileri.TalepleriGorebilir)
         {
-            ykc.Add(("Talepler", "/ykc/talepler", "bi-journal-text", ActiveUnless("YkcTalepler", "YkcRaporlar", "/ykc/talepler", "/ykc/detay", "/ykc/yeni", "/ykc/fr265")));
-            ykc.Add(("Randevu Takvimi", "/ykc/takvim", "bi-calendar3", Active("YkcTakvim", "/ykc/takvim")));
+            ykc.Add(("Cihaz Değişim Talepleri", "/ykc/talepler", "bi-journal-text", ActiveUnless("YkcTalepler", "YkcRaporlar", "/ykc/talepler", "/ykc/detay", "/ykc/yeni", "/ykc/fr265")));
+            ykc.Add(("Cihaz Değişim Randevuları", "/ykc/takvim", "bi-calendar3", Active("YkcTakvim", "/ykc/takvim")));
         }
         if (!isPersonelPanel || ykcYetkileri.RaporlariGorebilir)
-            ykc.Add(("Raporlar", "/ykc/raporlar", "bi-bar-chart-line", Active("YkcRaporlar", "/ykc/raporlar")));
+            ykc.Add(("Cihaz Değişim Raporları", "/ykc/raporlar", "bi-bar-chart-line", Active("YkcRaporlar", "/ykc/raporlar")));
         Group("Cihaz Değişim İşlemleri", "bi-fire", ykc.ToArray());
         var services = new List<(string, string, string, string)> {
             ("Yetkili Servisler", area + "/yetkiliservisler", "bi-tools", Active("YetkiliServisler", area + "/yetkiliservisler"))
@@ -148,14 +148,6 @@
         {
             <div class="logo-circle"><i class="bi bi-fire" aria-hidden="true"></i></div>
         }
-        <div>
-            <div class="logo-text">@panelAnaBaslik</div>
-            @if (!string.IsNullOrWhiteSpace(panelAltBaslik))
-            {
-                <div class="logo-sub">@panelAltBaslik</div>
-            }
-            <div class="logo-company">@(ViewBag.PanelSirketAdi as string ?? "Genel Yönetim")</div>
-        </div>
     </a>
     <nav class="nav sidebar-nav" aria-label="Ana menü">
         <div class="nav-section-title">Ana Menü</div>

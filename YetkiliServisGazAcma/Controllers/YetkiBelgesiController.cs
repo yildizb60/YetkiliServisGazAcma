@@ -11,16 +11,16 @@ namespace YetkiliServisGazAcma.Controllers
     public class YetkiBelgesiController : Controller
     {
         private readonly YetkiBelgesiApiClient _yetkiBelgesiApiClient;
-        private readonly UserManager<AppKullanici> _userManager;
+        private readonly ApiKullaniciOturumu _kullaniciOturumu;
         private readonly AktifSirketService _aktifSirketService;
 
         public YetkiBelgesiController(
             YetkiBelgesiApiClient yetkiBelgesiApiClient,
-            UserManager<AppKullanici> userManager,
+            ApiKullaniciOturumu kullaniciOturumu,
             AktifSirketService aktifSirketService)
         {
             _yetkiBelgesiApiClient = yetkiBelgesiApiClient;
-            _userManager = userManager;
+            _kullaniciOturumu = kullaniciOturumu;
             _aktifSirketService = aktifSirketService;
         }
 
@@ -30,7 +30,7 @@ namespace YetkiliServisGazAcma.Controllers
         [Authorize(Roles = "YetkiliServis")]
         public async Task<IActionResult> Index()
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
 
             if (kullanici == null)
                 return Redirect("/giris");
@@ -72,7 +72,7 @@ namespace YetkiliServisGazAcma.Controllers
             DateTime bitisTarihi,
             DateTime? baslangicTarihi)
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null)
                 return Redirect("/giris");
 
@@ -103,7 +103,7 @@ namespace YetkiliServisGazAcma.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Sil(int id)
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null)
                 return Redirect("/giris");
 
@@ -125,7 +125,7 @@ namespace YetkiliServisGazAcma.Controllers
         [Route("dosya/{id:int}")]
         public async Task<IActionResult> Dosya(int id)
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null)
                 return Redirect("/giris");
 
@@ -149,7 +149,7 @@ namespace YetkiliServisGazAcma.Controllers
         [Route("onay-bekleyenler")]
         public async Task<IActionResult> OnayBekleyenler()
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
@@ -183,7 +183,7 @@ namespace YetkiliServisGazAcma.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Onayla(int id)
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             try
@@ -205,7 +205,7 @@ namespace YetkiliServisGazAcma.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Reddet(int id, string? gerekce)
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             try

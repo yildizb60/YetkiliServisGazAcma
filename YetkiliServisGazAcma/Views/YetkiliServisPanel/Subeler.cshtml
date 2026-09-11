@@ -14,20 +14,6 @@
 }
 
 <div class="ys-workspace">
-    <header class="ys-page-header">
-        <div class="ys-page-heading">
-            <span class="ys-page-icon"><i class="bi bi-diagram-3" aria-hidden="true"></i></span>
-            <div class="ys-page-copy">
-                <h1>Şube / Servis Noktaları</h1>
-                <p>Hizmet noktalarınızın iletişim, konum ve çalışma durumunu yönetin.</p>
-            </div>
-        </div>
-        <div class="ys-page-actions">
-            <span class="df-pill df-pill-success">@aktifSube aktif</span>
-            <span class="df-pill df-pill-info">@subeler.Count toplam</span>
-        </div>
-    </header>
-
     @if (TempData["Basarili"] != null)
     {
         <div class="ys-alert is-success"><i class="bi bi-check-circle" aria-hidden="true"></i>@TempData["Basarili"]</div>
@@ -42,7 +28,6 @@
             <span class="ys-summary-heading">
                 <i class="bi bi-building-add" aria-hidden="true"></i>
                 <strong>Yeni Şube Ekle</strong>
-                <span>Yeni hizmet noktasını tanımlayın</span>
             </span>
             <i class="bi bi-chevron-down" aria-hidden="true"></i>
         </summary>
@@ -71,11 +56,9 @@
         <div class="ys-panel-head">
             <div class="ys-panel-heading">
                 <span class="ys-section-icon"><i class="bi bi-buildings" aria-hidden="true"></i></span>
-                <div>
-                    <h2 class="ys-panel-title">Kayıtlı Servis Noktaları</h2>
-                    <p class="ys-panel-subtitle">@subeler.Count şube kaydı</p>
-                </div>
+                <div><h2 class="ys-panel-title">Kayıtlı Servis Noktaları</h2></div>
             </div>
+            <div class="ys-page-actions"><span class="df-pill df-pill-success">@aktifSube aktif</span><span class="df-pill df-pill-info">@subeler.Count toplam</span></div>
         </div>
         <div class="ys-table-wrap">
             <table class="ys-table">

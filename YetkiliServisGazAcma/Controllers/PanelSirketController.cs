@@ -11,21 +11,21 @@ namespace YetkiliServisGazAcma.Controllers
     [Route("panel")]
     public class PanelSirketController : Controller
     {
-        private readonly UserManager<AppKullanici> _userManager;
+        private readonly ApiKullaniciOturumu _kullaniciOturumu;
         private readonly AktifSirketService _aktifSirketService;
 
         public PanelSirketController(
-            UserManager<AppKullanici> userManager,
+            ApiKullaniciOturumu kullaniciOturumu,
             AktifSirketService aktifSirketService)
         {
-            _userManager = userManager;
+            _kullaniciOturumu = kullaniciOturumu;
             _aktifSirketService = aktifSirketService;
         }
 
         [HttpGet("sirket-sec")]
         public async Task<IActionResult> SirketSec(string? returnUrl)
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             var sirketler = await _aktifSirketService.KullaniciSirketleriAsync(kullanici);
@@ -44,7 +44,7 @@ namespace YetkiliServisGazAcma.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SirketSec(int sirketId, string? returnUrl)
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             var degisti = await _aktifSirketService.SirketSecAsync(kullanici, sirketId);

@@ -20,20 +20,6 @@
 }
 
 <div class="df-service-directory">
-    <section class="df-page-panel df-service-hero">
-        <div class="df-panel-head">
-            <div>
-                <div class="df-panel-kicker"><i class="bi bi-building-check" aria-hidden="true"></i> SERVİS YÖNETİMİ</div>
-                <h2 class="df-panel-title">Yetkili Servisler</h2>
-                <div class="df-panel-subtitle">Servisleri, faaliyet illerini ve devreye alma durumlarını tek listeden yönetin.</div>
-            </div>
-            <div class="df-actions">
-                <a class="df-btn df-btn-secondary df-btn-sm" href="/yetkili-servisler" target="_blank"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> Genel Liste</a>
-                <a class="df-btn df-btn-primary df-btn-sm" href="/AdminPanel/yetkiliservisler/ekle"><i class="bi bi-plus-lg" aria-hidden="true"></i> Yeni Servis</a>
-            </div>
-        </div>
-    </section>
-
     @if (TempData["Basarili"] != null) { <div class="df-alert df-alert-success">@TempData["Basarili"]</div> }
     @if (TempData["Hata"] != null) { <div class="df-alert df-alert-danger">@TempData["Hata"]</div> }
 
@@ -86,9 +72,12 @@
         <div class="df-service-list-head">
             <div>
                 <h3><i class="bi bi-list-check" aria-hidden="true"></i> Yetkili Servis Listesi</h3>
-                <span>Firma bilgileri, işlem hacmi ve kayıt durumu</span>
             </div>
-            <strong>@servisler.Count kayıt</strong>
+            <div class="df-actions">
+                <span class="df-pill df-pill-info">@servisler.Count kayıt</span>
+                <a class="df-btn df-btn-secondary df-btn-sm" href="/yetkili-servisler" target="_blank"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> Genel Liste</a>
+                <a class="df-btn df-btn-primary df-btn-sm" href="/AdminPanel/yetkiliservisler/ekle"><i class="bi bi-plus-lg" aria-hidden="true"></i> Yeni Servis</a>
+            </div>
         </div>
         <div class="df-service-table-scroll">
             <div class="df-service-grid df-service-grid-head">

@@ -14,13 +14,26 @@ function Post($Path, $Body, $Token) {
 }
 function Token($Email) {
     $r = Post '/api/auth/token' @{ email = $Email; sifre = 'Demo123!' } $null
-    if ($r.StatusCode -ne 200) { throw 'Local demo sign-in failed.' }
-    ($r.Content | ConvertFrom-Json).token
+    $auth = $r.Content | ConvertFrom-Json
+    if ($auth.dogrulama) {
+        if ($auth.mesaj -notmatch 'Test SMS modu:.*?(\d{6})') { throw 'Local demo sign-in requires an unavailable live SMS code.' }
+        $code = $Matches[1]
+        $r = Post '/api/auth/sms-dogrula' @{ dogrulama = $auth.dogrulama; kod = $code } $null
+        $auth = $r.Content | ConvertFrom-Json
+    }
+    if ($r.StatusCode -ne 200 -or -not $auth.token) { throw 'Local demo sign-in failed.' }
+    $auth.token
 }
 $firm = Token 'test.sertifikalifirma@demo.com'
 $staff = Token 'test.personel@demo.com'
 $admin = Token 'test.geneladmin@demo.com'
 $service = Token 'test.servis@demo.com'
+$firmDashboardResponse = Post '/api/ykc/dashboard/ozet' @{} $firm
+Check ($firmDashboardResponse.StatusCode -eq 200) 'Firm dashboard is authorized'
+$firmDashboard = $firmDashboardResponse.Content | ConvertFrom-Json
+Check ($firmDashboard.sonTalepler.Count -gt 0) 'Firm dashboard has records to verify redaction'
+Check (@($firmDashboard.sonTalepler | Where-Object { $_.projedekiCihazBilgisi -or $_.eskiCihaz }).Count -eq 0) 'Firm dashboard does not expose source-device fields'
+Check (@($firmDashboard.sonTalepler | Where-Object { $null -eq $_.yeniCihazBilgisi }).Count -eq 0) 'Device display uses typed fields, not slash parsing'
 Check ((Post '/api/ykc/talepler/form-pdf' @{id=$TalepId} $null).StatusCode -eq 401) 'Anonymous PDF denied'
 Check ((Post '/api/ykc/talepler/form-pdf' @{id=$TalepId} $service).StatusCode -eq 403) 'Unrelated service role cannot read YKC form'
 Check ((Post '/api/ykc/takvim' @{} $firm).StatusCode -eq 403) 'Firm cannot read internal calendar'

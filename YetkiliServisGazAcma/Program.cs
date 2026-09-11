@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
-using YetkiliServisGazAcma.Infrastructure;
 using YetkiliServisGazAcma.Business.Services;
 using Microsoft.Extensions.Options;
 using QuestPDF.Infrastructure;
@@ -31,20 +31,8 @@ builder.Services.AddControllersWithViews(options =>
     options.Filters.AddService<PanelKimlikActionFilter>();
 });
 
-var defaultConnection = builder.Configuration.GetConnectionString("DefaultConnection");
-if (string.IsNullOrWhiteSpace(defaultConnection))
-    throw new InvalidOperationException("ConnectionStrings:DefaultConnection ayari eksik. appsettings.Local.json veya environment variable ile tanimlayin.");
-
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(defaultConnection));
-
-builder.Services.AddScoped<DagitimSirketService>();
-builder.Services.AddScoped<MarkaService>();
-builder.Services.AddScoped<YetkiliServisService>();
-builder.Services.AddScoped<AdminDashboardService>();
-builder.Services.AddScoped<AdminYetkiliServisListeService>();
-builder.Services.AddScoped<SehirFirmaKoduService>();
-builder.Services.AddScoped<YkcYetkiService>();
+builder.Services.AddScoped<SehirFirmaKodlari>();
+builder.Services.AddScoped<ApiKullaniciOturumu>();
 builder.Services.AddScoped<AktifSirketService>();
 builder.Services.AddScoped<PanelKimlikService>();
 builder.Services.AddScoped<PanelKimlikActionFilter>();
@@ -69,8 +57,7 @@ AddApiClient<YkcApiClient>();
 AddApiClient<YetkiliServisPanelApiClient>();
 AddApiClient<HomeOzetApiClient>();
 AddApiClient<PanelKapsamApiClient>();
-builder.Services.AddSmsServices(builder.Configuration);
-builder.Services.AddSertifikaliFirmaKimlikServices(builder.Configuration);
+AddApiClient<AuthApiClient>();
 
 void AddApiClient<TClient>() where TClient : class
 {
@@ -107,28 +94,14 @@ static bool IsLocalApiHost(string host)
         || string.Equals(host, "::1", StringComparison.OrdinalIgnoreCase);
 }
 
-builder.Services.AddIdentity<AppKullanici, IdentityRole>(options =>
-{
-    options.Password.RequireDigit = true;
-    options.Password.RequiredLength = 6;
-    options.Password.RequireUppercase = false;
-    options.Password.RequireNonAlphanumeric = false;
-    options.User.RequireUniqueEmail = true;
-    options.Lockout.AllowedForNewUsers = true;
-    options.Lockout.MaxFailedAccessAttempts = 5;
-    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
-})
-.AddEntityFrameworkStores<AppDbContext>()
-.AddDefaultTokenProviders();
-
-// Tek giriş sayfası
-builder.Services.ConfigureApplicationCookie(options =>
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie(options =>
 {
     options.LoginPath = "/giris";
     options.LogoutPath = "/cikis";
     options.AccessDeniedPath = "/yetkisiz-erisim";
     options.ExpireTimeSpan = TimeSpan.FromHours(8);
-    options.SlidingExpiration = true;
+    options.SlidingExpiration = false;
+    options.Events.OnValidatePrincipal = ApiKullaniciOturumu.ValidatePrincipalAsync;
 
     options.Events.OnRedirectToLogin = context =>
     {
@@ -142,6 +115,7 @@ builder.Services.ConfigureApplicationCookie(options =>
         return System.Threading.Tasks.Task.CompletedTask;
     };
 });
+builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
@@ -172,6 +146,16 @@ app.Use(async (context, next) =>
 
     await next();
 });
+// PDF.js character maps and fallback fonts are public library assets, not uploaded documents.
+var pdfAssetTypes = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
+pdfAssetTypes.Mappings[".bcmap"] = "application/octet-stream";
+pdfAssetTypes.Mappings[".pfb"] = "application/x-font-type1";
+app.UseStaticFiles(new StaticFileOptions
+{
+    RequestPath = "/lib/pdfjs",
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(Path.Combine(app.Environment.WebRootPath, "lib", "pdfjs")),
+    ContentTypeProvider = pdfAssetTypes
+});
 app.UseStaticFiles();
 app.Use(async (context, next) =>
 {
@@ -201,6 +185,17 @@ app.Use(async (context, next) =>
     }
 });
 app.UseAuthentication();
+app.Use(async (context, next) =>
+{
+    try { await next(); }
+    catch (ApiOturumSuresiDolduException) when (!context.Response.HasStarted)
+    {
+        context.Response.Clear();
+        context.Session.Clear();
+        await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        context.Response.Redirect("/giris?temizle=true");
+    }
+});
 app.UseAuthorization();
 
 app.MapControllers();
@@ -218,22 +213,6 @@ app.MapControllerRoute(
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
-
-using (var scope = app.Services.CreateScope())
-{
-    var userManager = scope.ServiceProvider
-        .GetRequiredService<UserManager<AppKullanici>>();
-    var roleManager = scope.ServiceProvider
-        .GetRequiredService<RoleManager<IdentityRole>>();
-    var dbContext = scope.ServiceProvider
-        .GetRequiredService<AppDbContext>();
-
-    var createDefaultUsers = app.Configuration.GetValue<bool>("Seed:CreateDefaultUsers");
-    await SeedData.Initialize(userManager, roleManager, createDefaultUsers);
-
-    if (app.Environment.IsDevelopment() && app.Configuration.GetValue<bool>("TestData:SeedDemoUsers"))
-        await TestDataSeed.Initialize(dbContext, userManager);
-}
 
 app.Run();
 

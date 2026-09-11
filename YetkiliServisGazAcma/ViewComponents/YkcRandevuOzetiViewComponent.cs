@@ -1,28 +1,49 @@
-using Microsoft.AspNetCore.Identity;
+using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 using YetkiliServisGazAcma.Business.Services;
-using YetkiliServisGazAcma.Entities;
 
 namespace YetkiliServisGazAcma.ViewComponents;
 
+public sealed class YkcRandevuOzetiModel
+{
+    public DateTime Tarih { get; init; } = DateTime.Today;
+    public YkcTakvimFiltre Filtre { get; init; } = new();
+    public YkcTakvimSonuc? Gun { get; init; }
+    public List<YkcTakvimGunOzeti> AyGunleri { get; init; } = new();
+}
+
 public sealed class YkcRandevuOzetiViewComponent(
-    UserManager<AppKullanici> users, YkcYetkiService yetki, YkcApiClient api,
+    ApiKullaniciOturumu users, PanelKapsamApiClient yetki, YkcApiClient api, AktifSirketService sirket,
     ILogger<YkcRandevuOzetiViewComponent> logger) : ViewComponent
 {
     public async Task<IViewComponentResult> InvokeAsync()
     {
         var user = await users.GetUserAsync(HttpContext.User);
-        if (user == null || user.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma
-            || !(await yetki.OzetAsync(user)).TalepleriGorebilir) return Content("");
+        if (user == null || user.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma) return Content("");
+        var query = HttpContext.Request.Query;
+        var tarih = DateTime.TryParseExact(query["takvimTarih"], "yyyy-MM-dd", CultureInfo.InvariantCulture,
+            DateTimeStyles.None, out var value) && value.Year is >= 2000 and <= 2100 ? value.Date : DateTime.Today;
+        string? Filter(string key) => query[key].ToString().Trim() is { Length: > 0 and <= 120 } text ? text : null;
+        var filtre = new YkcTakvimFiltre {
+            Baslangic = tarih, Bitis = tarih, Il = Filter("takvimIl"), Bolge = Filter("takvimBolge"),
+            Personel = Filter("takvimPersonel"), Musteri = Filter("takvimAbone")
+        };
         try
         {
-            var sonuc = await api.TakvimAsync(user, new YkcTakvimFiltre { Baslangic = DateTime.Today, Bitis = DateTime.Today });
-            return View(sonuc);
+            if (!(await yetki.YkcYetkileriAsync(user, await sirket.AktifSirketIdAsync(user))).TalepleriGorebilir)
+                return Content("");
+            var gun = await api.TakvimAsync(user, filtre);
+            var ayBasi = new DateTime(tarih.Year, tarih.Month, 1);
+            var ay = await api.TakvimAsync(user, new YkcTakvimFiltre {
+                Baslangic = ayBasi, Bitis = ayBasi.AddMonths(1).AddDays(-1), Il = filtre.Il,
+                Bolge = filtre.Bolge, Personel = filtre.Personel, Musteri = filtre.Musteri
+            });
+            return View(new YkcRandevuOzetiModel { Tarih = tarih, Filtre = filtre, Gun = gun, AyGunleri = ay?.Gunler ?? new() });
         }
         catch (ApiIntegrationException ex)
         {
             logger.LogWarning(ex, "Ana panel randevuları alınamadı.");
-            return View((YkcTakvimSonuc?)null);
+            return View(new YkcRandevuOzetiModel { Tarih = tarih, Filtre = filtre });
         }
     }
 }

@@ -17,19 +17,6 @@
 }
 
 <div class="ys-workspace">
-    <header class="ys-page-header">
-        <div class="ys-page-heading">
-            <span class="ys-page-icon"><i class="bi bi-building-check" aria-hidden="true"></i></span>
-            <div class="ys-page-copy">
-                <h1>Marka Yetkilerim</h1>
-                <p>Devreye alma işlemi yapabildiğiniz markaları seçin ve kayıtlarınızı yönetin.</p>
-            </div>
-        </div>
-        <div class="ys-page-actions">
-            <span class="df-pill df-pill-success">@seciliIds.Count yetkili marka</span>
-        </div>
-    </header>
-
     @if (TempData["Basarili"] != null)
     {
         <div class="ys-alert is-success"><i class="bi bi-check-circle" aria-hidden="true"></i>@TempData["Basarili"]</div>
@@ -44,11 +31,9 @@
             <div class="ys-panel-head">
                 <div class="ys-panel-heading">
                     <span class="ys-section-icon"><i class="bi bi-patch-check" aria-hidden="true"></i></span>
-                    <div>
-                        <h2 class="ys-panel-title">Yetkili Markalar</h2>
-                        <p class="ys-panel-subtitle">İşlem yapabildiğiniz markaları işaretleyin.</p>
-                    </div>
+                    <div><h2 class="ys-panel-title">Yetkili Markalar</h2></div>
                 </div>
+                <span class="df-pill df-pill-success">@seciliIds.Count seçili</span>
             </div>
             <div class="ys-panel-body">
                 <form method="post" action="/ys-panel/marka-guncelle">
@@ -78,10 +63,7 @@
             <div class="ys-panel-head">
                 <div class="ys-panel-heading">
                     <span class="ys-section-icon"><i class="bi bi-plus-circle" aria-hidden="true"></i></span>
-                    <div>
-                        <h2 class="ys-panel-title">Yeni Marka</h2>
-                        <p class="ys-panel-subtitle">Listede bulunmayan markayı tanımlayın.</p>
-                    </div>
+                    <div><h2 class="ys-panel-title">Yeni Marka</h2></div>
                 </div>
             </div>
             <div class="ys-panel-body">
@@ -109,11 +91,9 @@
         <div class="ys-panel-head">
             <div class="ys-panel-heading">
                 <span class="ys-section-icon"><i class="bi bi-pencil-square" aria-hidden="true"></i></span>
-                <div>
-                    <h2 class="ys-panel-title">Kayıtlı Marka Yetkileri</h2>
-                    <p class="ys-panel-subtitle">@firmaMarkalar.Count kayıt · Ad veya açıklama bilgisini satır üzerinden düzenleyin.</p>
+                    <div><h2 class="ys-panel-title">Kayıtlı Marka Yetkileri</h2></div>
                 </div>
-            </div>
+                <span class="df-pill df-pill-info">@firmaMarkalar.Count kayıt</span>
         </div>
         <div class="ys-table-wrap">
             <table class="ys-table">

@@ -1,372 +1,119 @@
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
+using YetkiliServisGazAcma.Models;
 
 namespace YetkiliServisGazAcma.Controllers
 {
     [ApiExplorerSettings(IgnoreApi = true)]
-    public class GirisController : Controller
+    public class GirisController(AuthApiClient api, ApiKullaniciOturumu oturum, AktifSirketService aktifSirketService) : Controller
     {
-        private const string SmsBekleyenKullaniciIdKey = "SmsBekleyenKullaniciId";
-        private const string SifreSifirlaKullaniciIdKey = "SifreSifirlaKullaniciId";
-        private const string HariciKimlikDogrulamaReferansiKey = "HariciKimlikDogrulamaReferansi";
+        private const string SmsKey = "API.LoginChallenge";
+        private const string ResetKey = "API.ResetChallenge";
+        private readonly AktifSirketService _aktifSirketService = aktifSirketService;
 
-        private readonly SignInManager<AppKullanici> _signInManager;
-        private readonly UserManager<AppKullanici> _userManager;
-        private readonly AktifSirketService _aktifSirketService;
-        private readonly SmsDogrulamaService _smsDogrulamaService;
-        private readonly ISertifikaliFirmaKimlikProvider _sertifikaliFirmaKimlikProvider;
-        private readonly SertifikaliFirmaKimlikOptions _kimlikOptions;
-
-        public GirisController(
-            SignInManager<AppKullanici> signInManager,
-            UserManager<AppKullanici> userManager,
-            AktifSirketService aktifSirketService,
-            SmsDogrulamaService smsDogrulamaService,
-            ISertifikaliFirmaKimlikProvider sertifikaliFirmaKimlikProvider,
-            Microsoft.Extensions.Options.IOptions<SertifikaliFirmaKimlikOptions> kimlikOptions)
-        {
-            _signInManager = signInManager;
-            _userManager = userManager;
-            _aktifSirketService = aktifSirketService;
-            _smsDogrulamaService = smsDogrulamaService;
-            _sertifikaliFirmaKimlikProvider = sertifikaliFirmaKimlikProvider;
-            _kimlikOptions = kimlikOptions.Value;
-        }
-
-        [HttpGet]
-        [Route("giris")]
+        [HttpGet, Route("giris")]
         public IActionResult Index(bool sifreUnuttum = false, bool temizle = false)
         {
-            if (temizle)
-            {
-                HttpContext.Session.Remove(SmsBekleyenKullaniciIdKey);
-                HttpContext.Session.Remove(SifreSifirlaKullaniciIdKey);
-                HttpContext.Session.Remove(HariciKimlikDogrulamaReferansiKey);
-            }
-
-            ViewBag.SmsBekleniyor = !string.IsNullOrWhiteSpace(HttpContext.Session.GetString(SmsBekleyenKullaniciIdKey));
-            ViewBag.SifreSifirlaKodBekleniyor = !string.IsNullOrWhiteSpace(HttpContext.Session.GetString(SifreSifirlaKullaniciIdKey));
+            if (temizle) ClearChallenges();
+            ViewBag.SmsBekleniyor = HttpContext.Session.GetString(SmsKey) != null;
+            ViewBag.SifreSifirlaKodBekleniyor = HttpContext.Session.GetString(ResetKey) != null;
             ViewBag.SifreUnuttum = sifreUnuttum;
             return View();
         }
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Route("giris")]
+        [HttpPost, ValidateAntiForgeryToken, Route("giris")]
         public async Task<IActionResult> Index(string kullaniciAdi, string sifre)
         {
-            if (string.IsNullOrEmpty(kullaniciAdi) || string.IsNullOrEmpty(sifre))
+            ClearChallenges();
+            if (string.IsNullOrWhiteSpace(kullaniciAdi) || string.IsNullOrEmpty(sifre))
+                return LoginView("Kullanıcı adı ve şifre zorunludur.");
+            var result = await api.GirisAsync(kullaniciAdi, sifre);
+            if (!result.Basarili) return LoginView(result.Mesaj);
+            if (!string.IsNullOrWhiteSpace(result.Dogrulama))
             {
-                ViewBag.Hata = "Kullanıcı adı ve şifre zorunludur.";
-                return View();
-            }
-
-            HttpContext.Session.Remove(SmsBekleyenKullaniciIdKey);
-            HttpContext.Session.Remove(HariciKimlikDogrulamaReferansiKey);
-            kullaniciAdi = kullaniciAdi.Trim();
-            var kullanici = await _userManager.FindByEmailAsync(kullaniciAdi)
-                         ?? await _userManager.FindByNameAsync(kullaniciAdi);
-            SertifikaliFirmaKimlikSonucu? hariciKimlikSonucu = null;
-            var hariciKimlikKullanildi = _kimlikOptions.Enabled
-                && (kullanici == null || kullanici.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma);
-
-            if (hariciKimlikKullanildi)
-            {
-                if (!_sertifikaliFirmaKimlikProvider.KullanilabilirMi)
-                {
-                    ViewBag.Hata = "Firma giriş servisi henüz bağlanmadı. Lütfen sistem yöneticisine başvurun.";
-                    return View();
-                }
-                hariciKimlikSonucu = await _sertifikaliFirmaKimlikProvider.KimlikDogrulaAsync(
-                    kullaniciAdi,
-                    sifre,
-                    HttpContext.RequestAborted);
-
-                if (!hariciKimlikSonucu.Basarili)
-                {
-                    ViewBag.Hata = string.IsNullOrWhiteSpace(hariciKimlikSonucu.Mesaj)
-                        ? "Sertifikalı firma kullanıcı bilgileri doğrulanamadı."
-                        : hariciKimlikSonucu.Mesaj;
-                    return View();
-                }
-
-                var yerelKullaniciAdi = string.IsNullOrWhiteSpace(hariciKimlikSonucu.YerelKullaniciAdi)
-                    ? kullaniciAdi
-                    : hariciKimlikSonucu.YerelKullaniciAdi.Trim();
-                kullanici = await _userManager.FindByEmailAsync(yerelKullaniciAdi)
-                         ?? await _userManager.FindByNameAsync(yerelKullaniciAdi);
-
-                if (kullanici == null || kullanici.KullaniciTipi != KullaniciTipiDegerleri.SertifikaliFirma)
-                {
-                    ViewBag.Hata = "Kimlik servisi doğruladı ancak eşleşen yerel sertifikalı firma hesabı bulunamadı.";
-                    return View();
-                }
-            }
-            else if (kullanici == null)
-            {
-                ViewBag.Hata = "Kullanıcı bulunamadı.";
-                return View();
-            }
-
-            if (!kullanici.AktifMi)
-            {
-                ViewBag.Hata = "Hesabınız aktif değil.";
-                return View();
-            }
-
-            if (!hariciKimlikKullanildi)
-            {
-                var sonuc = await _signInManager.CheckPasswordSignInAsync(kullanici, sifre, true);
-                if (!sonuc.Succeeded)
-                {
-                    if (sonuc.IsLockedOut)
-                    {
-                        ViewBag.Hata = "Çok fazla hatalı giriş denemesi yapıldı. Lütfen 15 dakika sonra tekrar deneyin.";
-                        return View();
-                    }
-
-                    ViewBag.Hata = "Kullanıcı adı veya şifre hatalı.";
-                    return View();
-                }
-            }
-
-            await RolSenkronizeEt(kullanici);
-
-            var smsGerekli = _smsDogrulamaService.SmsGirisAktifMi
-                || hariciKimlikSonucu?.TelefonDogrulamasiGerekliMi == true;
-            if (smsGerekli)
-            {
-                if (!_smsDogrulamaService.SmsGirisAktifMi)
-                {
-                    ViewBag.Hata = "Kimlik servisi telefon doğrulaması istiyor ancak SMS doğrulaması yapılandırılmamış.";
-                    return View();
-                }
-
-                if (hariciKimlikKullanildi
-                    && string.IsNullOrWhiteSpace(hariciKimlikSonucu?.DogrulamaReferansi))
-                {
-                    ViewBag.Hata = "Kimlik servisi SMS sonrası doğrulama için bir işlem referansı döndürmedi.";
-                    return View();
-                }
-
-                var smsSonuc = await _smsDogrulamaService.KodGonderAsync(kullanici, "GIRIS", hariciKimlikSonucu?.Telefon);
-                if (!smsSonuc.Basarili)
-                {
-                    ViewBag.Hata = smsSonuc.Mesaj;
-                    return View();
-                }
-
-                HttpContext.Session.SetString(SmsBekleyenKullaniciIdKey, kullanici.Id);
-                if (!string.IsNullOrWhiteSpace(hariciKimlikSonucu?.DogrulamaReferansi))
-                {
-                    HttpContext.Session.SetString(
-                        HariciKimlikDogrulamaReferansiKey,
-                        hariciKimlikSonucu.DogrulamaReferansi.Trim());
-                }
-
+                HttpContext.Session.SetString(SmsKey, result.Dogrulama);
                 ViewBag.SmsBekleniyor = true;
-                ViewBag.Bilgi = smsSonuc.Mesaj;
-                return View();
+                ViewBag.Bilgi = result.Mesaj;
+                return LoginView();
             }
-
-            if (!string.IsNullOrWhiteSpace(hariciKimlikSonucu?.DogrulamaReferansi))
-            {
-                var tamamlama = await _sertifikaliFirmaKimlikProvider.DogrulamayiTamamlaAsync(
-                    hariciKimlikSonucu.DogrulamaReferansi,
-                    HttpContext.RequestAborted);
-                if (!tamamlama.Basarili)
-                {
-                    ViewBag.Hata = tamamlama.Mesaj;
-                    return View();
-                }
-            }
-
-            await _signInManager.SignInAsync(kullanici, false);
-            return await GirisSonrasiYonlendir(kullanici);
+            var user = await oturum.BaslatAsync(result);
+            return await GirisSonrasiYonlendir(user);
         }
 
-        [HttpGet]
-        [Route("giris/sms-dogrula")]
-        public IActionResult SmsDogrula()
-        {
-            return Redirect("/giris");
-        }
+        [HttpGet, Route("giris/sms-dogrula")]
+        public IActionResult SmsDogrula() => Redirect("/giris");
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Route("giris/sms-dogrula")]
+        [HttpPost, ValidateAntiForgeryToken, Route("giris/sms-dogrula")]
         public async Task<IActionResult> SmsDogrula(string kod)
         {
-            var bekleyenKullaniciId = HttpContext.Session.GetString(SmsBekleyenKullaniciIdKey);
-            if (string.IsNullOrWhiteSpace(bekleyenKullaniciId))
-                return Redirect("/giris");
-
-            var kullanici = await _userManager.FindByIdAsync(bekleyenKullaniciId);
-            if (kullanici == null || !kullanici.AktifMi)
-                return Redirect("/giris");
-
-            var sonuc = await _smsDogrulamaService.KodDogrulaAsync(kullanici.Id, kod, "GIRIS");
-            if (!sonuc.Basarili)
+            var challenge = HttpContext.Session.GetString(SmsKey);
+            if (challenge == null) return Redirect("/giris");
+            var result = await api.SmsAsync(challenge, kod ?? "");
+            if (!result.Basarili)
             {
                 ViewBag.SmsBekleniyor = true;
-                ViewBag.Hata = sonuc.Mesaj;
-                return View("~/Views/Giris/Index.cshtml");
+                return LoginView(result.Mesaj);
             }
-
-            var hariciDogrulamaReferansi = HttpContext.Session.GetString(HariciKimlikDogrulamaReferansiKey);
-            if (!string.IsNullOrWhiteSpace(hariciDogrulamaReferansi))
-            {
-                if (!_sertifikaliFirmaKimlikProvider.KullanilabilirMi)
-                {
-                    HttpContext.Session.Remove(SmsBekleyenKullaniciIdKey);
-                    HttpContext.Session.Remove(HariciKimlikDogrulamaReferansiKey);
-                    ViewBag.Hata = "Sertifikalı firma kimlik servisine ulaşılamadı. Lütfen yeniden giriş yapın.";
-                    return View("~/Views/Giris/Index.cshtml");
-                }
-
-                var tamamlama = await _sertifikaliFirmaKimlikProvider.DogrulamayiTamamlaAsync(
-                    hariciDogrulamaReferansi,
-                    HttpContext.RequestAborted);
-                if (!tamamlama.Basarili)
-                {
-                    HttpContext.Session.Remove(SmsBekleyenKullaniciIdKey);
-                    HttpContext.Session.Remove(HariciKimlikDogrulamaReferansiKey);
-                    ViewBag.Hata = tamamlama.Mesaj;
-                    return View("~/Views/Giris/Index.cshtml");
-                }
-            }
-
-            await RolSenkronizeEt(kullanici);
-            await _signInManager.SignInAsync(kullanici, false);
-            HttpContext.Session.Remove(SmsBekleyenKullaniciIdKey);
-            HttpContext.Session.Remove(HariciKimlikDogrulamaReferansiKey);
-            return await GirisSonrasiYonlendir(kullanici);
+            ClearChallenges();
+            return await GirisSonrasiYonlendir(await oturum.BaslatAsync(result));
         }
 
-        [HttpGet]
-        [Route("giris/sifre-unuttum")]
+        [HttpGet, Route("giris/sifre-unuttum")]
         public IActionResult SifreUnuttum()
         {
-            HttpContext.Session.Remove(SmsBekleyenKullaniciIdKey);
-            HttpContext.Session.Remove(SifreSifirlaKullaniciIdKey);
-            HttpContext.Session.Remove(HariciKimlikDogrulamaReferansiKey);
+            ClearChallenges();
             ViewBag.SifreUnuttum = true;
-            return View("~/Views/Giris/Index.cshtml");
+            return LoginView();
         }
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Route("giris/sifre-unuttum")]
+        [HttpPost, ValidateAntiForgeryToken, Route("giris/sifre-unuttum")]
         public async Task<IActionResult> SifreUnuttum(string kullaniciAdi)
         {
-            if (string.IsNullOrWhiteSpace(kullaniciAdi))
-            {
-                ViewBag.SifreUnuttum = true;
-                ViewBag.Hata = "E-posta veya VKN zorunludur.";
-                return View("~/Views/Giris/Index.cshtml");
-            }
-
-            var kullanici = await _userManager.FindByEmailAsync(kullaniciAdi)
-                         ?? await _userManager.FindByNameAsync(kullaniciAdi);
-
-            if (kullanici == null || !kullanici.AktifMi)
-            {
-                ViewBag.SifreUnuttum = true;
-                ViewBag.Hata = "Kullanıcı bulunamadı veya aktif değil.";
-                return View("~/Views/Giris/Index.cshtml");
-            }
-
-            var smsSonuc = await _smsDogrulamaService.KodGonderAsync(kullanici, "SIFRE_SIFIRLA");
-            if (!smsSonuc.Basarili)
-            {
-                ViewBag.SifreUnuttum = true;
-                ViewBag.Hata = smsSonuc.Mesaj;
-                return View("~/Views/Giris/Index.cshtml");
-            }
-
-            HttpContext.Session.SetString(SifreSifirlaKullaniciIdKey, kullanici.Id);
+            ClearChallenges();
+            ViewBag.SifreUnuttum = true;
+            if (string.IsNullOrWhiteSpace(kullaniciAdi)) return LoginView("E-posta veya VKN zorunludur.");
+            var result = await api.SifreUnuttumAsync(kullaniciAdi);
+            if (!result.Basarili || string.IsNullOrWhiteSpace(result.Dogrulama)) return LoginView(result.Mesaj);
+            HttpContext.Session.SetString(ResetKey, result.Dogrulama);
+            ViewBag.SifreUnuttum = false;
             ViewBag.SifreSifirlaKodBekleniyor = true;
-            ViewBag.Bilgi = smsSonuc.Mesaj;
-            return View("~/Views/Giris/Index.cshtml");
+            ViewBag.Bilgi = result.Mesaj;
+            return LoginView();
         }
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Route("giris/sifre-yenile")]
+        [HttpPost, ValidateAntiForgeryToken, Route("giris/sifre-yenile")]
         public async Task<IActionResult> SifreYenile(string kod, string yeniSifre, string yeniSifreTekrar)
         {
-            var kullaniciId = HttpContext.Session.GetString(SifreSifirlaKullaniciIdKey);
-            if (string.IsNullOrWhiteSpace(kullaniciId))
-                return Redirect("/giris");
-
-            if (yeniSifre != yeniSifreTekrar)
-            {
-                ViewBag.SifreSifirlaKodBekleniyor = true;
-                ViewBag.Hata = "Yeni şifreler eşleşmiyor.";
-                return View("~/Views/Giris/Index.cshtml");
-            }
-
-            var kullanici = await _userManager.FindByIdAsync(kullaniciId);
-            if (kullanici == null || !kullanici.AktifMi)
-                return Redirect("/giris");
-
-            var smsSonuc = await _smsDogrulamaService.KodDogrulaAsync(kullanici.Id, kod, "SIFRE_SIFIRLA");
-            if (!smsSonuc.Basarili)
-            {
-                ViewBag.SifreSifirlaKodBekleniyor = true;
-                ViewBag.Hata = smsSonuc.Mesaj;
-                return View("~/Views/Giris/Index.cshtml");
-            }
-
-            var token = await _userManager.GeneratePasswordResetTokenAsync(kullanici);
-            var resetSonuc = await _userManager.ResetPasswordAsync(kullanici, token, yeniSifre);
-            if (!resetSonuc.Succeeded)
-            {
-                ViewBag.SifreSifirlaKodBekleniyor = true;
-                ViewBag.Hata = string.Join(" ", resetSonuc.Errors.Select(x => x.Description));
-                return View("~/Views/Giris/Index.cshtml");
-            }
-
-            HttpContext.Session.Remove(SifreSifirlaKullaniciIdKey);
-            ViewBag.Bilgi = "Şifreniz değiştirildi. Yeni şifrenizle giriş yapabilirsiniz.";
-            return View("~/Views/Giris/Index.cshtml");
+            var challenge = HttpContext.Session.GetString(ResetKey);
+            if (challenge == null) return Redirect("/giris");
+            ViewBag.SifreSifirlaKodBekleniyor = true;
+            if (yeniSifre != yeniSifreTekrar) return LoginView("Yeni şifreler eşleşmiyor.");
+            var result = await api.SifreYenileAsync(challenge, kod ?? "", yeniSifre ?? "");
+            if (!result.Basarili) return LoginView(result.Mesaj);
+            ClearChallenges();
+            ViewBag.SifreSifirlaKodBekleniyor = false;
+            ViewBag.Bilgi = result.Mesaj;
+            return LoginView();
         }
 
-        [HttpPost]
-        [Route("cikis")]
-        [HttpGet]
+        [HttpGet, HttpPost, Route("cikis")]
         public async Task<IActionResult> Cikis()
         {
-            await _signInManager.SignOutAsync();
-            HttpContext.Session.Clear();
+            await oturum.BitirAsync();
             return Redirect("/giris");
         }
 
-        private async Task RolSenkronizeEt(AppKullanici kullanici)
+        private void ClearChallenges()
         {
-            var genelSistemAdmin = AktifSirketService.GenelSistemAdminTipi(kullanici);
-            var sirketAdmin = AktifSirketService.SirketAdminTipi(kullanici);
+            HttpContext.Session.Remove(SmsKey);
+            HttpContext.Session.Remove(ResetKey);
+        }
 
-            var hedefRol = kullanici.KullaniciTipi switch
-            {
-                KullaniciTipiDegerleri.YetkiliServis => KullaniciRolAdlari.YetkiliServis,
-                KullaniciTipiDegerleri.SertifikaliFirma => KullaniciRolAdlari.SertifikaliFirma,
-                KullaniciTipiDegerleri.Personel => KullaniciRolAdlari.Personel,
-                KullaniciTipiDegerleri.SirketAdmin => sirketAdmin ? KullaniciRolAdlari.SirketAdmin : KullaniciRolAdlari.GenelSistemAdmin,
-                KullaniciTipiDegerleri.GenelSistemAdmin => KullaniciRolAdlari.GenelSistemAdmin,
-                _ => null
-            };
-
-            if (!string.IsNullOrEmpty(hedefRol) && !await _userManager.IsInRoleAsync(kullanici, hedefRol))
-                await _userManager.AddToRoleAsync(kullanici, hedefRol);
-
-            if (genelSistemAdmin && !await _userManager.IsInRoleAsync(kullanici, KullaniciRolAdlari.EskiSuperAdmin))
-                await _userManager.AddToRoleAsync(kullanici, KullaniciRolAdlari.EskiSuperAdmin);
-
-            if (sirketAdmin && await _userManager.IsInRoleAsync(kullanici, KullaniciRolAdlari.EskiSuperAdmin))
-                await _userManager.RemoveFromRoleAsync(kullanici, KullaniciRolAdlari.EskiSuperAdmin);
+        private ViewResult LoginView(string? error = null)
+        {
+            ViewBag.Hata = error;
+            return View("~/Views/Giris/Index.cshtml");
         }
 
         private async Task<IActionResult> GirisSonrasiYonlendir(AppKullanici kullanici)

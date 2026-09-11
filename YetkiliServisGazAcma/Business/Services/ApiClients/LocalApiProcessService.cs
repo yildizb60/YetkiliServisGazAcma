@@ -112,6 +112,9 @@ namespace YetkiliServisGazAcma.Business.Services
             startInfo.ArgumentList.Add("--urls");
             startInfo.ArgumentList.Add(apiUrl);
             startInfo.Environment["ASPNETCORE_ENVIRONMENT"] = "Development";
+            using var parent = Process.GetCurrentProcess();
+            startInfo.Environment["YSGA_DEV_PARENT_PID"] = parent.Id.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            startInfo.Environment["YSGA_DEV_PARENT_START_TICKS"] = parent.StartTime.ToUniversalTime().Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
             try
             {
@@ -136,6 +139,8 @@ namespace YetkiliServisGazAcma.Business.Services
 
         public override async Task StopAsync(CancellationToken cancellationToken)
         {
+            // Stop the restart loop before terminating the child process.
+            await base.StopAsync(cancellationToken);
             try
             {
                 if (_process is { HasExited: false })
@@ -148,8 +153,6 @@ namespace YetkiliServisGazAcma.Business.Services
             {
                 _logger.LogDebug(ex, "Yerel API sureci kapatilirken hata olustu.");
             }
-
-            await base.StopAsync(cancellationToken);
         }
 
         private async Task WaitForApiAsync(CancellationToken cancellationToken)

@@ -45,11 +45,11 @@
 }
 
 @section Styles {
+    <link rel="stylesheet" href="~/css/form-pdf-viewer.css" asp-append-version="true" />
     <style>
         .fr265-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
         .fr265-toolbar-title { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
         .fr265-ready-badge { color:#147357; background:#edf8f3; padding:5px 8px; border-radius:4px; font-size:12px; }
-        .fr265-pdf { width:100%; height:calc(100dvh - 190px); min-height:480px; border:1px solid #dce4ee; background:#eef1f5; }
         .fr265-demo { font-size:13px; color:#795d16; margin:8px 0; }
     </style>
 }
@@ -108,6 +108,21 @@
 {
     <p class="fr265-demo"><i class="bi bi-info-circle" aria-hidden="true"></i> Demo belgesidir; gerçek elektronik imza içermez.</p>
 }
-<object class="fr265-pdf" data="/ykc/fr265/pdf/@Model.Id#view=FitH" type="application/pdf" aria-label="Cihaz değişim formu PDF önizlemesi">
-    <a class="df-btn df-btn-secondary" href="/ykc/fr265/pdf/@Model.Id?indir=true">PDF dosyasını aç</a>
-</object>
+<section class="form-pdf-viewer" data-pdf-viewer data-pdf-url="/ykc/fr265/pdf/@Model.Id" aria-label="Cihaz değişim formu PDF önizlemesi">
+    <div class="form-pdf-controls" role="group" aria-label="PDF araçları">
+        <button type="button" data-pdf-prev title="Önceki sayfa" aria-label="Önceki sayfa" disabled><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+        <output data-pdf-page aria-live="polite">- / -</output>
+        <button type="button" data-pdf-next title="Sonraki sayfa" aria-label="Sonraki sayfa" disabled><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+        <select data-pdf-zoom aria-label="PDF yakınlaştırma" disabled><option value="fit">Genişliğe sığdır</option><option value="75">%75</option><option value="100">%100</option><option value="125">%125</option><option value="150">%150</option><option value="200">%200</option></select>
+        <a class="form-pdf-download" href="/ykc/fr265/pdf/@Model.Id?indir=true" title="PDF indir" aria-label="PDF indir"><i class="bi bi-download" aria-hidden="true"></i></a>
+    </div>
+    <p class="form-pdf-message" data-pdf-message role="status">Form yükleniyor...</p>
+    <div class="form-pdf-scroll" data-pdf-scroll tabindex="0" aria-label="PDF sayfası">
+        <canvas data-pdf-canvas role="img" aria-label="Form sayfası" hidden></canvas>
+        <p class="form-pdf-accessible-text" data-pdf-text></p>
+    </div>
+    <noscript><p>Formu görüntülemek için <a href="/ykc/fr265/pdf/@Model.Id?indir=true">PDF dosyasını indirin</a>.</p></noscript>
+</section>
+@section Scripts {
+    <script type="module" src="~/js/form-pdf-viewer.js" asp-append-version="true"></script>
+}

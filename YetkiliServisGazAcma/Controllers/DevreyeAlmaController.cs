@@ -11,14 +11,14 @@ namespace YetkiliServisGazAcma.Controllers
     [Route("ys-devreyeal")]
     public class DevreyeAlmaController : Controller
     {
-        private readonly UserManager<AppKullanici> _userManager;
+        private readonly ApiKullaniciOturumu _kullaniciOturumu;
         private readonly YetkiliServisDevreyeAlmaApiClient _devreyeAlmaApiClient;
 
         public DevreyeAlmaController(
-            UserManager<AppKullanici> userManager,
+            ApiKullaniciOturumu kullaniciOturumu,
             YetkiliServisDevreyeAlmaApiClient devreyeAlmaApiClient)
         {
-            _userManager = userManager;
+            _kullaniciOturumu = kullaniciOturumu;
             _devreyeAlmaApiClient = devreyeAlmaApiClient;
         }
 
@@ -43,7 +43,7 @@ namespace YetkiliServisGazAcma.Controllers
         [Route("")]
         public async Task<IActionResult> Index()
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             var ekran = await _devreyeAlmaApiClient.EkranAsync(kullanici);
@@ -72,7 +72,7 @@ namespace YetkiliServisGazAcma.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> TesistatSorgula([FromBody] TesistatSorguDto dto)
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null)
                 return Json(new { basarili = false, mesaj = "Oturum suresi dolmus." });
 
@@ -96,7 +96,7 @@ namespace YetkiliServisGazAcma.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> MarkaKontrol([FromBody] MarkaKontrolDto dto)
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null)
                 return Json(new { yetkili = false, mesaj = "Oturum süresi dolmuş." });
 
@@ -121,7 +121,7 @@ namespace YetkiliServisGazAcma.Controllers
         [Route("detay/{id}")]
         public async Task<IActionResult> Detay(int id)
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             var islem = await _devreyeAlmaApiClient.DetayAsync(kullanici, id);
@@ -138,7 +138,7 @@ namespace YetkiliServisGazAcma.Controllers
         [Route("pdf/{id}")]
         public async Task<IActionResult> PdfIndir(int id)
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             var dosya = await _devreyeAlmaApiClient.PdfAsync(kullanici, id);
@@ -151,7 +151,7 @@ namespace YetkiliServisGazAcma.Controllers
         [Route("excel/{id}")]
         public async Task<IActionResult> ExcelIndir(int id)
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             var dosya = await _devreyeAlmaApiClient.ExcelAsync(kullanici, id);
@@ -165,7 +165,7 @@ namespace YetkiliServisGazAcma.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Kaydet(Ys_DevreyeAlma model)
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             try
@@ -191,7 +191,7 @@ namespace YetkiliServisGazAcma.Controllers
         [Route("gecmis")]
         public async Task<IActionResult> Gecmis(string? marka, DateTime? bas, DateTime? bit, string? musteri, string? durum)
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             var sonuc = await _devreyeAlmaApiClient.GecmisAsync(kullanici, marka, bas, bit, musteri, durum)

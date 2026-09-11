@@ -24,10 +24,6 @@
     <link rel="stylesheet" href="~/css/ykc-calendar-refresh.css" asp-append-version="true" />
 }
 <div class="ykc-workspace ykc-calendar is-page">
-    <header class="ykc-calendar-header">
-        <div class="ykc-calendar-page-heading"><span><i class="bi bi-calendar2-week" aria-hidden="true"></i></span><h1>Randevu Takvimi</h1></div>
-        <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/talepler"><i class="bi bi-journal-text"></i> Talepler</a>
-    </header>
     <div class="ykc-calendar-toolbar">
         <div class="ykc-calendar-navigation">
             <a class="ykc-calendar-icon" href="@Link(filtre.Baslangic.AddDays(-gunSayisi), filtre.Bitis.AddDays(-gunSayisi))" title="Önceki dönem" aria-label="Önceki dönem"><i class="bi bi-chevron-left"></i></a>
@@ -35,21 +31,24 @@
             <a class="ykc-calendar-icon" href="@Link(filtre.Baslangic.AddDays(gunSayisi), filtre.Bitis.AddDays(gunSayisi))" title="Sonraki dönem" aria-label="Sonraki dönem"><i class="bi bi-chevron-right"></i></a>
             <h2>@filtre.Baslangic.ToString("dd MMMM", tr)@(tekGun ? "" : " - " + filtre.Bitis.ToString("dd MMMM", tr)) @filtre.Bitis.Year</h2>
         </div>
+        <div class="ykc-header-actions">
         <nav class="ykc-calendar-modes" aria-label="Takvim aralığı">
             <a href="@Link(filtre.Baslangic, filtre.Baslangic)" aria-current="@(tekGun ? "true" : null)">Gün</a>
             <a href="@Link(haftaBasi, haftaBasi.AddDays(6))" aria-current="@(tamHafta ? "true" : null)">Hafta</a>
             @if (!tekGun && !tamHafta) { <span aria-current="true">Tarih Aralığı</span> }
         </nav>
+        <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/talepler"><i class="bi bi-journal-text"></i> Talepler</a>
+        </div>
     </div>
-    <details class="ykc-calendar-filter" open="@filtreAktif">
+    <details class="ykc-calendar-filter" open>
         <summary><i class="bi bi-funnel"></i><span>Filtreler</span>@if (filtreAktif) { <small>Uygulandı</small> }<i class="bi bi-chevron-down"></i></summary>
         <form method="get" action="/ykc/takvim" class="ykc-calendar-filters">
             <div><label for="calDate">Başlangıç</label><input id="calDate" type="date" name="Baslangic" value="@filtre.Baslangic.ToString("yyyy-MM-dd")" required /></div>
             <div><label for="calEnd">Bitiş</label><input id="calEnd" type="date" name="Bitis" value="@filtre.Bitis.ToString("yyyy-MM-dd")" required /></div>
             <div><label for="calCity">İl</label><input id="calCity" name="Il" value="@filtre.Il" /></div>
             <div><label for="calRegion">Bölge</label><input id="calRegion" name="Bolge" value="@filtre.Bolge" /></div>
-            <div><label for="calPerson">Personel</label><input id="calPerson" name="Personel" value="@filtre.Personel" /></div>
-            <div><label for="calCustomer">Müşteri Adı</label><input id="calCustomer" name="Musteri" value="@filtre.Musteri" /></div>
+            <div><label for="calPerson">Personel / Ekip</label><input id="calPerson" name="Personel" value="@filtre.Personel" /></div>
+            <div><label for="calCustomer">Abone Adı Soyadı</label><input id="calCustomer" name="Musteri" value="@filtre.Musteri" /></div>
             <div><label for="calInstallation">Tesisat No</label><input id="calInstallation" name="TesisatNo" value="@filtre.TesisatNo" inputmode="numeric" /></div>
             <div class="ykc-calendar-filter-actions"><button class="df-btn df-btn-primary df-btn-sm" type="submit">Uygula</button><a href="/ykc/takvim" class="df-btn df-btn-secondary df-btn-sm">Temizle</a></div>
         </form>
@@ -119,7 +118,7 @@
                     <a class="ykc-day-visit" href="/ykc/detay/@item.Id?kaynak=takvim">
                         <time datetime="@($"{item.Tarih:yyyy-MM-dd}T{item.Saat}")"><i class="bi bi-clock" aria-hidden="true"></i>@item.Saat</time>
                         <div class="ykc-day-customer">
-                            <strong>@(string.IsNullOrWhiteSpace(item.Musteri) ? "Müşteri adı kayıtlı değil" : item.Musteri)</strong>
+                            <strong>@(string.IsNullOrWhiteSpace(item.Musteri) ? "Abone adı kayıtlı değil" : item.Musteri)</strong>
                             <span>Tesisat No: @item.TesisatNo</span>
                             <small><i class="bi bi-geo-alt" aria-hidden="true"></i> @item.Adres</small>
                         </div>

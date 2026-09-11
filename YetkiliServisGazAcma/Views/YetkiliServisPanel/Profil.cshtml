@@ -15,93 +15,88 @@
     var onayli = yetkiBelgeleri.FirstOrDefault(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi);
     var yetkiBelgesi = gecerli ?? onayli ?? yetkiBelgeleri.FirstOrDefault();
     var adSoyad = kullanici?.AdSoyad ?? firma?.YetkiliKisi ?? "Yetkili Servis";
-    var basHarf = !string.IsNullOrEmpty(firma?.FirmaAdi) ? firma.FirmaAdi.Substring(0, 1).ToUpper() : "F";
+    var firmaAdi = firma?.FirmaAdi ?? "Firma";
+    var basHarf = firmaAdi.Length > 0 ? firmaAdi[..1].ToUpper(System.Globalization.CultureInfo.GetCultureInfo("tr-TR")) : "F";
     var belgeDurumu = gecerli != null ? "Geçerli" : yetkiBelgesi?.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor ? "Onay Bekliyor" : "Geçerli Belge Yok";
     var belgeClass = gecerli != null ? "df-pill-success" : yetkiBelgesi?.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor ? "df-pill-warning" : "df-pill-danger";
+    var sifreAcik = TempData.ContainsKey("SifreHata") || TempData.ContainsKey("SifreBasarili");
 }
 
-<div class="df-profile-workspace">
-    @if (TempData["Basarili"] != null) { <div class="df-alert df-alert-success">@TempData["Basarili"]</div> }
-    @if (TempData["Hata"] != null) { <div class="df-alert df-alert-danger">@TempData["Hata"]</div> }
-    @if (TempData["SifreBasarili"] != null) { <div class="df-alert df-alert-success">@TempData["SifreBasarili"]</div> }
-    @if (TempData["SifreHata"] != null) { <div class="df-alert df-alert-danger">@TempData["SifreHata"]</div> }
+@section PageStyles { <link rel="stylesheet" href="~/css/personnel-profile.css" asp-append-version="true" /> }
 
-    <section class="df-page-panel df-profile-header">
-        <div class="df-profile-header-inner">
-            <div class="df-profile-avatar">@basHarf</div>
-            <div class="df-profile-heading"><h2>@(firma?.FirmaAdi ?? "Firma")</h2><p>@adSoyad · @(firma?.Sirket?.SirketAdi ?? "Şirket tanımlı değil")</p></div>
-            <div class="df-profile-header-meta">
-                <span class="df-pill @belgeClass"><i class="bi bi-file-earmark-check"></i> @belgeDurumu</span>
-                <span class="df-pill df-pill-info">@markalar.Count marka</span>
-            </div>
+<div class="personnel-account service-account">
+    <aside class="account-identity" aria-label="Firma hesabı özeti">
+        <div class="account-avatar" aria-hidden="true">@basHarf</div>
+        <h1>@firmaAdi</h1>
+        <div class="service-account-status"><span class="df-pill @belgeClass">@belgeDurumu</span><span class="df-pill df-pill-info">@markalar.Count marka</span></div>
+        <dl>
+            <div><dt><i class="bi bi-building" aria-hidden="true"></i>Dağıtım Şirketi</dt><dd>@(firma?.Sirket?.SirketAdi ?? "Tanımlı değil")</dd></div>
+            <div><dt><i class="bi bi-geo-alt" aria-hidden="true"></i>Faaliyet İli</dt><dd>@(firma?.FaaliyetIli ?? "-")</dd></div>
+            <div><dt><i class="bi bi-person" aria-hidden="true"></i>Yetkili Kişi</dt><dd>@adSoyad</dd></div>
+        </dl>
+    </aside>
+
+    <div class="account-content">
+        @foreach (var key in new[] { "Basarili", "Hata", "SifreBasarili", "SifreHata" })
+        {
+            if (TempData[key] is string mesaj)
+            {
+                <div class="df-alert @(key.Contains("Hata") ? "df-alert-danger" : "df-alert-success")" role="alert">@mesaj</div>
+            }
+        }
+
+        <div class="account-tabs" role="tablist" aria-label="Firma profili bölümleri" data-initial-tab="@(sifreAcik ? "security" : "contact")">
+            <button type="button" role="tab" id="tab-contact" aria-controls="account-contact" aria-selected="true"><i class="bi bi-person-vcard" aria-hidden="true"></i>İletişim Bilgileri</button>
+            <button type="button" role="tab" id="tab-firm" aria-controls="account-firm" aria-selected="false"><i class="bi bi-building-check" aria-hidden="true"></i>Firma ve Yetkiler</button>
+            <button type="button" role="tab" id="tab-security" aria-controls="account-security" aria-selected="false"><i class="bi bi-shield-lock" aria-hidden="true"></i>Şifre ve Güvenlik</button>
         </div>
-    </section>
 
-    <div class="df-profile-grid">
-        <section class="df-profile-section is-context">
-            <div class="df-profile-section-head"><i class="bi bi-building"></i><div><strong>Firma Bilgileri</strong><small>Kayıtlı kurumsal bilgiler</small></div></div>
-            <dl class="df-profile-info-grid">
-                <div><dt>Firma</dt><dd>@(firma?.FirmaAdi ?? "-")</dd></div>
-                <div><dt>VKN</dt><dd>@(firma?.VergiNo ?? "-")</dd></div>
+        <section class="account-section" id="account-contact" role="tabpanel" aria-labelledby="tab-contact">
+            <form method="post" action="/ys-panel/profil-guncelle">
+                @Html.AntiForgeryToken()
+                <div class="account-fields">
+                    <label for="service-profile-name" class="account-field-wide">Ad Soyad<input id="service-profile-name" type="text" name="adSoyad" value="@kullanici?.AdSoyad" autocomplete="name" required /></label>
+                    <label for="service-profile-email">E-posta<input id="service-profile-email" type="email" name="email" value="@kullanici?.Email" autocomplete="email" required /></label>
+                    <label for="service-profile-phone">Telefon<input id="service-profile-phone" type="tel" name="telefon" value="@kullanici?.PhoneNumber" autocomplete="tel" /></label>
+                    <label for="service-profile-user" class="account-field-wide">Kullanıcı Adı<input id="service-profile-user" type="text" value="@kullanici?.UserName" readonly /></label>
+                </div>
+                <footer><button type="submit" class="df-btn df-btn-primary df-btn-sm"><i class="bi bi-check2" aria-hidden="true"></i>Bilgileri Kaydet</button></footer>
+            </form>
+        </section>
+
+        <section class="account-section" id="account-firm" role="tabpanel" aria-labelledby="tab-firm" hidden>
+            <dl class="account-work-data">
+                <div><dt>Firma</dt><dd>@firmaAdi</dd></div>
+                <div><dt>Vergi Kimlik No</dt><dd>@(firma?.VergiNo ?? "-")</dd></div>
                 <div><dt>Faaliyet İli</dt><dd>@(firma?.FaaliyetIli ?? "-")</dd></div>
                 <div><dt>Kayıt Tarihi</dt><dd>@(firma?.OlusturmaTarihi.ToString("dd.MM.yyyy") ?? "-")</dd></div>
             </dl>
-            <div class="df-profile-section-body">
-                <div class="df-profile-context-title">MARKA YETKİLERİ</div>
-                <div class="df-profile-brands">
-                    @if (markalar.Count == 0) { <span class="df-profile-brand">Tanımlı marka yok</span> }
-                    else { foreach (var marka in markalar) { <span class="df-profile-brand">@marka.MarkaAdi</span> } }
+            <div class="service-account-subsection">
+                <h2>Marka Yetkileri</h2>
+                <div class="account-permissions">
+                    @if (markalar.Count == 0) { <span>Tanımlı marka bulunmuyor</span> }
+                    @foreach (var marka in markalar) { <span><i class="bi bi-check2" aria-hidden="true"></i>@marka.MarkaAdi</span> }
                 </div>
             </div>
-        </section>
-
-        <section class="df-profile-section is-account">
-            <div class="df-profile-section-head"><i class="bi bi-person-vcard"></i><div><strong>İletişim Bilgileri</strong><small>Profilde görünen bilgiler</small></div></div>
-            <div class="df-profile-section-body">
-                <form method="post" action="/ys-panel/profil-guncelle">
-                    @Html.AntiForgeryToken()
-                    <div class="df-profile-form-grid">
-                        <div class="df-profile-field is-wide"><label>Ad Soyad</label><input type="text" name="adSoyad" value="@kullanici?.AdSoyad" required /></div>
-                        <div class="df-profile-field"><label>E-posta</label><input type="email" name="email" value="@kullanici?.Email" required /></div>
-                        <div class="df-profile-field"><label>Telefon</label><input type="text" name="telefon" value="@kullanici?.PhoneNumber" autocomplete="tel" /></div>
-                        <div class="df-profile-field is-wide"><label>Kullanıcı Adı (VKN)</label><input type="text" value="@kullanici?.UserName" readonly /></div>
-                    </div>
-                    <div class="df-profile-actions"><button type="submit" class="df-btn df-btn-primary df-btn-sm"><i class="bi bi-check2"></i> Bilgileri Kaydet</button></div>
-                </form>
+            <div class="service-account-document">
+                <i class="bi bi-file-earmark-check" aria-hidden="true"></i>
+                <div><strong>@belgeDurumu</strong><span>@(yetkiBelgesi == null ? "Yetki belgesi yüklenmemiş" : $"Bitiş tarihi: {yetkiBelgesi.YetkiBelgesiBitisTarihi:dd.MM.yyyy}")</span></div>
+                <a class="df-btn df-btn-secondary df-btn-sm" href="/ys-yetki-belgesi">Belgeyi Aç</a>
             </div>
         </section>
 
-        <section class="df-profile-section is-document">
-            <div class="df-profile-section-head"><i class="bi bi-file-earmark-check"></i><div><strong>Yetki Belgesi</strong><small>Güncel belge durumu</small></div></div>
-            <div class="df-profile-section-body">
-                @if (yetkiBelgesi != null)
-                {
-                    <div class="df-profile-document">
-                        <i class="bi bi-patch-check"></i>
-                        <div class="df-profile-document-copy"><strong>@belgeDurumu</strong><small>Yükleme: @yetkiBelgesi.OlusturmaTarihi.ToString("dd.MM.yyyy") · Bitiş: @yetkiBelgesi.YetkiBelgesiBitisTarihi.ToString("dd.MM.yyyy")</small></div>
-                        <a class="df-btn df-btn-secondary df-btn-sm" href="/ys-yetki-belgesi">Belgeyi Aç</a>
-                    </div>
-                }
-                else
-                {
-                    <div class="df-profile-document"><i class="bi bi-file-earmark-plus"></i><div class="df-profile-document-copy"><strong>Yetki belgesi yüklenmemiş</strong><small>Belge işlemlerinden yeni kayıt oluşturabilirsiniz.</small></div><a class="df-btn df-btn-primary df-btn-sm" href="/ys-yetki-belgesi">Belge Ekle</a></div>
-                }
-            </div>
+        <section class="account-section" id="account-security" role="tabpanel" aria-labelledby="tab-security" hidden>
+            <form method="post" action="/ys-panel/sifre-degistir">
+                @Html.AntiForgeryToken()
+                <div class="account-fields">
+                    <label for="service-current-password" class="account-field-wide">Mevcut Şifre<input id="service-current-password" type="password" name="mevcutSifre" autocomplete="current-password" required /></label>
+                    <label for="service-new-password">Yeni Şifre<input id="service-new-password" type="password" name="yeniSifre" autocomplete="new-password" required /></label>
+                    <label for="service-confirm-password">Yeni Şifre Tekrar<input id="service-confirm-password" type="password" name="yeniSifreTekrar" autocomplete="new-password" required /></label>
+                </div>
+                <footer><button type="submit" class="df-btn df-btn-primary df-btn-sm"><i class="bi bi-lock" aria-hidden="true"></i>Şifreyi Güncelle</button></footer>
+            </form>
         </section>
-
-        <details class="df-profile-section is-security df-profile-disclosure">
-            <summary><i class="bi bi-key"></i><span><strong>Şifre Değiştir</strong><small>Yalnızca gerektiğinde açın</small></span><i class="bi bi-chevron-down"></i></summary>
-            <div class="df-profile-section-body">
-                <form method="post" action="/ys-panel/sifre-degistir">
-                    @Html.AntiForgeryToken()
-                    <div class="df-profile-form-grid">
-                        <div class="df-profile-field is-wide"><label>Mevcut Şifre</label><input type="password" name="mevcutSifre" autocomplete="current-password" required /></div>
-                        <div class="df-profile-field"><label>Yeni Şifre</label><input type="password" name="yeniSifre" autocomplete="new-password" required /></div>
-                        <div class="df-profile-field"><label>Yeni Şifre Tekrar</label><input type="password" name="yeniSifreTekrar" autocomplete="new-password" required /></div>
-                    </div>
-                    <div class="df-profile-actions"><button type="submit" class="df-btn df-btn-secondary df-btn-sm"><i class="bi bi-lock"></i> Şifreyi Güncelle</button></div>
-                </form>
-            </div>
-        </details>
     </div>
 </div>
+
+@section Scripts { <script src="~/js/personnel-profile.js" asp-append-version="true"></script> }

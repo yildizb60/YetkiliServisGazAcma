@@ -44,6 +44,15 @@ namespace YetkiliServisGazAcma.Business.Services
                 "Panel kimlik bilgisi");
         }
 
+        public async Task<YkcYetkiOzeti> YkcYetkileriAsync(AppKullanici kullanici, int? aktifSirketId = null)
+        {
+            return await PostAsync<PanelKimlikIstek, YkcYetkiOzeti>(
+                kullanici,
+                "api/panel-kapsam/ykc-yetkileri",
+                new PanelKimlikIstek { AktifSirketId = aktifSirketId },
+                "Cihaz degisim yetkileri") ?? new YkcYetkiOzeti();
+        }
+
         private async Task<TResponse?> PostAsync<TRequest, TResponse>(
             AppKullanici kullanici,
             string url,

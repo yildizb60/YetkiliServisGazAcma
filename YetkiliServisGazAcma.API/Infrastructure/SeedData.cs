@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
 
-namespace YetkiliServisGazAcma.Infrastructure
+namespace YetkiliServisGazAcma.API.Infrastructure
 {
     public static class SeedData
     {

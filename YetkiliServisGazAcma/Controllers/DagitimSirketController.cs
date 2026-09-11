@@ -12,18 +12,18 @@ namespace YetkiliServisGazAcma.Controllers
     {
         private readonly DagitimSirketApiClient _dagitimSirketApiClient;
         private readonly AdminDashboardApiClient _adminDashboardApiClient;
-        private readonly UserManager<AppKullanici> _userManager;
+        private readonly ApiKullaniciOturumu _kullaniciOturumu;
         private readonly AktifSirketService _aktifSirketService;
 
         public DagitimSirketController(
             DagitimSirketApiClient dagitimSirketApiClient,
             AdminDashboardApiClient adminDashboardApiClient,
-            UserManager<AppKullanici> userManager,
+            ApiKullaniciOturumu kullaniciOturumu,
             AktifSirketService aktifSirketService)
         {
             _dagitimSirketApiClient = dagitimSirketApiClient;
             _adminDashboardApiClient = adminDashboardApiClient;
-            _userManager = userManager;
+            _kullaniciOturumu = kullaniciOturumu;
             _aktifSirketService = aktifSirketService;
         }
 
@@ -43,7 +43,7 @@ namespace YetkiliServisGazAcma.Controllers
 
         private async Task<AppKullanici?> GetCurrentUser()
         {
-            return await _userManager.GetUserAsync(User);
+            return await _kullaniciOturumu.GetUserAsync(User);
         }
 
         private async Task<AdminDashboardOzet?> GetDashboardOzetAsync()

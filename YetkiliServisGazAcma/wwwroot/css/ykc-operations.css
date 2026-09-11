@@ -1,4 +1,5 @@
-.ykc-workspace {
+.ykc-workspace,
+.ykc-report-modal {
     --ykc-ink: #172033;
     --ykc-ink-soft: #344054;
     --ykc-muted: #667085;
@@ -20,6 +21,9 @@
     --ykc-amber-soft: #fff7e6;
     --ykc-red: #b42336;
     --ykc-red-soft: #fff1f2;
+}
+
+.ykc-workspace {
     width: 100%;
     max-width: none;
     margin: 0 auto;
@@ -2661,8 +2665,8 @@
 }
 
 .ykc-report-modal-dialog {
-    width: min(900px, 100%);
-    max-height: calc(100vh - 40px);
+    width: min(940px, 100%);
+    max-height: min(760px, calc(100vh - 40px));
     position: relative;
     z-index: 1;
     display: flex;
@@ -2670,20 +2674,22 @@
     color: var(--ykc-ink);
     background: #fff;
     border: 1px solid #d6deea;
+    border-top: 3px solid var(--ykc-blue);
     border-radius: 7px;
     box-shadow: 0 22px 58px rgba(16, 24, 40, .24);
     overflow: hidden;
 }
 
 .ykc-report-modal-header {
-    min-height: 70px;
-    padding: 14px 18px;
+    flex-shrink: 0;
+    min-height: 60px;
+    padding: 11px 14px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
     border-bottom: 1px solid #dbe3ef;
-    background: linear-gradient(180deg, #fbfdff 0%, #f5f8fd 100%);
+    background: #fbfcfe;
 }
 
 .ykc-modal-title-wrap {
@@ -2707,7 +2713,7 @@
 .ykc-modal-title {
     color: var(--ykc-ink);
     font-size: 16px;
-    font-weight: 750;
+    font-weight: 600;
 }
 
 .ykc-modal-subtitle {
@@ -2723,8 +2729,8 @@
     align-items: center;
     justify-content: center;
     color: var(--ykc-muted);
-    background: transparent;
-    border: 0;
+    background: #fff;
+    border: 1px solid var(--ykc-border);
     border-radius: 4px;
     cursor: pointer;
 }
@@ -2735,9 +2741,10 @@
 }
 
 .ykc-report-modal-body {
-    padding: 16px 18px 18px;
+    min-height: 0;
+    padding: 13px 14px;
     overflow-y: auto;
-    background: #fbfcff;
+    background: #f7f9fc;
 }
 
 .ykc-modal-stats {
@@ -2794,9 +2801,9 @@
 }
 
 .ykc-modal-stat-created > i {
-    color: #6d3fd1;
-    background: #f3efff;
-    border-color: #ded3ff;
+    color: #0e91bd;
+    background: #eef9ff;
+    border-color: #cbeeff;
 }
 
 .ykc-modal-stat small,
@@ -2806,10 +2813,9 @@
 
 .ykc-modal-stat small {
     color: var(--ykc-muted);
-    font-size: 9.5px;
-    font-weight: 700;
-    letter-spacing: .02em;
-    text-transform: uppercase;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0;
 }
 
 .ykc-modal-stat strong {
@@ -2833,16 +2839,17 @@
 
 .ykc-modal-section {
     min-width: 0;
-    padding: 13px;
+    padding: 0;
     background: #fff;
     border: 1px solid var(--ykc-border);
+    border-top: 3px solid var(--ykc-blue);
     border-radius: 7px;
     position: relative;
     overflow: hidden;
 }
 
 .ykc-modal-section::before {
-    content: "";
+    content: none;
     position: absolute;
     inset: 0 auto 0 0;
     width: 3px;
@@ -2850,23 +2857,19 @@
 }
 
 .ykc-modal-section-customer {
-    border-color: #d8e7ff;
-    background: linear-gradient(90deg, #f7fbff 0, #fff 48%);
+    border-top-color: var(--ykc-blue);
 }
 
 .ykc-modal-section-company {
-    border-color: #e3dcff;
-    background: linear-gradient(90deg, #fbf9ff 0, #fff 48%);
+    border-top-color: #167a55;
 }
 
 .ykc-modal-section-device {
-    border-color: #d7eadf;
-    background: linear-gradient(90deg, #f7fffb 0, #fff 48%);
+    border-top-color: #9a6500;
 }
 
 .ykc-modal-section-signature {
-    border-color: #d8e3ff;
-    background: linear-gradient(90deg, #f7faff 0, #fff 48%);
+    border-top-color: #0e91bd;
 }
 
 .ykc-modal-section-customer::before {
@@ -2886,14 +2889,15 @@
 }
 
 .ykc-modal-section-title {
-    padding-bottom: 8px;
+    padding: 9px 11px;
+    background: #fbfcfe;
     display: flex;
     align-items: center;
     gap: 7px;
     color: #344054;
     border-bottom: 1px solid var(--ykc-border);
     font-size: 12px;
-    font-weight: 700;
+    font-weight: 600;
 }
 
 .ykc-modal-section-title > i {
@@ -2910,9 +2914,9 @@
 }
 
 .ykc-modal-section-company .ykc-modal-section-title > i {
-    color: #6846c9;
-    background: #f3efff;
-    border-color: #ded3ff;
+    color: #167a55;
+    background: #edf8f3;
+    border-color: #c7efd9;
 }
 
 .ykc-modal-section-device .ykc-modal-section-title > i {
@@ -2928,7 +2932,8 @@
 }
 
 .ykc-modal-info {
-    margin-top: 10px;
+    margin: 0;
+    padding: 11px;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 11px 12px;
@@ -2940,29 +2945,29 @@
 
 .ykc-modal-label {
     color: var(--ykc-muted);
-    font-size: 9.5px;
-    font-weight: 700;
-    letter-spacing: .02em;
-    text-transform: uppercase;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0;
 }
 
 .ykc-modal-value {
     margin-top: 3px;
     color: #475467;
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 500;
     line-height: 1.35;
     overflow-wrap: anywhere;
 }
 
 .ykc-report-modal-footer {
-    min-height: 58px;
-    padding: 11px 18px;
+    flex-shrink: 0;
+    min-height: 52px;
+    padding: 11px 14px;
     display: flex;
     align-items: center;
     justify-content: flex-end;
     gap: 8px;
-    background: #f7f9fd;
+    background: #fbfcfe;
     border-top: 1px solid var(--ykc-border);
 }
 

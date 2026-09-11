@@ -6,7 +6,7 @@ using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
 
-namespace YetkiliServisGazAcma.Infrastructure
+namespace YetkiliServisGazAcma.API.Infrastructure
 {
     public static class TestDataSeed
     {

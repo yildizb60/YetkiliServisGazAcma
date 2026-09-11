@@ -1,4 +1,11 @@
-.personnel-account { background:#fff; border:1px solid #dce5ef; border-top:3px solid #2563b4; border-radius:6px; overflow:hidden; color:#33475b; }
+.personnel-account { display:grid; grid-template-columns:250px minmax(0,1fr); align-items:start; gap:28px; color:var(--df-text-soft); }
+.account-identity { padding:24px 20px; background:#edf5fa; border-top:3px solid var(--df-primary); }
+.account-avatar { display:grid; place-items:center; width:64px; height:64px; margin-bottom:16px; color:var(--df-primary); background:#fff; border:1px solid var(--df-border); border-radius:8px; font-size:28px; font-weight:600; }
+.account-identity h1 { margin:0 0 14px; font-size:18px; font-weight:600; line-height:1.5; overflow-wrap:anywhere; color:var(--df-text); }
+.account-identity dl { margin:22px 0 0; padding-top:18px; border-top:1px solid #d4e3ee; display:grid; gap:18px; }
+.account-identity dt { display:flex; align-items:center; gap:6px; font-size:12px; color:#5a7387; font-weight:500; }
+.account-identity dd { margin:6px 0 0; font-size:14px; font-weight:500; overflow-wrap:anywhere; }
+.account-content { min-width:0; background:#fff; border-block:1px solid var(--df-border); }
 .account-heading { display:flex; gap:14px; align-items:center; padding:18px 22px; background:#f5f9fd; }
 .account-heading > i { font-size:32px; color:#286ab3; }
 .account-heading h1 { margin:0; font-size:20px; font-weight:600; }
@@ -11,7 +18,8 @@
 .account-tabs button:focus-visible { outline:2px solid #246aaf; outline-offset:-4px; }
 .account-section { padding:24px 22px 18px; }
 .account-section[hidden] { display:none; }
-.account-fields { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:20px; }
+.account-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; }
+.account-field-wide { grid-column:1 / -1; }
 .account-fields label { display:grid; gap:8px; font-size:13px; font-weight:500; min-width:0; }
 .account-fields input { box-sizing:border-box; width:100%; min-width:0; border:1px solid #cbd8e5; border-radius:5px; padding:10px 12px; height:42px; background:#fff; color:#33475b; font-family:inherit; font-size:14px; font-weight:400; }
 .account-fields input:focus { border-color:#367cb5; outline:2px solid #e1effb; }
@@ -22,5 +30,15 @@
 .account-section h2 { font-size:14px; font-weight:600; margin:18px 0 12px; border-top:1px solid #e5ebf1; padding-top:18px; }
 .account-permissions { display:flex; flex-wrap:wrap; gap:12px; font-size:14px; color:#237759; }
 .account-permissions i { margin-right:5px; }
-@media(max-width:1000px) { .account-fields { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+.service-account-status { display:flex; flex-wrap:wrap; gap:6px; }
+.service-account .account-identity dl { gap:14px; }
+.service-account-subsection { margin-top:18px; padding-top:16px; border-top:1px solid #e5ebf1; }
+.service-account-subsection h2 { margin:0 0 11px; padding:0; border:0; }
+.service-account-document { display:grid; grid-template-columns:36px minmax(0,1fr) auto; align-items:center; gap:11px; margin-top:18px; padding:11px 12px; border:1px solid #d7e3ec; border-radius:5px; background:#f7fafc; }
+.service-account-document > i { width:34px; height:34px; display:grid; place-items:center; border-radius:5px; background:#e4f4ed; color:#16795b; font-size:17px; }
+.service-account-document > div { min-width:0; display:grid; gap:2px; }
+.service-account-document strong { color:#29485d; font-size:13px; font-weight:600; }
+.service-account-document span { color:#687d8e; font-size:11px; }
+@media(max-width:1000px) { .personnel-account { grid-template-columns:200px minmax(0,1fr); gap:16px; } .account-tabs { gap:10px; flex-wrap:wrap; } .account-tabs button { font-size:13px; } }
+@media(max-width:760px) { .personnel-account { grid-template-columns:1fr; } .account-identity { padding:16px; display:grid; grid-template-columns:52px minmax(0,1fr) auto; gap:10px; align-items:center; } .account-avatar { width:52px; height:52px; margin:0; } .account-identity h1 { margin:0; font-size:16px; } .account-identity dl { grid-column:1 / -1; grid-template-columns:2fr 1fr; margin-top:8px; padding-top:12px; } }
 @media(max-width:600px) { .account-fields,.account-work-data { grid-template-columns:1fr; } .account-heading,.account-section { padding:16px; } .account-tabs { padding:0 16px; } }

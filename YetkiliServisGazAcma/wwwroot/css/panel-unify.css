@@ -1530,6 +1530,7 @@ td {
 .df-service-detail,
 .df-approval-workspace,
 .df-user-directory,
+.df-admin-report-workspace,
 .df-admin-workspace {
     --op-ink: #172033;
     --op-muted: #667085;
@@ -2485,6 +2486,15 @@ button.df-admin-metric {
     box-shadow: 0 1px 2px rgba(16, 24, 40, .035);
     overflow: hidden;
 }
+
+.df-admin-list-card > .df-admin-filter,
+.df-service-list > .df-service-filter { margin:0; border:0; border-bottom:1px solid var(--df-border); border-radius:0; }
+.df-admin-list-card > .df-admin-filter > summary,
+.df-service-list > .df-service-filter > summary { min-height:36px; padding:7px 12px; font-size:12px; }
+.df-admin-list-card > .df-admin-filter > summary strong,
+.df-service-list > .df-service-filter > summary strong { font-size:12px; font-weight:500; }
+.df-admin-list-card > .df-admin-filter > summary > span:first-child > i,
+.df-service-list > .df-service-filter > summary > span:first-child > i { width:22px; height:22px; font-size:12px; }
 
 .df-admin-filter > summary {
     min-height: 46px;
@@ -4567,27 +4577,57 @@ body.df-modal-open {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 5px;
+    gap: 6px 14px;
 }
 
 .df-inline-metrics .df-admin-metric {
-    min-height: 32px;
-    padding: 4px 6px;
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    min-height: 26px;
+    margin: 0;
+    padding: 0;
+    gap: 5px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    font-weight: 500;
 }
 
 .df-inline-metrics .df-admin-metric i {
-    font-size: 12px;
+    font-size: 13px;
 }
 
 .df-inline-metrics .df-admin-metric span {
-    font-size: 9px;
+    display: inline;
+    margin: 0;
+    font-size: 11px;
+    font-weight: 500;
 }
 
 .df-inline-metrics .df-admin-metric strong {
-    min-width: 22px;
-    height: 22px;
-    font-size: 10px;
+    display: inline;
+    min-width: 0;
+    height: auto;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    color: var(--op-blue);
+    font-size: 13px;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
 }
+.df-inline-metrics .df-admin-metric.is-active strong,
+.df-inline-metrics .df-admin-metric.is-approved strong { color: var(--op-green); }
+.df-inline-metrics .df-admin-metric.is-passive strong,
+.df-inline-metrics .df-admin-metric.is-rejected strong { color: var(--op-red); }
+.df-inline-metrics .df-admin-metric.is-waiting strong { color: var(--op-amber); }
+.df-inline-metrics button.df-admin-metric { padding: 4px 7px; border-radius: 4px; }
+.df-inline-metrics button.df-admin-metric:hover,
+.df-inline-metrics button.df-admin-metric.active { background: var(--op-blue-soft); }
+.df-inline-metrics button.df-admin-metric.is-active.active { background: var(--op-green-soft); }
+.df-inline-metrics button.df-admin-metric.is-passive.active { background: var(--op-red-soft); }
 
 .df-operations-directory .df-service-list-head {
     flex-wrap: wrap;
