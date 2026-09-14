@@ -64,6 +64,7 @@ namespace YetkiliServisGazAcma.Business.Services
             // Firma kaydı
             firma.OlusturmaTarihi = DateTime.Now;
             firma.OlusturanKullanici = firma.VergiNo;
+            firma.OlusturmaTipi = YetkiliServisOlusturmaTipleri.Kayit;
             firma.SilindiMi = false;
             firma.AktifMi = true;
 

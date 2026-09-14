@@ -56,13 +56,12 @@
 <div class="fr265-toolbar">
     <div>
         <div class="fr265-toolbar-title">
-            <h2 class="df-panel-title" style="margin:0;">@(imzaliBelgeHazir ? "İmzalı Form" : "Form Önizleme")</h2>
+            <h2 class="df-panel-title" style="margin:0;">@(imzaliBelgeHazir ? "İmzalı Form" : $"Talep #{Model.Id}")</h2>
             @if (imzaliBelgeHazir)
             {
                 <span class="fr265-ready-badge"><i class="bi bi-patch-check-fill"></i> İmzalı nihai belge</span>
             }
         </div>
-        <div class="df-panel-subtitle">Cihaz değişim talebi #@Model.Id için @(imzaliBelgeHazir ? "kayda gelen nihai form." : "imzaya gönderilecek form.")</div>
     </div>
     <div class="df-actions">
         <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/detay/@Model.Id">Detaya Dön</a>

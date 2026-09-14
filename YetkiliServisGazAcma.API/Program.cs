@@ -103,6 +103,7 @@ builder.Services.AddIdentity<AppKullanici, IdentityRole>(options =>
 builder.Services.AddScoped<DagitimSirketService>();
 builder.Services.AddScoped<MarkaService>();
 builder.Services.AddScoped<YetkiliServisService>();
+builder.Services.AddScoped<YetkiliServisIlkKurulumService>();
 builder.Services.AddScoped<YetkiBelgesiService>();
 builder.Services.AddScoped<YkcTalepService>();
 builder.Services.AddSingleton<YkcSorguKaydiService>();
@@ -198,7 +199,12 @@ builder.Services.AddAuthentication(options =>
                 }
                 var roles = await users.GetRolesAsync(user);
                 if (!roles.OrderBy(x => x).SequenceEqual(context.Principal!.FindAll(ClaimTypes.Role).Select(x => x.Value).OrderBy(x => x)))
+                {
                     context.Fail("Kullanıcı yetkileri değişti.");
+                    return;
+                }
+                if (!KullaniciRolTutarlilikKurali.FirmaRolleriUyumlu(user.KullaniciTipi, roles))
+                    context.Fail("Kullanıcı tipi ve firma rolleri uyuşmuyor.");
             }
         };
     });

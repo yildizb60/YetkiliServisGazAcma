@@ -59,6 +59,9 @@
 .ykc-list-page .ykc-id-list > div { grid-template-columns: 82px minmax(0, 1fr); }
 .ykc-list-page .ykc-id-list dt { color: #6b7f90; }
 .ykc-list-page .ykc-id-list dd { font-weight:500; }
+.ykc-list-page .ykc-data-table.is-internal { min-width: 1360px; }
+.ykc-list-page .ykc-data-table.is-firm { min-width: 1100px; }
+.ykc-list-page .ykc-id-list dd { white-space: nowrap; overflow-wrap: normal; word-break: normal; }
 .ykc-list-page .ykc-data-table td { font-size:12px; }
 .ykc-list-page .ykc-data-table .df-pill { overflow-wrap:normal; word-break:normal; font-weight:600; padding:4px 6px; }
 .ykc-list-page .ykc-device-fields { margin:0; display:grid; gap:4px; font-size:11px; }

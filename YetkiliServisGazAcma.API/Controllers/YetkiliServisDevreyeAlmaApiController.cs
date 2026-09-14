@@ -22,25 +22,28 @@ namespace YetkiliServisGazAcma.API.Controllers
         private readonly OnlineCihazBilgileriClient _onlineCihazBilgileriClient;
         private readonly SehirFirmaKoduService _sehirFirmaKoduService;
         private readonly DevreyeAlmaExportApiService _devreyeAlmaExportApiService;
+        private readonly YetkiliServisIlkKurulumService _ilkKurulumService;
 
         public YetkiliServisDevreyeAlmaApiController(
             AppDbContext context,
             UserManager<AppKullanici> userManager,
             OnlineCihazBilgileriClient onlineCihazBilgileriClient,
             SehirFirmaKoduService sehirFirmaKoduService,
-            DevreyeAlmaExportApiService devreyeAlmaExportApiService)
+            DevreyeAlmaExportApiService devreyeAlmaExportApiService,
+            YetkiliServisIlkKurulumService ilkKurulumService)
         {
             _context = context;
             _userManager = userManager;
             _onlineCihazBilgileriClient = onlineCihazBilgileriClient;
             _sehirFirmaKoduService = sehirFirmaKoduService;
             _devreyeAlmaExportApiService = devreyeAlmaExportApiService;
+            _ilkKurulumService = ilkKurulumService;
         }
 
         [HttpPost("gecmis")]
         public async Task<IActionResult> Gecmis([FromBody] YsDevreyeAlmaGecmisFiltreDto? dto)
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await AktifYetkiliServisKullaniciAsync();
             if (kullanici?.FirmaId == null)
                 return Unauthorized();
 
@@ -101,7 +104,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         [HttpPost("getir")]
         public async Task<IActionResult> Getir([FromBody] YsDevreyeAlmaGetirDto? dto)
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await AktifYetkiliServisKullaniciAsync();
             if (kullanici?.FirmaId == null)
                 return Unauthorized();
 
@@ -120,7 +123,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         [HttpPost("pdf")]
         public async Task<IActionResult> Pdf([FromBody] YsDevreyeAlmaGetirDto? dto)
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await AktifYetkiliServisKullaniciAsync();
             if (kullanici?.FirmaId == null)
                 return Unauthorized();
 
@@ -137,7 +140,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         [HttpPost("excel")]
         public async Task<IActionResult> Excel([FromBody] YsDevreyeAlmaGetirDto? dto)
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await AktifYetkiliServisKullaniciAsync();
             if (kullanici?.FirmaId == null)
                 return Unauthorized();
 
@@ -154,11 +157,11 @@ namespace YetkiliServisGazAcma.API.Controllers
         [HttpPost("ekran")]
         public async Task<IActionResult> Ekran()
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await AktifYetkiliServisKullaniciAsync();
             if (kullanici?.FirmaId == null)
                 return Unauthorized();
 
-            var kurulum = await GetIlkKurulumDurumuAsync(kullanici);
+            var kurulum = await _ilkKurulumService.GetirAsync(kullanici.FirmaId.Value);
             if (kurulum.zorunluMu && !kurulum.tamamlandiMi)
             {
                 return Ok(new YsDevreyeAlmaEkranDto
@@ -205,11 +208,11 @@ namespace YetkiliServisGazAcma.API.Controllers
         [HttpPost("tesisat-sorgula")]
         public async Task<IActionResult> TesisatSorgula([FromBody] YsTesisatSorguDto? dto)
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await AktifYetkiliServisKullaniciAsync();
             if (kullanici?.FirmaId == null)
                 return Unauthorized(new YsTesisatSorguSonucDto { Basarili = false, Mesaj = "Oturum suresi dolmus." });
 
-            var kurulum = await GetIlkKurulumDurumuAsync(kullanici);
+            var kurulum = await _ilkKurulumService.GetirAsync(kullanici.FirmaId.Value);
             if (kurulum.zorunluMu && !kurulum.tamamlandiMi)
             {
                 return Ok(new YsTesisatSorguSonucDto
@@ -279,7 +282,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         [HttpPost("bildirimler")]
         public async Task<IActionResult> Bildirimler()
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await AktifYetkiliServisKullaniciAsync();
             if (kullanici?.FirmaId == null)
                 return Unauthorized();
 
@@ -299,7 +302,8 @@ namespace YetkiliServisGazAcma.API.Controllers
                 .OrderBy(x => x.YetkiBelgesiBitisTarihi)
                 .FirstOrDefault();
 
-            var bekleyenVar = firma?.YetkiBelgeleri?.Any(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor && !x.SilindiMi) ?? false;
+            var bekleyenVar = firma?.YetkiBelgeleri?.Any(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
+                && !x.SilindiMi && x.YetkiBelgesiBitisTarihi.Date >= bugun) ?? false;
             if (onayli != null)
             {
                 bildirimler.Add("Yetki belgeniz onaylandi. Cihaz devreye alabilirsiniz.");
@@ -334,11 +338,11 @@ namespace YetkiliServisGazAcma.API.Controllers
         [HttpPost("marka-kontrol")]
         public async Task<IActionResult> MarkaKontrol([FromBody] YsMarkaKontrolDto? dto)
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await AktifYetkiliServisKullaniciAsync();
             if (kullanici?.FirmaId == null)
                 return Unauthorized(new YsMarkaKontrolSonucDto { Yetkili = false, Mesaj = "Oturum suresi dolmus." });
 
-            var kurulum = await GetIlkKurulumDurumuAsync(kullanici);
+            var kurulum = await _ilkKurulumService.GetirAsync(kullanici.FirmaId.Value);
             if (kurulum.zorunluMu && !kurulum.tamamlandiMi)
                 return Ok(new YsMarkaKontrolSonucDto { Yetkili = false, Mesaj = "Ilk kurulum tamamlanmadan islem yapilamaz." });
 
@@ -370,11 +374,11 @@ namespace YetkiliServisGazAcma.API.Controllers
         [HttpPost("kaydet")]
         public async Task<IActionResult> Kaydet([FromBody] YsDevreyeAlmaKaydetDto? dto)
         {
-            var kullanici = await _userManager.GetUserAsync(User);
+            var kullanici = await AktifYetkiliServisKullaniciAsync();
             if (kullanici?.FirmaId == null)
                 return Unauthorized(new YsDevreyeAlmaIslemSonucDto { Basarili = false, Mesaj = "Oturum suresi dolmus.", RedirectUrl = "/giris" });
 
-            var kurulum = await GetIlkKurulumDurumuAsync(kullanici);
+            var kurulum = await _ilkKurulumService.GetirAsync(kullanici.FirmaId.Value);
             if (kurulum.zorunluMu && !kurulum.tamamlandiMi)
             {
                 return Ok(new YsDevreyeAlmaIslemSonucDto
@@ -535,34 +539,10 @@ namespace YetkiliServisGazAcma.API.Controllers
                 .Trim('_');
         }
 
-        private async Task<(bool zorunluMu, bool tamamlandiMi, List<string> eksikler)> GetIlkKurulumDurumuAsync(AppKullanici kullanici)
+        private async Task<AppKullanici?> AktifYetkiliServisKullaniciAsync()
         {
-            var firma = await _context.Ys_Firmalar
-                .Include(x => x.FirmaMarkalar)
-                .Include(x => x.FirmaKategoriler)
-                .Include(x => x.Subeler)
-                .FirstOrDefaultAsync(x => x.Id == kullanici.FirmaId);
-
-            var adminOlusturmus = firma != null
-                && !string.IsNullOrWhiteSpace(firma.VergiNo)
-                && !string.Equals((kullanici.UserName ?? "").Trim(), (firma.VergiNo ?? "").Trim(), StringComparison.OrdinalIgnoreCase);
-
-            if (!adminOlusturmus)
-                return (false, true, new List<string>());
-
-            var eksikler = new List<string>();
-            var markaVar = firma?.FirmaMarkalar?.Any(x => !x.SilindiMi) == true;
-            var kategoriVar = firma?.FirmaKategoriler?.Any(x => !x.SilindiMi) == true;
-            var subeVar = firma?.Subeler?.Any(x => !x.SilindiMi) == true;
-            var yetkiBelgesiVar = await _context.Ys_YetkiBelgeleri
-                .AnyAsync(x => x.FirmaId == kullanici.FirmaId && !x.SilindiMi);
-
-            if (!markaVar) eksikler.Add("Marka secimi");
-            if (!kategoriVar) eksikler.Add("Kategori secimi");
-            if (!subeVar) eksikler.Add("Sube kaydi");
-            if (!yetkiBelgesiVar) eksikler.Add("Yetki belgesi yukleme");
-
-            return (true, eksikler.Count == 0, eksikler);
+            var kullanici = await _userManager.GetUserAsync(User);
+            return kullanici?.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis ? kullanici : null;
         }
 
         private async Task<bool> GecerliYetkiBelgesiVarAsync(int firmaId)

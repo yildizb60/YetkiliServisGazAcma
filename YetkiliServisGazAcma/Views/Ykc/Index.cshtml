@@ -13,9 +13,9 @@
             Title = "Yeni Cihaz Değişim Talebi",
             Url = "/ykc/yeni",
             Icon = "bi bi-plus-lg",
-            Done = 1,
-            Total = 1,
-            Subtitle = "Yeni kayıt oluşturmaya hazır",
+            ShowProgress = false,
+            MetricIcon = "bi bi-file-earmark-plus",
+            MetricLabel = "Yeni kayıt",
             Stat1Label = "Gerekli Bilgi",
             Stat1Value = "Tesisat No",
             Stat2Label = "Kayıt Akışı",
@@ -47,9 +47,9 @@
             Title = "İnceleme ve Kontrol Süreci",
             Url = "/ykc/talepler",
             Icon = "bi bi-calendar2-check",
-            Done = Model.RandevuSaha,
-            Total = Math.Max(Model.Incelemede + Model.RandevuSaha, 1),
-            Subtitle = "Kontrolde / Açık Süreç",
+            ShowProgress = false,
+            MetricValue = Model.RandevuSaha.ToString(),
+            MetricLabel = "Randevu / Kontrol",
             Stat1Label = "İnceleme Bekleyen",
             Stat1Value = Model.Incelemede.ToString(),
             Stat1Class = Model.Incelemede > 0 ? "df-badge-pulse" : "df-tile-stat-val",
@@ -61,19 +61,19 @@
         },
         new()
         {
-            Title = "Tamamlanan Talepler ve Formlar",
-            Url = $"/ykc/talepler?durum={YkcDurumDegerleri.Tamamlandi}",
+            Title = "Form ve Talep Sonuçları",
+            Url = "/ykc/talepler",
             Icon = "bi bi-file-earmark-check",
-            Done = Model.ImzaliNihai,
-            Total = Math.Max(Model.Tamamlanan, 1),
-            Subtitle = "Nihai PDF / Tamamlanan",
+            ShowProgress = false,
+            MetricValue = Model.ImzaliNihai.ToString(),
+            MetricLabel = "Nihai PDF",
             Stat1Label = "Tamamlanan",
             Stat1Value = Model.Tamamlanan.ToString(),
             Stat2Label = "İmza Bekleyen",
             Stat2Value = Model.ImzaBekleyen.ToString(),
             Stat2Class = Model.ImzaBekleyen > 0 ? "df-badge-pulse" : "df-tile-stat-val",
-            Stat3Label = "Nihai PDF",
-            Stat3Value = Model.ImzaliNihai.ToString(),
+            Stat3Label = "Red / İptal",
+            Stat3Value = Model.RedIptal.ToString(),
             Tone = "green"
         }
     };
@@ -87,6 +87,10 @@
         public string Tone { get; set; } = "blue";
         public int Done { get; set; }
         public int Total { get; set; }
+        public bool ShowProgress { get; set; } = true;
+        public string MetricValue { get; set; } = "";
+        public string MetricLabel { get; set; } = "";
+        public string MetricIcon { get; set; } = "";
         public string Subtitle { get; set; } = "";
         public string Stat1Label { get; set; } = "";
         public string Stat1Value { get; set; } = "";
@@ -138,14 +142,31 @@
                     </div>
                 </div>
                 <div class="df-ring-wrap">
-                    <div class="df-ring-container">
-                        <svg class="df-ring-svg" width="72" height="72" viewBox="0 0 72 72" aria-hidden="true">
-                            <circle class="df-ring-bg" cx="36" cy="36" r="28"></circle>
-                            <circle class="df-ring-fill" cx="36" cy="36" r="28" stroke-dasharray="175.9" stroke-dashoffset="@RingOffset(kart.Done, kart.Total)"></circle>
-                        </svg>
-                        <div class="df-ring-center"><span class="df-ring-pct">@RingPct(kart.Done, kart.Total)%</span></div>
-                    </div>
-                    <div class="df-ring-meta"><span class="df-ring-sub">@kart.Subtitle</span></div>
+                    @if (kart.ShowProgress)
+                    {
+                        <div class="df-ring-container">
+                            <svg class="df-ring-svg" width="72" height="72" viewBox="0 0 72 72" aria-hidden="true">
+                                <circle class="df-ring-bg" cx="36" cy="36" r="28"></circle>
+                                <circle class="df-ring-fill" cx="36" cy="36" r="28" stroke-dasharray="175.9" stroke-dashoffset="@RingOffset(kart.Done, kart.Total)"></circle>
+                            </svg>
+                            <div class="df-ring-center"><span class="df-ring-pct">@RingPct(kart.Done, kart.Total)%</span></div>
+                        </div>
+                        <div class="df-ring-meta"><span class="df-ring-sub">@kart.Subtitle</span></div>
+                    }
+                    else
+                    {
+                        <div class="df-ring-summary">
+                            @if (!string.IsNullOrWhiteSpace(kart.MetricIcon))
+                            {
+                                <i class="@kart.MetricIcon" aria-hidden="true"></i>
+                            }
+                            else
+                            {
+                                <strong>@kart.MetricValue</strong>
+                            }
+                            <span>@kart.MetricLabel</span>
+                        </div>
+                    }
                 </div>
                 <div class="df-tile-stats">
                     <div class="df-tile-stat"><span class="df-tile-stat-lbl">@kart.Stat1Label</span><span class="@kart.Stat1Class">@kart.Stat1Value</span></div>

@@ -84,8 +84,10 @@
                 <div class="df-admin-table-scroll"><table class="df-table"><thead><tr><th>Firma</th><th>Şirket</th><th>Tarih</th><th>Durum</th></tr></thead><tbody>
                 @foreach (var belge in yetkiBelgesiIslemler)
                 {
-                    var durumSinif = belge.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "df-pill-success" : belge.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor ? "df-pill-warning" : "df-pill-danger";
-                    var durumYazi = belge.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "Onaylandı" : belge.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor ? "Bekliyor" : "Reddedildi";
+                    var suresiDolmus = belge.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
+                        && belge.YetkiBelgesiBitisTarihi.Date < DateTime.Today;
+                    var durumSinif = belge.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "df-pill-success" : belge.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor && !suresiDolmus ? "df-pill-warning" : "df-pill-danger";
+                    var durumYazi = suresiDolmus ? "Süresi Doldu" : belge.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "Onaylandı" : belge.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor ? "Bekliyor" : "Reddedildi";
                     <tr><td><div class="df-cell-main">@(belge.Firma?.FirmaAdi ?? "-")</div></td><td>@(belge.Firma?.Sirket?.SirketAdi ?? "-")</td><td>@belge.OlusturmaTarihi.ToString("dd.MM.yyyy")</td><td><span class="df-pill @durumSinif">@durumYazi</span></td></tr>
                 }
                 </tbody></table></div>

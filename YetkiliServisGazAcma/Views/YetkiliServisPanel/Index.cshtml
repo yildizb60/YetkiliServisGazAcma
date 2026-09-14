@@ -25,13 +25,17 @@
             && x.YetkiBelgesiBitisTarihi.Date >= bugun)
         .OrderBy(x => x.YetkiBelgesiBitisTarihi)
         .ToList();
-    var bekleyenBelge = tumBelgeler.Count(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor);
+    var bekleyenBelge = tumBelgeler.Count(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
+        && x.YetkiBelgesiBitisTarihi.Date >= bugun);
     var reddedilenBelge = tumBelgeler.Count(x => x.Durum == YetkiBelgesiDurumDegerleri.Reddedildi);
     var markaSayisi = firma?.FirmaMarkalar?.Count(x => !x.SilindiMi) ?? 0;
+    var aktifMarkaSayisi = firma?.FirmaMarkalar?.Count(x => !x.SilindiMi && x.Marka?.AktifMi == true) ?? 0;
     var kategoriSayisi = firma?.FirmaKategoriler?.Count(x => !x.SilindiMi) ?? 0;
     var subeSayisi = firma?.Subeler?.Count(x => !x.SilindiMi) ?? 0;
-    var tamamlananSon = sonIslemler.Count(x => x.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi);
-    var bekleyenSon = sonIslemler.Count(x => x.Durum != DevreyeAlmaDurumDegerleri.Tamamlandi);
+    var aktifSubeSayisi = firma?.Subeler?.Count(x => !x.SilindiMi && x.AktifMi) ?? 0;
+    var tamamlananIslem = ViewBag.TamamlananIslem is int ti ? ti : 0;
+    var bekleyenIslem = ViewBag.BekleyenIslem is int bi ? bi : 0;
+    var iptalIslem = ViewBag.IptalIslem is int ii ? ii : 0;
     var ilkKurulumZorunlu = ViewBag.IlkKurulumZorunlu as bool? ?? false;
     var ilkKurulumTamamlandi = ViewBag.IlkKurulumTamamlandi as bool? ?? true;
     var ilkKurulumEksikler = ViewBag.IlkKurulumEksikler as List<string> ?? new List<string>();
@@ -77,16 +81,15 @@
         Url = kurulumKilitli ? "/ys-panel/ilk-kurulum" : "/ys-devreyeal",
         Icon = "bi bi-bag-check",
         Tone = kurulumKilitli ? "amber" : "blue",
-        Done = buAy,
-        Total = Math.Max(toplam, buAy),
-        Subtitle = "Bu Ay / Toplam",
+        ShowProgress = false,
+        MetricValue = buAy.ToString(),
+        MetricLabel = "Bu ay kaydedilen",
         Stat1Label = "Toplam",
         Stat1Value = toplam.ToString(),
-        Stat2Label = "Bu Ay",
-        Stat2Value = buAy.ToString(),
-        Stat3Label = "Durum",
-        Stat3Value = kurulumKilitli ? "Kilitli" : "Aktif",
-        Stat3Class = kurulumKilitli ? "df-badge-pulse" : "df-tile-stat-val"
+        Stat2Label = "Bekleyen",
+        Stat2Value = bekleyenIslem.ToString(),
+        Stat3Label = "Tamamlanan",
+        Stat3Value = tamamlananIslem.ToString()
     });
 
     kartlar.Add(new DashboardTile
@@ -95,16 +98,16 @@
         Url = "/ys-panel/markalar",
         Icon = "bi bi-building-check",
         Tone = "amber",
-        Done = markaSayisi,
-        Total = markaSayisi,
-        Subtitle = "Tanımlı / Toplam",
+        ShowProgress = false,
+        MetricValue = aktifMarkaSayisi.ToString(),
+        MetricLabel = "Aktif marka",
         Stat1Label = "Toplam",
         Stat1Value = markaSayisi.ToString(),
         Stat2Label = "Kategori",
         Stat2Value = kategoriSayisi.ToString(),
         Stat3Label = "Durum",
-        Stat3Value = markaSayisi > 0 ? "Aktif" : "Eksik",
-        Stat3Class = markaSayisi > 0 ? "df-tile-stat-val" : "df-badge-pulse"
+        Stat3Value = aktifMarkaSayisi > 0 ? "Aktif" : "Eksik",
+        Stat3Class = aktifMarkaSayisi > 0 ? "df-tile-stat-val" : "df-badge-pulse"
     });
 
     kartlar.Add(new DashboardTile
@@ -113,17 +116,16 @@
         Url = "/ys-panel/subeler",
         Icon = "bi bi-building-gear",
         Tone = "cyan",
-        Done = subeSayisi,
-        Total = subeSayisi,
-        Subtitle = "Tanımlı / Toplam",
+        ShowProgress = false,
+        MetricValue = aktifSubeSayisi.ToString(),
+        MetricLabel = "Aktif şube",
         Stat1Label = "Toplam",
         Stat1Value = subeSayisi.ToString(),
-        Stat2Label = "Eksik",
-        Stat2Value = subeSayisi > 0 ? "0" : "1",
-        Stat2Class = subeSayisi > 0 ? "df-tile-stat-val" : "df-badge-pulse",
+        Stat2Label = "Pasif",
+        Stat2Value = (subeSayisi - aktifSubeSayisi).ToString(),
         Stat3Label = "Durum",
-        Stat3Value = subeSayisi > 0 ? "Aktif" : "Eksik",
-        Stat3Class = subeSayisi > 0 ? "df-tile-stat-val" : "df-badge-pulse"
+        Stat3Value = aktifSubeSayisi > 0 ? "Aktif" : "Eksik",
+        Stat3Class = aktifSubeSayisi > 0 ? "df-tile-stat-val" : "df-badge-pulse"
     });
 
     if (toplam > 0 || buAy > 0 || gecerliBelgeler.Count > 0)
@@ -134,15 +136,15 @@
             Url = "/ys-panel/raporlar",
             Icon = "bi bi-bar-chart-line",
             Tone = "blue",
-            Done = toplam,
-            Total = toplam,
-            Subtitle = "Kayıt / Toplam",
-            Stat1Label = "Toplam",
-            Stat1Value = toplam.ToString(),
-            Stat2Label = "Bu Ay",
-            Stat2Value = buAy.ToString(),
-            Stat3Label = "Belge",
-            Stat3Value = gecerliBelgeler.Count.ToString()
+            ShowProgress = false,
+            MetricValue = toplam.ToString(),
+            MetricLabel = "Toplam kayıt",
+            Stat1Label = "Bekleyen",
+            Stat1Value = bekleyenIslem.ToString(),
+            Stat2Label = "Tamamlanan",
+            Stat2Value = tamamlananIslem.ToString(),
+            Stat3Label = "İptal",
+            Stat3Value = iptalIslem.ToString()
         });
     }
 }
@@ -156,6 +158,9 @@
         public string Tone { get; set; } = "blue";
         public int Done { get; set; }
         public int Total { get; set; }
+        public bool ShowProgress { get; set; } = true;
+        public string MetricValue { get; set; } = "";
+        public string MetricLabel { get; set; } = "";
         public string Subtitle { get; set; } = "";
         public string Stat1Label { get; set; } = "";
         public string Stat1Value { get; set; } = "";
@@ -213,14 +218,21 @@
                     </div>
                 </div>
                 <div class="df-ring-wrap">
-                    <div class="df-ring-container">
-                        <svg class="df-ring-svg" width="72" height="72" viewBox="0 0 72 72">
-                            <circle class="df-ring-bg" cx="36" cy="36" r="28"></circle>
-                            <circle class="df-ring-fill" cx="36" cy="36" r="28" stroke-dasharray="175.9" stroke-dashoffset="@RingOffset(kart.Done, kart.Total)"></circle>
-                        </svg>
-                        <div class="df-ring-center"><span class="df-ring-pct">@RingPct(kart.Done, kart.Total)%</span></div>
-                    </div>
-                    <div class="df-ring-meta"><span class="df-ring-sub">@kart.Subtitle</span></div>
+                    @if (kart.ShowProgress)
+                    {
+                        <div class="df-ring-container">
+                            <svg class="df-ring-svg" width="72" height="72" viewBox="0 0 72 72" aria-hidden="true">
+                                <circle class="df-ring-bg" cx="36" cy="36" r="28"></circle>
+                                <circle class="df-ring-fill" cx="36" cy="36" r="28" stroke-dasharray="175.9" stroke-dashoffset="@RingOffset(kart.Done, kart.Total)"></circle>
+                            </svg>
+                            <div class="df-ring-center"><span class="df-ring-pct">@RingPct(kart.Done, kart.Total)%</span></div>
+                        </div>
+                        <div class="df-ring-meta"><span class="df-ring-sub">@kart.Subtitle</span></div>
+                    }
+                    else
+                    {
+                        <div class="df-ring-summary"><strong>@kart.MetricValue</strong><span>@kart.MetricLabel</span></div>
+                    }
                 </div>
                 <div class="df-tile-stats">
                     <div class="df-tile-stat"><span class="df-tile-stat-lbl">@kart.Stat1Label</span><span class="@kart.Stat1Class">@kart.Stat1Value</span></div>
@@ -258,9 +270,9 @@
                         </div>
                         <div class="kpi-grid">
                             <div class="kpi-tile"><div class="kpi-icon"><i class="bi bi-plus-lg"></i></div><div class="kpi-n">@toplam</div><div class="kpi-lbl">Toplam İşlem</div></div>
-                            <div class="kpi-tile"><div class="kpi-icon ic-green"><i class="bi bi-send-check"></i></div><div class="kpi-n">@buAy</div><div class="kpi-lbl">Bu Ay</div></div>
-                            <div class="kpi-tile"><div class="kpi-icon ic-warn"><i class="bi bi-hourglass-split"></i></div><div class="kpi-n">@bekleyenSon</div><div class="kpi-lbl">Bekleyen</div></div>
-                            <div class="kpi-tile"><div class="kpi-icon ic-teal"><i class="bi bi-check-circle"></i></div><div class="kpi-n">@tamamlananSon</div><div class="kpi-lbl">Tamamlanan</div></div>
+                            <div class="kpi-tile"><div class="kpi-icon ic-purple"><i class="bi bi-x-circle"></i></div><div class="kpi-n">@iptalIslem</div><div class="kpi-lbl">İptal</div></div>
+                            <div class="kpi-tile"><div class="kpi-icon ic-warn"><i class="bi bi-hourglass-split"></i></div><div class="kpi-n">@bekleyenIslem</div><div class="kpi-lbl">Bekleyen</div></div>
+                            <div class="kpi-tile"><div class="kpi-icon ic-teal"><i class="bi bi-check-circle"></i></div><div class="kpi-n">@tamamlananIslem</div><div class="kpi-lbl">Tamamlanan</div></div>
                         </div>
                     </div>
                     <div class="chart-pane">
@@ -320,7 +332,10 @@
                             <div class="dash-list">
                                 @foreach (var belge in tumBelgeler.Take(4))
                                 {
-                                    var durumYazi = belge.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "Onaylandı" : belge.Durum == YetkiBelgesiDurumDegerleri.Reddedildi ? "Reddedildi" : "Bekliyor";
+                                    var durumYazi = belge.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
+                                        && belge.YetkiBelgesiBitisTarihi.Date < bugun ? "Süresi Doldu"
+                                        : belge.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "Onaylandı"
+                                        : belge.Durum == YetkiBelgesiDurumDegerleri.Reddedildi ? "Reddedildi" : "Bekliyor";
                                     <div class="dash-list-item">
                                         <div class="dash-list-title">@durumYazi</div>
                                         <div class="dash-list-sub">@belge.OlusturmaTarihi.ToString("dd.MM.yyyy") - @belge.YetkiBelgesiBitisTarihi.ToString("dd.MM.yyyy")</div>

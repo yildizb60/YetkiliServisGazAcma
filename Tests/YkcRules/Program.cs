@@ -1,4 +1,5 @@
 using YetkiliServisGazAcma.Business.Services;
+using YetkiliServisGazAcma.Entities;
 
 var passed = 0;
 void Check(bool condition, string name)
@@ -9,6 +10,35 @@ void Check(bool condition, string name)
 }
 
 // No database or external providers: checks cannot alter application records.
+var adminSetup = YetkiliServisIlkKurulumService.Degerlendir(
+    YetkiliServisOlusturmaTipleri.Admin, true, true, true, true);
+Check(adminSetup.zorunluMu && adminSetup.tamamlandiMi && adminSetup.eksikler.Count == 0,
+    "Admin-created firm with active setup can operate");
+var inactiveBranch = YetkiliServisIlkKurulumService.Degerlendir(
+    YetkiliServisOlusturmaTipleri.Admin, true, true, false, true);
+Check(inactiveBranch.zorunluMu && !inactiveBranch.tamamlandiMi && inactiveBranch.eksikler.Contains("Aktif sube kaydi"),
+    "Inactive branch does not complete initial setup");
+var missingSetup = YetkiliServisIlkKurulumService.Degerlendir(
+    YetkiliServisOlusturmaTipleri.Admin, false, false, true, false);
+Check(!missingSetup.tamamlandiMi && missingSetup.eksikler.Count == 3,
+    "Missing brand, category and document remain visible");
+var registered = YetkiliServisIlkKurulumService.Degerlendir(
+    YetkiliServisOlusturmaTipleri.Kayit, false, false, false, false);
+Check(!registered.zorunluMu && registered.tamamlandiMi,
+    "Self-registered firm is not assigned admin first-setup gate");
+
+var approvalDay = new DateTime(2026, 9, 14);
+var approvalDocument = new Ys_YetkiBelgesi { YetkiBelgesiBitisTarihi = approvalDay };
+Check(YetkiBelgesiService.OnaylanabilirMi(approvalDocument, approvalDay), "Certificate can be approved on its last valid day");
+approvalDocument.YetkiBelgesiBitisTarihi = approvalDay.AddDays(-1);
+Check(!YetkiBelgesiService.OnaylanabilirMi(approvalDocument, approvalDay), "Expired certificate cannot be approved");
+approvalDocument.YetkiBelgesiBitisTarihi = approvalDay.AddDays(1);
+approvalDocument.Durum = YetkiBelgesiDurumDegerleri.Onaylandi;
+Check(!YetkiBelgesiService.OnaylanabilirMi(approvalDocument, approvalDay), "Already decided certificate cannot be approved again");
+approvalDocument.Durum = YetkiBelgesiDurumDegerleri.OnaydaBekliyor;
+approvalDocument.SilindiMi = true;
+Check(!YetkiBelgesiService.OnaylanabilirMi(approvalDocument, approvalDay), "Deleted certificate cannot be approved");
+
 using var snapshots = new YkcSorguKaydiService();
 var reference = snapshots.Ekle("firm-a", new YkcTalepKaydetDto {
     TesisatNo = "100", SozlesmeNo = "200", FirmaId = 7, SirketId = 3,

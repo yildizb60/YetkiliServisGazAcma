@@ -59,6 +59,65 @@ namespace YetkiliServisGazAcma.Controllers
             return View("~/Views/Ykc/Index.cshtml", sonuc);
         }
 
+        [Authorize(Roles = KullaniciRolAdlari.SertifikaliFirma)]
+        [HttpGet("profil")]
+        public async Task<IActionResult> Profil()
+        {
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
+            if (kullanici == null) return Redirect("/giris");
+
+            PanelViewBag(kullanici, "Profil", "Profilim", string.Empty);
+            return View("~/Views/Ykc/Profil.cshtml");
+        }
+
+        [Authorize(Roles = KullaniciRolAdlari.SertifikaliFirma)]
+        [HttpPost("profil-guncelle")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ProfilGuncelle(string adSoyad, string email, string? telefon)
+        {
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
+            if (kullanici == null) return Redirect("/giris");
+
+            if (string.IsNullOrWhiteSpace(adSoyad) || string.IsNullOrWhiteSpace(email)
+                || !new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(email.Trim()))
+            {
+                TempData["Hata"] = "Ad soyad ve geçerli bir e-posta adresi girin.";
+                return RedirectToAction(nameof(Profil));
+            }
+
+            kullanici.AdSoyad = adSoyad.Trim();
+            kullanici.Email = email.Trim();
+            kullanici.PhoneNumber = telefon?.Trim();
+            var sonuc = await _kullaniciOturumu.UpdateAsync(kullanici);
+            TempData[sonuc.Succeeded ? "Basarili" : "Hata"] = sonuc.Succeeded
+                ? "Profil bilgileriniz güncellendi."
+                : sonuc.Errors.FirstOrDefault()?.Description ?? "Profil güncellenemedi.";
+            return RedirectToAction(nameof(Profil));
+        }
+
+        [Authorize(Roles = KullaniciRolAdlari.SertifikaliFirma)]
+        [HttpPost("sifre-degistir")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SifreDegistir(string mevcutSifre, string yeniSifre, string yeniSifreTekrar)
+        {
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
+            if (kullanici == null) return Redirect("/giris");
+
+            if (string.IsNullOrWhiteSpace(mevcutSifre) || string.IsNullOrWhiteSpace(yeniSifre))
+                TempData["SifreHata"] = "Mevcut ve yeni şifreyi girin.";
+            else if (yeniSifre != yeniSifreTekrar)
+                TempData["SifreHata"] = "Yeni şifreler eşleşmiyor.";
+            else
+            {
+                var sonuc = await _kullaniciOturumu.ChangePasswordAsync(kullanici, mevcutSifre, yeniSifre);
+                TempData[sonuc.Succeeded ? "SifreBasarili" : "SifreHata"] = sonuc.Succeeded
+                    ? "Şifreniz değiştirildi."
+                    : sonuc.Errors.FirstOrDefault()?.Description ?? "Şifre değiştirilemedi.";
+            }
+
+            return RedirectToAction(nameof(Profil));
+        }
+
         [HttpGet("talepler")]
         public async Task<IActionResult> Talepler(
             string? tesisatNo,

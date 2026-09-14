@@ -18,10 +18,18 @@ namespace YetkiliServisGazAcma.API.Services
         public async Task<AdminYetkiBelgesiOnayListeDto> ListeleAsync(int? sirketId)
         {
             var query = YetkiBelgesiTemelQuery(sirketId);
+            var bugun = DateTime.Today;
 
             var bekleyenler = await query
-                .Where(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor)
+                .Where(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
+                    && x.YetkiBelgesiBitisTarihi >= bugun)
                 .OrderByDescending(x => x.OlusturmaTarihi)
+                .ToListAsync();
+
+            var suresiDolanlar = await query
+                .Where(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
+                    && x.YetkiBelgesiBitisTarihi < bugun)
+                .OrderByDescending(x => x.YetkiBelgesiBitisTarihi)
                 .ToListAsync();
 
             var onaylananlar = await query
@@ -39,6 +47,7 @@ namespace YetkiliServisGazAcma.API.Services
             return new AdminYetkiBelgesiOnayListeDto
             {
                 Bekleyenler = bekleyenler.Select(AdminYetkiBelgesiOnayDto.FromEntity).ToList(),
+                SuresiDolanlar = suresiDolanlar.Select(AdminYetkiBelgesiOnayDto.FromEntity).ToList(),
                 Onaylananlar = onaylananlar.Select(AdminYetkiBelgesiOnayDto.FromEntity).ToList(),
                 Reddedilenler = reddedilenler.Select(AdminYetkiBelgesiOnayDto.FromEntity).ToList()
             };

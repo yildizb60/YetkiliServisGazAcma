@@ -43,6 +43,9 @@ public sealed class AuthController(UserManager<AppKullanici> users, SignInManage
             if (!result.Succeeded) return Error(result.IsLockedOut
                 ? "Çok fazla hatalı giriş denemesi. Lütfen 15 dakika sonra tekrar deneyin." : LoginError, 401);
         }
+        if (!KullaniciRolTutarlilikKurali.FirmaRolleriUyumlu(
+                user.KullaniciTipi, await users.GetRolesAsync(user)))
+            return Error("Hesap yetkileriniz tutarsız. Sistem yöneticinizle iletişime geçin.", 403);
         if (sms.SmsGirisAktifMi || identity?.TelefonDogrulamasiGerekliMi == true)
         {
             if (!sms.SmsGirisAktifMi) return Error("Telefon doğrulaması için SMS servisi yapılandırılmalıdır.", 503);
@@ -164,6 +167,10 @@ public sealed class AuthController(UserManager<AppKullanici> users, SignInManage
 
     private async Task<IActionResult> CompleteLoginAsync(AppKullanici user)
     {
+        if (!KullaniciRolTutarlilikKurali.FirmaRolleriUyumlu(
+                user.KullaniciTipi, await users.GetRolesAsync(user)))
+            return Error("Hesap yetkileriniz tutarsız. Sistem yöneticinizle iletişime geçin.", 403);
+
         var systemAdmin = user.KullaniciTipi == KullaniciTipiDegerleri.GenelSistemAdmin
             || (user.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin && !user.SirketId.HasValue);
         var role = user.KullaniciTipi switch

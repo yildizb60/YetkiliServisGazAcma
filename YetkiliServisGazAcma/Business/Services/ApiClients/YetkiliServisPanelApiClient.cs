@@ -419,6 +419,9 @@ namespace YetkiliServisGazAcma.Business.Services
             public YsPanelFirmaCevap? Firma { get; set; }
             public int BuAy { get; set; }
             public int Toplam { get; set; }
+            public int Bekleyen { get; set; }
+            public int Tamamlanan { get; set; }
+            public int Iptal { get; set; }
             public List<YsPanelDevreyeAlmaCevap> SonIslemler { get; set; } = new();
             public bool IlkKurulumZorunlu { get; set; }
             public bool IlkKurulumTamamlandi { get; set; }
@@ -434,6 +437,9 @@ namespace YetkiliServisGazAcma.Business.Services
                     Firma = Firma?.ToEntity(),
                     BuAy = BuAy,
                     Toplam = Toplam,
+                    Bekleyen = Bekleyen,
+                    Tamamlanan = Tamamlanan,
+                    Iptal = Iptal,
                     SonIslemler = SonIslemler.Select(x => x.ToEntity()).ToList(),
                     IlkKurulumZorunlu = IlkKurulumZorunlu,
                     IlkKurulumTamamlandi = IlkKurulumTamamlandi,
@@ -783,6 +789,9 @@ namespace YetkiliServisGazAcma.Business.Services
         public Ys_Firma? Firma { get; set; }
         public int BuAy { get; set; }
         public int Toplam { get; set; }
+        public int Bekleyen { get; set; }
+        public int Tamamlanan { get; set; }
+        public int Iptal { get; set; }
         public List<Ys_DevreyeAlma> SonIslemler { get; set; } = new();
         public bool IlkKurulumZorunlu { get; set; }
         public bool IlkKurulumTamamlandi { get; set; }

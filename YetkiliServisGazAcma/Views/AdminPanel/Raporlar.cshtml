@@ -116,6 +116,10 @@
                         {
                             <span class="df-pill df-pill-success">Onaylandı</span>
                         }
+                        else if (s.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor && s.YetkiBelgesiBitisTarihi.Date < DateTime.Today)
+                        {
+                            <span class="df-pill df-pill-danger">Süresi Doldu</span>
+                        }
                         else if (s.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor)
                         {
                             <span class="df-pill df-pill-warning">Bekliyor</span>

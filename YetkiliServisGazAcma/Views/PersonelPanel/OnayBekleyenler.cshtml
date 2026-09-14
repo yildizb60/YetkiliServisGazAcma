@@ -10,6 +10,7 @@
     var bekleyenler = Model ?? new List<Ys_YetkiBelgesi>();
     var onaylananlar = ViewBag.Onaylananlar as List<Ys_YetkiBelgesi> ?? new List<Ys_YetkiBelgesi>();
     var reddedilenler = ViewBag.Reddedilenler as List<Ys_YetkiBelgesi> ?? new List<Ys_YetkiBelgesi>();
+    var suresiDolanlar = ViewBag.SuresiDolanlar as List<Ys_YetkiBelgesi> ?? new List<Ys_YetkiBelgesi>();
 }
 
 <div class="approval-board df-approval-workspace">
@@ -40,6 +41,7 @@
                         <option value="bekleyen">Onaya Gönderildi</option>
                         <option value="onaylanan">Onaylananlar</option>
                         <option value="reddedilen">Reddedilenler</option>
+                        <option value="suresi-dolan">Süresi Doldu</option>
                     </select>
                 </div>
             </div>
@@ -59,6 +61,7 @@
                 <button type="button" class="approval-tab approval-metric is-waiting active" data-target="bekleyen"><i class="bi bi-hourglass-split" aria-hidden="true"></i><span>Onaya Gönderildi</span><strong>@bekleyenler.Count</strong></button>
                 <button type="button" class="approval-tab approval-metric is-approved" data-target="onaylanan"><i class="bi bi-check-circle" aria-hidden="true"></i><span>Onaylananlar</span><strong>@onaylananlar.Count</strong></button>
                 <button type="button" class="approval-tab approval-metric is-rejected" data-target="reddedilen"><i class="bi bi-x-circle" aria-hidden="true"></i><span>Reddedilenler</span><strong>@reddedilenler.Count</strong></button>
+                <button type="button" class="approval-tab approval-metric is-expired" data-target="suresi-dolan"><i class="bi bi-calendar-x" aria-hidden="true"></i><span>Süresi Doldu</span><strong>@suresiDolanlar.Count</strong></button>
             </div>
         </div>
 
@@ -70,6 +73,9 @@
         </div>
         <div data-panel="reddedilen">
             @await Html.PartialAsync("~/Views/Shared/_YetkiBelgesiOnayTable.cshtml", new Tuple<List<Ys_YetkiBelgesi>, string, string>(reddedilenler, "reddedilen", "personel"))
+        </div>
+        <div data-panel="suresi-dolan">
+            @await Html.PartialAsync("~/Views/Shared/_YetkiBelgesiOnayTable.cshtml", new Tuple<List<Ys_YetkiBelgesi>, string, string>(suresiDolanlar, "suresi-dolan", "personel"))
         </div>
     </section>
 </div>
@@ -100,7 +106,9 @@
             bitis: fields.bitis?.value || ''
         };
 
-        panel.querySelectorAll('tr[data-approval-row="true"]').forEach(row => {
+        let visibleCount = 0;
+        const rows = panel.querySelectorAll('tr[data-approval-row="true"]');
+        rows.forEach(row => {
             let visible = true;
             if (values.firma) visible = normalize(row.dataset.firma).includes(values.firma) || normalize(row.dataset.vergi).includes(values.firma);
             if (values.sirket) visible = visible && normalize(row.dataset.sirket).includes(values.sirket);
@@ -108,7 +116,10 @@
             if (values.baslangic) visible = visible && row.dataset.baslangic >= values.baslangic;
             if (values.bitis) visible = visible && row.dataset.bitis <= values.bitis;
             row.hidden = !visible;
+            if (visible) visibleCount++;
         });
+        const empty = panel.querySelector('.df-approval-filter-empty');
+        if (empty) empty.hidden = rows.length === 0 || visibleCount > 0;
     }
 
     function activatePanel(target = 'bekleyen') {

@@ -183,8 +183,9 @@ namespace YetkiliServisGazAcma.Controllers
             }
 
             ViewBag.Kullanici = kullanici;
-            ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
+            ViewBag.OnayBekleyen = onayListesi.Bekleyenler.Count;
             ViewBag.Bekleyenler = onayListesi.Bekleyenler;
+            ViewBag.SuresiDolanlar = onayListesi.SuresiDolanlar;
             ViewBag.Onaylananlar = onayListesi.Onaylananlar;
             ViewBag.Reddedilenler = onayListesi.Reddedilenler;
             return View("~/Views/AdminPanel/OnayBekleyenler.cshtml");

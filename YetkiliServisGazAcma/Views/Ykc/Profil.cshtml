@@ -1,13 +1,11 @@
 @{
     ViewData["Title"] = "Profilim";
-    ViewData["PanelTitle"] = ViewData["Title"];
     ViewData["ActiveMenu"] = "Profil";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
     var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
-    var adSoyad = string.IsNullOrWhiteSpace(kullanici?.AdSoyad) ? "Sistem Yöneticisi" : kullanici.AdSoyad;
+    var adSoyad = string.IsNullOrWhiteSpace(kullanici?.AdSoyad) ? "Sertifikalı Firma Kullanıcısı" : kullanici.AdSoyad;
     var basHarf = adSoyad[..1].ToUpper(System.Globalization.CultureInfo.GetCultureInfo("tr-TR"));
-    var rolAdi = ViewBag.GenelSistemAdminMi == true ? "Genel Sistem Admini" : "Şirket Yöneticisi";
     var sifreAcik = TempData.ContainsKey("SifreHata") || TempData.ContainsKey("SifreBasarili");
 }
 @section PageStyles { <link rel="stylesheet" href="~/css/personnel-profile.css" asp-append-version="true" /> }
@@ -17,7 +15,7 @@
         <h1>@adSoyad</h1>
         <span class="df-pill @(kullanici?.AktifMi == true ? "df-pill-success" : "df-pill-muted")">@(kullanici?.AktifMi == true ? "Aktif" : "Pasif")</span>
         <dl>
-            <div><dt><i class="bi bi-shield-check" aria-hidden="true"></i>Rol</dt><dd>@rolAdi</dd></div>
+            <div><dt><i class="bi bi-shield-check" aria-hidden="true"></i>Rol</dt><dd>Sertifikalı Firma</dd></div>
             <div><dt><i class="bi bi-person" aria-hidden="true"></i>Kullanıcı Adı</dt><dd class="account-login-name">@(kullanici?.UserName ?? "-")</dd></div>
         </dl>
     </aside>
@@ -28,12 +26,12 @@
             <button type="button" role="tab" id="tab-security" aria-controls="account-security" aria-selected="false"><i class="bi bi-shield-lock" aria-hidden="true"></i>Şifre ve Güvenlik</button>
         </div>
         <section class="account-section" id="account-personal" role="tabpanel" aria-labelledby="tab-personal">
-            <form method="post" action="/AdminPanel/profil-guncelle">
+            <form method="post" action="/ykc/profil-guncelle">
                 @Html.AntiForgeryToken()
                 <div class="account-fields">
-                    <label for="admin-profile-name" class="account-field-wide">Ad Soyad<input id="admin-profile-name" name="adSoyad" value="@adSoyad" autocomplete="name" required /></label>
-                    <label for="admin-profile-email">E-posta<input id="admin-profile-email" name="email" type="email" value="@kullanici?.Email" autocomplete="email" required /></label>
-                    <label for="admin-profile-phone">Telefon<input id="admin-profile-phone" name="telefon" type="tel" value="@kullanici?.PhoneNumber" autocomplete="tel" /></label>
+                    <label for="firm-profile-name" class="account-field-wide">Ad Soyad<input id="firm-profile-name" name="adSoyad" value="@kullanici?.AdSoyad" autocomplete="name" required /></label>
+                    <label for="firm-profile-email">E-posta<input id="firm-profile-email" name="email" type="email" value="@kullanici?.Email" autocomplete="email" required /></label>
+                    <label for="firm-profile-phone">Telefon<input id="firm-profile-phone" name="telefon" type="tel" value="@kullanici?.PhoneNumber" autocomplete="tel" /></label>
                 </div>
                 <footer><button type="submit" class="df-btn df-btn-primary df-btn-sm"><i class="bi bi-check2" aria-hidden="true"></i>Bilgileri Kaydet</button></footer>
             </form>
@@ -41,18 +39,18 @@
         <section class="account-section" id="account-work" role="tabpanel" aria-labelledby="tab-work" hidden>
             <dl class="account-work-data">
                 <div><dt>Kullanıcı Adı</dt><dd>@(kullanici?.UserName ?? "-")</dd></div>
-                <div><dt>Rol</dt><dd>@rolAdi</dd></div>
+                <div><dt>Rol</dt><dd>Sertifikalı Firma</dd></div>
                 <div><dt>Hesap Durumu</dt><dd>@(kullanici?.AktifMi == true ? "Aktif" : "Pasif")</dd></div>
                 <div><dt>E-posta Onayı</dt><dd>@(kullanici?.EmailConfirmed == true ? "Onaylandı" : "Onaylanmadı")</dd></div>
             </dl>
         </section>
         <section class="account-section" id="account-security" role="tabpanel" aria-labelledby="tab-security" hidden>
-            <form method="post" action="/AdminPanel/sifre-degistir">
+            <form method="post" action="/ykc/sifre-degistir">
                 @Html.AntiForgeryToken()
                 <div class="account-fields">
-                    <label for="admin-profile-current" class="account-field-wide">Mevcut Şifre<input id="admin-profile-current" name="mevcutSifre" type="password" autocomplete="current-password" required /></label>
-                    <label for="admin-profile-new">Yeni Şifre<input id="admin-profile-new" name="yeniSifre" type="password" autocomplete="new-password" required /></label>
-                    <label for="admin-profile-confirm">Yeni Şifre Tekrar<input id="admin-profile-confirm" name="yeniSifreTekrar" type="password" autocomplete="new-password" required /></label>
+                    <label for="firm-profile-current" class="account-field-wide">Mevcut Şifre<input id="firm-profile-current" name="mevcutSifre" type="password" autocomplete="current-password" required /></label>
+                    <label for="firm-profile-new">Yeni Şifre<input id="firm-profile-new" name="yeniSifre" type="password" autocomplete="new-password" required /></label>
+                    <label for="firm-profile-confirm">Yeni Şifre Tekrar<input id="firm-profile-confirm" name="yeniSifreTekrar" type="password" autocomplete="new-password" required /></label>
                 </div>
                 <footer><button type="submit" class="df-btn df-btn-primary df-btn-sm"><i class="bi bi-lock" aria-hidden="true"></i>Şifreyi Güncelle</button></footer>
             </form>

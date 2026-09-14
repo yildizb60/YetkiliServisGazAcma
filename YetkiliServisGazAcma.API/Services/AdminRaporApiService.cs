@@ -117,7 +117,8 @@ namespace YetkiliServisGazAcma.API.Services
             var devreyeBekleyen = await devreyeTemelQuery.Where(x => x.Durum == DevreyeAlmaDurumDegerleri.Bekliyor).CountAsync();
             var devreyeIptal = await devreyeTemelQuery.Where(x => x.Durum == DevreyeAlmaDurumDegerleri.Iptal).CountAsync();
             var yetkiBelgesiOnayli = await yetkiBelgesiTemelQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi).CountAsync();
-            var yetkiBelgesiBekleyen = await yetkiBelgesiTemelQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor).CountAsync();
+            var yetkiBelgesiBekleyen = await yetkiBelgesiTemelQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
+                && x.YetkiBelgesiBitisTarihi >= DateTime.Today).CountAsync();
             var yetkiBelgesiReddedilen = await yetkiBelgesiTemelQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Reddedildi).CountAsync();
 
             var aylikBaslangic = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1).AddMonths(-5);

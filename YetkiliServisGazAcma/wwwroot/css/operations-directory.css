@@ -67,7 +67,7 @@
 .df-certificate-workspace .df-service-list-head { min-height: 50px; padding: 10px 14px; }
 .ys-certificate-summary {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     border-bottom: 1px solid var(--df-border);
     background: #fff;
 }
@@ -93,8 +93,9 @@
 .ys-certificate-summary span { min-width: 0; font-size: 12px; font-weight: 600; }
 .ys-certificate-summary strong { margin-left: auto; color: #204e67; font-size: 17px; font-weight: 700; }
 .ys-certificate-summary button:nth-child(2) strong { color: #966513; }
-.ys-certificate-summary button:nth-child(3) strong { color: #167a5b; }
-.ys-certificate-summary button:nth-child(4) strong { color: #b24b51; }
+.ys-certificate-summary button:nth-child(3) strong { color: #b24b51; }
+.ys-certificate-summary button:nth-child(4) strong { color: #167a5b; }
+.ys-certificate-summary button:nth-child(5) strong { color: #b24b51; }
 
 @media (max-width: 1050px) {
     .df-operations-directory .df-service-list-head { grid-template-columns: minmax(0, 1fr) auto; }

@@ -358,14 +358,20 @@ namespace YetkiliServisGazAcma.Business.Services
         private class YetkiBelgesiOnayEkraniCevap
         {
             public List<YetkiBelgesiCevap> Bekleyenler { get; set; } = new();
+            public List<YetkiBelgesiCevap> SuresiDolanlar { get; set; } = new();
             public List<YetkiBelgesiCevap> Onaylananlar { get; set; } = new();
             public List<YetkiBelgesiCevap> Reddedilenler { get; set; } = new();
 
             public YetkiBelgesiOnayEkraniSonuc ToSonuc()
             {
+                var bugun = DateTime.Today;
+                var bekleyenler = Bekleyenler.Select(x => x.ToEntity()).ToList();
+                var suresiDolanlar = SuresiDolanlar.Select(x => x.ToEntity()).ToList();
+                suresiDolanlar.AddRange(bekleyenler.Where(x => x.YetkiBelgesiBitisTarihi.Date < bugun));
                 return new YetkiBelgesiOnayEkraniSonuc
                 {
-                    Bekleyenler = Bekleyenler.Select(x => x.ToEntity()).ToList(),
+                    Bekleyenler = bekleyenler.Where(x => x.YetkiBelgesiBitisTarihi.Date >= bugun).ToList(),
+                    SuresiDolanlar = suresiDolanlar.GroupBy(x => x.Id).Select(x => x.First()).ToList(),
                     Onaylananlar = Onaylananlar.Select(x => x.ToEntity()).ToList(),
                     Reddedilenler = Reddedilenler.Select(x => x.ToEntity()).ToList()
                 };
@@ -453,6 +459,7 @@ namespace YetkiliServisGazAcma.Business.Services
     public class YetkiBelgesiOnayEkraniSonuc
     {
         public List<Ys_YetkiBelgesi> Bekleyenler { get; set; } = new();
+        public List<Ys_YetkiBelgesi> SuresiDolanlar { get; set; } = new();
         public List<Ys_YetkiBelgesi> Onaylananlar { get; set; } = new();
         public List<Ys_YetkiBelgesi> Reddedilenler { get; set; } = new();
     }

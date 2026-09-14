@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using YetkiliServisGazAcma.Business.Services;
 
 namespace YetkiliServisGazAcma.Entities
 {
@@ -14,6 +15,7 @@ namespace YetkiliServisGazAcma.Entities
         public string? VergiNo { get; set; }
         public string? VergiDairesi { get; set; }
         public bool AktifMi { get; set; } = true;
+        public byte OlusturmaTipi { get; set; } = YetkiliServisOlusturmaTipleri.Admin;
 
         public int SirketId { get; set; }
         public Dag_Sirket? Sirket { get; set; }

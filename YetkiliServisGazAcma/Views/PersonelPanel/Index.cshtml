@@ -60,12 +60,12 @@
         Title = "Cihaz Devreye Alma Kayıtları",
         Url = "/personel-panel/devreyealmalar",
         Icon = "bi bi-tools",
-        Done = buAyDevreyeAlma,
-        Total = Math.Max(toplamDevreyeAlma, 1),
-        Subtitle = "Bu Ay / Toplam",
+        ShowProgress = false,
+        MetricValue = buAyDevreyeAlma.ToString(),
+        MetricLabel = "Bu ay kaydedilen",
         Stat1Label = "Toplam Kayıt",
         Stat1Value = toplamDevreyeAlma.ToString(),
-        Stat2Label = "Bu Ay",
+        Stat2Label = "Bu ay kaydedilen",
         Stat2Value = buAyDevreyeAlma.ToString(),
         Stat3Label = "Son İşlem",
         Stat3Value = sonIslem?.DevreyeAlmaTarihi.ToString("dd.MM.yyyy") ?? "Yok",
@@ -110,6 +110,9 @@
         public string Tone { get; set; } = "blue";
         public int Done { get; set; }
         public int Total { get; set; }
+        public bool ShowProgress { get; set; } = true;
+        public string MetricValue { get; set; } = "";
+        public string MetricLabel { get; set; } = "";
         public string Subtitle { get; set; } = "";
         public string Stat1Label { get; set; } = "";
         public string Stat1Value { get; set; } = "";
@@ -153,14 +156,21 @@
                     </div>
                 </div>
                 <div class="df-ring-wrap">
-                    <div class="df-ring-container">
-                        <svg class="df-ring-svg" width="72" height="72" viewBox="0 0 72 72" aria-hidden="true">
-                            <circle class="df-ring-bg" cx="36" cy="36" r="28"></circle>
-                            <circle class="df-ring-fill" cx="36" cy="36" r="28" stroke-dasharray="175.9" stroke-dashoffset="@RingOffset(item.Done, item.Total)"></circle>
-                        </svg>
-                        <div class="df-ring-center"><span class="df-ring-pct">@RingPct(item.Done, item.Total)%</span></div>
-                    </div>
-                    <div class="df-ring-meta"><span class="df-ring-sub">@item.Subtitle</span></div>
+                    @if (item.ShowProgress)
+                    {
+                        <div class="df-ring-container">
+                            <svg class="df-ring-svg" width="72" height="72" viewBox="0 0 72 72" aria-hidden="true">
+                                <circle class="df-ring-bg" cx="36" cy="36" r="28"></circle>
+                                <circle class="df-ring-fill" cx="36" cy="36" r="28" stroke-dasharray="175.9" stroke-dashoffset="@RingOffset(item.Done, item.Total)"></circle>
+                            </svg>
+                            <div class="df-ring-center"><span class="df-ring-pct">@RingPct(item.Done, item.Total)%</span></div>
+                        </div>
+                        <div class="df-ring-meta"><span class="df-ring-sub">@item.Subtitle</span></div>
+                    }
+                    else
+                    {
+                        <div class="df-ring-summary"><strong>@item.MetricValue</strong><span>@item.MetricLabel</span></div>
+                    }
                 </div>
                 <div class="df-tile-stats">
                     <div class="df-tile-stat"><span class="df-tile-stat-lbl">@item.Stat1Label</span><span class="@item.Stat1Class">@item.Stat1Value</span></div>

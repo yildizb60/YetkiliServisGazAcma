@@ -18,17 +18,20 @@ namespace YetkiliServisGazAcma.API.Controllers
         private readonly UserManager<AppKullanici> _userManager;
         private readonly YetkiliServisPanelYonetimApiService _yonetimApiService;
         private readonly DevreyeAlmaExportApiService _devreyeAlmaExportApiService;
+        private readonly YetkiliServisIlkKurulumService _ilkKurulumService;
 
         public YetkiliServisPanelApiController(
             AppDbContext context,
             UserManager<AppKullanici> userManager,
             YetkiliServisPanelYonetimApiService yonetimApiService,
-            DevreyeAlmaExportApiService devreyeAlmaExportApiService)
+            DevreyeAlmaExportApiService devreyeAlmaExportApiService,
+            YetkiliServisIlkKurulumService ilkKurulumService)
         {
             _context = context;
             _userManager = userManager;
             _yonetimApiService = yonetimApiService;
             _devreyeAlmaExportApiService = devreyeAlmaExportApiService;
+            _ilkKurulumService = ilkKurulumService;
         }
 
         [HttpPost("dashboard")]
@@ -39,7 +42,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return Unauthorized();
 
             var firmaId = kullanici.FirmaId.Value;
-            var kurulum = await GetIlkKurulumDurumuAsync(kullanici);
+            var kurulum = await _ilkKurulumService.GetirAsync(firmaId);
 
             var firma = await FirmaDashboardQuery()
                 .FirstOrDefaultAsync(x => x.Id == firmaId);
@@ -51,9 +54,12 @@ namespace YetkiliServisGazAcma.API.Controllers
                     && !x.SilindiMi)
                 .CountAsync();
 
-            var toplam = await _context.Ys_DevreyeAlmalar
+            var durumSayilari = await _context.Ys_DevreyeAlmalar
                 .Where(x => x.FirmaId == firmaId && !x.SilindiMi)
-                .CountAsync();
+                .GroupBy(x => x.Durum)
+                .Select(x => new { Durum = x.Key, Sayi = x.Count() })
+                .ToDictionaryAsync(x => x.Durum, x => x.Sayi);
+            var toplam = durumSayilari.Values.Sum();
 
             var sonIslemler = await _context.Ys_DevreyeAlmalar
                 .Include(x => x.Marka)
@@ -81,6 +87,9 @@ namespace YetkiliServisGazAcma.API.Controllers
                 Firma = firma == null ? null : YsPanelFirmaDto.FromEntity(firma),
                 BuAy = buAy,
                 Toplam = toplam,
+                Bekleyen = durumSayilari.GetValueOrDefault(DevreyeAlmaDurumDegerleri.Bekliyor),
+                Tamamlanan = durumSayilari.GetValueOrDefault(DevreyeAlmaDurumDegerleri.Tamamlandi),
+                Iptal = durumSayilari.GetValueOrDefault(DevreyeAlmaDurumDegerleri.Iptal),
                 SonIslemler = sonIslemler.Select(YsPanelDevreyeAlmaDto.FromEntity).ToList(),
                 IlkKurulumZorunlu = kurulum.zorunluMu,
                 IlkKurulumTamamlandi = kurulum.tamamlandiMi,
@@ -165,8 +174,8 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (kullanici?.FirmaId == null)
                 return Unauthorized();
 
-            var kurulum = await GetIlkKurulumDurumuAsync(kullanici);
             var firmaId = kullanici.FirmaId.Value;
+            var kurulum = await _ilkKurulumService.GetirAsync(firmaId);
             if (firmaId <= 0)
             {
                 return Ok(new YsPanelIlkKurulumDto
@@ -340,7 +349,8 @@ namespace YetkiliServisGazAcma.API.Controllers
             var bekleyen = await devreyeTemelQuery.Where(x => x.Durum == DevreyeAlmaDurumDegerleri.Bekliyor).CountAsync();
 
             var yetkiBelgesiOnayli = await yetkiBelgesiTemelQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi).CountAsync();
-            var yetkiBelgesiBekleyen = await yetkiBelgesiTemelQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor).CountAsync();
+            var yetkiBelgesiBekleyen = await yetkiBelgesiTemelQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
+                && x.YetkiBelgesiBitisTarihi >= DateTime.Today).CountAsync();
             var yetkiBelgesiReddedilen = await yetkiBelgesiTemelQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Reddedildi).CountAsync();
 
             var aylikBaslangic = new DateTime(basTarih.Year, basTarih.Month, 1);
@@ -505,6 +515,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         private IQueryable<Ys_Firma> FirmaDashboardQuery()
         {
             return _context.Ys_Firmalar
+                .AsSplitQuery()
                 .Include(x => x.Sirket)
                 .Include(x => x.FirmaMarkalar!)
                     .ThenInclude(x => x.Marka)
@@ -538,36 +549,6 @@ namespace YetkiliServisGazAcma.API.Controllers
             return (basTarih, bitTarih);
         }
 
-        private async Task<(bool zorunluMu, bool tamamlandiMi, List<string> eksikler)> GetIlkKurulumDurumuAsync(AppKullanici kullanici)
-        {
-            var firma = await _context.Ys_Firmalar
-                .Include(x => x.FirmaMarkalar)
-                .Include(x => x.FirmaKategoriler)
-                .Include(x => x.Subeler)
-                .FirstOrDefaultAsync(x => x.Id == kullanici.FirmaId);
-
-            var adminOlusturmus = firma != null
-                && !string.IsNullOrWhiteSpace(firma.VergiNo)
-                && !string.Equals((kullanici.UserName ?? "").Trim(), (firma.VergiNo ?? "").Trim(), StringComparison.OrdinalIgnoreCase);
-
-            if (!adminOlusturmus)
-                return (false, true, new List<string>());
-
-            var eksikler = new List<string>();
-            var markaVar = firma?.FirmaMarkalar?.Any(x => !x.SilindiMi) == true;
-            var kategoriVar = firma?.FirmaKategoriler?.Any(x => !x.SilindiMi) == true;
-            var subeVar = firma?.Subeler?.Any(x => !x.SilindiMi) == true;
-            var yetkiBelgesiVar = await _context.Ys_YetkiBelgeleri
-                .AnyAsync(x => x.FirmaId == kullanici.FirmaId && !x.SilindiMi);
-
-            if (!markaVar) eksikler.Add("Marka secimi");
-            if (!kategoriVar) eksikler.Add("Kategori secimi");
-            if (!subeVar) eksikler.Add("Sube kaydi");
-            if (!yetkiBelgesiVar) eksikler.Add("Yetki belgesi yukleme");
-
-            return (true, eksikler.Count == 0, eksikler);
-        }
-
         private async Task<YsPanelBildirimDto> BildirimlerAsync(int firmaId)
         {
             var bildirimler = new List<string>();
@@ -585,7 +566,8 @@ namespace YetkiliServisGazAcma.API.Controllers
                 .OrderBy(x => x.YetkiBelgesiBitisTarihi)
                 .FirstOrDefault();
 
-            var bekleyenVar = firma?.YetkiBelgeleri?.Any(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor && !x.SilindiMi) ?? false;
+            var bekleyenVar = firma?.YetkiBelgeleri?.Any(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
+                && x.YetkiBelgesiBitisTarihi.Date >= bugun && !x.SilindiMi) ?? false;
             if (onayli != null)
             {
                 bildirimler.Add("Yetki belgeniz onaylandi. Cihaz devreye alabilirsiniz.");
@@ -623,6 +605,9 @@ namespace YetkiliServisGazAcma.API.Controllers
         public YsPanelFirmaDto? Firma { get; set; }
         public int BuAy { get; set; }
         public int Toplam { get; set; }
+        public int Bekleyen { get; set; }
+        public int Tamamlanan { get; set; }
+        public int Iptal { get; set; }
         public List<YsPanelDevreyeAlmaDto> SonIslemler { get; set; } = new();
         public bool IlkKurulumZorunlu { get; set; }
         public bool IlkKurulumTamamlandi { get; set; }

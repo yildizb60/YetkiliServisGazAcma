@@ -486,6 +486,7 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.Kullanici = kullanici;
             ViewBag.Onaylananlar = onaylananlar;
             ViewBag.Reddedilenler = reddedilenler;
+            ViewBag.SuresiDolanlar = sonuc.SuresiDolanlar;
             await SetPersonelYetkiViewBags(kullanici);
             await SetPersonelNotifViewBags(kullanici);
             return View("~/Views/PersonelPanel/OnayBekleyenler.cshtml", bekleyenler);

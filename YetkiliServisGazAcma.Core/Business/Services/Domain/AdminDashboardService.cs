@@ -24,7 +24,8 @@ namespace YetkiliServisGazAcma.Business.Services
             {
                 ToplamDevreyeAlma = await devreyeQuery.CountAsync(),
                 ToplamFirma = await firmaQuery.CountAsync(),
-                OnayBekleyen = await yetkiBelgesiQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor).CountAsync(),
+                OnayBekleyen = await yetkiBelgesiQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
+                    && x.YetkiBelgesiBitisTarihi >= now.Date).CountAsync(),
                 SuresiBitecek = await yetkiBelgesiQuery
                     .Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi
                         && x.YetkiBelgesiBitisTarihi <= now.AddDays(30)
@@ -54,8 +55,10 @@ namespace YetkiliServisGazAcma.Business.Services
 
         public async Task<int> OnayBekleyenSayisiAsync(int? sirketId)
         {
+            var bugun = DateTime.Today;
             return await YetkiBelgesiTemelQuery(sirketId)
-                .Where(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor)
+                .Where(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
+                    && x.YetkiBelgesiBitisTarihi >= bugun)
                 .CountAsync();
         }
 

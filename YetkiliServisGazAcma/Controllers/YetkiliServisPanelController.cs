@@ -63,6 +63,9 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.Firma = dashboard.Firma;
             ViewBag.BuAy = dashboard.BuAy;
             ViewBag.Toplam = dashboard.Toplam;
+            ViewBag.BekleyenIslem = dashboard.Bekleyen;
+            ViewBag.TamamlananIslem = dashboard.Tamamlanan;
+            ViewBag.IptalIslem = dashboard.Iptal;
             ViewBag.SonIslemler = dashboard.SonIslemler;
             ViewBag.Kullanici = kullanici;
             ViewBag.IlkKurulumZorunlu = dashboard.IlkKurulumZorunlu;

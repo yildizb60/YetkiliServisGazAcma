@@ -142,24 +142,6 @@ namespace YetkiliServisGazAcma.API.Controllers
             return Ok(await FirmaSecenekleriAsync(kapsam.sirketId));
         }
 
-        [HttpPost("kullanicilar/yetkili-servis-senkronize")]
-        public async Task<IActionResult> YetkiliServisKullanicilariniSenkronize([FromBody] AdminKullaniciSenkronFiltreDto? dto)
-        {
-            var kullanici = await AktifKullaniciAsync();
-            if (kullanici == null)
-                return Unauthorized();
-
-            var kapsam = await KapsamSirketIdAsync(dto?.SirketId);
-            if (kapsam.gecersiz)
-                return Forbid();
-
-            if (!await KullaniciYonetebilirMi(kullanici, kapsam.sirketId))
-                return Forbid();
-
-            await YetkiliServisKullanicilariniSenkronizeAsync(kapsam.sirketId);
-            return Ok(AdminIslemSonucDto.BasariliSonuc("Yetkili servis kullanicilari senkronize edildi."));
-        }
-
         [HttpPost("kullanicilar/yonetim-yetkisi")]
         public async Task<IActionResult> KullaniciYonetimYetkisi([FromBody] AdminKullaniciYonetimYetkiDto? dto)
         {
@@ -414,6 +396,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                         Telefon = dto.Telefon,
                         Email = email,
                         SirketId = dto.SirketId!.Value,
+                        OlusturmaTipi = YetkiliServisOlusturmaTipleri.Admin,
                         AktifMi = true
                     };
 
@@ -511,6 +494,9 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (!GenelSistemAdminMi(kullanici) &&
                 (hedef.KullaniciTipi == KullaniciTipiDegerleri.GenelSistemAdmin || hedef.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin))
                 return Ok(AdminIslemSonucDto.Basarisiz("Sirket admini genel sistem admini veya sirket admini hesabinin durumunu degistiremez."));
+
+            if (kullanici.Id == hedef.Id && !dto.AktifMi)
+                return Ok(AdminIslemSonucDto.Basarisiz("Kendi hesabinizi pasiflestiremezsiniz."));
 
             hedef.AktifMi = dto.AktifMi;
             var sonuc = await _userManager.UpdateAsync(hedef);

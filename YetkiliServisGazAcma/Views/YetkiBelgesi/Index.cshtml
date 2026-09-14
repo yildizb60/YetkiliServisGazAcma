@@ -6,7 +6,8 @@
     ViewData["ActiveMenu"] = "YetkiBelgesi";
     ViewData["PanelArea"] = "YetkiliServis";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
-    var bekleyen = Model.Count(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor);
+    var bekleyen = Model.Count(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor && x.YetkiBelgesiBitisTarihi.Date >= DateTime.Today);
+    var suresiDolan = Model.Count(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor && x.YetkiBelgesiBitisTarihi.Date < DateTime.Today);
     var onaylanan = Model.Count(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi);
     var reddedilen = Model.Count(x => x.Durum == YetkiBelgesiDurumDegerleri.Reddedildi);
 }
@@ -41,7 +42,7 @@
         <div class="df-admin-filter-body">
             <div class="df-admin-filter-grid">
                 <div class="df-admin-field is-wide"><label for="yetkiBelgesiSearch">Arama</label><input id="yetkiBelgesiSearch" type="search" placeholder="Tarih veya durum" /></div>
-                <div class="df-admin-field"><label for="yetkiBelgesiDurum">Durum</label><select id="yetkiBelgesiDurum"><option value="">Tümü</option><option value="Onay Bekliyor">Onay Bekliyor</option><option value="Onaylandı">Onaylandı</option><option value="Reddedildi">Reddedildi</option></select></div>
+                <div class="df-admin-field"><label for="yetkiBelgesiDurum">Durum</label><select id="yetkiBelgesiDurum"><option value="">Tümü</option><option value="Onay Bekliyor">Onay Bekliyor</option><option value="Süresi Doldu">Süresi Doldu</option><option value="Onaylandı">Onaylandı</option><option value="Reddedildi">Reddedildi</option></select></div>
             </div>
         </div>
     </details>
@@ -53,6 +54,7 @@
         <div class="ys-certificate-summary" role="group" aria-label="Belge durumuna göre filtrele">
             <button type="button" data-belge-durum="" aria-pressed="true"><i class="bi bi-files" aria-hidden="true"></i><span>Toplam</span><strong>@Model.Count</strong></button>
             <button type="button" data-belge-durum="Onay Bekliyor" aria-pressed="false"><i class="bi bi-hourglass-split" aria-hidden="true"></i><span>Onay Bekleyen</span><strong>@bekleyen</strong></button>
+            <button type="button" data-belge-durum="Süresi Doldu" aria-pressed="false"><i class="bi bi-calendar-x" aria-hidden="true"></i><span>Süresi Doldu</span><strong>@suresiDolan</strong></button>
             <button type="button" data-belge-durum="Onaylandı" aria-pressed="false"><i class="bi bi-check-circle" aria-hidden="true"></i><span>Onaylanan</span><strong>@onaylanan</strong></button>
             <button type="button" data-belge-durum="Reddedildi" aria-pressed="false"><i class="bi bi-x-circle" aria-hidden="true"></i><span>Reddedilen</span><strong>@reddedilen</strong></button>
         </div>
@@ -68,8 +70,9 @@
                 @foreach (var belge in Model)
                 {
                     var baslangic = belge.YetkiBelgesiBaslangicTarihi ?? belge.OlusturmaTarihi;
-                    var durumText = belge.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor ? "Onay Bekliyor" : belge.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "Onaylandı" : "Reddedildi";
-                    var durumClass = belge.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor ? "df-pill-warning" : belge.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "df-pill-success" : "df-pill-danger";
+                    var suresiDolmus = belge.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor && belge.YetkiBelgesiBitisTarihi.Date < DateTime.Today;
+                    var durumText = suresiDolmus ? "Süresi Doldu" : belge.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor ? "Onay Bekliyor" : belge.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "Onaylandı" : "Reddedildi";
+                    var durumClass = suresiDolmus ? "df-pill-danger" : belge.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor ? "df-pill-warning" : belge.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "df-pill-success" : "df-pill-danger";
                     var searchText = $"{belge.OlusturmaTarihi:dd.MM.yyyy} {baslangic:dd.MM.yyyy} {belge.YetkiBelgesiBitisTarihi:dd.MM.yyyy} {durumText}";
                     <tr class="sert-row" data-search="@searchText" data-durum="@durumText">
                         <td><div class="df-cell-main"><i class="bi bi-file-earmark-text" aria-hidden="true"></i> Yetki Belgesi</div><div class="df-cell-sub">@belge.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm") tarihinde yüklendi</div>@if (!string.IsNullOrWhiteSpace(belge.RedGerekce)) { <div class="df-cell-sub">Red gerekçesi: @belge.RedGerekce</div> }</td>

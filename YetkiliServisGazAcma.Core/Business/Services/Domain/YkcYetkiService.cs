@@ -49,7 +49,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 || kullanici.KullaniciTipi is KullaniciTipiDegerleri.GenelSistemAdmin or KullaniciTipiDegerleri.SirketAdmin;
 
             if (icYonetici)
-                return TumYetkiler();
+                return TumYonetimYetkileri();
 
             var sertifikaliFirma = roller.Contains(KullaniciRolAdlari.SertifikaliFirma)
                 || kullanici.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma;
@@ -82,7 +82,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 .ToListAsync(cancellationToken);
 
             if (yetkiler.Contains(YetkiTipleri.TAM_YETKI))
-                return TumYetkiler(talepOlusturabilir: false);
+                return TumYonetimYetkileri();
 
             return new YkcYetkiOzeti
             {
@@ -104,12 +104,12 @@ namespace YetkiliServisGazAcma.Business.Services
             return ozet.YetkiliMi(yetkiTipi);
         }
 
-        private static YkcYetkiOzeti TumYetkiler(bool talepOlusturabilir = true)
+        private static YkcYetkiOzeti TumYonetimYetkileri()
         {
             return new YkcYetkiOzeti
             {
                 TalepleriGorebilir = true,
-                TalepOlusturabilir = talepOlusturabilir,
+                TalepOlusturabilir = false,
                 AtamaYapabilir = true,
                 Fr265ImzaIslemiYapabilir = true,
                 RaporlariGorebilir = true

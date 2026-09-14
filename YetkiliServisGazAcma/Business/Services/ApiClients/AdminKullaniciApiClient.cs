@@ -276,20 +276,6 @@ namespace YetkiliServisGazAcma.Business.Services
                 "Admin personel ekle");
         }
 
-        public Task<AdminKullaniciIslemSonuc?> YetkiliServisKullanicilariniSenkronizeAsync(
-            AppKullanici kullanici,
-            int? sirketId)
-        {
-            return PostIslemAsync(
-                kullanici,
-                "api/admin-panel/kullanicilar/yetkili-servis-senkronize",
-                new AdminKullaniciSenkronIstek
-                {
-                    SirketId = sirketId
-                },
-                "Admin yetkili servis kullanici senkronizasyonu");
-        }
-
         public async Task<AppKullanici?> GetirAsync(AppKullanici kullanici, string id, int? sirketId)
         {
             var cevap = await PostOkuAsync<AdminKullaniciGetirIstek, AdminKullaniciListeCevap>(
@@ -538,11 +524,6 @@ namespace YetkiliServisGazAcma.Business.Services
             public string? Telefon { get; set; }
             public int SirketId { get; set; }
             public string? Sifre { get; set; }
-        }
-
-        private class AdminKullaniciSenkronIstek
-        {
-            public int? SirketId { get; set; }
         }
 
         private class AdminKullaniciGetirIstek

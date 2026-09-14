@@ -13,12 +13,15 @@
         ?? new List<YetkiliServisGazAcma.Entities.Ys_YetkiBelgesi>();
     var gecerli = yetkiBelgeleri.FirstOrDefault(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi && x.YetkiBelgesiBitisTarihi > DateTime.Now);
     var onayli = yetkiBelgeleri.FirstOrDefault(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi);
-    var yetkiBelgesi = gecerli ?? onayli ?? yetkiBelgeleri.FirstOrDefault();
+    var bekleyenBelge = yetkiBelgeleri.FirstOrDefault(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
+        && x.YetkiBelgesiBitisTarihi.Date >= DateTime.Today);
+    var yetkiBelgesi = gecerli ?? bekleyenBelge ?? onayli ?? yetkiBelgeleri.FirstOrDefault();
     var adSoyad = kullanici?.AdSoyad ?? firma?.YetkiliKisi ?? "Yetkili Servis";
     var firmaAdi = firma?.FirmaAdi ?? "Firma";
     var basHarf = firmaAdi.Length > 0 ? firmaAdi[..1].ToUpper(System.Globalization.CultureInfo.GetCultureInfo("tr-TR")) : "F";
-    var belgeDurumu = gecerli != null ? "Geçerli" : yetkiBelgesi?.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor ? "Onay Bekliyor" : "Geçerli Belge Yok";
-    var belgeClass = gecerli != null ? "df-pill-success" : yetkiBelgesi?.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor ? "df-pill-warning" : "df-pill-danger";
+    var bekleyenBelgeVar = bekleyenBelge != null;
+    var belgeDurumu = gecerli != null ? "Geçerli" : bekleyenBelgeVar ? "Onay Bekliyor" : yetkiBelgesi?.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor && yetkiBelgesi.YetkiBelgesiBitisTarihi.Date < DateTime.Today ? "Süresi Doldu" : "Geçerli Belge Yok";
+    var belgeClass = gecerli != null ? "df-pill-success" : bekleyenBelgeVar ? "df-pill-warning" : "df-pill-danger";
     var sifreAcik = TempData.ContainsKey("SifreHata") || TempData.ContainsKey("SifreBasarili");
 }
 

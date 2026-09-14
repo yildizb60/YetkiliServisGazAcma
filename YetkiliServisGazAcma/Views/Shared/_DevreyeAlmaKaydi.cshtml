@@ -1,9 +1,10 @@
 @model YetkiliServisGazAcma.Entities.Ys_DevreyeAlma
 @{
     var alan = ViewData["DevreyeAlmaAlan"] as string ?? "/personel-panel";
-    var liste = alan + "/devreyealmalar";
-    var pdf = alan == "/AdminPanel" ? $"{liste}/pdf/{Model.Id}" : $"{alan}/devreyealma-pdf/{Model.Id}";
-    var excel = alan == "/AdminPanel" ? $"{liste}/excel/{Model.Id}" : $"{alan}/devreyealma-excel/{Model.Id}";
+    var servisPaneli = alan == "/ys-devreyeal";
+    var liste = servisPaneli ? "/ys-devreyeal/gecmis" : alan + "/devreyealmalar";
+    var pdf = servisPaneli ? $"/ys-devreyeal/pdf/{Model.Id}" : alan == "/AdminPanel" ? $"{liste}/pdf/{Model.Id}" : $"{alan}/devreyealma-pdf/{Model.Id}";
+    var excel = servisPaneli ? $"/ys-devreyeal/excel/{Model.Id}" : alan == "/AdminPanel" ? $"{liste}/excel/{Model.Id}" : $"{alan}/devreyealma-excel/{Model.Id}";
     var durum = Model.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? ("Tamamlandı", "df-pill-success")
         : Model.Durum == DevreyeAlmaDurumDegerleri.Iptal ? ("İptal", "df-pill-danger") : ("Bekliyor", "df-pill-warning");
 }

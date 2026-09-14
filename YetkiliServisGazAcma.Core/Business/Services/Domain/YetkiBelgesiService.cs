@@ -29,10 +29,12 @@ namespace YetkiliServisGazAcma.Business.Services
 
         public async Task<List<Ys_YetkiBelgesi>> OnayBekleyenler(int? sirketId = null)
         {
+            var bugun = DateTime.Today;
             var sorgu = _context.Ys_YetkiBelgeleri
                 .Include(x => x.Firma)
                 .ThenInclude(x => x!.Sirket)
-                .Where(x => !x.SilindiMi && x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor);
+                .Where(x => !x.SilindiMi && x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
+                    && x.YetkiBelgesiBitisTarihi >= bugun);
 
             if (sirketId.HasValue)
                 sorgu = sorgu.Where(x => x.Firma!.SirketId == sirketId.Value);
@@ -241,12 +243,19 @@ namespace YetkiliServisGazAcma.Business.Services
             };
         }
 
+        public static bool OnaylanabilirMi(Ys_YetkiBelgesi? belge, DateTime tarih)
+        {
+            return belge != null && !belge.SilindiMi
+                && belge.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
+                && belge.YetkiBelgesiBitisTarihi.Date >= tarih.Date;
+        }
+
         public async Task<bool> Onayla(int yetkiBelgesiId, string? kullanici)
         {
             var yetkiBelgesi = await _context.Ys_YetkiBelgeleri
                 .FirstOrDefaultAsync(x => x.Id == yetkiBelgesiId);
 
-            if (yetkiBelgesi == null)
+            if (yetkiBelgesi == null || !OnaylanabilirMi(yetkiBelgesi, DateTime.Today))
                 return false;
 
             yetkiBelgesi.Durum = YetkiBelgesiDurumDegerleri.Onaylandi;
@@ -265,7 +274,8 @@ namespace YetkiliServisGazAcma.Business.Services
             var yetkiBelgesi = await _context.Ys_YetkiBelgeleri
                 .FirstOrDefaultAsync(x => x.Id == yetkiBelgesiId);
 
-            if (yetkiBelgesi == null)
+            if (yetkiBelgesi == null || yetkiBelgesi.SilindiMi
+                || yetkiBelgesi.Durum != YetkiBelgesiDurumDegerleri.OnaydaBekliyor)
                 return false;
 
             yetkiBelgesi.Durum = YetkiBelgesiDurumDegerleri.Reddedildi;

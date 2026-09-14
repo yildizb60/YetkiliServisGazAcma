@@ -55,6 +55,7 @@ namespace YetkiliServisGazAcma.API.Services
                 VergiDairesi = dto.VergiDairesi,
                 SirketId = hedefSirketId,
                 AktifMi = dto.AktifMi,
+                OlusturmaTipi = YetkiliServisOlusturmaTipleri.Admin,
                 OlusturmaTarihi = DateTime.Now,
                 OlusturanKullanici = kullaniciAdi,
                 SilindiMi = false

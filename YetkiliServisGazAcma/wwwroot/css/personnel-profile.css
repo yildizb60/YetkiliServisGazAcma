@@ -5,6 +5,7 @@
 .account-identity dl { margin:22px 0 0; padding-top:18px; border-top:1px solid #d4e3ee; display:grid; gap:18px; }
 .account-identity dt { display:flex; align-items:center; gap:6px; font-size:12px; color:#5a7387; font-weight:500; }
 .account-identity dd { margin:6px 0 0; font-size:14px; font-weight:500; overflow-wrap:anywhere; }
+.account-identity dd.account-login-name { font-size:12px; line-height:1.5; }
 .account-content { min-width:0; background:#fff; border-block:1px solid var(--df-border); }
 .account-heading { display:flex; gap:14px; align-items:center; padding:18px 22px; background:#f5f9fd; }
 .account-heading > i { font-size:32px; color:#286ab3; }

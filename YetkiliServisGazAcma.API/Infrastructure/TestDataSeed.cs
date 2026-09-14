@@ -419,7 +419,14 @@ namespace YetkiliServisGazAcma.API.Infrastructure
             await userManager.SetLockoutEndDateAsync(kullanici, null);
             await userManager.ResetAccessFailedCountAsync(kullanici);
 
-            foreach (var rol in roller)
+            var beklenenRoller = roller.ToHashSet(StringComparer.Ordinal);
+            foreach (var eskiRol in await userManager.GetRolesAsync(kullanici))
+            {
+                if (!beklenenRoller.Contains(eskiRol))
+                    await userManager.RemoveFromRoleAsync(kullanici, eskiRol);
+            }
+
+            foreach (var rol in beklenenRoller)
             {
                 if (!await userManager.IsInRoleAsync(kullanici, rol))
                     await userManager.AddToRoleAsync(kullanici, rol);

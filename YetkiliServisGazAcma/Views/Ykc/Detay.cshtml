@@ -319,9 +319,10 @@
     <header class="ykc-firm-record-head">
         <div class="ykc-staff-record-identity">
             <span class="ykc-firm-record-number">Cihaz Değişim Talebi #@Model.Id</span>
-            <small>Müşteri Adı</small>
-            <h1>@Deger(Model.MusteriAdi)</h1>
-            <p><i class="bi bi-house-check" aria-hidden="true"></i> Tesisat No: <strong>@Deger(Model.TesisatNo)</strong></p>
+            <div class="ykc-staff-identity-fields">
+                <h1><span>Müşteri Adı:</span> @Deger(Model.MusteriAdi)</h1>
+                <p><i class="bi bi-house-check" aria-hidden="true"></i> Tesisat No: <strong>@Deger(Model.TesisatNo)</strong></p>
+            </div>
         </div>
         <div class="ykc-firm-record-actions">
             <span class="df-pill @DurumClass(Model.Durum)">@(Model.Durum == YkcDurumDegerleri.Atandi ? "Planlandı" : DurumYazi(Model.Durum))</span>

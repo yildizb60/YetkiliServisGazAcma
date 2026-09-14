@@ -137,9 +137,17 @@ namespace YetkiliServisGazAcma.API.Controllers
                     && !x.Firma.SilindiMi
                     && (sirketId.sirketId == null || x.Firma.SirketId == sirketId.sirketId));
 
+            var bugun = DateTime.Today;
             var bekleyenler = await sorgu
-                .Where(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor)
+                .Where(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
+                    && x.YetkiBelgesiBitisTarihi >= bugun)
                 .OrderByDescending(x => x.OlusturmaTarihi)
+                .ToListAsync();
+
+            var suresiDolanlar = await sorgu
+                .Where(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
+                    && x.YetkiBelgesiBitisTarihi < bugun)
+                .OrderByDescending(x => x.YetkiBelgesiBitisTarihi)
                 .ToListAsync();
 
             var onaylananlar = await sorgu
@@ -157,6 +165,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             return Ok(new YetkiBelgesiOnayEkraniDto
             {
                 Bekleyenler = bekleyenler.Select(MapYetkiBelgesi).ToList(),
+                SuresiDolanlar = suresiDolanlar.Select(MapYetkiBelgesi).ToList(),
                 Onaylananlar = onaylananlar.Select(MapYetkiBelgesi).ToList(),
                 Reddedilenler = reddedilenler.Select(MapYetkiBelgesi).ToList()
             });
@@ -232,7 +241,8 @@ namespace YetkiliServisGazAcma.API.Controllers
                 .OrderByDescending(x => x.OlusturmaTarihi)
                 .FirstOrDefault();
 
-            var bekleyenVar = firma.YetkiBelgeleri?.Any(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor && !x.SilindiMi) ?? false;
+            var bekleyenVar = firma.YetkiBelgeleri?.Any(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
+                && x.YetkiBelgesiBitisTarihi.Date >= DateTime.Today && !x.SilindiMi) ?? false;
             if (onayli != null)
             {
                 bildirimler.Add("Yetki belgeniz onaylandı. Cihaz devreye alabilirsiniz.");
@@ -274,7 +284,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (!sonuc)
             {
                 _logger.LogWarning("Yetki belgesi onaylanamadi. BelgeId: {BelgeId}, Kullanici: {Kullanici}", dto.Id, User.Identity?.Name);
-                return NotFound(new { basarili = false, mesaj = "Yetki belgesi bulunamadi" });
+                return BadRequest(new { basarili = false, mesaj = "Belge suresi dolmus veya daha once degerlendirilmis; onaylanamaz." });
             }
 
             _logger.LogInformation("Yetki belgesi onaylandi. BelgeId: {BelgeId}, Kullanici: {Kullanici}", dto.Id, User.Identity?.Name);
@@ -295,7 +305,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (!sonuc)
             {
                 _logger.LogWarning("Yetki belgesi reddedilemedi. BelgeId: {BelgeId}, Kullanici: {Kullanici}", dto.Id, User.Identity?.Name);
-                return NotFound(new { basarili = false, mesaj = "Yetki belgesi bulunamadi" });
+                return BadRequest(new { basarili = false, mesaj = "Belge daha once degerlendirilmis; yeniden reddedilemez." });
             }
 
             _logger.LogInformation("Yetki belgesi reddedildi. BelgeId: {BelgeId}, Kullanici: {Kullanici}", dto.Id, User.Identity?.Name);
@@ -451,6 +461,7 @@ namespace YetkiliServisGazAcma.API.Controllers
     public class YetkiBelgesiOnayEkraniDto
     {
         public List<YetkiBelgesiDto> Bekleyenler { get; set; } = new();
+        public List<YetkiBelgesiDto> SuresiDolanlar { get; set; } = new();
         public List<YetkiBelgesiDto> Onaylananlar { get; set; } = new();
         public List<YetkiBelgesiDto> Reddedilenler { get; set; } = new();
     }

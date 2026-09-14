@@ -6,6 +6,22 @@ using Microsoft.Extensions.DependencyInjection;
 using YetkiliServisGazAcma.Business.Services;
 
 var passed = 0;
+CheckRole(KullaniciRolTutarlilikKurali.FirmaRolleriUyumlu(
+    KullaniciTipiDegerleri.SertifikaliFirma, [KullaniciRolAdlari.SertifikaliFirma]),
+    "certified firm role matches its user type");
+CheckRole(!KullaniciRolTutarlilikKurali.FirmaRolleriUyumlu(
+    KullaniciTipiDegerleri.SertifikaliFirma, [KullaniciRolAdlari.SertifikaliFirma, KullaniciRolAdlari.YetkiliServis]),
+    "certified firm with stale service role is denied");
+CheckRole(!KullaniciRolTutarlilikKurali.FirmaRolleriUyumlu(
+    KullaniciTipiDegerleri.YetkiliServis, [KullaniciRolAdlari.SertifikaliFirma]),
+    "service user with certified firm role is denied");
+CheckRole(!KullaniciRolTutarlilikKurali.FirmaRolleriUyumlu(
+    KullaniciTipiDegerleri.GenelSistemAdmin, [KullaniciRolAdlari.YetkiliServis]),
+    "admin cannot inherit a service role");
+CheckRole(KullaniciRolTutarlilikKurali.FirmaRolleriUyumlu(
+    KullaniciTipiDegerleri.YetkiliServis, []),
+    "missing primary role can be added during login");
+
 await CheckCookie("valid API session", _ => { }, accepted: true);
 await CheckCookie("server session lost after restart", s => s.Clear());
 await CheckCookie("different API user", s => s.SetString(ApiKullaniciOturumu.UserKey, "different-user"));
@@ -19,6 +35,13 @@ await CheckCookie("cookie without user ID", _ => { }, principal: new ClaimsPrinc
 await CheckMissingUser(authenticated: true);
 await CheckMissingUser(authenticated: false);
 Console.WriteLine($"PASS: {passed} web/API session checks.");
+
+void CheckRole(bool condition, string name)
+{
+    Assert(condition, name);
+    Console.WriteLine("PASS: " + name);
+    passed++;
+}
 
 async Task CheckCookie(string name, Action<MemorySession> change, bool accepted = false, ClaimsPrincipal? principal = null)
 {

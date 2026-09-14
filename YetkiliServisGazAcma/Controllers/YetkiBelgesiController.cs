@@ -174,6 +174,7 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.OnayBekleyen = ekran.Bekleyenler.Count;
             ViewBag.Onaylananlar = ekran.Onaylananlar;
             ViewBag.Reddedilenler = ekran.Reddedilenler;
+            ViewBag.SuresiDolanlar = ekran.SuresiDolanlar;
             return View("~/Views/YetkiBelgesi/OnayBekleyenler.cshtml", ekran.Bekleyenler);
         }
 

@@ -53,14 +53,6 @@ namespace YetkiliServisGazAcma.Controllers
             return await _aktifSirketService.KullaniciSirketleriAsync(kullanici);
         }
 
-        private async Task SyncYetkiliServisKullanicilariAsync(AppKullanici kullanici)
-        {
-            var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            var sonuc = await _adminKullaniciApiClient.YetkiliServisKullanicilariniSenkronizeAsync(kullanici, aktifSirketId);
-            if (sonuc?.Basarili == false)
-                TempData["Hata"] = sonuc.Mesaj ?? "Yetkili servis kullanicilari API uzerinden senkronize edilemedi.";
-        }
-
         [HttpGet("")]
         [HttpGet("index")]
         public async Task<IActionResult> Index()
@@ -275,8 +267,6 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null) return Redirect("/giris");
             if (!await KullaniciYonetebilirMi(kullanici)) return Redirect("/AdminPanel");
 
-            await SyncYetkiliServisKullanicilariAsync(kullanici);
-
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
             var kullanicilar = await _adminKullaniciApiClient.ListeleAsync(kullanici, aktifSirketId, q, tip, durum, bagli);
             ViewBag.AdminKullaniciVeriKaynagi = "API";
@@ -301,6 +291,7 @@ namespace YetkiliServisGazAcma.Controllers
             }
 
             ViewBag.Kullanici = kullanici;
+            ViewBag.GenelSistemAdminMi = await _aktifSirketService.GenelSistemAdminMi(kullanici);
             ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
             ViewBag.Kullanicilar = kullanicilar;
             ViewBag.SeciliQ = q ?? "";

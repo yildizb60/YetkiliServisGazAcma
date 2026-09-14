@@ -10,6 +10,7 @@
     var bekleyenler = Model ?? new List<Ys_YetkiBelgesi>();
     var onaylananlar = ViewBag.Onaylananlar as List<Ys_YetkiBelgesi> ?? new List<Ys_YetkiBelgesi>();
     var reddedilenler = ViewBag.Reddedilenler as List<Ys_YetkiBelgesi> ?? new List<Ys_YetkiBelgesi>();
+    var suresiDolanlar = ViewBag.SuresiDolanlar as List<Ys_YetkiBelgesi> ?? new List<Ys_YetkiBelgesi>();
 }
 
 @if (TempData["Basarili"] != null)
@@ -36,6 +37,7 @@
             <button type="button" class="df-tab active" data-target="bekleyen">Onayda Bekleyenler (@bekleyenler.Count)</button>
             <button type="button" class="df-tab" data-target="onaylanan">Onaylananlar (@onaylananlar.Count)</button>
             <button type="button" class="df-tab" data-target="reddedilen">Reddedilenler (@reddedilenler.Count)</button>
+            <button type="button" class="df-tab" data-target="suresi-dolan">Süresi Doldu (@suresiDolanlar.Count)</button>
         </div>
     </div>
 
@@ -47,6 +49,9 @@
     </div>
     <div data-panel="reddedilen">
         @await Html.PartialAsync("~/Views/Shared/_YetkiBelgesiOnayTable.cshtml", new Tuple<List<Ys_YetkiBelgesi>, string, string>(reddedilenler, "reddedilen", "admin"))
+    </div>
+    <div data-panel="suresi-dolan">
+        @await Html.PartialAsync("~/Views/Shared/_YetkiBelgesiOnayTable.cshtml", new Tuple<List<Ys_YetkiBelgesi>, string, string>(suresiDolanlar, "suresi-dolan", "admin"))
     </div>
 </div>
 

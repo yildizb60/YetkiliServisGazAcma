@@ -1,7 +1,7 @@
 @model YkcTalepKaydetDto
 @{
-    ViewData["Title"] = "Yeni Talep";
-    ViewData["PanelTitle"] = "Yeni Talep";
+    ViewData["Title"] = "Yeni Cihaz Değişim Talebi";
+    ViewData["PanelTitle"] = ViewData["Title"];
     ViewData["PanelSubtitle"] = "Cihaz Değişimi";
     ViewData["ActiveMenu"] = "YkcYeni";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
@@ -12,10 +12,9 @@
     <link rel="stylesheet" href="~/css/ykc-request.css" asp-append-version="true" />
 }
 <div class="ykc-request" data-has-query="@sorgulandi.ToString().ToLowerInvariant()">
-    <header class="ykc-request-header">
-        <div class="ykc-request-title"><span><i class="bi bi-file-earmark-plus" aria-hidden="true"></i></span><div><h1>Yeni Cihaz Değişim Talebi</h1></div></div>
+    <div class="ykc-request-actions">
         <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/talepler"><i class="bi bi-list-ul"></i> Taleplerim</a>
-    </header>
+    </div>
 
     @if (TempData["Hata"] != null)
     {
