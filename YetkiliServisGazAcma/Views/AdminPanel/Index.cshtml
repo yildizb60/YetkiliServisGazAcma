@@ -17,8 +17,6 @@
     var toplamDevreyeAlma = ViewBag.ToplamDevreyeAlma is int td ? td : 0;
     var buAyDevreyeAlma = ViewBag.BuAyDevreyeAlma is int ba ? ba : 0;
     var sonBelgeOnaylanan = sonBelgeler.Count(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi);
-    var belgeToplam = Math.Max(onayBekleyen + sonBelgeler.Count, onayBekleyen);
-    var belgeGuncel = Math.Max(toplamFirma - suresiBitecek, 0);
     var adSoyad = kullanici?.AdSoyad ?? kullanici?.UserName ?? "Admin";
     var basHarf = !string.IsNullOrWhiteSpace(adSoyad)
         ? adSoyad.Trim().Substring(0, 1).ToUpper(new System.Globalization.CultureInfo("tr-TR"))
@@ -41,16 +39,10 @@
             Url = "/AdminPanel/onay-bekleyenler",
             Icon = "bi bi-hand-thumbs-up",
             Tone = "amber",
-            Done = sonBelgeOnaylanan,
-            Total = belgeToplam,
-            Subtitle = "Gerçekleşen / Toplam",
-            Stat1Label = "Toplam",
-            Stat1Value = belgeToplam.ToString(),
-            Stat2Label = "Bekleyen",
-            Stat2Value = onayBekleyen.ToString(),
-            Stat2Class = onayBekleyen > 0 ? "df-badge-pulse" : "df-tile-stat-val",
-            Stat3Label = "Gerçekleşen",
-            Stat3Value = sonBelgeOnaylanan.ToString(),
+            Stat1Label = "Bekleyen",
+            Stat1Value = onayBekleyen.ToString(),
+            Stat2Label = "Son kayıtlarda onay",
+            Stat2Value = sonBelgeOnaylanan.ToString(),
             Featured = true
         },
         new DashboardTile
@@ -59,16 +51,10 @@
             Url = "/AdminPanel/yetki-belgesi-uyarilari",
             Icon = "bi bi-clock",
             Tone = "red",
-            Done = belgeGuncel,
-            Total = Math.Max(toplamFirma, suresiBitecek),
-            Subtitle = "Güncel / İzlenen",
-            Stat1Label = "Toplam",
+            Stat1Label = "Kayıtlı servis",
             Stat1Value = toplamFirma.ToString(),
-            Stat2Label = "30 Gün",
+            Stat2Label = "30 günde dolacak",
             Stat2Value = suresiBitecek.ToString(),
-            Stat2Class = suresiBitecek > 0 ? "df-badge-pulse" : "df-tile-stat-val",
-            Stat3Label = "Güncel",
-            Stat3Value = belgeGuncel.ToString()
         },
         new DashboardTile
         {
@@ -76,16 +62,8 @@
             Url = "/AdminPanel/yetkiliservisler",
             Icon = "bi bi-building-check",
             Tone = "cyan",
-            Done = toplamFirma,
-            Total = toplamFirma,
-            Subtitle = "Kayıtlı / Toplam",
-            Stat1Label = "Toplam",
+            Stat1Label = "Kayıtlı",
             Stat1Value = toplamFirma.ToString(),
-            Stat2Label = "Bekleyen",
-            Stat2Value = onayBekleyen.ToString(),
-            Stat2Class = onayBekleyen > 0 ? "df-badge-pulse" : "df-tile-stat-val",
-            Stat3Label = "Aktif",
-            Stat3Value = toplamFirma.ToString()
         },
         new DashboardTile
         {
@@ -93,15 +71,10 @@
             Url = "/AdminPanel/devreyealmalar",
             Icon = "bi bi-bag-check",
             Tone = "green",
-            Done = buAyDevreyeAlma,
-            Total = Math.Max(toplamDevreyeAlma, buAyDevreyeAlma),
-            Subtitle = "Bu Ay / Toplam",
             Stat1Label = "Toplam",
             Stat1Value = toplamDevreyeAlma.ToString(),
             Stat2Label = "Bu Ay",
-            Stat2Value = buAyDevreyeAlma.ToString(),
-            Stat3Label = "Gerçekleşen",
-            Stat3Value = toplamDevreyeAlma.ToString()
+            Stat2Value = buAyDevreyeAlma.ToString()
         },
         new DashboardTile
         {
@@ -109,15 +82,8 @@
             Url = "/AdminPanel/subeler",
             Icon = "bi bi-building-gear",
             Tone = "blue",
-            Done = toplamSirket,
-            Total = toplamSirket,
-            Subtitle = "Tanımlı / Toplam",
-            Stat1Label = "Toplam",
-            Stat1Value = toplamSirket.ToString(),
-            Stat2Label = "Tür",
-            Stat2Value = "Dağıtım",
-            Stat3Label = "Durum",
-            Stat3Value = "Aktif"
+            Stat1Label = "Kayıtlı şirket",
+            Stat1Value = toplamSirket.ToString()
         }
     };
 }
@@ -129,32 +95,11 @@
         public string Url { get; set; } = "";
         public string Icon { get; set; } = "";
         public string Tone { get; set; } = "blue";
-        public int Done { get; set; }
-        public int Total { get; set; }
-        public string Subtitle { get; set; } = "";
         public string Stat1Label { get; set; } = "";
         public string Stat1Value { get; set; } = "";
-        public string Stat1Class { get; set; } = "df-tile-stat-val";
         public string Stat2Label { get; set; } = "";
         public string Stat2Value { get; set; } = "";
-        public string Stat2Class { get; set; } = "df-tile-stat-val";
-        public string Stat3Label { get; set; } = "";
-        public string Stat3Value { get; set; } = "";
-        public string Stat3Class { get; set; } = "df-tile-stat-val";
         public bool Featured { get; set; }
-    }
-
-    private static int RingPct(int done, int total)
-    {
-        if (total <= 0) return 0;
-        return Math.Clamp((int)Math.Round(done * 100.0 / total), 0, 100);
-    }
-
-    private static string RingOffset(int done, int total)
-    {
-        const double length = 175.9;
-        var pct = RingPct(done, total);
-        return (length - (length * pct / 100.0)).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
     }
 }
 
@@ -163,13 +108,17 @@
     <div class="df-alert df-alert-danger">@TempData["Hata"]</div>
 }
 
-<div class="df-dashboard">
-    <div class="section-label">
+<div class="df-dashboard is-admin-home">
+    <div class="section-label has-carousel-controls">
         <i class="bi bi-lightning-charge-fill"></i>
-        Bekleyen İşlemlerim
+        Yönetim Alanları
+        <div class="dashboard-carousel-controls" data-carousel-controls hidden>
+            <button type="button" data-carousel-prev title="Önceki kartlar" aria-label="Önceki kartlar"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+            <button type="button" data-carousel-next title="Sonraki kartlar" aria-label="Sonraki kartlar"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+        </div>
     </div>
 
-    <div class="df-approval-grid" id="approval-grid">
+    <div class="df-approval-grid dashboard-carousel-track" id="approval-grid" data-carousel-track>
         @foreach (var kart in kartlar)
         {
             <a class="df-atile is-@kart.Tone @(kart.Featured ? "is-featured" : "")" href="@kart.Url">
@@ -180,20 +129,12 @@
                         <span class="df-atile-link">Sayfaya git <i class="bi bi-arrow-right"></i></span>
                     </div>
                 </div>
-                <div class="df-ring-wrap">
-                    <div class="df-ring-container">
-                        <svg class="df-ring-svg" width="72" height="72" viewBox="0 0 72 72">
-                            <circle class="df-ring-bg" cx="36" cy="36" r="28"></circle>
-                            <circle class="df-ring-fill" cx="36" cy="36" r="28" stroke-dasharray="175.9" stroke-dashoffset="@RingOffset(kart.Done, kart.Total)"></circle>
-                        </svg>
-                        <div class="df-ring-center"><span class="df-ring-pct">@RingPct(kart.Done, kart.Total)%</span></div>
-                    </div>
-                    <div class="df-ring-meta"><span class="df-ring-sub">@kart.Subtitle</span></div>
-                </div>
-                <div class="df-tile-stats">
-                    <div class="df-tile-stat"><span class="df-tile-stat-lbl">@kart.Stat1Label</span><span class="@kart.Stat1Class">@kart.Stat1Value</span></div>
-                    <div class="df-tile-stat"><span class="df-tile-stat-lbl">@kart.Stat2Label</span><span class="@kart.Stat2Class">@kart.Stat2Value</span></div>
-                    <div class="df-tile-stat"><span class="df-tile-stat-lbl">@kart.Stat3Label</span><span class="@kart.Stat3Class">@kart.Stat3Value</span></div>
+                <div class="admin-tile-summary">
+                    <div><strong>@kart.Stat1Value</strong><span>@kart.Stat1Label</span></div>
+                    @if (!string.IsNullOrWhiteSpace(kart.Stat2Label))
+                    {
+                        <div><strong>@kart.Stat2Value</strong><span>@kart.Stat2Label</span></div>
+                    }
                 </div>
             </a>
         }
@@ -227,9 +168,9 @@
                             </div>
                         </div>
                         <div class="kpi-grid">
-                            <div class="kpi-tile"><div class="kpi-icon"><i class="bi bi-plus-lg"></i></div><div class="kpi-n">@belgeToplam</div><div class="kpi-lbl">Toplam Kayıt</div></div>
+                            <div class="kpi-tile"><div class="kpi-icon"><i class="bi bi-plus-lg"></i></div><div class="kpi-n">@sonBelgeler.Count</div><div class="kpi-lbl">Son Kayıtlar</div></div>
                             <div class="kpi-tile"><div class="kpi-icon ic-warn"><i class="bi bi-hourglass-split"></i></div><div class="kpi-n">@onayBekleyen</div><div class="kpi-lbl">Onay Bekleyen</div></div>
-                            <div class="kpi-tile"><div class="kpi-icon ic-green"><i class="bi bi-check-circle"></i></div><div class="kpi-n">@sonBelgeOnaylanan</div><div class="kpi-lbl">Son Onaylanan</div></div>
+                            <div class="kpi-tile"><div class="kpi-icon ic-green"><i class="bi bi-check-circle"></i></div><div class="kpi-n">@sonBelgeOnaylanan</div><div class="kpi-lbl">Son Kayıtlarda Onay</div></div>
                             <div class="kpi-tile"><div class="kpi-icon ic-teal"><i class="bi bi-clock"></i></div><div class="kpi-n">@suresiBitecek</div><div class="kpi-lbl">Süresi Yaklaşan</div></div>
                         </div>
                     </div>
@@ -374,6 +315,7 @@
 </div>
 
 @section Scripts {
+<script src="~/js/dashboard-carousel.js" asp-append-version="true"></script>
 <script>
 (function () {
     document.querySelectorAll('.df-dashboard [data-panel-target]').forEach(function (button) {

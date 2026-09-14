@@ -1,6 +1,6 @@
 @model List<YetkiliServisGazAcma.Entities.Ys_DevreyeAlma>
 @{
-    ViewData["Title"] = "Cihaz Devreye Alma Geçmişi";
+    ViewData["Title"] = "İşlem Geçmişi";
     Layout = "_PanelLayout";
     ViewData["ActiveMenu"] = "DevreyeGecmis";
     ViewData["PanelArea"] = "YetkiliServis";
@@ -49,20 +49,6 @@
 }
 
 <div class="ys-workspace">
-    <header class="ys-page-header">
-        <div class="ys-page-heading">
-            <span class="ys-page-icon"><i class="bi bi-clock-history" aria-hidden="true"></i></span>
-            <div class="ys-page-copy">
-                <h1>Cihaz Devreye Alma Geçmişi</h1>
-            </div>
-        </div>
-        <div class="ys-page-actions">
-            <a class="df-btn df-btn-primary df-btn-sm" href="/ys-devreyeal">
-                <i class="bi bi-plus-lg" aria-hidden="true"></i> Yeni Devreye Alma
-            </a>
-        </div>
-    </header>
-
     @if (TempData["Basarili"] != null)
     {
         <div class="ys-alert is-success"><i class="bi bi-check-circle" aria-hidden="true"></i>@TempData["Basarili"]</div>
@@ -134,6 +120,9 @@
                     <h2 class="ys-panel-title">Devreye Alma Kayıtları</h2>
                 </div>
             </div>
+            <a class="df-btn df-btn-primary df-btn-sm" href="/ys-devreyeal">
+                <i class="bi bi-plus-lg" aria-hidden="true"></i> Yeni Cihaz Devreye Alma Kaydı
+            </a>
         </div>
         <div class="ys-table-wrap">
             <table class="ys-table">
@@ -141,7 +130,8 @@
                     <tr>
                         <th>Tesisat</th>
                         <th>Müşteri</th>
-                        <th>Marka / Model</th>
+                        <th>Marka</th>
+                        <th>Model</th>
                         <th>Teknisyen</th>
                         <th>Tarih</th>
                         <th>Durum</th>
@@ -151,7 +141,7 @@
                 <tbody>
                     @if (!Model.Any())
                     {
-                        <tr><td colspan="7"><div class="ys-empty"><span>Seçilen ölçütlerde işlem bulunamadı.</span></div></td></tr>
+                        <tr><td colspan="8"><div class="ys-empty"><span>Seçilen ölçütlerde işlem bulunamadı.</span></div></td></tr>
                     }
                     else
                     {
@@ -160,7 +150,8 @@
                             <tr>
                                 <td><span class="ys-table-primary">@i.TesistatNo</span></td>
                                 <td>@i.MusteriAdi</td>
-                                <td><span class="ys-table-primary">@i.CihazMarka</span><span class="ys-table-secondary">@i.CihazModeli</span></td>
+                                <td>@Deger(i.CihazMarka)</td>
+                                <td>@(!string.IsNullOrWhiteSpace(i.CihazModeli) && !string.Equals(i.CihazModeli.Trim(), i.CihazMarka?.Trim(), StringComparison.OrdinalIgnoreCase) ? i.CihazModeli : "-")</td>
                                 <td>@i.TeknisyenAdi</td>
                                 <td>@i.DevreyeAlmaTarihi.ToString("dd.MM.yyyy")</td>
                                 <td>

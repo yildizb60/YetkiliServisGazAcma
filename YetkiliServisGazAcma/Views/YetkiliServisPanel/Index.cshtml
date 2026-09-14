@@ -52,29 +52,6 @@
 
     var kartlar = new List<DashboardTile>();
 
-    if (ilkKurulumZorunlu)
-    {
-        kartlar.Add(new DashboardTile
-        {
-            Title = "İlk Kurulum",
-            Url = "/ys-panel/ilk-kurulum",
-            Icon = "bi bi-clipboard-check",
-            Tone = kurulumKilitli ? "amber" : "green",
-            Done = ilkKurulumTamamlandi ? 1 : 0,
-            Total = 1,
-            Subtitle = "Tamamlanma",
-            Stat1Label = "Toplam",
-            Stat1Value = "1",
-            Stat2Label = "Eksik",
-            Stat2Value = ilkKurulumEksikler.Count.ToString(),
-            Stat2Class = ilkKurulumEksikler.Count > 0 ? "df-badge-pulse" : "df-tile-stat-val",
-            Stat3Label = "Durum",
-            Stat3Value = ilkKurulumTamamlandi ? "Tamam" : "Eksik",
-            Stat3Class = ilkKurulumTamamlandi ? "df-tile-stat-val" : "df-badge-pulse",
-            Featured = kurulumKilitli
-        });
-    }
-
     kartlar.Add(new DashboardTile
     {
         Title = "Yetki Belgem",
@@ -110,24 +87,6 @@
         Stat3Label = "Durum",
         Stat3Value = kurulumKilitli ? "Kilitli" : "Aktif",
         Stat3Class = kurulumKilitli ? "df-badge-pulse" : "df-tile-stat-val"
-    });
-
-    kartlar.Add(new DashboardTile
-    {
-        Title = "İşlem Geçmişim",
-        Url = "/ys-devreyeal/gecmis",
-        Icon = "bi bi-clock",
-        Tone = "green",
-        Done = tamamlananSon,
-        Total = Math.Max(sonIslemler.Count, tamamlananSon),
-        Subtitle = "Tamamlanan / Son Kayıt",
-        Stat1Label = "Son Kayıt",
-        Stat1Value = sonIslemler.Count.ToString(),
-        Stat2Label = "Bekleyen",
-        Stat2Value = bekleyenSon.ToString(),
-        Stat2Class = bekleyenSon > 0 ? "df-badge-pulse" : "df-tile-stat-val",
-        Stat3Label = "Tamamlanan",
-        Stat3Value = tamamlananSon.ToString()
     });
 
     kartlar.Add(new DashboardTile
@@ -224,7 +183,7 @@
     }
 }
 
-<div class="df-dashboard">
+<div class="df-dashboard is-service-home">
     @if (kurulumKilitli)
     {
         <div class="df-alert df-alert-danger">
@@ -233,12 +192,16 @@
         </div>
     }
 
-    <div class="section-label">
+    <div class="section-label has-carousel-controls">
         <i class="bi bi-lightning-charge-fill"></i>
-        Bekleyen İşlemlerim
+        İşlemlerim
+        <div class="dashboard-carousel-controls" data-carousel-controls hidden>
+            <button type="button" data-carousel-prev title="Önceki kartlar" aria-label="Önceki kartlar"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+            <button type="button" data-carousel-next title="Sonraki kartlar" aria-label="Sonraki kartlar"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+        </div>
     </div>
 
-    <div class="df-approval-grid" id="approval-grid">
+    <div class="df-approval-grid dashboard-carousel-track" id="approval-grid" data-carousel-track>
         @foreach (var kart in kartlar)
         {
             <a class="df-atile is-@kart.Tone @(kart.Featured ? "is-featured" : "")" href="@kart.Url">
@@ -434,6 +397,7 @@
 </div>
 
 @section Scripts {
+<script src="~/js/dashboard-carousel.js" asp-append-version="true"></script>
 <script>
 (function () {
     document.querySelectorAll('.df-dashboard [data-panel-target]').forEach(function (button) {

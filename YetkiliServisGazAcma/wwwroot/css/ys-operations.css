@@ -74,6 +74,12 @@
     font-weight: 800;
 }
 
+.ys-report-period .ys-page-copy strong {
+    color: var(--ys-ink);
+    font-size: 13px;
+    font-weight: 700;
+}
+
 .ys-page-copy p {
     margin: 3px 0 0;
     color: var(--ys-muted);
@@ -617,7 +623,7 @@
     color: #58657a;
     background: #f7f9fc;
     border-bottom: 1px solid var(--ys-border);
-    font-size: 9px;
+    font-size: 12px !important;
     line-height: 1.3;
     font-weight: 800;
     text-align: left;
@@ -628,7 +634,7 @@
     padding: 10px 11px;
     color: var(--ys-ink-soft);
     border-bottom: 1px solid #e8ecf2;
-    font-size: 11px;
+    font-size: 13px;
     line-height: 1.4;
     vertical-align: middle;
 }
@@ -650,7 +656,7 @@
     display: block;
     margin-top: 2px;
     color: var(--ys-muted);
-    font-size: 9px;
+    font-size: 12px;
 }
 
 .ys-table-actions {
@@ -1129,6 +1135,19 @@
 .ys-modal-note {
     margin-top: 10px;
 }
+
+.ys-report-modal .ys-modal-title-wrap h2 { font-size: 18px; }
+.ys-report-modal .ys-modal-title-wrap p { font-size: 12px; }
+.ys-report-modal .ys-modal-summary-item { min-height: 66px; }
+.ys-report-modal .ys-modal-summary-item small { font-size: 11px; font-weight: 600; }
+.ys-report-modal .ys-modal-summary-item strong { font-size: 13px; font-weight: 700; }
+.ys-report-modal .ys-modal-section h3 { font-size: 13px; }
+.ys-report-modal .ys-modal-facts > div { min-height: 61px; }
+.ys-report-modal .ys-modal-facts dt { font-size: 11px; font-weight: 600; }
+.ys-report-modal .ys-modal-facts dd { font-size: 13px; font-weight: 650; }
+.ys-report-modal .ys-report-modal-dialog.is-tabbed-dialog .record-tabs [role="tab"] { font-size: 13px; }
+.ys-report-modal .ys-report-modal-dialog.is-tabbed-dialog .ys-modal-facts dt { font-size: 12px; font-weight: 600; }
+.ys-report-modal .ys-report-modal-dialog.is-tabbed-dialog .ys-modal-facts dd { font-size: 14px; font-weight: 600; }
 
 @media (max-width: 1180px) {
     .ys-brand-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }

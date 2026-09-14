@@ -64,6 +64,38 @@
 .ys-certificate-upload input[type="file"] { min-height:38px; padding:4px; border:1px solid var(--df-border); border-radius:5px; background:#fff; color:#607587; font-size:11px; }
 .ys-certificate-upload input[type="file"]::file-selector-button { height:28px; margin-right:8px; padding:0 10px; border:0; border-radius:4px; background:#edf4f8; color:#31566f; font:600 11px inherit; cursor:pointer; }
 
+.df-certificate-workspace .df-service-list-head { min-height: 50px; padding: 10px 14px; }
+.ys-certificate-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    border-bottom: 1px solid var(--df-border);
+    background: #fff;
+}
+.ys-certificate-summary button {
+    min-width: 0;
+    min-height: 52px;
+    padding: 9px 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 0;
+    border-right: 1px solid var(--df-border);
+    background: transparent;
+    color: #38556b;
+    cursor: pointer;
+    text-align: left;
+}
+.ys-certificate-summary button:last-child { border-right: 0; }
+.ys-certificate-summary button:hover,
+.ys-certificate-summary button:focus-visible { background: #eef7fa; }
+.ys-certificate-summary button[aria-pressed="true"] { background: #e8f4f8; box-shadow: inset 0 3px #237d9f; }
+.ys-certificate-summary i { color: #5086a1; font-size: 16px; }
+.ys-certificate-summary span { min-width: 0; font-size: 12px; font-weight: 600; }
+.ys-certificate-summary strong { margin-left: auto; color: #204e67; font-size: 17px; font-weight: 700; }
+.ys-certificate-summary button:nth-child(2) strong { color: #966513; }
+.ys-certificate-summary button:nth-child(3) strong { color: #167a5b; }
+.ys-certificate-summary button:nth-child(4) strong { color: #b24b51; }
+
 @media (max-width: 1050px) {
     .df-operations-directory .df-service-list-head { grid-template-columns: minmax(0, 1fr) auto; }
     .df-operations-directory .df-service-list-head > .df-actions { grid-column: 1 / -1; justify-content: flex-start; }
@@ -74,4 +106,7 @@
     .df-operations-directory .df-inline-metrics,
     .df-approval-history-workspace .df-inline-metrics { width: 100%; justify-content: flex-start; }
     .df-operations-directory .df-service-list-head > .df-actions { width: 100%; overflow-x: auto; }
+    .ys-certificate-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ys-certificate-summary button:nth-child(2) { border-right: 0; }
+    .ys-certificate-summary button:nth-child(-n+2) { border-bottom: 1px solid var(--df-border); }
 }

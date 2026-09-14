@@ -1,5 +1,5 @@
 @{
-    ViewData["Title"] = "Raporlarım";
+    ViewData["Title"] = "Cihaz Devreye Alma Raporları";
     ViewData["PanelTitle"] = ViewData["Title"];
     ViewData["PanelSubtitle"] = "Yetkili Servis";
     ViewData["ActiveMenu"] = "Raporlar";
@@ -15,12 +15,11 @@
 }
 
 <div class="ys-workspace ys-reports-workspace">
-    <header class="ys-page-header">
+    <header class="ys-page-header ys-report-period">
         <div class="ys-page-heading">
-            <span class="ys-page-icon"><i class="bi bi-bar-chart-line" aria-hidden="true"></i></span>
+            <span class="ys-page-icon"><i class="bi bi-calendar-range" aria-hidden="true"></i></span>
             <div class="ys-page-copy">
-                <h1>Raporlarım</h1>
-                <p>Devreye alma sonuçlarını seçilen tarih aralığında inceleyin ve dışa aktarın.</p>
+                <strong>Tarih Aralığı</strong>
             </div>
         </div>
         <form class="ys-query-grid" method="get" action="/ys-panel/raporlar">

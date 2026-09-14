@@ -49,12 +49,12 @@
     <section class="df-admin-list-card">
         <div class="df-service-list-head">
             <div><h3><i class="bi bi-clock-history" aria-hidden="true"></i> Belge Geçmişi</h3></div>
-            <div class="df-admin-metrics df-inline-metrics" aria-label="Belge özeti">
-                <span class="df-admin-metric"><i class="bi bi-files" aria-hidden="true"></i><span>Toplam</span><strong>@Model.Count</strong></span>
-                <span class="df-admin-metric is-waiting"><i class="bi bi-hourglass-split" aria-hidden="true"></i><span>Onay Bekleyen</span><strong>@bekleyen</strong></span>
-                <span class="df-admin-metric is-approved"><i class="bi bi-check-circle" aria-hidden="true"></i><span>Onaylanan</span><strong>@onaylanan</strong></span>
-                <span class="df-admin-metric is-rejected"><i class="bi bi-x-circle" aria-hidden="true"></i><span>Reddedilen</span><strong>@reddedilen</strong></span>
-            </div>
+        </div>
+        <div class="ys-certificate-summary" role="group" aria-label="Belge durumuna göre filtrele">
+            <button type="button" data-belge-durum="" aria-pressed="true"><i class="bi bi-files" aria-hidden="true"></i><span>Toplam</span><strong>@Model.Count</strong></button>
+            <button type="button" data-belge-durum="Onay Bekliyor" aria-pressed="false"><i class="bi bi-hourglass-split" aria-hidden="true"></i><span>Onay Bekleyen</span><strong>@bekleyen</strong></button>
+            <button type="button" data-belge-durum="Onaylandı" aria-pressed="false"><i class="bi bi-check-circle" aria-hidden="true"></i><span>Onaylanan</span><strong>@onaylanan</strong></button>
+            <button type="button" data-belge-durum="Reddedildi" aria-pressed="false"><i class="bi bi-x-circle" aria-hidden="true"></i><span>Reddedilen</span><strong>@reddedilen</strong></button>
         </div>
         @if (Model.Count == 0)
         {
@@ -82,6 +82,7 @@
                         </div></td>
                     </tr>
                 }
+                <tr id="belgeFiltreBos" hidden><td colspan="5" class="df-admin-empty">Seçilen ölçütlerde belge bulunamadı.</td></tr>
                 </tbody>
             </table></div>
         }
@@ -94,18 +95,32 @@
     const searchInput = document.getElementById('yetkiBelgesiSearch');
     const durumSelect = document.getElementById('yetkiBelgesiDurum');
     const rows = Array.from(document.querySelectorAll('.sert-row'));
-    if (!searchInput || !durumSelect || rows.length === 0) return;
+    const emptyRow = document.getElementById('belgeFiltreBos');
+    const durumButtons = Array.from(document.querySelectorAll('[data-belge-durum]'));
+    if (!searchInput || !durumSelect) return;
     function filtrele() {
         const q = (searchInput.value || '').toLocaleLowerCase('tr-TR').trim();
         const durum = (durumSelect.value || '').toLocaleLowerCase('tr-TR').trim();
+        durumButtons.forEach(function (button) {
+            button.setAttribute('aria-pressed', String((button.dataset.belgeDurum || '').toLocaleLowerCase('tr-TR') === durum));
+        });
+        let visibleCount = 0;
         rows.forEach(function (row) {
             const metin = (row.dataset.search || '').toLocaleLowerCase('tr-TR');
             const satirDurum = (row.dataset.durum || '').toLocaleLowerCase('tr-TR');
             row.hidden = !((q === '' || metin.includes(q)) && (durum === '' || satirDurum === durum));
+            if (!row.hidden) visibleCount++;
         });
+        if (emptyRow) emptyRow.hidden = visibleCount !== 0;
     }
     searchInput.addEventListener('input', filtrele);
     durumSelect.addEventListener('change', filtrele);
+    durumButtons.forEach(function (button) {
+        button.addEventListener('click', function () {
+            durumSelect.value = button.dataset.belgeDurum || '';
+            filtrele();
+        });
+    });
 })();
 </script>
 }
