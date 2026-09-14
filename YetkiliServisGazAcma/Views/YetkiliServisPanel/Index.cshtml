@@ -59,6 +59,7 @@
             Title = "İlk Kurulum",
             Url = "/ys-panel/ilk-kurulum",
             Icon = "bi bi-clipboard-check",
+            Tone = kurulumKilitli ? "amber" : "green",
             Done = ilkKurulumTamamlandi ? 1 : 0,
             Total = 1,
             Subtitle = "Tamamlanma",
@@ -79,6 +80,7 @@
         Title = "Yetki Belgem",
         Url = "/ys-yetki-belgesi",
         Icon = "bi bi-file-earmark-text",
+        Tone = "cyan",
         Done = gecerliBelgeler.Count,
         Total = Math.Max(tumBelgeler.Count, 1),
         Subtitle = "Geçerli / Toplam",
@@ -97,6 +99,7 @@
         Title = kurulumKilitli ? "Kurulumu Tamamla" : "Cihaz Devreye Al",
         Url = kurulumKilitli ? "/ys-panel/ilk-kurulum" : "/ys-devreyeal",
         Icon = "bi bi-bag-check",
+        Tone = kurulumKilitli ? "amber" : "blue",
         Done = buAy,
         Total = Math.Max(toplam, buAy),
         Subtitle = "Bu Ay / Toplam",
@@ -114,6 +117,7 @@
         Title = "İşlem Geçmişim",
         Url = "/ys-devreyeal/gecmis",
         Icon = "bi bi-clock",
+        Tone = "green",
         Done = tamamlananSon,
         Total = Math.Max(sonIslemler.Count, tamamlananSon),
         Subtitle = "Tamamlanan / Son Kayıt",
@@ -131,6 +135,7 @@
         Title = "Marka Yetkilerim",
         Url = "/ys-panel/markalar",
         Icon = "bi bi-building-check",
+        Tone = "amber",
         Done = markaSayisi,
         Total = markaSayisi,
         Subtitle = "Tanımlı / Toplam",
@@ -148,6 +153,7 @@
         Title = "Şubelerim",
         Url = "/ys-panel/subeler",
         Icon = "bi bi-building-gear",
+        Tone = "cyan",
         Done = subeSayisi,
         Total = subeSayisi,
         Subtitle = "Tanımlı / Toplam",
@@ -168,6 +174,7 @@
             Title = "Raporlarım",
             Url = "/ys-panel/raporlar",
             Icon = "bi bi-bar-chart-line",
+            Tone = "blue",
             Done = toplam,
             Total = toplam,
             Subtitle = "Kayıt / Toplam",
@@ -187,6 +194,7 @@
         public string Title { get; set; } = "";
         public string Url { get; set; } = "";
         public string Icon { get; set; } = "";
+        public string Tone { get; set; } = "blue";
         public int Done { get; set; }
         public int Total { get; set; }
         public string Subtitle { get; set; } = "";
@@ -233,7 +241,7 @@
     <div class="df-approval-grid" id="approval-grid">
         @foreach (var kart in kartlar)
         {
-            <a class="df-atile @(kart.Featured ? "is-featured" : "")" href="@kart.Url">
+            <a class="df-atile is-@kart.Tone @(kart.Featured ? "is-featured" : "")" href="@kart.Url">
                 <div class="df-atile-top">
                     <div class="df-atile-icon"><i class="@kart.Icon"></i></div>
                     <div>

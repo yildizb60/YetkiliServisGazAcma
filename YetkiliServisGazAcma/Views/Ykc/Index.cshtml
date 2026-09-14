@@ -5,31 +5,156 @@
     ViewData["PanelTitle"] = "Ana Sayfa";
     ViewData["ActiveMenu"] = "Dashboard";
     var tr = System.Globalization.CultureInfo.GetCultureInfo("tr-TR");
-    var ozetler = new[] {
-        ("bi-journal-text", "Tüm taleplerim", Model.Toplam, "Kayıtlı cihaz değişim talebi", "blue"),
-        ("bi-hourglass-split", "İnceleme / atama bekleyen", Model.Incelemede, "Cihaz değişim talebi", "amber"),
-        ("bi-calendar2-check", "Kontrol sürecindeki", Model.RandevuSaha, "Randevu verilen / kontrolü süren talep", "cyan"),
-        ("bi-check2-circle", "Tamamlanan", Model.Tamamlanan, "Sonuçlanan cihaz değişim talebi", "green")
+    var devamEden = Math.Max(Model.Toplam - Model.Tamamlanan - Model.RedIptal, 0);
+    var kartlar = new List<DashboardTile>
+    {
+        new()
+        {
+            Title = "Yeni Cihaz Değişim Talebi",
+            Url = "/ykc/yeni",
+            Icon = "bi bi-plus-lg",
+            Done = 1,
+            Total = 1,
+            Subtitle = "Yeni kayıt oluşturmaya hazır",
+            Stat1Label = "Gerekli Bilgi",
+            Stat1Value = "Tesisat No",
+            Stat2Label = "Kayıt Akışı",
+            Stat2Value = "2 Adım",
+            Stat3Label = "Durum",
+            Stat3Value = "Hazır",
+            Tone = "blue",
+            Featured = true
+        },
+        new()
+        {
+            Title = "Cihaz Değişim Taleplerim",
+            Url = "/ykc/talepler",
+            Icon = "bi bi-journal-text",
+            Done = Model.Tamamlanan,
+            Total = Math.Max(Model.Toplam, 1),
+            Subtitle = "Tamamlanan / Toplam",
+            Stat1Label = "Toplam Talep",
+            Stat1Value = Model.Toplam.ToString(),
+            Stat2Label = "Devam Eden",
+            Stat2Value = devamEden.ToString(),
+            Stat2Class = devamEden > 0 ? "df-badge-pulse" : "df-tile-stat-val",
+            Stat3Label = "Tamamlanan",
+            Stat3Value = Model.Tamamlanan.ToString(),
+            Tone = "cyan"
+        },
+        new()
+        {
+            Title = "İnceleme ve Kontrol Süreci",
+            Url = "/ykc/talepler",
+            Icon = "bi bi-calendar2-check",
+            Done = Model.RandevuSaha,
+            Total = Math.Max(Model.Incelemede + Model.RandevuSaha, 1),
+            Subtitle = "Kontrolde / Açık Süreç",
+            Stat1Label = "İnceleme Bekleyen",
+            Stat1Value = Model.Incelemede.ToString(),
+            Stat1Class = Model.Incelemede > 0 ? "df-badge-pulse" : "df-tile-stat-val",
+            Stat2Label = "Randevu / Kontrol",
+            Stat2Value = Model.RandevuSaha.ToString(),
+            Stat3Label = "Açık İşlem",
+            Stat3Value = (Model.Incelemede + Model.RandevuSaha).ToString(),
+            Tone = "amber"
+        },
+        new()
+        {
+            Title = "Tamamlanan Talepler ve Formlar",
+            Url = $"/ykc/talepler?durum={YkcDurumDegerleri.Tamamlandi}",
+            Icon = "bi bi-file-earmark-check",
+            Done = Model.ImzaliNihai,
+            Total = Math.Max(Model.Tamamlanan, 1),
+            Subtitle = "Nihai PDF / Tamamlanan",
+            Stat1Label = "Tamamlanan",
+            Stat1Value = Model.Tamamlanan.ToString(),
+            Stat2Label = "İmza Bekleyen",
+            Stat2Value = Model.ImzaBekleyen.ToString(),
+            Stat2Class = Model.ImzaBekleyen > 0 ? "df-badge-pulse" : "df-tile-stat-val",
+            Stat3Label = "Nihai PDF",
+            Stat3Value = Model.ImzaliNihai.ToString(),
+            Tone = "green"
+        }
     };
+}
+@functions {
+    private sealed class DashboardTile
+    {
+        public string Title { get; set; } = "";
+        public string Url { get; set; } = "";
+        public string Icon { get; set; } = "";
+        public string Tone { get; set; } = "blue";
+        public int Done { get; set; }
+        public int Total { get; set; }
+        public string Subtitle { get; set; } = "";
+        public string Stat1Label { get; set; } = "";
+        public string Stat1Value { get; set; } = "";
+        public string Stat1Class { get; set; } = "df-tile-stat-val";
+        public string Stat2Label { get; set; } = "";
+        public string Stat2Value { get; set; } = "";
+        public string Stat2Class { get; set; } = "df-tile-stat-val";
+        public string Stat3Label { get; set; } = "";
+        public string Stat3Value { get; set; } = "";
+        public string Stat3Class { get; set; } = "df-tile-stat-val";
+        public bool Featured { get; set; }
+    }
+
+    private static int RingPct(int done, int total)
+    {
+        if (total <= 0) return 0;
+        return Math.Clamp((int)Math.Round(done * 100.0 / total), 0, 100);
+    }
+
+    private static string RingOffset(int done, int total)
+    {
+        const double length = 175.9;
+        var pct = RingPct(done, total);
+        return (length - (length * pct / 100.0)).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+    }
 }
 @section PageStyles {
     <link rel="stylesheet" href="~/css/operations-home.css" asp-append-version="true" />
 }
-<div class="ops-home">
+<div class="ops-home df-dashboard role-dashboard">
     <header class="ops-home-toolbar">
         <time datetime="@DateTime.Today.ToString("yyyy-MM-dd")"><i class="bi bi-calendar3" aria-hidden="true"></i>@DateTime.Today.ToString("dd MMMM yyyy, dddd", tr)</time>
         <a class="df-btn df-btn-primary" href="/ykc/yeni"><i class="bi bi-plus-lg" aria-hidden="true"></i>Yeni Cihaz Değişim Talebi</a>
     </header>
-    <div class="ops-tiles" aria-label="Cihaz değişim taleplerimin durumu">
-        @foreach (var (icon, title, count, caption, tone) in ozetler)
-        {
-            <section class="ops-tile is-@tone">
-                <div class="ops-tile-heading"><i class="bi @icon" aria-hidden="true"></i><h2>@title</h2></div>
-                <strong class="ops-tile-number">@count</strong>
-                <span class="ops-tile-caption">@caption</span>
-            </section>
-        }
+
+    <div class="section-label">
+        <i class="bi bi-lightning-charge-fill" aria-hidden="true"></i>
+        Cihaz Değişim İşlemlerim
     </div>
+    <nav class="df-approval-grid role-card-grid" aria-label="Cihaz değişim işlemlerim" style="--role-card-count:@kartlar.Count">
+        @foreach (var kart in kartlar)
+        {
+            <a class="df-atile is-@kart.Tone @(kart.Featured ? "is-featured" : "")" href="@kart.Url">
+                <div class="df-atile-top">
+                    <div class="df-atile-icon"><i class="@kart.Icon" aria-hidden="true"></i></div>
+                    <div>
+                        <div class="df-atile-name">@kart.Title</div>
+                        <span class="df-atile-link">Sayfaya git <i class="bi bi-arrow-right" aria-hidden="true"></i></span>
+                    </div>
+                </div>
+                <div class="df-ring-wrap">
+                    <div class="df-ring-container">
+                        <svg class="df-ring-svg" width="72" height="72" viewBox="0 0 72 72" aria-hidden="true">
+                            <circle class="df-ring-bg" cx="36" cy="36" r="28"></circle>
+                            <circle class="df-ring-fill" cx="36" cy="36" r="28" stroke-dasharray="175.9" stroke-dashoffset="@RingOffset(kart.Done, kart.Total)"></circle>
+                        </svg>
+                        <div class="df-ring-center"><span class="df-ring-pct">@RingPct(kart.Done, kart.Total)%</span></div>
+                    </div>
+                    <div class="df-ring-meta"><span class="df-ring-sub">@kart.Subtitle</span></div>
+                </div>
+                <div class="df-tile-stats">
+                    <div class="df-tile-stat"><span class="df-tile-stat-lbl">@kart.Stat1Label</span><span class="@kart.Stat1Class">@kart.Stat1Value</span></div>
+                    <div class="df-tile-stat"><span class="df-tile-stat-lbl">@kart.Stat2Label</span><span class="@kart.Stat2Class">@kart.Stat2Value</span></div>
+                    <div class="df-tile-stat"><span class="df-tile-stat-lbl">@kart.Stat3Label</span><span class="@kart.Stat3Class">@kart.Stat3Value</span></div>
+                </div>
+            </a>
+        }
+    </nav>
     <section class="ops-records" aria-labelledby="recent-title">
         <header class="ops-section-heading">
             <h2 id="recent-title"><i class="bi bi-clock-history" aria-hidden="true"></i>Son Cihaz Değişim Taleplerim</h2>

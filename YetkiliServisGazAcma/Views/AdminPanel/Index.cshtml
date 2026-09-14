@@ -40,6 +40,7 @@
             Title = "Yetki Belgesi Onayları",
             Url = "/AdminPanel/onay-bekleyenler",
             Icon = "bi bi-hand-thumbs-up",
+            Tone = "amber",
             Done = sonBelgeOnaylanan,
             Total = belgeToplam,
             Subtitle = "Gerçekleşen / Toplam",
@@ -57,6 +58,7 @@
             Title = "Süresi Dolacak Belgeler",
             Url = "/AdminPanel/yetki-belgesi-uyarilari",
             Icon = "bi bi-clock",
+            Tone = "red",
             Done = belgeGuncel,
             Total = Math.Max(toplamFirma, suresiBitecek),
             Subtitle = "Güncel / İzlenen",
@@ -73,6 +75,7 @@
             Title = "Yetkili Servisler",
             Url = "/AdminPanel/yetkiliservisler",
             Icon = "bi bi-building-check",
+            Tone = "cyan",
             Done = toplamFirma,
             Total = toplamFirma,
             Subtitle = "Kayıtlı / Toplam",
@@ -86,9 +89,10 @@
         },
         new DashboardTile
         {
-            Title = "Cihaz Devreye Alma",
+            Title = "Cihaz Devreye Alma Kayıtları",
             Url = "/AdminPanel/devreyealmalar",
             Icon = "bi bi-bag-check",
+            Tone = "green",
             Done = buAyDevreyeAlma,
             Total = Math.Max(toplamDevreyeAlma, buAyDevreyeAlma),
             Subtitle = "Bu Ay / Toplam",
@@ -104,6 +108,7 @@
             Title = "Dağıtım Şirketleri",
             Url = "/AdminPanel/subeler",
             Icon = "bi bi-building-gear",
+            Tone = "blue",
             Done = toplamSirket,
             Total = toplamSirket,
             Subtitle = "Tanımlı / Toplam",
@@ -123,6 +128,7 @@
         public string Title { get; set; } = "";
         public string Url { get; set; } = "";
         public string Icon { get; set; } = "";
+        public string Tone { get; set; } = "blue";
         public int Done { get; set; }
         public int Total { get; set; }
         public string Subtitle { get; set; } = "";
@@ -158,7 +164,6 @@
 }
 
 <div class="df-dashboard">
-    @await Component.InvokeAsync("YkcRandevuOzeti")
     <div class="section-label">
         <i class="bi bi-lightning-charge-fill"></i>
         Bekleyen İşlemlerim
@@ -167,7 +172,7 @@
     <div class="df-approval-grid" id="approval-grid">
         @foreach (var kart in kartlar)
         {
-            <a class="df-atile @(kart.Featured ? "is-featured" : "")" href="@kart.Url">
+            <a class="df-atile is-@kart.Tone @(kart.Featured ? "is-featured" : "")" href="@kart.Url">
                 <div class="df-atile-top">
                     <div class="df-atile-icon"><i class="@kart.Icon"></i></div>
                     <div>
@@ -194,9 +199,11 @@
         }
     </div>
 
+    @await Component.InvokeAsync("YkcRandevuOzeti")
+
     <div class="section-label">
         <i class="bi bi-bar-chart-line-fill"></i>
-        İstatistikler & Takvim
+        İstatistikler
     </div>
 
     <div class="stats-grid">

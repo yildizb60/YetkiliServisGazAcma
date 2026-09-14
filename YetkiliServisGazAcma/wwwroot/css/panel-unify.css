@@ -1323,7 +1323,7 @@ td {
     font-weight: 600 !important;
 }
 
-@media (max-width: 1280px) {
+@media (max-width: 1000px) {
     .df-dashboard .df-approval-grid {
         grid-template-columns: repeat(3, minmax(180px, 1fr)) !important;
     }
@@ -4727,4 +4727,58 @@ body.df-modal-open {
     .df-admin-form-section-head.has-inline-control { align-items: stretch; flex-direction: column; }
     .df-admin-inline-status { width: 100%; grid-template-columns: minmax(0, 1fr) 100px; }
     .df-admin-inline-status select { width: 100px; }
+}
+
+/* Role dashboards share the same card language while keeping each task identifiable. */
+.df-dashboard .df-approval-grid.role-card-grid {
+    grid-template-columns: repeat(var(--role-card-count, 4), minmax(180px, 1fr)) !important;
+}
+
+.df-dashboard .df-atile {
+    --tile-accent: #2f64ff;
+    --tile-soft: #eff3ff;
+    transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease, background-color .16s ease;
+}
+
+.df-dashboard .df-atile.is-green { --tile-accent: #168966; --tile-soft: #edf9f5; }
+.df-dashboard .df-atile.is-cyan { --tile-accent: #1687a7; --tile-soft: #eef9fc; }
+.df-dashboard .df-atile.is-amber { --tile-accent: #b77905; --tile-soft: #fff8e9; }
+.df-dashboard .df-atile.is-red { --tile-accent: #c44545; --tile-soft: #fff1f1; }
+
+.df-dashboard .df-atile .df-atile-icon {
+    color: var(--tile-accent);
+    background: var(--tile-soft);
+}
+
+.df-dashboard .df-atile .df-atile-link {
+    color: var(--tile-accent);
+}
+
+.df-dashboard .df-atile .df-ring-fill {
+    stroke: var(--tile-accent);
+}
+
+.df-dashboard .df-atile.is-featured::before {
+    background: var(--tile-accent);
+}
+
+.df-dashboard .df-atile:hover,
+.df-dashboard .df-atile:focus-visible {
+    border-color: var(--tile-accent);
+    background: #fff;
+    box-shadow: 0 16px 30px rgba(20, 48, 104, .13);
+    color: inherit;
+    outline: none;
+}
+
+@media (max-width: 1120px) {
+    .df-dashboard .df-approval-grid.role-card-grid {
+        grid-template-columns: repeat(2, minmax(210px, 1fr)) !important;
+    }
+}
+
+@media (max-width: 620px) {
+    .df-dashboard .df-approval-grid.role-card-grid {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
 }

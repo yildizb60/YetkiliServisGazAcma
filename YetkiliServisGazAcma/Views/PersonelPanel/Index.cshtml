@@ -6,31 +6,167 @@
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
     var ykc = ViewBag.YkcOzet as YkcDashboardOzetDto;
     var belgeYetkisi = ViewBag.YetkiBelgesi == true;
-    string Sayi(object? value) => value?.ToString() ?? "-";
-    var actions = new List<(string Title, string Url, string Icon, string Value, string Caption, string Tone, string Label1, string Stat1, string Label2, string Stat2)>();
+    var actions = new List<DashboardTile>();
     if (belgeYetkisi)
-        actions.Add(("Yetki Belgesi Onayları", "/personel-panel/onay-bekleyenler", "bi-file-earmark-check", Sayi(ViewBag.OnayBekleyen), "İnceleme bekleyen belge", "amber", "Onaylanan", Sayi(ViewBag.OnaylananBelge), "Reddedilen", Sayi(ViewBag.ReddedilenBelge)));
+    {
+        var bekleyen = Sayi(ViewBag.OnayBekleyen);
+        var onaylanan = Sayi(ViewBag.OnaylananBelge);
+        var reddedilen = Sayi(ViewBag.ReddedilenBelge);
+        actions.Add(new DashboardTile
+        {
+            Title = "Yetki Belgesi Onayları",
+            Url = "/personel-panel/onay-bekleyenler",
+            Icon = "bi bi-file-earmark-check",
+            Done = onaylanan + reddedilen,
+            Total = Math.Max(bekleyen + onaylanan + reddedilen, 1),
+            Subtitle = "Karara Bağlanan / Toplam",
+            Stat1Label = "Onay Bekleyen",
+            Stat1Value = bekleyen.ToString(),
+            Stat1Class = bekleyen > 0 ? "df-badge-pulse" : "df-tile-stat-val",
+            Stat2Label = "Onaylanan",
+            Stat2Value = onaylanan.ToString(),
+            Stat3Label = "Reddedilen",
+            Stat3Value = reddedilen.ToString(),
+            Tone = "amber",
+            Featured = bekleyen > 0
+        });
+    }
     if (ViewBag.YetkiYkcTalep == true)
-        actions.Add(("Cihaz Değişim Talepleri", "/ykc/talepler", "bi-fire", Sayi(ykc?.Incelemede), "İnceleme / atama bekleyen", "blue", "Kontrolde", Sayi(ykc?.RandevuSaha), "Tamamlanan", Sayi(ykc?.Tamamlanan)));
+    {
+        actions.Add(new DashboardTile
+        {
+            Title = "Cihaz Değişim İşlemleri",
+            Url = "/ykc/talepler",
+            Icon = "bi bi-fire",
+            Done = ykc?.Tamamlanan ?? 0,
+            Total = Math.Max(ykc?.Toplam ?? 0, 1),
+            Subtitle = "Tamamlanan / Toplam",
+            Stat1Label = "İnceleme Bekleyen",
+            Stat1Value = (ykc?.Incelemede ?? 0).ToString(),
+            Stat1Class = (ykc?.Incelemede ?? 0) > 0 ? "df-badge-pulse" : "df-tile-stat-val",
+            Stat2Label = "Randevu / Kontrol",
+            Stat2Value = (ykc?.RandevuSaha ?? 0).ToString(),
+            Stat3Label = "Tamamlanan",
+            Stat3Value = (ykc?.Tamamlanan ?? 0).ToString(),
+            Tone = "blue"
+        });
+    }
+
+    var toplamDevreyeAlma = Sayi(ViewBag.ToplamDevreyeAlma);
+    var buAyDevreyeAlma = Sayi(ViewBag.BuAy);
     var sonIslem = (ViewBag.SonIslemler as List<Ys_DevreyeAlma>)?.FirstOrDefault(x => x.DevreyeAlmaTarihi.Year > 1900);
-    actions.Add(("Cihaz Devreye Alma", "/personel-panel/devreyealmalar", "bi-tools", Sayi(ViewBag.BuAy), "Bu ayki devreye alma kaydı", "green", "Toplam kayıt", Sayi(ViewBag.ToplamDevreyeAlma), "Son işlem", sonIslem?.DevreyeAlmaTarihi.ToString("dd.MM.yyyy") ?? "-"));
+    actions.Add(new DashboardTile
+    {
+        Title = "Cihaz Devreye Alma Kayıtları",
+        Url = "/personel-panel/devreyealmalar",
+        Icon = "bi bi-tools",
+        Done = buAyDevreyeAlma,
+        Total = Math.Max(toplamDevreyeAlma, 1),
+        Subtitle = "Bu Ay / Toplam",
+        Stat1Label = "Toplam Kayıt",
+        Stat1Value = toplamDevreyeAlma.ToString(),
+        Stat2Label = "Bu Ay",
+        Stat2Value = buAyDevreyeAlma.ToString(),
+        Stat3Label = "Son İşlem",
+        Stat3Value = sonIslem?.DevreyeAlmaTarihi.ToString("dd.MM.yyyy") ?? "Yok",
+        Tone = "green"
+    });
+
     if (ViewBag.YetkiServis == true)
-        actions.Add(("Yetkili Servisler", "/personel-panel/yetkiliservisler", "bi-building-check", Sayi(ViewBag.ServisToplam), "Kayıtlı yetkili servis", "cyan", "Aktif", Sayi(ViewBag.ServisAktif), "Pasif", Sayi(ViewBag.ServisPasif)));
+    {
+        var servisToplam = Sayi(ViewBag.ServisToplam);
+        var servisAktif = Sayi(ViewBag.ServisAktif);
+        var servisPasif = Sayi(ViewBag.ServisPasif);
+        actions.Add(new DashboardTile
+        {
+            Title = "Yetkili Servis Yönetimi",
+            Url = "/personel-panel/yetkiliservisler",
+            Icon = "bi bi-building-check",
+            Done = servisAktif,
+            Total = Math.Max(servisToplam, 1),
+            Subtitle = "Aktif / Toplam",
+            Stat1Label = "Toplam Servis",
+            Stat1Value = servisToplam.ToString(),
+            Stat2Label = "Aktif",
+            Stat2Value = servisAktif.ToString(),
+            Stat3Label = "Pasif",
+            Stat3Value = servisPasif.ToString(),
+            Tone = "cyan"
+        });
+    }
 }
-@section PageStyles { <link rel="stylesheet" href="~/css/operations-home.css" asp-append-version="true" /> }
-<div class="ops-home ops-personnel-home">
-    <nav class="ops-tiles" aria-label="Yetkili olduğum işlemler">
+@functions {
+    private static int Sayi(object? value)
+    {
+        if (value is int sayi) return Math.Max(sayi, 0);
+        return int.TryParse(value?.ToString(), out var sonuc) ? Math.Max(sonuc, 0) : 0;
+    }
+
+    private sealed class DashboardTile
+    {
+        public string Title { get; set; } = "";
+        public string Url { get; set; } = "";
+        public string Icon { get; set; } = "";
+        public string Tone { get; set; } = "blue";
+        public int Done { get; set; }
+        public int Total { get; set; }
+        public string Subtitle { get; set; } = "";
+        public string Stat1Label { get; set; } = "";
+        public string Stat1Value { get; set; } = "";
+        public string Stat1Class { get; set; } = "df-tile-stat-val";
+        public string Stat2Label { get; set; } = "";
+        public string Stat2Value { get; set; } = "";
+        public string Stat2Class { get; set; } = "df-tile-stat-val";
+        public string Stat3Label { get; set; } = "";
+        public string Stat3Value { get; set; } = "";
+        public string Stat3Class { get; set; } = "df-tile-stat-val";
+        public bool Featured { get; set; }
+    }
+
+    private static int RingPct(int done, int total)
+    {
+        if (total <= 0) return 0;
+        return Math.Clamp((int)Math.Round(done * 100.0 / total), 0, 100);
+    }
+
+    private static string RingOffset(int done, int total)
+    {
+        const double length = 175.9;
+        var pct = RingPct(done, total);
+        return (length - (length * pct / 100.0)).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+    }
+}
+<div class="df-dashboard role-dashboard personnel-role-dashboard">
+    <div class="section-label">
+        <i class="bi bi-lightning-charge-fill" aria-hidden="true"></i>
+        Görev Alanlarım
+    </div>
+    <nav class="df-approval-grid role-card-grid" aria-label="Yetkili olduğum işlemler" style="--role-card-count:@actions.Count">
         @foreach (var item in actions)
         {
-            <a class="ops-tile is-@item.Tone" href="@item.Url">
-                <div class="ops-tile-heading"><i class="bi @item.Icon" aria-hidden="true"></i><h2>@item.Title</h2></div>
-                <strong class="ops-tile-number">@item.Value</strong>
-                <span class="ops-tile-caption">@item.Caption</span>
-                <dl class="ops-tile-breakdown">
-                    <div><dt>@item.Label1</dt><dd>@item.Stat1</dd></div>
-                    <div><dt>@item.Label2</dt><dd>@item.Stat2</dd></div>
-                </dl>
-                <i class="bi bi-arrow-up-right ops-tile-arrow" aria-hidden="true"></i>
+            <a class="df-atile is-@item.Tone @(item.Featured ? "is-featured" : "")" href="@item.Url">
+                <div class="df-atile-top">
+                    <div class="df-atile-icon"><i class="@item.Icon" aria-hidden="true"></i></div>
+                    <div>
+                        <div class="df-atile-name">@item.Title</div>
+                        <span class="df-atile-link">Sayfaya git <i class="bi bi-arrow-right" aria-hidden="true"></i></span>
+                    </div>
+                </div>
+                <div class="df-ring-wrap">
+                    <div class="df-ring-container">
+                        <svg class="df-ring-svg" width="72" height="72" viewBox="0 0 72 72" aria-hidden="true">
+                            <circle class="df-ring-bg" cx="36" cy="36" r="28"></circle>
+                            <circle class="df-ring-fill" cx="36" cy="36" r="28" stroke-dasharray="175.9" stroke-dashoffset="@RingOffset(item.Done, item.Total)"></circle>
+                        </svg>
+                        <div class="df-ring-center"><span class="df-ring-pct">@RingPct(item.Done, item.Total)%</span></div>
+                    </div>
+                    <div class="df-ring-meta"><span class="df-ring-sub">@item.Subtitle</span></div>
+                </div>
+                <div class="df-tile-stats">
+                    <div class="df-tile-stat"><span class="df-tile-stat-lbl">@item.Stat1Label</span><span class="@item.Stat1Class">@item.Stat1Value</span></div>
+                    <div class="df-tile-stat"><span class="df-tile-stat-lbl">@item.Stat2Label</span><span class="@item.Stat2Class">@item.Stat2Value</span></div>
+                    <div class="df-tile-stat"><span class="df-tile-stat-lbl">@item.Stat3Label</span><span class="@item.Stat3Class">@item.Stat3Value</span></div>
+                </div>
             </a>
         }
     </nav>
