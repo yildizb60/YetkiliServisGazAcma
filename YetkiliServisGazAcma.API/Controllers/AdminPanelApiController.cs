@@ -221,6 +221,29 @@ namespace YetkiliServisGazAcma.API.Controllers
                 (x.YetkiTipi == YetkiTipleri.TAM_YETKI || x.YetkiTipi == YetkiTipleri.KULLANICI_YONET));
         }
 
+        private async Task<bool> RaporGorebilirMi(int? sirketId)
+        {
+            var kullanici = await AktifKullaniciAsync();
+            if (kullanici == null || !kullanici.AktifMi)
+                return false;
+
+            if (User.IsInRole("GenelSistemAdmin")
+                || User.IsInRole("SuperAdmin")
+                || User.IsInRole("SirketAdmin")
+                || kullanici.KullaniciTipi == KullaniciTipiDegerleri.GenelSistemAdmin
+                || kullanici.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin)
+                return true;
+
+            if (!sirketId.HasValue)
+                return false;
+
+            return await _context.Dag_PersonelYetkiler.AnyAsync(x =>
+                x.KullaniciId == kullanici.Id
+                && !x.SilindiMi
+                && x.SirketId == sirketId.Value
+                && (x.YetkiTipi == YetkiTipleri.TAM_YETKI || x.YetkiTipi == YetkiTipleri.RAPOR_GOR));
+        }
+
         private async Task<bool> KullaniciKapsamindaMi(AppKullanici yapan, AppKullanici hedef, int? sirketId)
         {
             if (yapan.Id == hedef.Id)

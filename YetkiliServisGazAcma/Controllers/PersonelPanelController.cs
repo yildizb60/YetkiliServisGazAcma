@@ -339,10 +339,11 @@ namespace YetkiliServisGazAcma.Controllers
         [HttpGet("devreyealmalar")]
         public async Task<IActionResult> DevreyeAlmalar(string? tesisat, string? musteri, string? marka, string? servis, string? il, string? ilce, string? durum, DateTime? bas, DateTime? bit)
         {
+            var yetkiResult = await YetkiKontrol(YetkiTipleri.RAPOR_GOR);
+            if (yetkiResult != null) return yetkiResult;
+
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
-
-            // Devreye almalar raporu personel icin goruntulenebilir olsun.
 
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
             AdminDevreyeAlmaListeSonuc sonuc;
@@ -391,6 +392,9 @@ namespace YetkiliServisGazAcma.Controllers
         [HttpGet("devreyealmalar/detay/{id}")]
         public async Task<IActionResult> DevreyeAlmaDetay(int id)
         {
+            var yetkiResult = await YetkiKontrol(YetkiTipleri.RAPOR_GOR);
+            if (yetkiResult != null) return yetkiResult;
+
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
@@ -417,6 +421,9 @@ namespace YetkiliServisGazAcma.Controllers
         [HttpGet("devreyealma-pdf/{id}")]
         public async Task<IActionResult> DevreyeAlmaPdf(int id)
         {
+            var yetkiResult = await YetkiKontrol(YetkiTipleri.RAPOR_GOR);
+            if (yetkiResult != null) return yetkiResult;
+
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
@@ -438,6 +445,9 @@ namespace YetkiliServisGazAcma.Controllers
         [HttpGet("devreyealma-excel/{id}")]
         public async Task<IActionResult> DevreyeAlmaExcel(int id)
         {
+            var yetkiResult = await YetkiKontrol(YetkiTipleri.RAPOR_GOR);
+            if (yetkiResult != null) return yetkiResult;
+
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
@@ -445,6 +455,50 @@ namespace YetkiliServisGazAcma.Controllers
             try
             {
                 var dosya = await _adminRaporApiClient.DevreyeAlmaExcelAsync(kullanici, id, sirketId);
+                if (dosya == null) return NotFound();
+
+                return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+            }
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
+                return RedirectToAction(nameof(DevreyeAlmalar));
+            }
+        }
+
+        [HttpGet("devreyealmalar/pdf")]
+        public async Task<IActionResult> DevreyeAlmalarPdf([FromQuery] List<int>? ids)
+        {
+            return await DevreyeAlmaListeDosyasi(ids, excelMi: false);
+        }
+
+        [HttpGet("devreyealmalar/excel")]
+        public async Task<IActionResult> DevreyeAlmalarExcel([FromQuery] List<int>? ids)
+        {
+            return await DevreyeAlmaListeDosyasi(ids, excelMi: true);
+        }
+
+        private async Task<IActionResult> DevreyeAlmaListeDosyasi(List<int>? ids, bool excelMi)
+        {
+            var yetkiResult = await YetkiKontrol(YetkiTipleri.RAPOR_GOR);
+            if (yetkiResult != null) return yetkiResult;
+
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
+            if (kullanici == null) return Redirect("/giris");
+
+            var kayitIdleri = ids?.Where(x => x > 0).Distinct().ToList() ?? new List<int>();
+            if (kayitIdleri.Count == 0)
+            {
+                TempData["Hata"] = "Dışa aktarılacak en az bir kayıt seçin.";
+                return RedirectToAction(nameof(DevreyeAlmalar));
+            }
+
+            var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
+            try
+            {
+                var dosya = excelMi
+                    ? await _adminRaporApiClient.RaporlarExcelAsync(kullanici, sirketId, null, null, kayitIdleri)
+                    : await _adminRaporApiClient.RaporlarPdfAsync(kullanici, sirketId, null, null, kayitIdleri);
                 if (dosya == null) return NotFound();
 
                 return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
@@ -1177,6 +1231,43 @@ namespace YetkiliServisGazAcma.Controllers
             await SetPersonelYetkiViewBags(kullanici);
             await SetPersonelNotifViewBags(kullanici);
             return View("~/Views/PersonelPanel/Raporlar.cshtml");
+        }
+
+        [HttpGet("raporlar/pdf")]
+        public Task<IActionResult> RaporlarPdf(DateTime? bas, DateTime? bit)
+        {
+            return RaporDosyasi(bas, bit, excelMi: false);
+        }
+
+        [HttpGet("raporlar/excel")]
+        public Task<IActionResult> RaporlarExcel(DateTime? bas, DateTime? bit)
+        {
+            return RaporDosyasi(bas, bit, excelMi: true);
+        }
+
+        private async Task<IActionResult> RaporDosyasi(DateTime? bas, DateTime? bit, bool excelMi)
+        {
+            var yetkiResult = await YetkiKontrol(YetkiTipleri.RAPOR_GOR);
+            if (yetkiResult != null) return yetkiResult;
+
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
+            if (kullanici == null) return Redirect("/giris");
+
+            var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
+            try
+            {
+                var dosya = excelMi
+                    ? await _adminRaporApiClient.RaporlarExcelAsync(kullanici, sirketId, bas, bit, null)
+                    : await _adminRaporApiClient.RaporlarPdfAsync(kullanici, sirketId, bas, bit, null);
+                if (dosya == null) return NotFound();
+
+                return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+            }
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
+                return RedirectToAction(nameof(Raporlar), new { bas, bit, tip = "devreye" });
+            }
         }
     }
 }

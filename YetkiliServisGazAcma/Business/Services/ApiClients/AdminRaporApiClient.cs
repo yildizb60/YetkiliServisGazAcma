@@ -147,7 +147,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 id,
                 sirketId,
                 "api/admin-panel/devreye-almalar/excel",
-                $"DevreyeAlma_{id}.csv",
+                $"DevreyeAlma_{id}.xlsx",
                 "Admin devreye alma Excel");
         }
 
@@ -183,7 +183,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 bas,
                 bit,
                 ids,
-                "raporlar.csv",
+                "raporlar.xlsx",
                 "Admin devreye alma rapor Excel");
         }
 

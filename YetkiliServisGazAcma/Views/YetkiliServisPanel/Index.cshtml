@@ -59,7 +59,7 @@
     kartlar.Add(new DashboardTile
     {
         Title = "Yetki Belgem",
-        Url = "/ys-yetki-belgesi",
+        Url = Url.Action("Index", "YetkiBelgesi")!,
         Icon = "bi bi-file-earmark-text",
         Tone = "cyan",
         Done = gecerliBelgeler.Count,
@@ -78,7 +78,9 @@
     kartlar.Add(new DashboardTile
     {
         Title = kurulumKilitli ? "Kurulumu Tamamla" : "Cihaz Devreye Al",
-        Url = kurulumKilitli ? "/ys-panel/ilk-kurulum" : "/ys-devreyeal",
+        Url = kurulumKilitli
+            ? Url.Action("IlkKurulum", "YetkiliServisPanel")!
+            : Url.Action("Index", "DevreyeAlma")!,
         Icon = "bi bi-bag-check",
         Tone = kurulumKilitli ? "amber" : "blue",
         ShowProgress = false,
@@ -95,7 +97,7 @@
     kartlar.Add(new DashboardTile
     {
         Title = "Marka Yetkilerim",
-        Url = "/ys-panel/markalar",
+        Url = Url.Action("Markalar", "YetkiliServisPanel")!,
         Icon = "bi bi-building-check",
         Tone = "amber",
         ShowProgress = false,
@@ -113,7 +115,7 @@
     kartlar.Add(new DashboardTile
     {
         Title = "Şubelerim",
-        Url = "/ys-panel/subeler",
+        Url = Url.Action("Subeler", "YetkiliServisPanel")!,
         Icon = "bi bi-building-gear",
         Tone = "cyan",
         ShowProgress = false,
@@ -133,7 +135,7 @@
         kartlar.Add(new DashboardTile
         {
             Title = "Raporlarım",
-            Url = "/ys-panel/raporlar",
+            Url = Url.Action("Raporlar", "YetkiliServisPanel")!,
             Icon = "bi bi-bar-chart-line",
             Tone = "blue",
             ShowProgress = false,
@@ -193,7 +195,7 @@
     {
         <div class="df-alert df-alert-danger">
             İlk kurulum tamamlanmadan işlem yapılamaz. Eksik adımlar: @(ilkKurulumEksikler.Count > 0 ? string.Join(", ", ilkKurulumEksikler) : "Kurulum bilgileri").
-            <a class="df-btn df-btn-danger df-btn-sm" href="/ys-panel/ilk-kurulum" style="margin-left:10px">Tamamla</a>
+            <a class="df-btn df-btn-danger df-btn-sm" href="@Url.Action("IlkKurulum", "YetkiliServisPanel")" style="margin-left:10px">Tamamla</a>
         </div>
     }
 

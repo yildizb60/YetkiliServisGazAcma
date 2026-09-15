@@ -104,7 +104,7 @@
             </section>
             @if (nihai != null)
             {
-                <section class="ykc-firm-data-section"><h2><i class="bi bi-file-earmark-check" aria-hidden="true"></i>Sonuç Belgesi</h2><a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/dosya/@nihai.Id"><i class="bi bi-download" aria-hidden="true"></i>İmzalı PDF'yi İndir</a>@if (demoBelge) { <p class="ykc-firm-demo-note">Demo belgesidir; gerçek elektronik imza içermez.</p> }</section>
+                <section class="ykc-firm-data-section"><h2><i class="bi bi-file-earmark-check" aria-hidden="true"></i>Sonuç Belgesi</h2><a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/dosya/@nihai.Id"><i class="bi bi-download" aria-hidden="true"></i>İmzalı PDF'yi İndir</a></section>
             }
             <section class="ykc-firm-data-section" aria-labelledby="firm-history-title">
                 <h2 id="firm-history-title"><i class="bi bi-clock-history" aria-hidden="true"></i>İşlem Geçmişi <small>@Model.Gecmis.Count kayıt</small></h2>

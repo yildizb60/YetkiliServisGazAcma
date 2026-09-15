@@ -48,6 +48,22 @@ namespace YetkiliServisGazAcma.Business.Services
                 retryTransient: true);
         }
 
+        public Task<ApiDosyaSonuc?> RaporPdfAsync(AppKullanici kullanici, YkcTalepListeFiltre filtre)
+            => PostFileAsync(
+                kullanici,
+                "api/ykc/talepler/rapor/pdf",
+                filtre,
+                "Cihaz_Degisim_Raporu.pdf",
+                "Cihaz değişim raporu PDF");
+
+        public Task<ApiDosyaSonuc?> RaporExcelAsync(AppKullanici kullanici, YkcTalepListeFiltre filtre)
+            => PostFileAsync(
+                kullanici,
+                "api/ykc/talepler/rapor/excel",
+                filtre,
+                "Cihaz_Degisim_Raporu.xlsx",
+                "Cihaz değişim raporu Excel");
+
         public async Task<YkcDashboardOzetDto?> DashboardOzetAsync(AppKullanici kullanici)
         {
             return await PostAsync<object, YkcDashboardOzetDto>(

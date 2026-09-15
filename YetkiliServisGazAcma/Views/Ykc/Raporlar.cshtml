@@ -13,8 +13,24 @@
     var aktifSayfa = Math.Clamp(Model.Sayfa > 0 ? Model.Sayfa : 1, 1, toplamSayfa);
     var ilkKayit = Model.Toplam == 0 ? 0 : ((aktifSayfa - 1) * sayfaBoyutu) + 1;
     var sonKayit = Math.Min(aktifSayfa * sayfaBoyutu, Model.Toplam);
-    var raporKolonSayisi = icOperasyonGorsun ? 10 : 8;
+    var raporKolonSayisi = icOperasyonGorsun ? 7 : 6;
     var aktifFiltreler = new List<(string Etiket, string Deger)>();
+    var disAktarimDegerleri = new
+    {
+        tesisatNo = filtre.TesisatNo,
+        firma = filtre.Firma,
+        il = filtre.Il,
+        ilce = filtre.Ilce,
+        bolge = filtre.Bolge,
+        ekip = filtre.Ekip,
+        marka = filtre.Marka,
+        hedefUygulama = filtre.HedefUygulama,
+        durum = filtre.Durum,
+        bas = filtre.BaslangicTarihi?.ToString("yyyy-MM-dd"),
+        bit = filtre.BitisTarihi?.ToString("yyyy-MM-dd")
+    };
+    var pdfUrl = Url.Action("RaporPdf", "Ykc", disAktarimDegerleri);
+    var excelUrl = Url.Action("RaporExcel", "Ykc", disAktarimDegerleri);
 
     string SayfaUrl(int sayfaNo)
     {
@@ -224,12 +240,14 @@
             <div class="ykc-data-title-wrap">
                 <span class="ykc-data-title-icon"><i class="bi bi-table"></i></span>
                 <div>
-                    <div class="ykc-data-title">Cihaz Değişim Kayıtları</div>
+                    <div class="ykc-data-title">Dönemsel Kayıtlar</div>
                 </div>
             </div>
             <div class="ykc-header-actions">
                 <span class="ykc-record-count"><i class="bi bi-database"></i> @ilkKayit-@sonKayit / @Model.Toplam kayıt</span>
-                <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/talepler"><i class="bi bi-journal-text"></i> Talep Listesi</a>
+                <a class="df-btn df-btn-danger df-btn-sm @(Model.Toplam == 0 ? "is-disabled" : null)" href="@(Model.Toplam == 0 ? "#" : pdfUrl)" aria-disabled="@(Model.Toplam == 0 ? "true" : "false")" title="Filtrelenen kayıtları PDF olarak indir"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF İndir</a>
+                <a class="df-btn df-btn-success df-btn-sm @(Model.Toplam == 0 ? "is-disabled" : null)" href="@(Model.Toplam == 0 ? "#" : excelUrl)" aria-disabled="@(Model.Toplam == 0 ? "true" : "false")" title="Filtrelenen kayıtları Excel olarak indir"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel İndir</a>
+                <a class="df-btn df-btn-secondary df-btn-sm" href="@Url.Action("Talepler", "Ykc")"><i class="bi bi-journal-text"></i> Canlı İş Listesi</a>
             </div>
         </div>
         <div class="ykc-table-scroll">
@@ -237,28 +255,29 @@
                 <colgroup>
                     @if (icOperasyonGorsun)
                     {
-                        <col style="width:7%" /><col style="width:8%" /><col style="width:10%" /><col style="width:13%" /><col style="width:10%" /><col style="width:10%" /><col style="width:15%" /><col style="width:10%" /><col style="width:9%" /><col style="width:8%" />
+                        <col style="width:8%" /><col style="width:22%" /><col style="width:14%" /><col style="width:23%" /><col style="width:15%" /><col style="width:12%" /><col style="width:6%" />
                     }
                     else
                     {
-                        <col style="width:9%" /><col style="width:12%" /><col style="width:15%" /><col style="width:15%" /><col style="width:17%" /><col style="width:12%" /><col style="width:10%" /><col style="width:10%" />
+                        <col style="width:9%" /><col style="width:27%" /><col style="width:27%" /><col style="width:18%" /><col style="width:13%" /><col style="width:6%" />
                     }
                 </colgroup>
                 <thead>
                     <tr>
-                        <th>Talep</th>
-                        <th>Tesisat</th>
-                        <th>Abone Adı Soyadı</th>
+                        <th>Kayıt</th>
+                        <th>Abone / Tesisat</th>
                         @if (icOperasyonGorsun)
                         {
                             <th>Firma</th>
-                            <th>Projedeki Cihaz</th>
+                            <th>Cihaz Değişimi</th>
                         }
-                        <th>Yeni Kullanılan Cihaz</th>
-                        <th>Randevu</th>
-                        <th>Durum</th>
-                        <th>Form</th>
-                        <th>İşlem</th>
+                        else
+                        {
+                            <th>Yeni Kullanılan Cihaz</th>
+                        }
+                        <th>Randevu / Ekip</th>
+                        <th>Süreç Sonucu</th>
+                        <th>Detay</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -271,29 +290,38 @@
                         foreach (var kayit in Model.Kayitlar)
                         {
                             <tr>
-                                <td data-label="Talep"><div class="ykc-cell-main"><span class="ykc-code">#@kayit.Id</span></div><div class="ykc-muted">@kayit.TalepTarihi.ToString("dd.MM.yyyy HH:mm")</div></td>
-                                <td data-label="Tesisat"><div class="ykc-cell-main">@Deger(kayit.TesisatNo)</div><div class="ykc-muted">Proje: @Deger(kayit.ProjeNo)</div></td>
-                                <td data-label="Abone Adı Soyadı"><div class="ykc-cell-main">@Deger(kayit.MusteriAdi)</div></td>
+                                <td data-label="Kayıt"><div class="ykc-cell-main"><span class="ykc-code">#@kayit.Id</span></div><div class="ykc-muted">@kayit.TalepTarihi.ToString("dd.MM.yyyy HH:mm")</div></td>
+                                <td data-label="Abone / Tesisat"><div class="ykc-cell-main ykc-report-customer">@Deger(kayit.MusteriAdi)</div><dl class="ykc-id-list"><div><dt>Tesisat No:</dt><dd>@Deger(kayit.TesisatNo)</dd></div><div><dt>Abone No:</dt><dd>@Deger(kayit.AboneNo)</dd></div></dl></td>
                                 @if (icOperasyonGorsun)
                                 {
                                     <td data-label="Firma"><div class="ykc-cell-main">@Deger(kayit.FirmaAdi)</div><div class="ykc-muted">@Deger(kayit.SirketAdi)</div></td>
-                                    <td data-label="Projedeki Cihaz"><div class="ykc-device-column is-project"><span>Projedeki</span><strong>@Deger(kayit.EskiCihazTipi)</strong><small>@Deger(kayit.EskiMarka)</small></div></td>
+                                    <td data-label="Cihaz Değişimi">
+                                        <div class="ykc-report-device-change">
+                                            <span class="is-project"><small>Projedeki</small><strong>@Deger(kayit.EskiCihazTipi)</strong><em>@Deger(kayit.EskiMarka)</em></span>
+                                            <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                                            <span class="is-new"><small>Yeni</small><strong>@Deger(kayit.YeniCihazTipi)</strong><em>@Deger(kayit.YeniMarka)</em></span>
+                                        </div>
+                                    </td>
                                 }
-                                <td data-label="Yeni Kullanılan Cihaz"><div class="ykc-device-column is-new"><span>Yeni Kullanılan</span><strong>@Deger(kayit.YeniCihazTipi)</strong><small>@Deger(kayit.YeniMarka)</small></div></td>
-                                <td data-label="Randevu">
+                                else
+                                {
+                                    <td data-label="Yeni Kullanılan Cihaz"><div class="ykc-device-column is-new"><span>Yeni Kullanılan</span><strong>@Deger(kayit.YeniCihazTipi)</strong><small>@Deger(kayit.YeniMarka)</small></div></td>
+                                }
+                                <td data-label="Randevu / Ekip">
                                     <div class="ykc-cell-main">@RandevuYazi(kayit.RandevuTarihi, kayit.RandevuSaati)</div>
                                     @if (icOperasyonGorsun)
                                     {
                                         <div class="ykc-muted">@Deger(kayit.AtananEkip) / @Deger(kayit.Bolge)</div>
                                     }
                                 </td>
-                                <td data-label="Durum"><span class="df-pill @DurumClass(kayit.Durum)">@DurumYazi(kayit.Durum)</span></td>
-                                <td data-label="Form"><span class="df-pill @ImzaDurumClass(kayit.Durum, kayit.ImzaliNihaiBelgeVar)">@ImzaDurumYazi(kayit.Durum, kayit.ImzaliNihaiBelgeVar)</span></td>
-                                <td data-label="İşlem">
+                                <td data-label="Süreç Sonucu"><div class="ykc-report-process"><span class="df-pill @DurumClass(kayit.Durum)">@DurumYazi(kayit.Durum)</span><span class="df-pill @ImzaDurumClass(kayit.Durum, kayit.ImzaliNihaiBelgeVar)">@ImzaDurumYazi(kayit.Durum, kayit.ImzaliNihaiBelgeVar)</span></div></td>
+                                <td data-label="Detay">
                                     <button class="ykc-detail-action ykc-row-view-details"
                                             type="button"
+                                            aria-label="#@kayit.Id numaralı kaydın özetini görüntüle"
+                                            title="Kayıt özetini görüntüle"
                                             data-id="@kayit.Id"
-                                            data-detail-url="/ykc/detay/@kayit.Id?kaynak=rapor"
+                                            data-detail-url="@Url.Action("Detay", "Ykc", new { id = kayit.Id, kaynak = "rapor" })"
                                             data-tesisat="@Deger(kayit.TesisatNo)"
                                             data-firma="@Deger(kayit.FirmaAdi)"
                                             data-sirket="@Deger(kayit.SirketAdi)"
@@ -315,7 +343,7 @@
                                             data-durum="@DurumYazi(kayit.Durum)"
                                             data-durum-class="@DurumClass(kayit.Durum)"
                                             data-imza-durumu="@ImzaDurumYazi(kayit.Durum, kayit.ImzaliNihaiBelgeVar)">
-                                        <i class="bi bi-eye"></i> Görüntüle
+                                        <i class="bi bi-eye" aria-hidden="true"></i>
                                     </button>
                                 </td>
                             </tr>

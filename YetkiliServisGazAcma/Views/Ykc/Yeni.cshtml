@@ -1,11 +1,14 @@
 @model YkcTalepKaydetDto
 @{
     ViewData["Title"] = "Yeni Cihaz Değişim Talebi";
-    ViewData["PanelTitle"] = ViewData["Title"];
-    ViewData["PanelSubtitle"] = "Cihaz Değişimi";
+    ViewData["PanelTitle"] = "Talep Oluştur";
+    ViewData["PanelSubtitle"] = string.Empty;
     ViewData["ActiveMenu"] = "YkcYeni";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
     var sorgulandi = !string.IsNullOrWhiteSpace(Model.SorguReferansi);
+    var secilenCihazTipi = ViewData["SecilenCihazTipi"] as string;
+    var farkliCihazTipi = sorgulandi && !string.IsNullOrWhiteSpace(secilenCihazTipi)
+        && !string.Equals(Model.YeniCihazTipi?.Trim(), secilenCihazTipi, StringComparison.OrdinalIgnoreCase);
 }
 @section PageStyles {
     <link rel="stylesheet" href="~/css/ykc-operations.css" asp-append-version="true" />
@@ -29,6 +32,7 @@
         <input type="hidden" asp-for="MusteriAdi" />
         <input type="hidden" asp-for="Adres" />
         <input type="hidden" name="secilenCihazAdi" id="ykcSelectedDeviceName" value="@ViewData["SecilenCihazAdi"]" />
+        <input type="hidden" name="secilenCihazTipi" id="ykcSelectedDeviceType" value="@secilenCihazTipi" />
 
         <section class="ykc-request-section ykc-request-lookup" aria-labelledby="ykc-query-title">
             <header class="ykc-request-section-head">
@@ -64,7 +68,7 @@
                     <div class="ykc-field ykc-request-selection">
                         <label for="ykcServisCihazSecimi"><i class="bi bi-house-gear" aria-hidden="true"></i> Projedeki Cihaz</label>
                         <select id="ykcServisCihazSecimi" required>
-                            @if (sorgulandi) { <option value="@Model.SorguReferansi">@(ViewData["SecilenCihazAdi"] ?? "Seçilen proje cihazı")</option> }
+                            @if (sorgulandi) { <option value="@Model.SorguReferansi" data-device-type="@secilenCihazTipi">@(ViewData["SecilenCihazAdi"] ?? "Seçilen proje cihazı")</option> }
                             else { <option value="">Cihaz seçin</option> }
                         </select>
                     </div>
@@ -75,7 +79,13 @@
                         <div><span class="ykc-request-section-icon is-green"><i class="bi bi-pencil-square" aria-hidden="true"></i></span><h2 id="ykc-new-device-title">Yeni Kullanılan Cihaz</h2></div>
                     </header>
                     <div class="ykc-request-grid">
-                        <div class="ykc-field"><label for="YeniCihazTipi">Yakıcı Cihaz Tipi</label><input asp-for="YeniCihazTipi" required maxlength="100" /></div>
+                        <div class="ykc-field ykc-device-type-field">
+                            <div class="ykc-field-heading">
+                                <label for="YeniCihazTipi">Yakıcı Cihaz Tipi</label>
+                                <button type="button" id="ykcTypeOverride" class="ykc-type-override" hidden="@(!sorgulandi || string.IsNullOrWhiteSpace(secilenCihazTipi))" aria-pressed="@farkliCihazTipi.ToString().ToLowerInvariant()"><i class="bi bi-pencil" aria-hidden="true"></i><span id="ykcTypeOverrideLabel">@(farkliCihazTipi ? "Sorgudaki türe dön" : "Farklı tür")</span></button>
+                            </div>
+                            <input asp-for="YeniCihazTipi" required maxlength="100" readonly="@(sorgulandi && !farkliCihazTipi && !string.IsNullOrWhiteSpace(secilenCihazTipi))" />
+                        </div>
                         <div class="ykc-field"><label for="YeniMarka">Marka</label><input asp-for="YeniMarka" required maxlength="100" /></div>
                         <div class="ykc-field"><label for="YeniBacaTipi">Baca Tipi</label><input asp-for="YeniBacaTipi" required maxlength="100" /></div>
                         <div class="ykc-field"><label for="YeniKapasite">Kapasite (kcal/h)</label><input asp-for="YeniKapasite" inputmode="decimal" required maxlength="30" /></div>

@@ -75,7 +75,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 kullanici,
                 "api/ys-devreyeal/excel",
                 new YsDevreyeAlmaGetirIstek { Id = id },
-                $"DevreyeAlma_{id}.csv",
+                $"DevreyeAlma_{id}.xlsx",
                 "Yetkili servis devreye alma Excel");
         }
 

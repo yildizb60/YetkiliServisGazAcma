@@ -7,6 +7,7 @@
     DateTime basTarih = ViewBag.BasTarih;
     DateTime bitTarih = ViewBag.BitTarih;
     var sonIslemler = ViewBag.SonIslemler as List<YetkiliServisGazAcma.Entities.Ys_DevreyeAlma> ?? new();
+    var excelUrl = Url.Action("RaporlarExcel", "YetkiliServisPanel", new { bas = basTarih.ToString("yyyy-MM-dd"), bit = bitTarih.ToString("yyyy-MM-dd") });
     var jsonOptions = new System.Text.Json.JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 }
 
@@ -22,7 +23,7 @@
                 <strong>Tarih Aralığı</strong>
             </div>
         </div>
-        <form class="ys-query-grid" method="get" action="/ys-panel/raporlar">
+        <form class="ys-query-grid" method="get" action="@Url.Action("Raporlar", "YetkiliServisPanel")">
             <div class="ys-field">
                 <label for="raporBas">Başlangıç</label>
                 <input type="date" id="raporBas" name="bas" value="@basTarih.ToString("yyyy-MM-dd")" />
@@ -84,20 +85,16 @@
                 <span class="ys-section-icon"><i class="bi bi-table" aria-hidden="true"></i></span>
                 <div>
                     <h2 class="ys-panel-title">Son İşlemler</h2>
-                    <p class="ys-panel-subtitle">@sonIslemler.Count kayıt · Dışa aktarmak için satır seçin</p>
+                    <p class="ys-panel-subtitle">@sonIslemler.Count kayıt</p>
                 </div>
             </div>
             <div class="ys-actions">
-                <form id="pdfSelectedForm" method="get" action="/ys-panel/raporlar/pdf">
+                <form id="pdfSelectedForm" method="get" action="@Url.Action("RaporlarPdf", "YetkiliServisPanel")">
                     <input type="hidden" name="bas" value="@basTarih.ToString("yyyy-MM-dd")" />
                     <input type="hidden" name="bit" value="@bitTarih.ToString("yyyy-MM-dd")" />
-                    <button class="df-btn df-btn-sm ys-export-pdf" type="submit"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> Seçili PDF</button>
+                    <button class="df-btn df-btn-sm ys-export-pdf" type="submit" disabled="@(sonIslemler.Count == 0 ? "disabled" : null)" title="Seçim varsa seçili, yoksa filtrelenen kayıtları PDF olarak indir"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF İndir</button>
                 </form>
-                <button class="df-btn df-btn-sm ys-export-excel" type="button" onclick="indirSeciliYsExcel()"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Seçili Excel</button>
-                <a class="df-btn df-btn-sm ys-export-pdf" href="/ys-panel/raporlar/pdf?bas=@basTarih.ToString("yyyy-MM-dd")&bit=@bitTarih.ToString("yyyy-MM-dd")"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> Tarih PDF</a>
-                <a class="df-btn df-btn-sm ys-export-excel" href="/ys-panel/raporlar/excel?bas=@basTarih.ToString("yyyy-MM-dd")&bit=@bitTarih.ToString("yyyy-MM-dd")"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Tarih Excel</a>
-                <a class="df-btn df-btn-secondary df-btn-sm" href="/ys-panel/raporlar/pdf-toplu" title="Tüm kayıtları PDF olarak indir"><i class="bi bi-file-zip" aria-hidden="true"></i> Tüm PDF</a>
-                <a class="df-btn df-btn-secondary df-btn-sm" href="/ys-panel/raporlar/excel-toplu" title="Tüm kayıtları Excel olarak indir"><i class="bi bi-file-zip" aria-hidden="true"></i> Tüm Excel</a>
+                <button class="df-btn df-btn-sm ys-export-excel" type="button" data-excel-url="@excelUrl" onclick="indirSeciliYsExcel(this)" disabled="@(sonIslemler.Count == 0 ? "disabled" : null)" title="Seçim varsa seçili, yoksa filtrelenen kayıtları Excel olarak indir"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel İndir</button>
             </div>
         </div>
         <div class="ys-table-wrap">
@@ -229,10 +226,12 @@
         }
     })();
 
-    function indirSeciliYsExcel() {
+    function indirSeciliYsExcel(button) {
         const ids = Array.from(document.querySelectorAll('input[name="ids"][form]:checked')).map(x => x.value);
-        if (ids.length === 0) { alert("Lütfen en az bir işlem seçin."); return; }
-        window.open("/ys-panel/raporlar/excel?" + ids.map(id => "ids=" + encodeURIComponent(id)).join("&"), "_blank");
+        const baseUrl = button && button.dataset ? button.dataset.excelUrl : '';
+        if (!baseUrl) return;
+        const query = ids.map(id => "ids=" + encodeURIComponent(id)).join("&");
+        window.open(baseUrl + (query ? (baseUrl.includes('?') ? '&' : '?') + query : ''), "_blank", "noopener");
     }
 </script>
 }

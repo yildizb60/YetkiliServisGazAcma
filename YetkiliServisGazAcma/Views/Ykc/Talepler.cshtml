@@ -16,7 +16,7 @@
     var aktifSayfa = Math.Clamp(Model.Sayfa, 1, toplamSayfa);
     var ilkKayit = Model.Toplam == 0 ? 0 : ((aktifSayfa - 1) * Model.SayfaBoyutu) + 1;
     var sonKayit = Math.Min(aktifSayfa * Model.SayfaBoyutu, Model.Toplam);
-    var kolonSayisi = icOperasyonGorsun ? 10 : 8;
+    var kolonSayisi = icOperasyonGorsun ? 7 : 6;
 
     void AktifFiltreEkle(string etiket, string? deger)
     {
@@ -89,7 +89,9 @@
             query.Add($"{ad}={Uri.EscapeDataString(deger)}");
     }
 
-    private static string DurumYazi(int durum) => YkcDurumSunumu.Etiket(durum);
+    private static string DurumYazi(int durum) => durum == YkcDurumDegerleri.TalepAlindi
+        ? "İnceleme Bekleniyor"
+        : YkcDurumSunumu.Etiket(durum);
     private static string DurumClass(int durum) => YkcDurumSunumu.CssSinifi(durum);
 
     private static string GerekenIslemYazi(int durum, bool icOperasyonGorsun) => (durum, icOperasyonGorsun) switch
@@ -196,7 +198,7 @@
                     <select name="durum">
                         <option value="">Tümü</option>
                         @foreach (var item in new[] {
-                            new { Id = YkcDurumDegerleri.TalepAlindi, Ad = "Talep Alındı" },
+                            new { Id = YkcDurumDegerleri.TalepAlindi, Ad = "İnceleme Bekleniyor" },
                             new { Id = YkcDurumDegerleri.AtamaBekliyor, Ad = "İnceleniyor" },
                             new { Id = YkcDurumDegerleri.Atandi, Ad = "Randevu Oluşturuldu" },
                             new { Id = YkcDurumDegerleri.SahaIsleminde, Ad = "İşlem Devam Ediyor" },
@@ -240,11 +242,11 @@
                 <colgroup>
                     @if (icOperasyonGorsun)
                     {
-                        <col style="width:6%" /><col style="width:9%" /><col style="width:9%" /><col style="width:15%" /><col style="width:7%" /><col style="width:10%" /><col style="width:10%" /><col style="width:12%" /><col style="width:10%" /><col style="width:12%" />
+                        <col style="width:7%" /><col style="width:11%" /><col style="width:11%" /><col style="width:19%" /><col style="width:25%" /><col style="width:14%" /><col style="width:13%" />
                     }
                     else
                     {
-                        <col style="width:7%" /><col style="width:13%" /><col style="width:19%" /><col style="width:9%" /><col style="width:15%" /><col style="width:13%" /><col style="width:11%" /><col style="width:13%" />
+                        <col style="width:10%" /><col style="width:17%" /><col style="width:23%" /><col style="width:24%" /><col style="width:14%" /><col style="width:12%" />
                     }
                 </colgroup>
                 <thead>
@@ -253,12 +255,9 @@
                         <th>Abone Adı Soyadı</th>
                         @if (icOperasyonGorsun) { <th>Firma</th> }
                         <th>Tesisat ve Abone Bilgileri</th>
-                        <th>Cihaz Türü</th>
-                        @if (icOperasyonGorsun) { <th>Projedeki Cihaz</th> }
-                        <th>Yeni Kullanılan Cihaz</th>
+                        <th>@(icOperasyonGorsun ? "Cihaz Değişimi" : "Yeni Kullanılan Cihaz")</th>
                         <th>Kontrol Randevusu</th>
-                        <th>Durum</th>
-                        <th>@(icOperasyonGorsun ? "Gereken İşlem" : "Görüntüle")</th>
+                        <th>Süreç</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -275,10 +274,11 @@
                         @foreach (var talep in Model.Talepler)
                         {
                             var gerekenIslem = GerekenIslemYazi(talep.Durum, icOperasyonGorsun);
+                            var randevuPlanli = talep.RandevuTarihi.HasValue || !string.IsNullOrWhiteSpace(talep.RandevuSaati);
                             <tr>
                                 <td data-label="Talep">
                                     <div class="ykc-primary-cell"><span class="ykc-code">#@talep.Id</span></div>
-                                    <div class="ykc-cell-meta">@talep.TalepTarihi.ToString("dd.MM.yyyy HH:mm")</div>
+                                    <time class="ykc-cell-meta ykc-request-time" datetime="@talep.TalepTarihi.ToString("yyyy-MM-ddTHH:mm:ss")"><span>@talep.TalepTarihi.ToString("dd.MM.yyyy")</span><span>@talep.TalepTarihi.ToString("HH:mm")</span></time>
                                 </td>
                                 <td data-label="Abone Adı Soyadı">
                                     <div class="ykc-primary-cell">@Deger(talep.MusteriAdi)</div>
@@ -294,22 +294,37 @@
                                         <div><dt>Abone No:</dt><dd>@Deger(talep.AboneNo)</dd></div>
                                     </dl>
                                 </td>
-                                <td data-label="Cihaz Türü">@Deger(talep.YeniCihazBilgisi?.Tip)</td>
                                 @if (icOperasyonGorsun)
                                 {
-                                    <td data-label="Projedeki Cihaz"><dl class="ykc-device-fields"><div><dt>Tür:</dt><dd>@Deger(talep.ProjedekiCihazBilgisi?.Tip)</dd></div><div><dt>Marka:</dt><dd>@Deger(talep.ProjedekiCihazBilgisi?.Marka)</dd></div><div><dt>Kapasite:</dt><dd>@Deger(talep.ProjedekiCihazBilgisi?.Kapasite) kcal/h</dd></div></dl></td>
+                                    <td data-label="Cihaz Değişimi">
+                                        <div class="ykc-device-transition">
+                                            <section class="is-project">
+                                                <span>Projedeki</span>
+                                                <dl class="ykc-device-fields"><div><dt>Tür:</dt><dd>@Deger(talep.ProjedekiCihazBilgisi?.Tip)</dd></div><div><dt>Marka:</dt><dd>@Deger(talep.ProjedekiCihazBilgisi?.Marka)</dd></div><div><dt>Kapasite:</dt><dd>@Deger(talep.ProjedekiCihazBilgisi?.Kapasite) kcal/h</dd></div></dl>
+                                            </section>
+                                            <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                                            <section class="is-new">
+                                                <span>Yeni</span>
+                                                <dl class="ykc-device-fields"><div><dt>Tür:</dt><dd>@Deger(talep.YeniCihazBilgisi?.Tip)</dd></div><div><dt>Marka:</dt><dd>@Deger(talep.YeniCihazBilgisi?.Marka)</dd></div><div><dt>Kapasite:</dt><dd>@Deger(talep.YeniCihazBilgisi?.Kapasite) kcal/h</dd></div></dl>
+                                            </section>
+                                        </div>
+                                    </td>
                                 }
-                                <td data-label="Yeni Kullanılan Cihaz"><dl class="ykc-device-fields"><div><dt>Marka:</dt><dd>@Deger(talep.YeniCihazBilgisi?.Marka)</dd></div><div><dt>Kapasite:</dt><dd>@Deger(talep.YeniCihazBilgisi?.Kapasite) kcal/h</dd></div></dl></td>
+                                else
+                                {
+                                    <td data-label="Yeni Kullanılan Cihaz"><dl class="ykc-device-fields"><div><dt>Tür:</dt><dd>@Deger(talep.YeniCihazBilgisi?.Tip)</dd></div><div><dt>Marka:</dt><dd>@Deger(talep.YeniCihazBilgisi?.Marka)</dd></div><div><dt>Kapasite:</dt><dd>@Deger(talep.YeniCihazBilgisi?.Kapasite) kcal/h</dd></div></dl></td>
+                                }
                                 <td data-label="Kontrol Randevusu">
-                                    <div class="ykc-primary-cell">@RandevuYazi(talep.RandevuTarihi, talep.RandevuSaati)</div>
+                                    <div class="ykc-primary-cell @(randevuPlanli ? null : "is-pending-appointment")">@RandevuYazi(talep.RandevuTarihi, talep.RandevuSaati)</div>
                                     @if (icOperasyonGorsun)
                                     {
                                         <div class="ykc-cell-meta">@KonumYazi(talep.AtananEkip, talep.Bolge)</div>
                                     }
                                 </td>
-                                <td data-label="Durum"><span class="df-pill @DurumClass(talep.Durum)">@DurumYazi(talep.Durum)</span></td>
-                                <td class="ykc-action-cell" data-label="Gereken İşlem">
+                                <td class="ykc-action-cell" data-label="Süreç">
+                                    <div class="ykc-list-process"><span class="df-pill @DurumClass(talep.Durum)">@DurumYazi(talep.Durum)</span>
                                     <a class="ykc-next-action" href="/ykc/detay/@talep.Id" title="Talep detayını aç"><span>@gerekenIslem</span><i class="bi bi-arrow-right"></i></a>
+                                    </div>
                                 </td>
                             </tr>
                         }

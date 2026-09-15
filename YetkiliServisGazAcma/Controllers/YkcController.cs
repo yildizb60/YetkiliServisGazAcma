@@ -206,22 +206,9 @@ namespace YetkiliServisGazAcma.Controllers
 
             PanelViewBag(kullanici, "YkcRaporlar", "Cihaz Değişim Raporları", "Firma, ekip, tesisat ve tarih aralığına göre cihaz değişim süreci");
 
-            var filtre = new YkcTalepListeFiltre
-            {
-                TesisatNo = tesisatNo,
-                Firma = firma,
-                Il = il,
-                Ilce = ilce,
-                Bolge = bolge,
-                Ekip = ekip,
-                Marka = marka,
-                HedefUygulama = hedefUygulama,
-                Durum = durum,
-                BaslangicTarihi = bas,
-                BitisTarihi = bit,
-                Sayfa = Math.Max(sayfa, 1),
-                SayfaBoyutu = Math.Clamp(sayfaBoyutu, 10, 100)
-            };
+            var filtre = RaporFiltresi(
+                tesisatNo, firma, il, ilce, bolge, ekip, marka, hedefUygulama,
+                durum, bas, bit, sayfa, sayfaBoyutu);
 
             YkcRaporSonuc sonuc;
             try
@@ -238,6 +225,57 @@ namespace YetkiliServisGazAcma.Controllers
             return View("~/Views/Ykc/Raporlar.cshtml", sonuc);
         }
 
+        [HttpGet("raporlar/pdf")]
+        public async Task<IActionResult> RaporPdf(
+            string? tesisatNo, string? firma, string? il, string? ilce, string? bolge,
+            string? ekip, string? marka, string? hedefUygulama, int? durum,
+            DateTime? bas, DateTime? bit)
+        {
+            return await RaporDosyasi(
+                RaporFiltresi(tesisatNo, firma, il, ilce, bolge, ekip, marka, hedefUygulama, durum, bas, bit),
+                excelMi: false);
+        }
+
+        [HttpGet("raporlar/excel")]
+        public async Task<IActionResult> RaporExcel(
+            string? tesisatNo, string? firma, string? il, string? ilce, string? bolge,
+            string? ekip, string? marka, string? hedefUygulama, int? durum,
+            DateTime? bas, DateTime? bit)
+        {
+            return await RaporDosyasi(
+                RaporFiltresi(tesisatNo, firma, il, ilce, bolge, ekip, marka, hedefUygulama, durum, bas, bit),
+                excelMi: true);
+        }
+
+        private async Task<IActionResult> RaporDosyasi(YkcTalepListeFiltre filtre, bool excelMi)
+        {
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
+            if (kullanici == null)
+                return Redirect("/giris");
+
+            if (!YkcYetkileri().RaporlariGorebilir)
+                return Redirect("/yetkisiz-erisim");
+
+            try
+            {
+                var dosya = excelMi
+                    ? await _ykcApiClient.RaporExcelAsync(kullanici, filtre)
+                    : await _ykcApiClient.RaporPdfAsync(kullanici, filtre);
+
+                if (dosya != null)
+                    return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+
+                TempData["Hata"] = "Rapor dosyası şu anda oluşturulamadı.";
+            }
+            catch (ApiIntegrationException ex)
+            {
+                _logger.LogWarning(ex, "YKC {RaporTuru} raporu oluşturulamadı.", excelMi ? "Excel" : "PDF");
+                TempData["Hata"] = ex.Message;
+            }
+
+            return RedirectToAction(nameof(Raporlar));
+        }
+
         [HttpGet("yeni")]
         public async Task<IActionResult> Yeni()
         {
@@ -248,13 +286,13 @@ namespace YetkiliServisGazAcma.Controllers
             if (!YkcYetkileri().TalepOlusturabilir)
                 return Redirect("/yetkisiz-erisim");
 
-            PanelViewBag(kullanici, "YkcYeni", "Yeni Cihaz Değişim Talebi", "Yakıcı cihaz değişim formu oluştur");
+            PanelViewBag(kullanici, "YkcYeni", "Talep Oluştur", string.Empty);
             return View("~/Views/Ykc/Yeni.cshtml", new YkcTalepKaydetDto());
         }
 
         [HttpPost("yeni")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Yeni(YkcTalepKaydetDto model, string? secilenCihazAdi)
+        public async Task<IActionResult> Yeni(YkcTalepKaydetDto model, string? secilenCihazAdi, string? secilenCihazTipi)
         {
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null)
@@ -263,10 +301,11 @@ namespace YetkiliServisGazAcma.Controllers
             if (!YkcYetkileri().TalepOlusturabilir)
                 return Redirect("/yetkisiz-erisim");
 
-            PanelViewBag(kullanici, "YkcYeni", "Yeni Cihaz Değişim Talebi", "Yakıcı cihaz değişim formu oluştur");
+            PanelViewBag(kullanici, "YkcYeni", "Talep Oluştur", string.Empty);
 
             // Presentation only; persisted source values are resolved by the API snapshot.
             ViewData["SecilenCihazAdi"] = secilenCihazAdi?.Trim() is { Length: > 0 and <= 120 } etiket ? etiket : null;
+            ViewData["SecilenCihazTipi"] = secilenCihazTipi?.Trim() is { Length: > 0 and <= 100 } tip ? tip : null;
 
             if (string.IsNullOrWhiteSpace(model.TesisatNo))
                 ModelState.AddModelError(nameof(model.TesisatNo), "Tesisat no zorunludur.");
@@ -582,6 +621,39 @@ namespace YetkiliServisGazAcma.Controllers
 
             TempData[sonuc?.Basarili == true ? "Basarili" : "Hata"] = sonuc?.Mesaj ?? "Cihaz değişim form dosyası yüklenemedi.";
             return RedirectToAction(nameof(Detay), new { id = talepId, kaynak = GecerliKaynak(kaynak) });
+        }
+
+        private static YkcTalepListeFiltre RaporFiltresi(
+            string? tesisatNo,
+            string? firma,
+            string? il,
+            string? ilce,
+            string? bolge,
+            string? ekip,
+            string? marka,
+            string? hedefUygulama,
+            int? durum,
+            DateTime? bas,
+            DateTime? bit,
+            int sayfa = 1,
+            int sayfaBoyutu = 10)
+        {
+            return new YkcTalepListeFiltre
+            {
+                TesisatNo = tesisatNo,
+                Firma = firma,
+                Il = il,
+                Ilce = ilce,
+                Bolge = bolge,
+                Ekip = ekip,
+                Marka = marka,
+                HedefUygulama = hedefUygulama,
+                Durum = durum,
+                BaslangicTarihi = bas,
+                BitisTarihi = bit,
+                Sayfa = Math.Max(sayfa, 1),
+                SayfaBoyutu = Math.Clamp(sayfaBoyutu, 10, 100)
+            };
         }
 
         private YkcYetkiOzeti YkcYetkileri()

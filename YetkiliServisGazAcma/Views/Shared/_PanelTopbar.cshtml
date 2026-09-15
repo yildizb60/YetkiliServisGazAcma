@@ -21,16 +21,15 @@
         _ => null
     };
     var sirketAdi = ViewBag.PanelSirketAdi as string ?? "Genel Yönetim";
-    var panelUrl = kullanici?.KullaniciTipi switch
+    var panelController = kullanici?.KullaniciTipi switch
     {
-        KullaniciTipiDegerleri.YetkiliServis => "/ys-panel",
-        KullaniciTipiDegerleri.Personel => "/personel-panel",
-        KullaniciTipiDegerleri.SertifikaliFirma => "/ykc",
-        _ => "/AdminPanel"
+        KullaniciTipiDegerleri.YetkiliServis => "YetkiliServisPanel",
+        KullaniciTipiDegerleri.Personel => "PersonelPanel",
+        KullaniciTipiDegerleri.SertifikaliFirma => "Ykc",
+        _ => "AdminPanel"
     };
-    var profilUrl = kullanici?.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma
-        ? null
-        : panelUrl + "/profil";
+    var panelUrl = Url.Action("Index", panelController);
+    var profilUrl = Url.Action("Profil", panelController);
 
     var rol = kullanici?.KullaniciTipi switch
     {
@@ -100,7 +99,7 @@
                     </a>
                     <div class="df-dropdown-divider"></div>
                 }
-                <a href="/cikis" class="df-dropdown-item danger">
+                <a href="@Url.Action("Cikis", "Giris")" class="df-dropdown-item danger">
                     <i class="bi bi-box-arrow-right"></i>
                     Çıkış Yap
                 </a>

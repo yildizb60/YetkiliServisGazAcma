@@ -46,6 +46,12 @@
 .ykc-request-customer #ykcCustomerName { font-weight: 600; }
 .ykc-request-selection { padding-top: 16px; border-top: 1px solid #d9e3ee; }
 .ykc-request-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; }
+.ykc-device-type-field .ykc-field-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; min-height:26px; margin-bottom:6px; }
+.ykc-request .ykc-device-type-field .ykc-field-heading label { margin:0; }
+.ykc-type-override { display:inline-flex; align-items:center; gap:5px; flex:none; padding:2px 0; border:0; background:transparent; color:#1768b0; font:inherit; font-size:12px; font-weight:600; cursor:pointer; }
+.ykc-type-override:hover { text-decoration:underline; }
+.ykc-type-override:focus-visible { outline:2px solid #1768b0; outline-offset:2px; }
+.ykc-request .ykc-device-type-field input[readonly] { background:#f2f7fb; color:#29445d; border-color:#c9d9e6; cursor:default; }
 .ykc-request-completion { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 16px; padding-top: 18px; margin-top: 18px; border-top: 1px solid #e0e7ef; }
 .ykc-request-completion > div { flex: 1 1 245px; min-width: 0; }
 .ykc-request-secondhand { padding: 0; margin: 0; border: 0; }

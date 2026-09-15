@@ -150,6 +150,7 @@ body { background: #eef3f6; color: var(--login-ink); font: 14px/1.5 "Segoe UI", 
     background: transparent;
 }
 .company-select-shell .company-select-head h1 { font-size: 21px; }
+.company-select-shell #company-select-title:focus { outline: none !important; box-shadow: none !important; }
 .company-select-shell .company-select-head .company-select-illustration { display: none; }
 .company-select-card > form {
     background: url("/images/company/company-selection-building.png") right top / auto 100% no-repeat;

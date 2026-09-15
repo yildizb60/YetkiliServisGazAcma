@@ -122,6 +122,8 @@ namespace YetkiliServisGazAcma.API.Swagger
             ["api/ykc/talepler/liste"] = Json<YkcTalepListeSonuc>("YKC talep listesi."),
             ["api/ykc/dashboard/ozet"] = Json<YkcDashboardOzetDto>("YKC dashboard özeti."),
             ["api/ykc/talepler/rapor"] = Json<YkcRaporSonuc>("YKC rapor sonucu."),
+            ["api/ykc/talepler/rapor/pdf"] = File("YKC filtrelenmiş rapor PDF dosyası."),
+            ["api/ykc/talepler/rapor/excel"] = File("YKC filtrelenmiş rapor Excel dosyası."),
             ["api/ykc/imza/entegrasyon"] = Json<YkcImzaEntegrasyonDto>("YKC imza entegrasyon bilgisi."),
             ["api/ykc/talepler/imzaya-gonder"] = Json<YkcIslemSonuc>("YKC imzaya gönderme sonucu.", badRequestType: typeof(YkcIslemSonuc), serviceUnavailableType: typeof(YkcIslemSonuc)),
             ["api/ykc/talepler/imza-durum-sorgula"] = Json<YkcIslemSonuc>("YKC imza durum sorgulama sonucu.", badRequestType: typeof(YkcIslemSonuc), serviceUnavailableType: typeof(YkcIslemSonuc)),
@@ -275,7 +277,6 @@ namespace YetkiliServisGazAcma.API.Swagger
                 "application/octet-stream",
                 "application/pdf",
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                 "image/jpeg",
                 "image/png"
             })

@@ -27,9 +27,6 @@
         || !string.IsNullOrWhiteSpace(secilenDurum)
         || !string.IsNullOrWhiteSpace(secilenBas)
         || !string.IsNullOrWhiteSpace(secilenBit);
-    var tamamlanan = Model.Count(x => x.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi);
-    var bekleyen = Model.Count(x => x.Durum == DevreyeAlmaDurumDegerleri.Bekliyor);
-    var servisSayisi = Model.Select(x => x.FirmaId).Distinct().Count();
 }
 
 @section PageStyles {
@@ -42,20 +39,10 @@
     <section class="df-admin-list-card">
         <div class="df-service-list-head is-operation-toolbar">
             <div class="df-operation-list-title"><h3><i class="bi bi-list-check" aria-hidden="true"></i> Kayıt Listesi</h3><span>@Model.Count kayıt görüntüleniyor</span></div>
-            <dl class="df-operation-summary" aria-label="Kayıt özeti">
-                <div><dt>Tamamlanan</dt><dd>@tamamlanan</dd></div>
-                <div><dt>Bekleyen</dt><dd>@bekleyen</dd></div>
-                <div><dt>Yetkili Servis</dt><dd>@servisSayisi</dd></div>
-            </dl>
-            <details class="df-export-menu">
-                <summary class="df-btn df-btn-secondary df-btn-sm"><i class="bi bi-download" aria-hidden="true"></i> Dışa Aktar <i class="bi bi-chevron-down" aria-hidden="true"></i></summary>
-                <div class="df-export-menu-panel" aria-label="Dışa aktarma işlemleri">
-                    <button type="button" class="df-icon-action is-danger" onclick="indirSeciliPdf()"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i><span>Seçili kayıtları PDF indir</span></button>
-                    <button type="button" class="df-icon-action is-danger" onclick="indirTumPdf()"><i class="bi bi-files" aria-hidden="true"></i><span>Tüm kayıtları PDF indir</span></button>
-                    <button type="button" class="df-icon-action is-success" onclick="indirSeciliExcel()"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i><span>Seçili kayıtları Excel indir</span></button>
-                    <button type="button" class="df-icon-action is-success" onclick="indirTumExcel()"><i class="bi bi-file-spreadsheet" aria-hidden="true"></i><span>Tüm kayıtları Excel indir</span></button>
-                </div>
-            </details>
+            <div class="df-export-actions" aria-label="Dışa aktarma işlemleri">
+                <button type="button" class="df-btn df-btn-danger df-btn-sm" data-list-export="pdf" data-export-url="@Url.Action("DevreyeAlmalarPdf", "PersonelPanel")" disabled="@(!Model.Any())" title="Seçili kayıtları; seçim yoksa listedeki kayıtları PDF olarak indir"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF İndir</button>
+                <button type="button" class="df-btn df-btn-success df-btn-sm" data-list-export="excel" data-export-url="@Url.Action("DevreyeAlmalarExcel", "PersonelPanel")" disabled="@(!Model.Any())" title="Seçili kayıtları; seçim yoksa listedeki kayıtları Excel olarak indir"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel İndir</button>
+            </div>
         </div>
     <details class="df-admin-filter" open="@(filtreAktif ? "open" : null)">
         <summary>
@@ -63,7 +50,7 @@
             <span>@(filtreAktif ? "Filtre uygulandı" : "Filtreleri aç") <i class="bi bi-chevron-down" aria-hidden="true"></i></span>
         </summary>
         <div class="df-admin-filter-body">
-            <form method="get" action="/personel-panel/devreyealmalar">
+            <form method="get" action="@Url.Action("DevreyeAlmalar", "PersonelPanel")">
                 <div class="df-admin-filter-grid">
                     <div class="df-admin-field"><label for="tesisat">Tesisat No</label><input id="tesisat" type="search" name="tesisat" value="@secilenTesisat" placeholder="Tesisat no" /></div>
                     <div class="df-admin-field"><label for="musteri">Müşteri / Abone</label><input id="musteri" type="search" name="musteri" value="@secilenMusteri" placeholder="Ad, abone no veya telefon" /></div>
@@ -76,7 +63,7 @@
                     <div class="df-admin-field is-half"><label for="bit">Bitiş Tarihi</label><input id="bit" type="date" name="bit" value="@secilenBit" /></div>
                 </div>
                 <div class="df-admin-filter-actions">
-                    <a class="df-btn df-btn-secondary df-btn-sm" href="/personel-panel/devreyealmalar"><i class="bi bi-x-lg" aria-hidden="true"></i> Temizle</a>
+                    <a class="df-btn df-btn-secondary df-btn-sm" href="@Url.Action("DevreyeAlmalar", "PersonelPanel")"><i class="bi bi-x-lg" aria-hidden="true"></i> Temizle</a>
                     <button class="df-btn df-btn-primary df-btn-sm" type="submit"><i class="bi bi-search" aria-hidden="true"></i> Sonuçları Göster</button>
                 </div>
             </form>
@@ -91,7 +78,7 @@
         {
             <div class="df-admin-table-scroll">
                 <table class="df-table df-commissioning-table">
-                    <thead><tr><th><input id="tumunuSec" type="checkbox" aria-label="Tüm kayıtları seç" /></th><th>Müşteri</th><th>Tesisat ve Abone</th><th>Servis Konumu</th><th>Yetkili Servis / Marka</th><th>Devreye Alma Tarihi</th><th>Teknisyen</th><th>Durum</th><th>İşlem</th></tr></thead>
+                    <thead><tr><th><input id="tumunuSec" type="checkbox" aria-label="Tüm kayıtları seç" /></th><th>Müşteri</th><th>Tesisat ve Abone</th><th>Yetkili Servis</th><th>Cihaz</th><th>Devreye Alma Tarihi</th><th>Teknisyen</th><th>Durum</th><th>İşlem</th></tr></thead>
                     <tbody>
                     @foreach (var d in Model)
                     {
@@ -102,18 +89,19 @@
                         <tr>
                             <td><input class="row-check" type="checkbox" value="@d.Id" aria-label="@d.TesistatNo kaydını seç" /></td>
                             <td><div class="df-cell-main">@(string.IsNullOrWhiteSpace(d.MusteriAdi) ? "Müşteri bilgisi yok" : d.MusteriAdi)</div><div class="df-cell-sub">@(string.IsNullOrWhiteSpace(d.MusteriTelefon) ? "Telefon bilgisi yok" : d.MusteriTelefon)</div></td>
-                            <td><div class="df-cell-main">Tesisat No: @(d.TesistatNo ?? "-")</div><div class="df-cell-sub">Abone No: @(d.AboneNo ?? "-")</div></td>
-                            <td><div class="df-cell-main">@(d.Firma?.FaaliyetIli ?? "-")</div><div class="df-cell-sub">@(string.IsNullOrWhiteSpace(ilce) ? "İlçe bilgisi yok" : ilce)</div></td>
-                            <td><div class="df-cell-main">@(d.Firma?.FirmaAdi ?? "-")</div><div class="df-cell-sub">@(d.CihazMarka ?? d.Marka?.MarkaAdi ?? "Marka bilgisi yok")</div></td>
-                            <td><div class="df-cell-main">@(tarihVar ? d.DevreyeAlmaTarihi.ToString("dd.MM.yyyy") : "Tarih bilgisi yok")</div></td>
-                            <td><div class="df-cell-main">@(string.IsNullOrWhiteSpace(d.TeknisyenAdi) ? "Teknisyen bilgisi yok" : d.TeknisyenAdi)</div></td>
+                            <td><dl class="df-operation-id-list"><div><dt>Tesisat No:</dt><dd>@(d.TesistatNo ?? "-")</dd></div><div><dt>Abone No:</dt><dd>@(d.AboneNo ?? "-")</dd></div></dl></td>
+                            <td><div class="df-cell-value">@(d.Firma?.FirmaAdi ?? "-")</div><div class="df-cell-sub">@string.Join(" / ", new[] { d.Firma?.FaaliyetIli, ilce }.Where(x => !string.IsNullOrWhiteSpace(x)))</div></td>
+                            <td><div class="df-cell-value">@(d.CihazMarka ?? d.Marka?.MarkaAdi ?? "Marka bilgisi yok")</div><div class="df-cell-sub">@string.Join(" · ", new[] { d.CihazTipi, d.CihazModeli }.Where(x => !string.IsNullOrWhiteSpace(x)))</div></td>
+                            <td><time class="df-cell-value" datetime="@(tarihVar ? d.DevreyeAlmaTarihi.ToString("yyyy-MM-dd") : null)">@(tarihVar ? d.DevreyeAlmaTarihi.ToString("dd.MM.yyyy") : "Tarih bilgisi yok")</time></td>
+                            <td><div class="df-cell-value">@(string.IsNullOrWhiteSpace(d.TeknisyenAdi) ? "Teknisyen bilgisi yok" : d.TeknisyenAdi)</div></td>
                             <td><span class="df-pill @durumSinif">@durumYazi</span></td>
-                            <td><button class="df-icon-action ys-commissioning-row-view" type="button"
+                            <td><button class="df-icon-action commissioning-row-action ys-commissioning-row-view" type="button"
+                                        aria-label="@(string.IsNullOrWhiteSpace(d.MusteriAdi) ? "Devreye alma kaydını görüntüle" : $"{d.MusteriAdi} devreye alma kaydını görüntüle")"
                                         title="İşlem detayını görüntüle"
                                         data-id="@d.Id"
-                                        data-detail-url="/personel-panel/devreyealmalar/detay/@d.Id"
-                                        data-pdf-url="/personel-panel/devreyealma-pdf/@d.Id"
-                                        data-excel-url="/personel-panel/devreyealma-excel/@d.Id"
+                                        data-detail-url="@Url.Action("DevreyeAlmaDetay", "PersonelPanel", new { id = d.Id })"
+                                        data-pdf-url="@Url.Action("DevreyeAlmaPdf", "PersonelPanel", new { id = d.Id })"
+                                        data-excel-url="@Url.Action("DevreyeAlmaExcel", "PersonelPanel", new { id = d.Id })"
                                         data-musteri="@(d.MusteriAdi ?? "-")"
                                         data-telefon="@(d.MusteriTelefon ?? "-")"
                                         data-tc="@(d.MusteriTcNo ?? "-")"
@@ -129,7 +117,7 @@
                                         data-notlar="@(d.Notlar ?? "-")"
                                         data-tarih="@(tarihVar ? d.DevreyeAlmaTarihi.ToString("dd.MM.yyyy") : "-")"
                                         data-durum="@durumYazi"
-                                        data-durum-class="@durumSinif"><i class="bi bi-eye" aria-hidden="true"></i><span>Görüntüle</span></button></td>
+                                        data-durum-class="@durumSinif"><i class="bi bi-eye" aria-hidden="true"></i></button></td>
                         </tr>
                     }
                     </tbody>
@@ -270,13 +258,14 @@
         function tumIdler() {
             return Array.from(document.querySelectorAll(".row-check")).map(function (input) { return input.value; });
         }
-        function kayitlariIndir(ids, yol, bosMesaj) {
-            if (ids.length === 0) { alert(bosMesaj); return; }
-            ids.forEach(function (id) { window.open(yol + id, "_blank"); });
-        }
-        function indirSeciliPdf() { kayitlariIndir(seciliIdler(), "/personel-panel/devreyealma-pdf/", "Lütfen en az bir işlem seçin."); }
-        function indirTumPdf() { kayitlariIndir(tumIdler(), "/personel-panel/devreyealma-pdf/", "Kayıt bulunamadı."); }
-        function indirSeciliExcel() { kayitlariIndir(seciliIdler(), "/personel-panel/devreyealma-excel/", "Lütfen en az bir işlem seçin."); }
-        function indirTumExcel() { kayitlariIndir(tumIdler(), "/personel-panel/devreyealma-excel/", "Kayıt bulunamadı."); }
+        document.querySelectorAll('[data-list-export]').forEach(function (button) {
+            button.addEventListener('click', function () {
+                const selected = seciliIdler();
+                const ids = selected.length > 0 ? selected : tumIdler();
+                if (ids.length === 0) return;
+                const query = ids.map(function (id) { return 'ids=' + encodeURIComponent(id); }).join('&');
+                window.location.assign(button.dataset.exportUrl + '?' + query);
+            });
+        });
     </script>
 }

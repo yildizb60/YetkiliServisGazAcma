@@ -102,11 +102,6 @@
     </div>
 </div>
 
-
-@if (imzaliBelgeHazir && Model.ImzaSureci?.ProviderDocumentId?.StartsWith("DEMO", StringComparison.OrdinalIgnoreCase) == true)
-{
-    <p class="fr265-demo"><i class="bi bi-info-circle" aria-hidden="true"></i> Demo belgesidir; gerçek elektronik imza içermez.</p>
-}
 <section class="form-pdf-viewer" data-pdf-viewer data-pdf-url="/ykc/fr265/pdf/@Model.Id" aria-label="Cihaz değişim formu PDF önizlemesi">
     <div class="form-pdf-controls" role="group" aria-label="PDF araçları">
         <button type="button" data-pdf-prev title="Önceki sayfa" aria-label="Önceki sayfa" disabled><i class="bi bi-chevron-left" aria-hidden="true"></i></button>

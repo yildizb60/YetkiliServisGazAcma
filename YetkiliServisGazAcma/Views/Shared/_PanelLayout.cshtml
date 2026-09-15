@@ -15,6 +15,7 @@
         successMessages.Count > 0 ? "has-operation-toast-success" : null,
         errorMessages.Count > 0 ? "has-operation-toast-error" : null
     }.Where(value => value != null));
+    var contentClasses = ViewData["ContentClass"]?.ToString();
 }
 <!DOCTYPE html>
 <html lang="tr">
@@ -53,7 +54,7 @@
         @await Html.PartialAsync("_PanelSidebar")
         <main class="main">
             @await Html.PartialAsync("_PanelTopbar")
-            <div class="content">
+            <div class="content @contentClasses">
                 @RenderBody()
             </div>
         </main>

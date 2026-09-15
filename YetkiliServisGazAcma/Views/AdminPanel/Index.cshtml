@@ -36,7 +36,7 @@
         new DashboardTile
         {
             Title = "Yetki Belgesi Onayları",
-            Url = "/AdminPanel/onay-bekleyenler",
+            Url = Url.Action("OnayBekleyenler", "AdminPanel")!,
             Icon = "bi bi-hand-thumbs-up",
             Tone = "amber",
             Stat1Label = "Bekleyen",
@@ -48,7 +48,7 @@
         new DashboardTile
         {
             Title = "Süresi Dolacak Belgeler",
-            Url = "/AdminPanel/yetki-belgesi-uyarilari",
+            Url = Url.Action("YetkiBelgesiUyarilari", "AdminPanel")!,
             Icon = "bi bi-clock",
             Tone = "red",
             Stat1Label = "Kayıtlı servis",
@@ -59,7 +59,7 @@
         new DashboardTile
         {
             Title = "Yetkili Servisler",
-            Url = "/AdminPanel/yetkiliservisler",
+            Url = Url.Action("YetkiliServisler", "AdminPanel")!,
             Icon = "bi bi-building-check",
             Tone = "cyan",
             Stat1Label = "Kayıtlı",
@@ -68,7 +68,7 @@
         new DashboardTile
         {
             Title = "Cihaz Devreye Alma Kayıtları",
-            Url = "/AdminPanel/devreyealmalar",
+            Url = Url.Action("DevreyeAlmalar", "AdminPanel")!,
             Icon = "bi bi-bag-check",
             Tone = "green",
             Stat1Label = "Toplam",
@@ -79,7 +79,7 @@
         new DashboardTile
         {
             Title = "Dağıtım Şirketleri",
-            Url = "/DagitimSirket",
+            Url = Url.Action("Index", "DagitimSirket")!,
             Icon = "bi bi-building-gear",
             Tone = "blue",
             Stat1Label = "Kayıtlı şirket",
@@ -286,14 +286,14 @@
                         <div class="dash-list dashboard-notifications">
                             @if (onayBekleyen > 0)
                             {
-                                <a class="dash-list-item dash-list-link" href="/AdminPanel/onay-bekleyenler">
+                                <a class="dash-list-item dash-list-link" href="@Url.Action("OnayBekleyenler", "AdminPanel")">
                                     <div class="dash-list-title">Yetki Belgesi Onayları</div>
                                     <div class="dash-list-sub">@onayBekleyen adet belge onay bekliyor</div>
                                 </a>
                             }
                             @if (suresiBitecek > 0)
                             {
-                                <a class="dash-list-item dash-list-link" href="/AdminPanel/yetki-belgesi-uyarilari">
+                                <a class="dash-list-item dash-list-link" href="@Url.Action("YetkiBelgesiUyarilari", "AdminPanel")">
                                     <div class="dash-list-title">Süresi Dolacak Belgeler</div>
                                     <div class="dash-list-sub">@suresiBitecek adet belge için süre uyarısı var</div>
                                 </a>

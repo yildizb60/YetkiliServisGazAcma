@@ -277,6 +277,8 @@ namespace YetkiliServisGazAcma.API.Controllers
             var kapsam = await KapsamSirketIdAsync(dto?.SirketId);
             if (kapsam.gecersiz)
                 return Forbid();
+            if (!await RaporGorebilirMi(kapsam.sirketId))
+                return Forbid();
 
             return Ok(await _adminRaporApiService.DevreyeAlmalarAsync(dto, kapsam.sirketId));
         }
@@ -289,6 +291,8 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             var kapsam = await KapsamSirketIdAsync(dto.SirketId);
             if (kapsam.gecersiz)
+                return Forbid();
+            if (!await RaporGorebilirMi(kapsam.sirketId))
                 return Forbid();
 
             var kayit = await _adminRaporApiService.DevreyeAlmaGetirAsync(dto.Id, kapsam.sirketId);
@@ -307,6 +311,8 @@ namespace YetkiliServisGazAcma.API.Controllers
             var kapsam = await KapsamSirketIdAsync(dto.SirketId);
             if (kapsam.gecersiz)
                 return Forbid();
+            if (!await RaporGorebilirMi(kapsam.sirketId))
+                return Forbid();
 
             var dosya = await _devreyeAlmaExportApiService.AdminPdfAsync(dto.Id, kapsam.sirketId);
             if (dosya == null)
@@ -324,6 +330,8 @@ namespace YetkiliServisGazAcma.API.Controllers
             var kapsam = await KapsamSirketIdAsync(dto.SirketId);
             if (kapsam.gecersiz)
                 return Forbid();
+            if (!await RaporGorebilirMi(kapsam.sirketId))
+                return Forbid();
 
             var dosya = await _devreyeAlmaExportApiService.AdminExcelAsync(dto.Id, kapsam.sirketId);
             if (dosya == null)
@@ -337,6 +345,8 @@ namespace YetkiliServisGazAcma.API.Controllers
         {
             var kapsam = await KapsamSirketIdAsync(dto?.SirketId);
             if (kapsam.gecersiz)
+                return Forbid();
+            if (!await RaporGorebilirMi(kapsam.sirketId))
                 return Forbid();
 
             var dosya = await _devreyeAlmaExportApiService.AdminRaporPdfAsync(
@@ -353,6 +363,8 @@ namespace YetkiliServisGazAcma.API.Controllers
         {
             var kapsam = await KapsamSirketIdAsync(dto?.SirketId);
             if (kapsam.gecersiz)
+                return Forbid();
+            if (!await RaporGorebilirMi(kapsam.sirketId))
                 return Forbid();
 
             var dosya = await _devreyeAlmaExportApiService.AdminRaporExcelAsync(
@@ -379,6 +391,8 @@ namespace YetkiliServisGazAcma.API.Controllers
         {
             var kapsam = await KapsamSirketIdAsync(dto?.SirketId);
             if (kapsam.gecersiz)
+                return Forbid();
+            if (!await RaporGorebilirMi(kapsam.sirketId))
                 return Forbid();
 
             return Ok(await _adminRaporApiService.RaporlarOzetAsync(dto, kapsam.sirketId));

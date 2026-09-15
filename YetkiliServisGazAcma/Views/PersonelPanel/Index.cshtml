@@ -3,6 +3,7 @@
     ViewData["Title"] = "Ana Sayfa";
     ViewData["PanelTitle"] = "Ana Sayfa";
     ViewData["ActiveMenu"] = "Dashboard";
+    ViewData["ContentClass"] = "personnel-home-content";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
     var ykc = ViewBag.YkcOzet as YkcDashboardOzetDto;
     var belgeYetkisi = ViewBag.YetkiBelgesi == true;
@@ -15,11 +16,10 @@
         actions.Add(new DashboardTile
         {
             Title = "Yetki Belgesi Onayları",
-            Url = "/personel-panel/onay-bekleyenler",
+            Url = Url.Action("OnayBekleyenler", "PersonelPanel")!,
             Icon = "bi bi-file-earmark-check",
-            Done = onaylanan + reddedilen,
-            Total = Math.Max(bekleyen + onaylanan + reddedilen, 1),
-            Subtitle = "Karara Bağlanan / Toplam",
+            MetricValue = bekleyen.ToString(),
+            MetricLabel = "Karar bekleyen",
             Stat1Label = "Onay Bekleyen",
             Stat1Value = bekleyen.ToString(),
             Stat1Class = bekleyen > 0 ? "df-badge-pulse" : "df-tile-stat-val",
@@ -36,11 +36,10 @@
         actions.Add(new DashboardTile
         {
             Title = "Cihaz Değişim İşlemleri",
-            Url = "/ykc/talepler",
+            Url = Url.Action("Talepler", "Ykc")!,
             Icon = "bi bi-fire",
-            Done = ykc?.Tamamlanan ?? 0,
-            Total = Math.Max(ykc?.Toplam ?? 0, 1),
-            Subtitle = "Tamamlanan / Toplam",
+            MetricValue = (ykc?.Incelemede ?? 0).ToString(),
+            MetricLabel = "İnceleme / atama bekleyen",
             Stat1Label = "İnceleme Bekleyen",
             Stat1Value = (ykc?.Incelemede ?? 0).ToString(),
             Stat1Class = (ykc?.Incelemede ?? 0) > 0 ? "df-badge-pulse" : "df-tile-stat-val",
@@ -58,9 +57,8 @@
     actions.Add(new DashboardTile
     {
         Title = "Cihaz Devreye Alma Kayıtları",
-        Url = "/personel-panel/devreyealmalar",
+        Url = Url.Action("DevreyeAlmalar", "PersonelPanel")!,
         Icon = "bi bi-tools",
-        ShowProgress = false,
         MetricValue = buAyDevreyeAlma.ToString(),
         MetricLabel = "Bu ay kaydedilen",
         Stat1Label = "Toplam Kayıt",
@@ -80,11 +78,10 @@
         actions.Add(new DashboardTile
         {
             Title = "Yetkili Servis Yönetimi",
-            Url = "/personel-panel/yetkiliservisler",
+            Url = Url.Action("YetkiliServisler", "PersonelPanel")!,
             Icon = "bi bi-building-check",
-            Done = servisAktif,
-            Total = Math.Max(servisToplam, 1),
-            Subtitle = "Aktif / Toplam",
+            MetricValue = servisAktif.ToString(),
+            MetricLabel = "Aktif servis",
             Stat1Label = "Toplam Servis",
             Stat1Value = servisToplam.ToString(),
             Stat2Label = "Aktif",
@@ -108,12 +105,8 @@
         public string Url { get; set; } = "";
         public string Icon { get; set; } = "";
         public string Tone { get; set; } = "blue";
-        public int Done { get; set; }
-        public int Total { get; set; }
-        public bool ShowProgress { get; set; } = true;
         public string MetricValue { get; set; } = "";
         public string MetricLabel { get; set; } = "";
-        public string Subtitle { get; set; } = "";
         public string Stat1Label { get; set; } = "";
         public string Stat1Value { get; set; } = "";
         public string Stat1Class { get; set; } = "df-tile-stat-val";
@@ -126,18 +119,9 @@
         public bool Featured { get; set; }
     }
 
-    private static int RingPct(int done, int total)
-    {
-        if (total <= 0) return 0;
-        return Math.Clamp((int)Math.Round(done * 100.0 / total), 0, 100);
-    }
-
-    private static string RingOffset(int done, int total)
-    {
-        const double length = 175.9;
-        var pct = RingPct(done, total);
-        return (length - (length * pct / 100.0)).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
-    }
+}
+@section PageStyles {
+    <link rel="stylesheet" href="~/css/personnel-home.css" asp-append-version="true" />
 }
 <div class="df-dashboard role-dashboard personnel-role-dashboard">
     <div class="section-label">
@@ -147,36 +131,21 @@
     <nav class="df-approval-grid role-card-grid" aria-label="Yetkili olduğum işlemler" style="--role-card-count:@actions.Count">
         @foreach (var item in actions)
         {
-            <a class="df-atile is-@item.Tone @(item.Featured ? "is-featured" : "")" href="@item.Url">
+            <a class="df-atile is-@item.Tone @(item.Featured ? "is-featured" : "")" href="@item.Url" aria-label="@(item.Featured ? "Öncelikli: " + item.Title : item.Title)">
                 <div class="df-atile-top">
                     <div class="df-atile-icon"><i class="@item.Icon" aria-hidden="true"></i></div>
-                    <div>
-                        <div class="df-atile-name">@item.Title</div>
-                        <span class="df-atile-link">Sayfaya git <i class="bi bi-arrow-right" aria-hidden="true"></i></span>
-                    </div>
+                    <div class="df-atile-name">@item.Title</div>
+                    <i class="bi bi-arrow-right personnel-tile-arrow" aria-hidden="true"></i>
                 </div>
-                <div class="df-ring-wrap">
-                    @if (item.ShowProgress)
-                    {
-                        <div class="df-ring-container">
-                            <svg class="df-ring-svg" width="72" height="72" viewBox="0 0 72 72" aria-hidden="true">
-                                <circle class="df-ring-bg" cx="36" cy="36" r="28"></circle>
-                                <circle class="df-ring-fill" cx="36" cy="36" r="28" stroke-dasharray="175.9" stroke-dashoffset="@RingOffset(item.Done, item.Total)"></circle>
-                            </svg>
-                            <div class="df-ring-center"><span class="df-ring-pct">@RingPct(item.Done, item.Total)%</span></div>
-                        </div>
-                        <div class="df-ring-meta"><span class="df-ring-sub">@item.Subtitle</span></div>
-                    }
-                    else
-                    {
-                        <div class="df-ring-summary"><strong>@item.MetricValue</strong><span>@item.MetricLabel</span></div>
-                    }
+                <div class="personnel-tile-metric">
+                    <strong>@item.MetricValue</strong>
+                    <span>@item.MetricLabel</span>
                 </div>
-                <div class="df-tile-stats">
-                    <div class="df-tile-stat"><span class="df-tile-stat-lbl">@item.Stat1Label</span><span class="@item.Stat1Class">@item.Stat1Value</span></div>
-                    <div class="df-tile-stat"><span class="df-tile-stat-lbl">@item.Stat2Label</span><span class="@item.Stat2Class">@item.Stat2Value</span></div>
-                    <div class="df-tile-stat"><span class="df-tile-stat-lbl">@item.Stat3Label</span><span class="@item.Stat3Class">@item.Stat3Value</span></div>
-                </div>
+                <dl class="personnel-tile-stats">
+                    <div><dt>@item.Stat1Label</dt><dd class="@item.Stat1Class">@item.Stat1Value</dd></div>
+                    <div><dt>@item.Stat2Label</dt><dd class="@item.Stat2Class">@item.Stat2Value</dd></div>
+                    <div><dt>@item.Stat3Label</dt><dd class="@item.Stat3Class">@item.Stat3Value</dd></div>
+                </dl>
             </a>
         }
     </nav>

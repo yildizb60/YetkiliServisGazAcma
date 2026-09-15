@@ -1,5 +1,19 @@
 .ops-home { display:grid; grid-template-columns:minmax(0,1fr); gap:20px; color:var(--df-text-soft); min-width:0; }
 .ops-home > section { min-width:0; }
+.ops-firm-home { gap:14px; }
+.ops-overview { border:1px solid var(--df-border); border-left:3px solid var(--df-primary); background:#fff; border-radius:5px; }
+.ops-overview-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:13px 18px; }
+.ops-overview-heading h2 { margin:0; color:var(--df-text); font-size:18px; font-weight:650; line-height:1.35; }
+.ops-overview-heading .df-btn { flex:none; }
+.ops-overview-stats { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); margin:0; border-top:1px solid var(--df-border); background:#f7f9fb; }
+.ops-overview-stats > div { display:flex; align-items:center; justify-content:space-between; gap:10px; min-width:0; padding:11px 17px; }
+.ops-overview-stats > div + div { border-left:1px solid var(--df-border); }
+.ops-overview-stats dt { color:var(--df-text-soft); font-size:12px; line-height:1.3; }
+.ops-overview-stats dd { margin:0; color:var(--df-text); font-size:20px; font-weight:700; line-height:1; font-variant-numeric:tabular-nums; }
+.ops-firm-home .ops-records { min-width:0; border:1px solid var(--df-border); border-radius:5px; background:#fff; }
+.ops-firm-home .ops-section-heading { padding:13px 16px; }
+.ops-firm-home .ops-table td { padding-top:11px; padding-bottom:11px; }
+.ops-firm-home .ops-section-footer { padding:10px 16px; }
 .ops-home-toolbar { display:flex; justify-content:space-between; align-items:center; gap:12px; }
 .ops-home-toolbar time { display:flex; align-items:center; gap:9px; flex-shrink:0; font-size:14px; color:var(--df-text-soft); }
 .ops-home-toolbar > a { width:auto; flex:none; }

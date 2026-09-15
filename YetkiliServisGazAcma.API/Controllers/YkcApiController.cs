@@ -256,6 +256,59 @@ namespace YetkiliServisGazAcma.API.Controllers
             return Ok(sonuc);
         }
 
+        [HttpPost("talepler/rapor/pdf")]
+        public async Task<IActionResult> TaleplerRaporPdf([FromBody] YkcTalepListeFiltre? filtre)
+        {
+            return await RaporDosyasi(filtre, excelMi: false);
+        }
+
+        [HttpPost("talepler/rapor/excel")]
+        public async Task<IActionResult> TaleplerRaporExcel([FromBody] YkcTalepListeFiltre? filtre)
+        {
+            return await RaporDosyasi(filtre, excelMi: true);
+        }
+
+        private async Task<IActionResult> RaporDosyasi(YkcTalepListeFiltre? filtre, bool excelMi)
+        {
+            const int disAktarimLimiti = 5000;
+            var kullanici = await AktifKullaniciAsync();
+            if (kullanici == null)
+                return Unauthorized(new { basarili = false, mesaj = "Oturum bulunamadı." });
+
+            if (!await YkcYetkiliMiAsync(kullanici, YetkiTipleri.YKC_RAPOR_GOR))
+                return YkcYetkisiz("YKC raporlarını dışa aktarma yetkiniz bulunmuyor.");
+
+            var kayitlar = await _ykcTalepService.RaporKayitlariAsync(
+                filtre ?? new YkcTalepListeFiltre(),
+                kullanici,
+                await GenelYetkiliMiAsync(kullanici),
+                disAktarimLimiti + 1);
+
+            if (kayitlar.Count > disAktarimLimiti)
+            {
+                return BadRequest(new
+                {
+                    basarili = false,
+                    mesaj = $"Tek dosyada en fazla {disAktarimLimiti} kayıt dışa aktarılabilir. Filtreleri daraltın."
+                });
+            }
+
+            var icOperasyon = kullanici.KullaniciTipi != KullaniciTipiDegerleri.SertifikaliFirma;
+            var zaman = DateTime.Now.ToString("yyyyMMdd_HHmm");
+            if (excelMi)
+            {
+                return File(
+                    YkcRaporExcelService.Olustur(kayitlar, icOperasyon),
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    $"Cihaz_Degisim_Raporu_{zaman}.xlsx");
+            }
+
+            return File(
+                YkcRaporPdfService.Olustur(kayitlar, icOperasyon),
+                "application/pdf",
+                $"Cihaz_Degisim_Raporu_{zaman}.pdf");
+        }
+
         [HttpPost("imza/entegrasyon")]
         public IActionResult ImzaEntegrasyonBilgisi()
         {

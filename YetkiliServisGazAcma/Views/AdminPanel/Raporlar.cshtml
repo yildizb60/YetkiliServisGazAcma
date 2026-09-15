@@ -13,6 +13,13 @@
     int? seciliSirketId = ViewBag.SeciliSirketId as int?;
     DateTime basTarih = ViewBag.BasTarih;
     DateTime bitTarih = ViewBag.BitTarih;
+    var raporVar = sonIslemler?.Count > 0;
+    var excelUrl = Url.Action("RaporlarExcel", "AdminPanel", new
+    {
+        bas = basTarih.ToString("yyyy-MM-dd"),
+        bit = bitTarih.ToString("yyyy-MM-dd"),
+        sirketId = seciliSirketId
+    });
 }
 
 @section PageStyles {
@@ -21,7 +28,7 @@
 
 <div class="df-admin-report-workspace">
     <section class="df-page-panel df-admin-report-filter">
-        <form method="get" action="/AdminPanel/raporlar" class="df-admin-report-form">
+        <form method="get" action="@Url.Action("Raporlar", "AdminPanel")" class="df-admin-report-form">
             <div class="df-admin-report-fields">
                 <div class="df-admin-field"><label>Başlangıç</label><input type="date" name="bas" value="@basTarih.ToString("yyyy-MM-dd")" /></div>
                 <div class="df-admin-field"><label>Bitiş</label><input type="date" name="bit" value="@bitTarih.ToString("yyyy-MM-dd")" /></div>
@@ -70,16 +77,17 @@
         @if (listeTipi == "devreye")
         {
             <div class="df-report-export-actions">
-                <form id="pdfForm" method="get" action="/AdminPanel/raporlar/pdf">
+                <form id="pdfForm" method="get" action="@Url.Action("RaporlarPdf", "AdminPanel")">
                     <input type="hidden" name="bas" value="@basTarih.ToString("yyyy-MM-dd")" />
                     <input type="hidden" name="bit" value="@bitTarih.ToString("yyyy-MM-dd")" />
-                    <button class="df-btn df-btn-sm df-btn-pdf" type="submit"><i class="bi bi-file-earmark-pdf"></i> Seçili PDF</button>
+                    @if (seciliSirketId.HasValue)
+                    {
+                        <input type="hidden" name="sirketId" value="@seciliSirketId.Value" />
+                    }
+                    <button class="df-btn df-btn-sm df-btn-pdf" type="submit" disabled="@(!raporVar ? "disabled" : null)" title="Seçim varsa seçili, yoksa filtrelenen kayıtları PDF olarak indir"><i class="bi bi-file-earmark-pdf"></i> PDF İndir</button>
                 </form>
-                <button class="df-btn df-btn-sm df-btn-excel" type="button" onclick="indirSeciliRaporExcel()"><i class="bi bi-file-earmark-excel"></i> Seçili Excel</button>
-                <a class="df-btn df-btn-sm df-btn-secondary" href="/AdminPanel/devreyealmalar"><i class="bi bi-box-arrow-up-right"></i> Detay Listesi</a>
-                <a class="df-btn df-btn-sm df-btn-excel" href="/AdminPanel/raporlar/excel?bas=@basTarih.ToString("yyyy-MM-dd")&bit=@bitTarih.ToString("yyyy-MM-dd")"><i class="bi bi-calendar2-range"></i> Tarih Aralığı Excel</a>
-                <a class="df-btn df-btn-sm df-btn-pdf" href="/AdminPanel/raporlar/pdf-toplu"><i class="bi bi-files"></i> Toplu PDF</a>
-                <a class="df-btn df-btn-sm df-btn-excel" href="/AdminPanel/raporlar/excel-toplu"><i class="bi bi-file-earmark-spreadsheet"></i> Toplu Excel</a>
+                <button class="df-btn df-btn-sm df-btn-excel" type="button" data-excel-url="@excelUrl" onclick="indirSeciliRaporExcel(this)" disabled="@(!raporVar ? "disabled" : null)" title="Seçim varsa seçili, yoksa filtrelenen kayıtları Excel olarak indir"><i class="bi bi-file-earmark-excel"></i> Excel İndir</button>
+                <a class="df-btn df-btn-sm df-btn-secondary" href="@Url.Action("DevreyeAlmalar", "AdminPanel")"><i class="bi bi-box-arrow-up-right"></i> Detay Listesi</a>
             </div>
         }
         </div>
@@ -251,14 +259,12 @@
             }
         })();
 
-        function indirSeciliRaporExcel() {
+        function indirSeciliRaporExcel(button) {
             const ids = Array.from(document.querySelectorAll('input[name="ids"][form="pdfForm"]:checked')).map(x => x.value);
-            if (ids.length === 0) {
-                alert('Lütfen en az bir işlem seçin.');
-                return;
-            }
+            const baseUrl = button && button.dataset ? button.dataset.excelUrl : '';
+            if (!baseUrl) return;
             const query = ids.map(id => 'ids=' + encodeURIComponent(id)).join('&');
-            window.open('/AdminPanel/raporlar/excel?' + query, '_blank');
+            window.open(baseUrl + (query ? (baseUrl.includes('?') ? '&' : '?') + query : ''), '_blank', 'noopener');
         }
     </script>
 }

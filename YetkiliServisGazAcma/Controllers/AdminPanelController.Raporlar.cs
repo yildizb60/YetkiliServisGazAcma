@@ -117,13 +117,13 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpGet("raporlar/pdf")]
-        public async Task<IActionResult> RaporlarPdf(DateTime? bas, DateTime? bit, List<int>? ids)
+        public async Task<IActionResult> RaporlarPdf(DateTime? bas, DateTime? bit, List<int>? ids, int? sirketId)
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
 
-            var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            var dosya = await _adminRaporApiClient.RaporlarPdfAsync(kullanici, aktifSirketId, bas, bit, ids);
+            var kapsamSirketId = sirketId ?? await _aktifSirketService.AktifSirketIdAsync(kullanici);
+            var dosya = await _adminRaporApiClient.RaporlarPdfAsync(kullanici, kapsamSirketId, bas, bit, ids);
             if (dosya == null)
             {
                 TempData["Hata"] = "Rapor PDF dosyasi API uzerinden alinamadi.";
@@ -134,21 +134,21 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpGet("raporlar/pdf-toplu")]
-        public async Task<IActionResult> RaporlarPdfToplu()
+        public async Task<IActionResult> RaporlarPdfToplu(int? sirketId)
         {
             var bit = DateTime.Now.Date;
             var bas = bit.AddDays(-30);
-            return await RaporlarPdf(bas, bit, null);
+            return await RaporlarPdf(bas, bit, null, sirketId);
         }
 
         [HttpGet("raporlar/excel")]
-        public async Task<IActionResult> RaporlarExcel(DateTime? bas, DateTime? bit, List<int>? ids)
+        public async Task<IActionResult> RaporlarExcel(DateTime? bas, DateTime? bit, List<int>? ids, int? sirketId)
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
 
-            var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            var dosya = await _adminRaporApiClient.RaporlarExcelAsync(kullanici, aktifSirketId, bas, bit, ids);
+            var kapsamSirketId = sirketId ?? await _aktifSirketService.AktifSirketIdAsync(kullanici);
+            var dosya = await _adminRaporApiClient.RaporlarExcelAsync(kullanici, kapsamSirketId, bas, bit, ids);
             if (dosya == null)
             {
                 TempData["Hata"] = "Rapor Excel dosyasi API uzerinden alinamadi.";
@@ -159,11 +159,11 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpGet("raporlar/excel-toplu")]
-        public async Task<IActionResult> RaporlarExcelToplu()
+        public async Task<IActionResult> RaporlarExcelToplu(int? sirketId)
         {
             var bit = DateTime.Now.Date;
             var bas = bit.AddDays(-30);
-            return await RaporlarExcel(bas, bit, null);
+            return await RaporlarExcel(bas, bit, null, sirketId);
         }
 
         [HttpGet("onay-bekleyenler")]

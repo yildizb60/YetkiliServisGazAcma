@@ -213,6 +213,12 @@
     background: #dff3e9 !important;
 }
 
+.df-report-export-actions .is-disabled {
+    opacity: .45;
+    pointer-events: none;
+    cursor: default;
+}
+
 .df-report-check {
     width: 56px;
 }

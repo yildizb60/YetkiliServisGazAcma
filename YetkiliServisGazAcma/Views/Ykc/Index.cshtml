@@ -4,182 +4,27 @@
     ViewData["Title"] = "Ana Sayfa";
     ViewData["PanelTitle"] = "Ana Sayfa";
     ViewData["ActiveMenu"] = "Dashboard";
-    var tr = System.Globalization.CultureInfo.GetCultureInfo("tr-TR");
-    var devamEden = Math.Max(Model.Toplam - Model.Tamamlanan - Model.RedIptal, 0);
-    var kartlar = new List<DashboardTile>
-    {
-        new()
-        {
-            Title = "Yeni Cihaz Değişim Talebi",
-            Url = "/ykc/yeni",
-            Icon = "bi bi-plus-lg",
-            ShowProgress = false,
-            MetricIcon = "bi bi-file-earmark-plus",
-            MetricLabel = "Yeni kayıt",
-            Stat1Label = "Gerekli Bilgi",
-            Stat1Value = "Tesisat No",
-            Stat2Label = "Kayıt Akışı",
-            Stat2Value = "2 Adım",
-            Stat3Label = "Durum",
-            Stat3Value = "Hazır",
-            Tone = "blue",
-            Featured = true
-        },
-        new()
-        {
-            Title = "Cihaz Değişim Taleplerim",
-            Url = "/ykc/talepler",
-            Icon = "bi bi-journal-text",
-            Done = Model.Tamamlanan,
-            Total = Math.Max(Model.Toplam, 1),
-            Subtitle = "Tamamlanan / Toplam",
-            Stat1Label = "Toplam Talep",
-            Stat1Value = Model.Toplam.ToString(),
-            Stat2Label = "Devam Eden",
-            Stat2Value = devamEden.ToString(),
-            Stat2Class = devamEden > 0 ? "df-badge-pulse" : "df-tile-stat-val",
-            Stat3Label = "Tamamlanan",
-            Stat3Value = Model.Tamamlanan.ToString(),
-            Tone = "cyan"
-        },
-        new()
-        {
-            Title = "İnceleme ve Kontrol Süreci",
-            Url = "/ykc/talepler",
-            Icon = "bi bi-calendar2-check",
-            ShowProgress = false,
-            MetricValue = Model.RandevuSaha.ToString(),
-            MetricLabel = "Randevu / Kontrol",
-            Stat1Label = "İnceleme Bekleyen",
-            Stat1Value = Model.Incelemede.ToString(),
-            Stat1Class = Model.Incelemede > 0 ? "df-badge-pulse" : "df-tile-stat-val",
-            Stat2Label = "Randevu / Kontrol",
-            Stat2Value = Model.RandevuSaha.ToString(),
-            Stat3Label = "Açık İşlem",
-            Stat3Value = (Model.Incelemede + Model.RandevuSaha).ToString(),
-            Tone = "amber"
-        },
-        new()
-        {
-            Title = "Form ve Talep Sonuçları",
-            Url = "/ykc/talepler",
-            Icon = "bi bi-file-earmark-check",
-            ShowProgress = false,
-            MetricValue = Model.ImzaliNihai.ToString(),
-            MetricLabel = "Nihai PDF",
-            Stat1Label = "Tamamlanan",
-            Stat1Value = Model.Tamamlanan.ToString(),
-            Stat2Label = "İmza Bekleyen",
-            Stat2Value = Model.ImzaBekleyen.ToString(),
-            Stat2Class = Model.ImzaBekleyen > 0 ? "df-badge-pulse" : "df-tile-stat-val",
-            Stat3Label = "Red / İptal",
-            Stat3Value = Model.RedIptal.ToString(),
-            Tone = "green"
-        }
-    };
-}
-@functions {
-    private sealed class DashboardTile
-    {
-        public string Title { get; set; } = "";
-        public string Url { get; set; } = "";
-        public string Icon { get; set; } = "";
-        public string Tone { get; set; } = "blue";
-        public int Done { get; set; }
-        public int Total { get; set; }
-        public bool ShowProgress { get; set; } = true;
-        public string MetricValue { get; set; } = "";
-        public string MetricLabel { get; set; } = "";
-        public string MetricIcon { get; set; } = "";
-        public string Subtitle { get; set; } = "";
-        public string Stat1Label { get; set; } = "";
-        public string Stat1Value { get; set; } = "";
-        public string Stat1Class { get; set; } = "df-tile-stat-val";
-        public string Stat2Label { get; set; } = "";
-        public string Stat2Value { get; set; } = "";
-        public string Stat2Class { get; set; } = "df-tile-stat-val";
-        public string Stat3Label { get; set; } = "";
-        public string Stat3Value { get; set; } = "";
-        public string Stat3Class { get; set; } = "df-tile-stat-val";
-        public bool Featured { get; set; }
-    }
-
-    private static int RingPct(int done, int total)
-    {
-        if (total <= 0) return 0;
-        return Math.Clamp((int)Math.Round(done * 100.0 / total), 0, 100);
-    }
-
-    private static string RingOffset(int done, int total)
-    {
-        const double length = 175.9;
-        var pct = RingPct(done, total);
-        return (length - (length * pct / 100.0)).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
-    }
 }
 @section PageStyles {
     <link rel="stylesheet" href="~/css/operations-home.css" asp-append-version="true" />
 }
-<div class="ops-home df-dashboard role-dashboard">
-    <header class="ops-home-toolbar">
-        <time datetime="@DateTime.Today.ToString("yyyy-MM-dd")"><i class="bi bi-calendar3" aria-hidden="true"></i>@DateTime.Today.ToString("dd MMMM yyyy, dddd", tr)</time>
-        <a class="df-btn df-btn-primary" href="/ykc/yeni"><i class="bi bi-plus-lg" aria-hidden="true"></i>Yeni Cihaz Değişim Talebi</a>
+<div class="ops-home ops-firm-home">
+    <header class="ops-overview">
+        <div class="ops-overview-heading">
+            <h2>Cihaz Değişim İşlemlerim</h2>
+            <a class="df-btn df-btn-primary df-btn-sm" href="@Url.Action("Yeni", "Ykc")"><i class="bi bi-plus-lg" aria-hidden="true"></i>Yeni Talep</a>
+        </div>
+        <dl class="ops-overview-stats" aria-label="Talep durumu özeti">
+            <div><dt>Toplam talep</dt><dd>@Model.Toplam</dd></div>
+            <div><dt>İnceleme / atama bekleyen</dt><dd>@Model.Incelemede</dd></div>
+            <div><dt>Randevu / saha işlemi</dt><dd>@Model.RandevuSaha</dd></div>
+            <div><dt>Tamamlanan</dt><dd>@Model.Tamamlanan</dd></div>
+        </dl>
     </header>
-
-    <div class="section-label">
-        <i class="bi bi-lightning-charge-fill" aria-hidden="true"></i>
-        Cihaz Değişim İşlemlerim
-    </div>
-    <nav class="df-approval-grid role-card-grid" aria-label="Cihaz değişim işlemlerim" style="--role-card-count:@kartlar.Count">
-        @foreach (var kart in kartlar)
-        {
-            <a class="df-atile is-@kart.Tone @(kart.Featured ? "is-featured" : "")" href="@kart.Url">
-                <div class="df-atile-top">
-                    <div class="df-atile-icon"><i class="@kart.Icon" aria-hidden="true"></i></div>
-                    <div>
-                        <div class="df-atile-name">@kart.Title</div>
-                        <span class="df-atile-link">Sayfaya git <i class="bi bi-arrow-right" aria-hidden="true"></i></span>
-                    </div>
-                </div>
-                <div class="df-ring-wrap">
-                    @if (kart.ShowProgress)
-                    {
-                        <div class="df-ring-container">
-                            <svg class="df-ring-svg" width="72" height="72" viewBox="0 0 72 72" aria-hidden="true">
-                                <circle class="df-ring-bg" cx="36" cy="36" r="28"></circle>
-                                <circle class="df-ring-fill" cx="36" cy="36" r="28" stroke-dasharray="175.9" stroke-dashoffset="@RingOffset(kart.Done, kart.Total)"></circle>
-                            </svg>
-                            <div class="df-ring-center"><span class="df-ring-pct">@RingPct(kart.Done, kart.Total)%</span></div>
-                        </div>
-                        <div class="df-ring-meta"><span class="df-ring-sub">@kart.Subtitle</span></div>
-                    }
-                    else
-                    {
-                        <div class="df-ring-summary">
-                            @if (!string.IsNullOrWhiteSpace(kart.MetricIcon))
-                            {
-                                <i class="@kart.MetricIcon" aria-hidden="true"></i>
-                            }
-                            else
-                            {
-                                <strong>@kart.MetricValue</strong>
-                            }
-                            <span>@kart.MetricLabel</span>
-                        </div>
-                    }
-                </div>
-                <div class="df-tile-stats">
-                    <div class="df-tile-stat"><span class="df-tile-stat-lbl">@kart.Stat1Label</span><span class="@kart.Stat1Class">@kart.Stat1Value</span></div>
-                    <div class="df-tile-stat"><span class="df-tile-stat-lbl">@kart.Stat2Label</span><span class="@kart.Stat2Class">@kart.Stat2Value</span></div>
-                    <div class="df-tile-stat"><span class="df-tile-stat-lbl">@kart.Stat3Label</span><span class="@kart.Stat3Class">@kart.Stat3Value</span></div>
-                </div>
-            </a>
-        }
-    </nav>
     <section class="ops-records" aria-labelledby="recent-title">
         <header class="ops-section-heading">
             <h2 id="recent-title"><i class="bi bi-clock-history" aria-hidden="true"></i>Son Cihaz Değişim Taleplerim</h2>
-            <a href="/ykc/talepler">Tüm Taleplerim<i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+            <a href="@Url.Action("Talepler", "Ykc")">Tüm Taleplerim<i class="bi bi-arrow-right" aria-hidden="true"></i></a>
         </header>
         @if (Model.SonTalepler.Count == 0)
         {
@@ -194,12 +39,12 @@
                     @foreach (var item in Model.SonTalepler.Take(5))
                     {
                         <tr>
-                            <td><a class="ops-record-link" href="/ykc/detay/@item.Id">#@item.Id</a></td>
+                            <td><a class="ops-record-link" href="@Url.Action("Detay", "Ykc", new { id = item.Id })">#@item.Id</a></td>
                             <td>@(string.IsNullOrWhiteSpace(item.MusteriAdi) ? "Kayıtlı değil" : item.MusteriAdi)</td>
                             <td>@item.TesisatNo</td>
                             <td>@if (item.RandevuTarihi.HasValue) { <time>@item.RandevuTarihi.Value.ToString("dd.MM.yyyy") <b>@item.RandevuSaati</b></time> } else { <span class="ops-muted">Planlanmadı</span> }</td>
                             <td><span class="df-pill @YkcDurumSunumu.CssSinifi(item.Durum)">@(item.Durum == YkcDurumDegerleri.TalepAlindi ? "İnceleme Bekleniyor" : YkcDurumSunumu.Etiket(item.Durum))</span></td>
-                            <td><a class="ops-icon-button" href="/ykc/detay/@item.Id" aria-label="@($"Talep {item.Id} detayını aç")" title="Talep detayını aç"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a></td>
+                            <td><a class="ops-icon-button" href="@Url.Action("Detay", "Ykc", new { id = item.Id })" aria-label="@($"Talep {item.Id} detayını aç")" title="Talep detayını aç"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a></td>
                         </tr>
                     }
                     </tbody>

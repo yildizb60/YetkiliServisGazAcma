@@ -1,4 +1,36 @@
 .df-personnel-home { display: grid; gap: 14px; }
+.content.personnel-home-content { padding-bottom:31px; }
+.personnel-role-dashboard { display:grid; gap:10px; }
+.personnel-role-dashboard .section-label { margin:0; color:#607489; font-size:11px; font-weight:700; }
+.personnel-role-dashboard .df-approval-grid.role-card-grid {
+    grid-template-columns:repeat(auto-fit, minmax(200px, 238px)) !important;
+    justify-content:start;
+    gap:9px !important;
+    margin:0 0 4px;
+}
+.personnel-role-dashboard .df-atile {
+    min-height:130px !important;
+    padding:10px 11px 9px !important;
+    gap:7px;
+    border-radius:6px;
+    box-shadow:0 5px 14px rgba(30, 58, 82, .045);
+}
+.personnel-role-dashboard .df-atile-top { min-width:0; align-items:center; gap:8px; }
+.personnel-role-dashboard .df-atile-icon { width:30px; height:30px; flex-basis:30px; border-radius:5px; font-size:14px; }
+.personnel-role-dashboard .df-atile-name { min-width:0; flex:1; color:#263f55 !important; font-size:12px; font-weight:650; line-height:1.35; }
+.personnel-tile-arrow { flex:0 0 auto; color:#8a9bac; font-size:13px; }
+.personnel-tile-metric { display:flex; align-items:baseline; gap:7px; padding:1px 0 0 38px; }
+.personnel-tile-metric strong { color:var(--tile-accent); font-size:22px; font-weight:700; line-height:1; font-variant-numeric:tabular-nums; }
+.personnel-tile-metric span { min-width:0; color:#64788b; font-size:10px; font-weight:550; line-height:1.35; }
+.personnel-tile-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); margin:0; border-top:1px solid #e2e9ef; }
+.personnel-tile-stats > div { min-width:0; padding:6px 5px 0; }
+.personnel-tile-stats > div:first-child { padding-left:0; }
+.personnel-tile-stats > div + div { border-left:1px solid #e8edf2; }
+.personnel-tile-stats dt { overflow:hidden; color:#788a99; font-size:8.5px; font-weight:500; line-height:1.3; text-overflow:ellipsis; white-space:nowrap; }
+.personnel-tile-stats dd { margin:3px 0 0; color:#2d475c; font-size:12px; font-weight:650; line-height:1.2; }
+.personnel-tile-stats .df-badge-pulse { width:max-content; min-width:22px; justify-content:center; padding:3px 6px; font-size:10px; }
+.personnel-role-dashboard .df-atile:hover,
+.personnel-role-dashboard .df-atile:focus-visible { transform:translateY(-1px); box-shadow:0 9px 20px rgba(30,58,82,.09); }
 .personnel-home-header {
     min-height: 60px;
     padding: 9px 13px;

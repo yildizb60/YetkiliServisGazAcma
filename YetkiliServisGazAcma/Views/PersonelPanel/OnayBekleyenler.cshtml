@@ -23,11 +23,15 @@
         <div class="df-alert df-alert-danger">@TempData["Hata"]</div>
     }
 
+    <section class="df-page-panel approval-panels is-admin-approval">
+        <div class="df-approval-status-bar" role="tablist" data-approval-tabs aria-label="Yetki belgesi durumu">
+            <button type="button" role="tab" id="personnel-approval-waiting-tab" aria-controls="personnel-approval-waiting" aria-selected="true" class="approval-tab approval-metric is-waiting active" data-target="bekleyen"><i class="bi bi-hourglass-split" aria-hidden="true"></i><span>Onaya Gönderildi</span><strong>@bekleyenler.Count</strong></button>
+            <button type="button" role="tab" id="personnel-approval-approved-tab" aria-controls="personnel-approval-approved" aria-selected="false" class="approval-tab approval-metric is-approved" data-target="onaylanan"><i class="bi bi-check-circle" aria-hidden="true"></i><span>Onaylananlar</span><strong>@onaylananlar.Count</strong></button>
+            <button type="button" role="tab" id="personnel-approval-rejected-tab" aria-controls="personnel-approval-rejected" aria-selected="false" class="approval-tab approval-metric is-rejected" data-target="reddedilen"><i class="bi bi-x-circle" aria-hidden="true"></i><span>Reddedilenler</span><strong>@reddedilenler.Count</strong></button>
+            <button type="button" role="tab" id="personnel-approval-expired-tab" aria-controls="personnel-approval-expired" aria-selected="false" class="approval-tab approval-metric is-expired" data-target="suresi-dolan"><i class="bi bi-calendar-x" aria-hidden="true"></i><span>Süresi Doldu</span><strong>@suresiDolanlar.Count</strong></button>
+        </div>
     <details class="df-approval-filter">
-        <summary>
-            <span><i class="bi bi-funnel" aria-hidden="true"></i><strong>Filtreler</strong><small>Firma, şirket ve belge tarihine göre listeyi daraltın.</small></span>
-            <span>Aç <i class="bi bi-chevron-down" aria-hidden="true"></i></span>
-        </summary>
+        <summary><span><i class="bi bi-funnel" aria-hidden="true"></i><strong>Filtreler</strong></span><span>Aç <i class="bi bi-chevron-down" aria-hidden="true"></i></span></summary>
         <div class="df-approval-filter-body">
             <div class="df-approval-filter-grid">
                 <div class="filtre-alan"><label>Firma</label><input type="text" id="filterFirma" placeholder="Firma adı" autocomplete="off" /></div>
@@ -35,15 +39,6 @@
                 <div class="filtre-alan"><label>Yükleme</label><input type="date" id="filterYukleme" /></div>
                 <div class="filtre-alan"><label>Başlangıç</label><input type="date" id="filterBaslangic" /></div>
                 <div class="filtre-alan"><label>Bitiş</label><input type="date" id="filterBitis" /></div>
-                <div class="filtre-alan">
-                    <label>Durum</label>
-                    <select id="filterDurum">
-                        <option value="bekleyen">Onaya Gönderildi</option>
-                        <option value="onaylanan">Onaylananlar</option>
-                        <option value="reddedilen">Reddedilenler</option>
-                        <option value="suresi-dolan">Süresi Doldu</option>
-                    </select>
-                </div>
             </div>
             <div class="df-approval-filter-actions">
                 <button type="button" class="df-btn df-btn-primary df-btn-sm" id="approvalFilterApply"><i class="bi bi-funnel-fill" aria-hidden="true"></i> Filtrele</button>
@@ -52,29 +47,16 @@
         </div>
     </details>
 
-    <section class="df-page-panel approval-panels">
-        <div class="df-panel-head df-approval-list-head">
-            <div>
-                <div class="approval-table-title"><i class="bi bi-list-check" aria-hidden="true"></i> Yetki Belgesi Listesi</div>
-            </div>
-            <div class="approval-tabs approval-metrics" data-approval-tabs aria-label="Yetki belgesi durum özeti">
-                <button type="button" class="approval-tab approval-metric is-waiting active" data-target="bekleyen"><i class="bi bi-hourglass-split" aria-hidden="true"></i><span>Onaya Gönderildi</span><strong>@bekleyenler.Count</strong></button>
-                <button type="button" class="approval-tab approval-metric is-approved" data-target="onaylanan"><i class="bi bi-check-circle" aria-hidden="true"></i><span>Onaylananlar</span><strong>@onaylananlar.Count</strong></button>
-                <button type="button" class="approval-tab approval-metric is-rejected" data-target="reddedilen"><i class="bi bi-x-circle" aria-hidden="true"></i><span>Reddedilenler</span><strong>@reddedilenler.Count</strong></button>
-                <button type="button" class="approval-tab approval-metric is-expired" data-target="suresi-dolan"><i class="bi bi-calendar-x" aria-hidden="true"></i><span>Süresi Doldu</span><strong>@suresiDolanlar.Count</strong></button>
-            </div>
-        </div>
-
-        <div data-panel="bekleyen" class="active">
+        <div data-panel="bekleyen" class="active" id="personnel-approval-waiting" role="tabpanel" aria-labelledby="personnel-approval-waiting-tab">
             @await Html.PartialAsync("~/Views/Shared/_YetkiBelgesiOnayTable.cshtml", new Tuple<List<Ys_YetkiBelgesi>, string, string>(bekleyenler, "bekleyen", "personel"))
         </div>
-        <div data-panel="onaylanan">
+        <div data-panel="onaylanan" id="personnel-approval-approved" role="tabpanel" aria-labelledby="personnel-approval-approved-tab">
             @await Html.PartialAsync("~/Views/Shared/_YetkiBelgesiOnayTable.cshtml", new Tuple<List<Ys_YetkiBelgesi>, string, string>(onaylananlar, "onaylanan", "personel"))
         </div>
-        <div data-panel="reddedilen">
+        <div data-panel="reddedilen" id="personnel-approval-rejected" role="tabpanel" aria-labelledby="personnel-approval-rejected-tab">
             @await Html.PartialAsync("~/Views/Shared/_YetkiBelgesiOnayTable.cshtml", new Tuple<List<Ys_YetkiBelgesi>, string, string>(reddedilenler, "reddedilen", "personel"))
         </div>
-        <div data-panel="suresi-dolan">
+        <div data-panel="suresi-dolan" id="personnel-approval-expired" role="tabpanel" aria-labelledby="personnel-approval-expired-tab">
             @await Html.PartialAsync("~/Views/Shared/_YetkiBelgesiOnayTable.cshtml", new Tuple<List<Ys_YetkiBelgesi>, string, string>(suresiDolanlar, "suresi-dolan", "personel"))
         </div>
     </section>
@@ -84,7 +66,6 @@
 <script>
 (() => {
     const tabs = document.querySelector('[data-approval-tabs]');
-    const durumSelect = document.getElementById('filterDurum');
     const fields = {
         firma: document.getElementById('filterFirma'),
         sirket: document.getElementById('filterSirket'),
@@ -125,7 +106,11 @@
     function activatePanel(target = 'bekleyen') {
         document.querySelectorAll('.approval-panels [data-panel]').forEach(panel => panel.classList.toggle('active', panel.dataset.panel === target));
         tabs?.querySelectorAll('[data-target]').forEach(tab => tab.classList.toggle('active', tab.dataset.target === target));
-        if (durumSelect) durumSelect.value = target;
+        tabs?.querySelectorAll('[data-target]').forEach(tab => {
+            const selected = tab.dataset.target === target;
+            tab.setAttribute('aria-selected', selected ? 'true' : 'false');
+            tab.tabIndex = selected ? 0 : -1;
+        });
         applyFilters();
     }
 
@@ -133,7 +118,6 @@
         const tab = event.target.closest('[data-target]');
         if (tab) activatePanel(tab.dataset.target);
     });
-    durumSelect?.addEventListener('change', () => activatePanel(durumSelect.value));
     document.getElementById('approvalFilterApply')?.addEventListener('click', applyFilters);
     document.getElementById('approvalFilterClear')?.addEventListener('click', () => {
         Object.values(fields).forEach(field => { if (field) field.value = ''; });

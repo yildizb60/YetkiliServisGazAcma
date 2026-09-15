@@ -70,6 +70,15 @@ public static class YkcRandevuKurali
         => birinci == ikinci || Math.Abs((birinci - ikinci).TotalMinutes) < Math.Clamp(asgariAralikDakika, 0, 240);
 }
 
+public static class YkcKontrolAkisKurali
+{
+    public static bool YeniRandevuGerekli(string? kontrolSonucu)
+        => string.Equals(
+            kontrolSonucu?.Trim(),
+            YkcFr265KontrolSonucDegerleri.UygunDegil,
+            StringComparison.Ordinal);
+}
+
 public partial class YkcTalepService
 {
     public async Task<List<YkcEkipSecenegi>> EkiplerAsync(int id, AppKullanici kullanici, bool genelYetkili)

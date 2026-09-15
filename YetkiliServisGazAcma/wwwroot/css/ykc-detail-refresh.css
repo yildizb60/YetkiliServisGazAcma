@@ -153,9 +153,9 @@
 .ykc-detail-page:has(> .ykc-staff-record) { padding-bottom:0; }
 .content:has(> .ykc-detail-page > .ykc-staff-record) { padding-bottom:20px; }
 .ykc-staff-record .ykc-firm-record-head { padding:12px 18px; }
-.ykc-staff-identity-fields { display:flex; align-items:baseline; flex-wrap:wrap; gap:4px 18px; margin-top:5px; }
-.ykc-staff-record .ykc-staff-identity-fields h1 { margin:0; color:#213c52; font-size:16px; font-weight:700; }
-.ykc-staff-identity-fields h1 span { color:#617687; font-size:12px; font-weight:500; }
+.ykc-staff-identity-fields { display:grid; align-items:start; gap:3px; margin-top:4px; }
+.ykc-staff-record .ykc-staff-identity-fields h1 { display:flex; align-items:baseline; gap:6px; margin:0; color:#213c52; font-size:16px; font-weight:700; white-space:nowrap; }
+.ykc-staff-identity-fields h1 span { color:#617687; font-size:12px; font-weight:500; white-space:nowrap; }
 .ykc-staff-identity-fields > p { display:inline-flex; align-items:center; gap:5px; margin:0; font-size:12px; }
 .ykc-staff-identity-fields > p strong { color:#345269; font-weight:650; }
 .ykc-staff-data { grid-area:info; min-width:0; }
@@ -193,9 +193,10 @@
 .ykc-staff-record .ykc-comparison-heading { position:relative; display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
 .ykc-staff-record .ykc-comparison-heading > h2 { margin:0; }
 .ykc-comparison-warning-menu { position:relative; flex:0 0 auto; }
-.ykc-comparison-warning-menu > summary { width:30px; height:28px; display:flex; align-items:center; justify-content:center; gap:3px; padding:0; border:1px solid #e7c579; border-radius:5px; background:#fff7df; color:#9a6908; cursor:pointer; list-style:none; }
+.ykc-comparison-warning-menu > summary { width:42px; height:30px; display:inline-flex; align-items:center; justify-content:center; gap:5px; padding:0; border:1px solid #e7c579; border-radius:5px; background:#fff7df; color:#9a6908; cursor:pointer; list-style:none; line-height:1; }
 .ykc-comparison-warning-menu > summary::-webkit-details-marker { display:none; }
-.ykc-comparison-warning-menu > summary span { font-size:10px; font-weight:700; }
+.ykc-comparison-warning-menu > summary i { display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; font-size:13px; line-height:1; }
+.ykc-comparison-warning-menu > summary span { display:inline-flex; align-items:center; justify-content:center; min-width:15px; height:15px; padding:0 3px; border-radius:8px; background:#f2d895; color:#6f4b05; font-size:9px; font-weight:750; line-height:1; }
 .ykc-comparison-warning-list { position:absolute; top:34px; right:0; z-index:20; width:min(390px,70vw); padding:7px; border:1px solid #e7c579; border-radius:6px; background:#fff; box-shadow:0 12px 28px rgba(49,62,71,.16); }
 .ykc-staff-record .ykc-comparison-warning { margin:0; padding:7px 9px; border-left:3px solid #d3a33e; background:#fff9e9; color:#72551c; font-size:11px; line-height:1.45; }
 .ykc-staff-record .ykc-comparison-warning + .ykc-comparison-warning { margin-top:5px; }

@@ -17,6 +17,9 @@
     var personelMi = User.IsInRole("Personel");
     var ykcYetkileri = ViewBag.YkcYetkileri as YkcYetkiOzeti ?? new YkcYetkiOzeti();
 
+    string Link(string action, string controller) =>
+        Url.Action(action, controller) ?? throw new InvalidOperationException($"Menü bağlantısı bulunamadı: {controller}.{action}");
+
     string? panelAltBaslik = isSertifikaliFirmaPanel
         ? "Sertifikalı Firma"
         : isYetkiliServisPanel
@@ -73,71 +76,75 @@
     {
         if (links.Length > 0) groups.Add((title, icon, links.ToList()));
     }
-    var home = isYetkiliServisPanel ? "/ys-panel" : isSertifikaliFirmaPanel ? "/ykc" : isPersonelPanel ? "/personel-panel" : "/AdminPanel";
+    var home = isYetkiliServisPanel ? Link("Index", "YetkiliServisPanel")
+        : isSertifikaliFirmaPanel ? Link("Index", "Ykc")
+        : isPersonelPanel ? Link("Index", "PersonelPanel")
+        : Link("Index", "AdminPanel");
+    var onayBekleyenlerUrl = Link("OnayBekleyenler", isPersonelPanel ? "PersonelPanel" : "AdminPanel");
     var homeActive = ActiveExact(isSertifikaliFirmaPanel ? "YkcOzet" : "Dashboard", home, home + "/index");
     if (isYetkiliServisPanel)
     {
         Group("Cihaz Devreye Alma", "bi-bag-check",
-            ("Yeni Cihaz Devreye Alma Kaydı", "/ys-devreyeal", "bi-plus-lg", ActiveExact("DevreyeAl", "/ys-devreyeal")),
-            ("İşlem Geçmişi", "/ys-devreyeal/gecmis", "bi-clock-history", Active("DevreyeGecmis", "/ys-devreyeal/gecmis", "/ys-devreyeal/detay")),
-            ("Cihaz Devreye Alma Raporları", "/ys-panel/raporlar", "bi-bar-chart-line", Active("Raporlar", "/ys-panel/raporlar")));
+            ("Yeni Cihaz Devreye Alma Kaydı", Link("Index", "DevreyeAlma"), "bi-plus-lg", ActiveExact("DevreyeAl", "/ys-devreyeal")),
+            ("İşlem Geçmişi", Link("Gecmis", "DevreyeAlma"), "bi-clock-history", Active("DevreyeGecmis", "/ys-devreyeal/gecmis", "/ys-devreyeal/detay")),
+            ("Cihaz Devreye Alma Raporları", Link("Raporlar", "YetkiliServisPanel"), "bi-bar-chart-line", Active("Raporlar", "/ys-panel/raporlar")));
         Group("Yetkili Servis İşlemleri", "bi-tools",
-            ("Yetki Belgem", "/ys-yetki-belgesi", "bi-file-earmark-check", Active("YetkiBelgesi", "/ys-yetki-belgesi")),
-            ("Hizmet Verdiğim Markalar", "/ys-panel/markalar", "bi-tag", Active("Markalar", "/ys-panel/markalar")),
-            ("Şubelerim", "/ys-panel/subeler", "bi-building", Active("Subeler", "/ys-panel/subeler")));
+            ("Yetki Belgem", Link("Index", "YetkiBelgesi"), "bi-file-earmark-check", Active("YetkiBelgesi", "/ys-yetki-belgesi")),
+            ("Hizmet Verdiğim Markalar", Link("Markalar", "YetkiliServisPanel"), "bi-tag", Active("Markalar", "/ys-panel/markalar")),
+            ("Şubelerim", Link("Subeler", "YetkiliServisPanel"), "bi-building", Active("Subeler", "/ys-panel/subeler")));
         Group("Hesabım", "bi-person-circle",
-            ("Profilim", "/ys-panel/profil", "bi-person", Active("Profil", "/ys-panel/profil")));
+            ("Profilim", Link("Profil", "YetkiliServisPanel"), "bi-person", Active("Profil", "/ys-panel/profil")));
     }
     else if (isSertifikaliFirmaPanel)
     {
         Group("Cihaz Değişim İşlemleri", "bi-fire",
-            ("Yeni Cihaz Değişim Talebi", "/ykc/yeni", "bi-plus-lg", Active("YkcYeni", "/ykc/yeni")),
-            ("Cihaz Değişim Taleplerim", "/ykc/talepler", "bi-journal-text", Active("YkcTalepler", "/ykc/talepler", "/ykc/detay", "/ykc/fr265")));
+            ("Yeni Cihaz Değişim Talebi", Link("Yeni", "Ykc"), "bi-plus-lg", Active("YkcYeni", "/ykc/yeni")),
+            ("Cihaz Değişim Taleplerim", Link("Talepler", "Ykc"), "bi-journal-text", Active("YkcTalepler", "/ykc/talepler", "/ykc/detay", "/ykc/fr265")));
         Group("Hesabım", "bi-person-circle",
-            ("Profilim", "/ykc/profil", "bi-person", Active("Profil", "/ykc/profil")));
+            ("Profilim", Link("Profil", "Ykc"), "bi-person", Active("Profil", "/ykc/profil")));
     }
     else
     {
         var area = isPersonelPanel ? "/personel-panel" : "/AdminPanel";
         var certificates = new List<(string, string, string, string)> {
-            ("Onay Bekleyen Belgeler", area + "/onay-bekleyenler", "bi-file-earmark-check", Active("OnayBekleyenler", area + "/onay-bekleyenler"))
+            ("Onay Bekleyen Belgeler", onayBekleyenlerUrl, "bi-file-earmark-check", Active("OnayBekleyenler", area + "/onay-bekleyenler"))
         };
         if (isPersonelPanel)
-            certificates.Add(("Yetki Belgesi Geçmişi", area + "/onay-gecmisi", "bi-clock-history", Active("OnayGecmisi", area + "/onay-gecmisi")));
+            certificates.Add(("Yetki Belgesi Geçmişi", Link("OnayGecmisi", "PersonelPanel"), "bi-clock-history", Active("OnayGecmisi", area + "/onay-gecmisi")));
         else
-            certificates.Add(("Bitiş Uyarıları", area + "/yetki-belgesi-uyarilari", "bi-exclamation-triangle", Active("YetkiBelgesiUyarilari", area + "/yetki-belgesi-uyarilari")));
+            certificates.Add(("Bitiş Uyarıları", Link("YetkiBelgesiUyarilari", "AdminPanel"), "bi-exclamation-triangle", Active("YetkiBelgesiUyarilari", area + "/yetki-belgesi-uyarilari")));
         Group("Yetki Belgesi İşlemleri", "bi-file-earmark-check", certificates.ToArray());
         Group("Cihaz Devreye Alma", "bi-bag-check",
-            ("Cihaz Devreye Alma Kayıtları", area + "/devreyealmalar", "bi-list-check", Active("DevreyeAlmalar", area + "/devreyealmalar")));
+            ("Cihaz Devreye Alma Kayıtları", Link("DevreyeAlmalar", isPersonelPanel ? "PersonelPanel" : "AdminPanel"), "bi-list-check", Active("DevreyeAlmalar", area + "/devreyealmalar")));
         var ykc = new List<(string, string, string, string)>();
         if (!isPersonelPanel || ykcYetkileri.TalepleriGorebilir)
         {
-            ykc.Add(("Cihaz Değişim Talepleri", "/ykc/talepler", "bi-journal-text", ActiveUnless("YkcTalepler", "YkcRaporlar", "/ykc/talepler", "/ykc/detay", "/ykc/yeni", "/ykc/fr265")));
-            ykc.Add(("Cihaz Değişim Randevuları", "/ykc/takvim", "bi-calendar3", Active("YkcTakvim", "/ykc/takvim")));
+            ykc.Add(("Cihaz Değişim Talepleri", Link("Talepler", "Ykc"), "bi-journal-text", ActiveUnless("YkcTalepler", "YkcRaporlar", "/ykc/talepler", "/ykc/detay", "/ykc/yeni", "/ykc/fr265")));
+            ykc.Add(("Cihaz Değişim Randevuları", Link("Takvim", "Ykc"), "bi-calendar3", Active("YkcTakvim", "/ykc/takvim")));
         }
         if (!isPersonelPanel || ykcYetkileri.RaporlariGorebilir)
-            ykc.Add(("Cihaz Değişim Raporları", "/ykc/raporlar", "bi-bar-chart-line", Active("YkcRaporlar", "/ykc/raporlar")));
+            ykc.Add(("Cihaz Değişim Raporları", Link("Raporlar", "Ykc"), "bi-bar-chart-line", Active("YkcRaporlar", "/ykc/raporlar")));
         Group("Cihaz Değişim İşlemleri", "bi-fire", ykc.ToArray());
         var services = new List<(string, string, string, string)> {
-            ("Yetkili Servisler", area + "/yetkiliservisler", "bi-tools", Active("YetkiliServisler", area + "/yetkiliservisler"))
+            ("Yetkili Servisler", Link("YetkiliServisler", isPersonelPanel ? "PersonelPanel" : "AdminPanel"), "bi-tools", Active("YetkiliServisler", area + "/yetkiliservisler"))
         };
         if (isPersonelPanel || genelSistemAdminMi)
         {
-            var brands = isPersonelPanel ? area + "/markalar" : "/Marka";
+            var brands = isPersonelPanel ? Link("Markalar", "PersonelPanel") : Link("Index", "Marka");
             services.Add(("Yetkili Servis Markaları", brands, "bi-tag", Active("Markalar", brands)));
         }
         if (!isPersonelPanel)
-            services.Add(("Şubeler", area + "/subeler", "bi-building", Active("Subeler", area + "/subeler")));
+            services.Add(("Şubeler", Link("Subeler", "AdminPanel"), "bi-building", Active("Subeler", area + "/subeler")));
         Group("Yetkili Servis Yönetimi", "bi-tools", services.ToArray());
         if (!isPersonelPanel)
             Group("Kullanıcı ve Yetki Yönetimi", "bi-people",
-                ("Personeller", area + "/personeller", "bi-person-badge", Active("Personeller", area + "/personeller")),
-                ("Kullanıcılar", area + "/kullanicilar", "bi-people", Active("Kullanicilar", area + "/kullanicilar")),
-                ("Yetkiler", area + "/yetkiler", "bi-shield-check", Active("Yetkiler", area + "/yetkiler")));
+                ("Personeller", Link("Personeller", "AdminPanel"), "bi-person-badge", Active("Personeller", area + "/personeller")),
+                ("Kullanıcılar", Link("Kullanicilar", "AdminPanel"), "bi-people", Active("Kullanicilar", area + "/kullanicilar")),
+                ("Yetkiler", Link("Yetkiler", "AdminPanel"), "bi-shield-check", Active("Yetkiler", area + "/yetkiler")));
         Group("Raporlama", "bi-bar-chart-line",
-            ("Operasyon Raporları", area + "/raporlar", "bi-graph-up", Active("Raporlar", area + "/raporlar")));
+            ("Operasyon Raporları", Link("Raporlar", isPersonelPanel ? "PersonelPanel" : "AdminPanel"), "bi-graph-up", Active("Raporlar", area + "/raporlar")));
         Group("Hesabım", "bi-person-circle",
-            ("Profilim", area + "/profil", "bi-person", Active("Profil", area + "/profil")));
+            ("Profilim", Link("Profil", isPersonelPanel ? "PersonelPanel" : "AdminPanel"), "bi-person", Active("Profil", area + "/profil")));
     }
 }
 <aside class="sidebar">
@@ -165,7 +172,7 @@
                     {
                         <a class="@("nav-subitem" + link.Active)" href="@link.Url" aria-current="@(link.Active.Length > 0 ? "page" : null)">
                             <i class="bi @link.Icon" aria-hidden="true"></i><span>@link.Text</span>
-                            @if (link.Url.EndsWith("/onay-bekleyenler") && (ViewBag.OnayBekleyen ?? 0) > 0)
+                            @if (link.Url == onayBekleyenlerUrl && (ViewBag.OnayBekleyen ?? 0) > 0)
                             {
                                 <span class="nav-badge">@ViewBag.OnayBekleyen</span>
                             }
@@ -175,5 +182,5 @@
             </details>
         }
     </nav>
-    <a class="cikis-btn" href="/cikis"><i class="bi bi-box-arrow-right" aria-hidden="true"></i> Güvenli Çıkış</a>
+    <a class="cikis-btn" href="@Link("Cikis", "Giris")"><i class="bi bi-box-arrow-right" aria-hidden="true"></i> Güvenli Çıkış</a>
 </aside>

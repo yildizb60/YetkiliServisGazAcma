@@ -15,6 +15,9 @@
     var raporAylikJson = System.Text.Json.JsonSerializer.Serialize(ViewBag.RaporAylik ?? new List<int>());
     var raporMarkaJson = System.Text.Json.JsonSerializer.Serialize(ViewBag.RaporMarka ?? new List<string>());
     var raporMarkaSayiJson = System.Text.Json.JsonSerializer.Serialize(ViewBag.RaporMarkaSayi ?? new List<int>());
+    var disAktarilabilir = Convert.ToInt32(ViewBag.RaporToplam ?? 0) > 0;
+    var pdfUrl = Url.Action("RaporlarPdf", "PersonelPanel", new { bas = basTarih.ToString("yyyy-MM-dd"), bit = bitTarih.ToString("yyyy-MM-dd") });
+    var excelUrl = Url.Action("RaporlarExcel", "PersonelPanel", new { bas = basTarih.ToString("yyyy-MM-dd"), bit = bitTarih.ToString("yyyy-MM-dd") });
 }
 
 @section PageStyles {
@@ -56,6 +59,13 @@
                 <span class="df-admin-metric is-waiting"><i class="bi bi-hourglass-split" aria-hidden="true"></i><span>Bekleyen</span><strong>@ViewBag.RaporBekleyen</strong></span>
                 <span class="df-admin-metric is-rejected"><i class="bi bi-x-circle" aria-hidden="true"></i><span>İptal</span><strong>@ViewBag.RaporIptal</strong></span>
             </div>
+            @if (listeTipi == "devreye")
+            {
+                <div class="df-report-export-actions" aria-label="Raporu dışa aktar">
+                    <a class="df-btn df-btn-sm df-btn-pdf @(!disAktarilabilir ? "is-disabled" : "")" href="@(disAktarilabilir ? pdfUrl : "#")" aria-disabled="@(!disAktarilabilir ? "true" : "false")" title="Filtrelenen kayıtları PDF olarak indir"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF İndir</a>
+                    <a class="df-btn df-btn-sm df-btn-excel @(!disAktarilabilir ? "is-disabled" : "")" href="@(disAktarilabilir ? excelUrl : "#")" aria-disabled="@(!disAktarilabilir ? "true" : "false")" title="Filtrelenen kayıtları Excel olarak indir"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel İndir</a>
+                </div>
+            }
         </div>
         @if (listeTipi == "devreye")
         {

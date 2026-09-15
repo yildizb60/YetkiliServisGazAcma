@@ -2,9 +2,22 @@
 @{
     var alan = ViewData["DevreyeAlmaAlan"] as string ?? "/personel-panel";
     var servisPaneli = alan == "/ys-devreyeal";
-    var liste = servisPaneli ? "/ys-devreyeal/gecmis" : alan + "/devreyealmalar";
-    var pdf = servisPaneli ? $"/ys-devreyeal/pdf/{Model.Id}" : alan == "/AdminPanel" ? $"{liste}/pdf/{Model.Id}" : $"{alan}/devreyealma-pdf/{Model.Id}";
-    var excel = servisPaneli ? $"/ys-devreyeal/excel/{Model.Id}" : alan == "/AdminPanel" ? $"{liste}/excel/{Model.Id}" : $"{alan}/devreyealma-excel/{Model.Id}";
+    var adminPaneli = alan == "/AdminPanel";
+    var liste = servisPaneli
+        ? Url.Action("Gecmis", "DevreyeAlma")
+        : adminPaneli
+            ? Url.Action("DevreyeAlmalar", "AdminPanel")
+            : Url.Action("DevreyeAlmalar", "PersonelPanel");
+    var pdf = servisPaneli
+        ? Url.Action("PdfIndir", "DevreyeAlma", new { id = Model.Id })
+        : adminPaneli
+            ? Url.Action("DevreyeAlmaPdf", "AdminPanel", new { id = Model.Id })
+            : Url.Action("DevreyeAlmaPdf", "PersonelPanel", new { id = Model.Id });
+    var excel = servisPaneli
+        ? Url.Action("ExcelIndir", "DevreyeAlma", new { id = Model.Id })
+        : adminPaneli
+            ? Url.Action("DevreyeAlmaExcel", "AdminPanel", new { id = Model.Id })
+            : Url.Action("DevreyeAlmaExcel", "PersonelPanel", new { id = Model.Id });
     var durum = Model.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? ("Tamamlandı", "df-pill-success")
         : Model.Durum == DevreyeAlmaDurumDegerleri.Iptal ? ("İptal", "df-pill-danger") : ("Bekliyor", "df-pill-warning");
 }

@@ -40,7 +40,7 @@ namespace YetkiliServisGazAcma.API.Services
 
         public async Task<DevreyeAlmaExportDosya> AdminRaporPdfAsync(int? sirketId, DateTime? bas, DateTime? bit, List<int>? ids)
         {
-            var (islemler, basTarih, bitTarih) = await AdminRaporIslemleriAsync(sirketId, bas, bit, ids, ids?.Count > 0 ? null : 20);
+            var (islemler, basTarih, bitTarih) = await AdminRaporIslemleriAsync(sirketId, bas, bit, ids);
             return new DevreyeAlmaExportDosya
             {
                 Bytes = DevreyeAlmaRaporPdfService.AdminRaporuOlustur(islemler, basTarih, bitTarih),
@@ -51,18 +51,18 @@ namespace YetkiliServisGazAcma.API.Services
 
         public async Task<DevreyeAlmaExportDosya> AdminRaporExcelAsync(int? sirketId, DateTime? bas, DateTime? bit, List<int>? ids)
         {
-            var (islemler, basTarih, bitTarih) = await AdminRaporIslemleriAsync(sirketId, bas, bit, ids, take: null);
+            var (islemler, basTarih, bitTarih) = await AdminRaporIslemleriAsync(sirketId, bas, bit, ids);
             return new DevreyeAlmaExportDosya
             {
                 Bytes = DevreyeAlmaExcelService.Olustur(islemler),
-                ContentType = "text/csv; charset=windows-1254",
-                DosyaAdi = RaporDosyaAdi("raporlar", basTarih, bitTarih, "csv")
+                ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                DosyaAdi = RaporDosyaAdi("raporlar", basTarih, bitTarih, "xlsx")
             };
         }
 
         public async Task<DevreyeAlmaExportDosya> YetkiliServisRaporPdfAsync(int firmaId, DateTime? bas, DateTime? bit, List<int>? ids)
         {
-            var (islemler, basTarih, bitTarih) = await YetkiliServisRaporIslemleriAsync(firmaId, bas, bit, ids, ids?.Count > 0 ? null : 10);
+            var (islemler, basTarih, bitTarih) = await YetkiliServisRaporIslemleriAsync(firmaId, bas, bit, ids);
             return new DevreyeAlmaExportDosya
             {
                 Bytes = DevreyeAlmaRaporPdfService.YetkiliServisRaporuOlustur(islemler, basTarih, bitTarih),
@@ -73,12 +73,12 @@ namespace YetkiliServisGazAcma.API.Services
 
         public async Task<DevreyeAlmaExportDosya> YetkiliServisRaporExcelAsync(int firmaId, DateTime? bas, DateTime? bit, List<int>? ids)
         {
-            var (islemler, basTarih, bitTarih) = await YetkiliServisRaporIslemleriAsync(firmaId, bas, bit, ids, take: null);
+            var (islemler, basTarih, bitTarih) = await YetkiliServisRaporIslemleriAsync(firmaId, bas, bit, ids);
             return new DevreyeAlmaExportDosya
             {
                 Bytes = DevreyeAlmaExcelService.Olustur(islemler),
-                ContentType = "text/csv; charset=windows-1254",
-                DosyaAdi = RaporDosyaAdi("raporlar", basTarih, bitTarih, "csv")
+                ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                DosyaAdi = RaporDosyaAdi("raporlar", basTarih, bitTarih, "xlsx")
             };
         }
 
@@ -99,8 +99,7 @@ namespace YetkiliServisGazAcma.API.Services
             int? sirketId,
             DateTime? bas,
             DateTime? bit,
-            List<int>? ids,
-            int? take)
+            List<int>? ids)
         {
             var basTarih = bas?.Date ?? DateTime.Now.Date.AddDays(-30);
             var bitTarih = bit?.Date ?? DateTime.Now.Date;
@@ -127,9 +126,7 @@ namespace YetkiliServisGazAcma.API.Services
             query = query.Where(x => x.OlusturmaTarihi >= basTarih && x.OlusturmaTarihi < bitSonrasi)
                 .OrderByDescending(x => x.OlusturmaTarihi);
 
-            var islemler = take.HasValue
-                ? await query.Take(take.Value).ToListAsync()
-                : await query.ToListAsync();
+            var islemler = await query.ToListAsync();
 
             return (islemler, basTarih, bitTarih);
         }
@@ -138,8 +135,7 @@ namespace YetkiliServisGazAcma.API.Services
             int firmaId,
             DateTime? bas,
             DateTime? bit,
-            List<int>? ids,
-            int? take)
+            List<int>? ids)
         {
             var query = YetkiliServisDevreyeAlmaQuery(firmaId);
             DateTime basTarih;
@@ -190,9 +186,7 @@ namespace YetkiliServisGazAcma.API.Services
             query = query.Where(x => x.DevreyeAlmaTarihi >= basTarih && x.DevreyeAlmaTarihi < bitSonrasi)
                 .OrderByDescending(x => x.DevreyeAlmaTarihi);
 
-            var islemler = take.HasValue
-                ? await query.Take(take.Value).ToListAsync()
-                : await query.ToListAsync();
+            var islemler = await query.ToListAsync();
 
             return (islemler, basTarih, bitTarih);
         }
@@ -221,8 +215,8 @@ namespace YetkiliServisGazAcma.API.Services
             return new DevreyeAlmaExportDosya
             {
                 Bytes = DevreyeAlmaExcelService.Olustur(new[] { kayit }),
-                ContentType = "text/csv; charset=windows-1254",
-                DosyaAdi = $"DevreyeAlma_{kayit.TesistatNo ?? kayit.Id.ToString()}_{kayit.Id}.csv"
+                ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                DosyaAdi = $"DevreyeAlma_{kayit.TesistatNo ?? kayit.Id.ToString()}_{kayit.Id}.xlsx"
             };
         }
 

@@ -76,8 +76,9 @@
             }
             // Scripts in returned HTML are deliberately not executed.
             selectMode(mode || 'firma', false);
-            const heading = shell.querySelector('h1');
-            if (heading) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); }
+            // The replaced card is already announced as a live region. Moving focus to
+            // the heading caused a browser focus frame that looked like a stray border.
+            shell.querySelector('.login-card')?.setAttribute('aria-live', 'polite');
         } catch (error) {
             let message = shell.querySelector('[data-login-network-error]');
             if (!message) {

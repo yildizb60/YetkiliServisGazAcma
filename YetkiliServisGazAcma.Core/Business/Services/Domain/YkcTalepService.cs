@@ -105,8 +105,24 @@ namespace YetkiliServisGazAcma.Business.Services
                 HedefOzetleri = hedefOzetleri,
                 EkipOzetleri = ekipOzetleri,
                 FirmaOzetleri = firmaOzetleri,
-                Kayitlar = kayitlar.Select(YkcRaporKayitDto.FromEntity).ToList()
+                Kayitlar = kayitlar.Select(x => RaporGorunumu(x, kullanici)).ToList()
             };
+        }
+
+        public async Task<List<YkcRaporKayitDto>> RaporKayitlariAsync(
+            YkcTalepListeFiltre filtre,
+            AppKullanici kullanici,
+            bool genelYetkili,
+            int kayitLimiti)
+        {
+            var limit = Math.Clamp(kayitLimiti, 1, 5001);
+            var kayitlar = await FiltreleriUygula(TalepQuery(), filtre, kullanici, genelYetkili)
+                .OrderByDescending(x => x.TalepTarihi)
+                .ThenByDescending(x => x.Id)
+                .Take(limit)
+                .ToListAsync();
+
+            return kayitlar.Select(x => RaporGorunumu(x, kullanici)).ToList();
         }
 
         public async Task<YkcDashboardOzetDto> DashboardOzetAsync(AppKullanici kullanici, bool genelYetkili, int? aktifSirketId = null)
@@ -616,6 +632,22 @@ namespace YetkiliServisGazAcma.Business.Services
             talep.GuncellemeTarihi = DateTime.Now;
             talep.GuncelleyenKullanici = kullanici.UserName;
 
+            var yeniRandevuGerekli = YkcKontrolAkisKurali.YeniRandevuGerekli(kontrolSatirlari[0].Sonuc);
+            if (yeniRandevuGerekli)
+            {
+                // Tamamlanan atama Ykc_Atamalar tablosunda korunur; talebin guncel gorevi yeni planlamaya doner.
+                talep.Durum = YkcDurumDegerleri.AtamaBekliyor;
+                talep.AtananKullaniciId = null;
+                talep.AtananKullaniciTipi = null;
+                talep.AtananEkip = null;
+                talep.HedefUygulama = null;
+                talep.RandevuTarihi = null;
+                talep.RandevuSaati = null;
+                talep.RandevuId = null;
+                talep.CallCenterTetiklenecekMi = false;
+                talep.CallCenterTetiklendiMi = false;
+            }
+
             if (imzaSureci != null
                 && imzaSureci.Durum is YkcImzaDurumDegerleri.Hazir or YkcImzaDurumDegerleri.Hata)
             {
@@ -637,7 +669,9 @@ namespace YetkiliServisGazAcma.Business.Services
                 TalepId = talep.Id,
                 IslemTipi = "FR265KontrolleriGuncellendi",
                 YeniDurum = talep.Durum,
-                Aciklama = "Form kontrol sonucu güncellendi.",
+                Aciklama = yeniRandevuGerekli
+                    ? "Kontrol uygun değil kaydedildi; yeni kontrol randevusu bekleniyor."
+                    : "Form kontrol sonucu güncellendi.",
                 KullaniciId = kullanici.Id,
                 KullaniciAdi = kullanici.UserName,
                 OlusturmaTarihi = DateTime.Now,
@@ -1023,6 +1057,21 @@ namespace YetkiliServisGazAcma.Business.Services
                 dto.AtananEkip = null;
                 dto.HedefUygulama = null;
             }
+            return dto;
+        }
+
+        private static YkcRaporKayitDto RaporGorunumu(Ykc_Talep talep, AppKullanici kullanici)
+        {
+            var dto = YkcRaporKayitDto.FromEntity(talep);
+            if (kullanici.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma)
+            {
+                dto.EskiCihazTipi = null;
+                dto.EskiMarka = null;
+                dto.EskiKapasite = null;
+                dto.AtananEkip = null;
+                dto.HedefUygulama = null;
+            }
+
             return dto;
         }
 
@@ -1451,8 +1500,13 @@ namespace YetkiliServisGazAcma.Business.Services
         public string? SirketAdi { get; set; }
         public string? MusteriAdi { get; set; }
         public string? TesisatNo { get; set; }
+        public string? SozlesmeNo { get; set; }
+        public string? AboneNo { get; set; }
         public string? ProjeNo { get; set; }
         public string? SayacNo { get; set; }
+        public string? Il { get; set; }
+        public string? Ilce { get; set; }
+        public string? Adres { get; set; }
         public string? EskiCihazTipi { get; set; }
         public string? EskiMarka { get; set; }
         public string? EskiKapasite { get; set; }
@@ -1480,8 +1534,13 @@ namespace YetkiliServisGazAcma.Business.Services
                 SirketAdi = talep.Sirket?.SirketAdi,
                 MusteriAdi = talep.MusteriAdi,
                 TesisatNo = talep.TesisatNo,
+                SozlesmeNo = talep.SozlesmeNo,
+                AboneNo = talep.AboneNo,
                 ProjeNo = talep.ProjeNo,
                 SayacNo = talep.SayacNo,
+                Il = talep.Il,
+                Ilce = talep.Ilce,
+                Adres = talep.Adres,
                 EskiCihazTipi = talep.EskiCihazTipi,
                 EskiMarka = talep.EskiMarka,
                 EskiKapasite = talep.EskiKapasite,

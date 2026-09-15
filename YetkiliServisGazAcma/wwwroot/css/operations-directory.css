@@ -38,11 +38,36 @@
 .df-approval-history-workspace .df-admin-list-card > .df-admin-filter { margin:0; border:0; border-bottom:1px solid var(--df-border); border-radius:0; }
 .df-operations-directory .df-service-list-head.is-operation-toolbar {
     min-height: 54px;
-    grid-template-columns: minmax(160px, 1fr) auto auto;
+    grid-template-columns: minmax(160px, 1fr) auto;
     gap: 14px;
     padding: 8px 12px;
     overflow: visible;
 }
+.df-export-actions { display:flex; align-items:center; justify-content:flex-end; gap:7px; }
+.df-export-actions .df-btn { min-height:32px; padding-inline:10px; font-size:11px; white-space:nowrap; }
+.df-export-actions .df-btn:disabled { opacity:.48; cursor:not-allowed; }
+.df-commissioning-table { min-width:970px; table-layout:fixed; }
+.df-commissioning-table th:nth-child(2) { width:125px; }
+.df-commissioning-table th:nth-child(3) { width:140px; }
+.df-commissioning-table th:nth-child(4) { width:160px; }
+.df-commissioning-table th:nth-child(4),
+.df-commissioning-table td:nth-child(4) { padding-left:16px; border-left:1px solid #edf1f4; }
+.df-commissioning-table th:nth-child(5) { width:150px; }
+.df-commissioning-table th:nth-child(6) { width:105px; }
+.df-commissioning-table th:nth-child(7) { width:110px; }
+.df-commissioning-table th:nth-child(8) { width:84px; }
+.df-commissioning-table th:nth-child(9) { width:50px; }
+.df-commissioning-table th { color:#53677a; font-size:10.5px; font-weight:650; line-height:1.3; white-space:normal; }
+.df-commissioning-table td { color:#40566a; font-size:11.5px; font-weight:400; }
+.df-commissioning-table tbody tr { min-height:58px; }
+.df-commissioning-table .df-cell-main { color:#263f55; font-size:12px; font-weight:650; }
+.df-commissioning-table .df-cell-value { color:#344e63; font-size:11.5px; font-weight:500; }
+.df-commissioning-table td:nth-child(5) .df-cell-sub { display:-webkit-box; overflow:hidden; -webkit-box-orient:vertical; -webkit-line-clamp:2; line-clamp:2; }
+.df-commissioning-table .commissioning-row-action { width:30px; height:30px; min-height:30px; padding:0; display:inline-grid; place-items:center; }
+.df-operation-id-list { display:grid; gap:3px; margin:0; }
+.df-operation-id-list > div { display:grid; grid-template-columns:72px minmax(0,1fr); gap:5px; }
+.df-operation-id-list dt { color:#758797; font-size:10px; font-weight:450; }
+.df-operation-id-list dd { margin:0; color:#344f65; font-size:11px; font-weight:550; white-space:nowrap; }
 .df-operation-list-title span { margin-top: 2px; }
 .df-operation-summary { display:flex; align-items:stretch; margin:0; border:1px solid var(--df-border); border-radius:5px; background:#fff; }
 .df-operation-summary > div { min-width:82px; padding:6px 10px; }

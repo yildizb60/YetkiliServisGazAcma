@@ -9,6 +9,14 @@ void Check(bool condition, string name)
     passed++;
 }
 
+string ExcelParcasi(byte[] bytes, string path)
+{
+    using var archive = new System.IO.Compression.ZipArchive(new MemoryStream(bytes));
+    using var reader = new StreamReader(archive.GetEntry(path)?.Open()
+        ?? throw new InvalidOperationException($"Excel parçası bulunamadı: {path}"));
+    return reader.ReadToEnd();
+}
+
 // No database or external providers: checks cannot alter application records.
 var adminSetup = YetkiliServisIlkKurulumService.Degerlendir(
     YetkiliServisOlusturmaTipleri.Admin, true, true, true, true);
@@ -80,6 +88,10 @@ Check(YkcRandevuKurali.Cakisiyor(appointment, appointment.AddMinutes(9), 10), "C
 Check(!YkcRandevuKurali.Cakisiyor(appointment, appointment.AddMinutes(10), 10), "Exact interval boundary allowed");
 Check(YkcRandevuKurali.Cakisiyor(appointment, appointment.AddMinutes(-9), 10), "Interval is symmetric");
 Check(YkcRandevuKurali.Cakisiyor(appointment.Date, appointment.Date.AddMinutes(-5), 10), "Interval crosses midnight");
+Check(YkcKontrolAkisKurali.YeniRandevuGerekli(YkcFr265KontrolSonucDegerleri.UygunDegil),
+    "Unsuccessful control requires a new appointment");
+Check(!YkcKontrolAkisKurali.YeniRandevuGerekli(YkcFr265KontrolSonucDegerleri.Uygun),
+    "Successful control continues to form and signature");
 
 Check(YkcCihazUyumKurali.Kapasite("20000,5", out var capacity) && capacity == 20000.5m, "Decimal comma accepted");
 Check(!YkcCihazUyumKurali.Kapasite("string", out _), "Placeholder capacity rejected");
@@ -126,11 +138,48 @@ var demoPdf = YkcFr265PdfService.ImzaliNihaiOlustur(form, new() { ImzaliNihaiMi 
 Check(System.Text.Encoding.ASCII.GetString(formPdf.Bytes, 0, 5) == "%PDF-", "Draft renders as PDF");
 Check(demoPdf.ContentType == "application/pdf" && demoPdf.DosyaAdi.Contains(YkcFr265PdfService.TasarimSurumu),
     "Demo final uses the versioned Word-template PDF layout");
+
+var raporKaydi = new YkcRaporKayitDto
+{
+    Id = 88,
+    TalepTarihi = new DateTime(2026, 9, 15, 10, 30, 0),
+    TesisatNo = "1000132",
+    SozlesmeNo = "432237",
+    AboneNo = "34760217156",
+    MusteriAdi = "Berrin Yıldız",
+    FirmaAdi = "Demo Sertifikalı Firma",
+    SirketAdi = "Çorumgaz Doğalgaz A.Ş.",
+    EskiCihazTipi = "Kombi",
+    EskiMarka = "Kaynak Marka",
+    EskiKapasite = "20000 kcal/h",
+    YeniCihazTipi = "Kombi",
+    YeniMarka = "Yeni Marka",
+    YeniModel = "=HYPERLINK(\"https://example.invalid\")",
+    YeniKapasite = "24000 kcal/h",
+    Il = "Çorum",
+    Ilce = "Merkez",
+    Durum = YkcDurumDegerleri.Tamamlandi,
+    ImzaliNihaiBelgeVar = true
+};
+var icOperasyonExcel = YkcRaporExcelService.Olustur(new[] { raporKaydi }, icOperasyon: true);
+var icOperasyonExcelXml = ExcelParcasi(icOperasyonExcel, "xl/worksheets/sheet1.xml");
+Check(icOperasyonExcel[0] == (byte)'P' && icOperasyonExcel[1] == (byte)'K', "YKC export is a real XLSX package");
+Check(icOperasyonExcelXml.Contains("Projedeki Marka") && icOperasyonExcelXml.Contains("Berrin Yıldız"),
+    "Internal XLSX contains Turkish headings and report data");
+Check(icOperasyonExcelXml.Contains("=HYPERLINK") && !icOperasyonExcelXml.Contains("<f>"),
+    "Formula-looking values remain plain Excel text");
+var firmaExcelXml = ExcelParcasi(YkcRaporExcelService.Olustur(new[] { raporKaydi }, icOperasyon: false), "xl/worksheets/sheet1.xml");
+Check(!firmaExcelXml.Contains("Projedeki Marka") && !firmaExcelXml.Contains("Kaynak Marka"),
+    "Firm XLSX does not expose source-device columns");
+var raporPdf = YkcRaporPdfService.Olustur(new[] { raporKaydi }, icOperasyon: true);
+Check(System.Text.Encoding.ASCII.GetString(raporPdf, 0, 5) == "%PDF-", "YKC report export is a PDF");
 if (args.Length == 2 && args[0] == "--form-output")
 {
     Directory.CreateDirectory(args[1]);
     File.WriteAllBytes(Path.Combine(args[1], "form-draft.pdf"), formPdf.Bytes);
     File.WriteAllBytes(Path.Combine(args[1], "form-demo.pdf"), demoPdf.Bytes);
     File.WriteAllBytes(Path.Combine(args[1], "form-source.docx"), wordForm.Bytes);
+    File.WriteAllBytes(Path.Combine(args[1], "ykc-report.pdf"), raporPdf);
+    File.WriteAllBytes(Path.Combine(args[1], "ykc-report.xlsx"), icOperasyonExcel);
 }
 Console.WriteLine($"{passed} checks passed. No application data changed.");

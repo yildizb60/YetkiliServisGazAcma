@@ -63,6 +63,8 @@
         ? kontrolSatirlari.FirstOrDefault(x => x.KontrolNo == aktifKontrolNo.Value)
         : null;
     var tekrarKontrolBekleniyor = sonKontrol?.Sonuc == YkcFr265KontrolSonucDegerleri.UygunDegil && aktifKontrolNo.HasValue;
+    var tekrarRandevuBekleniyor = tekrarKontrolBekleniyor
+        && Model.Durum == YkcDurumDegerleri.AtamaBekliyor;
     var talepImzayaHazir = Model.Durum == YkcDurumDegerleri.SahaIsleminde
         && Model.RandevuTarihi.HasValue
         && !string.IsNullOrWhiteSpace(Model.RandevuSaati)
@@ -171,6 +173,11 @@
             gorevBasligi = "Kontrol sonucunu girin";
             gorevAciklamasi = "Kontrol sonucunu Uygun veya Uygun Değil olarak kaydedin.";
         }
+    }
+    else if (icOperasyonGorsun && tekrarRandevuBekleniyor)
+    {
+        gorevBasligi = $"{aktifKontrolNo}. kontrol için randevu planlayın";
+        gorevAciklamasi = "Önceki kontrol uygun değil sonuçlandı. Yeni ekip ve randevu kaydedildikten sonra kontrol süreci devam eder.";
     }
     if (!icOperasyonGorsun)
     {
@@ -303,7 +310,7 @@
     <link rel="stylesheet" href="~/css/ykc-detail-refresh.css" asp-append-version="true" />
 }
 
-<div class="ykc-workspace ykc-detail-page is-streamlined" data-return-context="@kaynak">
+<div class="ykc-workspace ykc-detail-page is-streamlined" data-return-context="@kaynak" data-request-id="@Model.Id">
     @if (TempData["Hata"] != null)
     {
         <div class="df-alert df-alert-danger">@TempData["Hata"]</div>
@@ -433,7 +440,7 @@
             {
                 <details class="ykc-assignment-disclosure" open="@(Model.Durum == YkcDurumDegerleri.AtamaBekliyor ? "open" : null)">
                     <summary>
-                        <span><strong>@(Model.Durum == YkcDurumDegerleri.AtamaBekliyor ? "Randevu ve yönlendirme bilgileri" : "Randevuyu güncelle")</strong></span>
+                        <span><strong>@(tekrarRandevuBekleniyor ? $"{aktifKontrolNo}. kontrol randevusu" : Model.Durum == YkcDurumDegerleri.AtamaBekliyor ? "Randevu ve yönlendirme bilgileri" : "Randevuyu güncelle")</strong></span>
                         <i class="bi bi-chevron-down"></i>
                     </summary>
                     <form method="post" action="/ykc/atama-yap" class="ykc-assignment-form">
@@ -469,7 +476,7 @@
                             <div class="ykc-field"><label>Randevu Saati</label><div class="ykc-picker"><input id="randevuSaati" type="time" name="RandevuSaati" value="@Model.RandevuSaati" required /><button type="button" data-picker="#randevuSaati" title="Saati seç"><i class="bi bi-clock"></i></button></div></div>
                             <div class="ykc-field ykc-field-wide"><label>Not</label><textarea name="Aciklama" placeholder="Atama ve yönlendirme notu"></textarea></div>
                         </div>
-                        <div class="ykc-form-actions"><button class="df-btn df-btn-primary" type="submit"><i class="bi bi-calendar2-check"></i> @(Model.Durum == YkcDurumDegerleri.AtamaBekliyor ? "Randevuyu Kaydet" : "Randevuyu Güncelle")</button></div>
+                        <div class="ykc-form-actions"><button class="df-btn df-btn-primary" type="submit"><i class="bi bi-calendar2-check"></i> @(tekrarRandevuBekleniyor ? $"{aktifKontrolNo}. Kontrol Randevusunu Kaydet" : Model.Durum == YkcDurumDegerleri.AtamaBekliyor ? "Randevuyu Kaydet" : "Randevuyu Güncelle")</button></div>
                     </form>
                 </details>
             }
@@ -498,14 +505,10 @@
         {
             <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/dosya/@imzaliBelge.Id" target="_blank"><i class="bi bi-download"></i> İmzalı Belgeyi İndir</a>
         }
-        @if (demoImzaModu && imzaliBelgeHazir)
-        {
-            <p class="ykc-demo-caption"><i class="bi bi-info-circle"></i> Demo belgesidir; gerçek e-imza içermez.</p>
-        }
     @if (icOperasyonGorsun && (Model.Durum == YkcDurumDegerleri.SahaIsleminde || sonucGirilenKontroller.Any()))
     {
         <details class="ykc-detail-section @(kontrolBolumuAktif ? "is-current-task" : null)" id="fr265-controls" data-auto-focus="@(kontrolBolumuAktif ? "true" : "false")" tabindex="-1" open="@(kontrolBolumuAktif ? "open" : null)">
-            <summary><span><strong>Kontrol Sonucu</strong><small>@(aktifKontrolNo.HasValue ? $"{aktifKontrolNo}. kontrol" : "Kontrol geçmişi")</small></span><i class="bi bi-chevron-down"></i></summary>
+            <summary><span><strong>@(tekrarRandevuBekleniyor ? "Kontrol Geçmişi" : "Kontrol Sonucu")</strong><small>@(tekrarRandevuBekleniyor ? "Yeni randevu bekleniyor" : aktifKontrolNo.HasValue ? $"{aktifKontrolNo}. kontrol" : "Kontrol geçmişi")</small></span><i class="bi bi-chevron-down"></i></summary>
             <div class="ykc-detail-section-body">
                 @if (sonucGirilenKontroller.Any())
                 {
@@ -764,6 +767,17 @@
             const warnings = Array.from(document.querySelectorAll('[data-device-warning]'))
                 .map(element => element.dataset.deviceWarning)
                 .filter(Boolean);
+            if (!warnings.length) return;
+
+            const requestId = document.querySelector('[data-request-id]')?.dataset.requestId || 'unknown';
+            const storageKey = `ykc-device-warnings:${requestId}`;
+            const signature = warnings.join('\u001f');
+            try {
+                if (window.sessionStorage.getItem(storageKey) === signature) return;
+                window.sessionStorage.setItem(storageKey, signature);
+            } catch {
+                // Bildirim depolamasi kapaliysa ekran yine calisir; uyarilar bu yuklemede gosterilir.
+            }
             warnings.forEach((message, index) => {
                 window.setTimeout(() => window.operationToast?.warning(message, 3000), 450 + (index * 3300));
             });

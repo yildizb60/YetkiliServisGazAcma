@@ -4799,6 +4799,27 @@ body.df-modal-open {
     }
 }
 
+/* The active menu group stays scannable without introducing a second visible page scrollbar. */
+.sidebar .sidebar-nav {
+    padding: 9px 8px;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none;
+}
+.sidebar .sidebar-nav::-webkit-scrollbar { display: none; width: 0; height: 0; }
+.sidebar .sidebar-nav .nav-section-title { padding: 0 10px 6px; }
+.sidebar .sidebar-nav .nav-item { padding: 8px 10px; font-size: 12px; line-height: 1.3; }
+.sidebar .sidebar-nav .nav-item-group { margin: 1px 0; }
+.sidebar .sidebar-nav .nav-item-group > summary {
+    grid-template-columns: 16px minmax(0, 1fr) 10px;
+    gap: 8px;
+    padding: 8px 10px;
+    font-size: 12px;
+    line-height: 1.3;
+}
+.sidebar .sidebar-nav .nav-submenu { margin: 0 3px 3px 17px; padding-left: 7px; }
+.sidebar .sidebar-nav .nav-subitem { gap: 7px; padding: 7px 7px; font-size: 11px; line-height: 1.35; }
+.sidebar > .cikis-btn { margin: 8px 14px 12px; }
+
 .df-user-directory-bar {
     display: flex;
     align-items: center;

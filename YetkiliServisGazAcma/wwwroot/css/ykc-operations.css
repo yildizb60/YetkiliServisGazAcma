@@ -3630,8 +3630,8 @@
 }
 
 .ykc-results .ykc-report-table { table-layout: fixed; }
-.ykc-results .ykc-report-table.is-internal { min-width: 1160px; }
-.ykc-results .ykc-report-table.is-firm { min-width: 980px; }
+.ykc-results .ykc-report-table.is-internal { min-width: 980px; }
+.ykc-results .ykc-report-table.is-firm { min-width: 860px; }
 .ykc-results .ykc-report-table th,
 .ykc-results .ykc-report-table td {
     padding: 10px 9px;
@@ -3643,9 +3643,34 @@
     white-space: normal;
     text-align: center;
 }
+.ykc-report-device-change {
+    display:grid;
+    grid-template-columns:minmax(0,1fr) 14px minmax(0,1fr);
+    align-items:stretch;
+    gap:4px;
+}
+.ykc-report-device-change > span {
+    min-width:0;
+    padding:5px 6px;
+    display:grid;
+    gap:1px;
+    border-left:2px solid #71879a;
+    background:#f5f8fa;
+}
+.ykc-report-device-change > span.is-new { border-left-color:#1a8b70; background:#f1f8f5; }
+.ykc-report-device-change > i { align-self:center; color:#8393a1; font-size:11px; text-align:center; }
+.ykc-report-device-change small { color:#718493; font-size:8.5px; font-weight:600; }
+.ykc-report-device-change strong { overflow:hidden; color:#2c475c; font-size:10.5px; font-weight:650; text-overflow:ellipsis; white-space:nowrap; }
+.ykc-report-device-change em { overflow:hidden; color:#607486; font-size:9.5px; font-style:normal; text-overflow:ellipsis; white-space:nowrap; }
+.ykc-report-process { display:grid; justify-items:start; gap:5px; }
+.ykc-report-customer { margin-bottom:5px; }
+.ykc-results .ykc-id-list dt { white-space:nowrap; }
 .ykc-results .ykc-report-table .ykc-detail-action {
-    width: 100%;
-    padding-inline: 6px;
+    width:32px;
+    height:32px;
+    padding:0;
+    display:grid;
+    place-items:center;
 }
 
 @media (max-width: 900px) {

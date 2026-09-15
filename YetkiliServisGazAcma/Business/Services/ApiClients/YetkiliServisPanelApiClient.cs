@@ -240,7 +240,7 @@ namespace YetkiliServisGazAcma.Business.Services
                     Bit = bit,
                     Ids = ids
                 },
-                "raporlar.csv",
+                "raporlar.xlsx",
                 "Yetkili servis panel rapor Excel");
         }
 
