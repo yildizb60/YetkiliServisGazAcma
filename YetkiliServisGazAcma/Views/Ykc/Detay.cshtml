@@ -7,7 +7,11 @@
     var yonetebilir = atamaYetkisi || fr265ImzaYetkisi;
     var icOperasyonGorsun = !User.IsInRole("SertifikaliFirma");
     var kaynak = Context.Request.Query["kaynak"].ToString() switch { "rapor" => "rapor", "takvim" => "takvim", _ => "" };
-    var geriUrl = kaynak == "rapor" && icOperasyonGorsun ? "/ykc/raporlar" : kaynak == "takvim" && icOperasyonGorsun ? "/ykc/takvim" : "/ykc/talepler";
+    var geriUrl = kaynak == "rapor" && icOperasyonGorsun
+        ? Url.Action("Raporlar", "Ykc")
+        : kaynak == "takvim" && icOperasyonGorsun
+            ? Url.Action("Takvim", "Ykc")
+            : Url.Action("Talepler", "Ykc");
     var geriMetni = kaynak == "rapor" && icOperasyonGorsun ? "Raporlara Dön" : kaynak == "takvim" && icOperasyonGorsun ? "Takvime Dön" : "Taleplere Dön";
     ViewData["PanelSubtitle"] = "Cihaz Değişimi";
     var terminalDurum = Model.Durum == YkcDurumDegerleri.Tamamlandi || Model.Durum == YkcDurumDegerleri.Reddedildi || Model.Durum == YkcDurumDegerleri.Iptal;
@@ -198,11 +202,6 @@
             _ => gorevAciklamasi
         };
     }
-    var formYardimMetni = demoImzaModu
-        ? "Geliştirme ortamında süreç aynı form üzerinden test edilir. Gerçek e-imza entegrasyonu bağlandığında bu adım imza uygulamasına gider."
-        : imzaEntegrasyonu.KullanilabilirMi
-        ? "Kontrol edilen form dijital imza uygulamasına gönderilir. Süreç tamamlandığında imzalı belge bu kayda eklenir."
-        : "Form önizlenebilir. Dijital imza bağlantısı etkinleşmeden belge gönderilmiş veya imzalanmış sayılmaz.";
     var gorevIkonu = terminalDurum ? "bi-check2-circle"
         : Model.Durum == YkcDurumDegerleri.TalepAlindi ? "bi-inbox"
         : Model.Durum == YkcDurumDegerleri.AtamaBekliyor ? "bi-calendar2-plus"
@@ -215,8 +214,6 @@
 
 @functions {
     private static string Deger(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
-    private static string Tarih(DateTime? value) => value.HasValue ? value.Value.ToString("dd.MM.yyyy") : "-";
-    private static string? Secili(bool kosul) => kosul ? "selected" : null;
     private static string EvetHayir(bool? value) => value.HasValue ? (value.Value ? "Evet" : "Hayır") : "-";
     private static string DurumYazi(int durum) => YkcDurumSunumu.Etiket(durum);
     private static string DurumClass(int durum) => YkcDurumSunumu.CssSinifi(durum);
@@ -271,18 +268,6 @@
         _ => Deger(tur)
     };
 
-    private static string ImzaDurumYazi(string? durum) => durum switch
-    {
-        YkcImzaDurumDegerleri.Hazir => "Önizlemeye Hazır",
-        YkcImzaDurumDegerleri.ImzayaGonderildi => "İmzaya Gönderildi",
-        YkcImzaDurumDegerleri.ImzaBekliyor => "İmza Bekliyor",
-        YkcImzaDurumDegerleri.KismiImzali => "İmzalar Tamamlanıyor",
-        YkcImzaDurumDegerleri.Tamamlandi => "İmzalı Belge Hazır",
-        YkcImzaDurumDegerleri.Hata => "İmza İşlemi Hatası",
-        YkcImzaDurumDegerleri.Iptal => "İptal",
-        _ => "Önizlemeye Hazır"
-    };
-
     private static string KontrolSonucYazi(string? sonuc) => sonuc switch
     {
         YkcFr265KontrolSonucDegerleri.Uygun => "Uygun",
@@ -311,11 +296,6 @@
 }
 
 <div class="ykc-workspace ykc-detail-page is-streamlined" data-return-context="@kaynak" data-request-id="@Model.Id">
-    @if (TempData["Hata"] != null)
-    {
-        <div class="df-alert df-alert-danger">@TempData["Hata"]</div>
-    }
-
     @if (!icOperasyonGorsun)
     {
         <partial name="_FirmaTalepDetay" model="Model" />
@@ -334,7 +314,7 @@
         <div class="ykc-firm-record-actions">
             <span class="df-pill @DurumClass(Model.Durum)">@(Model.Durum == YkcDurumDegerleri.Atandi ? "Planlandı" : DurumYazi(Model.Durum))</span>
             <a class="df-btn df-btn-secondary df-btn-sm" href="@geriUrl"><i class="bi bi-arrow-left"></i> @geriMetni</a>
-            <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/fr265/onizle/@Model.Id" target="_blank"><i class="bi bi-file-earmark-pdf"></i> Formu Önizle</a>
+            <a class="df-btn df-btn-secondary df-btn-sm" href="@Url.Action("Fr265Onizle", "Ykc", new { id = Model.Id })" target="_blank"><i class="bi bi-file-earmark-pdf"></i> Formu Önizle</a>
         </div>
     </header>
     <div class="ykc-staff-record-body">
@@ -356,7 +336,7 @@
             <div class="ykc-firm-progress">
                 @if (imzaliBelge != null)
                 {
-                    <a class="df-btn df-btn-secondary" href="/ykc/dosya/@imzaliBelge.Id" target="_blank"><i class="bi bi-download"></i> İmzalı Belgeyi İndir</a>
+                    <a class="df-btn df-btn-secondary" href="@Url.Action("DosyaAc", "Ykc", new { id = imzaliBelge.Id })" target="_blank"><i class="bi bi-download"></i> İmzalı Belgeyi İndir</a>
                 }
             </div>
         }
@@ -364,7 +344,7 @@
         {
             @if (Model.Durum == YkcDurumDegerleri.TalepAlindi && atamaYetkisi)
             {
-                <form method="post" action="/ykc/durum-guncelle" class="ykc-inline-action-form">
+                <form method="post" action="@Url.Action("DurumGuncelle", "Ykc")" class="ykc-inline-action-form">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="TalepId" value="@Model.Id" />
                     <input type="hidden" name="Durum" value="@YkcDurumDegerleri.AtamaBekliyor" />
@@ -379,7 +359,7 @@
                     <div><span>Planlanan randevu</span><strong>@RandevuYazi(Model.RandevuTarihi, Model.RandevuSaati)</strong></div>
                     <div><span>Yönlendirilen birim / kişi</span><strong>@Deger(Model.AtananEkip)</strong></div>
                     <div class="ykc-appointment-confirmation">
-                        <form method="post" action="/ykc/durum-guncelle">
+                        <form method="post" action="@Url.Action("DurumGuncelle", "Ykc")">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="TalepId" value="@Model.Id" />
                             <input type="hidden" name="Durum" value="@YkcDurumDegerleri.SahaIsleminde" />
@@ -397,9 +377,9 @@
                         <div class="ykc-final-toolbar" aria-label="İmzalı form işlemleri">
                             @if (imzaliBelge != null)
                             {
-                                <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/dosya/@imzaliBelge.Id" target="_blank"><i class="bi bi-download"></i> İmzalı Belgeyi İndir</a>
+                                <a class="df-btn df-btn-secondary df-btn-sm" href="@Url.Action("DosyaAc", "Ykc", new { id = imzaliBelge.Id })" target="_blank"><i class="bi bi-download"></i> İmzalı Belgeyi İndir</a>
                             }
-                            <form method="post" action="/ykc/durum-guncelle">
+                            <form method="post" action="@Url.Action("DurumGuncelle", "Ykc")">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="TalepId" value="@Model.Id" />
                                 <input type="hidden" name="Durum" value="@YkcDurumDegerleri.Tamamlandi" />
@@ -414,8 +394,8 @@
             {
                 <div class="ykc-current-plan is-signature-ready">
                     <div class="ykc-final-toolbar" aria-label="Form imza işlemleri">
-                        <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/fr265/onizle/@Model.Id" target="_blank"><i class="bi bi-eye"></i> Formu Önizle</a>
-                        <form method="post" action="/ykc/imzaya-gonder">
+                        <a class="df-btn df-btn-secondary df-btn-sm" href="@Url.Action("Fr265Onizle", "Ykc", new { id = Model.Id })" target="_blank"><i class="bi bi-eye"></i> Formu Önizle</a>
+                        <form method="post" action="@Url.Action("ImzayaGonder", "Ykc")">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="talepId" value="@Model.Id" />
                             <button class="df-btn df-btn-primary df-btn-sm" type="submit"><i class="bi bi-send"></i> Önizledim, İmzaya Gönder</button>
@@ -427,7 +407,7 @@
             {
                 <div class="ykc-current-plan is-signature-ready">
                     <div class="ykc-final-toolbar" aria-label="İmza durumu işlemi">
-                        <form method="post" action="/ykc/imza-durum-sorgula">
+                        <form method="post" action="@Url.Action("ImzaDurumSorgula", "Ykc")">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="talepId" value="@Model.Id" />
                             <button class="df-btn df-btn-primary df-btn-sm" type="submit"><i class="bi bi-arrow-repeat"></i> İmza Durumunu Güncelle</button>
@@ -443,7 +423,7 @@
                         <span><strong>@(tekrarRandevuBekleniyor ? $"{aktifKontrolNo}. kontrol randevusu" : Model.Durum == YkcDurumDegerleri.AtamaBekliyor ? "Randevu ve yönlendirme bilgileri" : "Randevuyu güncelle")</strong></span>
                         <i class="bi bi-chevron-down"></i>
                     </summary>
-                    <form method="post" action="/ykc/atama-yap" class="ykc-assignment-form">
+                    <form method="post" action="@Url.Action("AtamaYap", "Ykc")" class="ykc-assignment-form" data-appointment-form>
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="TalepId" value="@Model.Id" />
                         <input type="hidden" name="Bolge" value="@tesisatBolgesi" />
@@ -485,7 +465,7 @@
             {
                 <details class="ykc-other-actions">
                     <summary>Diğer işlemler <i class="bi bi-chevron-down"></i></summary>
-                    <form method="post" action="/ykc/durum-guncelle">
+                    <form method="post" action="@Url.Action("DurumGuncelle", "Ykc")">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="TalepId" value="@Model.Id" />
                         <div class="ykc-field"><label>Açıklama</label><textarea name="Aciklama" placeholder="Red veya iptal gerekçesi">@Model.RedAciklama</textarea></div>
@@ -503,7 +483,7 @@
         }
         @if (icOperasyonGorsun && terminalDurum && imzaliBelge != null)
         {
-            <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/dosya/@imzaliBelge.Id" target="_blank"><i class="bi bi-download"></i> İmzalı Belgeyi İndir</a>
+            <a class="df-btn df-btn-secondary df-btn-sm" href="@Url.Action("DosyaAc", "Ykc", new { id = imzaliBelge.Id })" target="_blank"><i class="bi bi-download"></i> İmzalı Belgeyi İndir</a>
         }
     @if (icOperasyonGorsun && (Model.Durum == YkcDurumDegerleri.SahaIsleminde || sonucGirilenKontroller.Any()))
     {
@@ -529,7 +509,7 @@
 
                 @if (fr265ImzaYetkisi && kontrolBolumuAktif && aktifKontrol != null)
                 {
-                    <form method="post" action="/ykc/kontroller-kaydet" class="ykc-control-active">
+                    <form method="post" action="@Url.Action("KontrollerKaydet", "Ykc")" class="ykc-control-active">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="TalepId" value="@Model.Id" />
                         <input type="hidden" name="Kontroller[0].KontrolNo" value="@aktifKontrol.KontrolNo" />
@@ -566,21 +546,17 @@
         <details class="ykc-detail-section @(imzaBolumuAktif ? "is-current-task" : null)" id="fr265-signature" open="@(imzaBolumuAktif ? "open" : null)">
             <summary><span><strong>Form ve Ekler</strong></span><i class="bi bi-chevron-down"></i></summary>
             <div class="ykc-detail-section-body">
-                @if (demoImzaModu && (imzayaGonderebilir || imzaDurumuSorgulanabilir || imzaliBelgeHazir))
-                {
-                    <div class="ykc-demo-mode"><i class="bi bi-info-circle"></i><span><strong>Geliştirme ortamı</strong><small>Gerçek e-imza bağlantısı yerine demo sağlayıcı kullanılıyor.</small></span></div>
-                }
                 <div class="ykc-form-actions is-left">
                     @if (imzaliBelge != null)
                     {
                         @if (demoImzaModu && fr265ImzaYetkisi && !(imzaliBelge.DosyaAdi?.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) ?? false))
                         {
-                            <form method="post" action="/ykc/imza-durum-sorgula">@Html.AntiForgeryToken()<input type="hidden" name="talepId" value="@Model.Id" /><button class="df-btn df-btn-secondary df-btn-sm" type="submit"><i class="bi bi-file-earmark-pdf"></i> Eski Demo Belgesini PDF Olarak Yenile</button></form>
+                            <form method="post" action="@Url.Action("ImzaDurumSorgula", "Ykc")">@Html.AntiForgeryToken()<input type="hidden" name="talepId" value="@Model.Id" /><button class="df-btn df-btn-secondary df-btn-sm" type="submit"><i class="bi bi-file-earmark-pdf"></i> Belgeyi PDF Olarak Yenile</button></form>
                         }
                     }
                     @if (!imzayaGonderebilir && !imzaDurumuSorgulanabilir)
                     {
-                        <a class="df-btn @(imzaBirincilIslemVar || terminalDurum ? "df-btn-secondary" : "df-btn-primary") df-btn-sm" href="/ykc/fr265/onizle/@Model.Id" target="_blank"><i class="bi bi-eye"></i> Formu Önizle</a>
+                        <a class="df-btn @(imzaBirincilIslemVar || terminalDurum ? "df-btn-secondary" : "df-btn-primary") df-btn-sm" href="@Url.Action("Fr265Onizle", "Ykc", new { id = Model.Id })" target="_blank"><i class="bi bi-eye"></i> Formu Önizle</a>
                     }
                 </div>
                 @if (!imzaEntegrasyonu.KullanilabilirMi)
@@ -591,7 +567,7 @@
                 {
                     <details class="ykc-transition-upload">
                         <summary>Teknik ek belge ekle <i class="bi bi-chevron-down"></i></summary>
-                        <form method="post" action="/ykc/form-yukle" enctype="multipart/form-data">
+                        <form method="post" action="@Url.Action("FormYukle", "Ykc")" enctype="multipart/form-data">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="talepId" value="@Model.Id" />
                             <input type="hidden" name="dosyaTuru" value="@YkcFormDosyaTuruDegerleri.TeknikEk" />
@@ -605,7 +581,7 @@
                     <div class="ykc-document-list">
                         @foreach (var dosya in indirilebilirDosyalar)
                         {
-                            <a href="/ykc/dosya/@dosya.Id" target="_blank"><i class="bi bi-file-earmark"></i><span><strong>@Deger(dosya.DosyaAdi)</strong><small>@DosyaTuruYazi(dosya.DosyaTuru) · @dosya.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</small></span><i class="bi bi-download"></i></a>
+                            <a href="@Url.Action("DosyaAc", "Ykc", new { id = dosya.Id })" target="_blank"><i class="bi bi-file-earmark"></i><span><strong>@Deger(dosya.DosyaAdi)</strong><small>@DosyaTuruYazi(dosya.DosyaTuru) · @dosya.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</small></span><i class="bi bi-download"></i></a>
                         }
                     </div>
                 }
@@ -743,7 +719,7 @@
             route?.addEventListener('change', () => {
                 if (team?.selectedOptions[0]?.dataset.route !== route.value) team.value = '';
             });
-            document.querySelectorAll('form[action="/ykc/atama-yap"]').forEach(form => {
+            document.querySelectorAll('[data-appointment-form]').forEach(form => {
                 form.addEventListener('submit', event => {
                     if (!date?.value || !time?.value) return;
                     const selected = new Date(date.value + 'T' + time.value);
@@ -773,10 +749,10 @@
             const storageKey = `ykc-device-warnings:${requestId}`;
             const signature = warnings.join('\u001f');
             try {
-                if (window.sessionStorage.getItem(storageKey) === signature) return;
-                window.sessionStorage.setItem(storageKey, signature);
+                if (window.localStorage.getItem(storageKey) === signature) return;
+                window.localStorage.setItem(storageKey, signature);
             } catch {
-                // Bildirim depolamasi kapaliysa ekran yine calisir; uyarilar bu yuklemede gosterilir.
+                return;
             }
             warnings.forEach((message, index) => {
                 window.setTimeout(() => window.operationToast?.warning(message, 3000), 450 + (index * 3300));

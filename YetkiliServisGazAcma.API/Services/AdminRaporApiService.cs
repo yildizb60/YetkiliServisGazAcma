@@ -105,12 +105,21 @@ namespace YetkiliServisGazAcma.API.Services
             var bitTarih = dto?.BitisTarihi?.Date ?? DateTime.Now.Date;
             var bitSonrasi = bitTarih.AddDays(1);
             var raporTipi = string.IsNullOrWhiteSpace(dto?.Tip) ? "devreye" : dto.Tip.Trim().ToLowerInvariant();
+            var belgeRaporu = raporTipi is "onayli" or "bekleyen" or "reddedilen";
 
             var devreyeTemelQuery = DevreyeAlmaTemelQuery(sirketId)
                 .Where(x => x.OlusturmaTarihi >= basTarih && x.OlusturmaTarihi < bitSonrasi);
 
             var yetkiBelgesiTemelQuery = YetkiBelgesiTemelQuery(sirketId)
                 .Where(x => x.OlusturmaTarihi >= basTarih && x.OlusturmaTarihi < bitSonrasi);
+            var seciliYetkiBelgesiQuery = raporTipi switch
+            {
+                "onayli" => yetkiBelgesiTemelQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi),
+                "bekleyen" => yetkiBelgesiTemelQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
+                    && x.YetkiBelgesiBitisTarihi >= DateTime.Today),
+                "reddedilen" => yetkiBelgesiTemelQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Reddedildi),
+                _ => yetkiBelgesiTemelQuery
+            };
 
             var devreyeSayisi = await devreyeTemelQuery.CountAsync();
             var devreyeTamamlanan = await devreyeTemelQuery.Where(x => x.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi).CountAsync();
@@ -126,33 +135,76 @@ namespace YetkiliServisGazAcma.API.Services
                 .Select(i => aylikBaslangic.AddMonths(i))
                 .ToList();
 
-            var aylikHam = await devreyeTemelQuery
-                .Where(x => x.OlusturmaTarihi >= aylikBaslangic)
-                .GroupBy(x => new { x.OlusturmaTarihi.Year, x.OlusturmaTarihi.Month })
-                .Select(g => new { g.Key.Year, g.Key.Month, Count = g.Count() })
-                .ToListAsync();
-
-            var aylikMap = aylikHam.ToDictionary(x => $"{x.Year:D4}-{x.Month:D2}", x => x.Count);
+            Dictionary<string, int> aylikMap;
+            if (belgeRaporu)
+            {
+                var aylikHam = await seciliYetkiBelgesiQuery
+                    .Where(x => x.OlusturmaTarihi >= aylikBaslangic)
+                    .GroupBy(x => new { x.OlusturmaTarihi.Year, x.OlusturmaTarihi.Month })
+                    .Select(g => new { g.Key.Year, g.Key.Month, Count = g.Count() })
+                    .ToListAsync();
+                aylikMap = aylikHam.ToDictionary(x => $"{x.Year:D4}-{x.Month:D2}", x => x.Count);
+            }
+            else
+            {
+                var aylikHam = await devreyeTemelQuery
+                    .Where(x => x.OlusturmaTarihi >= aylikBaslangic)
+                    .GroupBy(x => new { x.OlusturmaTarihi.Year, x.OlusturmaTarihi.Month })
+                    .Select(g => new { g.Key.Year, g.Key.Month, Count = g.Count() })
+                    .ToListAsync();
+                aylikMap = aylikHam.ToDictionary(x => $"{x.Year:D4}-{x.Month:D2}", x => x.Count);
+            }
             var chartAylikLabels = aylikEtiketler.Select(x => x.ToString("MM.yyyy")).ToList();
             var chartAylikData = aylikEtiketler
                 .Select(x => aylikMap.TryGetValue($"{x.Year:D4}-{x.Month:D2}", out var value) ? value : 0)
                 .ToList();
 
-            var chartSirket = await devreyeTemelQuery
-                .Where(x => x.Firma != null && x.Firma.Sirket != null)
-                .GroupBy(x => x.Firma!.Sirket!.SirketAdi)
-                .Select(g => new { Sirket = g.Key, Sayi = g.Count() })
-                .OrderByDescending(x => x.Sayi)
-                .Take(6)
-                .ToListAsync();
-
-            var chartMarka = await devreyeTemelQuery
-                .Where(x => x.Marka != null)
-                .GroupBy(x => x.Marka!.MarkaAdi)
-                .Select(g => new { Marka = g.Key, Sayi = g.Count() })
-                .OrderByDescending(x => x.Sayi)
-                .Take(6)
-                .ToListAsync();
+            List<string?> chartSirketLabels;
+            List<int> chartSirketData;
+            List<string?> chartKirilimLabels;
+            List<int> chartKirilimData;
+            if (belgeRaporu)
+            {
+                var sirketKirilimi = await seciliYetkiBelgesiQuery
+                    .Where(x => x.Firma != null && x.Firma.Sirket != null)
+                    .GroupBy(x => x.Firma!.Sirket!.SirketAdi)
+                    .Select(g => new { Ad = g.Key, Sayi = g.Count() })
+                    .OrderByDescending(x => x.Sayi)
+                    .Take(6)
+                    .ToListAsync();
+                var firmaKirilimi = await seciliYetkiBelgesiQuery
+                    .Where(x => x.Firma != null)
+                    .GroupBy(x => x.Firma!.FirmaAdi)
+                    .Select(g => new { Ad = g.Key, Sayi = g.Count() })
+                    .OrderByDescending(x => x.Sayi)
+                    .Take(6)
+                    .ToListAsync();
+                chartSirketLabels = sirketKirilimi.Select(x => x.Ad).ToList();
+                chartSirketData = sirketKirilimi.Select(x => x.Sayi).ToList();
+                chartKirilimLabels = firmaKirilimi.Select(x => x.Ad).ToList();
+                chartKirilimData = firmaKirilimi.Select(x => x.Sayi).ToList();
+            }
+            else
+            {
+                var sirketKirilimi = await devreyeTemelQuery
+                    .Where(x => x.Firma != null && x.Firma.Sirket != null)
+                    .GroupBy(x => x.Firma!.Sirket!.SirketAdi)
+                    .Select(g => new { Ad = g.Key, Sayi = g.Count() })
+                    .OrderByDescending(x => x.Sayi)
+                    .Take(6)
+                    .ToListAsync();
+                var markaKirilimi = await devreyeTemelQuery
+                    .Where(x => x.Marka != null)
+                    .GroupBy(x => x.Marka!.MarkaAdi)
+                    .Select(g => new { Ad = g.Key, Sayi = g.Count() })
+                    .OrderByDescending(x => x.Sayi)
+                    .Take(6)
+                    .ToListAsync();
+                chartSirketLabels = sirketKirilimi.Select(x => x.Ad).ToList();
+                chartSirketData = sirketKirilimi.Select(x => x.Sayi).ToList();
+                chartKirilimLabels = markaKirilimi.Select(x => x.Ad).ToList();
+                chartKirilimData = markaKirilimi.Select(x => x.Sayi).ToList();
+            }
 
             var sonuc = new AdminRaporOzetDto
             {
@@ -168,19 +220,19 @@ namespace YetkiliServisGazAcma.API.Services
                 YetkiBelgesiReddedilen = yetkiBelgesiReddedilen,
                 ChartAylikLabels = chartAylikLabels,
                 ChartAylikData = chartAylikData,
-                ChartDurumData = new List<int> { yetkiBelgesiOnayli, yetkiBelgesiBekleyen, yetkiBelgesiReddedilen },
-                ChartSirketLabels = chartSirket.Select(x => x.Sirket).ToList(),
-                ChartSirketData = chartSirket.Select(x => x.Sayi).ToList(),
-                ChartMarkaLabels = chartMarka.Select(x => x.Marka).ToList(),
-                ChartMarkaData = chartMarka.Select(x => x.Sayi).ToList(),
+                ChartDurumData = belgeRaporu
+                    ? new List<int> { yetkiBelgesiOnayli, yetkiBelgesiBekleyen, yetkiBelgesiReddedilen }
+                    : new List<int> { devreyeTamamlanan, devreyeBekleyen, devreyeIptal },
+                ChartSirketLabels = chartSirketLabels,
+                ChartSirketData = chartSirketData,
+                ChartMarkaLabels = chartKirilimLabels,
+                ChartMarkaData = chartKirilimData,
                 Sirketler = await SirketSecenekleriAsync(sirketId)
             };
 
             if (raporTipi == "onayli" || raporTipi == "bekleyen" || raporTipi == "reddedilen")
             {
-                var durum = raporTipi == "onayli" ? 1 : (raporTipi == "bekleyen" ? 0 : 2);
-                var yetkiBelgesiIslemler = await yetkiBelgesiTemelQuery
-                    .Where(x => x.Durum == durum)
+                var yetkiBelgesiIslemler = await seciliYetkiBelgesiQuery
                     .OrderByDescending(x => x.OlusturmaTarihi)
                     .Take(12)
                     .ToListAsync();

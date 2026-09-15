@@ -4,7 +4,10 @@
 
     function closeAll(except) {
         document.querySelectorAll(".df-dropdown-menu.open, .js-notif-panel.open").forEach(function (menu) {
-            if (menu !== except) menu.classList.remove("open");
+            if (menu === except) return;
+            menu.classList.remove("open");
+            var toggle = menu.parentElement?.querySelector("[data-dropdown-toggle], .js-notif-btn");
+            toggle?.setAttribute("aria-expanded", "false");
         });
     }
 
@@ -22,6 +25,7 @@
             var isOpen = menu.classList.contains("open");
             closeAll(menu);
             menu.classList.toggle("open", !isOpen);
+            btn.setAttribute("aria-expanded", String(!isOpen));
         });
 
         menu.addEventListener("click", function (e) {
@@ -42,6 +46,7 @@
             var isOpen = panel.classList.contains("open");
             closeAll(panel);
             panel.classList.toggle("open", !isOpen);
+            btn.setAttribute("aria-expanded", String(!isOpen));
         });
 
         panel.addEventListener("click", function (e) {
@@ -75,23 +80,72 @@
         });
     }
 
-    function initMarkAll() {
-        document.querySelectorAll(".btn-bildirim-all").forEach(function (btn) {
-            if (btn.dataset.readInit === "1") return;
-            btn.dataset.readInit = "1";
+    function notificationStorageKey(wrap) {
+        return "panel-notifications-read:" + (wrap?.dataset.notificationScope || "anonymous");
+    }
 
-            btn.addEventListener("click", function () {
-                document.querySelectorAll(".red-bildirim-count").forEach(function (badge) {
-                    badge.remove();
+    function readNotificationKeys(wrap) {
+        try {
+            var parsed = JSON.parse(window.localStorage.getItem(notificationStorageKey(wrap)) || "[]");
+            return new Set(Array.isArray(parsed) ? parsed : []);
+        } catch {
+            return new Set();
+        }
+    }
+
+    function saveNotificationKeys(wrap, keys) {
+        try {
+            window.localStorage.setItem(notificationStorageKey(wrap), JSON.stringify(Array.from(keys).slice(-100)));
+        } catch { }
+    }
+
+    function updateNotificationCount(wrap) {
+        if (!wrap) return;
+        var unread = wrap.querySelectorAll(".notification-item:not(.read)").length;
+        var topBadge = wrap.querySelector(".red-bildirim-count");
+        var quantity = wrap.querySelector(".noti-quantity");
+        var count = wrap.querySelector(".bildirim-count");
+        var markAll = wrap.querySelector(".btn-bildirim-all");
+
+        if (topBadge) {
+            topBadge.textContent = unread > 99 ? "99+" : String(unread);
+            topBadge.hidden = unread === 0;
+        }
+        if (count) count.textContent = unread > 99 ? "99+" : String(unread);
+        if (quantity) quantity.hidden = unread === 0;
+        if (markAll) markAll.hidden = unread === 0;
+    }
+
+    function markNotificationRead(item, wrap, keys) {
+        if (!item || item.classList.contains("read")) return;
+        item.classList.add("read");
+        var key = item.dataset.notificationKey;
+        if (key) keys.add(key);
+        saveNotificationKeys(wrap, keys);
+        updateNotificationCount(wrap);
+    }
+
+    function initNotifications() {
+        document.querySelectorAll("[data-notification-scope]").forEach(function (wrap) {
+            if (wrap.dataset.readInit === "1") return;
+            wrap.dataset.readInit = "1";
+            var keys = readNotificationKeys(wrap);
+            wrap.querySelectorAll(".notification-item").forEach(function (item) {
+                if (keys.has(item.dataset.notificationKey)) item.classList.add("read");
+                item.querySelector(".js-notif-redirect")?.addEventListener("click", function () {
+                    markNotificationRead(item, wrap, keys);
                 });
-                document.querySelectorAll(".noti-quantity").forEach(function (badge) {
-                    badge.remove();
-                });
-                document.querySelectorAll(".notification-item").forEach(function (item) {
-                    item.classList.add("read");
-                });
-                btn.remove();
             });
+
+            wrap.querySelector(".btn-bildirim-all")?.addEventListener("click", function () {
+                wrap.querySelectorAll(".notification-item").forEach(function (item) {
+                    item.classList.add("read");
+                    if (item.dataset.notificationKey) keys.add(item.dataset.notificationKey);
+                });
+                saveNotificationKeys(wrap, keys);
+                updateNotificationCount(wrap);
+            });
+            updateNotificationCount(wrap);
         });
     }
 
@@ -107,12 +161,39 @@
         });
     }
 
+    function initSidebarCollapse() {
+        var button = document.querySelector("[data-sidebar-collapse]");
+        var sidebar = document.querySelector(".sidebar");
+        if (!button || !sidebar || button.dataset.collapseInit === "1") return;
+        button.dataset.collapseInit = "1";
+
+        var storageKey = "panel-sidebar-collapsed";
+        var applyState = function (collapsed) {
+            document.body.classList.toggle("sidebar-collapsed", collapsed);
+            button.setAttribute("aria-expanded", collapsed ? "false" : "true");
+            button.title = collapsed ? "Menüyü genişlet" : "Menüyü daralt";
+            var icon = button.querySelector("i");
+            if (icon) icon.className = collapsed ? "bi bi-chevron-right" : "bi bi-chevron-left";
+        };
+
+        var collapsed = false;
+        try { collapsed = window.localStorage.getItem(storageKey) === "1"; } catch { }
+        applyState(collapsed);
+
+        button.addEventListener("click", function () {
+            collapsed = !document.body.classList.contains("sidebar-collapsed");
+            applyState(collapsed);
+            try { window.localStorage.setItem(storageKey, collapsed ? "1" : "0"); } catch { }
+        });
+    }
+
     function initAll() {
         document.querySelectorAll(".df-dropdown").forEach(initDropdown);
         document.querySelectorAll(".js-notif-wrap").forEach(initLegacyNotification);
         initFilters();
-        initMarkAll();
+        initNotifications();
         initMobileMenu();
+        initSidebarCollapse();
     }
 
     document.addEventListener("click", function (event) {

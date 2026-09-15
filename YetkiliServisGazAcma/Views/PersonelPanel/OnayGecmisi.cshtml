@@ -21,13 +21,10 @@
 
 <div class="df-admin-workspace df-approval-history-workspace">
     <section class="df-admin-list-card">
-        <div class="df-service-list-head">
-            <div><h3><i class="bi bi-journal-check" aria-hidden="true"></i> Sonuçlanan Belgeler</h3></div>
-            <div class="df-admin-metrics df-inline-metrics" aria-label="Yetki belgesi geçmişi özeti">
-                <span class="df-admin-metric"><i class="bi bi-files" aria-hidden="true"></i><span>Toplam</span><strong>@Model.Count</strong></span>
-                <span class="df-admin-metric is-approved"><i class="bi bi-check-circle" aria-hidden="true"></i><span>Onaylanan</span><strong>@onaylanan</strong></span>
-                <span class="df-admin-metric is-rejected"><i class="bi bi-x-circle" aria-hidden="true"></i><span>Reddedilen</span><strong>@reddedilen</strong></span>
-            </div>
+        <div class="df-approval-history-summary" aria-label="Yetki belgesi geçmişi özeti">
+            <span><i class="bi bi-files" aria-hidden="true"></i><small>Sonuçlanan</small><strong>@Model.Count</strong></span>
+            <span class="is-approved"><i class="bi bi-check-circle" aria-hidden="true"></i><small>Onaylanan</small><strong>@onaylanan</strong></span>
+            <span class="is-rejected"><i class="bi bi-x-circle" aria-hidden="true"></i><small>Reddedilen</small><strong>@reddedilen</strong></span>
         </div>
     <details class="df-admin-filter" open="@(filtreAktif ? "open" : null)">
         <summary>
@@ -35,7 +32,7 @@
             <span>@(filtreAktif ? "Filtre uygulandı" : "Filtreleri aç") <i class="bi bi-chevron-down" aria-hidden="true"></i></span>
         </summary>
         <div class="df-admin-filter-body">
-            <form method="get" action="/personel-panel/onay-gecmisi">
+            <form method="get" action="@Url.Action("OnayGecmisi", "PersonelPanel")">
                 <div class="df-admin-filter-grid">
                     <div class="df-admin-field is-wide"><label for="q">Firma veya Şirket</label><input id="q" type="search" name="q" value="@q" placeholder="Firma veya şirket adı" /></div>
                     <div class="df-admin-field"><label for="durum">Karar</label><select id="durum" name="durum"><option value="">Tümü</option><option value="1" selected="@(durum == "1" ? "selected" : null)">Onaylandı</option><option value="2" selected="@(durum == "2" ? "selected" : null)">Reddedildi</option></select></div>
@@ -43,7 +40,7 @@
                     <div class="df-admin-field is-half"><label for="bit">Bitiş Tarihi</label><input id="bit" type="date" name="bit" value="@(bit?.ToString("yyyy-MM-dd"))" /></div>
                 </div>
                 <div class="df-admin-filter-actions">
-                    <a class="df-btn df-btn-secondary df-btn-sm" href="/personel-panel/onay-gecmisi"><i class="bi bi-x-lg" aria-hidden="true"></i> Temizle</a>
+                    <a class="df-btn df-btn-secondary df-btn-sm" href="@Url.Action("OnayGecmisi", "PersonelPanel")"><i class="bi bi-x-lg" aria-hidden="true"></i> Temizle</a>
                     <button class="df-btn df-btn-primary df-btn-sm" type="submit"><i class="bi bi-search" aria-hidden="true"></i> Sonuçları Göster</button>
                 </div>
             </form>

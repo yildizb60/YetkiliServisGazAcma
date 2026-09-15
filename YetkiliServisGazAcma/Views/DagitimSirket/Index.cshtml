@@ -31,15 +31,6 @@
         </div>
     </section>
 
-    @if (TempData["Mesaj"] != null)
-    {
-        <div class="df-alert df-alert-success">@TempData["Mesaj"]</div>
-    }
-    @if (TempData["Hata"] != null)
-    {
-        <div class="df-alert df-alert-danger">@TempData["Hata"]</div>
-    }
-
     <details class="df-admin-filter" open="@(filtreAktif ? "open" : null)">
         <summary>
             <span><i class="bi bi-funnel" aria-hidden="true"></i><strong>Filtreler</strong><small>Şirket adı, il, telefon veya kayıt durumuyla arayın.</small></span>

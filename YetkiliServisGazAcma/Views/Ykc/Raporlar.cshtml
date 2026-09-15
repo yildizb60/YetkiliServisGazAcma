@@ -6,6 +6,7 @@
     var icOperasyonGorsun = !sertifikaliFirmaMi;
     ViewData["Title"] = "Cihaz Değişim Raporları";
     ViewData["PanelTitle"] = "Cihaz Değişim Raporları";
+    ViewData["PanelModule"] = "Cihaz Değişim İşlemleri";
     ViewData["ActiveMenu"] = "YkcRaporlar";
     ViewData["PanelSubtitle"] = "Cihaz Değişimi";
     var sayfaBoyutu = Model.SayfaBoyutu > 0 ? Model.SayfaBoyutu : 10;
@@ -50,10 +51,22 @@
             ["sayfa"] = sayfaNo.ToString(),
             ["sayfaBoyutu"] = sayfaBoyutu.ToString()
         };
-        var query = string.Join("&", degerler
-            .Where(x => !string.IsNullOrWhiteSpace(x.Value))
-            .Select(x => $"{Uri.EscapeDataString(x.Key)}={Uri.EscapeDataString(x.Value!)}"));
-        return $"/ykc/raporlar?{query}";
+        return Url.Action("Raporlar", "Ykc", new
+        {
+            tesisatNo = degerler["tesisatNo"],
+            firma = degerler["firma"],
+            il = degerler["il"],
+            ilce = degerler["ilce"],
+            bolge = degerler["bolge"],
+            ekip = degerler["ekip"],
+            marka = degerler["marka"],
+            hedefUygulama = degerler["hedefUygulama"],
+            durum = degerler["durum"],
+            bas = degerler["bas"],
+            bit = degerler["bit"],
+            sayfa = degerler["sayfa"],
+            sayfaBoyutu = degerler["sayfaBoyutu"]
+        }) ?? "#";
     }
 
     void AktifFiltreEkle(string etiket, string? deger)
@@ -86,16 +99,24 @@
         return ozetler.Where(x => durumlar.Contains(x.Durum)).Sum(x => x.Sayi);
     }
 
-    private static string RandevuYazi(DateTime? tarih, string? saat)
+    private static string RandevuYazi(DateTime? tarih, string? saat, int? kontrolNo)
     {
         if (!tarih.HasValue && string.IsNullOrWhiteSpace(saat))
-            return "-";
+            return kontrolNo is > 1 ? $"{kontrolNo}. kontrol randevusu bekleniyor" : "Henüz planlanmadı";
 
-        return string.Join(" ", new[]
+        var randevu = string.Join(" ", new[]
         {
             tarih?.ToString("dd.MM.yyyy"),
             string.IsNullOrWhiteSpace(saat) ? null : saat
         }.Where(x => !string.IsNullOrWhiteSpace(x)));
+
+        return kontrolNo is > 1 ? $"{kontrolNo}. kontrol · {randevu}" : randevu;
+    }
+
+    private static string AtamaYazi(params string?[] parcalar)
+    {
+        var sonuc = string.Join(" / ", parcalar.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x!.Trim()));
+        return string.IsNullOrWhiteSpace(sonuc) ? "Henüz atanmadı" : sonuc;
     }
 
     private static string DurumYazi(int durum) => YkcDurumSunumu.Etiket(durum);
@@ -159,7 +180,7 @@
                 </span>
                 <span class="ykc-filter-chevron"><i class="bi bi-chevron-down"></i></span>
         </summary>
-        <form method="get" action="/ykc/raporlar" class="ykc-filter-form">
+        <form method="get" action="@Url.Action("Raporlar", "Ykc")" class="ykc-filter-form">
             <input type="hidden" name="sayfaBoyutu" value="@sayfaBoyutu" />
             <div class="ykc-filter-grid">
                 <div class="ykc-filter-field">
@@ -222,18 +243,42 @@
             </div>
             <div class="ykc-filter-actions">
                 <button class="df-btn df-btn-primary" type="submit"><i class="bi bi-funnel"></i> Uygula</button>
-                <a class="df-btn df-btn-secondary" href="/ykc/raporlar"><i class="bi bi-x-lg"></i> Temizle</a>
+                <a class="df-btn df-btn-secondary" href="@Url.Action("Raporlar", "Ykc")"><i class="bi bi-x-lg"></i> Temizle</a>
             </div>
         </form>
     </details>
 
-    <dl class="ykc-report-strip" aria-label="Rapor özeti">
-        <div><i class="bi bi-collection" aria-hidden="true"></i><dt>Toplam talep</dt><dd>@Model.Toplam</dd></div>
-        <div><i class="bi bi-search" aria-hidden="true"></i><dt>İnceleme / atama bekleyen talep</dt><dd>@DurumToplam(Model.DurumOzetleri, YkcDurumDegerleri.TalepAlindi, YkcDurumDegerleri.AtamaBekliyor)</dd></div>
-        <div><i class="bi bi-calendar2-check" aria-hidden="true"></i><dt>Kontrol sürecindeki talep</dt><dd>@DurumToplam(Model.DurumOzetleri, YkcDurumDegerleri.Atandi, YkcDurumDegerleri.SahaIsleminde)</dd></div>
-        <div><i class="bi bi-check-circle" aria-hidden="true"></i><dt>Tamamlanan talep</dt><dd>@DurumToplam(Model.DurumOzetleri, YkcDurumDegerleri.Tamamlandi)</dd></div>
-        <div><i class="bi bi-x-circle" aria-hidden="true"></i><dt>Red / İptal</dt><dd>@DurumToplam(Model.DurumOzetleri, YkcDurumDegerleri.Reddedildi, YkcDurumDegerleri.Iptal)</dd></div>
-    </dl>
+    <section class="ykc-report-insights" aria-label="Rapor analizi">
+        <div class="ykc-report-insight is-summary">
+            <span class="ykc-report-insight-icon"><i class="bi bi-collection" aria-hidden="true"></i></span>
+            <div><small>Filtrelenen kayıt</small><strong>@Model.Toplam</strong></div>
+            <dl><div><dt>Kontrol sürecinde</dt><dd>@DurumToplam(Model.DurumOzetleri, YkcDurumDegerleri.Atandi, YkcDurumDegerleri.SahaIsleminde)</dd></div><div><dt>Tamamlanan</dt><dd>@DurumToplam(Model.DurumOzetleri, YkcDurumDegerleri.Tamamlandi)</dd></div></dl>
+        </div>
+        <div class="ykc-report-insight">
+            <span class="ykc-report-insight-title"><i class="bi bi-people" aria-hidden="true"></i>Ekip dağılımı</span>
+            <div class="ykc-report-ranking">
+                @if (Model.EkipOzetleri.Any())
+                {
+                    @foreach (var item in Model.EkipOzetleri.Take(3)) { <span><b>@Deger(item.Ad)</b><strong>@item.Sayi</strong></span> }
+                }
+                else { <small>Atanmış ekip bulunmuyor.</small> }
+            </div>
+        </div>
+        <div class="ykc-report-insight">
+            <span class="ykc-report-insight-title"><i class="bi bi-building-check" aria-hidden="true"></i>@(icOperasyonGorsun ? "Firma dağılımı" : "Süreç dağılımı")</span>
+            <div class="ykc-report-ranking">
+                @if (icOperasyonGorsun && Model.FirmaOzetleri.Any())
+                {
+                    @foreach (var item in Model.FirmaOzetleri.Take(3)) { <span><b>@Deger(item.Ad)</b><strong>@item.Sayi</strong></span> }
+                }
+                else if (Model.DurumOzetleri.Any())
+                {
+                    @foreach (var item in Model.DurumOzetleri.OrderByDescending(x => x.Sayi).Take(3)) { <span><b>@DurumYazi(item.Durum)</b><strong>@item.Sayi</strong></span> }
+                }
+                else { <small>Dağılım verisi bulunmuyor.</small> }
+            </div>
+        </div>
+    </section>
 
     <section class="ykc-data-panel ykc-results">
         <div class="ykc-data-toolbar">
@@ -245,9 +290,8 @@
             </div>
             <div class="ykc-header-actions">
                 <span class="ykc-record-count"><i class="bi bi-database"></i> @ilkKayit-@sonKayit / @Model.Toplam kayıt</span>
-                <a class="df-btn df-btn-danger df-btn-sm @(Model.Toplam == 0 ? "is-disabled" : null)" href="@(Model.Toplam == 0 ? "#" : pdfUrl)" aria-disabled="@(Model.Toplam == 0 ? "true" : "false")" title="Filtrelenen kayıtları PDF olarak indir"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF İndir</a>
-                <a class="df-btn df-btn-success df-btn-sm @(Model.Toplam == 0 ? "is-disabled" : null)" href="@(Model.Toplam == 0 ? "#" : excelUrl)" aria-disabled="@(Model.Toplam == 0 ? "true" : "false")" title="Filtrelenen kayıtları Excel olarak indir"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel İndir</a>
-                <a class="df-btn df-btn-secondary df-btn-sm" href="@Url.Action("Talepler", "Ykc")"><i class="bi bi-journal-text"></i> Canlı İş Listesi</a>
+                <a class="df-btn df-btn-secondary df-btn-sm ykc-export-action is-pdf @(Model.Toplam == 0 ? "is-disabled" : null)" href="@(Model.Toplam == 0 ? "#" : pdfUrl)" aria-disabled="@(Model.Toplam == 0 ? "true" : "false")" title="Filtrelenen kayıtları PDF olarak indir"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF İndir</a>
+                <a class="df-btn df-btn-secondary df-btn-sm ykc-export-action is-excel @(Model.Toplam == 0 ? "is-disabled" : null)" href="@(Model.Toplam == 0 ? "#" : excelUrl)" aria-disabled="@(Model.Toplam == 0 ? "true" : "false")" title="Filtrelenen kayıtları Excel olarak indir"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel İndir</a>
             </div>
         </div>
         <div class="ykc-table-scroll">
@@ -297,21 +341,21 @@
                                     <td data-label="Firma"><div class="ykc-cell-main">@Deger(kayit.FirmaAdi)</div><div class="ykc-muted">@Deger(kayit.SirketAdi)</div></td>
                                     <td data-label="Cihaz Değişimi">
                                         <div class="ykc-report-device-change">
-                                            <span class="is-project"><small>Projedeki</small><strong>@Deger(kayit.EskiCihazTipi)</strong><em>@Deger(kayit.EskiMarka)</em></span>
+                                            <span class="is-project"><small>Projedeki Cihaz</small><strong>@Deger(kayit.EskiCihazTipi)</strong><em>@Deger(kayit.EskiMarka)</em></span>
                                             <i class="bi bi-arrow-right" aria-hidden="true"></i>
-                                            <span class="is-new"><small>Yeni</small><strong>@Deger(kayit.YeniCihazTipi)</strong><em>@Deger(kayit.YeniMarka)</em></span>
+                                            <span class="is-new"><small>Yeni Kullanılan Cihaz</small><strong>@Deger(kayit.YeniCihazTipi)</strong><em>@Deger(kayit.YeniMarka)</em></span>
                                         </div>
                                     </td>
                                 }
                                 else
                                 {
-                                    <td data-label="Yeni Kullanılan Cihaz"><div class="ykc-device-column is-new"><span>Yeni Kullanılan</span><strong>@Deger(kayit.YeniCihazTipi)</strong><small>@Deger(kayit.YeniMarka)</small></div></td>
+                                    <td data-label="Yeni Kullanılan Cihaz"><div class="ykc-device-column is-new"><span>Yeni Kullanılan Cihaz</span><strong>@Deger(kayit.YeniCihazTipi)</strong><small>@Deger(kayit.YeniMarka)</small></div></td>
                                 }
                                 <td data-label="Randevu / Ekip">
-                                    <div class="ykc-cell-main">@RandevuYazi(kayit.RandevuTarihi, kayit.RandevuSaati)</div>
+                                    <div class="ykc-cell-main">@RandevuYazi(kayit.RandevuTarihi, kayit.RandevuSaati, kayit.SiradakiKontrolNo)</div>
                                     @if (icOperasyonGorsun)
                                     {
-                                        <div class="ykc-muted">@Deger(kayit.AtananEkip) / @Deger(kayit.Bolge)</div>
+                                        <div class="ykc-muted">@AtamaYazi(kayit.AtananEkip, kayit.Bolge)</div>
                                     }
                                 </td>
                                 <td data-label="Süreç Sonucu"><div class="ykc-report-process"><span class="df-pill @DurumClass(kayit.Durum)">@DurumYazi(kayit.Durum)</span><span class="df-pill @ImzaDurumClass(kayit.Durum, kayit.ImzaliNihaiBelgeVar)">@ImzaDurumYazi(kayit.Durum, kayit.ImzaliNihaiBelgeVar)</span></div></td>
@@ -339,7 +383,7 @@
                                             data-bolge="@Deger(kayit.Bolge)"
                                             data-ekip="@Deger(kayit.AtananEkip)"
                                             data-talep-tarihi="@kayit.TalepTarihi.ToString("dd.MM.yyyy HH:mm")"
-                                            data-randevu="@RandevuYazi(kayit.RandevuTarihi, kayit.RandevuSaati)"
+                                            data-randevu="@RandevuYazi(kayit.RandevuTarihi, kayit.RandevuSaati, kayit.SiradakiKontrolNo)"
                                             data-durum="@DurumYazi(kayit.Durum)"
                                             data-durum-class="@DurumClass(kayit.Durum)"
                                             data-imza-durumu="@ImzaDurumYazi(kayit.Durum, kayit.ImzaliNihaiBelgeVar)">

@@ -263,7 +263,7 @@ namespace YetkiliServisGazAcma.Controllers
                     : await _ykcApiClient.RaporPdfAsync(kullanici, filtre);
 
                 if (dosya != null)
-                    return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+                    return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
 
                 TempData["Hata"] = "Rapor dosyası şu anda oluşturulamadı.";
             }
@@ -530,7 +530,7 @@ namespace YetkiliServisGazAcma.Controllers
                 return RedirectToAction(nameof(Talepler));
             }
 
-            return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+            return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
         }
 
         [HttpPost("atama-yap")]

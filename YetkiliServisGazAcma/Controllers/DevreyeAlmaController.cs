@@ -144,7 +144,7 @@ namespace YetkiliServisGazAcma.Controllers
             var dosya = await _devreyeAlmaApiClient.PdfAsync(kullanici, id);
             if (dosya == null) return NotFound();
 
-            return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+            return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
         }
 
         [HttpGet]
@@ -157,7 +157,7 @@ namespace YetkiliServisGazAcma.Controllers
             var dosya = await _devreyeAlmaApiClient.ExcelAsync(kullanici, id);
             if (dosya == null) return NotFound();
 
-            return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+            return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
         }
 
         [HttpPost]

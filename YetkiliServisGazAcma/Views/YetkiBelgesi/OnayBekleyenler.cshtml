@@ -13,15 +13,6 @@
     var suresiDolanlar = ViewBag.SuresiDolanlar as List<Ys_YetkiBelgesi> ?? new List<Ys_YetkiBelgesi>();
 }
 
-@if (TempData["Basarili"] != null)
-{
-    <div class="df-alert df-alert-success">@TempData["Basarili"]</div>
-}
-@if (TempData["Hata"] != null)
-{
-    <div class="df-alert df-alert-danger">@TempData["Hata"]</div>
-}
-
 <div class="section-label">
     <i class="bi bi-journal-text"></i>
     Yetki belgesi değerlendirme

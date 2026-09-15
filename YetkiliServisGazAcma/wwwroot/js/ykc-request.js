@@ -10,7 +10,6 @@
     const reference = field('SorguReferansi');
     const deviceType = field('YeniCihazTipi');
     const selectedDeviceType = field('ykcSelectedDeviceType');
-    const typeOverride = field('ykcTypeOverride');
     let pendingQuery = null;
 
     function setQueryStatus(state, message) {
@@ -27,27 +26,23 @@
         field('ykcSelectedDeviceName').value = selector.value ? selector.selectedOptions[0].textContent.trim() : '';
         const type = selector.value ? selector.selectedOptions[0].dataset.deviceType?.trim() || '' : '';
         selectedDeviceType.value = type;
-        deviceType.value = type;
-        deviceType.readOnly = Boolean(type);
-        typeOverride.hidden = !type;
-        typeOverride.setAttribute('aria-pressed', 'false');
-        field('ykcTypeOverrideLabel').textContent = 'Farklı tür';
+        deviceType.value = Array.from(deviceType.options).some(option => option.value === type) ? type : '';
     }
 
-    typeOverride.addEventListener('click', () => {
-        if (deviceType.readOnly) {
-            deviceType.readOnly = false;
-            typeOverride.setAttribute('aria-pressed', 'true');
-            field('ykcTypeOverrideLabel').textContent = 'Sorgudaki türe dön';
-            deviceType.focus();
-            deviceType.select();
-        } else {
-            deviceType.value = selectedDeviceType.value;
-            deviceType.readOnly = true;
-            typeOverride.setAttribute('aria-pressed', 'false');
-            field('ykcTypeOverrideLabel').textContent = 'Farklı tür';
+    function fillDeviceTypes(devices) {
+        const types = [];
+        devices.forEach(device => {
+            const type = device.cihazTipi?.trim() || '';
+            if (type && !types.some(existing => existing.localeCompare(type, 'tr', { sensitivity: 'accent' }) === 0)) {
+                types.push(type);
+            }
+        });
+        if (!types.length) {
+            throw new Error('Servisten yakıcı cihaz tipi alınamadı. Lütfen yeniden sorgulayın.');
         }
-    });
+        deviceType.replaceChildren(new Option('Cihaz tipi seçin', ''));
+        types.forEach(type => deviceType.add(new Option(type, type)));
+    }
 
     function invalidate() {
         pendingQuery?.abort();
@@ -55,11 +50,7 @@
         reference.value = '';
         field('ykcSelectedDeviceName').value = '';
         selectedDeviceType.value = '';
-        deviceType.value = '';
-        deviceType.readOnly = false;
-        typeOverride.hidden = true;
-        typeOverride.setAttribute('aria-pressed', 'false');
-        field('ykcTypeOverrideLabel').textContent = 'Farklı tür';
+        deviceType.replaceChildren(new Option('Önce tesisatı sorgulayın', ''));
         field('MusteriAdi').value = '';
         field('Adres').value = '';
         deviceFields.hidden = true;
@@ -113,6 +104,7 @@
             field('Adres').value = data.adres || '';
             field('ykcCustomerName').textContent = data.musteriAdi || 'Bilgi bulunmuyor';
             field('ykcCustomerAddress').textContent = data.adres || 'Bilgi bulunmuyor';
+            fillDeviceTypes(data.cihazlar);
             if (data.cihazlar.length > 1) selector.add(new Option('Değiştirilecek cihazı seçin', ''));
             data.cihazlar.forEach((device, index) => {
                 const type = device.cihazTipi?.trim() || '';
@@ -128,7 +120,7 @@
             setQueryStatus('success', 'Tesisat bulundu');
             query.classList.remove('df-btn-primary');
             query.classList.add('df-btn-secondary');
-            (data.cihazlar.length === 1 ? (deviceType.readOnly ? field('YeniMarka') : deviceType) : selector).focus();
+            (data.cihazlar.length === 1 ? field('YeniMarka') : selector).focus();
         } catch (error) {
             if (pendingQuery === controller) {
                 alert.hidden = false;

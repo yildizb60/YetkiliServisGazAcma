@@ -433,7 +433,7 @@ namespace YetkiliServisGazAcma.Controllers
                 var dosya = await _adminRaporApiClient.DevreyeAlmaPdfAsync(kullanici, id, sirketId);
                 if (dosya == null) return NotFound();
 
-                return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+                return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
             }
             catch (ApiIntegrationException ex)
             {
@@ -457,7 +457,7 @@ namespace YetkiliServisGazAcma.Controllers
                 var dosya = await _adminRaporApiClient.DevreyeAlmaExcelAsync(kullanici, id, sirketId);
                 if (dosya == null) return NotFound();
 
-                return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+                return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
             }
             catch (ApiIntegrationException ex)
             {
@@ -501,7 +501,7 @@ namespace YetkiliServisGazAcma.Controllers
                     : await _adminRaporApiClient.RaporlarPdfAsync(kullanici, sirketId, null, null, kayitIdleri);
                 if (dosya == null) return NotFound();
 
-                return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+                return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
             }
             catch (ApiIntegrationException ex)
             {
@@ -592,7 +592,7 @@ namespace YetkiliServisGazAcma.Controllers
             {
                 var sonuc = await _yetkiBelgesiApiClient.ReddetAsync(kullanici, id, gerekce);
                 if (sonuc?.Basarili == true)
-                    TempData["Hata"] = "Yetki belgesi reddedildi.";
+                    TempData["Basarili"] = "Yetki belgesi reddedildi.";
                 else
                     TempData["Hata"] = sonuc?.Mesaj ?? "Yetki belgesi reddedilemedi.";
             }
@@ -1223,6 +1223,7 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.RaporAylik = sonuc.ChartAylikData;
             ViewBag.RaporMarka = sonuc.ChartMarkaLabels;
             ViewBag.RaporMarkaSayi = sonuc.ChartMarkaData;
+            ViewBag.RaporDurum = sonuc.ChartDurumData;
             ViewBag.BasTarih = sonuc.BasTarih;
             ViewBag.BitTarih = sonuc.BitTarih;
             ViewBag.RaporTipi = sonuc.RaporTipi;
@@ -1261,7 +1262,7 @@ namespace YetkiliServisGazAcma.Controllers
                     : await _adminRaporApiClient.RaporlarPdfAsync(kullanici, sirketId, bas, bit, null);
                 if (dosya == null) return NotFound();
 
-                return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+                return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
             }
             catch (ApiIntegrationException ex)
             {

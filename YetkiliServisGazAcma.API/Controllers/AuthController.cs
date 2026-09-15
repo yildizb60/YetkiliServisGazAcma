@@ -44,7 +44,7 @@ public sealed class AuthController(UserManager<AppKullanici> users, SignInManage
                 ? "Çok fazla hatalı giriş denemesi. Lütfen 15 dakika sonra tekrar deneyin." : LoginError, 401);
         }
         if (!KullaniciRolTutarlilikKurali.FirmaRolleriUyumlu(
-                user.KullaniciTipi, await users.GetRolesAsync(user)))
+                user.KullaniciTipi, await users.GetRolesAsync(user), user.SirketId))
             return Error("Hesap yetkileriniz tutarsız. Sistem yöneticinizle iletişime geçin.", 403);
         if (sms.SmsGirisAktifMi || identity?.TelefonDogrulamasiGerekliMi == true)
         {
@@ -168,7 +168,7 @@ public sealed class AuthController(UserManager<AppKullanici> users, SignInManage
     private async Task<IActionResult> CompleteLoginAsync(AppKullanici user)
     {
         if (!KullaniciRolTutarlilikKurali.FirmaRolleriUyumlu(
-                user.KullaniciTipi, await users.GetRolesAsync(user)))
+                user.KullaniciTipi, await users.GetRolesAsync(user), user.SirketId))
             return Error("Hesap yetkileriniz tutarsız. Sistem yöneticinizle iletişime geçin.", 403);
 
         var systemAdmin = user.KullaniciTipi == KullaniciTipiDegerleri.GenelSistemAdmin

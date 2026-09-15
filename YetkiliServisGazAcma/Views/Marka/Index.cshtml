@@ -1,6 +1,6 @@
 @model List<YetkiliServisGazAcma.Entities.Ys_Marka>
 @{
-    ViewData["Title"] = "Cihaz Markaları";
+    ViewData["Title"] = "Yetkili Servis Markaları";
     ViewData["PanelTitle"] = ViewData["Title"];
     ViewData["PanelSubtitle"] = "Admin Paneli";
     ViewData["ActiveMenu"] = "Markalar";
@@ -12,18 +12,11 @@
     var aktifSayisi = Model.Count(x => x.AktifMi);
     var pasifSayisi = Model.Count - aktifSayisi;
     var filtreAktif = !string.IsNullOrWhiteSpace(seciliQ) || seciliDurum != "tumu";
+    var yeniMarkaAc = Context.Request.Query["yeni"] == "1";
+    var duzenlenecekMarkaId = int.TryParse(Context.Request.Query["duzenle"], out var markaId) ? markaId : 0;
 }
 
 <div class="df-admin-workspace df-brand-workspace">
-    @if (TempData["Mesaj"] != null)
-    {
-        <div class="df-alert df-alert-success">@TempData["Mesaj"]</div>
-    }
-    @if (TempData["Hata"] != null)
-    {
-        <div class="df-alert df-alert-danger">@TempData["Hata"]</div>
-    }
-
     <details class="df-admin-filter" @(filtreAktif ? "open" : "")>
         <summary>
             <span>
@@ -36,7 +29,7 @@
             <span>Filtreleri aç <i class="bi bi-chevron-down"></i></span>
         </summary>
         <div class="df-admin-filter-body">
-            <form method="get" action="/Marka">
+            <form method="get" action="@Url.Action("Index", "Marka")">
                 <div class="df-admin-filter-grid">
                     <div class="df-admin-field is-wide">
                         <label>Arama</label>
@@ -52,7 +45,7 @@
                     </div>
                 </div>
                 <div class="df-admin-filter-actions">
-                    <a class="df-btn df-btn-secondary df-btn-sm" href="/Marka">
+                    <a class="df-btn df-btn-secondary df-btn-sm" href="@Url.Action("Index", "Marka")">
                         <i class="bi bi-x-lg"></i>
                         Temizle
                     </a>
@@ -77,7 +70,7 @@
             </div>
             @if (genelSistemAdminMi)
             {
-                <a class="df-btn df-btn-primary df-btn-sm" href="/Marka/Ekle"><i class="bi bi-plus-lg"></i> Yeni Marka</a>
+                <button class="df-btn df-btn-primary df-btn-sm" type="button" data-marka-modal-create><i class="bi bi-plus-lg"></i> Yeni Marka</button>
             }
         </div>
 
@@ -129,7 +122,7 @@
                                                 <i class="bi bi-pencil-square"></i>
                                                 Düzenle
                                             </button>
-                                            <form method="post" action="/Marka/Sil/@m.Id" class="df-inline-form"
+                                            <form method="post" action="@Url.Action("Sil", "Marka", new { id = m.Id })" class="df-inline-form"
                                                   onsubmit="return confirm('Silmek istediğinize emin misiniz?')">
                                                 @Html.AntiForgeryToken()
                                                 <button class="df-icon-action is-danger" type="submit">
@@ -162,8 +155,7 @@
                 <div class="df-modal-heading">
                     <span class="df-modal-icon"><i class="bi bi-pencil-square"></i></span>
                     <div>
-                        <h3 id="markaEditTitle">Markayı Düzenle</h3>
-                        <p id="markaEditSubtitle">Marka adı, açıklama ve kayıt durumunu güncelleyin.</p>
+                        <h3 id="markaEditTitle">Cihaz Markası</h3>
                     </div>
                 </div>
                 <button class="df-modal-close" type="button" data-marka-modal-close aria-label="Kapat">
@@ -171,7 +163,7 @@
                 </button>
             </div>
 
-            <form method="post" action="/Marka/Duzenle" id="markaEditForm">
+            <form method="post" action="@Url.Action("Duzenle", "Marka")" id="markaEditForm">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="Id" id="markaEditId" />
                 <div class="df-modal-body">
@@ -190,7 +182,6 @@
                         <div class="df-admin-field is-wide">
                             <label for="markaEditDescription">Açıklama</label>
                             <textarea name="Aciklama" id="markaEditDescription" rows="4" placeholder="Gerekliyse kısa bir açıklama girin."></textarea>
-                            <small class="df-admin-field-note">Açıklama zorunlu değildir.</small>
                         </div>
                     </div>
                 </div>
@@ -199,7 +190,7 @@
                         <i class="bi bi-x-lg"></i> Vazgeç
                     </button>
                     <button class="df-btn df-btn-primary df-btn-sm" type="submit">
-                        <i class="bi bi-check2"></i> Değişiklikleri Kaydet
+                        <i class="bi bi-check2"></i> <span id="markaSubmitText">Kaydet</span>
                     </button>
                 </div>
             </form>
@@ -218,20 +209,43 @@
     var nameInput = document.getElementById('markaEditName');
     var statusInput = document.getElementById('markaEditStatus');
     var descriptionInput = document.getElementById('markaEditDescription');
-    var subtitle = document.getElementById('markaEditSubtitle');
+    var modalTitle = document.getElementById('markaEditTitle');
+    var submitText = document.getElementById('markaSubmitText');
+    var createButton = document.querySelector('[data-marka-modal-create]');
+    var createAction = '@Url.Action("Ekle", "Marka")';
+    var editAction = '@Url.Action("Duzenle", "Marka")';
     var lastTrigger = null;
 
-    function openModal(trigger) {
+    function showModal(trigger) {
         lastTrigger = trigger;
-        idInput.value = trigger.dataset.id || '';
-        nameInput.value = trigger.dataset.name || '';
-        statusInput.value = trigger.dataset.active === 'true' ? 'true' : 'false';
-        descriptionInput.value = trigger.dataset.description || '';
-        subtitle.textContent = (trigger.dataset.name || 'Marka') + ' kaydını güncelleyin.';
         modal.classList.add('is-open');
         modal.setAttribute('aria-hidden', 'false');
         document.body.classList.add('df-modal-open');
         window.setTimeout(function () { nameInput.focus(); nameInput.select(); }, 0);
+    }
+
+    function openCreateModal(trigger) {
+        var form = document.getElementById('markaEditForm');
+        form.action = createAction;
+        idInput.value = '0';
+        nameInput.value = '';
+        statusInput.value = 'true';
+        descriptionInput.value = '';
+        modalTitle.textContent = 'Yeni Cihaz Markası';
+        submitText.textContent = 'Markayı Ekle';
+        showModal(trigger);
+    }
+
+    function openEditModal(trigger) {
+        var form = document.getElementById('markaEditForm');
+        form.action = editAction;
+        idInput.value = trigger.dataset.id || '';
+        nameInput.value = trigger.dataset.name || '';
+        statusInput.value = trigger.dataset.active === 'true' ? 'true' : 'false';
+        descriptionInput.value = trigger.dataset.description || '';
+        modalTitle.textContent = 'Cihaz Markasını Düzenle';
+        submitText.textContent = 'Değişiklikleri Kaydet';
+        showModal(trigger);
     }
 
     function closeModal() {
@@ -242,8 +256,10 @@
     }
 
     document.addEventListener('click', function (event) {
+        var createTrigger = event.target.closest('[data-marka-modal-create]');
+        if (createTrigger) openCreateModal(createTrigger);
         var openButton = event.target.closest('[data-marka-modal-open]');
-        if (openButton) openModal(openButton);
+        if (openButton) openEditModal(openButton);
         if (event.target.closest('[data-marka-modal-close]')) closeModal();
     });
 
@@ -262,6 +278,13 @@
         if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
         else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     });
+
+    if (@yeniMarkaAc.ToString().ToLowerInvariant() && createButton) {
+        openCreateModal(createButton);
+    } else if (@duzenlenecekMarkaId > 0) {
+        var editButton = document.querySelector('[data-marka-modal-open][data-id="@duzenlenecekMarkaId"]');
+        if (editButton) openEditModal(editButton);
+    }
 })();
 </script>
 }

@@ -20,9 +20,6 @@
 }
 
 <div class="df-service-directory">
-    @if (TempData["Basarili"] != null) { <div class="df-alert df-alert-success">@TempData["Basarili"]</div> }
-    @if (TempData["Hata"] != null) { <div class="df-alert df-alert-danger">@TempData["Hata"]</div> }
-
     <details class="df-service-filter" open="@(filtreAktif ? "open" : null)">
         <summary>
             <span><i class="bi bi-funnel" aria-hidden="true"></i><strong>Filtreler</strong><small>Firma, şehir, durum veya işlem sayısına göre listeyi daraltın.</small></span>

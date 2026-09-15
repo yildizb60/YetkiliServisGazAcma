@@ -1,7 +1,7 @@
 @using YetkiliServisGazAcma.Entities
 @{
-    ViewData["Title"] = "Yetki Belgesi Onayları";
-    ViewData["PanelTitle"] = "Yetki Belgesi Onayları";
+    ViewData["Title"] = "Onay Bekleyen Belgeler";
+    ViewData["PanelTitle"] = ViewData["Title"];
     ViewData["PanelSubtitle"] = "Admin Paneli";
     ViewData["ActiveMenu"] = "OnayBekleyenler";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
@@ -12,10 +12,14 @@
     var suresiDolanlar = ViewBag.SuresiDolanlar as List<Ys_YetkiBelgesi> ?? new List<Ys_YetkiBelgesi>();
 }
 
+@section PageStyles {
+    <link rel="stylesheet" href="~/css/operations-directory.css" asp-append-version="true" />
+}
+
 <div class="approval-board df-approval-workspace">
     <section class="df-page-panel approval-panels is-admin-approval">
         <div class="df-approval-status-bar" role="tablist" data-approval-tabs aria-label="Yetki belgesi durumu">
-            <button type="button" role="tab" id="admin-approval-waiting-tab" aria-controls="admin-approval-waiting" aria-selected="true" class="approval-tab approval-metric is-waiting active" data-target="bekleyen"><i class="bi bi-hourglass-split" aria-hidden="true"></i><span>Onaya Gönderildi</span><strong>@bekleyenler.Count</strong></button>
+            <button type="button" role="tab" id="admin-approval-waiting-tab" aria-controls="admin-approval-waiting" aria-selected="true" class="approval-tab approval-metric is-waiting active" data-target="bekleyen"><i class="bi bi-hourglass-split" aria-hidden="true"></i><span>Onay Bekleyen</span><strong>@bekleyenler.Count</strong></button>
             <button type="button" role="tab" id="admin-approval-approved-tab" aria-controls="admin-approval-approved" aria-selected="false" class="approval-tab approval-metric is-approved" data-target="onaylanan"><i class="bi bi-check-circle" aria-hidden="true"></i><span>Onaylananlar</span><strong>@onaylananlar.Count</strong></button>
             <button type="button" role="tab" id="admin-approval-rejected-tab" aria-controls="admin-approval-rejected" aria-selected="false" class="approval-tab approval-metric is-rejected" data-target="reddedilen"><i class="bi bi-x-circle" aria-hidden="true"></i><span>Reddedilenler</span><strong>@reddedilenler.Count</strong></button>
             <button type="button" role="tab" id="admin-approval-expired-tab" aria-controls="admin-approval-expired" aria-selected="false" class="approval-tab approval-metric is-expired" data-target="suresi-dolan"><i class="bi bi-calendar-x" aria-hidden="true"></i><span>Süresi Doldu</span><strong>@suresiDolanlar.Count</strong></button>
@@ -140,9 +144,12 @@
             Object.keys(inputs).forEach(function (key) {
                 if (inputs[key]) inputs[key].value = '';
             });
-            activatePanel('bekleyen');
+            activatePanel(document.querySelector('.approval-tab.active')?.getAttribute('data-target') || 'bekleyen');
         });
     }
+    var requestedStatus = new URLSearchParams(window.location.search).get('durum');
+    var statusMap = { onayli: 'onaylanan', bekleyen: 'bekleyen', reddedilen: 'reddedilen', 'suresi-dolan': 'suresi-dolan' };
+    activatePanel(statusMap[requestedStatus] || 'bekleyen');
 })();
 </script>
 }

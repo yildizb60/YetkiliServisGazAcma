@@ -7,6 +7,7 @@ namespace YetkiliServisGazAcma.API.Services
 {
     public class DevreyeAlmaExportApiService
     {
+        private const int MaximumExportRows = 5000;
         private readonly AppDbContext _context;
 
         public DevreyeAlmaExportApiService(AppDbContext context)
@@ -107,10 +108,11 @@ namespace YetkiliServisGazAcma.API.Services
 
             if (ids?.Count > 0)
             {
-                var idListesi = ids.Distinct().ToList();
+                var idListesi = ids.Distinct().Take(MaximumExportRows).ToList();
                 var secilenler = await query
                     .Where(x => idListesi.Contains(x.Id))
                     .OrderByDescending(x => x.OlusturmaTarihi)
+                    .Take(MaximumExportRows)
                     .ToListAsync();
 
                 if (secilenler.Count > 0)
@@ -124,7 +126,8 @@ namespace YetkiliServisGazAcma.API.Services
 
             var bitSonrasi = bitTarih.AddDays(1);
             query = query.Where(x => x.OlusturmaTarihi >= basTarih && x.OlusturmaTarihi < bitSonrasi)
-                .OrderByDescending(x => x.OlusturmaTarihi);
+                .OrderByDescending(x => x.OlusturmaTarihi)
+                .Take(MaximumExportRows);
 
             var islemler = await query.ToListAsync();
 
@@ -143,10 +146,11 @@ namespace YetkiliServisGazAcma.API.Services
 
             if (ids?.Count > 0)
             {
-                var idListesi = ids.Distinct().ToList();
+                var idListesi = ids.Distinct().Take(MaximumExportRows).ToList();
                 var secilenler = await query
                     .Where(x => idListesi.Contains(x.Id))
                     .OrderByDescending(x => x.DevreyeAlmaTarihi)
+                    .Take(MaximumExportRows)
                     .ToListAsync();
 
                 basTarih = secilenler.Count > 0 ? secilenler.Min(x => x.DevreyeAlmaTarihi).Date : DateTime.Now.Date;
@@ -184,7 +188,8 @@ namespace YetkiliServisGazAcma.API.Services
 
             var bitSonrasi = bitTarih.AddDays(1);
             query = query.Where(x => x.DevreyeAlmaTarihi >= basTarih && x.DevreyeAlmaTarihi < bitSonrasi)
-                .OrderByDescending(x => x.DevreyeAlmaTarihi);
+                .OrderByDescending(x => x.DevreyeAlmaTarihi)
+                .Take(MaximumExportRows);
 
             var islemler = await query.ToListAsync();
 
@@ -194,6 +199,7 @@ namespace YetkiliServisGazAcma.API.Services
         private IQueryable<Ys_DevreyeAlma> TemelQuery()
         {
             return _context.Ys_DevreyeAlmalar
+                .AsNoTracking()
                 .Include(x => x.Firma)
                     .ThenInclude(x => x!.Sirket)
                 .Include(x => x.Marka)

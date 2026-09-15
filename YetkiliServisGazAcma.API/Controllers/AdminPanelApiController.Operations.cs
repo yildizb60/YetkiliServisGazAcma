@@ -318,7 +318,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (dosya == null)
                 return NotFound(new { basarili = false, mesaj = "Devreye alma kaydi bulunamadi" });
 
-            return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+            return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
         }
 
         [HttpPost("devreye-almalar/excel")]
@@ -337,7 +337,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (dosya == null)
                 return NotFound(new { basarili = false, mesaj = "Devreye alma kaydi bulunamadi" });
 
-            return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+            return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
         }
 
         [HttpPost("devreye-almalar/rapor/pdf")]
@@ -355,7 +355,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 dto?.BitisTarihi,
                 dto?.Ids);
 
-            return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+            return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
         }
 
         [HttpPost("devreye-almalar/rapor/excel")]
@@ -373,7 +373,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 dto?.BitisTarihi,
                 dto?.Ids);
 
-            return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+            return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
         }
 
         [HttpPost("yetki-belgeleri/uyarilar")]

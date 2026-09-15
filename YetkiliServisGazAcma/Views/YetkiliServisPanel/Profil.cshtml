@@ -40,14 +40,6 @@
     </aside>
 
     <div class="account-content">
-        @foreach (var key in new[] { "Basarili", "Hata", "SifreBasarili", "SifreHata" })
-        {
-            if (TempData[key] is string mesaj)
-            {
-                <div class="df-alert @(key.Contains("Hata") ? "df-alert-danger" : "df-alert-success")" role="alert">@mesaj</div>
-            }
-        }
-
         <div class="account-tabs" role="tablist" aria-label="Firma profili bölümleri" data-initial-tab="@(sifreAcik ? "security" : "contact")">
             <button type="button" role="tab" id="tab-contact" aria-controls="account-contact" aria-selected="true"><i class="bi bi-person-vcard" aria-hidden="true"></i>İletişim Bilgileri</button>
             <button type="button" role="tab" id="tab-firm" aria-controls="account-firm" aria-selected="false"><i class="bi bi-building-check" aria-hidden="true"></i>Firma ve Yetkiler</button>
@@ -55,7 +47,7 @@
         </div>
 
         <section class="account-section" id="account-contact" role="tabpanel" aria-labelledby="tab-contact">
-            <form method="post" action="/ys-panel/profil-guncelle">
+            <form method="post" action="@Url.Action("ProfilGuncelle", "YetkiliServisPanel")">
                 @Html.AntiForgeryToken()
                 <div class="account-fields">
                     <label for="service-profile-name" class="account-field-wide">Ad Soyad<input id="service-profile-name" type="text" name="adSoyad" value="@kullanici?.AdSoyad" autocomplete="name" required /></label>
@@ -84,12 +76,12 @@
             <div class="service-account-document">
                 <i class="bi bi-file-earmark-check" aria-hidden="true"></i>
                 <div><strong>@belgeDurumu</strong><span>@(yetkiBelgesi == null ? "Yetki belgesi yüklenmemiş" : $"Bitiş tarihi: {yetkiBelgesi.YetkiBelgesiBitisTarihi:dd.MM.yyyy}")</span></div>
-                <a class="df-btn df-btn-secondary df-btn-sm" href="/ys-yetki-belgesi">Belgeyi Aç</a>
+                <a class="df-btn df-btn-secondary df-btn-sm" href="@Url.Action("Index", "YetkiBelgesi")">Belgeyi Aç</a>
             </div>
         </section>
 
         <section class="account-section" id="account-security" role="tabpanel" aria-labelledby="tab-security" hidden>
-            <form method="post" action="/ys-panel/sifre-degistir">
+            <form method="post" action="@Url.Action("SifreDegistir", "YetkiliServisPanel")">
                 @Html.AntiForgeryToken()
                 <div class="account-fields">
                     <label for="service-current-password" class="account-field-wide">Mevcut Şifre<input id="service-current-password" type="password" name="mevcutSifre" autocomplete="current-password" required /></label>

@@ -20,18 +20,13 @@
         <dl><div><dt><i class="bi bi-building" aria-hidden="true"></i>İşlem Yapılan Şirket</dt><dd>@(sirket?.SirketAdi ?? "Şirket seçilmedi")</dd></div><div><dt><i class="bi bi-geo-alt" aria-hidden="true"></i>İl</dt><dd>@(sirket?.Il ?? "-")</dd></div></dl>
     </aside>
     <div class="account-content">
-    @foreach (var key in new[] { "Basarili", "Hata", "SifreBasarili", "SifreHata" }) {
-        if (TempData[key] is string mesaj) {
-            <div class="df-alert @(key.Contains("Hata") ? "df-alert-danger" : "df-alert-success")" role="alert">@mesaj</div>
-        }
-    }
     <div class="account-tabs" role="tablist" aria-label="Profil bölümleri" data-initial-tab="@(sifreAcik ? "security" : "personal")">
         <button type="button" role="tab" id="tab-personal" aria-controls="account-personal" aria-selected="true"><i class="bi bi-person-vcard" aria-hidden="true"></i>Kişisel Bilgiler</button>
         <button type="button" role="tab" id="tab-work" aria-controls="account-work" aria-selected="false"><i class="bi bi-building-check" aria-hidden="true"></i>Şirket ve Yetkiler</button>
         <button type="button" role="tab" id="tab-security" aria-controls="account-security" aria-selected="false"><i class="bi bi-shield-lock" aria-hidden="true"></i>Şifre ve Güvenlik</button>
     </div>
     <section class="account-section" id="account-personal" role="tabpanel" aria-labelledby="tab-personal">
-        <form method="post" action="/personel-panel/profil-guncelle">
+        <form method="post" action="@Url.Action("ProfilGuncelle", "PersonelPanel")">
             @Html.AntiForgeryToken()
             <div class="account-fields">
                 <label for="profile-name" class="account-field-wide">Ad Soyad<input id="profile-name" name="adSoyad" value="@adSoyad" autocomplete="name" required /></label>
@@ -55,7 +50,7 @@
         </div>
     </section>
     <section class="account-section" id="account-security" role="tabpanel" aria-labelledby="tab-security">
-        <form method="post" action="/personel-panel/sifre-degistir">
+        <form method="post" action="@Url.Action("SifreDegistir", "PersonelPanel")">
             @Html.AntiForgeryToken()
             <div class="account-fields">
                 <label for="profile-current-password" class="account-field-wide">Mevcut Şifre<input id="profile-current-password" type="password" name="mevcutSifre" autocomplete="current-password" required /></label>

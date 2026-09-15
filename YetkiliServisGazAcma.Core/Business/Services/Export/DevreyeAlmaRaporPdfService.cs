@@ -22,7 +22,7 @@ namespace YetkiliServisGazAcma.Business.Services
         {
             return Olustur(
                 "Yetkili Servis Raporlar\u0131",
-                "Son \u0130\u015flemler",
+                "Cihaz Devreye Alma Kay\u0131tlar\u0131",
                 islemler,
                 basTarih,
                 bitTarih,

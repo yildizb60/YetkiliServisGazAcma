@@ -6,18 +6,16 @@
     var basHarf = !string.IsNullOrWhiteSpace(adSoyad) ? adSoyad.Trim().Substring(0, 1).ToUpper(new System.Globalization.CultureInfo("tr-TR")) : "K";
     var baslik = (ViewData["PanelTitle"] ?? ViewData["Title"])?.ToString() ?? "Panel";
     var activeMenu = (ViewData["ActiveMenu"] ?? ViewBag.ActiveMenu)?.ToString() ?? "";
-    var altBaslik = activeMenu switch
+    var altBaslik = ViewData["PanelModule"]?.ToString() ?? activeMenu switch
     {
         "DevreyeAl" or "DevreyeGecmis" or "DevreyeAlmalar" => "Cihaz Devreye Alma",
-        "YetkiliServisler" or "Markalar" => "Yetkili Servis Yönetimi",
+        "YetkiliServisler" or "Markalar" or "Subeler" => "Yetkili Servis Yönetimi",
         "YetkiBelgesi" or "OnayBekleyenler" or "OnayGecmisi" or "YetkiBelgesiUyarilari" => "Yetki Belgesi İşlemleri",
-        "Kullanicilar" or "Personeller" => "Kullanıcı Yönetimi",
-        "Yetkiler" => "Yetki Yönetimi",
+        "Kullanicilar" or "Personeller" or "Yetkiler" => "Kullanıcı ve Yetki Yönetimi",
         "Sirketler" or "DagitimSirketler" => "Şirket Yönetimi",
-        "Subeler" => "Şube Yönetimi",
         "Raporlar" => "Raporlama",
         "Profil" => "Hesabım",
-        "YkcOzet" or "YkcYeni" or "YkcTalepler" or "YkcTakvim" or "YkcRaporlar" => "Cihaz Değişimi",
+        "YkcOzet" or "YkcYeni" or "YkcTalepler" or "YkcTakvim" or "YkcRaporlar" => "Cihaz Değişim İşlemleri",
         _ => null
     };
     var sirketAdi = ViewBag.PanelSirketAdi as string ?? "Genel Yönetim";
@@ -59,16 +57,16 @@
     </div>
 
     <div class="df-nb-right">
-        <button class="df-nb-btn" type="button" title="Ayarlar" aria-label="Ayarlar">
+        <a class="df-nb-btn" href="@profilUrl" title="Profil ve ayarlar" aria-label="Profil ve ayarlar">
             <i class="bi bi-gear"></i>
-        </button>
+        </a>
 
         @await Html.PartialAsync("_NotificationPanel")
 
         <div class="df-nb-sep"></div>
 
         <div class="df-dropdown">
-            <button class="df-nb-profile-btn" id="profileBtn" type="button" data-dropdown-toggle="">
+            <button class="df-nb-profile-btn" id="profileBtn" type="button" data-dropdown-toggle="" aria-controls="profileMenu" aria-expanded="false">
                 <div class="df-avatar-wrap">
                     <div class="df-avatar df-avatar-primary df-avatar-sm">@basHarf</div>
                     <span class="df-avatar-status online"></span>

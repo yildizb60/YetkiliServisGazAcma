@@ -134,7 +134,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (dosya == null)
                 return NotFound();
 
-            return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+            return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
         }
 
         [HttpPost("excel")]
@@ -151,7 +151,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (dosya == null)
                 return NotFound();
 
-            return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+            return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
         }
 
         [HttpPost("ekran")]

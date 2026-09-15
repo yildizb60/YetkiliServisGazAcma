@@ -219,6 +219,72 @@
     cursor: default;
 }
 
+.df-report-output-bar {
+    min-height: 64px;
+    padding: 10px 12px;
+    display: grid;
+    grid-template-columns: 38px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid var(--report-border);
+    border-left: 3px solid var(--report-blue);
+    border-radius: 8px;
+    background: #fff;
+}
+
+.df-report-output-icon {
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    border-radius: 7px;
+    background: var(--report-blue-soft);
+    color: var(--report-blue);
+    font-size: 16px;
+}
+
+.df-report-output-copy {
+    min-width: 0;
+    display: grid;
+    gap: 1px;
+}
+
+.df-report-output-copy span {
+    color: var(--report-muted);
+    font-size: 9px;
+    font-weight: 750;
+    text-transform: uppercase;
+}
+
+.df-report-output-copy strong {
+    overflow: hidden;
+    color: var(--report-ink);
+    font-size: 12px;
+    font-weight: 800;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.df-report-output-copy small {
+    color: var(--report-muted);
+    font-size: 10px;
+}
+
+.df-report-output-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.df-report-output-actions .df-btn {
+    min-height: 34px;
+}
+
+.df-report-output-actions .is-disabled {
+    opacity: .45;
+    pointer-events: none;
+}
+
 .df-report-check {
     width: 56px;
 }

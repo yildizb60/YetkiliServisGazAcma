@@ -7,150 +7,83 @@
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
     var personeller = ViewBag.Personeller as List<AppKullanici> ?? new List<AppKullanici>();
-    var seciliQ = ViewBag.SeciliQ as string ?? "";
-    var seciliSirket = ViewBag.SeciliSirket as string ?? "";
-    var seciliDurum = ViewBag.SeciliDurum as string ?? "";
+    var seciliQ = ViewBag.SeciliQ as string ?? string.Empty;
+    var seciliSirket = ViewBag.SeciliSirket as string ?? string.Empty;
+    var seciliDurum = ViewBag.SeciliDurum as string ?? string.Empty;
+    var filtreAktif = !string.IsNullOrWhiteSpace(seciliQ)
+        || !string.IsNullOrWhiteSpace(seciliSirket)
+        || !string.IsNullOrWhiteSpace(seciliDurum);
     var aktifSayisi = personeller.Count(x => x.AktifMi);
     var pasifSayisi = personeller.Count - aktifSayisi;
 }
 
-<div class="df-admin-workspace df-person-directory">
-@if (TempData["Basarili"] != null)
-{
-    <div class="df-alert df-alert-success">@TempData["Basarili"]</div>
-}
-@if (TempData["Hata"] != null)
-{
-    <div class="df-alert df-alert-danger">@TempData["Hata"]</div>
+@section PageStyles {
+    <link rel="stylesheet" href="~/css/admin-directory.css" asp-append-version="true" />
 }
 
-<div class="df-page-panel df-admin-hero">
-    <div class="df-panel-head">
-        <div>
-            <div class="df-panel-title"><i class="bi bi-person-badge" aria-hidden="true"></i> Personel özeti</div>
+<div class="df-user-directory df-person-directory">
+    <div class="df-user-directory-bar">
+        <div class="df-user-summary" aria-label="Personel durum özeti">
+            <div><span>Toplam Personel</span><strong>@personeller.Count</strong></div>
+            <div><span>Aktif Personel</span><strong>@aktifSayisi</strong></div>
+            <div><span>Pasif Personel</span><strong>@pasifSayisi</strong></div>
         </div>
-        <div class="df-admin-metrics" aria-label="Personel durum özeti">
-            <span class="df-admin-metric active">
-                <i class="bi bi-collection"></i>
-                <span>Tümü</span>
-                <strong>@personeller.Count</strong>
-            </span>
-            <span class="df-admin-metric is-active">
-                <i class="bi bi-check-circle"></i>
-                <span>Aktif</span>
-                <strong>@aktifSayisi</strong>
-            </span>
-            <span class="df-admin-metric is-passive">
-                <i class="bi bi-slash-circle"></i>
-                <span>Pasif</span>
-                <strong>@pasifSayisi</strong>
-            </span>
-        </div>
+        <a class="df-btn df-btn-primary df-btn-sm" href="@Url.Action("PersonelEkle", "AdminPanel")"><i class="bi bi-person-plus" aria-hidden="true"></i> Yeni Personel</a>
     </div>
 
-    <div class="df-toolbar">
-        <form class="df-form-row" method="get" action="/AdminPanel/personeller">
-            <div class="df-field">
-                <label>Arama</label>
-                <input class="df-control" type="search" name="q" value="@seciliQ" placeholder="Ad soyad, e-posta, telefon" />
+    <details class="df-user-filter" open="@(filtreAktif ? "open" : null)">
+        <summary><span><i class="bi bi-funnel" aria-hidden="true"></i><strong>Filtreler</strong></span><span>@(filtreAktif ? "Filtre uygulandı" : "Aç") <i class="bi bi-chevron-down" aria-hidden="true"></i></span></summary>
+        <form method="get" action="@Url.Action("Personeller", "AdminPanel")">
+            <div class="df-user-filter-grid df-person-filter-grid">
+                <div class="filter-group"><label for="personSearch">Arama</label><input id="personSearch" type="search" name="q" value="@seciliQ" placeholder="Ad soyad, e-posta veya telefon" /></div>
+                <div class="filter-group"><label for="personCompany">Dağıtım Şirketi</label><input id="personCompany" type="text" name="sirket" value="@seciliSirket" placeholder="Şirket adı" /></div>
+                <div class="filter-group"><label for="personStatus">Durum</label><select id="personStatus" name="durum"><option value="" selected="@(string.IsNullOrEmpty(seciliDurum) ? "selected" : null)">Tümü</option><option value="Aktif" selected="@(seciliDurum == "Aktif" ? "selected" : null)">Aktif</option><option value="Pasif" selected="@(seciliDurum == "Pasif" ? "selected" : null)">Pasif</option></select></div>
             </div>
-            <div class="df-field">
-                <label>&#350;irket</label>
-                <input class="df-control" type="text" name="sirket" value="@seciliSirket" placeholder="&#350;irket ad&#305;" />
+            <div class="df-user-filter-actions">
+                <button class="df-btn df-btn-primary df-btn-sm" type="submit"><i class="bi bi-funnel-fill" aria-hidden="true"></i> Filtrele</button>
+                <a class="df-btn df-btn-secondary df-btn-sm" href="@Url.Action("Personeller", "AdminPanel")"><i class="bi bi-x-lg" aria-hidden="true"></i> Temizle</a>
             </div>
-            <div class="df-field">
-                <label>Durum</label>
-                <select class="df-control" name="durum">
-                    <option value="" selected="@(string.IsNullOrEmpty(seciliDurum))">T&uuml;m&uuml;</option>
-                    <option value="Aktif" selected="@(seciliDurum == "Aktif")">Aktif</option>
-                    <option value="Pasif" selected="@(seciliDurum == "Pasif")">Pasif</option>
-                </select>
-            </div>
-            <button class="df-btn df-btn-primary df-btn-sm" type="submit">
-                <i class="bi bi-search"></i>
-                Filtrele
-            </button>
-            <a class="df-btn df-btn-secondary df-btn-sm" href="/AdminPanel/personeller">
-                <i class="bi bi-x-lg"></i>
-                Temizle
-            </a>
-            <a class="df-btn df-btn-success df-btn-sm" href="/AdminPanel/personeller/ekle">
-                <i class="bi bi-person-plus"></i>
-                Yeni Personel
-            </a>
         </form>
-    </div>
+    </details>
 
-    <div class="df-table-wrap">
-        <table class="df-table">
-            <thead>
-                <tr>
-                    <th>Ad Soyad</th>
-                    <th>E-Posta</th>
-                    <th>&#350;irket</th>
-                    <th>Durum</th>
-                    <th>&#304;&#351;lem</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if (!personeller.Any())
+    <section class="df-user-list">
+        <div class="df-user-table-scroll">
+            <div class="df-user-grid df-person-grid df-user-grid-head">
+                <div>Personel</div><div>İletişim</div><div>Dağıtım Şirketi</div><div>Durum</div><div>İşlemler</div>
+            </div>
+            @if (personeller.Count == 0)
+            {
+                <div class="df-empty"><div class="df-empty-title">Personel kaydı bulunamadı.</div><p class="df-empty-text">Filtreleri temizleyip yeniden deneyin.</p></div>
+            }
+            else
+            {
+                foreach (var personel in personeller)
                 {
-                    <tr>
-                        <td colspan="5">
-                            <div class="df-empty">
-                                <div class="df-empty-title">Personel kayd&#305; yok.</div>
-                                <p class="df-empty-text">Filtreleri de&#287;i&#351;tirerek tekrar deneyebilir veya yeni personel ekleyebilirsiniz.</p>
-                            </div>
-                        </td>
-                    </tr>
+                    var adParcalari = (personel.AdSoyad ?? "?")
+                        .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                        .Take(2)
+                        .Select(x => char.ToUpperInvariant(x[0]));
+                    var basHarfler = string.Concat(adParcalari);
+                    <div class="df-user-grid df-person-grid df-user-row">
+                        <div class="df-user-identity"><span class="df-user-avatar">@basHarfler</span><strong>@(personel.AdSoyad ?? "-")</strong></div>
+                        <div class="df-person-contact"><span>@(personel.Email ?? "-")</span>@if (!string.IsNullOrWhiteSpace(personel.PhoneNumber)){<small>@personel.PhoneNumber</small>}</div>
+                        <div class="df-person-company"><strong>@(personel.Sirket?.SirketAdi ?? "-")</strong>@if (!string.IsNullOrWhiteSpace(personel.Sirket?.Il)){<small>@personel.Sirket.Il</small>}</div>
+                        <div><span class="df-pill @(personel.AktifMi ? "df-pill-success" : "df-pill-danger")">@(personel.AktifMi ? "Aktif" : "Pasif")</span></div>
+                        <div class="df-user-actions">
+                            <a class="df-icon-action" href="@Url.Action("KullaniciDuzenle", "AdminPanel", new { id = personel.Id, returnUrl = Url.Action("Personeller", "AdminPanel") })" title="Personeli düzenle" aria-label="@personel.AdSoyad personelini düzenle"><i class="bi bi-pencil" aria-hidden="true"></i></a>
+                            <form method="post" action="@Url.Action("PersonelDurum", "AdminPanel", new { id = personel.Id })">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="aktif" value="@(personel.AktifMi ? "false" : "true")" />
+                                <button type="submit" class="df-icon-action @(personel.AktifMi ? "is-warning" : "is-success")" title="@(personel.AktifMi ? "Personeli pasifleştir" : "Personeli aktifleştir")" aria-label="@personel.AdSoyad personelini @(personel.AktifMi ? "pasifleştir" : "aktifleştir")"><i class="bi @(personel.AktifMi ? "bi-pause-circle" : "bi-play-circle")" aria-hidden="true"></i></button>
+                            </form>
+                            <form method="post" action="@Url.Action("PersonelSil", "AdminPanel", new { id = personel.Id })" onsubmit="return confirm('Personeli silmek istediğinize emin misiniz?');">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="df-icon-action is-danger" title="Personeli sil" aria-label="@personel.AdSoyad personelini sil"><i class="bi bi-trash3" aria-hidden="true"></i></button>
+                            </form>
+                        </div>
+                    </div>
                 }
-                else
-                {
-                    foreach (var p in personeller)
-                    {
-                        <tr>
-                            <td>
-                                <div class="df-cell-main">@(p.AdSoyad ?? "-")</div>
-                                <div class="df-cell-sub">@(p.PhoneNumber ?? "-")</div>
-                            </td>
-                            <td>@(p.Email ?? "-")</td>
-                            <td>
-                                <div class="df-cell-main">@(p.Sirket?.SirketAdi ?? "-")</div>
-                                <div class="df-cell-sub">@(p.Sirket?.Il ?? "")</div>
-                            </td>
-                            <td>
-                                <span class="df-pill @(p.AktifMi ? "df-pill-success" : "df-pill-muted")">
-                                    @(p.AktifMi ? "Aktif" : "Pasif")
-                                </span>
-                            </td>
-                            <td>
-                                <div class="df-actions">
-                                    <a class="df-btn df-btn-secondary df-btn-sm" href="/AdminPanel/kullanicilar/duzenle/@p.Id?returnUrl=/AdminPanel/personeller">
-                                        <i class="bi bi-pencil-square"></i>
-                                        D&uuml;zenle
-                                    </a>
-                                    <form method="post" action="/AdminPanel/personeller/durum/@p.Id">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="aktif" value="@(p.AktifMi ? "false" : "true")" />
-                                        <button type="submit" class="df-btn df-btn-ghost df-btn-sm">
-                                            <i class="bi @(p.AktifMi ? "bi-slash-circle" : "bi-check-circle")"></i>
-                                            @Html.Raw(p.AktifMi ? "Pasifle&#351;tir" : "Aktifle&#351;tir")
-                                        </button>
-                                    </form>
-                                    <form method="post" action="/AdminPanel/personeller/sil/@p.Id" onsubmit="return confirm('Personel silinsin mi?');">
-                                        @Html.AntiForgeryToken()
-                                        <button type="submit" class="df-btn df-btn-danger df-btn-sm">
-                                            <i class="bi bi-trash"></i>
-                                            Sil
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                    }
-                }
-            </tbody>
-        </table>
-    </div>
-</div>
+            }
+        </div>
+    </section>
 </div>

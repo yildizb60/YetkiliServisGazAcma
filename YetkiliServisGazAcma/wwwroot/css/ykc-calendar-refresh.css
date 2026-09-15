@@ -11,28 +11,37 @@
 .ykc-calendar.is-page .ykc-calendar-modes [aria-current] { background:#2674ae; color:#fff; }
 .ykc-calendar.is-page .ykc-calendar-modes > span { padding:7px 12px; font-size:13px; }
 .ykc-calendar.is-page .ykc-calendar-filter { background:#f8fbfd; border-bottom:1px solid #dce5ec; }
-.ykc-calendar.is-page .ykc-calendar-filter > summary { padding:10px 16px; }
-.ykc-calendar.is-page .ykc-calendar-filters { padding:8px 16px 14px; grid-template-columns:repeat(4,minmax(0,1fr)); }
-.ykc-calendar.is-page .ykc-calendar-filter-actions { grid-column:auto; align-items:end; }
+.ykc-calendar.is-page .ykc-calendar-filter > summary { min-height:34px; padding:6px 12px; }
+.ykc-calendar.is-page .ykc-calendar-filters {
+    padding:7px 12px 10px;
+    grid-template-columns:110px 110px 72px 88px minmax(112px,.8fr) minmax(140px,1fr) 108px auto;
+    align-items:end;
+    gap:8px;
+}
+.ykc-calendar.is-page .ykc-calendar-filters > div { min-width:0; gap:3px; }
+.ykc-calendar.is-page .ykc-calendar-filters label { font-size:9.5px; font-weight:650; }
+.ykc-calendar.is-page .ykc-calendar-filters input { min-width:0; min-height:33px; padding:6px 8px !important; font-size:11px !important; }
+.ykc-calendar.is-page .ykc-calendar-filter-actions { grid-column:auto; align-items:end; flex-wrap:nowrap; gap:5px; }
+.ykc-calendar.is-page .ykc-calendar-filter-actions .df-btn { min-height:33px; padding:6px 8px; }
 .ykc-calendar.is-page .ykc-calendar-week { background:#fff; }
 .ykc-calendar.is-page .ykc-calendar-week a { padding:7px 4px; gap:0; border-right:1px solid #e7edf2; }
 .ykc-calendar.is-page .ykc-calendar-week strong { font-size:18px; font-weight:600; }
 .ykc-calendar.is-page .ykc-calendar-week a[aria-current] { background:#e8f2fa; border-bottom-color:#2674ae; color:#216797; }
 .ykc-calendar.is-page .ykc-calendar-week a.is-today { color:#127b5b; }
-.ykc-day-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 20px 8px; }
+.ykc-day-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 16px 6px; }
 .ykc-day-heading > div { display:flex; align-items:center; gap:9px; color:#2674ae; }
 .ykc-day-heading h2 { margin:0; color:#2d4558; font-size:16px; font-weight:600; }
 .ykc-day-heading > span { color:#65798b; font-size:13px; }
-.ykc-day-agenda { padding:0 20px 16px; }
-.ykc-day-visit { display:grid; grid-template-columns:86px minmax(0,1.5fr) minmax(0,.8fr) 130px 16px; gap:16px; align-items:center; padding:16px 0; border-bottom:1px solid #e5ebf0; text-decoration:none; color:#344c60; }
+.ykc-day-agenda { padding:0 16px 12px; }
+.ykc-day-visit { display:grid; grid-template-columns:78px minmax(0,1.5fr) minmax(0,.8fr) 125px 16px; gap:13px; align-items:center; padding:10px 0; border-bottom:1px solid #e5ebf0; text-decoration:none; color:#344c60; }
 .ykc-day-visit:last-child { border-bottom:0; }
 .ykc-day-visit:hover { background:#f8fbfd; }
-.ykc-day-visit > time { display:grid; place-content:center; gap:5px; min-height:72px; border-left:3px solid #218563; border-radius:4px; background:#edf8f3; color:#147254; text-align:center; font-size:20px; font-weight:600; font-variant-numeric:tabular-nums; }
+.ykc-day-visit > time { display:grid; place-content:center; gap:3px; min-height:58px; border-left:3px solid #218563; border-radius:4px; background:#edf8f3; color:#147254; text-align:center; font-size:18px; font-weight:600; font-variant-numeric:tabular-nums; }
 .ykc-day-visit > time i { font-size:14px; }
 .ykc-day-customer,.ykc-day-owner { min-width:0; }
 .ykc-day-customer strong { display:block; color:#253f53; font-size:15px; font-weight:600; overflow-wrap:anywhere; }
 .ykc-day-customer > span { display:block; font-size:12px; margin-top:3px; color:#527087; }
-.ykc-day-customer small { display:block; font-size:12px; color:#718291; margin-top:7px; overflow-wrap:anywhere; }
+.ykc-day-customer small { display:block; font-size:11px; color:#718291; margin-top:4px; overflow-wrap:anywhere; }
 .ykc-day-owner > span { display:block; font-size:13px; font-weight:500; overflow-wrap:anywhere; }
 .ykc-day-owner small { display:block; font-size:12px; color:#718291; margin:6px 0 0; }
 .ykc-calendar.is-page .df-pill { justify-self:start; padding:5px 8px; font-size:11px; font-weight:600; line-height:1.4; white-space:normal; text-align:left; }

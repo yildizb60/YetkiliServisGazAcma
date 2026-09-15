@@ -8,8 +8,10 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/YetkiliServisGazAcma.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/page-transition.css" asp-append-version="true" />
 </head>
 <body>
+    @await Html.PartialAsync("_PageTransition")
     <div class="container">
         <main role="main" class="pb-3">
             @RenderBody()
@@ -19,6 +21,7 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
+    <script src="~/js/page-transition.js" asp-append-version="true"></script>
 </body>
 </html>
 

@@ -30,8 +30,10 @@
     @await RenderSectionAsync("PageStyles", required: false)
     <link rel="stylesheet" href="~/css/operation-toast.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/record-tabs.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/page-transition.css" asp-append-version="true" />
 </head>
 <body class="@bodyClasses" data-onay="@(ViewBag.OnayBekleyen ?? 0)" data-sure="@(ViewBag.SuresiBitecek ?? 0)">
+    @await Html.PartialAsync("_PageTransition")
     <div class="df-toast-stack" data-operation-toast-stack aria-live="polite" aria-atomic="true">
         @foreach (var message in successMessages)
         {
@@ -63,5 +65,6 @@
     <script src="/js/operation-toast.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
     <script src="~/js/record-tabs.js" asp-append-version="true"></script>
+    <script src="~/js/page-transition.js" asp-append-version="true"></script>
 </body>
 </html>

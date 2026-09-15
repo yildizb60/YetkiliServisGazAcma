@@ -18,9 +18,24 @@ CheckRole(!KullaniciRolTutarlilikKurali.FirmaRolleriUyumlu(
 CheckRole(!KullaniciRolTutarlilikKurali.FirmaRolleriUyumlu(
     KullaniciTipiDegerleri.GenelSistemAdmin, [KullaniciRolAdlari.YetkiliServis]),
     "admin cannot inherit a service role");
+CheckRole(!KullaniciRolTutarlilikKurali.FirmaRolleriUyumlu(
+    KullaniciTipiDegerleri.SertifikaliFirma, [KullaniciRolAdlari.SertifikaliFirma, KullaniciRolAdlari.SirketAdmin]),
+    "certified firm cannot inherit an admin role");
+CheckRole(!KullaniciRolTutarlilikKurali.FirmaRolleriUyumlu(
+    KullaniciTipiDegerleri.YetkiliServis, [KullaniciRolAdlari.YetkiliServis, KullaniciRolAdlari.GenelSistemAdmin]),
+    "service account cannot inherit a system admin role");
 CheckRole(KullaniciRolTutarlilikKurali.FirmaRolleriUyumlu(
     KullaniciTipiDegerleri.YetkiliServis, []),
     "missing primary role can be added during login");
+CheckRole(KullaniciRolTutarlilikKurali.FirmaRolleriUyumlu(
+    KullaniciTipiDegerleri.SirketAdmin, [KullaniciRolAdlari.SirketAdmin], sirketId: 5),
+    "company admin role matches a company-bound account");
+CheckRole(!KullaniciRolTutarlilikKurali.FirmaRolleriUyumlu(
+    KullaniciTipiDegerleri.SirketAdmin, [KullaniciRolAdlari.GenelSistemAdmin], sirketId: 5),
+    "company-bound admin cannot inherit system admin role");
+CheckRole(KullaniciRolTutarlilikKurali.FirmaRolleriUyumlu(
+    KullaniciTipiDegerleri.SirketAdmin, [KullaniciRolAdlari.GenelSistemAdmin, KullaniciRolAdlari.EskiSuperAdmin]),
+    "legacy company-type system admin remains valid without a company binding");
 
 await CheckCookie("valid API session", _ => { }, accepted: true);
 await CheckCookie("server session lost after restart", s => s.Clear());

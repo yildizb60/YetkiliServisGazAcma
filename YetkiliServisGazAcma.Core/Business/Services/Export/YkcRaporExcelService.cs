@@ -14,7 +14,7 @@ namespace YetkiliServisGazAcma.Business.Services
 
             basliklar.AddRange(new[]
             {
-                "Yeni Cihaz Türü", "Yeni Marka", "Yeni Model", "Yeni Kapasite", "İkinci El",
+                "Yeni Kullanılan Cihaz Türü", "Yeni Kullanılan Cihaz Markası", "Yeni Kullanılan Cihaz Modeli", "Yeni Kullanılan Cihaz Kapasitesi", "İkinci El",
                 "Kontrol Randevusu", "İl", "İlçe", "Bölge"
             });
 
@@ -73,11 +73,20 @@ namespace YetkiliServisGazAcma.Business.Services
 
         private static string Randevu(YkcRaporKayitDto kayit)
         {
-            return string.Join(" ", new[]
+            var randevu = string.Join(" ", new[]
             {
                 kayit.RandevuTarihi?.ToString("dd.MM.yyyy"),
                 string.IsNullOrWhiteSpace(kayit.RandevuSaati) ? null : kayit.RandevuSaati
             }.Where(x => !string.IsNullOrWhiteSpace(x)));
+
+            if (string.IsNullOrWhiteSpace(randevu))
+                return kayit.SiradakiKontrolNo is > 1
+                    ? $"{kayit.SiradakiKontrolNo}. kontrol randevusu bekleniyor"
+                    : "Henüz planlanmadı";
+
+            return kayit.SiradakiKontrolNo is > 1
+                ? $"{kayit.SiradakiKontrolNo}. kontrol - {randevu}"
+                : randevu;
         }
 
         private static string Durum(int durum) => durum switch

@@ -136,7 +136,7 @@ namespace YetkiliServisGazAcma.Controllers
                     return NotFound("Yetki belgesi dosyasi bulunamadi veya bu belge icin yetkiniz yok.");
 
                 Response.Headers.CacheControl = "private, no-store";
-                return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+                return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
             }
             catch (ApiIntegrationException ex)
             {

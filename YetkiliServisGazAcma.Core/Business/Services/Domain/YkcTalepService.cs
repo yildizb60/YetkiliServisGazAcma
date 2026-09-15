@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Globalization;
+using System.Text.Json.Serialization;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
 
@@ -24,7 +25,7 @@ namespace YetkiliServisGazAcma.Business.Services
             AppKullanici kullanici,
             bool genelYetkili)
         {
-            var query = TalepQuery();
+            var query = TalepOkumaQuery();
             query = FiltreleriUygula(query, filtre, kullanici, genelYetkili);
 
             var toplam = await query.CountAsync();
@@ -54,7 +55,7 @@ namespace YetkiliServisGazAcma.Business.Services
             AppKullanici kullanici,
             bool genelYetkili)
         {
-            var query = FiltreleriUygula(TalepQuery(), filtre, kullanici, genelYetkili);
+            var query = FiltreleriUygula(TalepOkumaQuery(), filtre, kullanici, genelYetkili);
 
             var toplam = await query.CountAsync();
             var durumOzetleri = await query
@@ -116,7 +117,7 @@ namespace YetkiliServisGazAcma.Business.Services
             int kayitLimiti)
         {
             var limit = Math.Clamp(kayitLimiti, 1, 5001);
-            var kayitlar = await FiltreleriUygula(TalepQuery(), filtre, kullanici, genelYetkili)
+            var kayitlar = await FiltreleriUygula(TalepOkumaQuery(), filtre, kullanici, genelYetkili)
                 .OrderByDescending(x => x.TalepTarihi)
                 .ThenByDescending(x => x.Id)
                 .Take(limit)
@@ -127,7 +128,7 @@ namespace YetkiliServisGazAcma.Business.Services
 
         public async Task<YkcDashboardOzetDto> DashboardOzetAsync(AppKullanici kullanici, bool genelYetkili, int? aktifSirketId = null)
         {
-            var query = YetkiKapsamiUygula(TalepQuery(), kullanici, genelYetkili, aktifSirketId);
+            var query = YetkiKapsamiUygula(TalepOkumaQuery(), kullanici, genelYetkili, aktifSirketId);
 
             var toplam = await query.CountAsync();
             var incelemede = await query.CountAsync(x =>
@@ -180,7 +181,7 @@ namespace YetkiliServisGazAcma.Business.Services
 
         public async Task<YkcTalepDetayDto?> GetirAsync(int id, AppKullanici kullanici, bool genelYetkili)
         {
-            var talep = await YetkiKapsamiUygula(TalepQuery(), kullanici, genelYetkili)
+            var talep = await YetkiKapsamiUygula(TalepOkumaQuery(), kullanici, genelYetkili)
                 .FirstOrDefaultAsync(x => x.Id == id);
 
             if (talep == null)
@@ -887,6 +888,7 @@ namespace YetkiliServisGazAcma.Business.Services
         private IQueryable<Ykc_Talep> TalepQuery()
         {
             return _context.Ykc_Talepler
+                .AsSplitQuery()
                 .Include(x => x.Firma)
                     .ThenInclude(x => x!.YetkiBelgeleri)
                 .Include(x => x.Sirket)
@@ -902,6 +904,11 @@ namespace YetkiliServisGazAcma.Business.Services
                 .Where(x =>
                     (x.TesisatNo == null || x.TesisatNo != "string") &&
                     (x.MusteriAdi == null || x.MusteriAdi != "string"));
+        }
+
+        private IQueryable<Ykc_Talep> TalepOkumaQuery()
+        {
+            return TalepQuery().AsNoTracking();
         }
 
         private static IQueryable<Ykc_Talep> FiltreleriUygula(
@@ -1029,17 +1036,22 @@ namespace YetkiliServisGazAcma.Business.Services
             bool genelYetkili,
             int? dogrulanmisSirketId = null)
         {
+            // A firm account is always restricted to its own records, even if a stale
+            // or incorrectly assigned privileged role reaches this layer.
+            if (kullanici.FirmaId.HasValue)
+            {
+                query = query.Where(x => x.FirmaId == kullanici.FirmaId.Value);
+                return dogrulanmisSirketId.HasValue
+                    ? query.Where(x => x.SirketId == dogrulanmisSirketId.Value)
+                    : query;
+            }
+
             // Explicit company selection is authorized by the API before querying.
             if (dogrulanmisSirketId.HasValue)
-                return kullanici.FirmaId.HasValue
-                    ? query.Where(x => x.FirmaId == kullanici.FirmaId.Value && x.SirketId == dogrulanmisSirketId.Value)
-                    : query.Where(x => x.SirketId == dogrulanmisSirketId.Value);
+                return query.Where(x => x.SirketId == dogrulanmisSirketId.Value);
 
             if (genelYetkili)
                 return query;
-
-            if (kullanici.FirmaId.HasValue)
-                return query.Where(x => x.FirmaId == kullanici.FirmaId.Value);
 
             if (kullanici.SirketId.HasValue)
                 return query.Where(x => x.SirketId == kullanici.SirketId.Value);
@@ -1302,6 +1314,9 @@ namespace YetkiliServisGazAcma.Business.Services
         public string? YeniSeriNo { get; set; }
         public bool? IkinciElCihazMi { get; set; }
         public string? Aufnr { get; set; }
+
+        [JsonIgnore]
+        public Dictionary<string, string?> IzinliYeniCihazTipleri { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     }
 
     public class YkcTesisatSorguIstek
@@ -1456,6 +1471,7 @@ namespace YetkiliServisGazAcma.Business.Services
         public string? HedefUygulama { get; set; }
         public DateTime? RandevuTarihi { get; set; }
         public string? RandevuSaati { get; set; }
+        public int? SiradakiKontrolNo { get; set; }
         public bool? IkinciElCihazMi { get; set; }
 
         public static YkcTalepDto FromEntity(Ykc_Talep talep)
@@ -1483,6 +1499,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 HedefUygulama = talep.HedefUygulama,
                 RandevuTarihi = talep.RandevuTarihi,
                 RandevuSaati = talep.RandevuSaati,
+                SiradakiKontrolNo = YkcKontrolAkisKurali.SiradakiKontrolNo(talep.Kontroller),
                 IkinciElCihazMi = talep.IkinciElCihazMi
             };
         }
@@ -1521,6 +1538,7 @@ namespace YetkiliServisGazAcma.Business.Services
         public DateTime TalepTarihi { get; set; }
         public DateTime? RandevuTarihi { get; set; }
         public string? RandevuSaati { get; set; }
+        public int? SiradakiKontrolNo { get; set; }
         public int Durum { get; set; }
         public bool ImzaliNihaiBelgeVar { get; set; }
         public string? ImzaDurumu { get; set; }
@@ -1555,6 +1573,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 TalepTarihi = talep.TalepTarihi,
                 RandevuTarihi = talep.RandevuTarihi,
                 RandevuSaati = talep.RandevuSaati,
+                SiradakiKontrolNo = YkcKontrolAkisKurali.SiradakiKontrolNo(talep.Kontroller),
                 Durum = talep.Durum,
                 ImzaDurumu = AktifImzaSureci(talep)?.Durum ?? YkcImzaDurumDegerleri.Hazir,
                 ImzaliNihaiBelgeVar = ImzaliNihaiBelgeVarMi(talep)

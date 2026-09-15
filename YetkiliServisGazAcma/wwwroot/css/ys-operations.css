@@ -523,6 +523,7 @@
 .ys-summary-item.is-success { --metric-color: var(--ys-green); --metric-soft: var(--ys-green-soft); }
 .ys-summary-item.is-warning { --metric-color: var(--ys-amber); --metric-soft: var(--ys-amber-soft); }
 .ys-summary-item.is-info { --metric-color: var(--ys-cyan); --metric-soft: var(--ys-cyan-soft); }
+.ys-summary-item.is-danger { --metric-color: #ad3e4c; --metric-soft: #fff0f2; }
 
 .ys-summary-copy {
     min-width: 0;
@@ -658,6 +659,15 @@
     color: var(--ys-muted);
     font-size: 12px;
 }
+.ys-model-clamp {
+    display:-webkit-box;
+    max-width:360px;
+    overflow:hidden;
+    -webkit-box-orient:vertical;
+    -webkit-line-clamp:2;
+    line-clamp:2;
+    line-height:1.4;
+}
 
 .ys-table-actions {
     display: flex;
@@ -766,6 +776,23 @@
 .ys-chart-wrap.has-data .ys-chart-empty {
     display: none;
 }
+
+.ys-report-controls { padding:10px 12px; border:1px solid var(--ys-border); border-top:3px solid var(--ys-blue); border-radius:6px; background:#fff; }
+.ys-report-controls .ys-query-grid { grid-template-columns:155px 155px auto; justify-content:start; }
+.ys-report-control-actions { display:flex; align-items:end; gap:6px; }
+.ys-report-control-actions .df-btn { min-height:35px; }
+.ys-quiet-export { padding-inline:8px; background:#fff !important; border-color:#d7e0e7 !important; color:#4b6274 !important; }
+.ys-quiet-export.is-pdf i { color:#b33f49; }
+.ys-quiet-export.is-excel i { color:#167656; }
+.ys-quiet-export:hover { background:#f5f8fa !important; border-color:#b9c9d4 !important; }
+.ys-table-actions,
+.ys-table-actions > form { display:flex; align-items:center; justify-content:flex-end; gap:6px; margin:0; }
+.ys-table-actions .df-btn { min-height:31px; }
+.ys-history-detail { width:31px; height:31px; min-height:31px; padding:0; display:grid; place-items:center; }
+.ys-commissioning-request { --request-title-size:16px; }
+.ys-commissioning-request .ykc-request-section-head h2,
+.ys-commissioning-request .ykc-source-device h2,
+.ys-commissioning-request .ykc-new-device h2 { font-size:13px; font-weight:650; }
 
 .ys-chart-fallback {
     display: none;

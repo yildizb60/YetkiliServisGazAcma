@@ -1,7 +1,7 @@
 @using YetkiliServisGazAcma.Entities
 @{
-    ViewData["Title"] = "Şube / Servis Noktaları";
-    ViewData["PanelTitle"] = "Şube / Servis Noktaları";
+    ViewData["Title"] = "Şubeler";
+    ViewData["PanelTitle"] = ViewData["Title"];
     ViewData["PanelSubtitle"] = "Admin Paneli";
     ViewData["ActiveMenu"] = "Subeler";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
@@ -17,15 +17,6 @@
 }
 
 <div class="df-admin-workspace df-branch-workspace">
-    @if (TempData["Basarili"] != null)
-    {
-        <div class="df-alert df-alert-success">@TempData["Basarili"]</div>
-    }
-    @if (TempData["Hata"] != null)
-    {
-        <div class="df-alert df-alert-danger">@TempData["Hata"]</div>
-    }
-
     <section class="df-page-panel df-admin-hero">
         <div class="df-panel-head">
             <div>
@@ -68,13 +59,12 @@
                 <i class="bi bi-funnel"></i>
                 <span>
                     <strong>Filtreler</strong>
-                    <small>Firma, şube, il veya telefon ile listeyi daraltın.</small>
                 </span>
             </span>
             <span>@(filtreAktif ? "Filtre uygulandı" : "Aç") <i class="bi bi-chevron-down"></i></span>
         </summary>
         <div class="df-admin-filter-body">
-            <form method="get" action="/AdminPanel/subeler">
+            <form method="get" action="@Url.Action("Subeler", "AdminPanel")">
                 <div class="df-admin-filter-grid">
                     <div class="df-admin-field is-half">
                         <label>Firma</label>
@@ -92,7 +82,7 @@
                     </div>
                 </div>
                 <div class="df-admin-filter-actions">
-                    <a href="/AdminPanel/subeler" class="df-btn df-btn-secondary df-btn-sm">
+                    <a href="@Url.Action("Subeler", "AdminPanel")" class="df-btn df-btn-secondary df-btn-sm">
                         <i class="bi bi-x-lg"></i>
                         Temizle
                     </a>
@@ -110,7 +100,7 @@
             <span><i class="bi bi-diagram-3"></i></span>
             <div><h3>Yeni Şube</h3></div>
         </div>
-        <form method="post" action="/AdminPanel/subeler/ekle">
+        <form method="post" action="@Url.Action("SubeEkle", "AdminPanel")">
             @Html.AntiForgeryToken()
             <div class="df-branch-form-grid">
                 <div class="df-admin-field is-half">
@@ -205,25 +195,22 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <div class="df-actions">
-                                        <a class="df-btn df-btn-secondary df-btn-sm" href="/AdminPanel/subeler/duzenle/@sube.Id">
-                                            <i class="bi bi-pencil-square"></i>
-                                            Düzenle
+                                    <div class="df-user-actions df-branch-actions">
+                                        <a class="df-icon-action" href="@Url.Action("SubeDuzenle", "AdminPanel", new { id = sube.Id })" title="Şubeyi düzenle" aria-label="@sube.SubeAdi şubesini düzenle">
+                                            <i class="bi bi-pencil" aria-hidden="true"></i>
                                         </a>
-                                        <form method="post" action="/AdminPanel/subeler/durum">
+                                        <form method="post" action="@Url.Action("SubeDurum", "AdminPanel")">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="id" value="@sube.Id" />
-                                            <button type="submit" class="df-btn df-btn-ghost df-btn-sm">
-                                                <i class="bi @(sube.AktifMi ? "bi-slash-circle" : "bi-check-circle")"></i>
-                                                @(sube.AktifMi ? "Pasifleştir" : "Aktifleştir")
+                                            <button type="submit" class="df-icon-action @(sube.AktifMi ? "is-warning" : "is-success")" title="@(sube.AktifMi ? "Şubeyi pasifleştir" : "Şubeyi aktifleştir")" aria-label="@sube.SubeAdi şubesini @(sube.AktifMi ? "pasifleştir" : "aktifleştir")">
+                                                <i class="bi @(sube.AktifMi ? "bi-pause-circle" : "bi-play-circle")" aria-hidden="true"></i>
                                             </button>
                                         </form>
-                                        <form method="post" action="/AdminPanel/subeler/sil" onsubmit="return confirm('Şube kaydı silinsin mi?');">
+                                        <form method="post" action="@Url.Action("SubeSil", "AdminPanel")" onsubmit="return confirm('Şube kaydı silinsin mi?');">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="id" value="@sube.Id" />
-                                            <button type="submit" class="df-btn df-btn-danger df-btn-sm">
-                                                <i class="bi bi-trash"></i>
-                                                Sil
+                                            <button type="submit" class="df-icon-action is-danger" title="Şubeyi sil" aria-label="@sube.SubeAdi şubesini sil">
+                                                <i class="bi bi-trash3" aria-hidden="true"></i>
                                             </button>
                                         </form>
                                     </div>

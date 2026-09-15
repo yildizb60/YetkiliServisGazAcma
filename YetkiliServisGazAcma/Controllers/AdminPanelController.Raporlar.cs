@@ -57,7 +57,7 @@ namespace YetkiliServisGazAcma.Controllers
             var dosya = await _adminRaporApiClient.DevreyeAlmaPdfAsync(kullanici, id, aktifSirketId);
             if (dosya == null) return NotFound();
 
-            return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+            return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
         }
 
         [HttpGet("devreyealmalar/excel/{id:int}")]
@@ -70,7 +70,7 @@ namespace YetkiliServisGazAcma.Controllers
             var dosya = await _adminRaporApiClient.DevreyeAlmaExcelAsync(kullanici, id, aktifSirketId);
             if (dosya == null) return NotFound();
 
-            return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+            return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
         }
 
         [HttpGet("raporlar")]
@@ -130,7 +130,7 @@ namespace YetkiliServisGazAcma.Controllers
                 return Redirect("/AdminPanel/raporlar");
             }
 
-            return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+            return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
         }
 
         [HttpGet("raporlar/pdf-toplu")]
@@ -155,7 +155,7 @@ namespace YetkiliServisGazAcma.Controllers
                 return Redirect("/AdminPanel/raporlar");
             }
 
-            return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+            return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
         }
 
         [HttpGet("raporlar/excel-toplu")]

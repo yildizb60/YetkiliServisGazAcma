@@ -214,9 +214,23 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (!await KullaniciKapsamindaMi(kullanici, hedef, kapsam.sirketId))
                 return Forbid();
 
+            if (kullanici.Id == hedef.Id && !dto.AktifMi)
+                return Ok(AdminIslemSonucDto.Basarisiz("Kendi hesabinizi pasiflestiremezsiniz."));
+
             if (!GenelSistemAdminMi(kullanici) &&
                 (hedef.KullaniciTipi == KullaniciTipiDegerleri.GenelSistemAdmin || hedef.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin))
                 return Ok(AdminIslemSonucDto.Basarisiz("Sirket admini genel sistem admini veya sirket admini hesabini duzenleyemez."));
+
+            var sifreDegisecek = !string.IsNullOrWhiteSpace(dto.YeniSifre) || !string.IsNullOrWhiteSpace(dto.YeniSifreTekrar);
+            if (sifreDegisecek)
+            {
+                if (dto.YeniSifre != dto.YeniSifreTekrar)
+                    return Ok(AdminIslemSonucDto.Basarisiz("Yeni sifreler eslesmiyor."));
+
+                var sifreHatalari = ValidatePassword(dto.YeniSifre);
+                if (sifreHatalari.Count > 0)
+                    return Ok(AdminIslemSonucDto.Basarisiz(string.Join(" ", sifreHatalari)));
+            }
 
             if ((hedef.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin || hedef.KullaniciTipi == KullaniciTipiDegerleri.Personel) && (!dto.SirketId.HasValue || dto.SirketId.Value <= 0))
             {
@@ -262,25 +276,20 @@ namespace YetkiliServisGazAcma.API.Controllers
             hedef.PhoneNumber = dto.Telefon;
             hedef.AktifMi = dto.AktifMi;
 
+            await using var transaction = await _context.Database.BeginTransactionAsync();
             var sonuc = await _userManager.UpdateAsync(hedef);
             if (!sonuc.Succeeded)
                 return Ok(AdminIslemSonucDto.Basarisiz(string.Join(", ", sonuc.Errors.Select(x => x.Description))));
 
-            if (!string.IsNullOrWhiteSpace(dto.YeniSifre) || !string.IsNullOrWhiteSpace(dto.YeniSifreTekrar))
+            if (sifreDegisecek)
             {
-                if (dto.YeniSifre != dto.YeniSifreTekrar)
-                    return Ok(AdminIslemSonucDto.Basarisiz("Yeni sifreler eslesmiyor."));
-
-                var sifreHatalari = ValidatePassword(dto.YeniSifre);
-                if (sifreHatalari.Count > 0)
-                    return Ok(AdminIslemSonucDto.Basarisiz(string.Join(" ", sifreHatalari)));
-
                 var token = await _userManager.GeneratePasswordResetTokenAsync(hedef);
                 var sifreSonuc = await _userManager.ResetPasswordAsync(hedef, token, dto.YeniSifre ?? "");
                 if (!sifreSonuc.Succeeded)
                     return Ok(AdminIslemSonucDto.Basarisiz(string.Join(", ", sifreSonuc.Errors.Select(x => x.Description))));
             }
 
+            await transaction.CommitAsync();
             _logger.LogInformation("Admin kullanici guncelledi. YapanId: {YapanId}, HedefId: {HedefId}", kullanici.Id, hedef.Id);
             return Ok(AdminIslemSonucDto.BasariliSonuc("Kullanici guncellendi."));
         }

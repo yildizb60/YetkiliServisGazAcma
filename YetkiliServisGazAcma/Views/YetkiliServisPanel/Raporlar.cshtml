@@ -1,12 +1,15 @@
 @{
     ViewData["Title"] = "Cihaz Devreye Alma Raporları";
     ViewData["PanelTitle"] = ViewData["Title"];
+    ViewData["PanelModule"] = "Cihaz Devreye Alma";
     ViewData["PanelSubtitle"] = "Yetkili Servis";
     ViewData["ActiveMenu"] = "Raporlar";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
     DateTime basTarih = ViewBag.BasTarih;
     DateTime bitTarih = ViewBag.BitTarih;
-    var sonIslemler = ViewBag.SonIslemler as List<YetkiliServisGazAcma.Entities.Ys_DevreyeAlma> ?? new();
+    var iptal = Math.Max(Convert.ToInt32(ViewBag.DevreyeSayisi) - Convert.ToInt32(ViewBag.Tamamlanan) - Convert.ToInt32(ViewBag.Bekleyen), 0);
+    var raporVar = Convert.ToInt32(ViewBag.DevreyeSayisi) > 0;
+    var pdfUrl = Url.Action("RaporlarPdf", "YetkiliServisPanel", new { bas = basTarih.ToString("yyyy-MM-dd"), bit = bitTarih.ToString("yyyy-MM-dd") });
     var excelUrl = Url.Action("RaporlarExcel", "YetkiliServisPanel", new { bas = basTarih.ToString("yyyy-MM-dd"), bit = bitTarih.ToString("yyyy-MM-dd") });
     var jsonOptions = new System.Text.Json.JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 }
@@ -16,13 +19,7 @@
 }
 
 <div class="ys-workspace ys-reports-workspace">
-    <header class="ys-page-header ys-report-period">
-        <div class="ys-page-heading">
-            <span class="ys-page-icon"><i class="bi bi-calendar-range" aria-hidden="true"></i></span>
-            <div class="ys-page-copy">
-                <strong>Tarih Aralığı</strong>
-            </div>
-        </div>
+    <section class="ys-report-controls">
         <form class="ys-query-grid" method="get" action="@Url.Action("Raporlar", "YetkiliServisPanel")">
             <div class="ys-field">
                 <label for="raporBas">Başlangıç</label>
@@ -32,9 +29,13 @@
                 <label for="raporBit">Bitiş</label>
                 <input type="date" id="raporBit" name="bit" value="@bitTarih.ToString("yyyy-MM-dd")" />
             </div>
-            <button class="df-btn df-btn-primary df-btn-sm" type="submit"><i class="bi bi-funnel" aria-hidden="true"></i> Uygula</button>
+            <div class="ys-report-control-actions">
+                <button class="df-btn df-btn-primary df-btn-sm" type="submit"><i class="bi bi-funnel" aria-hidden="true"></i> Uygula</button>
+                <a class="df-btn df-btn-secondary df-btn-sm ys-quiet-export is-pdf @(!raporVar ? "is-disabled" : "")" href="@(raporVar ? pdfUrl : "#")" aria-disabled="@(!raporVar ? "true" : "false")" title="Filtrelenen kayıtları PDF olarak indir"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF</a>
+                <a class="df-btn df-btn-secondary df-btn-sm ys-quiet-export is-excel @(!raporVar ? "is-disabled" : "")" href="@(raporVar ? excelUrl : "#")" aria-disabled="@(!raporVar ? "true" : "false")" title="Filtrelenen kayıtları Excel olarak indir"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel</a>
+            </div>
         </form>
-    </header>
+    </section>
 
     <div class="ys-summary-strip" aria-label="Rapor özeti">
         <div class="ys-summary-item">
@@ -49,9 +50,9 @@
             <span class="ys-summary-icon"><i class="bi bi-hourglass-split" aria-hidden="true"></i></span>
             <span class="ys-summary-copy"><strong>@ViewBag.Bekleyen</strong><span>Bekleyen</span></span>
         </div>
-        <div class="ys-summary-item is-info">
-            <span class="ys-summary-icon"><i class="bi bi-patch-check" aria-hidden="true"></i></span>
-            <span class="ys-summary-copy"><strong>@ViewBag.YetkiBelgesiOnayli</strong><span>Yetki Belgesi Onaylı</span></span>
+        <div class="ys-summary-item is-danger">
+            <span class="ys-summary-icon"><i class="bi bi-x-circle" aria-hidden="true"></i></span>
+            <span class="ys-summary-copy"><strong>@iptal</strong><span>İptal Edilen</span></span>
         </div>
     </div>
 
@@ -64,7 +65,7 @@
             </div>
         </div>
         <div class="ys-chart-panel">
-            <div class="ys-chart-title">Yetki Belgesi Durumu</div>
+            <div class="ys-chart-title">İşlem Durumları</div>
             <div class="ys-chart-wrap" id="wrapDurum">
                 <div class="ys-chart-empty">Veri bulunamadı</div>
                 <canvas id="durumChart"></canvas>
@@ -79,57 +80,6 @@
         </div>
     </section>
 
-    <section class="ys-panel is-blue">
-        <div class="ys-panel-head">
-            <div class="ys-panel-heading">
-                <span class="ys-section-icon"><i class="bi bi-table" aria-hidden="true"></i></span>
-                <div>
-                    <h2 class="ys-panel-title">Son İşlemler</h2>
-                    <p class="ys-panel-subtitle">@sonIslemler.Count kayıt</p>
-                </div>
-            </div>
-            <div class="ys-actions">
-                <form id="pdfSelectedForm" method="get" action="@Url.Action("RaporlarPdf", "YetkiliServisPanel")">
-                    <input type="hidden" name="bas" value="@basTarih.ToString("yyyy-MM-dd")" />
-                    <input type="hidden" name="bit" value="@bitTarih.ToString("yyyy-MM-dd")" />
-                    <button class="df-btn df-btn-sm ys-export-pdf" type="submit" disabled="@(sonIslemler.Count == 0 ? "disabled" : null)" title="Seçim varsa seçili, yoksa filtrelenen kayıtları PDF olarak indir"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF İndir</button>
-                </form>
-                <button class="df-btn df-btn-sm ys-export-excel" type="button" data-excel-url="@excelUrl" onclick="indirSeciliYsExcel(this)" disabled="@(sonIslemler.Count == 0 ? "disabled" : null)" title="Seçim varsa seçili, yoksa filtrelenen kayıtları Excel olarak indir"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel İndir</button>
-            </div>
-        </div>
-        <div class="ys-table-wrap">
-            <table class="ys-table">
-                <thead>
-                    <tr>
-                        <th>Seç</th>
-                        <th>Tesisat</th>
-                        <th>Müşteri</th>
-                        <th>Marka</th>
-                        <th>Devreye Alma Tarihi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (sonIslemler.Count == 0)
-                    {
-                        <tr><td colspan="5"><div class="ys-empty">Bu tarih aralığında işlem bulunamadı.</div></td></tr>
-                    }
-                    else
-                    {
-                        @foreach (var d in sonIslemler)
-                        {
-                            <tr>
-                                <td><input type="checkbox" name="ids" value="@d.Id" form="pdfSelectedForm" aria-label="@d.TesistatNo tesisatını seç" /></td>
-                                <td><span class="ys-table-primary">@d.TesistatNo</span></td>
-                                <td>@d.MusteriAdi</td>
-                                <td>@(d.Marka?.MarkaAdi ?? d.CihazMarka ?? "-")</td>
-                                <td>@d.DevreyeAlmaTarihi.ToString("dd.MM.yyyy")</td>
-                            </tr>
-                        }
-                    }
-                </tbody>
-            </table>
-        </div>
-    </section>
 </div>
 
 <div id="raporChartData"
@@ -191,7 +141,7 @@
         const durumHasData = durumData.length === 3 && hasAnyPositive(durumData);
         const markaHasData = markaLabels.length > 0 && hasAnyPositive(markaData);
         if (aylikHasData) { markHasData("wrapAylik"); renderFallback("wrapAylik", aylikLabels, aylikData); }
-        if (durumHasData) { markHasData("wrapDurum"); renderFallback("wrapDurum", ["Onaylı", "Bekleyen", "Reddedilen"], durumData); }
+        if (durumHasData) { markHasData("wrapDurum"); renderFallback("wrapDurum", ["Tamamlanan", "Bekleyen", "İptal"], durumData); }
         if (markaHasData) { markHasData("wrapMarka"); renderFallback("wrapMarka", markaLabels, markaData); }
         if (typeof Chart === "undefined") return;
 
@@ -212,7 +162,7 @@
             markRendered("wrapDurum");
             new Chart(document.getElementById("durumChart"), {
                 type: "doughnut",
-                data: { labels: ["Onaylı", "Bekleyen", "Reddedilen"], datasets: [{ data: durumData, backgroundColor: ["#167a55", "#9a6500", "#b42336"], borderWidth: 0 }] },
+                data: { labels: ["Tamamlanan", "Bekleyen", "İptal"], datasets: [{ data: durumData, backgroundColor: ["#167a55", "#9a6500", "#b42336"], borderWidth: 0 }] },
                 options: { ...commonOptions, cutout: "67%", plugins: { legend: { position: "bottom", labels: { boxWidth: 8, boxHeight: 8, font: { size: 9 } } } } }
             });
         }
@@ -226,12 +176,5 @@
         }
     })();
 
-    function indirSeciliYsExcel(button) {
-        const ids = Array.from(document.querySelectorAll('input[name="ids"][form]:checked')).map(x => x.value);
-        const baseUrl = button && button.dataset ? button.dataset.excelUrl : '';
-        if (!baseUrl) return;
-        const query = ids.map(id => "ids=" + encodeURIComponent(id)).join("&");
-        window.open(baseUrl + (query ? (baseUrl.includes('?') ? '&' : '?') + query : ''), "_blank", "noopener");
-    }
 </script>
 }

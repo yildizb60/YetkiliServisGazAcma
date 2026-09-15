@@ -250,43 +250,54 @@ namespace YetkiliServisGazAcma.Business.Services
                 && belge.YetkiBelgesiBitisTarihi.Date >= tarih.Date;
         }
 
+        public static bool GecerliMi(Ys_YetkiBelgesi? belge, DateTime tarih)
+        {
+            var gun = tarih.Date;
+            return belge != null && !belge.SilindiMi
+                && belge.Durum == YetkiBelgesiDurumDegerleri.Onaylandi
+                && (!belge.YetkiBelgesiBaslangicTarihi.HasValue
+                    || belge.YetkiBelgesiBaslangicTarihi.Value.Date <= gun)
+                && belge.YetkiBelgesiBitisTarihi.Date >= gun;
+        }
+
         public async Task<bool> Onayla(int yetkiBelgesiId, string? kullanici)
         {
-            var yetkiBelgesi = await _context.Ys_YetkiBelgeleri
-                .FirstOrDefaultAsync(x => x.Id == yetkiBelgesiId);
+            var simdi = DateTime.Now;
+            var yapan = kullanici ?? "sistem";
+            var guncellenen = await _context.Ys_YetkiBelgeleri
+                .Where(x => x.Id == yetkiBelgesiId
+                    && !x.SilindiMi
+                    && x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
+                    && x.YetkiBelgesiBitisTarihi >= simdi.Date)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(x => x.Durum, YetkiBelgesiDurumDegerleri.Onaylandi)
+                    .SetProperty(x => x.RedGerekce, (string?)null)
+                    .SetProperty(x => x.OnayTarihi, simdi)
+                    .SetProperty(x => x.OnaylayanKullanici, yapan)
+                    .SetProperty(x => x.GuncellemeTarihi, simdi)
+                    .SetProperty(x => x.GuncelleyenKullanici, yapan));
 
-            if (yetkiBelgesi == null || !OnaylanabilirMi(yetkiBelgesi, DateTime.Today))
-                return false;
-
-            yetkiBelgesi.Durum = YetkiBelgesiDurumDegerleri.Onaylandi;
-            yetkiBelgesi.RedGerekce = null;
-            yetkiBelgesi.OnayTarihi = DateTime.Now;
-            yetkiBelgesi.OnaylayanKullanici = kullanici ?? "sistem";
-            yetkiBelgesi.GuncellemeTarihi = DateTime.Now;
-            yetkiBelgesi.GuncelleyenKullanici = kullanici ?? "sistem";
-
-            await _context.SaveChangesAsync();
-            return true;
+            return guncellenen == 1;
         }
 
         public async Task<bool> Reddet(int yetkiBelgesiId, string? gerekce, string? kullanici)
         {
-            var yetkiBelgesi = await _context.Ys_YetkiBelgeleri
-                .FirstOrDefaultAsync(x => x.Id == yetkiBelgesiId);
+            var simdi = DateTime.Now;
+            var yapan = kullanici ?? "sistem";
+            var redGerekce = string.IsNullOrWhiteSpace(gerekce) ? "Belirtilmedi." : gerekce.Trim();
+            var guncellenen = await _context.Ys_YetkiBelgeleri
+                .Where(x => x.Id == yetkiBelgesiId
+                    && !x.SilindiMi
+                    && x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(x => x.Durum, YetkiBelgesiDurumDegerleri.Reddedildi)
+                    .SetProperty(x => x.RedGerekce, redGerekce)
+                    .SetProperty(x => x.OnayTarihi, simdi)
+                    .SetProperty(x => x.OnaylayanKullanici, yapan)
+                    .SetProperty(x => x.GuncellemeTarihi, simdi)
+                    .SetProperty(x => x.GuncelleyenKullanici, yapan));
 
-            if (yetkiBelgesi == null || yetkiBelgesi.SilindiMi
-                || yetkiBelgesi.Durum != YetkiBelgesiDurumDegerleri.OnaydaBekliyor)
-                return false;
-
-            yetkiBelgesi.Durum = YetkiBelgesiDurumDegerleri.Reddedildi;
-            yetkiBelgesi.RedGerekce = string.IsNullOrWhiteSpace(gerekce) ? "Belirtilmedi." : gerekce.Trim();
-            yetkiBelgesi.OnayTarihi = DateTime.Now;
-            yetkiBelgesi.OnaylayanKullanici = kullanici ?? "sistem";
-            yetkiBelgesi.GuncellemeTarihi = DateTime.Now;
-            yetkiBelgesi.GuncelleyenKullanici = kullanici ?? "sistem";
-
-            await _context.SaveChangesAsync();
-            return true;
+            return guncellenen == 1;
         }
     }
 

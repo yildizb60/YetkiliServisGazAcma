@@ -203,7 +203,7 @@ builder.Services.AddAuthentication(options =>
                     context.Fail("Kullanıcı yetkileri değişti.");
                     return;
                 }
-                if (!KullaniciRolTutarlilikKurali.FirmaRolleriUyumlu(user.KullaniciTipi, roles))
+                if (!KullaniciRolTutarlilikKurali.FirmaRolleriUyumlu(user.KullaniciTipi, roles, user.SirketId))
                     context.Fail("Kullanıcı tipi ve firma rolleri uyuşmuyor.");
             }
         };

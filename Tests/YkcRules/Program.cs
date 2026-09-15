@@ -52,13 +52,17 @@ var reference = snapshots.Ekle("firm-a", new YkcTalepKaydetDto {
     TesisatNo = "100", SozlesmeNo = "200", FirmaId = 7, SirketId = 3,
     EskiCihazTipi = "Kombi", EskiMarka = "Source brand", EskiKapasite = "20000",
     ProjeNo = "source-project", SayacNo = "source-meter", Bolge = "source-region",
-    MusteriAdi = "Source customer"
+    MusteriAdi = "Source customer",
+    IzinliYeniCihazTipleri = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Kombi"] = "KMB"
+    }
 });
 YkcTalepKaydetDto Request() => new() {
     SorguReferansi = reference, TesisatNo = "100", SozlesmeNo = "200",
     FirmaId = 99, SirketId = 99, EskiMarka = "Forged", EskiKapasite = "1",
     ProjeNo = "forged-project", SayacNo = "forged-meter", Bolge = "forged-region",
-    YeniMarka = "User entered", YeniKapasite = "25000"
+    YeniCihazTipi = "Kombi", YeniMarka = "User entered", YeniKapasite = "25000"
 };
 var valid = Request();
 Check(snapshots.Uygula("firm-a", valid), "Owner can use query reference");
@@ -73,6 +77,8 @@ var otherContract = Request(); otherContract.SozlesmeNo = "201";
 Check(!snapshots.Uygula("firm-a", otherContract), "Other contract cannot reuse query reference");
 var invented = Request(); invented.SorguReferansi = "invented";
 Check(!snapshots.Uygula("firm-a", invented), "Invented reference rejected");
+var forgedDeviceType = Request(); forgedDeviceType.YeniCihazTipi = "Şofben";
+Check(!snapshots.Uygula("firm-a", forgedDeviceType), "Device type outside the service response is rejected");
 var missing = Request(); missing.SorguReferansi = null;
 Check(!snapshots.Uygula("firm-a", missing), "Missing reference rejected");
 var padded = Request(); padded.TesisatNo = "00100"; padded.SozlesmeNo = " 00200 ";

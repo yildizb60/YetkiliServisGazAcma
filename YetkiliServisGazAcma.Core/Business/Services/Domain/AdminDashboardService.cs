@@ -94,6 +94,9 @@ namespace YetkiliServisGazAcma.Business.Services
         {
             return _context.Ys_Firmalar
                 .Where(x => !x.SilindiMi
+                    && _context.Users.Any(u =>
+                        u.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis &&
+                        u.FirmaId == x.Id)
                     && (sirketId == null || x.SirketId == sirketId));
         }
     }

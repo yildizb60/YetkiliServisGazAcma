@@ -49,8 +49,8 @@
             {
                 <span class="df-pill @YkcDurumSunumu.CssSinifi(Model.Durum)">@durum</span>
             }
-            <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/talepler"><i class="bi bi-arrow-left" aria-hidden="true"></i>Taleplere Dön</a>
-            <a class="df-btn df-btn-primary df-btn-sm" href="/ykc/fr265/onizle/@Model.Id" target="_blank"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i>Formu Önizle</a>
+            <a class="df-btn df-btn-secondary df-btn-sm" href="@Url.Action("Talepler", "Ykc")"><i class="bi bi-arrow-left" aria-hidden="true"></i>Taleplere Dön</a>
+            <a class="df-btn df-btn-primary df-btn-sm" href="@Url.Action("Fr265Onizle", "Ykc", new { id = Model.Id })" target="_blank"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i>Formu Önizle</a>
         </div>
     </header>
     @if (kontrolBaslik != null || Model.RandevuTarihi.HasValue)
@@ -104,7 +104,7 @@
             </section>
             @if (nihai != null)
             {
-                <section class="ykc-firm-data-section"><h2><i class="bi bi-file-earmark-check" aria-hidden="true"></i>Sonuç Belgesi</h2><a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/dosya/@nihai.Id"><i class="bi bi-download" aria-hidden="true"></i>İmzalı PDF'yi İndir</a></section>
+                <section class="ykc-firm-data-section"><h2><i class="bi bi-file-earmark-check" aria-hidden="true"></i>Sonuç Belgesi</h2><a class="df-btn df-btn-secondary df-btn-sm" href="@Url.Action("DosyaAc", "Ykc", new { id = nihai.Id })"><i class="bi bi-download" aria-hidden="true"></i>İmzalı PDF'yi İndir</a></section>
             }
             <section class="ykc-firm-data-section" aria-labelledby="firm-history-title">
                 <h2 id="firm-history-title"><i class="bi bi-clock-history" aria-hidden="true"></i>İşlem Geçmişi <small>@Model.Gecmis.Count kayıt</small></h2>

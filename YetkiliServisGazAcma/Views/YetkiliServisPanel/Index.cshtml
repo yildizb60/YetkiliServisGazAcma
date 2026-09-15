@@ -1,5 +1,5 @@
+@using YetkiliServisGazAcma.Models.ViewModels
 @{
-    var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
     ViewData["Title"] = "Yetkili Servis Paneli";
     ViewData["PanelTitle"] = "Genel Bakış";
     ViewData["PanelSubtitle"] = "Yetkili Servis";
@@ -27,9 +27,13 @@
         .ToList();
     var bekleyenBelge = tumBelgeler.Count(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
         && x.YetkiBelgesiBitisTarihi.Date >= bugun);
-    var reddedilenBelge = tumBelgeler.Count(x => x.Durum == YetkiBelgesiDurumDegerleri.Reddedildi);
+    var suresiDolanBelge = tumBelgeler.Count(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
+        && x.YetkiBelgesiBitisTarihi.Date < bugun);
     var markaSayisi = firma?.FirmaMarkalar?.Count(x => !x.SilindiMi) ?? 0;
-    var aktifMarkaSayisi = firma?.FirmaMarkalar?.Count(x => !x.SilindiMi && x.Marka?.AktifMi == true) ?? 0;
+    var aktifMarkaSayisi = firma?.FirmaMarkalar?.Count(x => !x.SilindiMi
+        && x.YetkiBitisTarihi.Date >= bugun
+        && x.Marka?.AktifMi == true
+        && !x.Marka.SilindiMi) ?? 0;
     var kategoriSayisi = firma?.FirmaKategoriler?.Count(x => !x.SilindiMi) ?? 0;
     var subeSayisi = firma?.Subeler?.Count(x => !x.SilindiMi) ?? 0;
     var aktifSubeSayisi = firma?.Subeler?.Count(x => !x.SilindiMi && x.AktifMi) ?? 0;
@@ -40,23 +44,12 @@
     var ilkKurulumTamamlandi = ViewBag.IlkKurulumTamamlandi as bool? ?? true;
     var ilkKurulumEksikler = ViewBag.IlkKurulumEksikler as List<string> ?? new List<string>();
     var kurulumKilitli = ilkKurulumZorunlu && !ilkKurulumTamamlandi;
-    var bildirimler = ViewBag.Bildirimler as List<string> ?? new List<string>();
-    var adSoyad = kullanici?.AdSoyad ?? firma?.YetkiliKisi ?? "Yetkili Servis";
-    var basHarf = !string.IsNullOrWhiteSpace(adSoyad)
-        ? adSoyad.Trim().Substring(0, 1).ToUpper(new System.Globalization.CultureInfo("tr-TR"))
-        : "Y";
+    var sonKayit = sonIslemler.FirstOrDefault();
+    var siradakiBelge = gecerliBelgeler.FirstOrDefault();
 
-    var ay = DateTime.Now;
-    var ayIlkGun = new DateTime(ay.Year, ay.Month, 1);
-    var ayGunSayisi = DateTime.DaysInMonth(ay.Year, ay.Month);
-    var ilkGunOffset = ((int)ayIlkGun.DayOfWeek + 6) % 7;
-    var oncekiAy = ayIlkGun.AddMonths(-1);
-    var oncekiAyGunSayisi = DateTime.DaysInMonth(oncekiAy.Year, oncekiAy.Month);
-    var takvimHucre = 42;
+    var kartlar = new List<DashboardTileViewModel>();
 
-    var kartlar = new List<DashboardTile>();
-
-    kartlar.Add(new DashboardTile
+    kartlar.Add(new DashboardTileViewModel
     {
         Title = "Yetki Belgem",
         Url = Url.Action("Index", "YetkiBelgesi")!,
@@ -75,7 +68,7 @@
         Featured = !ilkKurulumZorunlu
     });
 
-    kartlar.Add(new DashboardTile
+    kartlar.Add(new DashboardTileViewModel
     {
         Title = kurulumKilitli ? "Kurulumu Tamamla" : "Cihaz Devreye Al",
         Url = kurulumKilitli
@@ -94,7 +87,7 @@
         Stat3Value = tamamlananIslem.ToString()
     });
 
-    kartlar.Add(new DashboardTile
+    kartlar.Add(new DashboardTileViewModel
     {
         Title = "Marka Yetkilerim",
         Url = Url.Action("Markalar", "YetkiliServisPanel")!,
@@ -112,7 +105,7 @@
         Stat3Class = aktifMarkaSayisi > 0 ? "df-tile-stat-val" : "df-badge-pulse"
     });
 
-    kartlar.Add(new DashboardTile
+    kartlar.Add(new DashboardTileViewModel
     {
         Title = "Şubelerim",
         Url = Url.Action("Subeler", "YetkiliServisPanel")!,
@@ -132,7 +125,7 @@
 
     if (toplam > 0 || buAy > 0 || gecerliBelgeler.Count > 0)
     {
-        kartlar.Add(new DashboardTile
+        kartlar.Add(new DashboardTileViewModel
         {
             Title = "Raporlarım",
             Url = Url.Action("Raporlar", "YetkiliServisPanel")!,
@@ -148,45 +141,6 @@
             Stat3Label = "İptal",
             Stat3Value = iptalIslem.ToString()
         });
-    }
-}
-
-@functions {
-    private sealed class DashboardTile
-    {
-        public string Title { get; set; } = "";
-        public string Url { get; set; } = "";
-        public string Icon { get; set; } = "";
-        public string Tone { get; set; } = "blue";
-        public int Done { get; set; }
-        public int Total { get; set; }
-        public bool ShowProgress { get; set; } = true;
-        public string MetricValue { get; set; } = "";
-        public string MetricLabel { get; set; } = "";
-        public string Subtitle { get; set; } = "";
-        public string Stat1Label { get; set; } = "";
-        public string Stat1Value { get; set; } = "";
-        public string Stat1Class { get; set; } = "df-tile-stat-val";
-        public string Stat2Label { get; set; } = "";
-        public string Stat2Value { get; set; } = "";
-        public string Stat2Class { get; set; } = "df-tile-stat-val";
-        public string Stat3Label { get; set; } = "";
-        public string Stat3Value { get; set; } = "";
-        public string Stat3Class { get; set; } = "df-tile-stat-val";
-        public bool Featured { get; set; }
-    }
-
-    private static int RingPct(int done, int total)
-    {
-        if (total <= 0) return 0;
-        return Math.Clamp((int)Math.Round(done * 100.0 / total), 0, 100);
-    }
-
-    private static string RingOffset(int done, int total)
-    {
-        const double length = 175.9;
-        var pct = RingPct(done, total);
-        return (length - (length * pct / 100.0)).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
     }
 }
 
@@ -225,9 +179,9 @@
                         <div class="df-ring-container">
                             <svg class="df-ring-svg" width="72" height="72" viewBox="0 0 72 72" aria-hidden="true">
                                 <circle class="df-ring-bg" cx="36" cy="36" r="28"></circle>
-                                <circle class="df-ring-fill" cx="36" cy="36" r="28" stroke-dasharray="175.9" stroke-dashoffset="@RingOffset(kart.Done, kart.Total)"></circle>
+                                <circle class="df-ring-fill" cx="36" cy="36" r="28" stroke-dasharray="175.9292" stroke-dashoffset="@kart.RingOffset"></circle>
                             </svg>
-                            <div class="df-ring-center"><span class="df-ring-pct">@RingPct(kart.Done, kart.Total)%</span></div>
+                            <div class="df-ring-center"><span class="df-ring-pct">@kart.RingPercentage%</span></div>
                         </div>
                         <div class="df-ring-meta"><span class="df-ring-sub">@kart.Subtitle</span></div>
                     }
@@ -246,188 +200,50 @@
     </div>
 
     <div class="section-label">
-        <i class="bi bi-bar-chart-line-fill"></i>
-        İstatistikler & Takvim
+        <i class="bi bi-activity"></i>
+        Güncel Durum
     </div>
 
-    <div class="stats-grid">
-        <div class="stats-card">
-            <div class="stats-card-header">
-                <h2><i class="bi bi-bar-chart-line"></i> Firma İstatistikleri</h2>
-                <div class="df-tab-pills mb-0">
-                    <button class="df-tab-pill-item active" type="button" data-panel-target="panel-islem">İşlemler</button>
-                    <button class="df-tab-pill-item" type="button" data-panel-target="panel-belge">Belgeler</button>
-                </div>
-            </div>
+    <div class="ys-home-overview">
+        <section class="ys-home-snapshot">
+            <header><span><i class="bi bi-bag-check" aria-hidden="true"></i><strong>Devreye Alma Özeti</strong></span><a href="@Url.Action("Gecmis", "DevreyeAlma")" title="Tüm cihaz devreye alma kayıtlarını aç" aria-label="Tüm cihaz devreye alma kayıtlarını aç"><i class="bi bi-arrow-right" aria-hidden="true"></i></a></header>
+            <dl class="ys-home-summary-grid">
+                <div><dt>Toplam</dt><dd>@toplam</dd></div>
+                <div><dt>Bekleyen</dt><dd>@bekleyenIslem</dd></div>
+                <div><dt>Tamamlanan</dt><dd>@tamamlananIslem</dd></div>
+                <div><dt>İptal</dt><dd>@iptalIslem</dd></div>
+            </dl>
+            @if (sonKayit is not null)
+            {
+                var sonKayitDurumu = sonKayit.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? "Tamamlandı" : sonKayit.Durum == DevreyeAlmaDurumDegerleri.Iptal ? "İptal" : "Bekliyor";
+                <a class="ys-home-latest" href="@Url.Action("Detay", "DevreyeAlma", new { id = sonKayit.Id })"><span><small>Son kayıt</small><strong>@(sonKayit.MusteriAdi ?? "Abone adı kayıtlı değil")</strong></span><span><small>Tesisat No</small><strong>@(sonKayit.TesistatNo ?? "-")</strong></span><em>@sonKayitDurumu</em><i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+            }
+            else
+            {
+                <div class="ys-home-empty">Henüz cihaz devreye alma kaydı bulunmuyor.</div>
+            }
+        </section>
 
-            <div class="panel active" id="panel-islem">
-                <div class="stats-body split">
-                    <div class="user-pane">
-                        <div class="user-row">
-                            <div class="user-ava">@basHarf</div>
-                            <div>
-                                <div class="user-lbl">Kullanıcı</div>
-                                <div class="user-name">@adSoyad</div>
-                            </div>
-                        </div>
-                        <div class="kpi-grid">
-                            <div class="kpi-tile"><div class="kpi-icon"><i class="bi bi-plus-lg"></i></div><div class="kpi-n">@toplam</div><div class="kpi-lbl">Toplam İşlem</div></div>
-                            <div class="kpi-tile"><div class="kpi-icon ic-purple"><i class="bi bi-x-circle"></i></div><div class="kpi-n">@iptalIslem</div><div class="kpi-lbl">İptal</div></div>
-                            <div class="kpi-tile"><div class="kpi-icon ic-warn"><i class="bi bi-hourglass-split"></i></div><div class="kpi-n">@bekleyenIslem</div><div class="kpi-lbl">Bekleyen</div></div>
-                            <div class="kpi-tile"><div class="kpi-icon ic-teal"><i class="bi bi-check-circle"></i></div><div class="kpi-n">@tamamlananIslem</div><div class="kpi-lbl">Tamamlanan</div></div>
-                        </div>
-                    </div>
-                    <div class="chart-pane">
-                        @if (!sonIslemler.Any())
-                        {
-                            <div class="df-empty">
-                                <div class="df-empty-icon"><i class="bi bi-bag-check"></i></div>
-                                <div class="df-empty-title">Veri Bulunamadı.</div>
-                                <p class="df-empty-text">Devreye alma işlemi oluştuğunda burada görüntülenecektir.</p>
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="dash-list">
-                                @foreach (var islem in sonIslemler.Take(4))
-                                {
-                                    var durumYazi = islem.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? "Tamamlandı" : islem.Durum == DevreyeAlmaDurumDegerleri.Iptal ? "İptal" : "Bekliyor";
-                                    <div class="dash-list-item">
-                                        <div class="dash-list-title">@(islem.MusteriAdi ?? islem.TesistatNo ?? "-")</div>
-                                        <div class="dash-list-sub">@durumYazi - @(islem.Marka?.MarkaAdi ?? islem.CihazMarka ?? "-")</div>
-                                    </div>
-                                }
-                            </div>
-                        }
-                    </div>
-                </div>
-            </div>
-
-            <div class="panel" id="panel-belge">
-                <div class="stats-body split">
-                    <div class="user-pane">
-                        <div class="user-row">
-                            <div class="user-ava">@basHarf</div>
-                            <div>
-                                <div class="user-lbl">Firma</div>
-                                <div class="user-name">@(firma?.FirmaAdi ?? "Yetkili Servis")</div>
-                            </div>
-                        </div>
-                        <div class="kpi-grid">
-                            <div class="kpi-tile"><div class="kpi-icon"><i class="bi bi-file-earmark-text"></i></div><div class="kpi-n">@tumBelgeler.Count</div><div class="kpi-lbl">Toplam Belge</div></div>
-                            <div class="kpi-tile"><div class="kpi-icon ic-green"><i class="bi bi-check-circle"></i></div><div class="kpi-n">@gecerliBelgeler.Count</div><div class="kpi-lbl">Geçerli</div></div>
-                            <div class="kpi-tile"><div class="kpi-icon ic-warn"><i class="bi bi-hourglass-split"></i></div><div class="kpi-n">@bekleyenBelge</div><div class="kpi-lbl">Bekleyen</div></div>
-                            <div class="kpi-tile"><div class="kpi-icon ic-purple"><i class="bi bi-x-circle"></i></div><div class="kpi-n">@reddedilenBelge</div><div class="kpi-lbl">Reddedilen</div></div>
-                        </div>
-                    </div>
-                    <div class="chart-pane">
-                        @if (!tumBelgeler.Any())
-                        {
-                            <div class="df-empty">
-                                <div class="df-empty-icon"><i class="bi bi-file-earmark-text"></i></div>
-                                <div class="df-empty-title">Veri Bulunamadı.</div>
-                                <p class="df-empty-text">Yetki belgesi yüklendiğinde burada görüntülenecektir.</p>
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="dash-list">
-                                @foreach (var belge in tumBelgeler.Take(4))
-                                {
-                                    var durumYazi = belge.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
-                                        && belge.YetkiBelgesiBitisTarihi.Date < bugun ? "Süresi Doldu"
-                                        : belge.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "Onaylandı"
-                                        : belge.Durum == YetkiBelgesiDurumDegerleri.Reddedildi ? "Reddedildi" : "Bekliyor";
-                                    <div class="dash-list-item">
-                                        <div class="dash-list-title">@durumYazi</div>
-                                        <div class="dash-list-sub">@belge.OlusturmaTarihi.ToString("dd.MM.yyyy") - @belge.YetkiBelgesiBitisTarihi.ToString("dd.MM.yyyy")</div>
-                                    </div>
-                                }
-                            </div>
-                        }
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="stats-card calendar-card">
-            <div class="stats-card-header">
-                <h2><i class="bi bi-calendar-check"></i> Takvim & Duyurular</h2>
-            </div>
-            <div class="stats-body split">
-                <div class="user-pane">
-                    <div class="mini-calendar">
-                        <div class="mini-calendar-head">
-                            <span>@ay.ToString("MMMM", new System.Globalization.CultureInfo("tr-TR"))</span>
-                            <span>@ay.Year</span>
-                        </div>
-                        <div class="mini-calendar-grid">
-                            @foreach (var gun in new[] { "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz" })
-                            {
-                                <div class="mini-calendar-cell weekday">@gun</div>
-                            }
-                            @for (var i = 0; i < takvimHucre; i++)
-                            {
-                                var gunNo = i - ilkGunOffset + 1;
-                                if (gunNo < 1)
-                                {
-                                    <div class="mini-calendar-cell muted">@(oncekiAyGunSayisi + gunNo)</div>
-                                }
-                                else if (gunNo > ayGunSayisi)
-                                {
-                                    <div class="mini-calendar-cell muted">@(gunNo - ayGunSayisi)</div>
-                                }
-                                else
-                                {
-                                    var hucreTarih = new DateTime(ay.Year, ay.Month, gunNo);
-                                    <div class="mini-calendar-cell @(hucreTarih.Date == bugun ? "today" : "")">@gunNo</div>
-                                }
-                            }
-                        </div>
-                    </div>
-                </div>
-                <div class="chart-pane">
-                    @if (!bildirimler.Any())
-                    {
-                        <div class="df-empty">
-                            <div class="df-empty-icon"><i class="bi bi-bell"></i></div>
-                            <div class="df-empty-title">Duyuru bulunmamaktadır.</div>
-                            <p class="df-empty-text">Güncel bir duyuru yayınlandığında burada görüntülenecektir.</p>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="dash-list">
-                            @foreach (var bildirim in bildirimler.Take(4))
-                            {
-                                <div class="dash-list-item">
-                                    <div class="dash-list-title">@bildirim</div>
-                                    <div class="dash-list-sub">Sistem bildirimi</div>
-                                </div>
-                            }
-                        </div>
-                    }
-                </div>
-            </div>
-        </div>
+        <section class="ys-home-snapshot">
+            <header><span><i class="bi bi-file-earmark-check" aria-hidden="true"></i><strong>Yetki Belgesi Özeti</strong></span><a href="@Url.Action("Index", "YetkiBelgesi")" title="Yetki belgelerini aç" aria-label="Yetki belgelerini aç"><i class="bi bi-arrow-right" aria-hidden="true"></i></a></header>
+            <dl class="ys-home-summary-grid">
+                <div><dt>Toplam</dt><dd>@tumBelgeler.Count</dd></div>
+                <div><dt>Geçerli</dt><dd>@gecerliBelgeler.Count</dd></div>
+                <div><dt>Onay Bekleyen</dt><dd>@bekleyenBelge</dd></div>
+                <div><dt>Süresi Dolan</dt><dd>@suresiDolanBelge</dd></div>
+            </dl>
+            @if (siradakiBelge is not null)
+            {
+                <a class="ys-home-latest" href="@Url.Action("Index", "YetkiBelgesi")"><span><small>En yakın bitiş</small><strong>@siradakiBelge.YetkiBelgesiBitisTarihi.ToString("dd.MM.yyyy")</strong></span><span><small>Kalan süre</small><strong>@Math.Max((siradakiBelge.YetkiBelgesiBitisTarihi.Date - bugun).Days, 0) gün</strong></span><em class="is-valid">Geçerli</em><i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+            }
+            else
+            {
+                <div class="ys-home-empty">Geçerli bir yetki belgesi bulunmuyor.</div>
+            }
+        </section>
     </div>
 </div>
 
 @section Scripts {
 <script src="~/js/dashboard-carousel.js" asp-append-version="true"></script>
-<script>
-(function () {
-    document.querySelectorAll('.df-dashboard [data-panel-target]').forEach(function (button) {
-        button.addEventListener('click', function () {
-            var card = button.closest('.stats-card');
-            if (!card) return;
-            card.querySelectorAll('[data-panel-target]').forEach(function (item) { item.classList.remove('active'); });
-            card.querySelectorAll('.panel').forEach(function (panel) { panel.classList.remove('active'); });
-            button.classList.add('active');
-            var panel = card.querySelector('#' + button.getAttribute('data-panel-target'));
-            if (panel) panel.classList.add('active');
-        });
-    });
-})();
-</script>
 }

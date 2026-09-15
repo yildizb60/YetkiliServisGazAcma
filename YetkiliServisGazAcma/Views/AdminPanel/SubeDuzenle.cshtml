@@ -11,11 +11,6 @@
 
 <div class="df-admin-workspace df-admin-editor df-branch-edit-workspace">
 
-    @if (TempData["Hata"] != null)
-    {
-        <div class="df-alert df-alert-danger">@TempData["Hata"]</div>
-    }
-
     <section class="df-admin-form-card">
         <div class="df-admin-form-body">
             <form method="post" action="/AdminPanel/subeler/duzenle/@sube?.Id">

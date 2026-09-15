@@ -69,13 +69,14 @@ namespace YetkiliServisGazAcma.API.Controllers
                 .ToListAsync();
 
             int? uyariGun = null;
+            var bugun = DateTime.Today;
             var onayli = firma?.YetkiBelgeleri?
-                .Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi)
-                .OrderByDescending(x => x.OlusturmaTarihi)
+                .Where(x => YetkiBelgesiService.GecerliMi(x, bugun))
+                .OrderBy(x => x.YetkiBelgesiBitisTarihi)
                 .FirstOrDefault();
             if (onayli != null)
             {
-                var kalan = (onayli.YetkiBelgesiBitisTarihi.Date - DateTime.Now.Date).Days;
+                var kalan = (onayli.YetkiBelgesiBitisTarihi.Date - bugun).Days;
                 if (kalan >= 0)
                     uyariGun = kalan;
             }
@@ -347,6 +348,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             var devreyeSayisi = await devreyeTemelQuery.CountAsync();
             var tamamlanan = await devreyeTemelQuery.Where(x => x.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi).CountAsync();
             var bekleyen = await devreyeTemelQuery.Where(x => x.Durum == DevreyeAlmaDurumDegerleri.Bekliyor).CountAsync();
+            var iptal = await devreyeTemelQuery.Where(x => x.Durum == DevreyeAlmaDurumDegerleri.Iptal).CountAsync();
 
             var yetkiBelgesiOnayli = await yetkiBelgesiTemelQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi).CountAsync();
             var yetkiBelgesiBekleyen = await yetkiBelgesiTemelQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
@@ -395,7 +397,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 SonIslemler = islemler.Select(YsPanelDevreyeAlmaDto.FromEntity).ToList(),
                 ChartAylikLabels = chartAylikLabels,
                 ChartAylikData = chartAylikData,
-                ChartDurumData = new List<int> { yetkiBelgesiOnayli, yetkiBelgesiBekleyen, yetkiBelgesiReddedilen },
+                ChartDurumData = new List<int> { tamamlanan, bekleyen, iptal },
                 ChartMarkaLabels = chartMarka.Select(x => x.Marka ?? "-").ToList(),
                 ChartMarkaData = chartMarka.Select(x => x.Sayi).ToList()
             });
@@ -414,7 +416,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 dto?.Bit,
                 dto?.Ids);
 
-            return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+            return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
         }
 
         [HttpPost("raporlar/excel")]
@@ -430,7 +432,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 dto?.Bit,
                 dto?.Ids);
 
-            return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+            return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
         }
 
         [HttpPost("subeler/kaydet")]
@@ -559,10 +561,7 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             var bugun = DateTime.Now.Date;
             var onayli = firma?.YetkiBelgeleri?
-                .Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi
-                    && !x.SilindiMi
-                    && (!x.YetkiBelgesiBaslangicTarihi.HasValue || x.YetkiBelgesiBaslangicTarihi.Value.Date <= bugun)
-                    && x.YetkiBelgesiBitisTarihi.Date >= bugun)
+                .Where(x => YetkiBelgesiService.GecerliMi(x, bugun))
                 .OrderBy(x => x.YetkiBelgesiBitisTarihi)
                 .FirstOrDefault();
 

@@ -2,29 +2,19 @@
 @{
     ViewData["Title"] = "Yeni Cihaz Değişim Talebi";
     ViewData["PanelTitle"] = "Talep Oluştur";
+    ViewData["PanelModule"] = "Cihaz Değişim İşlemleri";
     ViewData["PanelSubtitle"] = string.Empty;
     ViewData["ActiveMenu"] = "YkcYeni";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
     var sorgulandi = !string.IsNullOrWhiteSpace(Model.SorguReferansi);
     var secilenCihazTipi = ViewData["SecilenCihazTipi"] as string;
-    var farkliCihazTipi = sorgulandi && !string.IsNullOrWhiteSpace(secilenCihazTipi)
-        && !string.Equals(Model.YeniCihazTipi?.Trim(), secilenCihazTipi, StringComparison.OrdinalIgnoreCase);
 }
 @section PageStyles {
     <link rel="stylesheet" href="~/css/ykc-operations.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/ykc-request.css" asp-append-version="true" />
 }
 <div class="ykc-request" data-has-query="@sorgulandi.ToString().ToLowerInvariant()">
-    <div class="ykc-request-actions">
-        <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/talepler"><i class="bi bi-list-ul"></i> Taleplerim</a>
-    </div>
-
-    @if (TempData["Hata"] != null)
-    {
-        <div class="df-alert df-alert-danger" role="alert">@TempData["Hata"]</div>
-    }
-
-    <form method="post" action="/ykc/yeni" id="ykcCreateForm" class="ykc-request-workspace">
+    <form method="post" action="@Url.Action("Yeni", "Ykc")" id="ykcCreateForm" class="ykc-request-workspace">
         @Html.AntiForgeryToken()
         <div asp-validation-summary="All" class="text-danger"></div>
         <input type="hidden" asp-for="SorguReferansi" />
@@ -79,12 +69,15 @@
                         <div><span class="ykc-request-section-icon is-green"><i class="bi bi-pencil-square" aria-hidden="true"></i></span><h2 id="ykc-new-device-title">Yeni Kullanılan Cihaz</h2></div>
                     </header>
                     <div class="ykc-request-grid">
-                        <div class="ykc-field ykc-device-type-field">
-                            <div class="ykc-field-heading">
-                                <label for="YeniCihazTipi">Yakıcı Cihaz Tipi</label>
-                                <button type="button" id="ykcTypeOverride" class="ykc-type-override" hidden="@(!sorgulandi || string.IsNullOrWhiteSpace(secilenCihazTipi))" aria-pressed="@farkliCihazTipi.ToString().ToLowerInvariant()"><i class="bi bi-pencil" aria-hidden="true"></i><span id="ykcTypeOverrideLabel">@(farkliCihazTipi ? "Sorgudaki türe dön" : "Farklı tür")</span></button>
-                            </div>
-                            <input asp-for="YeniCihazTipi" required maxlength="100" readonly="@(sorgulandi && !farkliCihazTipi && !string.IsNullOrWhiteSpace(secilenCihazTipi))" />
+                        <div class="ykc-field">
+                            <label for="YeniCihazTipi">Yakıcı Cihaz Tipi</label>
+                            <select asp-for="YeniCihazTipi" required>
+                                <option value="">Cihaz tipi seçin</option>
+                                @if (sorgulandi && !string.IsNullOrWhiteSpace(Model.YeniCihazTipi))
+                                {
+                                    <option value="@Model.YeniCihazTipi">@Model.YeniCihazTipi</option>
+                                }
+                            </select>
                         </div>
                         <div class="ykc-field"><label for="YeniMarka">Marka</label><input asp-for="YeniMarka" required maxlength="100" /></div>
                         <div class="ykc-field"><label for="YeniBacaTipi">Baca Tipi</label><input asp-for="YeniBacaTipi" required maxlength="100" /></div>

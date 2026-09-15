@@ -147,6 +147,13 @@ namespace YetkiliServisGazAcma.API.Controllers
                 ProjeNo = c.ProjeNo ?? "",
                 TesisatNo = c.TesisatNo?.ToString(CultureInfo.InvariantCulture) ?? ""
             }).ToList();
+            var izinliYeniCihazTipleri = cihazlar
+                .Where(x => !string.IsNullOrWhiteSpace(x.CihazTipi))
+                .GroupBy(x => x.CihazTipi!.Trim(), StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group.Select(x => x.CihazTipKodu?.Trim()).FirstOrDefault(x => !string.IsNullOrWhiteSpace(x)),
+                    StringComparer.OrdinalIgnoreCase);
             var il = firma?.FaaliyetIli ?? sirket?.Il ?? IlFromFirmaKodu(kullanilanFirmaKodu);
 
             foreach (var cihaz in cihazlar)
@@ -169,7 +176,8 @@ namespace YetkiliServisGazAcma.API.Controllers
                     EskiCihazTipi = cihaz.CihazTipi,
                     EskiCihazTipiKodu = cihaz.CihazTipKodu,
                     EskiMarka = cihaz.CihazMarka,
-                    EskiKapasite = cihaz.CihazKapasite
+                    EskiKapasite = cihaz.CihazKapasite,
+                    IzinliYeniCihazTipleri = new Dictionary<string, string?>(izinliYeniCihazTipleri, StringComparer.OrdinalIgnoreCase)
                 });
                 if (roller.Contains("SertifikaliFirma"))
                 {
@@ -297,13 +305,13 @@ namespace YetkiliServisGazAcma.API.Controllers
             var zaman = DateTime.Now.ToString("yyyyMMdd_HHmm");
             if (excelMi)
             {
-                return File(
+                return this.HassasDosya(
                     YkcRaporExcelService.Olustur(kayitlar, icOperasyon),
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     $"Cihaz_Degisim_Raporu_{zaman}.xlsx");
             }
 
-            return File(
+            return this.HassasDosya(
                 YkcRaporPdfService.Olustur(kayitlar, icOperasyon),
                 "application/pdf",
                 $"Cihaz_Degisim_Raporu_{zaman}.pdf");
@@ -418,7 +426,6 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return NotFound(new { basarili = false, mesaj = "Dosya fiziksel olarak bulunamadı." });
 
             var bytes = await System.IO.File.ReadAllBytesAsync(fizikselYol, HttpContext.RequestAborted);
-            Response.Headers.CacheControl = "private, no-store";
             var contentType = string.IsNullOrWhiteSpace(dosya.IcerikTipi)
                 ? "application/octet-stream"
                 : dosya.IcerikTipi.Trim();
@@ -426,7 +433,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 ? Path.GetFileName(fizikselYol)
                 : dosya.DosyaAdi.Trim();
 
-            return File(bytes, contentType, dosyaAdi);
+            return this.HassasDosya(bytes, contentType, dosyaAdi);
         }
 
         [HttpPost("dogalgaz-mobile/talepler/liste")]
@@ -490,8 +497,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return await DosyaIndir(new YkcDosyaGetirIstek { Id = dosyaId });
 
             var pdf = YkcFr265PdfService.Olustur(detay);
-            Response.Headers.CacheControl = "private, no-store";
-            return File(pdf.Bytes, pdf.ContentType, pdf.DosyaAdi);
+            return this.HassasDosya(pdf.Bytes, pdf.ContentType, pdf.DosyaAdi);
         }
 
         [HttpPost("takvim")]

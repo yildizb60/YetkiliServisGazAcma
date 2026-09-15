@@ -481,7 +481,7 @@ namespace YetkiliServisGazAcma.Controllers
                 return Redirect("/ys-panel/raporlar");
             }
 
-            return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+            return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
         }
 
         [HttpGet]
@@ -507,7 +507,7 @@ namespace YetkiliServisGazAcma.Controllers
                 return Redirect("/ys-panel/raporlar");
             }
 
-            return File(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+            return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
         }
 
         [HttpGet]

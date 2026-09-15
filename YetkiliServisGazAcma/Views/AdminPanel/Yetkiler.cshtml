@@ -1,6 +1,6 @@
 @{
     ViewData["Title"] = "Yetkiler";
-    ViewData["PanelTitle"] = "Yetki Yönetimi";
+    ViewData["PanelTitle"] = ViewData["Title"];
     ViewData["PanelSubtitle"] = "Admin Paneli";
     ViewData["ActiveMenu"] = "Yetkiler";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
@@ -204,7 +204,7 @@
 <div class="df-admin-workspace df-permission-workspace">
 <details class="matrix-card">
     <summary class="matrix-head">
-        <span class="matrix-heading"><i class="bi bi-grid-3x3-gap"></i><span><strong>Rol - Yetki Matrisi</strong><small>Rollerin görebildiği menüleri ve yapabildiği işlemleri inceleyin.</small></span></span>
+        <span class="matrix-heading"><i class="bi bi-grid-3x3-gap"></i><span><strong>Rol - Yetki Matrisi</strong></span></span>
         <span class="matrix-toggle"><span class="when-closed">Matrisi Aç</span><span class="when-open">Matrisi Kapat</span><i class="bi bi-chevron-down"></i></span>
     </summary>
     <div class="matrix-scroll">
@@ -291,7 +291,7 @@
 
 <section class="df-admin-list-card df-permission-list">
     <div class="df-service-list-head">
-        <div><h3><i class="bi bi-person-lock"></i> Personel Yetkileri</h3><span>Personelin bağlı şirketini ve işlem yetkilerini yönetin.</span></div>
+        <div><h3><i class="bi bi-person-lock"></i> Personel Yetkileri</h3></div>
     </div>
     <div class="legend-wrap">
         <div class="legend">
@@ -353,7 +353,7 @@
                     }
                 </div>
                 <div>
-                    <a class="btn-link" href="/AdminPanel/yetkiler/duzenle/@p.Id">Yetki Düzenle</a>
+                    <a class="btn-link" href="@Url.Action("YetkiDuzenle", "AdminPanel", new { id = p.Id })">Yetki Düzenle</a>
                 </div>
             </div>
         }

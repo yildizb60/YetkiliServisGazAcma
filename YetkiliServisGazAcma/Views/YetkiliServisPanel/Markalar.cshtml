@@ -1,6 +1,7 @@
 @{
     ViewData["Title"] = "Marka Yetkilerim";
     ViewData["PanelTitle"] = ViewData["Title"];
+    ViewData["PanelModule"] = "Yetkili Servis İşlemleri";
     ViewData["PanelSubtitle"] = "Yetkili Servis";
     ViewData["ActiveMenu"] = "Markalar";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
@@ -17,15 +18,6 @@
 }
 
 <div class="ys-workspace">
-    @if (TempData["Basarili"] != null)
-    {
-        <div class="ys-alert is-success"><i class="bi bi-check-circle" aria-hidden="true"></i>@TempData["Basarili"]</div>
-    }
-    @if (TempData["Hata"] != null)
-    {
-        <div class="ys-alert is-danger"><i class="bi bi-exclamation-circle" aria-hidden="true"></i>@TempData["Hata"]</div>
-    }
-
     <div class="ys-brand-layout">
         <section class="ys-panel is-green">
             <div class="ys-panel-head">
@@ -36,7 +28,7 @@
                 <span class="df-pill df-pill-success">@seciliIds.Count seçili</span>
             </div>
             <div class="ys-panel-body">
-                <form method="post" action="/ys-panel/marka-guncelle">
+                <form method="post" action="@Url.Action("MarkaGuncelle", "YetkiliServisPanel")">
                     @Html.AntiForgeryToken()
                     <div class="ys-brand-grid">
                         @foreach (var m in tumMarkalar)
@@ -67,7 +59,7 @@
                 </div>
             </div>
             <div class="ys-panel-body">
-                <form method="post" action="/ys-panel/marka-ekle">
+                <form method="post" action="@Url.Action("MarkaEkle", "YetkiliServisPanel")">
                     @Html.AntiForgeryToken()
                     <div class="ys-form-grid" style="grid-template-columns:1fr">
                         <div class="ys-field">
@@ -119,7 +111,7 @@
                                 <td><input class="ys-inline-input" type="text" name="aciklama" form="@formId" value="@(fm.Marka?.Aciklama ?? "")" readonly /></td>
                                 <td>
                                     <div class="ys-table-actions">
-                                        <form id="@formId" method="post" action="/ys-panel/marka-duzenle">
+                                        <form id="@formId" method="post" action="@Url.Action("MarkaDuzenle", "YetkiliServisPanel")">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="id" value="@fm.MarkaId" />
                                             <button type="button" class="df-btn df-btn-secondary df-btn-sm" onclick="toggleRowEdit('@formId')" title="Markayı düzenle">
@@ -129,7 +121,7 @@
                                                 <i class="bi bi-check2" aria-hidden="true"></i> Kaydet
                                             </button>
                                         </form>
-                                        <form method="post" action="/ys-panel/marka-sil" onsubmit="return confirm('Bu marka yetkisini kaldırmak istediğinize emin misiniz?');">
+                                        <form method="post" action="@Url.Action("MarkaSil", "YetkiliServisPanel")" onsubmit="return confirm('Bu marka yetkisini kaldırmak istediğinize emin misiniz?');">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="id" value="@fm.MarkaId" />
                                             <button type="submit" class="df-btn df-btn-danger df-btn-sm" title="Marka yetkisini kaldır"><i class="bi bi-trash" aria-hidden="true"></i> Kaldır</button>

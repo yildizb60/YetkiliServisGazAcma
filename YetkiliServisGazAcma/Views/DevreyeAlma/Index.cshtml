@@ -1,5 +1,7 @@
 @{
     ViewData["Title"] = "Yeni Cihaz Devreye Alma Kaydı";
+    ViewData["PanelTitle"] = ViewData["Title"];
+    ViewData["PanelModule"] = "Cihaz Devreye Alma";
     Layout = "_PanelLayout";
     ViewData["ActiveMenu"] = "DevreyeAl";
     ViewData["PanelArea"] = "YetkiliServis";
@@ -11,12 +13,7 @@
 }
 
 <div class="ykc-request ys-commissioning-request">
-    @if (TempData["Hata"] != null)
-    {
-        <div class="ys-alert is-danger"><i class="bi bi-exclamation-circle" aria-hidden="true"></i>@TempData["Hata"]</div>
-    }
-
-    <form method="post" action="/ys-devreyeal/kaydet" id="devreyeAlmaForm" class="ykc-request-workspace">
+    <form method="post" action="@Url.Action("Kaydet", "DevreyeAlma")" id="devreyeAlmaForm" class="ykc-request-workspace">
         @Html.AntiForgeryToken()
         <input type="hidden" name="TesistatNo" id="f-tesistatNo" />
         <input type="hidden" name="AboneNo" id="f-aboneNo" />
@@ -33,7 +30,6 @@
             <header class="ykc-request-section-head">
                 <div><span class="ykc-request-section-icon"><i class="bi bi-house-check" aria-hidden="true"></i></span><h2 id="ys-query-title">Tesisat Sorgusu</h2></div>
                 <span class="ykc-query-status" id="sorgulaLoading" role="status" hidden><i class="bi bi-arrow-repeat" aria-hidden="true"></i> Tesisat bilgileri alınıyor</span>
-                <a class="df-btn df-btn-secondary df-btn-sm" href="/ys-devreyeal/gecmis"><i class="bi bi-clock-history" aria-hidden="true"></i> İşlem Geçmişi</a>
             </header>
             <div class="ykc-request-query">
                 <div class="ykc-request-query-fields">

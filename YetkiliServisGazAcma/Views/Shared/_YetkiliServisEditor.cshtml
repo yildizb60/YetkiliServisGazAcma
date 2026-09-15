@@ -8,12 +8,7 @@
     var seciliMarkalar = ViewBag.SeciliMarkalar as List<int> ?? new();
 }
 <div class="service-editor">
-    <header class="service-editor-heading">
-        <h1><i class="bi @(edit ? "bi-building-gear" : "bi-building-add")" aria-hidden="true"></i>@ViewData["Title"]</h1>
-        <a class="df-btn df-btn-secondary df-btn-sm" href="/personel-panel/yetkiliservisler"><i class="bi bi-arrow-left" aria-hidden="true"></i>Listeye Dön</a>
-    </header>
-    @if (TempData["Hata"] is string hata) { <div class="df-alert df-alert-danger" role="alert">@hata</div> }
-    <form method="post" action="@(edit ? "/personel-panel/yetkiliservisler/duzenle/" + Model.Id : "/personel-panel/yetkiliservisler/ekle")">
+    <form method="post" action="@(edit ? Url.Action("YetkiliServisDuzenle", "PersonelPanel", new { id = Model.Id }) : Url.Action("YetkiliServisEkle", "PersonelPanel"))">
         @Html.AntiForgeryToken()
         <div class="service-editor-columns">
             <section class="service-editor-identity" aria-labelledby="service-identity-title">
@@ -61,7 +56,7 @@
             </section>
         </div>
         <footer class="service-editor-actions">
-            <a href="/personel-panel/yetkiliservisler" class="df-btn df-btn-secondary df-btn-sm"><i class="bi bi-x-lg" aria-hidden="true"></i>Vazgeç</a>
+            <a href="@Url.Action("YetkiliServisler", "PersonelPanel")" class="df-btn df-btn-secondary df-btn-sm"><i class="bi bi-x-lg" aria-hidden="true"></i>Vazgeç</a>
             <button type="submit" class="df-btn df-btn-primary df-btn-sm"><i class="bi bi-check2" aria-hidden="true"></i>@(edit ? "Değişiklikleri Kaydet" : "Servisi Kaydet")</button>
         </footer>
     </form>

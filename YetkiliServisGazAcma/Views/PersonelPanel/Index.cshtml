@@ -1,4 +1,5 @@
 @using YetkiliServisGazAcma.Entities
+@using YetkiliServisGazAcma.Models.ViewModels
 @{
     ViewData["Title"] = "Ana Sayfa";
     ViewData["PanelTitle"] = "Ana Sayfa";
@@ -7,20 +8,20 @@
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
     var ykc = ViewBag.YkcOzet as YkcDashboardOzetDto;
     var belgeYetkisi = ViewBag.YetkiBelgesi == true;
-    var actions = new List<DashboardTile>();
+    var actions = new List<DashboardTileViewModel>();
     if (belgeYetkisi)
     {
         var bekleyen = Sayi(ViewBag.OnayBekleyen);
         var onaylanan = Sayi(ViewBag.OnaylananBelge);
         var reddedilen = Sayi(ViewBag.ReddedilenBelge);
-        actions.Add(new DashboardTile
+        actions.Add(new DashboardTileViewModel
         {
             Title = "Yetki Belgesi Onayları",
             Url = Url.Action("OnayBekleyenler", "PersonelPanel")!,
             Icon = "bi bi-file-earmark-check",
             MetricValue = bekleyen.ToString(),
             MetricLabel = "Karar bekleyen",
-            Stat1Label = "Onay Bekleyen",
+            Stat1Label = "Bekleyen",
             Stat1Value = bekleyen.ToString(),
             Stat1Class = bekleyen > 0 ? "df-badge-pulse" : "df-tile-stat-val",
             Stat2Label = "Onaylanan",
@@ -33,17 +34,17 @@
     }
     if (ViewBag.YetkiYkcTalep == true)
     {
-        actions.Add(new DashboardTile
+        actions.Add(new DashboardTileViewModel
         {
             Title = "Cihaz Değişim İşlemleri",
             Url = Url.Action("Talepler", "Ykc")!,
             Icon = "bi bi-fire",
             MetricValue = (ykc?.Incelemede ?? 0).ToString(),
             MetricLabel = "İnceleme / atama bekleyen",
-            Stat1Label = "İnceleme Bekleyen",
+            Stat1Label = "Bekleyen",
             Stat1Value = (ykc?.Incelemede ?? 0).ToString(),
             Stat1Class = (ykc?.Incelemede ?? 0) > 0 ? "df-badge-pulse" : "df-tile-stat-val",
-            Stat2Label = "Randevu / Kontrol",
+            Stat2Label = "Kontrolde",
             Stat2Value = (ykc?.RandevuSaha ?? 0).ToString(),
             Stat3Label = "Tamamlanan",
             Stat3Value = (ykc?.Tamamlanan ?? 0).ToString(),
@@ -54,18 +55,18 @@
     var toplamDevreyeAlma = Sayi(ViewBag.ToplamDevreyeAlma);
     var buAyDevreyeAlma = Sayi(ViewBag.BuAy);
     var sonIslem = (ViewBag.SonIslemler as List<Ys_DevreyeAlma>)?.FirstOrDefault(x => x.DevreyeAlmaTarihi.Year > 1900);
-    actions.Add(new DashboardTile
+    actions.Add(new DashboardTileViewModel
     {
         Title = "Cihaz Devreye Alma Kayıtları",
         Url = Url.Action("DevreyeAlmalar", "PersonelPanel")!,
         Icon = "bi bi-tools",
         MetricValue = buAyDevreyeAlma.ToString(),
         MetricLabel = "Bu ay kaydedilen",
-        Stat1Label = "Toplam Kayıt",
+        Stat1Label = "Toplam",
         Stat1Value = toplamDevreyeAlma.ToString(),
-        Stat2Label = "Bu ay kaydedilen",
+        Stat2Label = "Bu Ay",
         Stat2Value = buAyDevreyeAlma.ToString(),
-        Stat3Label = "Son İşlem",
+        Stat3Label = "Son Kayıt",
         Stat3Value = sonIslem?.DevreyeAlmaTarihi.ToString("dd.MM.yyyy") ?? "Yok",
         Tone = "green"
     });
@@ -75,14 +76,14 @@
         var servisToplam = Sayi(ViewBag.ServisToplam);
         var servisAktif = Sayi(ViewBag.ServisAktif);
         var servisPasif = Sayi(ViewBag.ServisPasif);
-        actions.Add(new DashboardTile
+        actions.Add(new DashboardTileViewModel
         {
             Title = "Yetkili Servis Yönetimi",
             Url = Url.Action("YetkiliServisler", "PersonelPanel")!,
             Icon = "bi bi-building-check",
             MetricValue = servisAktif.ToString(),
             MetricLabel = "Aktif servis",
-            Stat1Label = "Toplam Servis",
+            Stat1Label = "Toplam",
             Stat1Value = servisToplam.ToString(),
             Stat2Label = "Aktif",
             Stat2Value = servisAktif.ToString(),
@@ -98,27 +99,6 @@
         if (value is int sayi) return Math.Max(sayi, 0);
         return int.TryParse(value?.ToString(), out var sonuc) ? Math.Max(sonuc, 0) : 0;
     }
-
-    private sealed class DashboardTile
-    {
-        public string Title { get; set; } = "";
-        public string Url { get; set; } = "";
-        public string Icon { get; set; } = "";
-        public string Tone { get; set; } = "blue";
-        public string MetricValue { get; set; } = "";
-        public string MetricLabel { get; set; } = "";
-        public string Stat1Label { get; set; } = "";
-        public string Stat1Value { get; set; } = "";
-        public string Stat1Class { get; set; } = "df-tile-stat-val";
-        public string Stat2Label { get; set; } = "";
-        public string Stat2Value { get; set; } = "";
-        public string Stat2Class { get; set; } = "df-tile-stat-val";
-        public string Stat3Label { get; set; } = "";
-        public string Stat3Value { get; set; } = "";
-        public string Stat3Class { get; set; } = "df-tile-stat-val";
-        public bool Featured { get; set; }
-    }
-
 }
 @section PageStyles {
     <link rel="stylesheet" href="~/css/personnel-home.css" asp-append-version="true" />

@@ -17,6 +17,7 @@
 <main class="login-shell company-select-shell">
     <div class="login-visual" aria-hidden="true"></div>
     <section class="login-side" aria-label="İşlem yapılacak şirket">
+        <p class="visually-hidden" data-login-announcer aria-live="polite" aria-atomic="true"></p>
         <div class="login-card company-select-card" data-company-step>
             <header class="login-card-head company-select-head">
                 <div>
@@ -25,7 +26,7 @@
                 </div>
             </header>
             @if (TempData["Hata"] != null) { <div class="login-message is-error">@TempData["Hata"]</div> }
-            <form method="post" action="/panel/sirket-sec">
+            <form method="post" action="@Url.Action("SirketSec", "PanelSirket")">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="returnUrl" value="@returnUrl" />
                 <div class="company-select-list" role="radiogroup" aria-label="Dağıtım şirketi">
@@ -49,7 +50,7 @@
                     }
                 </div>
                 <div class="company-select-actions">
-                    <a class="login-secondary" href="/cikis"><i class="bi bi-box-arrow-left" aria-hidden="true"></i> Güvenli Çıkış</a>
+                    <a class="login-secondary" href="@Url.Action("Cikis", "Giris")"><i class="bi bi-box-arrow-left" aria-hidden="true"></i> Güvenli Çıkış</a>
                     <button class="login-submit" type="submit"><span>Panele Geç</span><i class="bi bi-arrow-right" aria-hidden="true"></i></button>
                 </div>
             </form>

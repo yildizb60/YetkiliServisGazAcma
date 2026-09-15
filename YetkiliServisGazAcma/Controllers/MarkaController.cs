@@ -110,10 +110,7 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null) return Redirect("/giris");
             if (!await _aktifSirketService.GenelSistemAdminMi(kullanici)) return RedirectToAction(nameof(Index));
 
-            ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
-            ViewBag.Kullanici = kullanici;
-            ViewBag.GenelSistemAdminMi = true;
-            return View();
+            return RedirectToAction(nameof(Index), new { yeni = 1 });
         }
 
         [HttpPost]
@@ -136,16 +133,7 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null) return Redirect("/giris");
             if (!await _aktifSirketService.GenelSistemAdminMi(kullanici)) return RedirectToAction(nameof(Index));
 
-            var marka = await _markaApiClient.GetirAsync(kullanici, id);
-            if (marka == null)
-            {
-                TempData["Hata"] = "Marka detayi API uzerinden alinamadi.";
-                return RedirectToAction("Index");
-            }
-            ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
-            ViewBag.Kullanici = kullanici;
-            ViewBag.GenelSistemAdminMi = true;
-            return View(marka);
+            return RedirectToAction(nameof(Index), new { duzenle = id });
         }
 
         [HttpPost]

@@ -206,3 +206,6 @@ body { background: #eef3f6; color: var(--login-ink); font: 14px/1.5 "Segoe UI", 
     .company-select-shell .company-select-list { grid-template-columns: 1fr; }
     .company-select-shell .company-select-option { min-height: 72px; padding: 10px; }
 }
+.login-programmatic-focus:focus {
+    outline: none;
+}

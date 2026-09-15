@@ -5,8 +5,8 @@
     var durum = Model.Item2;
     var panel = Model.Item3;
     var bekleyen = durum == "bekleyen";
-    var onayUrl = panel == "personel" ? "/personel-panel/onayla" : "/ys-yetki-belgesi/onayla";
-    var redUrl = panel == "personel" ? "/personel-panel/reddet" : "/ys-yetki-belgesi/reddet";
+    var onayUrl = panel == "personel" ? Url.Action("Onayla", "PersonelPanel") : Url.Action("Onayla", "YetkiBelgesi");
+    var redUrl = panel == "personel" ? Url.Action("Reddet", "PersonelPanel") : Url.Action("Reddet", "YetkiBelgesi");
     var bosMetin = durum switch
     {
         "onaylanan" => "Onaylanan yetki belgesi bulunmuyor.",
@@ -19,8 +19,7 @@
     <table class="df-table df-approval-table">
         <thead>
             <tr>
-                <th>Firma</th>
-                <th>Dağıtım Şirketi</th>
+                <th>Firma / Dağıtım Şirketi</th>
                 <th>Belge Geçerliliği</th>
                 <th>Yükleme Tarihi</th>
                 <th>Durum</th>
@@ -31,7 +30,7 @@
             @if (!kayitlar.Any())
             {
                 <tr class="approval-empty-row">
-                    <td colspan="6">
+                    <td colspan="5">
                         <div class="df-empty">
                             <div class="df-empty-title">@bosMetin</div>
                         </div>
@@ -66,9 +65,12 @@
                         data-durum="@durum">
                         <td>
                             <div class="df-cell-main">@firmaAdi</div>
-                            <div class="df-cell-sub">@vergiNo</div>
+                            <div class="df-cell-sub">@(string.IsNullOrWhiteSpace(sirketAdi) ? "Dağıtım şirketi belirtilmedi" : sirketAdi)</div>
+                            @if (!string.IsNullOrWhiteSpace(vergiNo))
+                            {
+                                <div class="df-cell-note">Vergi No: @vergiNo</div>
+                            }
                         </td>
-                        <td>@(string.IsNullOrWhiteSpace(sirketAdi) ? "-" : sirketAdi)</td>
                         <td>
                             <div class="df-approval-period"><span><small>Başlangıç</small>@baslangic.ToString("dd.MM.yyyy")</span><span><small>Bitiş</small>@s.YetkiBelgesiBitisTarihi.ToString("dd.MM.yyyy")</span></div>
                             <div class="df-cell-sub">@kalanYazi</div>
@@ -79,7 +81,7 @@
                             <div class="df-approval-row-actions">
                                 @if (!string.IsNullOrWhiteSpace(s.DosyaYolu))
                                 {
-                                    <a class="df-btn df-btn-secondary df-btn-sm" href="/ys-yetki-belgesi/dosya/@s.Id" target="_blank" rel="noopener noreferrer"><i class="bi bi-eye" aria-hidden="true"></i> İncele</a>
+                                    <a class="df-btn df-btn-secondary df-btn-sm" href="@Url.Action("Dosya", "YetkiBelgesi", new { id = s.Id })" target="_blank" rel="noopener noreferrer"><i class="bi bi-eye" aria-hidden="true"></i> İncele</a>
                                 }
                                 else
                                 {

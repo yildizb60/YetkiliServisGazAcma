@@ -28,9 +28,17 @@
 }
 
 <div class="df-admin-workspace df-operations-directory">
+    <section class="df-admin-list-card">
+        <div class="df-service-list-head is-operation-toolbar">
+            <div class="df-operation-list-count" aria-label="@Model.Count kayıt görüntüleniyor"><i class="bi bi-list-check" aria-hidden="true"></i><strong>@Model.Count</strong><span>kayıt</span></div>
+            <div class="df-export-actions" aria-label="Dışa aktarma işlemleri">
+                <button type="button" class="df-btn df-btn-danger df-btn-sm" data-admin-list-export data-export-url="@Url.Action("RaporlarPdf", "AdminPanel")" disabled="@(!Model.Any())" title="Seçili kayıtları; seçim yoksa listedeki kayıtları PDF olarak indir"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF İndir</button>
+                <button type="button" class="df-btn df-btn-success df-btn-sm" data-admin-list-export data-export-url="@Url.Action("RaporlarExcel", "AdminPanel")" disabled="@(!Model.Any())" title="Seçili kayıtları; seçim yoksa listedeki kayıtları Excel olarak indir"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel İndir</button>
+            </div>
+        </div>
     <details class="df-admin-filter" open="@(filtreAktif ? "open" : null)">
         <summary>
-            <span><i class="bi bi-funnel" aria-hidden="true"></i><strong>Filtreler</strong><small>Servis, konum, durum veya tarih</small></span>
+            <span><i class="bi bi-funnel" aria-hidden="true"></i><strong>Kayıtları Filtrele</strong></span>
             <span>@(filtreAktif ? "Filtre uygulandı" : "Filtreleri aç") <i class="bi bi-chevron-down" aria-hidden="true"></i></span>
         </summary>
         <div class="df-admin-filter-body">
@@ -51,14 +59,6 @@
         </div>
     </details>
 
-    <section class="df-admin-list-card">
-        <div class="df-service-list-head is-operation-toolbar">
-            <div class="df-operation-list-title"><h3><i class="bi bi-list-check" aria-hidden="true"></i> Kayıt Listesi</h3><span>@Model.Count kayıt görüntüleniyor</span></div>
-            <div class="df-export-actions" aria-label="Dışa aktarma işlemleri">
-                <button type="button" class="df-btn df-btn-danger df-btn-sm" data-admin-list-export data-export-url="@Url.Action("RaporlarPdf", "AdminPanel")" disabled="@(!Model.Any())" title="Seçili kayıtları; seçim yoksa listedeki kayıtları PDF olarak indir"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF İndir</button>
-                <button type="button" class="df-btn df-btn-success df-btn-sm" data-admin-list-export data-export-url="@Url.Action("RaporlarExcel", "AdminPanel")" disabled="@(!Model.Any())" title="Seçili kayıtları; seçim yoksa listedeki kayıtları Excel olarak indir"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel İndir</button>
-            </div>
-        </div>
         @if (!Model.Any())
         {
             <div class="df-admin-empty"><i class="bi bi-inbox" aria-hidden="true"></i> Filtrelere uygun kayıt bulunamadı.</div>
@@ -67,7 +67,7 @@
         {
             <div class="df-admin-table-scroll">
                 <table class="df-table df-commissioning-table">
-                    <thead><tr><th><input id="adminTumunuSec" type="checkbox" aria-label="Tüm kayıtları seç" /></th><th>Müşteri</th><th>Tesisat ve Abone</th><th>Yetkili Servis</th><th>Cihaz</th><th>Devreye Alma Tarihi</th><th>Teknisyen</th><th>Durum</th><th>İşlem</th></tr></thead>
+                    <thead><tr><th><input id="adminTumunuSec" type="checkbox" aria-label="Tüm kayıtları seç" /></th><th>Abone</th><th>Tesisat Bilgileri</th><th>Yetkili Servis</th><th>Cihaz Bilgileri</th><th>Devreye Alma</th><th>Durum</th><th>İşlem</th></tr></thead>
                     <tbody>
                     @foreach (var d in Model)
                     {
@@ -75,14 +75,18 @@
                         var durumYazi = d.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? "Tamamlandı" : d.Durum == DevreyeAlmaDurumDegerleri.Iptal ? "İptal" : "Bekliyor";
                         var durumSinif = d.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? "df-pill-success" : d.Durum == DevreyeAlmaDurumDegerleri.Iptal ? "df-pill-danger" : "df-pill-warning";
                         var tarihVar = d.DevreyeAlmaTarihi.Year > 1900;
+                        var cihazMarka = d.CihazMarka ?? d.Marka?.MarkaAdi;
+                        var cihazModeli = string.Equals(d.CihazModeli?.Trim(), cihazMarka?.Trim(), StringComparison.OrdinalIgnoreCase)
+                            || string.Equals(d.CihazModeli?.Trim(), d.CihazTipi?.Trim(), StringComparison.OrdinalIgnoreCase)
+                                ? null
+                                : d.CihazModeli;
                         <tr>
                             <td><input class="admin-row-check" type="checkbox" value="@d.Id" aria-label="@d.TesistatNo kaydını seç" /></td>
-                            <td><div class="df-cell-main">@(string.IsNullOrWhiteSpace(d.MusteriAdi) ? "Müşteri bilgisi yok" : d.MusteriAdi)</div><div class="df-cell-sub">@(string.IsNullOrWhiteSpace(d.MusteriTelefon) ? "Telefon bilgisi yok" : d.MusteriTelefon)</div></td>
+                            <td><div class="df-cell-main">@(string.IsNullOrWhiteSpace(d.MusteriAdi) ? "Abone adı kayıtlı değil" : d.MusteriAdi)</div>@if (!string.IsNullOrWhiteSpace(d.MusteriTelefon)) { <div class="df-cell-sub"><i class="bi bi-telephone" aria-hidden="true"></i> @d.MusteriTelefon</div> }</td>
                             <td><dl class="df-operation-id-list"><div><dt>Tesisat No:</dt><dd>@(d.TesistatNo ?? "-")</dd></div><div><dt>Abone No:</dt><dd>@(d.AboneNo ?? "-")</dd></div></dl></td>
                             <td><div class="df-cell-value">@(d.Firma?.FirmaAdi ?? "-")</div><div class="df-cell-sub">@string.Join(" / ", new[] { d.Firma?.FaaliyetIli, ilce }.Where(x => !string.IsNullOrWhiteSpace(x)))</div></td>
-                            <td><div class="df-cell-value">@(d.CihazMarka ?? d.Marka?.MarkaAdi ?? "Marka bilgisi yok")</div><div class="df-cell-sub">@string.Join(" · ", new[] { d.CihazTipi, d.CihazModeli }.Where(x => !string.IsNullOrWhiteSpace(x)))</div></td>
-                            <td><time class="df-cell-value" datetime="@(tarihVar ? d.DevreyeAlmaTarihi.ToString("yyyy-MM-dd") : null)">@(tarihVar ? d.DevreyeAlmaTarihi.ToString("dd.MM.yyyy") : "Tarih bilgisi yok")</time></td>
-                            <td><div class="df-cell-value">@(string.IsNullOrWhiteSpace(d.TeknisyenAdi) ? "Teknisyen bilgisi yok" : d.TeknisyenAdi)</div></td>
+                            <td><dl class="df-device-facts"><div><dt>Tür</dt><dd>@(string.IsNullOrWhiteSpace(d.CihazTipi) ? "-" : d.CihazTipi)</dd></div><div><dt>Marka</dt><dd>@(string.IsNullOrWhiteSpace(cihazMarka) ? "-" : cihazMarka)</dd></div>@if (!string.IsNullOrWhiteSpace(cihazModeli)) { <div class="df-device-model"><dt>Model</dt><dd title="@cihazModeli">@cihazModeli</dd></div> }</dl></td>
+                            <td><time class="df-cell-value" datetime="@(tarihVar ? d.DevreyeAlmaTarihi.ToString("yyyy-MM-dd") : null)">@(tarihVar ? d.DevreyeAlmaTarihi.ToString("dd.MM.yyyy") : "Tarih bilgisi yok")</time>@if (!string.IsNullOrWhiteSpace(d.TeknisyenAdi)) { <div class="df-cell-sub">Teknisyen: @d.TeknisyenAdi</div> }</td>
                             <td><span class="df-pill @durumSinif">@durumYazi</span></td>
                             <td><a class="df-icon-action commissioning-row-action" href="@Url.Action("DevreyeAlmaDetay", "AdminPanel", new { id = d.Id })" title="İşlem detayını görüntüle" aria-label="@(string.IsNullOrWhiteSpace(d.MusteriAdi) ? "Devreye alma kaydını görüntüle" : $"{d.MusteriAdi} devreye alma kaydını görüntüle")"><i class="bi bi-eye" aria-hidden="true"></i></a></td>
                         </tr>

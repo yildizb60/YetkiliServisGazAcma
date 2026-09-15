@@ -99,7 +99,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 Baslik(header, "Tesisat / Abone");
                 Baslik(header, "Abone Adı Soyadı");
                 if (icOperasyon) Baslik(header, "Sertifikalı Firma");
-                Baslik(header, icOperasyon ? "Cihaz Değişimi" : "Yeni Kullanılan Cihaz");
+                Baslik(header, icOperasyon ? "Projedeki / Yeni Kullanılan Cihaz" : "Yeni Kullanılan Cihaz");
                 Baslik(header, "Kontrol Randevusu");
                 if (icOperasyon) Baslik(header, "Ekip / Bölge");
                 Baslik(header, "Durum");
@@ -113,7 +113,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 if (icOperasyon) Hucre(table, Deger(kayit.FirmaAdi));
                 Hucre(table, Cihaz(kayit, icOperasyon));
                 Hucre(table, Randevu(kayit));
-                if (icOperasyon) Hucre(table, $"{Deger(kayit.AtananEkip)}\n{Deger(kayit.Bolge)}");
+                if (icOperasyon) Hucre(table, Atama(kayit));
                 Hucre(table, Durum(kayit.Durum));
             }
         }
@@ -131,13 +131,26 @@ namespace YetkiliServisGazAcma.Business.Services
                 return Deger(yeni);
 
             var eski = string.Join(" / ", new[] { kayit.EskiCihazTipi, kayit.EskiMarka, kayit.EskiKapasite }.Where(x => !string.IsNullOrWhiteSpace(x)));
-            return $"Projedeki: {Deger(eski)}\nYeni: {Deger(yeni)}";
+            return $"Projedeki Cihaz: {Deger(eski)}\nYeni Kullanılan Cihaz: {Deger(yeni)}";
         }
 
         private static string Randevu(YkcRaporKayitDto kayit)
         {
             var value = string.Join(" ", new[] { kayit.RandevuTarihi?.ToString("dd.MM.yyyy"), kayit.RandevuSaati }.Where(x => !string.IsNullOrWhiteSpace(x)));
-            return string.IsNullOrWhiteSpace(value) ? "Planlanmadı" : value;
+            if (string.IsNullOrWhiteSpace(value))
+                return kayit.SiradakiKontrolNo is > 1
+                    ? $"{kayit.SiradakiKontrolNo}. kontrol randevusu bekleniyor"
+                    : "Henüz planlanmadı";
+
+            return kayit.SiradakiKontrolNo is > 1
+                ? $"{kayit.SiradakiKontrolNo}. kontrol - {value}"
+                : value;
+        }
+
+        private static string Atama(YkcRaporKayitDto kayit)
+        {
+            var value = string.Join(" / ", new[] { kayit.AtananEkip, kayit.Bolge }.Where(x => !string.IsNullOrWhiteSpace(x)));
+            return string.IsNullOrWhiteSpace(value) ? "Henüz atanmadı" : value;
         }
 
         private static string Durum(int durum) => durum switch

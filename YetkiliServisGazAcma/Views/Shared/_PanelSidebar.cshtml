@@ -141,13 +141,16 @@
                 ("Personeller", Link("Personeller", "AdminPanel"), "bi-person-badge", Active("Personeller", area + "/personeller")),
                 ("Kullanıcılar", Link("Kullanicilar", "AdminPanel"), "bi-people", Active("Kullanicilar", area + "/kullanicilar")),
                 ("Yetkiler", Link("Yetkiler", "AdminPanel"), "bi-shield-check", Active("Yetkiler", area + "/yetkiler")));
+        if (!isPersonelPanel && genelSistemAdminMi)
+            Group("Şirket Yönetimi", "bi-buildings",
+                ("Dağıtım Şirketleri", Link("Index", "DagitimSirket"), "bi-building", Active("DagitimSirketler", "/DagitimSirket")));
         Group("Raporlama", "bi-bar-chart-line",
             ("Operasyon Raporları", Link("Raporlar", isPersonelPanel ? "PersonelPanel" : "AdminPanel"), "bi-graph-up", Active("Raporlar", area + "/raporlar")));
         Group("Hesabım", "bi-person-circle",
             ("Profilim", Link("Profil", isPersonelPanel ? "PersonelPanel" : "AdminPanel"), "bi-person", Active("Profil", area + "/profil")));
     }
 }
-<aside class="sidebar">
+<aside class="sidebar" id="panelSidebar">
     <a class="logo" href="@home" aria-label="Ana sayfa">
         @if (!string.IsNullOrWhiteSpace(ViewBag.PanelLogoUrl as string))
         {
@@ -158,15 +161,18 @@
             <img class="panel-company-logo" src="~/images/company/corumgaz-symbol-mark.svg" alt="Uygulama logosu" />
         }
     </a>
+    <button class="sidebar-collapse-toggle" type="button" data-sidebar-collapse aria-controls="panelSidebar" aria-expanded="true" aria-label="Menüyü daralt veya genişlet" title="Menüyü daralt">
+        <i class="bi bi-chevron-left" aria-hidden="true"></i>
+    </button>
     <nav class="nav sidebar-nav" aria-label="Ana menü">
         <div class="nav-section-title">Ana Menü</div>
-        <a class="@("nav-item" + homeActive)" href="@home" aria-current="@(homeActive.Length > 0 ? "page" : null)">
+        <a class="@("nav-item" + homeActive)" href="@home" aria-current="@(homeActive.Length > 0 ? "page" : null)" title="Ana Sayfa">
             <i class="bi bi-house-door" aria-hidden="true"></i><span>Ana Sayfa</span>
         </a>
         @foreach (var group in groups)
         {
             <details class="nav-item-group" open="@group.Links.Any(x => x.Active.Length > 0)">
-                <summary><i class="bi @group.Icon" aria-hidden="true"></i><span>@group.Title</span><i class="bi bi-chevron-down submenu-arrow" aria-hidden="true"></i></summary>
+                <summary title="@group.Title"><i class="bi @group.Icon" aria-hidden="true"></i><span>@group.Title</span><i class="bi bi-chevron-down submenu-arrow" aria-hidden="true"></i></summary>
                 <div class="nav-submenu">
                     @foreach (var link in group.Links)
                     {
@@ -182,5 +188,5 @@
             </details>
         }
     </nav>
-    <a class="cikis-btn" href="@Link("Cikis", "Giris")"><i class="bi bi-box-arrow-right" aria-hidden="true"></i> Güvenli Çıkış</a>
+    <a class="cikis-btn" href="@Link("Cikis", "Giris")" title="Güvenli Çıkış"><i class="bi bi-box-arrow-right" aria-hidden="true"></i><span>Güvenli Çıkış</span></a>
 </aside>

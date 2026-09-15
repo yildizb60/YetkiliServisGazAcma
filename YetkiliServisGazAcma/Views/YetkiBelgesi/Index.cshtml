@@ -15,16 +15,13 @@
 @section PageStyles { <link rel="stylesheet" href="~/css/operations-directory.css" asp-append-version="true" /> }
 
 <div class="df-admin-workspace df-certificate-workspace">
-    @if (TempData["Basarili"] != null) { <div class="df-alert df-alert-success">@TempData["Basarili"]</div> }
-    @if (TempData["Hata"] != null) { <div class="df-alert df-alert-danger">@TempData["Hata"]</div> }
-
     <details class="df-admin-filter" open="@(Model.Count == 0 ? "open" : null)">
         <summary>
             <span><i class="bi bi-cloud-arrow-up" aria-hidden="true"></i><strong>Yeni Yetki Belgesi Yükle</strong><small>PDF, JPG veya PNG</small></span>
             <span>Yükleme alanını aç <i class="bi bi-chevron-down" aria-hidden="true"></i></span>
         </summary>
         <div class="df-admin-filter-body">
-            <form method="post" action="/ys-yetki-belgesi/yukle" enctype="multipart/form-data" class="ys-certificate-upload">
+            <form method="post" action="@Url.Action("Yukle", "YetkiBelgesi")" enctype="multipart/form-data" class="ys-certificate-upload">
                 @Html.AntiForgeryToken()
                 <div class="df-admin-field is-file"><label for="dosya">Belge Dosyası *</label><input id="dosya" type="file" name="dosya" accept=".pdf,.jpg,.jpeg,.png" required /></div>
                 <div class="df-admin-field"><label for="baslangicTarihi">Başlangıç Tarihi</label><input id="baslangicTarihi" type="date" name="baslangicTarihi" value="@DateTime.Now.ToString("yyyy-MM-dd")" /></div>
@@ -80,8 +77,8 @@
                         <td>@belge.YetkiBelgesiBitisTarihi.ToString("dd.MM.yyyy")</td>
                         <td><span class="df-pill @durumClass">@durumText</span></td>
                         <td><div class="df-actions">
-                            <a class="df-icon-action" href="/ys-yetki-belgesi/dosya/@belge.Id" target="_blank" rel="noopener" title="Belgeyi görüntüle"><i class="bi bi-eye" aria-hidden="true"></i><span>Görüntüle</span></a>
-                            <form method="post" action="/ys-yetki-belgesi/sil" onsubmit="return confirm('Yetki belgesini silmek istiyor musunuz?');">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@belge.Id" /><button class="df-icon-action is-danger" type="submit" title="Belgeyi sil"><i class="bi bi-trash3" aria-hidden="true"></i><span>Sil</span></button></form>
+                            <a class="df-icon-action" href="@Url.Action("Dosya", "YetkiBelgesi", new { id = belge.Id })" target="_blank" rel="noopener" title="Belgeyi görüntüle"><i class="bi bi-eye" aria-hidden="true"></i><span>Görüntüle</span></a>
+                            <form method="post" action="@Url.Action("Sil", "YetkiBelgesi")" onsubmit="return confirm('Yetki belgesini silmek istiyor musunuz?');">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@belge.Id" /><button class="df-icon-action is-danger" type="submit" title="Belgeyi sil"><i class="bi bi-trash3" aria-hidden="true"></i><span>Sil</span></button></form>
                         </div></td>
                     </tr>
                 }

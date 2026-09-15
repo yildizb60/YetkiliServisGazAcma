@@ -23,16 +23,16 @@
 <div class="df-user-directory">
     <div class="df-user-directory-bar">
         <div class="df-user-summary" aria-label="Kullanıcı durum özeti">
-            <div><span>Toplam</span><strong>@kullanicilar.Count</strong></div>
-            <div><span>Aktif</span><strong>@aktifSayisi</strong></div>
-            <div><span>Pasif</span><strong>@pasifSayisi</strong></div>
+            <div><span>Toplam Kullanıcı</span><strong>@kullanicilar.Count</strong></div>
+            <div><span>Aktif Kullanıcı</span><strong>@aktifSayisi</strong></div>
+            <div><span>Pasif Kullanıcı</span><strong>@pasifSayisi</strong></div>
         </div>
-        <a class="df-btn df-btn-primary df-btn-sm" href="/AdminPanel/Kullanicilar/ekle"><i class="bi bi-person-plus" aria-hidden="true"></i> Yeni Kullanıcı</a>
+        <a class="df-btn df-btn-primary df-btn-sm" href="@Url.Action("KullaniciEkle", "AdminPanel")"><i class="bi bi-person-plus" aria-hidden="true"></i> Yeni Kullanıcı</a>
     </div>
 
     <details class="df-user-filter" open="@(filtreAktif ? "open" : null)">
         <summary><span><i class="bi bi-funnel" aria-hidden="true"></i><strong>Filtreler</strong></span><span>@(filtreAktif ? "Filtre uygulandı" : "Aç") <i class="bi bi-chevron-down" aria-hidden="true"></i></span></summary>
-        <form method="get" action="/AdminPanel/kullanicilar">
+        <form method="get" action="@Url.Action("Kullanicilar", "AdminPanel")">
             <div class="df-user-filter-grid">
                 <div class="filter-group">
                     <label>Arama</label>
@@ -67,7 +67,7 @@
             </div>
             <div class="df-user-filter-actions">
                 <button class="df-btn df-btn-primary df-btn-sm" type="submit"><i class="bi bi-funnel-fill" aria-hidden="true"></i> Filtrele</button>
-                <a class="df-btn df-btn-secondary df-btn-sm" href="/AdminPanel/kullanicilar"><i class="bi bi-x-lg" aria-hidden="true"></i> Temizle</a>
+                <a class="df-btn df-btn-secondary df-btn-sm" href="@Url.Action("Kullanicilar", "AdminPanel")"><i class="bi bi-x-lg" aria-hidden="true"></i> Temizle</a>
             </div>
         </form>
     </details>
@@ -125,15 +125,15 @@
                         <div class="df-user-actions">
                             @if (kullaniciIslemYapilabilir)
                             {
-                                <a class="df-icon-action" href="/AdminPanel/Kullanicilar/Duzenle/@kullanici.Id" title="Kullanıcıyı düzenle" aria-label="@kullanici.AdSoyad kullanıcısını düzenle"><i class="bi bi-pencil" aria-hidden="true"></i></a>
+                                <a class="df-icon-action" href="@Url.Action("KullaniciDuzenle", "AdminPanel", new { id = kullanici.Id })" title="Kullanıcıyı düzenle" aria-label="@kullanici.AdSoyad kullanıcısını düzenle"><i class="bi bi-pencil" aria-hidden="true"></i></a>
                                 @if (!kendiHesabiMi)
                                 {
-                                <form method="post" action="/AdminPanel/Kullanicilar/durum/@kullanici.Id">
+                                <form method="post" action="@Url.Action("KullaniciDurum", "AdminPanel", new { id = kullanici.Id })">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="aktif" value='@(kullanici.AktifMi ? "false" : "true")' />
                                     <button type="submit" class="df-icon-action @(kullanici.AktifMi ? "is-warning" : "is-success")" title="@(kullanici.AktifMi ? "Kullanıcıyı pasifleştir" : "Kullanıcıyı aktifleştir")" aria-label="@kullanici.AdSoyad kullanıcısını @(kullanici.AktifMi ? "pasifleştir" : "aktifleştir")"><i class="bi @(kullanici.AktifMi ? "bi-pause-circle" : "bi-play-circle")" aria-hidden="true"></i></button>
                                 </form>
-                                <form method="post" action="/AdminPanel/kullanicilar/sil/@kullanici.Id" onsubmit="return confirm('Kullanıcıyı silmek istediğinize emin misiniz?');">
+                                <form method="post" action="@Url.Action("KullaniciSil", "AdminPanel", new { id = kullanici.Id })" onsubmit="return confirm('Kullanıcıyı silmek istediğinize emin misiniz?');">
                                     @Html.AntiForgeryToken()
                                     <button type="submit" class="df-icon-action is-danger" title="Kullanıcıyı sil" aria-label="@kullanici.AdSoyad kullanıcısını sil"><i class="bi bi-trash3" aria-hidden="true"></i></button>
                                 </form>

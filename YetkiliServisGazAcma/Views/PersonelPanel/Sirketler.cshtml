@@ -26,9 +26,6 @@
         </div>
     </section>
 
-    @if (TempData["Hata"] != null) { <div class="df-alert df-alert-danger">@TempData["Hata"]</div> }
-    @if (TempData["Basarili"] != null) { <div class="df-alert df-alert-success">@TempData["Basarili"]</div> }
-
     <details class="df-admin-filter" open="@(!string.IsNullOrWhiteSpace(q) ? "open" : null)">
         <summary>
             <span><i class="bi bi-search" aria-hidden="true"></i><strong>Şirket Ara</strong><small>Şirket adı, il veya telefon</small></span>

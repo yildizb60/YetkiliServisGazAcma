@@ -1,6 +1,6 @@
 @model List<YetkiliServisGazAcma.Entities.Ys_Marka>
 @{
-    ViewData["Title"] = "Cihaz Markaları";
+    ViewData["Title"] = "Yetkili Servis Markaları";
     ViewData["PanelTitle"] = ViewData["Title"];
     ViewData["PanelSubtitle"] = "Personel Paneli";
     ViewData["ActiveMenu"] = "Markalar";
@@ -12,16 +12,11 @@
     var markaYonetebilir = ViewBag.YetkiMarkaYonet != false;
 }
 
-<div class="df-admin-workspace df-brand-workspace">
-    @if (TempData["Basarili"] != null)
-    {
-        <div class="df-alert df-alert-success">@TempData["Basarili"]</div>
-    }
-    @if (TempData["Hata"] != null)
-    {
-        <div class="df-alert df-alert-danger">@TempData["Hata"]</div>
-    }
+@section PageStyles {
+    <link rel="stylesheet" href="~/css/operations-directory.css" asp-append-version="true" />
+}
 
+<div class="df-admin-workspace df-brand-workspace">
     <section class="df-admin-list-card">
         <div class="df-service-list-head">
             <div><h3><i class="bi bi-tags" aria-hidden="true"></i> Marka Listesi</h3></div>
@@ -32,7 +27,7 @@
             </div>
             @if (markaYonetebilir)
             {
-                <a class="df-btn df-btn-primary df-btn-sm" href="/personel-panel/markalar/ekle"><i class="bi bi-plus-lg"></i> Yeni Marka</a>
+                <button class="df-btn df-btn-primary df-btn-sm js-personnel-brand-create" type="button"><i class="bi bi-plus-lg"></i> Yeni Marka</button>
             }
         </div>
     <details class="df-admin-filter">
@@ -111,7 +106,7 @@
             <form id="personnelBrandEditForm" method="post">
                 @Html.AntiForgeryToken()
                 <div class="df-modal-header">
-                    <div class="df-modal-heading"><span class="df-modal-icon"><i class="bi bi-pencil-square"></i></span><div><h3 id="personnelBrandModalTitle">Cihaz Markasını Düzenle</h3><p id="personnelBrandModalSubtitle">Marka kaydını güncelleyin.</p></div></div>
+                    <div class="df-modal-heading"><span class="df-modal-icon"><i class="bi bi-tag"></i></span><div><h3 id="personnelBrandModalTitle">Cihaz Markası</h3></div></div>
                     <button class="df-modal-close" type="button" data-brand-modal-close aria-label="Kapat"><i class="bi bi-x-lg"></i></button>
                 </div>
                 <div class="df-modal-body">
@@ -121,7 +116,7 @@
                         <div class="df-admin-field is-wide"><label for="personnelBrandDescription">Açıklama</label><textarea id="personnelBrandDescription" name="Aciklama" rows="3"></textarea></div>
                     </div>
                 </div>
-                <div class="df-modal-footer"><button class="df-btn df-btn-secondary" type="button" data-brand-modal-close>Vazgeç</button><button class="df-btn df-btn-primary" type="submit"><i class="bi bi-check2"></i> Değişiklikleri Kaydet</button></div>
+                <div class="df-modal-footer"><button class="df-btn df-btn-secondary" type="button" data-brand-modal-close>Vazgeç</button><button class="df-btn df-btn-primary" type="submit"><i class="bi bi-check2"></i> Kaydet</button></div>
             </form>
         </div>
     </div>
@@ -169,7 +164,21 @@
 
         var editModal = document.getElementById("personnelBrandEditModal");
         var editForm = document.getElementById("personnelBrandEditForm");
+        var modalTitle = document.getElementById("personnelBrandModalTitle");
         var lastEditTrigger = null;
+        function openEditModal(trigger, values) {
+            if (!editModal || !editForm) return;
+            lastEditTrigger = trigger;
+            editForm.action = values.action;
+            document.getElementById("personnelBrandName").value = values.name || "";
+            document.getElementById("personnelBrandStatus").value = values.active === false ? "false" : "true";
+            document.getElementById("personnelBrandDescription").value = values.description || "";
+            if (modalTitle) modalTitle.textContent = values.title;
+            editModal.classList.add("is-open");
+            editModal.setAttribute("aria-hidden", "false");
+            document.body.classList.add("df-modal-open");
+            document.getElementById("personnelBrandName").focus();
+        }
         function closeEditModal() {
             if (!editModal) return;
             editModal.classList.remove("is-open");
@@ -178,18 +187,24 @@
             lastEditTrigger?.focus();
         }
         document.addEventListener("click", function (event) {
+            var createButton = event.target.closest(".js-personnel-brand-create");
+            if (createButton) {
+                openEditModal(createButton, {
+                    action: "@Url.Action("MarkaEkle", "PersonelPanel")",
+                    title: "Yeni Cihaz Markası",
+                    active: true
+                });
+                return;
+            }
             var button = event.target.closest(".js-personnel-brand-edit");
             if (button && editModal && editForm) {
-                lastEditTrigger = button;
-                editForm.action = "/personel-panel/markalar/duzenle/" + button.dataset.id;
-                document.getElementById("personnelBrandName").value = button.dataset.name || "";
-                document.getElementById("personnelBrandStatus").value = button.dataset.active === "true" ? "true" : "false";
-                document.getElementById("personnelBrandDescription").value = button.dataset.description || "";
-                document.getElementById("personnelBrandModalSubtitle").textContent = (button.dataset.name || "Marka") + " kaydını güncelleyin.";
-                editModal.classList.add("is-open");
-                editModal.setAttribute("aria-hidden", "false");
-                document.body.classList.add("df-modal-open");
-                document.getElementById("personnelBrandName").focus();
+                openEditModal(button, {
+                    action: "/personel-panel/markalar/duzenle/" + button.dataset.id,
+                    title: "Cihaz Markasını Düzenle",
+                    name: button.dataset.name,
+                    description: button.dataset.description,
+                    active: button.dataset.active === "true"
+                });
                 return;
             }
             if (event.target.closest("[data-brand-modal-close]")) closeEditModal();

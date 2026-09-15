@@ -1,6 +1,7 @@
 @{
     ViewData["Title"] = "Şube / Servis Noktaları";
     ViewData["PanelTitle"] = "Şube / Servis Noktaları";
+    ViewData["PanelModule"] = "Yetkili Servis İşlemleri";
     ViewData["PanelSubtitle"] = "Yetkili Servis";
     ViewData["ActiveMenu"] = "Subeler";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
@@ -14,15 +15,6 @@
 }
 
 <div class="ys-workspace">
-    @if (TempData["Basarili"] != null)
-    {
-        <div class="ys-alert is-success"><i class="bi bi-check-circle" aria-hidden="true"></i>@TempData["Basarili"]</div>
-    }
-    @if (TempData["Hata"] != null)
-    {
-        <div class="ys-alert is-danger"><i class="bi bi-exclamation-circle" aria-hidden="true"></i>@TempData["Hata"]</div>
-    }
-
     <details class="ys-collapsible" open="@(!subeler.Any())">
         <summary>
             <span class="ys-summary-heading">
@@ -32,7 +24,7 @@
             <i class="bi bi-chevron-down" aria-hidden="true"></i>
         </summary>
         <div class="ys-collapsible-body">
-            <form method="post" action="/ys-panel/subeler/ekle">
+            <form method="post" action="@Url.Action("SubeEkle", "YetkiliServisPanel")">
                 @Html.AntiForgeryToken()
                 <div class="ys-form-grid is-three-column">
                     <div class="ys-field"><label for="subeAdi">Şube Adı *</label><input type="text" id="subeAdi" name="subeAdi" placeholder="Örn. Merkez Şube" required /></div>
@@ -87,15 +79,15 @@
                                 <td><span class="df-pill @(s.AktifMi ? "df-pill-success" : "df-pill-danger")">@(s.AktifMi ? "Aktif" : "Pasif")</span></td>
                                 <td>
                                     <div class="ys-table-actions">
-                                        <a class="df-btn df-btn-secondary df-btn-sm" href="/ys-panel/subeler/duzenle/@s.Id" title="Şubeyi düzenle"><i class="bi bi-pencil" aria-hidden="true"></i> Düzenle</a>
-                                        <form method="post" action="/ys-panel/subeler/durum">
+                                        <a class="df-btn df-btn-secondary df-btn-sm" href="@Url.Action("SubeDuzenle", "YetkiliServisPanel", new { id = s.Id })" title="Şubeyi düzenle"><i class="bi bi-pencil" aria-hidden="true"></i> Düzenle</a>
+                                        <form method="post" action="@Url.Action("SubeDurum", "YetkiliServisPanel")">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="id" value="@s.Id" />
                                             <button type="submit" class="df-btn @(s.AktifMi ? "df-btn-warning" : "df-btn-success") df-btn-sm">
                                                 <i class="bi @(s.AktifMi ? "bi-pause-circle" : "bi-play-circle")" aria-hidden="true"></i> @(s.AktifMi ? "Pasife Al" : "Aktife Al")
                                             </button>
                                         </form>
-                                        <form method="post" action="/ys-panel/subeler/sil" onsubmit="return confirm('Şubeyi silmek istiyor musunuz?');">
+                                        <form method="post" action="@Url.Action("SubeSil", "YetkiliServisPanel")" onsubmit="return confirm('Şubeyi silmek istiyor musunuz?');">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="id" value="@s.Id" />
                                             <button type="submit" class="df-btn df-btn-danger df-btn-sm" title="Şubeyi sil"><i class="bi bi-trash" aria-hidden="true"></i></button>

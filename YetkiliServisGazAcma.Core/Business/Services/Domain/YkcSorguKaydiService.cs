@@ -23,7 +23,9 @@ public sealed class YkcSorguKaydiService : IDisposable
             || !_cache.TryGetValue(hedef.SorguReferansi, out (string KullaniciId, YkcTalepKaydetDto Kaynak) kayit)
             || kayit.KullaniciId != kullaniciId
             || !NumaraEslesiyor(kayit.Kaynak.TesisatNo, hedef.TesisatNo)
-            || !NumaraEslesiyor(kayit.Kaynak.SozlesmeNo, hedef.SozlesmeNo))
+            || !NumaraEslesiyor(kayit.Kaynak.SozlesmeNo, hedef.SozlesmeNo)
+            || string.IsNullOrWhiteSpace(hedef.YeniCihazTipi)
+            || !kayit.Kaynak.IzinliYeniCihazTipleri.TryGetValue(hedef.YeniCihazTipi.Trim(), out var yeniCihazTipiKodu))
             return false;
 
         var k = kayit.Kaynak;
@@ -50,6 +52,9 @@ public sealed class YkcSorguKaydiService : IDisposable
         hedef.EskiBacaTipiKodu = k.EskiBacaTipiKodu;
         hedef.EskiBacaTipi = k.EskiBacaTipi;
         hedef.EskiKapasite = k.EskiKapasite;
+        hedef.YeniCihazTipi = k.IzinliYeniCihazTipleri.Keys.First(x =>
+            string.Equals(x, hedef.YeniCihazTipi.Trim(), StringComparison.OrdinalIgnoreCase));
+        hedef.YeniCihazTipiKodu = yeniCihazTipiKodu;
         hedef.Aufnr = k.Aufnr;
         return true;
     }

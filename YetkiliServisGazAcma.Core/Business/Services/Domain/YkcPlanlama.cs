@@ -77,6 +77,23 @@ public static class YkcKontrolAkisKurali
             kontrolSonucu?.Trim(),
             YkcFr265KontrolSonucDegerleri.UygunDegil,
             StringComparison.Ordinal);
+
+    public static int? SiradakiKontrolNo(IEnumerable<Ykc_Fr265Kontrol> kontroller)
+    {
+        var sonKontrol = kontroller
+            .Where(x => !x.SilindiMi
+                && x.KontrolNo is >= 1 and <= 5
+                && (x.Sonuc == YkcFr265KontrolSonucDegerleri.Uygun
+                    || x.Sonuc == YkcFr265KontrolSonucDegerleri.UygunDegil))
+            .OrderBy(x => x.KontrolNo)
+            .LastOrDefault();
+
+        if (sonKontrol?.Sonuc != YkcFr265KontrolSonucDegerleri.UygunDegil)
+            return null;
+
+        var siradaki = sonKontrol.KontrolNo + 1;
+        return siradaki <= 5 ? siradaki : null;
+    }
 }
 
 public partial class YkcTalepService

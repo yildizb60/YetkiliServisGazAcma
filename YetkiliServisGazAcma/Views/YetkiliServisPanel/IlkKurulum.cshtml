@@ -32,8 +32,6 @@
         </div>
     </section>
 
-    @if (TempData["Basarili"] != null) { <div class="df-alert df-alert-success">@TempData["Basarili"]</div> }
-    @if (TempData["Hata"] != null) { <div class="df-alert df-alert-danger">@TempData["Hata"]</div> }
     @if (eksikler.Count > 0)
     {
         <div class="df-admin-help">
