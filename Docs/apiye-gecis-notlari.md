@@ -44,11 +44,8 @@ Dagitim sirketleri:
 
 - `POST /api/dagitim-sirket/liste`
 - `POST /api/dagitim-sirket/getir`
-- `POST /api/dagitim-sirket/ekle`
-- `POST /api/dagitim-sirket/guncelle`
-- `POST /api/dagitim-sirket/sil`
 
-Not: Dagitim sirketi kullaniciya secim olarak gosterilmez. Bu yapi sistem icinde sehir -> firma kodu eslesmesinin veritabani karsiligi olarak kullanilir.
+Not: Dagitim sirketi admin panelde manuel yonetilmez. Il/şehir secimine gore firma kodu appsettings `SehirFirmaKodlari` eslesmesinden belirlenir; API tarafinda dagitim sirketi icin yalnizca okuma uclari kalir.
 
 Markalar:
 
@@ -180,7 +177,7 @@ Not: Bu ekran son kullanici akisi degildir. Yetkili servis kaydinda kullanici da
 Akis:
 
 ```text
-DagitimSirketController.Index -> DagitimSirketApiClient -> POST /api/dagitim-sirket/liste -> veritabani
+Dagitim sirketi okuma -> DagitimSirketApiClient -> POST /api/dagitim-sirket/liste veya getir -> veritabani
 ```
 
 Fallback sadece `ApiIntegration:AllowDatabaseFallback=true` ise vardir:
@@ -524,18 +521,14 @@ MarkaController.Ekle       -> MarkaApiClient -> /api/marka/ekle
 MarkaController.Guncelle   -> MarkaApiClient -> /api/marka/guncelle
 MarkaController.Sil        -> MarkaApiClient -> /api/marka/sil
 
-DagitimSirket.Index        -> DagitimSirketApiClient -> /api/dagitim-sirket/liste
-DagitimSirket.Duzenle      -> DagitimSirketApiClient -> /api/dagitim-sirket/getir
-DagitimSirket.Ekle         -> DagitimSirketApiClient -> /api/dagitim-sirket/ekle
-DagitimSirket.Guncelle     -> DagitimSirketApiClient -> /api/dagitim-sirket/guncelle
-DagitimSirket.Sil          -> DagitimSirketApiClient -> /api/dagitim-sirket/sil
+Dagitim sirketi okuma     -> DagitimSirketApiClient -> /api/dagitim-sirket/liste, /api/dagitim-sirket/getir
 ```
 
-Marka API yazma endpointleri personel icin `MARKA_YONET` veya `TAM_YETKI` kontrolu yapar. Dagitim sirketi guncelleme endpointi, genel sistem yoneticisine ek olarak kendi sirketi kapsamindaki sirket admini veya `DAGITIM_SIRKET_YONET` / `TAM_YETKI` olan personele izin verir. Dagitim sirketi ekle/sil ise genel sistem yonetimi olarak kalir.
+Marka API yazma endpointleri personel icin `MARKA_YONET` veya `TAM_YETKI` kontrolu yapar. Dagitim sirketi icin ekle/guncelle/sil akisi kaldirildi; sistem sehirden firma kodu belirleme akisini kullanir.
 
 Bu akislarda MVC tarafinda veritabani fallback'i yoktur. API yaniti alinamazsa ekran hata mesaji verir; MVC ayni islemi dogrudan veritabanindan tekrar denemez.
 
-Dagitim sirketi Web controller'indaki kalan bildirim sayisi okumasi da dashboard API client'a tasindi. Bu controller artik `AppDbContext` tasimaz.
+Dagitim sirketi Web controller'i kaldirildi. Sirket bilgisi yalnizca panel kapsami, profil ve secenek okumalarinda API uzerinden kullanilir.
 
 Marka Web controller'indaki kalan bildirim sayisi okumasi da dashboard API client'a tasindi. Bu controller artik `AppDbContext` tasimaz.
 
@@ -624,7 +617,6 @@ Views/AdminPanel/*
 Views/PersonelPanel/*
 Views/YetkiliServisPanel/*
 Views/Marka/*
-Views/DagitimSirket/*
 ```
 
 Bu panel ve admin yonetim ekranlarinda artik eski `Layout = null`, `<html>`, `<body>`, kopya sidebar ve kopya topbar markup'i bulunmuyor. Her sayfada yalnizca sayfaya ait filtre/tablo/form icerigi ve sayfaya ozel CSS kaldi.

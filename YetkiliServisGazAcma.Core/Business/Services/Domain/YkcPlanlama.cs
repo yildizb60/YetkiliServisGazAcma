@@ -94,6 +94,18 @@ public static class YkcKontrolAkisKurali
         var siradaki = sonKontrol.KontrolNo + 1;
         return siradaki <= 5 ? siradaki : null;
     }
+
+    public static bool KontrolAlaniDolduMu(IEnumerable<Ykc_Fr265Kontrol> kontroller)
+    {
+        var sonuclar = kontroller
+            .Where(x => !x.SilindiMi && x.KontrolNo is >= 1 and <= 5)
+            .GroupBy(x => x.KontrolNo)
+            .Select(x => x.OrderByDescending(k => k.KontrolTarihi ?? DateTime.MinValue).ThenByDescending(k => k.Id).First())
+            .ToList();
+
+        return sonuclar.Count == 5
+            && sonuclar.All(x => x.Sonuc == YkcFr265KontrolSonucDegerleri.UygunDegil);
+    }
 }
 
 public partial class YkcTalepService

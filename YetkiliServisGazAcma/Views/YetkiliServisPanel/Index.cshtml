@@ -44,7 +44,6 @@
     var ilkKurulumTamamlandi = ViewBag.IlkKurulumTamamlandi as bool? ?? true;
     var ilkKurulumEksikler = ViewBag.IlkKurulumEksikler as List<string> ?? new List<string>();
     var kurulumKilitli = ilkKurulumZorunlu && !ilkKurulumTamamlandi;
-    var sonKayit = sonIslemler.FirstOrDefault();
     var siradakiBelge = gecerliBelgeler.FirstOrDefault();
 
     var kartlar = new List<DashboardTileViewModel>();
@@ -213,15 +212,6 @@
                 <div><dt>Tamamlanan</dt><dd>@tamamlananIslem</dd></div>
                 <div><dt>İptal</dt><dd>@iptalIslem</dd></div>
             </dl>
-            @if (sonKayit is not null)
-            {
-                var sonKayitDurumu = sonKayit.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? "Tamamlandı" : sonKayit.Durum == DevreyeAlmaDurumDegerleri.Iptal ? "İptal" : "Bekliyor";
-                <a class="ys-home-latest" href="@Url.Action("Detay", "DevreyeAlma", new { id = sonKayit.Id })"><span><small>Son kayıt</small><strong>@(sonKayit.MusteriAdi ?? "Abone adı kayıtlı değil")</strong></span><span><small>Tesisat No</small><strong>@(sonKayit.TesistatNo ?? "-")</strong></span><em>@sonKayitDurumu</em><i class="bi bi-chevron-right" aria-hidden="true"></i></a>
-            }
-            else
-            {
-                <div class="ys-home-empty">Henüz cihaz devreye alma kaydı bulunmuyor.</div>
-            }
         </section>
 
         <section class="ys-home-snapshot">

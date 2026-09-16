@@ -9,7 +9,6 @@
     var onayBekleyen = ViewBag.OnayBekleyen is int ob ? ob : 0;
     var suresiBitecek = ViewBag.SuresiBitecek is int sb ? sb : 0;
     var toplamFirma = ViewBag.ToplamFirma is int tf ? tf : 0;
-    var toplamSirket = ViewBag.ToplamSirket is int ts ? ts : 0;
     var toplamDevreyeAlma = ViewBag.ToplamDevreyeAlma is int td ? td : 0;
     var buAyDevreyeAlma = ViewBag.BuAyDevreyeAlma is int ba ? ba : 0;
 
@@ -70,16 +69,39 @@
         },
         new()
         {
-            Title = "Dağıtım Şirketleri",
-            Url = Url.Action("Index", "DagitimSirket")!,
-            Icon = "bi bi-buildings",
-            Tone = "red",
-            MetricValue = toplamSirket.ToString(),
-            MetricLabel = "kayıtlı dağıtım şirketi",
-            Stat1Label = "Şirket kapsamı",
-            Stat1Value = toplamSirket.ToString(),
-            Stat2Label = "Görünüm",
-            Stat2Value = "Yönetim"
+            Title = "Personel Yönetimi",
+            Url = Url.Action("Personeller", "AdminPanel")!,
+            Icon = "bi bi-person-lines-fill",
+            Tone = "cyan",
+            MetricLabel = "şirket personeli ve hesap durumu",
+            Stat1Label = "Personeller",
+            Stat1Value = "Liste",
+            Stat2Label = "Erişim",
+            Stat2Value = "Kontrol"
+        },
+        new()
+        {
+            Title = "Raporlama",
+            Url = Url.Action("Raporlar", "AdminPanel")!,
+            Icon = "bi bi-bar-chart-line",
+            Tone = "green",
+            MetricLabel = "PDF ve Excel dışa aktarım",
+            Stat1Label = "Devreye alma",
+            Stat1Value = "Rapor",
+            Stat2Label = "Belge",
+            Stat2Value = "Takip"
+        },
+        new()
+        {
+            Title = "Yetki Tanımları",
+            Url = Url.Action("Yetkiler", "AdminPanel")!,
+            Icon = "bi bi-shield-lock",
+            Tone = "blue",
+            MetricLabel = "personel işlem yetkileri",
+            Stat1Label = "Rol",
+            Stat1Value = "Yetki",
+            Stat2Label = "Kapsam",
+            Stat2Value = "Şirket"
         }
     };
 }
@@ -89,12 +111,16 @@
 }
 
 <div class="df-dashboard role-dashboard admin-role-dashboard">
-    <div class="section-label">
+    <div class="section-label has-carousel-controls">
         <i class="bi bi-grid" aria-hidden="true"></i>
         Yönetim Alanları
+        <div class="dashboard-carousel-controls" data-carousel-controls hidden>
+            <button type="button" data-carousel-prev title="Önceki kartlar" aria-label="Önceki kartlar"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+            <button type="button" data-carousel-next title="Sonraki kartlar" aria-label="Sonraki kartlar"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+        </div>
     </div>
 
-    <nav class="df-approval-grid role-card-grid admin-card-grid" aria-label="Yönetim alanları" style="--role-card-count:@kartlar.Count">
+    <nav class="df-approval-grid role-card-grid admin-card-grid dashboard-carousel-track" aria-label="Yönetim alanları" style="--role-card-count:@kartlar.Count" data-carousel-track>
         @foreach (var kart in kartlar)
         {
             <a class="df-atile is-@kart.Tone @(kart.Featured ? "is-featured" : "")" href="@kart.Url" aria-label="@(kart.Featured ? "Öncelikli: " + kart.Title : kart.Title)">
@@ -130,11 +156,15 @@
         <article class="admin-command-panel is-scope">
             <header><span><i class="bi bi-diagram-3" aria-hidden="true"></i></span><div><h2>Sistem Kapsamı</h2><small>Aktif yönetim görünümü</small></div></header>
             <dl class="admin-scope-stats">
-                <div><dt>Dağıtım Şirketi</dt><dd>@toplamSirket</dd></div>
                 <div><dt>Yetkili Servis</dt><dd>@toplamFirma</dd></div>
                 <div><dt>Devreye Alma Kaydı</dt><dd>@toplamDevreyeAlma</dd></div>
                 <div><dt>Bu Ay Kaydedilen</dt><dd>@buAyDevreyeAlma</dd></div>
+                <div><dt>Bekleyen Belge</dt><dd>@onayBekleyen</dd></div>
             </dl>
         </article>
     </section>
 </div>
+
+@section Scripts {
+<script src="~/js/dashboard-carousel.js" asp-append-version="true"></script>
+}

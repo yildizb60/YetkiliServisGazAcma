@@ -4859,6 +4859,18 @@ body.df-modal-open {
 .sidebar .sidebar-nav .nav-subitem { gap: 7px; padding: 7px 7px; font-size: 11px; line-height: 1.35; }
 .sidebar > .cikis-btn { margin: 8px 14px 12px; }
 
+.sidebar.is-service-sidebar .sidebar-nav .nav-item-group > summary {
+    padding: 9px 10px;
+    font-size: 12.75px;
+    line-height: 1.35;
+}
+
+.sidebar.is-service-sidebar .sidebar-nav .nav-subitem {
+    padding: 8px 7px;
+    font-size: 11.75px;
+    line-height: 1.4;
+}
+
 .df-user-directory-bar {
     display: flex;
     align-items: center;

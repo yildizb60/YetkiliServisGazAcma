@@ -100,7 +100,6 @@ builder.Services.AddIdentity<AppKullanici, IdentityRole>(options =>
     .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
 
-builder.Services.AddScoped<DagitimSirketService>();
 builder.Services.AddScoped<MarkaService>();
 builder.Services.AddScoped<YetkiliServisService>();
 builder.Services.AddScoped<YetkiliServisIlkKurulumService>();

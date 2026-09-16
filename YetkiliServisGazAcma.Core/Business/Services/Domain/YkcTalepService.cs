@@ -634,6 +634,7 @@ namespace YetkiliServisGazAcma.Business.Services
             talep.GuncelleyenKullanici = kullanici.UserName;
 
             var yeniRandevuGerekli = YkcKontrolAkisKurali.YeniRandevuGerekli(kontrolSatirlari[0].Sonuc);
+            var kontrolAlaniDoldu = yeniRandevuGerekli && kontrolSatirlari[0].KontrolNo == 5;
             if (yeniRandevuGerekli)
             {
                 // Tamamlanan atama Ykc_Atamalar tablosunda korunur; talebin guncel gorevi yeni planlamaya doner.
@@ -670,9 +671,11 @@ namespace YetkiliServisGazAcma.Business.Services
                 TalepId = talep.Id,
                 IslemTipi = "FR265KontrolleriGuncellendi",
                 YeniDurum = talep.Durum,
-                Aciklama = yeniRandevuGerekli
-                    ? "Kontrol uygun değil kaydedildi; yeni kontrol randevusu bekleniyor."
-                    : "Form kontrol sonucu güncellendi.",
+                Aciklama = kontrolAlaniDoldu
+                    ? "5. kontrol uygun değil kaydedildi; tüm kontrol alanları kullanıldı ve yeniden planlama bekleniyor."
+                    : yeniRandevuGerekli
+                        ? "Kontrol uygun değil kaydedildi; yeni kontrol randevusu bekleniyor."
+                        : "Form kontrol sonucu güncellendi.",
                 KullaniciId = kullanici.Id,
                 KullaniciAdi = kullanici.UserName,
                 OlusturmaTarihi = DateTime.Now,
@@ -934,6 +937,7 @@ namespace YetkiliServisGazAcma.Business.Services
             var marka = FiltreMetni(filtre.Marka);
             var hedefUygulama = FiltreMetni(filtre.HedefUygulama);
             var durum = filtre.Durum.GetValueOrDefault() > 0 ? filtre.Durum : null;
+            var kontrolNo = filtre.KontrolNo is >= 1 and <= 5 ? filtre.KontrolNo : null;
             var baslangicTarihi = swaggerOrnekFiltre ? null : filtre.BaslangicTarihi;
             var bitisTarihi = swaggerOrnekFiltre ? null : filtre.BitisTarihi;
 
@@ -982,6 +986,28 @@ namespace YetkiliServisGazAcma.Business.Services
 
             if (durum.HasValue)
                 query = query.Where(x => x.Durum == durum.Value);
+
+            if (kontrolNo == 1)
+            {
+                query = query.Where(x => !x.Kontroller.Any(k =>
+                    !k.SilindiMi
+                    && (k.Sonuc == YkcFr265KontrolSonucDegerleri.Uygun
+                        || k.Sonuc == YkcFr265KontrolSonucDegerleri.UygunDegil)));
+            }
+            else if (kontrolNo is > 1)
+            {
+                var oncekiKontrolNo = kontrolNo.Value - 1;
+                query = query.Where(x =>
+                    x.Kontroller.Any(k =>
+                        !k.SilindiMi
+                        && k.KontrolNo == oncekiKontrolNo
+                        && k.Sonuc == YkcFr265KontrolSonucDegerleri.UygunDegil)
+                    && !x.Kontroller.Any(k =>
+                        !k.SilindiMi
+                        && k.KontrolNo >= kontrolNo.Value
+                        && (k.Sonuc == YkcFr265KontrolSonucDegerleri.Uygun
+                            || k.Sonuc == YkcFr265KontrolSonucDegerleri.UygunDegil)));
+            }
 
             if (baslangicTarihi.HasValue)
                 query = query.Where(x => x.TalepTarihi >= baslangicTarihi.Value.Date);
@@ -1226,6 +1252,7 @@ namespace YetkiliServisGazAcma.Business.Services
         public string? Marka { get; set; }
         public string? HedefUygulama { get; set; }
         public int? Durum { get; set; }
+        public int? KontrolNo { get; set; }
         public DateTime? BaslangicTarihi { get; set; }
         public DateTime? BitisTarihi { get; set; }
         public int Sayfa { get; set; } = 1;
@@ -1472,6 +1499,7 @@ namespace YetkiliServisGazAcma.Business.Services
         public DateTime? RandevuTarihi { get; set; }
         public string? RandevuSaati { get; set; }
         public int? SiradakiKontrolNo { get; set; }
+        public bool KontrolAlaniDolduMu { get; set; }
         public bool? IkinciElCihazMi { get; set; }
 
         public static YkcTalepDto FromEntity(Ykc_Talep talep)
@@ -1500,6 +1528,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 RandevuTarihi = talep.RandevuTarihi,
                 RandevuSaati = talep.RandevuSaati,
                 SiradakiKontrolNo = YkcKontrolAkisKurali.SiradakiKontrolNo(talep.Kontroller),
+                KontrolAlaniDolduMu = YkcKontrolAkisKurali.KontrolAlaniDolduMu(talep.Kontroller),
                 IkinciElCihazMi = talep.IkinciElCihazMi
             };
         }

@@ -11,8 +11,6 @@
     var q = ViewBag.Q as string ?? "";
     var durum = ViewBag.Durum as string ?? "";
     var filtreAktif = bas.HasValue || bit.HasValue || !string.IsNullOrWhiteSpace(q) || !string.IsNullOrWhiteSpace(durum);
-    var onaylanan = Model.Count(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi);
-    var reddedilen = Model.Count(x => x.Durum == YetkiBelgesiDurumDegerleri.Reddedildi);
 }
 
 @section PageStyles {
@@ -21,10 +19,9 @@
 
 <div class="df-admin-workspace df-approval-history-workspace">
     <section class="df-admin-list-card">
-        <div class="df-approval-history-summary" aria-label="Yetki belgesi geçmişi özeti">
-            <span><i class="bi bi-files" aria-hidden="true"></i><small>Sonuçlanan</small><strong>@Model.Count</strong></span>
-            <span class="is-approved"><i class="bi bi-check-circle" aria-hidden="true"></i><small>Onaylanan</small><strong>@onaylanan</strong></span>
-            <span class="is-rejected"><i class="bi bi-x-circle" aria-hidden="true"></i><small>Reddedilen</small><strong>@reddedilen</strong></span>
+        <div class="df-history-list-head">
+            <span><i class="bi bi-clock-history" aria-hidden="true"></i>Sonuçlanan Belgeler</span>
+            <small>@Model.Count kayıt</small>
         </div>
     <details class="df-admin-filter" open="@(filtreAktif ? "open" : null)">
         <summary>
@@ -35,7 +32,7 @@
             <form method="get" action="@Url.Action("OnayGecmisi", "PersonelPanel")">
                 <div class="df-admin-filter-grid">
                     <div class="df-admin-field is-wide"><label for="q">Firma veya Şirket</label><input id="q" type="search" name="q" value="@q" placeholder="Firma veya şirket adı" /></div>
-                    <div class="df-admin-field"><label for="durum">Karar</label><select id="durum" name="durum"><option value="">Tümü</option><option value="1" selected="@(durum == "1" ? "selected" : null)">Onaylandı</option><option value="2" selected="@(durum == "2" ? "selected" : null)">Reddedildi</option></select></div>
+                    <div class="df-admin-field"><label for="durum">Sonuç</label><select id="durum" name="durum"><option value="">Tümü</option><option value="1" selected="@(durum == "1" ? "selected" : null)">Onaylandı</option><option value="2" selected="@(durum == "2" ? "selected" : null)">Reddedildi</option></select></div>
                     <div class="df-admin-field is-half"><label for="bas">Başlangıç Tarihi</label><input id="bas" type="date" name="bas" value="@(bas?.ToString("yyyy-MM-dd"))" /></div>
                     <div class="df-admin-field is-half"><label for="bit">Bitiş Tarihi</label><input id="bit" type="date" name="bit" value="@(bit?.ToString("yyyy-MM-dd"))" /></div>
                 </div>
@@ -53,8 +50,8 @@
         }
         else
         {
-            <div class="df-admin-table-scroll"><table class="df-table">
-                <thead><tr><th>Firma / Şirket</th><th>Onaylayan</th><th>Karar</th><th>İşlem Tarihi</th><th>Gerekçe</th></tr></thead>
+            <div class="df-admin-table-scroll"><table class="df-table df-approval-history-table">
+                <thead><tr><th>Firma / Şirket</th><th>İşlemi Yapan</th><th>Sonuç</th><th>Sonuç Tarihi</th><th>Açıklama</th></tr></thead>
                 <tbody>
                 @foreach (var belge in Model)
                 {
@@ -62,7 +59,7 @@
                     <tr>
                         <td><div class="df-cell-main">@(belge.Firma?.FirmaAdi ?? "-")</div><div class="df-cell-sub">@(belge.Firma?.Sirket?.SirketAdi ?? "-")</div></td>
                         <td>@(string.IsNullOrWhiteSpace(belge.OnaylayanKullanici) ? "-" : belge.OnaylayanKullanici)</td>
-                        <td><span class="df-pill @(onayli ? "df-pill-success" : "df-pill-danger")">@(onayli ? "Onaylandı" : "Reddedildi")</span></td>
+                        <td><span class="df-history-result @(onayli ? "is-approved" : "is-rejected")"><i class="bi @(onayli ? "bi-check-circle-fill" : "bi-x-circle-fill")" aria-hidden="true"></i>@(onayli ? "Onaylandı" : "Reddedildi")</span></td>
                         <td>@(belge.OnayTarihi?.ToString("dd.MM.yyyy HH:mm") ?? "-")</td>
                         <td><div class="df-cell-sub">@(string.IsNullOrWhiteSpace(belge.RedGerekce) ? "-" : belge.RedGerekce)</div></td>
                     </tr>

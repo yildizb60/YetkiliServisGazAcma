@@ -20,14 +20,11 @@
             Url = Url.Action("OnayBekleyenler", "PersonelPanel")!,
             Icon = "bi bi-file-earmark-check",
             MetricValue = bekleyen.ToString(),
-            MetricLabel = "Karar bekleyen",
-            Stat1Label = "Bekleyen",
-            Stat1Value = bekleyen.ToString(),
-            Stat1Class = bekleyen > 0 ? "df-badge-pulse" : "df-tile-stat-val",
-            Stat2Label = "Onaylanan",
-            Stat2Value = onaylanan.ToString(),
-            Stat3Label = "Reddedilen",
-            Stat3Value = reddedilen.ToString(),
+            MetricLabel = "Onay bekliyor",
+            Stat1Label = "Onaylanan",
+            Stat1Value = onaylanan.ToString(),
+            Stat2Label = "Reddedilen",
+            Stat2Value = reddedilen.ToString(),
             Tone = "amber",
             Featured = bekleyen > 0
         });
@@ -40,14 +37,11 @@
             Url = Url.Action("Talepler", "Ykc")!,
             Icon = "bi bi-fire",
             MetricValue = (ykc?.Incelemede ?? 0).ToString(),
-            MetricLabel = "İnceleme / atama bekleyen",
-            Stat1Label = "Bekleyen",
-            Stat1Value = (ykc?.Incelemede ?? 0).ToString(),
-            Stat1Class = (ykc?.Incelemede ?? 0) > 0 ? "df-badge-pulse" : "df-tile-stat-val",
-            Stat2Label = "Kontrolde",
-            Stat2Value = (ykc?.RandevuSaha ?? 0).ToString(),
-            Stat3Label = "Tamamlanan",
-            Stat3Value = (ykc?.Tamamlanan ?? 0).ToString(),
+            MetricLabel = "İnceleme / atama",
+            Stat1Label = "Kontrolde",
+            Stat1Value = (ykc?.RandevuSaha ?? 0).ToString(),
+            Stat2Label = "Tamamlanan",
+            Stat2Value = (ykc?.Tamamlanan ?? 0).ToString(),
             Tone = "blue"
         });
     }
@@ -61,13 +55,12 @@
         Url = Url.Action("DevreyeAlmalar", "PersonelPanel")!,
         Icon = "bi bi-tools",
         MetricValue = buAyDevreyeAlma.ToString(),
-        MetricLabel = "Bu ay kaydedilen",
+        MetricLabel = "Bu ay",
         Stat1Label = "Toplam",
         Stat1Value = toplamDevreyeAlma.ToString(),
-        Stat2Label = "Bu Ay",
-        Stat2Value = buAyDevreyeAlma.ToString(),
-        Stat3Label = "Son Kayıt",
-        Stat3Value = sonIslem?.DevreyeAlmaTarihi.ToString("dd.MM.yyyy") ?? "Yok",
+        Stat2Label = "Son Kayıt",
+        Stat2Value = sonIslem?.DevreyeAlmaTarihi.ToString("dd.MM.yyyy") ?? "Yok",
+        Stat2Class = "personnel-tile-date",
         Tone = "green"
     });
 
@@ -85,10 +78,8 @@
             MetricLabel = "Aktif servis",
             Stat1Label = "Toplam",
             Stat1Value = servisToplam.ToString(),
-            Stat2Label = "Aktif",
-            Stat2Value = servisAktif.ToString(),
-            Stat3Label = "Pasif",
-            Stat3Value = servisPasif.ToString(),
+            Stat2Label = "Pasif",
+            Stat2Value = servisPasif.ToString(),
             Tone = "cyan"
         });
     }
@@ -111,21 +102,30 @@
     <nav class="df-approval-grid role-card-grid" aria-label="Yetkili olduğum işlemler" style="--role-card-count:@actions.Count">
         @foreach (var item in actions)
         {
+            var itemStats = new[]
+            {
+                (Label: item.Stat1Label, Value: item.Stat1Value, CssClass: item.Stat1Class),
+                (Label: item.Stat2Label, Value: item.Stat2Value, CssClass: item.Stat2Class),
+                (Label: item.Stat3Label, Value: item.Stat3Value, CssClass: item.Stat3Class)
+            }.Where(x => !string.IsNullOrWhiteSpace(x.Label)).ToList();
             <a class="df-atile is-@item.Tone @(item.Featured ? "is-featured" : "")" href="@item.Url" aria-label="@(item.Featured ? "Öncelikli: " + item.Title : item.Title)">
                 <div class="df-atile-top">
                     <div class="df-atile-icon"><i class="@item.Icon" aria-hidden="true"></i></div>
                     <div class="df-atile-name">@item.Title</div>
                     <i class="bi bi-arrow-right personnel-tile-arrow" aria-hidden="true"></i>
                 </div>
-                <div class="personnel-tile-metric">
-                    <strong>@item.MetricValue</strong>
-                    <span>@item.MetricLabel</span>
+                <div class="personnel-tile-summary">
+                    <div class="personnel-tile-metric">
+                        <strong>@item.MetricValue</strong>
+                        <span>@item.MetricLabel</span>
+                    </div>
+                    <dl class="personnel-tile-stats" style="--personnel-stat-count:@itemStats.Count">
+                        @foreach (var stat in itemStats)
+                        {
+                            <div><dt>@stat.Label</dt><dd class="@stat.CssClass">@stat.Value</dd></div>
+                        }
+                    </dl>
                 </div>
-                <dl class="personnel-tile-stats">
-                    <div><dt>@item.Stat1Label</dt><dd class="@item.Stat1Class">@item.Stat1Value</dd></div>
-                    <div><dt>@item.Stat2Label</dt><dd class="@item.Stat2Class">@item.Stat2Value</dd></div>
-                    <div><dt>@item.Stat3Label</dt><dd class="@item.Stat3Class">@item.Stat3Value</dd></div>
-                </dl>
             </a>
         }
     </nav>

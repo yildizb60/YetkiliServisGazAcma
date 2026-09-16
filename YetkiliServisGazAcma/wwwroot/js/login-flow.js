@@ -77,11 +77,9 @@
             // Scripts in returned HTML are deliberately not executed.
             selectMode(mode || 'firma', false);
             const heading = shell.querySelector('.login-card h1');
-            const announcer = shell.querySelector('[data-login-announcer]');
             if (heading) {
                 heading.tabIndex = -1;
                 heading.classList.add('login-programmatic-focus');
-                if (announcer) announcer.textContent = heading.textContent?.trim() || '';
                 requestAnimationFrame(() => heading.focus({ preventScroll: true }));
             }
         } catch (error) {

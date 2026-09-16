@@ -168,6 +168,7 @@
         button.dataset.collapseInit = "1";
 
         var storageKey = "panel-sidebar-collapsed";
+        var temporarilyExpanded = false;
         var applyState = function (collapsed) {
             document.body.classList.toggle("sidebar-collapsed", collapsed);
             button.setAttribute("aria-expanded", collapsed ? "false" : "true");
@@ -180,7 +181,27 @@
         try { collapsed = window.localStorage.getItem(storageKey) === "1"; } catch { }
         applyState(collapsed);
 
+        sidebar.addEventListener("click", function (event) {
+            var summary = event.target.closest(".nav-item-group > summary");
+            if (!summary || !document.body.classList.contains("sidebar-collapsed")) return;
+
+            event.preventDefault();
+            event.stopPropagation();
+            temporarilyExpanded = true;
+            applyState(false);
+            var group = summary.closest(".nav-item-group");
+            if (group) group.open = true;
+            requestAnimationFrame(function () { summary.focus({ preventScroll: true }); });
+        });
+
+        document.addEventListener("click", function (event) {
+            if (!temporarilyExpanded || sidebar.contains(event.target)) return;
+            temporarilyExpanded = false;
+            applyState(true);
+        });
+
         button.addEventListener("click", function () {
+            temporarilyExpanded = false;
             collapsed = !document.body.classList.contains("sidebar-collapsed");
             applyState(collapsed);
             try { window.localStorage.setItem(storageKey, collapsed ? "1" : "0"); } catch { }

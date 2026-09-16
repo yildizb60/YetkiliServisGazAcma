@@ -139,9 +139,6 @@
         }
     });
 
-    form.querySelectorAll('[name="IkinciElCihazMi"]').forEach(radio => radio.addEventListener('change', () => {
-        field('ykcSecondhandNote').hidden = form.querySelector('[name="IkinciElCihazMi"]:checked').value !== 'true';
-    }));
     form.addEventListener('submit', event => {
         if (!reference.value) {
             event.preventDefault();

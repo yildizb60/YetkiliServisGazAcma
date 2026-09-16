@@ -141,16 +141,13 @@
                 ("Personeller", Link("Personeller", "AdminPanel"), "bi-person-badge", Active("Personeller", area + "/personeller")),
                 ("Kullanıcılar", Link("Kullanicilar", "AdminPanel"), "bi-people", Active("Kullanicilar", area + "/kullanicilar")),
                 ("Yetkiler", Link("Yetkiler", "AdminPanel"), "bi-shield-check", Active("Yetkiler", area + "/yetkiler")));
-        if (!isPersonelPanel && genelSistemAdminMi)
-            Group("Şirket Yönetimi", "bi-buildings",
-                ("Dağıtım Şirketleri", Link("Index", "DagitimSirket"), "bi-building", Active("DagitimSirketler", "/DagitimSirket")));
         Group("Raporlama", "bi-bar-chart-line",
             ("Operasyon Raporları", Link("Raporlar", isPersonelPanel ? "PersonelPanel" : "AdminPanel"), "bi-graph-up", Active("Raporlar", area + "/raporlar")));
         Group("Hesabım", "bi-person-circle",
             ("Profilim", Link("Profil", isPersonelPanel ? "PersonelPanel" : "AdminPanel"), "bi-person", Active("Profil", area + "/profil")));
     }
 }
-<aside class="sidebar" id="panelSidebar">
+<aside class="sidebar @(isYetkiliServisPanel ? "is-service-sidebar" : null)" id="panelSidebar">
     <a class="logo" href="@home" aria-label="Ana sayfa">
         @if (!string.IsNullOrWhiteSpace(ViewBag.PanelLogoUrl as string))
         {

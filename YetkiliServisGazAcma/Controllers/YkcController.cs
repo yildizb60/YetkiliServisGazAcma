@@ -130,6 +130,7 @@ namespace YetkiliServisGazAcma.Controllers
             string? bolge,
             string? hedefUygulama,
             int? durum,
+            int? kontrolNo,
             DateTime? bas,
             DateTime? bit,
             int sayfa = 1)
@@ -155,6 +156,7 @@ namespace YetkiliServisGazAcma.Controllers
                 Bolge = bolge,
                 HedefUygulama = hedefUygulama,
                 Durum = durum,
+                KontrolNo = kontrolNo,
                 BaslangicTarihi = bas,
                 BitisTarihi = bit,
                 Sayfa = Math.Max(sayfa, 1),

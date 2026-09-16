@@ -155,13 +155,69 @@
 
         return "df-pill-warning";
     }
+
+    private static string ImzaDurumKisaYazi(int durum, bool imzaliBelgeVar)
+    {
+        if (imzaliBelgeVar)
+            return "Belge hazır";
+        if (durum == YkcDurumDegerleri.Reddedildi || durum == YkcDurumDegerleri.Iptal)
+            return "Kapalı";
+        if (durum == YkcDurumDegerleri.TalepAlindi || durum == YkcDurumDegerleri.AtamaBekliyor)
+            return "Form bekliyor";
+        if (durum == YkcDurumDegerleri.Atandi || durum == YkcDurumDegerleri.SahaIsleminde)
+            return "Hazırlanıyor";
+        return "İmza bekliyor";
+    }
+
+    private static string ImzaDurumIkonu(int durum, bool imzaliBelgeVar)
+    {
+        if (imzaliBelgeVar)
+            return "bi bi-file-earmark-check";
+        if (durum == YkcDurumDegerleri.Reddedildi || durum == YkcDurumDegerleri.Iptal)
+            return "bi bi-slash-circle";
+        if (durum == YkcDurumDegerleri.Atandi || durum == YkcDurumDegerleri.SahaIsleminde)
+            return "bi bi-file-earmark-text";
+        return "bi bi-hourglass-split";
+    }
 }
 
 @section PageStyles {
     <link rel="stylesheet" href="~/css/ykc-operations.css" asp-append-version="true" />
 }
 
-<div class="ykc-workspace">
+<div class="ykc-workspace ykc-report-workspace">
+    <section class="ykc-report-insights" aria-label="Rapor analizi">
+        <div class="ykc-report-insight is-summary">
+            <span class="ykc-report-insight-icon"><i class="bi bi-collection" aria-hidden="true"></i></span>
+            <div><small>Filtrelenen kayıt</small><strong>@Model.Toplam</strong></div>
+            <dl><div><dt>Kontrol sürecinde</dt><dd>@DurumToplam(Model.DurumOzetleri, YkcDurumDegerleri.Atandi, YkcDurumDegerleri.SahaIsleminde)</dd></div><div><dt>Tamamlanan</dt><dd>@DurumToplam(Model.DurumOzetleri, YkcDurumDegerleri.Tamamlandi)</dd></div></dl>
+        </div>
+        <div class="ykc-report-insight">
+            <span class="ykc-report-insight-title"><i class="bi bi-people" aria-hidden="true"></i>Ekip dağılımı</span>
+            <div class="ykc-report-ranking">
+                @if (Model.EkipOzetleri.Any())
+                {
+                    @foreach (var item in Model.EkipOzetleri.Take(3)) { <span><b>@Deger(item.Ad)</b><strong>@item.Sayi</strong></span> }
+                }
+                else { <small>Atanmış ekip bulunmuyor.</small> }
+            </div>
+        </div>
+        <div class="ykc-report-insight">
+            <span class="ykc-report-insight-title"><i class="bi bi-building-check" aria-hidden="true"></i>@(icOperasyonGorsun ? "Firma dağılımı" : "Süreç dağılımı")</span>
+            <div class="ykc-report-ranking">
+                @if (icOperasyonGorsun && Model.FirmaOzetleri.Any())
+                {
+                    @foreach (var item in Model.FirmaOzetleri.Take(3)) { <span><b>@Deger(item.Ad)</b><strong>@item.Sayi</strong></span> }
+                }
+                else if (Model.DurumOzetleri.Any())
+                {
+                    @foreach (var item in Model.DurumOzetleri.OrderByDescending(x => x.Sayi).Take(3)) { <span><b>@DurumYazi(item.Durum)</b><strong>@item.Sayi</strong></span> }
+                }
+                else { <small>Dağılım verisi bulunmuyor.</small> }
+            </div>
+        </div>
+    </section>
+
     <details class="ykc-filter-panel" open="@(aktifFiltreler.Any() ? "open" : null)">
         <summary class="ykc-filter-bar">
                 <span class="ykc-filter-leading"><i class="bi bi-sliders2"></i> Filtreler</span>
@@ -248,38 +304,6 @@
         </form>
     </details>
 
-    <section class="ykc-report-insights" aria-label="Rapor analizi">
-        <div class="ykc-report-insight is-summary">
-            <span class="ykc-report-insight-icon"><i class="bi bi-collection" aria-hidden="true"></i></span>
-            <div><small>Filtrelenen kayıt</small><strong>@Model.Toplam</strong></div>
-            <dl><div><dt>Kontrol sürecinde</dt><dd>@DurumToplam(Model.DurumOzetleri, YkcDurumDegerleri.Atandi, YkcDurumDegerleri.SahaIsleminde)</dd></div><div><dt>Tamamlanan</dt><dd>@DurumToplam(Model.DurumOzetleri, YkcDurumDegerleri.Tamamlandi)</dd></div></dl>
-        </div>
-        <div class="ykc-report-insight">
-            <span class="ykc-report-insight-title"><i class="bi bi-people" aria-hidden="true"></i>Ekip dağılımı</span>
-            <div class="ykc-report-ranking">
-                @if (Model.EkipOzetleri.Any())
-                {
-                    @foreach (var item in Model.EkipOzetleri.Take(3)) { <span><b>@Deger(item.Ad)</b><strong>@item.Sayi</strong></span> }
-                }
-                else { <small>Atanmış ekip bulunmuyor.</small> }
-            </div>
-        </div>
-        <div class="ykc-report-insight">
-            <span class="ykc-report-insight-title"><i class="bi bi-building-check" aria-hidden="true"></i>@(icOperasyonGorsun ? "Firma dağılımı" : "Süreç dağılımı")</span>
-            <div class="ykc-report-ranking">
-                @if (icOperasyonGorsun && Model.FirmaOzetleri.Any())
-                {
-                    @foreach (var item in Model.FirmaOzetleri.Take(3)) { <span><b>@Deger(item.Ad)</b><strong>@item.Sayi</strong></span> }
-                }
-                else if (Model.DurumOzetleri.Any())
-                {
-                    @foreach (var item in Model.DurumOzetleri.OrderByDescending(x => x.Sayi).Take(3)) { <span><b>@DurumYazi(item.Durum)</b><strong>@item.Sayi</strong></span> }
-                }
-                else { <small>Dağılım verisi bulunmuyor.</small> }
-            </div>
-        </div>
-    </section>
-
     <section class="ykc-data-panel ykc-results">
         <div class="ykc-data-toolbar">
             <div class="ykc-data-title-wrap">
@@ -290,8 +314,8 @@
             </div>
             <div class="ykc-header-actions">
                 <span class="ykc-record-count"><i class="bi bi-database"></i> @ilkKayit-@sonKayit / @Model.Toplam kayıt</span>
-                <a class="df-btn df-btn-secondary df-btn-sm ykc-export-action is-pdf @(Model.Toplam == 0 ? "is-disabled" : null)" href="@(Model.Toplam == 0 ? "#" : pdfUrl)" aria-disabled="@(Model.Toplam == 0 ? "true" : "false")" title="Filtrelenen kayıtları PDF olarak indir"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF İndir</a>
-                <a class="df-btn df-btn-secondary df-btn-sm ykc-export-action is-excel @(Model.Toplam == 0 ? "is-disabled" : null)" href="@(Model.Toplam == 0 ? "#" : excelUrl)" aria-disabled="@(Model.Toplam == 0 ? "true" : "false")" title="Filtrelenen kayıtları Excel olarak indir"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel İndir</a>
+                <a class="df-btn df-btn-sm ykc-export-action is-pdf @(Model.Toplam == 0 ? "is-disabled" : null)" href="@(Model.Toplam == 0 ? "#" : pdfUrl)" aria-disabled="@(Model.Toplam == 0 ? "true" : "false")" title="Filtrelenen kayıtları PDF olarak indir"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF</a>
+                <a class="df-btn df-btn-sm ykc-export-action is-excel @(Model.Toplam == 0 ? "is-disabled" : null)" href="@(Model.Toplam == 0 ? "#" : excelUrl)" aria-disabled="@(Model.Toplam == 0 ? "true" : "false")" title="Filtrelenen kayıtları Excel olarak indir"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel</a>
             </div>
         </div>
         <div class="ykc-table-scroll">
@@ -299,7 +323,7 @@
                 <colgroup>
                     @if (icOperasyonGorsun)
                     {
-                        <col style="width:8%" /><col style="width:22%" /><col style="width:14%" /><col style="width:23%" /><col style="width:15%" /><col style="width:12%" /><col style="width:6%" />
+                        <col style="width:8%" /><col style="width:19%" /><col style="width:16%" /><col style="width:22%" /><col style="width:17%" /><col style="width:12%" /><col style="width:6%" />
                     }
                     else
                     {
@@ -352,13 +376,13 @@
                                     <td data-label="Yeni Kullanılan Cihaz"><div class="ykc-device-column is-new"><span>Yeni Kullanılan Cihaz</span><strong>@Deger(kayit.YeniCihazTipi)</strong><small>@Deger(kayit.YeniMarka)</small></div></td>
                                 }
                                 <td data-label="Randevu / Ekip">
-                                    <div class="ykc-cell-main">@RandevuYazi(kayit.RandevuTarihi, kayit.RandevuSaati, kayit.SiradakiKontrolNo)</div>
+                                    <div class="ykc-cell-main ykc-report-appointment">@RandevuYazi(kayit.RandevuTarihi, kayit.RandevuSaati, kayit.SiradakiKontrolNo)</div>
                                     @if (icOperasyonGorsun)
                                     {
                                         <div class="ykc-muted">@AtamaYazi(kayit.AtananEkip, kayit.Bolge)</div>
                                     }
                                 </td>
-                                <td data-label="Süreç Sonucu"><div class="ykc-report-process"><span class="df-pill @DurumClass(kayit.Durum)">@DurumYazi(kayit.Durum)</span><span class="df-pill @ImzaDurumClass(kayit.Durum, kayit.ImzaliNihaiBelgeVar)">@ImzaDurumYazi(kayit.Durum, kayit.ImzaliNihaiBelgeVar)</span></div></td>
+                                <td data-label="Süreç Sonucu"><div class="ykc-report-process"><span class="ykc-report-state @DurumClass(kayit.Durum)"><i class="bi bi-circle-fill" aria-hidden="true"></i>@DurumYazi(kayit.Durum)</span><span class="ykc-report-form-state @ImzaDurumClass(kayit.Durum, kayit.ImzaliNihaiBelgeVar)" title="@ImzaDurumYazi(kayit.Durum, kayit.ImzaliNihaiBelgeVar)"><i class="@ImzaDurumIkonu(kayit.Durum, kayit.ImzaliNihaiBelgeVar)" aria-hidden="true"></i>@ImzaDurumKisaYazi(kayit.Durum, kayit.ImzaliNihaiBelgeVar)</span></div></td>
                                 <td data-label="Detay">
                                     <button class="ykc-detail-action ykc-row-view-details"
                                             type="button"

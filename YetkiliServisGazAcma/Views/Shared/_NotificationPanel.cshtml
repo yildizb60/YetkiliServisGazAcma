@@ -126,7 +126,7 @@
                 @if (toplam > 0)
                 {
                     <span class="df-badge df-badge-primary df-badge-sm noti-quantity">
-                        <span class="bildirim-count">@toplamYazi</span> okunmamış
+                        <span class="bildirim-count">@toplamYazi</span> yeni
                     </span>
                 }
             </span>
@@ -162,8 +162,8 @@
                         </div>
                         <a class="df-notif-body js-notif-redirect" href="@item.Path">
                             <div class="df-notif-text">@item.Title</div>
-                            <div class="df-notif-time"><i class="bi bi-chat-right"></i> @item.Text</div>
-                            <div class="df-notif-time fw-normal"><i class="bi bi-clock"></i> @item.Time</div>
+                            <div class="df-notif-message">@item.Text</div>
+                            <div class="df-notif-time"><i class="bi bi-clock"></i> @item.Time</div>
                         </a>
                     </div>
                 }

@@ -96,36 +96,24 @@
 .df-certificate-workspace .df-service-list-head { min-height: 50px; padding: 10px 14px; }
 
 /* Operational approval surfaces: compact, scan-first and consistent. */
-.df-approval-history-summary {
-    min-height: 48px;
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    align-items: stretch;
-    border-bottom: 1px solid var(--df-border);
-    background: #f8fafc;
-}
-.df-approval-history-summary > span {
-    min-width: 0;
-    padding: 8px 14px;
-    display: grid;
-    grid-template-columns: 26px minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 8px;
-    border-right: 1px solid var(--df-border);
-    color: #41586d;
-}
-.df-approval-history-summary > span:last-child { border-right:0; }
-.df-approval-history-summary i { color:#44748f; font-size:15px; }
-.df-approval-history-summary small { color:#65798a; font-size:11.5px; font-weight:500; }
-.df-approval-history-summary strong { color:#253e54; font-size:16px; font-weight:650; }
-.df-approval-history-summary .is-approved i,
-.df-approval-history-summary .is-approved strong { color:#16795a; }
-.df-approval-history-summary .is-rejected i,
-.df-approval-history-summary .is-rejected strong { color:#ae4350; }
+.df-history-list-head { min-height:42px; padding:8px 12px; display:flex; align-items:center; justify-content:space-between; gap:12px; border-bottom:1px solid var(--df-border); background:#fff; }
+.df-history-list-head > span { display:flex; align-items:center; gap:7px; color:#2b465c; font-size:13px; font-weight:650; }
+.df-history-list-head > span i { color:#397493; }
+.df-history-list-head > small { color:#718494; font-size:10.5px; font-weight:500; }
 .df-approval-history-workspace .df-table th { padding:9px 12px; font-weight:650 !important; }
 .df-approval-history-workspace .df-table td { padding:10px 12px; color:#40566a; font-size:12px; font-weight:400; }
 .df-approval-history-workspace .df-cell-main { color:#263f55; font-weight:600; }
 .df-approval-history-workspace .df-cell-sub { font-weight:400; }
+.df-approval-history-table { table-layout:fixed; min-width:850px; }
+.df-approval-history-table th:nth-child(1) { width:25%; }
+.df-approval-history-table th:nth-child(2) { width:20%; }
+.df-approval-history-table th:nth-child(3) { width:13%; }
+.df-approval-history-table th:nth-child(4) { width:17%; }
+.df-approval-history-table th:nth-child(5) { width:25%; }
+.df-history-result { display:inline-flex; align-items:center; gap:6px; color:#53687a; font-size:11px; font-weight:600; white-space:nowrap; }
+.df-history-result i { font-size:12px; }
+.df-history-result.is-approved { color:#16795a; }
+.df-history-result.is-rejected { color:#a94550; }
 
 .df-approval-workspace .approval-panels.is-admin-approval { border:1px solid var(--df-border); border-top:3px solid #2879aa; border-radius:6px; background:#fff; overflow:hidden; box-shadow:0 1px 2px rgba(25,50,68,.04); }
 .df-approval-workspace .df-approval-status-bar { display:grid !important; grid-template-columns:repeat(4,minmax(0,1fr)); background:#f7f9fb !important; border-bottom:1px solid var(--df-border); }

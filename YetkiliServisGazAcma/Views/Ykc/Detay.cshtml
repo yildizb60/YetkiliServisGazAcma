@@ -61,6 +61,14 @@
         .ToList();
     var sonKontrol = sonucGirilenKontroller.LastOrDefault();
     var kontrollerImzayaHazir = sonKontrol?.Sonuc == YkcFr265KontrolSonucDegerleri.Uygun;
+    var kontrolAlaniDoldu = sonucGirilenKontroller.Count == 5
+        && sonucGirilenKontroller.All(x => x.Sonuc == YkcFr265KontrolSonucDegerleri.UygunDegil);
+    var sonKontrolGecmisiId = Model.Gecmis
+        .Where(x => x.IslemTipi == "FR265KontrolleriGuncellendi")
+        .OrderByDescending(x => x.OlusturmaTarihi)
+        .ThenByDescending(x => x.Id)
+        .Select(x => (int?)x.Id)
+        .FirstOrDefault();
     var siradakiKontrolNo = (sonKontrol?.KontrolNo ?? 0) + 1;
     var aktifKontrolNo = kontrollerImzayaHazir || siradakiKontrolNo > 5 ? (int?)null : siradakiKontrolNo;
     var aktifKontrol = aktifKontrolNo.HasValue
@@ -418,11 +426,7 @@
 
             @if (atamaYapilabilir && atamaYetkisi)
             {
-                <details class="ykc-assignment-disclosure" open="@(Model.Durum == YkcDurumDegerleri.AtamaBekliyor ? "open" : null)">
-                    <summary>
-                        <span><strong>@(tekrarRandevuBekleniyor ? $"{aktifKontrolNo}. kontrol randevusu" : Model.Durum == YkcDurumDegerleri.AtamaBekliyor ? "Randevu ve yönlendirme bilgileri" : "Randevuyu güncelle")</strong></span>
-                        <i class="bi bi-chevron-down"></i>
-                    </summary>
+                <div class="ykc-assignment-disclosure is-inline">
                     <form method="post" action="@Url.Action("AtamaYap", "Ykc")" class="ykc-assignment-form" data-appointment-form>
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="TalepId" value="@Model.Id" />
@@ -456,9 +460,9 @@
                             <div class="ykc-field"><label>Randevu Saati</label><div class="ykc-picker"><input id="randevuSaati" type="time" name="RandevuSaati" value="@Model.RandevuSaati" required /><button type="button" data-picker="#randevuSaati" title="Saati seç"><i class="bi bi-clock"></i></button></div></div>
                             <div class="ykc-field ykc-field-wide"><label>Not</label><textarea name="Aciklama" placeholder="Atama ve yönlendirme notu"></textarea></div>
                         </div>
-                        <div class="ykc-form-actions"><button class="df-btn df-btn-primary" type="submit"><i class="bi bi-calendar2-check"></i> @(tekrarRandevuBekleniyor ? $"{aktifKontrolNo}. Kontrol Randevusunu Kaydet" : Model.Durum == YkcDurumDegerleri.AtamaBekliyor ? "Randevuyu Kaydet" : "Randevuyu Güncelle")</button></div>
+                        <div class="ykc-form-actions"><button class="df-btn df-btn-primary" type="submit"><i class="bi bi-calendar2-check"></i> @(Model.Durum == YkcDurumDegerleri.AtamaBekliyor ? "Randevuyu Kaydet" : "Randevuyu Güncelle")</button></div>
                     </form>
-                </details>
+                </div>
             }
 
             @if (!terminalDurum && atamaYetkisi)
@@ -514,7 +518,6 @@
                         <input type="hidden" name="TalepId" value="@Model.Id" />
                         <input type="hidden" name="Kontroller[0].KontrolNo" value="@aktifKontrol.KontrolNo" />
                         <div>
-                            <span class="ykc-section-kicker">Sıradaki kayıt</span>
                             <h3>@(aktifKontrol.KontrolNo). Kontrol</h3>
                         </div>
                         <fieldset class="ykc-control-choice-group">
@@ -595,7 +598,13 @@
     <nav class="record-tabs" role="tablist" aria-label="Talep bilgileri">
         <button type="button" role="tab" id="staff-info-tab" aria-controls="staff-info" aria-selected="true"><i class="bi bi-card-checklist" aria-hidden="true"></i>Kayıt Bilgileri</button>
         <button type="button" role="tab" id="staff-company-tab" aria-controls="staff-company" aria-selected="false" tabindex="-1"><i class="bi bi-building" aria-hidden="true"></i>Firma Bilgileri</button>
-        <button type="button" role="tab" id="staff-history-tab" aria-controls="request-history" aria-selected="false" tabindex="-1"><i class="bi bi-clock-history" aria-hidden="true"></i>İşlem Geçmişi (@Model.Gecmis.Count)</button>
+        <button type="button" role="tab" id="staff-history-tab" aria-controls="request-history" aria-selected="false" tabindex="-1">
+            <i class="bi bi-clock-history" aria-hidden="true"></i>İşlem Geçmişi (@Model.Gecmis.Count)
+            @if (kontrolAlaniDoldu)
+            {
+                <span class="ykc-history-tab-warning" title="Beş kontrol uygunsuz sonuçlandı"><i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i> 5 uygunsuz</span>
+            }
+        </button>
     </nav>
     <div id="staff-info" role="tabpanel" aria-labelledby="staff-info-tab">
         <section class="ykc-firm-data-section">
@@ -660,11 +669,12 @@
             <div class="ykc-history-list">
                 @foreach (var gecmis in Model.Gecmis.Take(3))
                 {
+                    var kontrolLimitiUyarisi = kontrolAlaniDoldu && gecmis.Id == sonKontrolGecmisiId;
                     var gecmisDetaylari = new List<string>();
                     if (!string.IsNullOrWhiteSpace(gecmis.KullaniciAdi)) gecmisDetaylari.Add(gecmis.KullaniciAdi);
                     if (DurumDegisimiMi(gecmis.IslemTipi) && gecmis.YeniDurum.HasValue) gecmisDetaylari.Add(DurumYazi(gecmis.YeniDurum.Value));
                     if (!string.IsNullOrWhiteSpace(gecmis.Aciklama)) gecmisDetaylari.Add(GecmisAciklamaYazi(gecmis.IslemTipi, gecmis.Aciklama));
-                    <div><time>@gecmis.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</time><span></span><section><strong>@GecmisIslemYazi(gecmis.IslemTipi)</strong>@if (gecmisDetaylari.Count > 0) { <small>@string.Join(" · ", gecmisDetaylari)</small> }</section></div>
+                    <div class="@(kontrolLimitiUyarisi ? "is-warning" : null)"><time>@gecmis.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</time><span></span><section><strong>@if (kontrolLimitiUyarisi) { <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i> }@GecmisIslemYazi(gecmis.IslemTipi)</strong>@if (gecmisDetaylari.Count > 0) { <small>@string.Join(" · ", gecmisDetaylari)</small> }</section></div>
                 }
             </div>
             @if (Model.Gecmis.Count > 3)
@@ -674,11 +684,12 @@
                     <div class="ykc-history-list">
                     @foreach (var gecmis in Model.Gecmis.Skip(3))
                     {
+                        var kontrolLimitiUyarisi = kontrolAlaniDoldu && gecmis.Id == sonKontrolGecmisiId;
                         var gecmisDetaylari = new List<string>();
                         if (!string.IsNullOrWhiteSpace(gecmis.KullaniciAdi)) gecmisDetaylari.Add(gecmis.KullaniciAdi);
                         if (DurumDegisimiMi(gecmis.IslemTipi) && gecmis.YeniDurum.HasValue) gecmisDetaylari.Add(DurumYazi(gecmis.YeniDurum.Value));
                         if (!string.IsNullOrWhiteSpace(gecmis.Aciklama)) gecmisDetaylari.Add(GecmisAciklamaYazi(gecmis.IslemTipi, gecmis.Aciklama));
-                        <div><time>@gecmis.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</time><span></span><section><strong>@GecmisIslemYazi(gecmis.IslemTipi)</strong>@if (gecmisDetaylari.Count > 0) { <small>@string.Join(" · ", gecmisDetaylari)</small> }</section></div>
+                        <div class="@(kontrolLimitiUyarisi ? "is-warning" : null)"><time>@gecmis.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</time><span></span><section><strong>@if (kontrolLimitiUyarisi) { <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i> }@GecmisIslemYazi(gecmis.IslemTipi)</strong>@if (gecmisDetaylari.Count > 0) { <small>@string.Join(" · ", gecmisDetaylari)</small> }</section></div>
                     }
                     </div>
                 </details>

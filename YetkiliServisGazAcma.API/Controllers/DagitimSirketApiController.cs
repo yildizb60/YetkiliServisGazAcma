@@ -13,12 +13,10 @@ namespace YetkiliServisGazAcma.API.Controllers
     public class DagitimSirketApiController : ControllerBase
     {
         private readonly AppDbContext _context;
-        private readonly DagitimSirketService _service;
 
-        public DagitimSirketApiController(AppDbContext context, DagitimSirketService service)
+        public DagitimSirketApiController(AppDbContext context)
         {
             _context = context;
-            _service = service;
         }
 
         [HttpPost("liste")]
@@ -56,7 +54,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         [Authorize]
         public async Task<IActionResult> Getir([FromBody] IdDto dto)
         {
-            if (!await DagitimSirketYonetebilirMi(dto.Id))
+            if (!await DagitimSirketGorebilirMi(dto.Id))
                 return Forbid();
 
             var sirket = await _context.Dag_Sirketler
@@ -79,87 +77,6 @@ namespace YetkiliServisGazAcma.API.Controllers
             return Ok(sirket);
         }
 
-        [HttpPost("ekle")]
-        [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel")]
-        public async Task<IActionResult> Ekle([FromBody] DagitimSirketKaydetDto dto)
-        {
-            if (!await GenelSistemYonetebilirMi())
-                return Forbid();
-
-            if (string.IsNullOrWhiteSpace(dto.SirketAdi))
-                return BadRequest(new { basarili = false, mesaj = "Sirket adi zorunludur" });
-
-            var sirket = new Dag_Sirket
-            {
-                SirketAdi = dto.SirketAdi,
-                Il = dto.Il,
-                Telefon = dto.Telefon,
-                Email = dto.Email,
-                Adres = dto.Adres,
-                AktifMi = dto.AktifMi
-            };
-
-            await _service.Ekle(sirket, User.Identity?.Name);
-            return Ok(new { basarili = true, mesaj = "Sirket eklendi", id = sirket.Id });
-        }
-
-        [HttpPost("guncelle")]
-        [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel")]
-        public async Task<IActionResult> Guncelle([FromBody] DagitimSirketKaydetDto dto)
-        {
-            if (!dto.Id.HasValue)
-                return BadRequest(new { basarili = false, mesaj = "Id zorunludur" });
-
-            var genelSistemYoneticisi = await GenelSistemYonetebilirMi();
-            if (!genelSistemYoneticisi && !await DagitimSirketYonetebilirMi(dto.Id.Value))
-                return Forbid();
-
-            if (!genelSistemYoneticisi)
-            {
-                var mevcut = await _context.Dag_Sirketler
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(x => x.Id == dto.Id.Value && !x.SilindiMi);
-
-                if (mevcut == null)
-                    return NotFound(new { basarili = false, mesaj = "Sirket bulunamadi" });
-
-                dto.SirketAdi = mevcut.SirketAdi;
-                dto.Il = mevcut.Il;
-                dto.AktifMi = mevcut.AktifMi;
-            }
-
-            var sirket = new Dag_Sirket
-            {
-                Id = dto.Id.Value,
-                SirketAdi = dto.SirketAdi,
-                Il = dto.Il,
-                Telefon = dto.Telefon,
-                Email = dto.Email,
-                Adres = dto.Adres,
-                AktifMi = dto.AktifMi
-            };
-
-            var sonuc = await _service.Guncelle(sirket, User.Identity?.Name);
-            if (!sonuc)
-                return NotFound(new { basarili = false, mesaj = "Sirket bulunamadi" });
-
-            return Ok(new { basarili = true, mesaj = "Sirket guncellendi" });
-        }
-
-        [HttpPost("sil")]
-        [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel")]
-        public async Task<IActionResult> Sil([FromBody] IdDto dto)
-        {
-            if (!await GenelSistemYonetebilirMi())
-                return Forbid();
-
-            var sonuc = await _service.Sil(dto.Id, User.Identity?.Name);
-            if (!sonuc)
-                return NotFound(new { basarili = false, mesaj = "Sirket bulunamadi" });
-
-            return Ok(new { basarili = true, mesaj = "Sirket silindi" });
-        }
-
         private async Task<bool> GenelSistemYonetebilirMi()
         {
             var kullanici = await AktifKullaniciAsync();
@@ -175,7 +92,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             return false;
         }
 
-        private async Task<bool> DagitimSirketYonetebilirMi(int sirketId)
+        private async Task<bool> DagitimSirketGorebilirMi(int sirketId)
         {
             if (await GenelSistemYonetebilirMi())
                 return true;
@@ -184,15 +101,10 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (kullanici == null)
                 return false;
 
-            if ((User.IsInRole("SirketAdmin") || kullanici.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin)
-                && kullanici.SirketId == sirketId)
+            if (kullanici.SirketId == sirketId)
                 return true;
 
-            return await _context.Dag_PersonelYetkiler.AnyAsync(x =>
-                x.KullaniciId == kullanici.Id &&
-                !x.SilindiMi &&
-                x.SirketId == sirketId &&
-                (x.YetkiTipi == YetkiTipleri.TAM_YETKI || x.YetkiTipi == YetkiTipleri.DAGITIM_SIRKET_YONET));
+            return false;
         }
 
         private async Task<AppKullanici?> AktifKullaniciAsync()
@@ -208,17 +120,6 @@ namespace YetkiliServisGazAcma.API.Controllers
     public class IdDto
     {
         public int Id { get; set; }
-    }
-
-    public class DagitimSirketKaydetDto
-    {
-        public int? Id { get; set; }
-        public string? SirketAdi { get; set; }
-        public string? Il { get; set; }
-        public string? Telefon { get; set; }
-        public string? Email { get; set; }
-        public string? Adres { get; set; }
-        public bool AktifMi { get; set; } = true;
     }
 
     public class DagitimSirketListeFiltreDto

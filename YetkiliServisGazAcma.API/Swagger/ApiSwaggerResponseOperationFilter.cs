@@ -24,9 +24,6 @@ namespace YetkiliServisGazAcma.API.Swagger
 
             ["api/dagitim-sirket/liste"] = Json<List<DagitimSirketResponseDto>>("Dağıtım şirketi listesi."),
             ["api/dagitim-sirket/getir"] = Json<DagitimSirketResponseDto>("Dağıtım şirketi detayı."),
-            ["api/dagitim-sirket/ekle"] = Json<ApiOperationResponseDto>("Dağıtım şirketi eklendi."),
-            ["api/dagitim-sirket/guncelle"] = Json<ApiOperationResponseDto>("Dağıtım şirketi güncellendi."),
-            ["api/dagitim-sirket/sil"] = Json<ApiOperationResponseDto>("Dağıtım şirketi silindi."),
 
             ["api/marka/liste"] = Json<List<MarkaResponseDto>>("Marka listesi."),
             ["api/marka/getir"] = Json<MarkaResponseDto>("Marka detayı."),
@@ -141,7 +138,7 @@ namespace YetkiliServisGazAcma.API.Swagger
 
         private static readonly HashSet<string> NotFoundRoutes = new(StringComparer.OrdinalIgnoreCase)
         {
-            "api/dagitim-sirket/getir", "api/dagitim-sirket/guncelle", "api/dagitim-sirket/sil",
+            "api/dagitim-sirket/getir",
             "api/marka/getir", "api/marka/guncelle", "api/marka/sil",
             "api/yetkili-servisler/getir", "api/yetkili-servisler/guncelle", "api/yetkili-servisler/sil",
             "api/yetki-belgesi/firma-liste", "api/yetki-belgesi/firma-ekrani", "api/yetki-belgesi/sil", "api/yetki-belgesi/dosya-indir", "api/yetki-belgesi/onayla", "api/yetki-belgesi/reddet",

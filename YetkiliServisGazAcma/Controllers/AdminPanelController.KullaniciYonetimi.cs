@@ -518,7 +518,6 @@ namespace YetkiliServisGazAcma.Controllers
                 [YetkiTipleri.YETKI_BELGESI_ONAY] = "Yetki Belgesi Onay",
                 [YetkiTipleri.RAPOR_GOR] = "Rapor Gor",
                 [YetkiTipleri.KULLANICI_YONET] = "Kullanici Yonet",
-                [YetkiTipleri.DAGITIM_SIRKET_YONET] = "Dağıtım Şirketi Yönet",
                 [YetkiTipleri.MARKA_YONET] = "Marka Yonet",
                 [YetkiTipleri.YKC_TALEP_GOR] = "YKC Taleplerini Gör",
                 [YetkiTipleri.YKC_ATAMA_YAP] = "YKC Atama ve Randevu",
@@ -530,7 +529,10 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.Kullanici = kullanici;
             ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
             ViewBag.Personeller = sonuc?.Personeller ?? new List<AppKullanici>();
-            ViewBag.YetkiMap = sonuc?.YetkiMap ?? new Dictionary<string, List<string>>();
+            ViewBag.YetkiMap = (sonuc?.YetkiMap ?? new Dictionary<string, List<string>>())
+                .ToDictionary(
+                    x => x.Key,
+                    x => x.Value.Where(y => y != YetkiTipleri.DAGITIM_SIRKET_YONET).ToList());
             ViewBag.YetkiSirketAdlariMap = sonuc?.YetkiSirketAdlariMap ?? new Dictionary<string, List<string>>();
             ViewBag.YetkiIsimler = yetkiIsimler;
             return View("~/Views/AdminPanel/Yetkiler.cshtml");
@@ -564,8 +566,13 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.Kullanici = kullanici;
             ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
             ViewBag.Personel = sonuc.Personel;
-            ViewBag.MevcutYetkiler = sonuc.MevcutYetkiler;
-            ViewBag.YetkiSirketMap = sonuc.YetkiSirketMap;
+            ViewBag.MevcutYetkiler = sonuc.MevcutYetkiler
+                .Where(x => x != YetkiTipleri.DAGITIM_SIRKET_YONET)
+                .ToList();
+            ViewBag.YetkiSirketMap = sonuc.YetkiSirketMap
+                .ToDictionary(
+                    x => x.Key,
+                    x => x.Value.Where(y => y != YetkiTipleri.DAGITIM_SIRKET_YONET).ToList());
             ViewBag.Sirketler = sonuc.Sirketler;
             ViewBag.SeciliSirketIds = sonuc.SeciliSirketIds;
             return View("~/Views/AdminPanel/YetkiDuzenle.cshtml");
@@ -590,6 +597,7 @@ namespace YetkiliServisGazAcma.Controllers
                 var secilenYetkiler = form[$"yetkiler_{sirketId}"]
                     .Where(x => !string.IsNullOrWhiteSpace(x))
                     .Select(x => x!)
+                    .Where(x => x != YetkiTipleri.DAGITIM_SIRKET_YONET)
                     .Distinct()
                     .ToList();
 

@@ -98,6 +98,14 @@ Check(YkcKontrolAkisKurali.YeniRandevuGerekli(YkcFr265KontrolSonucDegerleri.Uygu
     "Unsuccessful control requires a new appointment");
 Check(!YkcKontrolAkisKurali.YeniRandevuGerekli(YkcFr265KontrolSonucDegerleri.Uygun),
     "Successful control continues to form and signature");
+var fiveUnsuccessfulControls = Enumerable.Range(1, 5)
+    .Select(no => new Ykc_Fr265Kontrol { KontrolNo = no, Sonuc = YkcFr265KontrolSonucDegerleri.UygunDegil })
+    .ToList();
+Check(YkcKontrolAkisKurali.KontrolAlaniDolduMu(fiveUnsuccessfulControls),
+    "Five unsuccessful controls mark the form control area as exhausted");
+fiveUnsuccessfulControls[^1].Sonuc = YkcFr265KontrolSonucDegerleri.Uygun;
+Check(!YkcKontrolAkisKurali.KontrolAlaniDolduMu(fiveUnsuccessfulControls),
+    "A successful control does not mark the control area as exhausted");
 
 Check(YkcCihazUyumKurali.Kapasite("20000,5", out var capacity) && capacity == 20000.5m, "Decimal comma accepted");
 Check(!YkcCihazUyumKurali.Kapasite("string", out _), "Placeholder capacity rejected");
@@ -179,6 +187,29 @@ Check(!firmaExcelXml.Contains("Projedeki Marka") && !firmaExcelXml.Contains("Kay
     "Firm XLSX does not expose source-device columns");
 var raporPdf = YkcRaporPdfService.Olustur(new[] { raporKaydi }, icOperasyon: true);
 Check(System.Text.Encoding.ASCII.GetString(raporPdf, 0, 5) == "%PDF-", "YKC report export is a PDF");
+
+var yetkiBelgesi = new Ys_YetkiBelgesi
+{
+    Id = 7,
+    OlusturmaTarihi = new DateTime(2026, 9, 1, 9, 30, 0),
+    YetkiBelgesiBaslangicTarihi = new DateTime(2026, 9, 1),
+    YetkiBelgesiBitisTarihi = new DateTime(2027, 9, 1),
+    Durum = YetkiBelgesiDurumDegerleri.Onaylandi,
+    OnayTarihi = new DateTime(2026, 9, 2, 10, 0, 0),
+    OnaylayanKullanici = "test.personel@demo.com",
+    Firma = new Ys_Firma
+    {
+        FirmaAdi = "Demo Yetkili Servis",
+        VergiNo = "1234567890",
+        Sirket = new Dag_Sirket { SirketAdi = "Çorumgaz Doğalgaz A.Ş." }
+    }
+};
+var belgeExcel = YetkiBelgesiRaporExcelService.Olustur(new[] { yetkiBelgesi }, "Onaylanan Yetki Belgeleri");
+var belgeExcelXml = ExcelParcasi(belgeExcel, "xl/worksheets/sheet1.xml");
+Check(belgeExcelXml.Contains("Demo Yetkili Servis") && belgeExcelXml.Contains("Onaylandı"),
+    "Certificate XLSX contains scoped report data");
+var belgePdf = YetkiBelgesiRaporPdfService.Olustur(new[] { yetkiBelgesi }, "Onaylanan Yetki Belgeleri");
+Check(System.Text.Encoding.ASCII.GetString(belgePdf, 0, 5) == "%PDF-", "Certificate report export is a PDF");
 if (args.Length == 2 && args[0] == "--form-output")
 {
     Directory.CreateDirectory(args[1]);
