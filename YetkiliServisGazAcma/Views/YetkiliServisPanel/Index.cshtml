@@ -1,17 +1,16 @@
-@using YetkiliServisGazAcma.Models.ViewModels
 @{
     ViewData["Title"] = "Yetkili Servis Paneli";
     ViewData["PanelTitle"] = "Genel Bakış";
     ViewData["PanelSubtitle"] = "Yetkili Servis";
     ViewData["ActiveMenu"] = "Dashboard";
+    ViewData["ContentClass"] = "service-dashboard-content";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
     var firma = ViewBag.Firma as YetkiliServisGazAcma.Entities.Ys_Firma;
-    var sonIslemler = ViewBag.SonIslemler as List<YetkiliServisGazAcma.Entities.Ys_DevreyeAlma>
-        ?? new List<YetkiliServisGazAcma.Entities.Ys_DevreyeAlma>();
     var buAy = ViewBag.BuAy as int? ?? 0;
     var toplam = ViewBag.Toplam as int? ?? 0;
-    var bugun = DateTime.Now.Date;
+    var bugun = DateTime.Today;
+    var firmaAdi = string.IsNullOrWhiteSpace(firma?.FirmaAdi) ? "Yetkili Servis" : firma.FirmaAdi;
     var tumBelgeler = firma?.YetkiBelgeleri?
         .Where(x => !x.SilindiMi)
         .OrderByDescending(x => x.OlusturmaTarihi)
@@ -23,7 +22,6 @@
     var gecerliBelgeler = onayliBelgeler
         .Where(x => (!x.YetkiBelgesiBaslangicTarihi.HasValue || x.YetkiBelgesiBaslangicTarihi.Value.Date <= bugun)
             && x.YetkiBelgesiBitisTarihi.Date >= bugun)
-        .OrderBy(x => x.YetkiBelgesiBitisTarihi)
         .ToList();
     var bekleyenBelge = tumBelgeler.Count(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
         && x.YetkiBelgesiBitisTarihi.Date >= bugun);
@@ -44,196 +42,113 @@
     var ilkKurulumTamamlandi = ViewBag.IlkKurulumTamamlandi as bool? ?? true;
     var ilkKurulumEksikler = ViewBag.IlkKurulumEksikler as List<string> ?? new List<string>();
     var kurulumKilitli = ilkKurulumZorunlu && !ilkKurulumTamamlandi;
-    var siradakiBelge = gecerliBelgeler.FirstOrDefault();
-
-    var kartlar = new List<DashboardTileViewModel>();
-
-    kartlar.Add(new DashboardTileViewModel
-    {
-        Title = "Yetki Belgem",
-        Url = Url.Action("Index", "YetkiBelgesi")!,
-        Icon = "bi bi-file-earmark-text",
-        Tone = "cyan",
-        Done = gecerliBelgeler.Count,
-        Total = Math.Max(tumBelgeler.Count, 1),
-        Subtitle = "Geçerli / Toplam",
-        Stat1Label = "Toplam",
-        Stat1Value = tumBelgeler.Count.ToString(),
-        Stat2Label = "Bekleyen",
-        Stat2Value = bekleyenBelge.ToString(),
-        Stat2Class = bekleyenBelge > 0 ? "df-badge-pulse" : "df-tile-stat-val",
-        Stat3Label = "Geçerli",
-        Stat3Value = gecerliBelgeler.Count.ToString(),
-        Featured = !ilkKurulumZorunlu
-    });
-
-    kartlar.Add(new DashboardTileViewModel
-    {
-        Title = kurulumKilitli ? "Kurulumu Tamamla" : "Cihaz Devreye Al",
-        Url = kurulumKilitli
-            ? Url.Action("IlkKurulum", "YetkiliServisPanel")!
-            : Url.Action("Index", "DevreyeAlma")!,
-        Icon = "bi bi-bag-check",
-        Tone = kurulumKilitli ? "amber" : "blue",
-        ShowProgress = false,
-        MetricValue = buAy.ToString(),
-        MetricLabel = "Bu ay kaydedilen",
-        Stat1Label = "Toplam",
-        Stat1Value = toplam.ToString(),
-        Stat2Label = "Bekleyen",
-        Stat2Value = bekleyenIslem.ToString(),
-        Stat3Label = "Tamamlanan",
-        Stat3Value = tamamlananIslem.ToString()
-    });
-
-    kartlar.Add(new DashboardTileViewModel
-    {
-        Title = "Marka Yetkilerim",
-        Url = Url.Action("Markalar", "YetkiliServisPanel")!,
-        Icon = "bi bi-building-check",
-        Tone = "amber",
-        ShowProgress = false,
-        MetricValue = aktifMarkaSayisi.ToString(),
-        MetricLabel = "Aktif marka",
-        Stat1Label = "Toplam",
-        Stat1Value = markaSayisi.ToString(),
-        Stat2Label = "Kategori",
-        Stat2Value = kategoriSayisi.ToString(),
-        Stat3Label = "Durum",
-        Stat3Value = aktifMarkaSayisi > 0 ? "Aktif" : "Eksik",
-        Stat3Class = aktifMarkaSayisi > 0 ? "df-tile-stat-val" : "df-badge-pulse"
-    });
-
-    kartlar.Add(new DashboardTileViewModel
-    {
-        Title = "Şubelerim",
-        Url = Url.Action("Subeler", "YetkiliServisPanel")!,
-        Icon = "bi bi-building-gear",
-        Tone = "cyan",
-        ShowProgress = false,
-        MetricValue = aktifSubeSayisi.ToString(),
-        MetricLabel = "Aktif şube",
-        Stat1Label = "Toplam",
-        Stat1Value = subeSayisi.ToString(),
-        Stat2Label = "Pasif",
-        Stat2Value = (subeSayisi - aktifSubeSayisi).ToString(),
-        Stat3Label = "Durum",
-        Stat3Value = aktifSubeSayisi > 0 ? "Aktif" : "Eksik",
-        Stat3Class = aktifSubeSayisi > 0 ? "df-tile-stat-val" : "df-badge-pulse"
-    });
-
-    if (toplam > 0 || buAy > 0 || gecerliBelgeler.Count > 0)
-    {
-        kartlar.Add(new DashboardTileViewModel
-        {
-            Title = "Raporlarım",
-            Url = Url.Action("Raporlar", "YetkiliServisPanel")!,
-            Icon = "bi bi-bar-chart-line",
-            Tone = "blue",
-            ShowProgress = false,
-            MetricValue = toplam.ToString(),
-            MetricLabel = "Toplam kayıt",
-            Stat1Label = "Bekleyen",
-            Stat1Value = bekleyenIslem.ToString(),
-            Stat2Label = "Tamamlanan",
-            Stat2Value = tamamlananIslem.ToString(),
-            Stat3Label = "İptal",
-            Stat3Value = iptalIslem.ToString()
-        });
-    }
+    var belgeDikkat = bekleyenBelge + suresiDolanBelge;
+    var birincilIslemUrl = kurulumKilitli
+        ? Url.Action("IlkKurulum", "YetkiliServisPanel")!
+        : Url.Action("Index", "DevreyeAlma")!;
+    var birincilIslemAdi = kurulumKilitli ? "Kurulumu Tamamla" : "Yeni Cihaz Devreye Alma";
 }
 
-<div class="df-dashboard is-service-home">
+<div class="work-dashboard work-dashboard--service" data-dashboard>
     @if (kurulumKilitli)
     {
-        <div class="df-alert df-alert-danger">
-            İlk kurulum tamamlanmadan işlem yapılamaz. Eksik adımlar: @(ilkKurulumEksikler.Count > 0 ? string.Join(", ", ilkKurulumEksikler) : "Kurulum bilgileri").
-            <a class="df-btn df-btn-danger df-btn-sm" href="@Url.Action("IlkKurulum", "YetkiliServisPanel")" style="margin-left:10px">Tamamla</a>
+        <div class="work-setup-notice" role="status">
+            <i class="bi bi-info-circle" aria-hidden="true"></i>
+            <span>İşlem başlatmadan önce kurulum bilgilerinizi tamamlayın.</span>
+            <a href="@birincilIslemUrl">Kuruluma Git <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
         </div>
     }
 
-    <div class="section-label has-carousel-controls">
-        <i class="bi bi-lightning-charge-fill"></i>
-        İşlemlerim
-        <div class="dashboard-carousel-controls" data-carousel-controls hidden>
-            <button type="button" data-carousel-prev title="Önceki kartlar" aria-label="Önceki kartlar"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
-            <button type="button" data-carousel-next title="Sonraki kartlar" aria-label="Sonraki kartlar"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+    <header class="work-dashboard__masthead">
+        <div class="work-dashboard__identity">
+            <span class="work-dashboard__identity-icon" aria-hidden="true"><i class="bi bi-tools"></i></span>
+            <div>
+                <span>Yetkili servis</span>
+                <h1>@firmaAdi</h1>
+            </div>
         </div>
-    </div>
+        <div class="work-dashboard__masthead-actions">
+            <a class="work-dashboard__tool-button" href="@Url.Action("Gecmis", "DevreyeAlma")" title="İşlem geçmişini aç" aria-label="İşlem geçmişini aç"><i class="bi bi-clock-history" aria-hidden="true"></i></a>
+            <a class="work-dashboard__primary-action" href="@birincilIslemUrl"><i class="bi bi-plus-lg" aria-hidden="true"></i><span>@birincilIslemAdi</span></a>
+        </div>
+    </header>
 
-    <div class="df-approval-grid dashboard-carousel-track" id="approval-grid" data-carousel-track>
-        @foreach (var kart in kartlar)
-        {
-            <a class="df-atile is-@kart.Tone @(kart.Featured ? "is-featured" : "")" href="@kart.Url">
-                <div class="df-atile-top">
-                    <div class="df-atile-icon"><i class="@kart.Icon"></i></div>
-                    <div>
-                        <div class="df-atile-name">@kart.Title</div>
-                        <span class="df-atile-link">Sayfaya git <i class="bi bi-arrow-right"></i></span>
-                    </div>
-                </div>
-                <div class="df-ring-wrap">
-                    @if (kart.ShowProgress)
-                    {
-                        <div class="df-ring-container">
-                            <svg class="df-ring-svg" width="72" height="72" viewBox="0 0 72 72" aria-hidden="true">
-                                <circle class="df-ring-bg" cx="36" cy="36" r="28"></circle>
-                                <circle class="df-ring-fill" cx="36" cy="36" r="28" stroke-dasharray="175.9292" stroke-dashoffset="@kart.RingOffset"></circle>
-                            </svg>
-                            <div class="df-ring-center"><span class="df-ring-pct">@kart.RingPercentage%</span></div>
-                        </div>
-                        <div class="df-ring-meta"><span class="df-ring-sub">@kart.Subtitle</span></div>
-                    }
-                    else
-                    {
-                        <div class="df-ring-summary"><strong>@kart.MetricValue</strong><span>@kart.MetricLabel</span></div>
-                    }
-                </div>
-                <div class="df-tile-stats">
-                    <div class="df-tile-stat"><span class="df-tile-stat-lbl">@kart.Stat1Label</span><span class="@kart.Stat1Class">@kart.Stat1Value</span></div>
-                    <div class="df-tile-stat"><span class="df-tile-stat-lbl">@kart.Stat2Label</span><span class="@kart.Stat2Class">@kart.Stat2Value</span></div>
-                    <div class="df-tile-stat"><span class="df-tile-stat-lbl">@kart.Stat3Label</span><span class="@kart.Stat3Class">@kart.Stat3Value</span></div>
-                </div>
+    <section class="work-command-strip" aria-label="Yetkili servis durum özeti">
+        <a class="work-command-priority is-blue" href="@birincilIslemUrl">
+            <span class="work-command-priority__icon"><i class="bi bi-bag-check" aria-hidden="true"></i></span>
+            <span class="work-command-priority__copy">
+                <small>Bugünün işlemi</small>
+                <strong>@birincilIslemAdi</strong>
+                <em>@(kurulumKilitli ? "Eksik kurulum adımlarını tamamlayın" : "Tesisat sorgulayarak yeni kayıt başlatın")</em>
+            </span>
+            <span class="work-command-priority__value">@buAy</span>
+            <i class="bi bi-arrow-right" aria-hidden="true"></i>
+        </a>
+        <div class="work-stat-cluster is-four" aria-label="Devreye alma ve belge sayıları">
+            <a class="work-stat is-cyan" href="@Url.Action("Gecmis", "DevreyeAlma")"><span>Toplam kayıt</span><strong>@toplam</strong></a>
+            <a class="work-stat is-amber" href="@Url.Action("Gecmis", "DevreyeAlma")"><span>Bekleyen işlem</span><strong>@bekleyenIslem</strong></a>
+            <a class="work-stat is-green" href="@Url.Action("Gecmis", "DevreyeAlma")"><span>Tamamlanan</span><strong>@tamamlananIslem</strong></a>
+            <a class="work-stat is-blue" href="@Url.Action("Index", "YetkiBelgesi")"><span>Geçerli belge</span><strong>@gecerliBelgeler.Count</strong></a>
+        </div>
+    </section>
+
+    <section class="work-dashboard__body">
+        <article class="work-surface work-inbox">
+            <header class="work-surface__head">
+                <div><span class="work-surface__icon is-blue"><i class="bi bi-lightning-charge" aria-hidden="true"></i></span><div><h2>İşlem akışı</h2><p>Günlük operasyon için hızlı erişim</p></div></div>
+            </header>
+            <div class="work-list">
+                <a href="@Url.Action("Gecmis", "DevreyeAlma")">
+                    <span class="work-list__icon is-green"><i class="bi bi-clipboard2-check" aria-hidden="true"></i></span>
+                    <span><strong>Devreye alma kayıtları</strong><small>@(bekleyenIslem > 0 ? $"{bekleyenIslem} kayıt işlemi bekliyor" : "Açık işlem bulunmuyor")</small></span>
+                    <b>@bekleyenIslem</b><i class="bi bi-chevron-right" aria-hidden="true"></i>
+                </a>
+                <a href="@Url.Action("Index", "YetkiBelgesi")">
+                    <span class="work-list__icon is-amber"><i class="bi bi-file-earmark-check" aria-hidden="true"></i></span>
+                    <span><strong>Yetki belgeleri</strong><small>@(belgeDikkat > 0 ? $"{belgeDikkat} belge için takip gerekli" : "Belge durumu güncel")</small></span>
+                    <b>@belgeDikkat</b><i class="bi bi-chevron-right" aria-hidden="true"></i>
+                </a>
+                <a href="@Url.Action("Raporlar", "YetkiliServisPanel")">
+                    <span class="work-list__icon is-cyan"><i class="bi bi-bar-chart-line" aria-hidden="true"></i></span>
+                    <span><strong>Devreye alma raporları</strong><small>Sonuçları tarih aralığına göre görüntüleyin</small></span>
+                    <em>Aç</em><i class="bi bi-chevron-right" aria-hidden="true"></i>
+                </a>
+            </div>
+        </article>
+
+        <article class="work-surface work-coverage">
+            <header class="work-surface__head">
+                <div><span class="work-surface__icon is-cyan"><i class="bi bi-diagram-3" aria-hidden="true"></i></span><div><h2>Hizmet kapsamı</h2><p>Tanımlı marka ve şube bilgileri</p></div></div>
+            </header>
+            <dl class="work-coverage-grid">
+                <div><dt>Aktif marka</dt><dd>@aktifMarkaSayisi</dd></div>
+                <div><dt>Tanımlı kategori</dt><dd>@kategoriSayisi</dd></div>
+                <div><dt>Aktif şube</dt><dd>@aktifSubeSayisi</dd></div>
+                <div><dt>İptal kayıt</dt><dd>@iptalIslem</dd></div>
+            </dl>
+        </article>
+    </section>
+
+    <section class="work-dashboard__access" aria-label="Yetkili servis işlemleri">
+        <header class="work-dashboard__access-head">
+            <div><span class="work-dashboard__eyebrow"><i class="bi bi-grid-1x2" aria-hidden="true"></i>Hızlı erişim</span><h2>Yetkili servis işlemleri</h2></div>
+        </header>
+        <nav class="work-module-track is-static" aria-label="Yetkili servis işlemleri">
+            <a class="work-module-card is-amber" href="@Url.Action("Markalar", "YetkiliServisPanel")">
+                <span class="work-module-card__icon"><i class="bi bi-tags" aria-hidden="true"></i></span>
+                <span><strong>Hizmet Verdiğim Markalar</strong><small>@aktifMarkaSayisi aktif marka</small></span>
+                <i class="bi bi-arrow-right" aria-hidden="true"></i>
             </a>
-        }
-    </div>
-
-    <div class="section-label">
-        <i class="bi bi-activity"></i>
-        Güncel Durum
-    </div>
-
-    <div class="ys-home-overview">
-        <section class="ys-home-snapshot">
-            <header><span><i class="bi bi-bag-check" aria-hidden="true"></i><strong>Devreye Alma Özeti</strong></span><a href="@Url.Action("Gecmis", "DevreyeAlma")" title="Tüm cihaz devreye alma kayıtlarını aç" aria-label="Tüm cihaz devreye alma kayıtlarını aç"><i class="bi bi-arrow-right" aria-hidden="true"></i></a></header>
-            <dl class="ys-home-summary-grid">
-                <div><dt>Toplam</dt><dd>@toplam</dd></div>
-                <div><dt>Bekleyen</dt><dd>@bekleyenIslem</dd></div>
-                <div><dt>Tamamlanan</dt><dd>@tamamlananIslem</dd></div>
-                <div><dt>İptal</dt><dd>@iptalIslem</dd></div>
-            </dl>
-        </section>
-
-        <section class="ys-home-snapshot">
-            <header><span><i class="bi bi-file-earmark-check" aria-hidden="true"></i><strong>Yetki Belgesi Özeti</strong></span><a href="@Url.Action("Index", "YetkiBelgesi")" title="Yetki belgelerini aç" aria-label="Yetki belgelerini aç"><i class="bi bi-arrow-right" aria-hidden="true"></i></a></header>
-            <dl class="ys-home-summary-grid">
-                <div><dt>Toplam</dt><dd>@tumBelgeler.Count</dd></div>
-                <div><dt>Geçerli</dt><dd>@gecerliBelgeler.Count</dd></div>
-                <div><dt>Onay Bekleyen</dt><dd>@bekleyenBelge</dd></div>
-                <div><dt>Süresi Dolan</dt><dd>@suresiDolanBelge</dd></div>
-            </dl>
-            @if (siradakiBelge is not null)
-            {
-                <a class="ys-home-latest" href="@Url.Action("Index", "YetkiBelgesi")"><span><small>En yakın bitiş</small><strong>@siradakiBelge.YetkiBelgesiBitisTarihi.ToString("dd.MM.yyyy")</strong></span><span><small>Kalan süre</small><strong>@Math.Max((siradakiBelge.YetkiBelgesiBitisTarihi.Date - bugun).Days, 0) gün</strong></span><em class="is-valid">Geçerli</em><i class="bi bi-chevron-right" aria-hidden="true"></i></a>
-            }
-            else
-            {
-                <div class="ys-home-empty">Geçerli bir yetki belgesi bulunmuyor.</div>
-            }
-        </section>
-    </div>
+            <a class="work-module-card is-cyan" href="@Url.Action("Subeler", "YetkiliServisPanel")">
+                <span class="work-module-card__icon"><i class="bi bi-building" aria-hidden="true"></i></span>
+                <span><strong>Şubelerim</strong><small>@aktifSubeSayisi aktif şube</small></span>
+                <i class="bi bi-arrow-right" aria-hidden="true"></i>
+            </a>
+            <a class="work-module-card is-blue" href="@Url.Action("Raporlar", "YetkiliServisPanel")">
+                <span class="work-module-card__icon"><i class="bi bi-bar-chart-line" aria-hidden="true"></i></span>
+                <span><strong>Raporlar</strong><small>@toplam kayıt üzerinden inceleme</small></span>
+                <i class="bi bi-arrow-right" aria-hidden="true"></i>
+            </a>
+        </nav>
+    </section>
 </div>
-
-@section Scripts {
-<script src="~/js/dashboard-carousel.js" asp-append-version="true"></script>
-}

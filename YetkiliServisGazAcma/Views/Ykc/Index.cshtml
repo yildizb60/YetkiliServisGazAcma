@@ -21,6 +21,7 @@
             <div><dt>Tamamlanan</dt><dd>@Model.Tamamlanan</dd></div>
         </dl>
     </header>
+    @await Component.InvokeAsync("YkcRandevuOzeti")
     <section class="ops-records" aria-labelledby="recent-title">
         <header class="ops-section-heading">
             <h2 id="recent-title"><i class="bi bi-clock-history" aria-hidden="true"></i>Son Cihaz Değişim Taleplerim</h2>

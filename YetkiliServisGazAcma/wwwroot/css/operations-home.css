@@ -14,6 +14,22 @@
 .ops-firm-home .ops-section-heading { padding:13px 16px; }
 .ops-firm-home .ops-table td { padding-top:11px; padding-bottom:11px; }
 .ops-firm-home .ops-section-footer { padding:10px 16px; }
+.ops-firm-home .home-calendar { margin-top:0; }
+.ops-firm-home .home-calendar-heading { padding:8px 0; }
+.ops-firm-home .home-calendar-heading h2 { font-size:14px; }
+.ops-firm-home .home-calendar-filter-panel > summary { padding:6px 2px; }
+.ops-firm-home .home-calendar-filters { padding:8px 0; }
+.ops-firm-home .home-calendar-body { grid-template-columns:215px minmax(0,1fr); }
+.ops-firm-home .home-month { padding:8px 10px; }
+.ops-firm-home .home-month-nav { margin-bottom:4px; }
+.ops-firm-home .home-month-days > span { padding:4px 0; font-size:9px; }
+.ops-firm-home .home-month-days > a { height:22px; font-size:10.5px; }
+.ops-firm-home .home-calendar-today { margin-top:4px; font-size:10px; }
+.ops-firm-home .home-visits > header { padding:9px 12px; }
+.ops-firm-home .home-visits h3 { font-size:13px; }
+.ops-firm-home .home-visit-list { max-height:166px; }
+.ops-firm-home .home-visit { padding:8px 12px; }
+.ops-firm-home .home-visits-empty { min-height:166px; padding:12px; }
 .ops-home-toolbar { display:flex; justify-content:space-between; align-items:center; gap:12px; }
 .ops-home-toolbar time { display:flex; align-items:center; gap:9px; flex-shrink:0; font-size:14px; color:var(--df-text-soft); }
 .ops-home-toolbar > a { width:auto; flex:none; }

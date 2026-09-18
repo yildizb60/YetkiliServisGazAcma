@@ -1,6 +1,7 @@
 @using System.Globalization
 @{
     ViewData["Title"] = "Ana Sayfa";
+    ViewData["CompactDesktop"] = true;
     Layout = "_PublicLayout";
     var tr = new CultureInfo("tr-TR");
     var servisCount = (long)(ViewBag.ServisCount ?? 0L);

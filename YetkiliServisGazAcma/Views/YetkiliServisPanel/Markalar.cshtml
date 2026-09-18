@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="~/css/ys-operations.css" asp-append-version="true" />
 }
 
-<div class="ys-workspace">
+<div class="ys-workspace ys-brand-workspace">
     <div class="ys-brand-layout">
         <section class="ys-panel is-green">
             <div class="ys-panel-head">
@@ -114,17 +114,17 @@
                                         <form id="@formId" method="post" action="@Url.Action("MarkaDuzenle", "YetkiliServisPanel")">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="id" value="@fm.MarkaId" />
-                                            <button type="button" class="df-btn df-btn-secondary df-btn-sm" onclick="toggleRowEdit('@formId')" title="Markayı düzenle">
-                                                <i class="bi bi-pencil" aria-hidden="true"></i><span data-edit-label>Düzenle</span>
+                                            <button type="button" class="df-icon-action ys-brand-row-action" onclick="toggleRowEdit('@formId')" title="Markayı düzenle" aria-label="Markayı düzenle" data-edit-toggle>
+                                                <i class="bi bi-pencil" aria-hidden="true" data-edit-icon></i>
                                             </button>
-                                            <button type="submit" class="df-btn df-btn-primary df-btn-sm" hidden data-save="@formId">
-                                                <i class="bi bi-check2" aria-hidden="true"></i> Kaydet
+                                            <button type="submit" class="df-icon-action ys-brand-row-action is-save" title="Değişiklikleri kaydet" aria-label="Değişiklikleri kaydet" hidden data-save="@formId">
+                                                <i class="bi bi-check2" aria-hidden="true"></i>
                                             </button>
                                         </form>
                                         <form method="post" action="@Url.Action("MarkaSil", "YetkiliServisPanel")" onsubmit="return confirm('Bu marka yetkisini kaldırmak istediğinize emin misiniz?');">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="id" value="@fm.MarkaId" />
-                                            <button type="submit" class="df-btn df-btn-danger df-btn-sm" title="Marka yetkisini kaldır"><i class="bi bi-trash" aria-hidden="true"></i> Kaldır</button>
+                                            <button type="submit" class="df-icon-action ys-brand-row-action is-danger" title="Marka yetkisini kaldır" aria-label="Marka yetkisini kaldır"><i class="bi bi-trash" aria-hidden="true"></i></button>
                                         </form>
                                     </div>
                                 </td>
@@ -146,7 +146,8 @@
 
         const inputs = row.querySelectorAll(`input.ys-inline-input[form="${formId}"]`);
         const saveBtn = form.querySelector(`[data-save="${formId}"]`);
-        const editLabel = form.querySelector("[data-edit-label]");
+        const editBtn = form.querySelector("[data-edit-toggle]");
+        const editIcon = form.querySelector("[data-edit-icon]");
         const editing = row.classList.contains("ys-editing-row");
 
         row.classList.toggle("ys-editing-row", !editing);
@@ -155,7 +156,12 @@
             else input.removeAttribute("readonly");
         });
         if (saveBtn) saveBtn.hidden = editing;
-        if (editLabel) editLabel.textContent = editing ? "Düzenle" : "Vazgeç";
+        if (editIcon) editIcon.className = editing ? "bi bi-pencil" : "bi bi-x-lg";
+        if (editBtn) {
+            const label = editing ? "Markayı düzenle" : "Düzenlemeden vazgeç";
+            editBtn.title = label;
+            editBtn.setAttribute("aria-label", label);
+        }
         if (!editing) inputs[0]?.focus();
     }
 </script>

@@ -1,6 +1,6 @@
 (function () {
     document.querySelectorAll('[data-carousel-track]').forEach(function (track) {
-        var dashboard = track.closest('.df-dashboard');
+        var dashboard = track.closest('[data-dashboard]') || track.closest('.df-dashboard');
         var controls = dashboard && dashboard.querySelector('[data-carousel-controls]');
         if (!controls) return;
 
@@ -13,7 +13,7 @@
             next.disabled = track.scrollLeft >= maxScroll - 2;
         };
         var move = function (direction) {
-            var firstCard = track.querySelector('.df-atile');
+            var firstCard = track.querySelector('[data-carousel-card], .df-atile');
             if (!firstCard) return;
             var gap = parseFloat(getComputedStyle(track).columnGap) || 0;
             track.scrollBy({ left: direction * (firstCard.getBoundingClientRect().width + gap), behavior: 'smooth' });

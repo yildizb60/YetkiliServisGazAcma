@@ -168,9 +168,15 @@
         button.dataset.collapseInit = "1";
 
         var storageKey = "panel-sidebar-collapsed";
-        var temporarilyExpanded = false;
+        var isCollapsed = function () {
+            return document.body.classList.contains("sidebar-collapsed");
+        };
+        var setHoverExpanded = function (expanded) {
+            document.body.classList.toggle("sidebar-hover-expanded", isCollapsed() && expanded);
+        };
         var applyState = function (collapsed) {
             document.body.classList.toggle("sidebar-collapsed", collapsed);
+            if (!collapsed) document.body.classList.remove("sidebar-hover-expanded");
             button.setAttribute("aria-expanded", collapsed ? "false" : "true");
             button.title = collapsed ? "Menüyü genişlet" : "Menüyü daralt";
             var icon = button.querySelector("i");
@@ -181,28 +187,30 @@
         try { collapsed = window.localStorage.getItem(storageKey) === "1"; } catch { }
         applyState(collapsed);
 
-        sidebar.addEventListener("click", function (event) {
-            var summary = event.target.closest(".nav-item-group > summary");
-            if (!summary || !document.body.classList.contains("sidebar-collapsed")) return;
-
-            event.preventDefault();
-            event.stopPropagation();
-            temporarilyExpanded = true;
-            applyState(false);
-            var group = summary.closest(".nav-item-group");
-            if (group) group.open = true;
-            requestAnimationFrame(function () { summary.focus({ preventScroll: true }); });
+        sidebar.addEventListener("mouseenter", function () {
+            setHoverExpanded(true);
         });
 
-        document.addEventListener("click", function (event) {
-            if (!temporarilyExpanded || sidebar.contains(event.target)) return;
-            temporarilyExpanded = false;
-            applyState(true);
+        sidebar.addEventListener("mouseleave", function () {
+            setHoverExpanded(false);
+        });
+
+        sidebar.addEventListener("focusin", function () {
+            setHoverExpanded(true);
+        });
+
+        sidebar.addEventListener("focusout", function () {
+            window.setTimeout(function () {
+                if (!sidebar.contains(document.activeElement)) setHoverExpanded(false);
+            }, 0);
+        });
+
+        sidebar.addEventListener("click", function (event) {
+            if (isCollapsed() && event.target.closest("a[href]")) setHoverExpanded(false);
         });
 
         button.addEventListener("click", function () {
-            temporarilyExpanded = false;
-            collapsed = !document.body.classList.contains("sidebar-collapsed");
+            collapsed = !isCollapsed();
             applyState(collapsed);
             try { window.localStorage.setItem(storageKey, collapsed ? "1" : "0"); } catch { }
         });

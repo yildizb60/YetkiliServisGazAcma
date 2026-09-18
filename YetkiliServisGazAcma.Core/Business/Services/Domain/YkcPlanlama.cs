@@ -129,6 +129,7 @@ public partial class YkcTalepService
 
     public async Task<YkcTakvimSonuc> TakvimAsync(YkcTakvimFiltre filtre, AppKullanici kullanici, bool genelYetkili)
     {
+        var firmaGorunumu = kullanici.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma || kullanici.FirmaId.HasValue;
         filtre.Baslangic = filtre.Baslangic.Date;
         filtre.Bitis = filtre.Bitis.Date < filtre.Baslangic ? filtre.Baslangic.AddDays(6) : filtre.Bitis.Date;
         if (filtre.Bitis > filtre.Baslangic.AddDays(31)) filtre.Bitis = filtre.Baslangic.AddDays(31);
@@ -136,6 +137,12 @@ public partial class YkcTalepService
         filtre.Il = filtre.Il?.Trim();
         filtre.Bolge = filtre.Bolge?.Trim();
         filtre.Personel = filtre.Personel?.Trim();
+        if (firmaGorunumu)
+        {
+            filtre.Il = null;
+            filtre.Bolge = null;
+            filtre.Personel = null;
+        }
         var query = YetkiKapsamiUygula(_context.Ykc_Talepler.AsNoTracking().Where(x => !x.SilindiMi), kullanici, genelYetkili, filtre.AktifSirketId)
             .Where(x => x.RandevuTarihi >= filtre.Baslangic && x.RandevuTarihi < son
                 && x.Durum != YkcDurumDegerleri.Iptal && x.Durum != YkcDurumDegerleri.Reddedildi);
@@ -168,10 +175,19 @@ public partial class YkcTalepService
             .Select(x => new YkcTakvimGunOzeti { Tarih = x.Key, Toplam = x.Count() }).ToListAsync();
         const int sayfaBoyutu = 25;
         filtre.Sayfa = Math.Clamp(filtre.Sayfa, 1, Math.Max(1, (int)Math.Ceiling(toplam / (double)sayfaBoyutu)));
+        var kayitlar = await projected.OrderBy(x => x.Tarih).ThenBy(x => x.Saat).ThenBy(x => x.Id)
+            .Skip((filtre.Sayfa - 1) * sayfaBoyutu).Take(sayfaBoyutu).ToListAsync();
+        if (firmaGorunumu)
+        {
+            foreach (var kayit in kayitlar)
+            {
+                kayit.Personel = null;
+                kayit.Ekip = null;
+            }
+        }
         return new YkcTakvimSonuc {
             Filtre = filtre, Toplam = toplam, SayfaBoyutu = sayfaBoyutu, Gunler = gunler,
-            Kayitlar = await projected.OrderBy(x => x.Tarih).ThenBy(x => x.Saat).ThenBy(x => x.Id)
-                .Skip((filtre.Sayfa - 1) * sayfaBoyutu).Take(sayfaBoyutu).ToListAsync()
+            Kayitlar = kayitlar
         };
     }
 }

@@ -1,5 +1,6 @@
 @{
     var title = ViewData["Title"]?.ToString() ?? "Yetkili Servis Gaz Açma Sistemi";
+    var compactDesktop = ViewData["CompactDesktop"] as bool? == true;
 }
 <!DOCTYPE html>
 <html lang="tr">
@@ -11,9 +12,18 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="~/css/page-transition.css" asp-append-version="true" />
+    @if (compactDesktop)
+    {
+        <style>
+            @@media (min-width: 981px) {
+                html { overflow-x: hidden; }
+                body.public-compact-desktop { zoom: .9; }
+            }
+        </style>
+    }
     @await RenderSectionAsync("Styles", required: false)
 </head>
-<body>
+<body class="@(compactDesktop ? "public-compact-desktop" : null)">
     @await Html.PartialAsync("_PageTransition")
     @RenderBody()
     @await RenderSectionAsync("Scripts", required: false)

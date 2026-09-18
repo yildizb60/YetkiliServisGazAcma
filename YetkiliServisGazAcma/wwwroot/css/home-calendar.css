@@ -11,8 +11,8 @@
 .home-calendar-filter-panel > summary:focus-visible { outline:2px solid var(--df-primary); outline-offset:2px; }
 .home-calendar-filters { display:grid; grid-template-columns:1.3fr 1.3fr 1fr 1fr auto 34px; align-items:end; gap:10px; padding:14px 0; }
 .home-calendar-filters label { min-width:0; display:grid; gap:5px; font-size:12px; font-weight:500; }
-.home-calendar-filters input { min-width:0; width:100%; height:36px; border:1px solid var(--df-border-strong); border-radius:4px; padding:7px 10px; background:#fff; color:var(--df-text); font:inherit; font-size:13px; box-sizing:border-box; }
-.home-calendar-filters input:focus { outline:2px solid var(--df-primary-soft); border-color:var(--df-primary); }
+.home-calendar-filters input,.home-calendar-filters select { min-width:0; width:100%; height:36px; border:1px solid var(--df-border-strong); border-radius:4px; padding:7px 10px; background:#fff; color:var(--df-text); font:inherit; font-size:13px; box-sizing:border-box; }
+.home-calendar-filters input:focus,.home-calendar-filters select:focus { outline:2px solid var(--df-primary-soft); border-color:var(--df-primary); }
 .home-calendar-body { display:grid; grid-template-columns:260px minmax(0,1fr); background:#fff; border-block:1px solid var(--df-border); }
 .home-month { padding:14px; border-right:1px solid var(--df-border); background:#f6f9fc; }
 .home-month-nav { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px; }
@@ -21,6 +21,7 @@
 .home-calendar-icon:hover { background:var(--df-primary-soft); }
 .home-month-days { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:2px; text-align:center; }
 .home-month-days > span { padding:7px 0; font-size:11px; color:#637589; }
+.home-month-days > span.home-month-empty { height:32px; padding:0; }
 .home-month-days > a { position:relative; height:32px; display:grid; place-items:center; font-size:13px; color:var(--df-text); border:1px solid transparent; border-radius:4px; text-decoration:none; }
 .home-month-days > a:hover { background:#e7eef7; }
 .home-month-days > a.is-other { color:#7a8798; }
@@ -34,24 +35,33 @@
 .home-visits h3 { font-size:15px; font-weight:600; margin:0; color:var(--df-text); }
 .home-visits > header > span { font-size:12px; color:#157f5c; }
 .home-visit-list { max-height:320px; overflow-y:auto; scrollbar-gutter:stable; }
-.home-visit { display:grid; grid-template-columns:58px minmax(0,1fr) minmax(130px,.6fr) 12px; gap:14px; padding:16px; align-items:center; border-bottom:1px solid var(--df-border); text-decoration:none; color:var(--df-text-soft); }
+.home-visit { display:grid; grid-template-columns:minmax(0,1fr) 18px; gap:10px; padding:16px; align-items:start; border-bottom:1px solid var(--df-border); text-decoration:none; color:var(--df-text-soft); }
 .home-visit:hover { background:#f5f9fd; }
-.home-visit > time { font-size:19px; font-weight:600; color:var(--df-primary); font-variant-numeric:tabular-nums; }
-.home-visit.is-complete > time { color:#157f5c; }
 .home-visit-person,.home-visit-owner { display:grid; gap:4px; min-width:0; font-size:12px; }
 .home-visit-person strong { font-size:14px; font-weight:600; color:var(--df-text); }
-.home-visit-person small { font-size:12px; line-height:1.5; }
+.home-visit-meta { min-width:0; display:flex; align-items:center; gap:10px; color:var(--df-text-soft); font-size:12px; }
+.home-visit-time { display:inline-flex; align-items:center; gap:5px; color:var(--df-primary); font-weight:600; font-variant-numeric:tabular-nums; }
+.home-visit.is-complete .home-visit-time { color:#157f5c; }
+.home-visit-person small { overflow:hidden; font-size:12px; line-height:1.5; text-overflow:ellipsis; white-space:nowrap; }
 .home-visit-person small i,.home-visit-owner i { margin-right:5px; }
+.home-visit-tags { min-width:0; display:flex; align-items:center; gap:6px; overflow:hidden; }
+.home-visit-tags > span { min-width:0; display:inline-flex; align-items:center; gap:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.home-visit-menu { justify-self:end; color:#65798a; font-size:15px; }
 .home-visit-owner .df-pill { justify-self:start; font-size:10px; }
 .home-visits-empty { min-height:250px; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:10px; padding:20px; text-align:center; font-size:13px; }
 .home-visits-empty i { font-size:30px; color:#168565; }
 .home-visits-empty p { margin:0; }
 .home-calendar-more { display:block; padding:10px; color:var(--df-primary); text-align:center; font-size:12px; text-decoration:none; }
+.home-calendar.is-firm-calendar .home-calendar-filters { grid-template-columns:minmax(180px,1fr) minmax(150px,.8fr) auto 34px; }
+.home-calendar.is-firm-calendar .home-visit { grid-template-columns:minmax(0,1fr) 18px; }
+.home-calendar.is-firm-calendar .home-visit-owner.is-firm { align-items:start; justify-items:start; }
+.home-calendar.is-firm-calendar .home-visit-owner.is-firm > small { color:#667b8d; }
 .ops-personnel-home .home-visit-list { max-height:290px; }
 .ops-personnel-home .home-month { padding:10px 14px; }
 .ops-personnel-home .home-month-days > a { height:28px; }
+.ops-personnel-home .home-month-days > span.home-month-empty { height:28px; }
 .ops-personnel-home .home-visits-empty { min-height:210px; }
 .ops-personnel-home .home-month-nav { margin-bottom:8px; }
 .ops-personnel-home .home-calendar-today { margin-top:8px; }
-@media(max-width:1100px) { .home-calendar-filters { grid-template-columns:repeat(2,minmax(0,1fr)) auto 34px; } .home-visit { grid-template-columns:50px minmax(0,1fr) 12px; gap:10px; } .home-visit-owner { grid-column:2; grid-template-columns:1fr auto; } .home-visit-owner > small { display:none; } .home-visit > i { grid-column:3; grid-row:1; } }
+@media(max-width:1100px) { .home-calendar-filters { grid-template-columns:repeat(2,minmax(0,1fr)) auto 34px; } .home-visit { grid-template-columns:minmax(0,1fr) 18px; gap:10px; } .home-visit-owner { grid-column:1; grid-template-columns:1fr auto; } .home-visit-owner > small { display:none; } .home-visit > i { grid-column:2; grid-row:1; } }
 @media(max-width:700px) { .home-calendar-body { grid-template-columns:1fr; } .home-month { border-right:0; border-bottom:1px solid var(--df-border); } .home-month-days > a { height:36px; } .home-calendar-filters { grid-template-columns:repeat(2,minmax(0,1fr)); } .home-calendar-heading { flex-wrap:wrap; } .home-visits-empty { min-height:140px; } .home-visit-owner { grid-template-columns:1fr; } }

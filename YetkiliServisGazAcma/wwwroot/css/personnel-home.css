@@ -1,136 +1,985 @@
-.df-personnel-home { display: grid; gap: 14px; }
-.content.personnel-home-content { padding-bottom:8px; }
-.personnel-role-dashboard { display:grid; gap:10px; }
-.personnel-role-dashboard .section-label { margin:0; color:#607489; font-size:11px; font-weight:700; }
-.personnel-role-dashboard .df-approval-grid.role-card-grid {
-    grid-template-columns:repeat(auto-fit, minmax(210px, 226px)) !important;
-    justify-content:start;
-    gap:10px !important;
-    margin:0 0 4px;
+.content.personnel-home-content {
+    padding-right: 26px;
+    padding-left: 26px;
+    padding-top: 8px;
+    padding-bottom: 6px;
 }
-.personnel-role-dashboard .df-atile {
-    position:relative;
-    overflow:hidden;
-    min-height:0 !important;
-    height:100px;
-    padding:9px 10px 8px !important;
-    gap:7px;
-    border-radius:6px;
-    border-color:#dce5ec;
-    box-shadow:0 3px 10px rgba(30, 58, 82, .035);
-}
-.personnel-role-dashboard .df-atile::before,
-.personnel-role-dashboard .df-atile.is-featured::before {
-    content:""; position:absolute; inset:0 auto auto 10px; width:36px; height:3px;
-    border-radius:0 0 3px 3px; background:var(--tile-accent);
-}
-.personnel-role-dashboard .df-atile .df-atile-top { min-width:0; min-height:30px; align-items:center; gap:8px; }
-.personnel-role-dashboard .df-atile .df-atile-icon { width:28px; height:28px; flex-basis:28px; border-radius:5px; font-size:13px; }
-.personnel-role-dashboard .df-atile .df-atile-name { min-width:0; flex:1; color:#263f55 !important; font-size:11.5px !important; font-weight:600 !important; line-height:1.25; }
-.personnel-tile-arrow { width:20px; height:20px; display:grid; place-items:center; flex:0 0 20px; border:1px solid #e1e8ee; border-radius:50%; color:#8294a4; font-size:9px; transition:.16s ease; }
-.personnel-tile-summary { min-width:0; min-height:43px; margin:0 -10px -8px; padding:6px 10px 7px; display:grid; grid-template-columns:78px minmax(0,1fr); align-items:center; gap:9px; border-top:1px solid #e4ebf0; background:#f8fafc; }
-.personnel-tile-metric { min-width:0; display:flex; align-items:baseline; gap:5px; }
-.personnel-tile-metric strong { color:var(--tile-accent); font-size:19px; font-weight:650; line-height:1; font-variant-numeric:tabular-nums; }
-.personnel-tile-metric span { min-width:0; color:#64788b; font-size:9px; font-weight:500; line-height:1.2; }
-.personnel-tile-stats { min-width:0; display:grid; gap:2px; margin:0; padding-left:9px; border-left:1px solid #e2e9ef; }
-.personnel-tile-stats > div { min-width:0; display:flex; align-items:baseline; gap:4px; }
-.personnel-tile-stats dt { order:2; overflow:hidden; color:#718494; font-size:8.75px; font-weight:500; line-height:1.2; text-overflow:ellipsis; white-space:nowrap; }
-.personnel-tile-stats dd { order:1; margin:0; flex:0 0 auto; color:#2d475c; font-size:10.75px; font-weight:600; line-height:1.15; }
-.personnel-tile-stats dd.personnel-tile-date { font-size:8.75px; font-variant-numeric:tabular-nums; white-space:nowrap; }
-.personnel-tile-stats .df-badge-pulse { width:max-content; min-width:20px; justify-content:center; padding:2px 5px; font-size:9px; }
-.personnel-role-dashboard .df-atile:hover,
-.personnel-role-dashboard .df-atile:focus-visible { transform:translateY(-1px); border-color:var(--tile-accent); box-shadow:0 7px 17px rgba(30,58,82,.08); }
-.personnel-role-dashboard .df-atile:hover .personnel-tile-arrow,
-.personnel-role-dashboard .df-atile:focus-visible .personnel-tile-arrow { border-color:var(--tile-accent); background:var(--tile-soft); color:var(--tile-accent); }
 
-.personnel-role-dashboard .home-calendar-heading { padding:8px 0; }
-.personnel-role-dashboard .home-calendar-heading h2 { font-size:14px; }
-.personnel-role-dashboard .home-calendar-filter-panel > summary { padding:6px 2px; font-size:11px; }
-.personnel-role-dashboard .home-calendar-filters { gap:7px; padding:8px 0; }
-.personnel-role-dashboard .home-calendar-filters label { gap:3px; font-size:10.5px; }
-.personnel-role-dashboard .home-calendar-filters input { height:30px; padding:5px 8px; font-size:11.5px; }
-.personnel-role-dashboard .home-calendar-body { grid-template-columns:224px minmax(0,1fr); }
-.personnel-role-dashboard .home-month { padding:8px 10px; }
-.personnel-role-dashboard .home-month-nav { margin-bottom:5px; }
-.personnel-role-dashboard .home-month-nav strong { font-size:12px; }
-.personnel-role-dashboard .home-calendar-icon { width:28px; height:28px; }
-.personnel-role-dashboard .home-month-days > span { padding:4px 0; font-size:9.5px; }
-.personnel-role-dashboard .home-month-days > a { height:23px; font-size:11px; }
-.personnel-role-dashboard .home-calendar-today { margin-top:5px; font-size:10.5px; }
-.personnel-role-dashboard .home-visits > header { padding:9px 12px; }
-.personnel-role-dashboard .home-visits h3 { font-size:13px; }
-.personnel-role-dashboard .home-visit-list { max-height:190px; }
-.personnel-role-dashboard .home-visit { grid-template-columns:50px minmax(0,1fr) minmax(120px,.55fr) 10px; gap:9px; padding:9px 12px; }
-.personnel-role-dashboard .home-visit > time { font-size:15px; }
-.personnel-role-dashboard .home-visit-person strong { font-size:12px; }
-.personnel-role-dashboard .home-visits-empty { min-height:168px; padding:12px; }
-.personnel-role-dashboard .home-visits-empty i { font-size:24px; }
-.personnel-home-header {
-    min-height: 60px;
-    padding: 9px 13px;
+.work-dashboard--personnel {
+    min-width: 0;
+}
+
+.personnel-command-center {
+    --personnel-hero-height: clamp(220px, 30dvh, 270px);
+    --personnel-role-height: clamp(224px, 31dvh, 238px);
+    --personnel-queue-height: clamp(146px, 21dvh, 158px);
+    --personnel-panel-height: calc(var(--personnel-hero-height) + var(--personnel-role-height) + var(--personnel-queue-height) + 20px);
+    width: min(100%, 1480px);
+    min-width: 0;
+    height: var(--personnel-panel-height);
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1.78fr) minmax(390px, .92fr);
+    gap: 30px;
+}
+
+.personnel-command-center__main {
+    min-width: 0;
+    display: grid;
+    grid-template-rows: var(--personnel-hero-height) var(--personnel-role-height) var(--personnel-queue-height);
+    gap: 10px;
+}
+
+.personnel-welcome {
+    min-width: 0;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid #275a75;
+    border-radius: 8px;
+    background: #102f41;
+    box-shadow: 0 9px 24px rgba(20, 50, 69, .13);
+}
+
+.personnel-welcome::after {
+    content: "";
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(90deg, rgba(16, 47, 65, .99) 0%, rgba(16, 47, 65, .94) 32%, rgba(16, 47, 65, .28) 56%, transparent 76%);
+}
+
+.personnel-welcome__visual {
+    width: 76%;
+    height: 100%;
+    position: absolute;
+    z-index: 0;
+    top: 0;
+    right: 0;
+    display: block;
+    object-fit: contain;
+    object-position: right center;
+}
+
+.personnel-welcome__content {
+    width: 47%;
+    min-width: 300px;
+    height: 100%;
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 18px 21px;
+    box-sizing: border-box;
+}
+
+.personnel-welcome__date {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: #bbd5e2;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.personnel-welcome h1 {
+    margin: 8px 0 3px;
+    color: #fff;
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.15;
+}
+
+.personnel-welcome__facts {
+    display: grid;
+    gap: 6px;
+    margin-top: 11px;
+}
+
+.personnel-welcome__facts > a,
+.personnel-welcome__facts > span {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: 18px auto minmax(0, 1fr);
+    align-items: center;
+    gap: 7px;
+    color: #eaf4f7;
+    text-decoration: none;
+}
+
+.personnel-welcome__facts i {
+    color: #8fcf53;
+    font-size: 13px;
+}
+
+.personnel-welcome__facts strong {
+    color: #fff;
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+}
+
+.personnel-welcome__facts span span,
+.personnel-welcome__facts a span {
+    overflow: hidden;
+    color: #c2d8e2;
+    font-size: 10.5px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.personnel-welcome__facts > a:hover span,
+.personnel-welcome__facts > a:focus-visible span {
+    color: #fff;
+}
+
+.personnel-welcome__facts > a:focus-visible {
+    outline: 2px solid #8fcf53;
+    outline-offset: 3px;
+}
+
+.personnel-role-actions,
+.personnel-work-queue {
+    width: 100%;
+    min-width: 0;
+    display: grid;
+    grid-template-rows: 22px minmax(0, 1fr);
+    gap: 7px;
+}
+
+.personnel-role-actions > header,
+.personnel-work-queue > header {
+    min-width: 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    border: 1px solid #d7e2eb;
-    border-top: 3px solid #2674ae;
-    border-radius: 7px;
-    background: #fff;
+    gap: 10px;
 }
-.personnel-home-header > div { min-width: 0; display: flex; align-items: center; gap: 10px; }
-.personnel-home-header > div > span { width: 34px; height: 34px; display: grid; place-items: center; flex: 0 0 34px; border-radius: 6px; background: #eaf3fa; color: #2674ae; }
-.personnel-home-header h1 { margin: 0; color: #21394e; font-size: 18px; font-weight: 700; }
-.personnel-home-header p { margin: 2px 0 0; color: #687e90; font-size: 11.5px; }
-.df-personnel-home .df-home-section { border-radius: 7px; box-shadow: none; }
-.df-personnel-home .df-home-section-head { min-height: 44px; padding: 8px 12px; background: #f8fafc; }
-.df-personnel-home .df-home-section-head h1 { margin: 0; font-size: 14px; }
-.df-personnel-home .df-home-action-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 10px; gap: 9px; }
-.df-personnel-home .df-home-action { min-height: 82px; padding: 13px 14px; grid-template-columns: 42px minmax(0, 1fr) auto 12px; }
-.df-personnel-home .df-home-action-icon { width: 42px; height: 42px; font-size: 18px; }
-.df-personnel-home .df-home-action-copy strong { font-size: 14px; }
-.df-personnel-home .df-home-action-copy small { margin-top: 4px; font-size: 11.5px; }
-.df-personnel-home .df-home-action-value { min-width: 32px; font-size: 20px; }
-.personnel-home-overview { display: grid; gap: 14px; }
-.personnel-home-overview > .df-home-feed-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-.df-personnel-home .df-home-feed { border-radius: 7px; box-shadow: none; }
-.df-personnel-home .df-home-feed > header { min-height: 50px; padding: 9px 12px; }
-.df-personnel-home .df-home-feed > header h2 { font-size: 13.5px; }
-.df-personnel-home .df-home-feed-row { min-height: 70px; padding: 10px 12px; align-items: center; }
-.df-personnel-home .df-home-feed-row > span { gap: 1px; }
-.df-personnel-home .df-home-feed-row span > small:first-child,
-.df-personnel-home .df-home-feed-row time > small { color: #788a99; font-size: 10.5px; font-weight: 600; }
-.df-personnel-home .df-home-feed-row span > strong { font-size: 13px; }
-.df-personnel-home .df-home-feed-row span > em { overflow: hidden; color: #627789; font-size: 11px; font-style: normal; text-overflow: ellipsis; white-space: nowrap; }
-.df-personnel-home .df-home-feed-row time { min-width: 86px; display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
-.df-personnel-home .df-home-feed-row time strong { color: #314a5e; font-size: 12px; font-weight: 650; }
-.personnel-home-overview .ykc-dashboard-agenda { min-width: 0; border-radius: 7px; box-shadow: none; }
-.personnel-home-overview .ykc-dashboard-agenda .ykc-calendar-header { min-height: 52px; padding: 8px 12px; }
-.personnel-home-overview .ykc-dashboard-agenda-title h2 { font-size: 14px; }
-.personnel-home-overview .ykc-dashboard-agenda-title small { font-size: 10.5px; }
-.personnel-home-overview .ykc-dashboard-agenda .ykc-calendar-entry {
-    min-height: 72px;
-    padding: 10px 12px;
-    grid-template-columns: 58px minmax(0, 1.7fr) minmax(130px, .8fr) auto 12px;
+
+.personnel-role-actions h2,
+.personnel-work-queue h2 {
+    margin: 0;
+    color: #243b4d;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.personnel-role-actions header > span,
+.personnel-work-queue header > span {
+    color: #718596;
+    font-size: 10px;
+}
+
+.personnel-role-actions__grid {
+    width: 100%;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 280px));
+    justify-content: space-between;
+    gap: 18px;
+}
+
+.personnel-role-card {
+    --personnel-fill: #315ac3;
+    --personnel-ink: #fff;
+    --personnel-muted: rgba(255, 255, 255, .8);
+    --personnel-shadow: rgba(49, 90, 195, .34);
+    min-width: 0;
+    height: 100%;
+    display: grid;
+    grid-template-rows: 35px minmax(36px, auto) auto minmax(0, 1fr);
+    gap: 6px;
+    padding: 15px 16px 13px;
+    overflow: hidden;
+    border: 1px solid transparent;
+    border-radius: 16px;
+    background: var(--personnel-fill);
+    color: var(--personnel-ink);
+    text-decoration: none;
+    box-shadow: 0 14px 28px -9px var(--personnel-shadow), 0 5px 12px rgba(35, 65, 85, .08);
+    box-sizing: border-box;
+    transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+}
+
+.personnel-role-card.is-amber {
+    --personnel-fill: #b94740;
+    --personnel-ink: #fff;
+    --personnel-muted: rgba(255, 255, 255, .82);
+    --personnel-shadow: rgba(150, 42, 36, .34);
+}
+
+.personnel-role-card.is-blue {
+    --personnel-fill: #315ac3;
+    --personnel-shadow: rgba(49, 90, 195, .34);
+}
+
+.personnel-role-card.is-green {
+    --personnel-fill: #1b966e;
+    --personnel-shadow: rgba(27, 150, 110, .32);
+}
+
+.personnel-role-card.is-cyan {
+    --personnel-fill: #27a7c0;
+    --personnel-shadow: rgba(39, 167, 192, .32);
+}
+
+.personnel-role-card__top {
+    min-width: 0;
+    display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 8px;
 }
-.personnel-home-overview .ykc-dashboard-agenda .ykc-calendar-entry time { font-size: 16px; }
-.personnel-home-overview .ykc-dashboard-agenda .ykc-calendar-entry strong { font-size: 12.5px; }
-.personnel-home-overview .ykc-dashboard-agenda .ykc-calendar-entry small { margin-top: 2px; font-size: 10.5px; line-height: 1.35; }
-.personnel-home-overview .ykc-dashboard-agenda-more { min-height: 36px; display: flex; align-items: center; justify-content: center; color: #2674ae; font-size: 11px; font-weight: 700; text-decoration: none; background: #f8fafc; }
 
-@media (max-width: 1200px) {
-    .df-personnel-home .df-home-action-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .personnel-home-overview > .df-home-feed-grid { grid-template-columns: 1fr; }
+.personnel-role-card__top > i:first-child {
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    border-radius: 9px;
+    background: rgba(255, 255, 255, .2);
+    color: var(--personnel-ink);
+    font-size: 15px;
 }
-@media (max-width: 760px) {
-    .df-personnel-home .df-home-action-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .personnel-home-overview .ykc-dashboard-agenda .ykc-calendar-entry { grid-template-columns: 42px minmax(0, 1fr) auto; }
-    .personnel-home-overview .ykc-dashboard-agenda .ykc-calendar-entry > span:nth-of-type(2) { grid-column: 2; }
-    .personnel-home-overview .ykc-dashboard-agenda .ykc-calendar-entry > span:nth-of-type(3) { grid-column: 3; grid-row: 1 / span 2; }
+
+.personnel-role-card.is-amber .personnel-role-card__top > i:first-child {
+    background: rgba(255, 255, 255, .2);
 }
-@media (max-width: 500px) {
-    .personnel-home-header { align-items: stretch; flex-direction: column; }
-    .personnel-home-header .df-btn { width: 100%; }
-    .df-personnel-home .df-home-action-grid { grid-template-columns: 1fr; }
+
+.personnel-role-card__top > i:last-child {
+    color: var(--personnel-muted);
+    font-size: 16px;
+}
+
+.personnel-role-card > strong {
+    display: -webkit-box;
+    overflow: hidden;
+    color: var(--personnel-ink);
+    font-size: 14.5px;
+    font-weight: 700;
+    line-height: 1.18;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.personnel-role-card__metric {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    overflow: hidden;
+    color: var(--personnel-muted);
+    font-size: 11.5px;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.personnel-role-card__metric b {
+    color: var(--personnel-ink);
+    font-size: 23px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.personnel-role-card__metric span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.personnel-role-card__footer {
+    min-width: 0;
+    align-self: end;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    overflow: hidden;
+    color: var(--personnel-muted);
+    font-size: 10.5px;
+    white-space: nowrap;
+}
+
+.personnel-role-card__footer > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.personnel-role-card__footer i {
+    margin-right: 5px;
+}
+
+.personnel-role-card:hover,
+.personnel-role-card:focus-visible {
+    border-color: rgba(255, 255, 255, .68);
+    box-shadow: 0 18px 32px -9px var(--personnel-shadow), 0 7px 16px rgba(35, 65, 85, .1);
+    outline: none;
+    transform: translateY(-2px);
+}
+
+.personnel-work-queue__list {
+    width: 100%;
+    min-width: 0;
+    display: grid;
+    grid-template-rows: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+}
+
+.personnel-work-row {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: 30px minmax(190px, 1.45fr) minmax(100px, .72fr) minmax(125px, .78fr) 42px;
+    align-items: center;
+    gap: 10px;
+    padding: 3px 12px;
+    overflow: hidden;
+    border: 1px solid #e7ebf0;
+    border-radius: 10px;
+    background: #f8f9fb;
+    color: #31495b;
+    text-decoration: none;
+    box-shadow: 0 5px 14px rgba(35, 65, 85, .065);
+    box-sizing: border-box;
+    transition: border-color .16s ease, background-color .16s ease, transform .16s ease;
+}
+
+.personnel-work-row__icon {
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    border-radius: 8px;
+    background: #e8eef5;
+    color: #2f61ba;
+    font-size: 12px;
+}
+
+.personnel-work-row__metric {
+    min-width: 0;
+    display: flex;
+    align-items: baseline;
+    justify-content: flex-end;
+    gap: 5px;
+}
+
+.personnel-work-row__title,
+.personnel-work-row__category {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.personnel-work-row__title {
+    color: inherit;
+    font-size: 12px;
+    font-weight: 650;
+    line-height: 1.12;
+}
+
+.personnel-work-row__category,
+.personnel-work-row__metric small {
+    color: #758898;
+    font-size: 10px;
+    line-height: 1.1;
+}
+
+.personnel-work-row__metric strong {
+    color: #243b4d;
+    font-size: 14px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+}
+
+.personnel-work-row__actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    color: #748797;
+    font-size: 11px;
+}
+
+.personnel-work-row.is-highlighted {
+    border-color: #315ac3;
+    background: #315ac3;
+    color: #fff;
+    box-shadow: 0 7px 16px rgba(49, 90, 195, .19);
+}
+
+.personnel-work-row.is-highlighted .personnel-work-row__icon {
+    background: rgba(255, 255, 255, .2);
+    color: #fff;
+}
+
+.personnel-work-row.is-highlighted .personnel-work-row__category,
+.personnel-work-row.is-highlighted .personnel-work-row__metric small,
+.personnel-work-row.is-highlighted .personnel-work-row__metric strong,
+.personnel-work-row.is-highlighted .personnel-work-row__actions {
+    color: rgba(255, 255, 255, .84);
+}
+
+.personnel-work-row:hover,
+.personnel-work-row:focus-visible {
+    border-color: #8ba7c1;
+    outline: none;
+    transform: translateY(-1px);
+}
+
+.personnel-work-row.is-highlighted:hover,
+.personnel-work-row.is-highlighted:focus-visible {
+    border-color: #102f41;
+    background: #294fae;
+}
+
+.personnel-calendar-surface {
+    min-width: 0;
+    min-height: 0;
+    align-self: start;
+    height: auto;
+    padding: 0;
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    box-sizing: border-box;
+}
+
+.personnel-calendar-surface .home-calendar {
+    height: auto;
+    margin-top: 0;
+    display: grid;
+    grid-template-rows: auto auto auto auto;
+    align-content: start;
+}
+
+.personnel-calendar-surface .home-calendar.has-view-modes {
+    grid-template-rows: auto auto auto auto;
+}
+
+.personnel-calendar-surface .home-calendar-heading {
+    min-height: 35px;
+    padding: 8px 11px 7px;
+    border: 1px solid #dfe6ec;
+    border-bottom: 0;
+    border-radius: 8px 8px 0 0;
+    background: #fff;
+}
+
+.personnel-calendar-surface .home-calendar-heading h2 {
+    gap: 7px;
+    font-size: 13px;
+}
+
+.personnel-calendar-surface .home-calendar-heading a {
+    gap: 4px;
+    font-size: 10px;
+}
+
+.personnel-calendar-surface .home-calendar-view-modes {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 3px;
+    margin: 0;
+    padding: 3px;
+    border-right: 1px solid #dfe6ec;
+    border-left: 1px solid #dfe6ec;
+    border-radius: 0;
+    background: #f0f3f9;
+}
+
+.personnel-calendar-surface .home-calendar-view-modes a {
+    min-height: 25px;
+    display: grid;
+    place-items: center;
+    border-radius: 5px;
+    color: #637589;
+    font-size: 10.5px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.personnel-calendar-surface .home-calendar-view-modes a:hover,
+.personnel-calendar-surface .home-calendar-view-modes a:focus-visible {
+    color: #315ac3;
+    background: #fff;
+    outline: none;
+}
+
+.personnel-calendar-surface .home-calendar-view-modes a[aria-current] {
+    color: #fff;
+    background: #315ac3;
+    box-shadow: 0 3px 8px rgba(49, 90, 195, .18);
+}
+
+.personnel-calendar-surface .home-calendar-filter-panel > summary {
+    min-height: 30px;
+    padding: 6px 11px;
+    font-size: 10.5px;
+    box-sizing: border-box;
+}
+
+.personnel-calendar-surface .home-calendar-filter-panel {
+    position: relative;
+    z-index: 3;
+    border-right: 1px solid #dfe6ec;
+    border-left: 1px solid #dfe6ec;
+    background: #fff;
+}
+
+.personnel-calendar-surface .home-calendar-filter-panel[open] .home-calendar-filters {
+    width: auto;
+    position: absolute;
+    z-index: 5;
+    top: 100%;
+    right: -1px;
+    left: -1px;
+    padding: 10px;
+    border: 1px solid #dfe6ec;
+    border-radius: 0 0 8px 8px;
+    background: #fff;
+    box-shadow: 0 12px 24px rgba(35, 65, 85, .14);
+}
+
+.personnel-calendar-surface .home-calendar-filters,
+.personnel-calendar-surface .home-calendar.is-firm-calendar .home-calendar-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    padding: 8px 0;
+}
+
+.personnel-calendar-surface .home-calendar-filters label {
+    gap: 3px;
+    font-size: 9.5px;
+}
+
+.personnel-calendar-surface .home-calendar-filters input,
+.personnel-calendar-surface .home-calendar-filters select {
+    height: 29px;
+    padding: 4px 7px;
+    font-size: 10.5px;
+}
+
+.personnel-calendar-surface .home-calendar-team-filter {
+    width: min(100%, 170px);
+    font-size: 9px;
+}
+
+.personnel-calendar-surface .home-calendar-team-filter select {
+    height: 27px;
+    padding: 3px 24px 3px 7px;
+    font-size: 10px;
+}
+
+.personnel-calendar-surface .home-calendar-filters .df-btn {
+    min-height: 29px;
+    justify-content: center;
+}
+
+.personnel-calendar-surface .home-calendar-icon {
+    width: 28px;
+    height: 28px;
+}
+
+.personnel-calendar-surface .home-calendar-body {
+    display: contents;
+}
+
+.personnel-calendar-surface .home-month {
+    padding: 8px 11px 9px;
+    border: 1px solid #dfe6ec;
+    border-top: 0;
+    border-radius: 0 0 8px 8px;
+    background: #fff;
+    box-shadow: 0 7px 20px rgba(35, 65, 85, .07);
+}
+
+.personnel-calendar-surface .home-month-nav {
+    margin-bottom: 3px;
+}
+
+.personnel-calendar-surface .home-month-nav strong {
+    font-size: 12.5px;
+}
+
+.personnel-calendar-surface .home-period-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.personnel-calendar-surface .home-period-nav strong {
+    color: #243b4d;
+    font-size: 11px;
+    font-weight: 650;
+    text-transform: capitalize;
+}
+
+.personnel-calendar-surface .home-day-picker,
+.personnel-calendar-surface .home-year-picker {
+    padding: 8px;
+    border: 1px solid #dfe6ec;
+    border-top: 0;
+    border-radius: 0 0 8px 8px;
+    background: #fff;
+    box-shadow: 0 7px 20px rgba(35, 65, 85, .07);
+}
+
+.personnel-calendar-surface .home-day-picker__summary {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 2px 8px;
+    margin: 8px 2px 2px;
+    padding: 9px 10px;
+    border-radius: 7px;
+    background: #f5f8fc;
+}
+
+.personnel-calendar-surface .home-day-picker__summary > span {
+    color: #4d6476;
+    font-size: 10px;
+    text-transform: capitalize;
+}
+
+.personnel-calendar-surface .home-day-picker__summary > strong {
+    grid-row: 1 / span 2;
+    grid-column: 2;
+    color: #315ac3;
+    font-size: 24px;
+    line-height: 1;
+}
+
+.personnel-calendar-surface .home-day-picker__summary > small {
+    color: #718596;
+    font-size: 9px;
+}
+
+.personnel-calendar-surface .home-year-months {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 5px;
+    margin-top: 8px;
+}
+
+.personnel-calendar-surface .home-year-months a {
+    min-height: 28px;
+    display: grid;
+    place-items: center;
+    border: 1px solid #e2e8ef;
+    border-radius: 6px;
+    color: #52697b;
+    background: #f8fafc;
+    font-size: 9px;
+    font-weight: 600;
+    text-decoration: none;
+    text-transform: capitalize;
+}
+
+.personnel-calendar-surface .home-year-months a:hover,
+.personnel-calendar-surface .home-year-months a:focus-visible,
+.personnel-calendar-surface .home-year-months a[aria-current] {
+    border-color: #315ac3;
+    color: #fff;
+    background: #315ac3;
+    outline: none;
+}
+
+.personnel-calendar-surface .home-month-days {
+    gap: 1px;
+}
+
+.personnel-calendar-surface .home-month-days > span {
+    padding: 2px 0;
+    color: #52697b;
+    font-size: 10.5px;
+    font-weight: 600;
+}
+
+.personnel-calendar-surface .home-month-days > span.home-month-empty {
+    height: 21px;
+    padding: 0;
+}
+
+.personnel-calendar-surface .home-month-days > a {
+    height: 21px;
+    font-size: 11.5px;
+}
+
+.personnel-calendar-surface .home-calendar-today {
+    margin-top: 4px;
+    font-size: 9.5px;
+}
+
+.personnel-calendar-surface .home-visits {
+    min-height: 0;
+    display: grid;
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    margin-top: 12px;
+    overflow: visible;
+    background: transparent;
+}
+
+.personnel-calendar-surface .home-visits > header {
+    min-height: 30px;
+    padding: 0 2px 7px;
+    border: 0;
+    box-sizing: border-box;
+}
+
+.personnel-calendar-surface .home-visits h3 {
+    font-size: 14px;
+}
+
+.personnel-calendar-surface .home-visits > header > a {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    color: #536a7c;
+    font-size: 10px;
+    text-decoration: none;
+}
+
+.personnel-calendar-surface .home-visits-date {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0 2px 6px;
+    color: #6e8191;
+    font-size: 9.5px;
+}
+
+.personnel-calendar-surface .home-visits-date small {
+    color: #168565;
+    font-size: 9.5px;
+}
+
+.personnel-calendar-surface .home-visit-list {
+    min-height: 0;
+    max-height: 144px;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+}
+
+.personnel-calendar-surface .home-visit,
+.personnel-calendar-surface .home-calendar.is-firm-calendar .home-visit {
+    position: relative;
+    grid-template-columns: minmax(0, 1fr) 18px;
+    align-items: start;
+    gap: 8px;
+    margin-bottom: 6px;
+    padding: 12px 11px 11px 20px;
+    overflow: hidden;
+    border: 1px solid #e4eaf0;
+    border-radius: 11px;
+    background: #fff;
+    box-shadow: 0 8px 18px rgba(35, 65, 85, .075);
+}
+
+.personnel-calendar-surface .home-visit::before {
+    content: "";
+    width: 5px;
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: #e9554d;
+}
+
+.personnel-calendar-surface .home-visit.is-complete::before {
+    background: #1b966e;
+}
+
+.personnel-calendar-surface .home-visit-person {
+    gap: 5px;
+    font-size: 10.5px;
+}
+
+.personnel-calendar-surface .home-visit-person strong {
+    overflow: hidden;
+    color: #172f43;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.personnel-calendar-surface .home-visit-meta {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow: hidden;
+    color: #506678;
+    font-size: 10.5px;
+}
+
+.personnel-calendar-surface .home-visit-meta > span {
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.personnel-calendar-surface .home-visit-meta > .home-visit-time {
+    flex: 0 0 auto;
+    padding-left: 7px;
+    border-left: 1px solid #cbd5de;
+    color: #213b50;
+    font-size: 10.5px;
+    font-weight: 700;
+}
+
+.personnel-calendar-surface .home-visit-person > small {
+    display: block;
+    overflow: hidden;
+    color: #687d8e;
+    font-size: 10px;
+    line-height: 1.3;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.personnel-calendar-surface .home-visit.is-complete .home-visit-meta > .home-visit-time {
+    color: #168565;
+}
+
+.personnel-calendar-surface .home-visit-tags {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    overflow: hidden;
+}
+
+.personnel-calendar-surface .home-visit-tags > span {
+    min-width: 0;
+    max-width: 42%;
+    min-height: 20px;
+    padding: 3px 6px;
+    border-radius: 6px;
+    background: #f2f5f8;
+    color: #536a7c;
+    font-size: 9px;
+    line-height: 1;
+}
+
+.personnel-calendar-surface .home-visit-tags > .df-pill {
+    max-width: 38%;
+    font-weight: 650;
+}
+
+.personnel-calendar-surface .home-visit-tags > .df-pill-primary {
+    background: #e9f0ff;
+    color: #315ac3;
+}
+
+.personnel-calendar-surface .home-visit-tags > .df-pill-success {
+    background: #e6f5ef;
+    color: #167c5e;
+}
+
+.personnel-calendar-surface .home-visit-tags > .df-pill-warning {
+    background: #fff3d9;
+    color: #946308;
+}
+
+.personnel-calendar-surface .home-visit-tags > .df-pill-danger {
+    background: #fdebed;
+    color: #b3454e;
+}
+
+.personnel-calendar-surface .home-visit-menu {
+    align-self: start;
+    justify-self: end;
+    color: #5f7384;
+    font-size: 15px;
+}
+
+.personnel-calendar-surface .home-visit:hover,
+.personnel-calendar-surface .home-visit:focus-visible {
+    border-color: #cdd8e2;
+    background: #fff;
+    box-shadow: 0 10px 22px rgba(35, 65, 85, .11);
+    outline: none;
+}
+
+.personnel-calendar-surface .home-visits-empty {
+    min-height: 76px;
+    gap: 6px;
+    position: relative;
+    padding: 10px 14px 10px 18px;
+    overflow: hidden;
+    border: 1px solid #e4eaf0;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 5px 14px rgba(35, 65, 85, .06);
+    font-size: 10.5px;
+}
+
+.personnel-calendar-surface .home-visits-empty::before {
+    content: "";
+    width: 5px;
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: #e9554d;
+}
+
+.personnel-calendar-surface .home-visits-empty i {
+    font-size: 22px;
+}
+
+.personnel-calendar-surface .home-calendar-more {
+    padding: 7px;
+    font-size: 9.5px;
+}
+
+@media (max-width: 1280px) {
+    .personnel-command-center {
+        grid-template-columns: minmax(0, 1.5fr) minmax(330px, .82fr);
+        gap: 24px;
+    }
+
+    .personnel-welcome__content {
+        width: 52%;
+        min-width: 285px;
+        padding-inline: 17px;
+    }
+
+    .personnel-welcome__visual {
+        width: 73%;
+    }
+
+    .personnel-role-actions__grid {
+        gap: 14px;
+    }
+
+    .personnel-role-card {
+        padding-inline: 14px;
+    }
+
+    .personnel-role-card__footer {
+        gap: 5px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .personnel-role-card,
+    .personnel-work-row {
+        transition: none;
+    }
+
+    .personnel-role-card:hover,
+    .personnel-role-card:focus-visible,
+    .personnel-work-row:hover,
+    .personnel-work-row:focus-visible {
+        transform: none;
+    }
 }

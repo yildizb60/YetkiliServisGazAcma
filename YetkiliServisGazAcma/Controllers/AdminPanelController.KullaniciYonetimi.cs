@@ -86,8 +86,8 @@ namespace YetkiliServisGazAcma.Controllers
                 ? sirketler.FirstOrDefault(x => x.Id == sirketId.Value)?.SirketAdi
                 : null;
             ViewBag.AdminDashboardBaslik = genelSistemAdminMi && !sirketId.HasValue
-                ? "Tüm Şirketler Genel Bakış"
-                : $"{(string.IsNullOrWhiteSpace(aktifSirketAdi) ? "Şirket" : aktifSirketAdi)} Yönetim Özeti";
+                ? "Tüm Şirketler"
+                : string.IsNullOrWhiteSpace(aktifSirketAdi) ? "Şirket Kapsamı" : aktifSirketAdi;
             ViewBag.AdminDashboardAltBaslik = genelSistemAdminMi && !sirketId.HasValue
                 ? "Genel Sistem Admini"
                 : "Şirket Admini";

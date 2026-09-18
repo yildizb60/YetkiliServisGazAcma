@@ -1,7 +1,8 @@
 @model YkcTakvimSonuc
 @{
+    var firmaGorunumu = User.IsInRole("SertifikaliFirma");
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
-    ViewData["Title"] = "Cihaz Değişim Randevuları";
+    ViewData["Title"] = firmaGorunumu ? "Cihaz Değişim Randevularım" : "Cihaz Değişim Randevuları";
     ViewData["PanelTitle"] = ViewData["Title"];
     ViewData["PanelModule"] = "Cihaz Değişim İşlemleri";
     ViewData["ActiveMenu"] = "YkcTakvim";
@@ -12,7 +13,7 @@
     var gunSayisi = (filtre.Bitis.Date - filtre.Baslangic.Date).Days + 1;
     var bugunAralikta = filtre.Baslangic.Date <= DateTime.Today && filtre.Bitis.Date >= DateTime.Today;
     var tamHafta = gunSayisi == 7 && filtre.Baslangic.Date == haftaBasi;
-    var filtreAktif = !string.IsNullOrWhiteSpace(filtre.Il) || !string.IsNullOrWhiteSpace(filtre.Bolge) || !string.IsNullOrWhiteSpace(filtre.Personel)
+    var filtreAktif = (!firmaGorunumu && (!string.IsNullOrWhiteSpace(filtre.Il) || !string.IsNullOrWhiteSpace(filtre.Bolge) || !string.IsNullOrWhiteSpace(filtre.Personel)))
         || !string.IsNullOrWhiteSpace(filtre.Musteri) || !string.IsNullOrWhiteSpace(filtre.TesisatNo);
     string Link(DateTime bas, DateTime bit, int sayfa = 1) => Url.Action("Takvim", "Ykc", new
     {
@@ -29,9 +30,8 @@
 @section PageStyles {
     <link rel="stylesheet" href="~/css/ykc-operations.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/ykc-calendar.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/css/ykc-calendar-refresh.css" asp-append-version="true" />
 }
-<div class="ykc-workspace ykc-calendar is-page">
+<div class="ykc-workspace ykc-calendar is-page @(tamHafta ? "is-week-view" : "is-day-view") @(firmaGorunumu ? "is-firm-view" : null)">
     <div class="ykc-calendar-toolbar">
         <div class="ykc-calendar-navigation">
             <a class="ykc-calendar-icon" href="@Link(filtre.Baslangic.AddDays(-gunSayisi), filtre.Bitis.AddDays(-gunSayisi))" title="Önceki dönem" aria-label="Önceki dönem"><i class="bi bi-chevron-left"></i></a>
@@ -53,15 +53,19 @@
         <form method="get" action="@Url.Action("Takvim", "Ykc")" class="ykc-calendar-filters">
             <div><label for="calDate">Başlangıç</label><input id="calDate" type="date" name="Baslangic" value="@filtre.Baslangic.ToString("yyyy-MM-dd")" required /></div>
             <div><label for="calEnd">Bitiş</label><input id="calEnd" type="date" name="Bitis" value="@filtre.Bitis.ToString("yyyy-MM-dd")" required /></div>
-            <div><label for="calCity">İl</label><input id="calCity" name="Il" value="@filtre.Il" /></div>
-            <div><label for="calRegion">Bölge</label><input id="calRegion" name="Bolge" value="@filtre.Bolge" /></div>
-            <div><label for="calPerson">Personel / Ekip</label><input id="calPerson" name="Personel" value="@filtre.Personel" /></div>
+            @if (!firmaGorunumu)
+            {
+                <div><label for="calCity">İl</label><input id="calCity" name="Il" value="@filtre.Il" /></div>
+                <div><label for="calRegion">Bölge</label><input id="calRegion" name="Bolge" value="@filtre.Bolge" /></div>
+                <div><label for="calPerson">Personel / Ekip</label><input id="calPerson" name="Personel" value="@filtre.Personel" /></div>
+            }
             <div><label for="calCustomer">Abone Adı Soyadı</label><input id="calCustomer" name="Musteri" value="@filtre.Musteri" /></div>
             <div><label for="calInstallation">Tesisat No</label><input id="calInstallation" name="TesisatNo" value="@filtre.TesisatNo" inputmode="numeric" /></div>
             <div class="ykc-calendar-filter-actions"><button class="df-btn df-btn-primary df-btn-sm" type="submit">Uygula</button><a href="@Url.Action("Takvim", "Ykc")" class="df-btn df-btn-secondary df-btn-sm">Temizle</a></div>
         </form>
     </details>
 
+    <div class="ykc-calendar-body">
     @if (tamHafta)
     {
         <div class="ykc-week-scroll" role="region" aria-label="Haftalık randevular" tabindex="0">
@@ -70,7 +74,7 @@
                 {
                     var day = haftaBasi.AddDays(dayIndex);
                     var count = Model.Gunler.FirstOrDefault(x => x.Tarih == day)?.Toplam ?? 0;
-                    var appointments = Model.Kayitlar.Where(x => x.Tarih.Date == day).Take(3).ToList();
+                    var appointments = Model.Kayitlar.Where(x => x.Tarih.Date == day).Take(5).ToList();
                     <section class="ykc-week-column @(day == DateTime.Today ? "is-today" : null)">
                         <a class="ykc-week-date" href="@Link(day, day)">
                             <span>@day.ToString("dddd", tr)</span><strong>@day.Day</strong><small>@count randevu</small>
@@ -78,12 +82,14 @@
                         <div class="ykc-week-events">
                             @foreach (var item in appointments)
                             {
-                                <a class="ykc-week-event @(item.Durum == YkcDurumDegerleri.Tamamlandi ? "is-complete" : null)" href="@Url.Action("Detay", "Ykc", new { id = item.Id, kaynak = "takvim" })">
+                                var atanan = item.Personel ?? item.Ekip ?? "Atanmadı";
+                                var durum = YkcDurumSunumu.Etiket(item.Durum);
+                                <a class="ykc-week-event @(item.Durum == YkcDurumDegerleri.Tamamlandi ? "is-complete" : null)" href="@Url.Action("Detay", "Ykc", new { id = item.Id, kaynak = "takvim" })" title="@(firmaGorunumu ? $"{item.Saat} · {item.Musteri} · Tesisat No: {item.TesisatNo} · {durum}" : $"{item.Saat} · {item.Musteri} · Tesisat No: {item.TesisatNo} · {atanan} · {durum}")">
                                     <time>@item.Saat <i class="bi bi-arrow-up-right" aria-hidden="true"></i></time>
                                     <strong>@item.Musteri</strong>
                                     <span>Tesisat No: @item.TesisatNo</span>
-                                    <small><i class="bi bi-people" aria-hidden="true"></i> @(item.Personel ?? item.Ekip ?? "Atanmadı")</small>
-                                    <span class="df-pill @YkcDurumSunumu.CssSinifi(item.Durum)">@YkcDurumSunumu.Etiket(item.Durum)</span>
+                                    @if (!firmaGorunumu) { <small><i class="bi bi-people" aria-hidden="true"></i> @atanan</small> }
+                                    <span class="df-pill @YkcDurumSunumu.CssSinifi(item.Durum)">@durum</span>
                                 </a>
                             }
                             @if (count == 0) { <span class="ykc-week-free"><i class="bi bi-calendar2" aria-hidden="true"></i> Randevu yok</span> }
@@ -130,10 +136,13 @@
                             <span>Tesisat No: @item.TesisatNo</span>
                             <small><i class="bi bi-geo-alt" aria-hidden="true"></i> @item.Adres</small>
                         </div>
-                        <div class="ykc-day-owner">
-                            <span><i class="bi bi-people" aria-hidden="true"></i> @(item.Personel ?? item.Ekip ?? "Henüz atanmadı")</span>
-                            <small>@item.Il / @item.Bolge</small>
-                        </div>
+                        @if (!firmaGorunumu)
+                        {
+                            <div class="ykc-day-owner">
+                                <span><i class="bi bi-people" aria-hidden="true"></i> @(item.Personel ?? item.Ekip ?? "Henüz atanmadı")</span>
+                                <small>@item.Il / @item.Bolge</small>
+                            </div>
+                        }
                         <span class="df-pill @YkcDurumSunumu.CssSinifi(item.Durum)">@YkcDurumSunumu.Etiket(item.Durum)</span>
                         <i class="bi bi-chevron-right" aria-hidden="true"></i>
                     </a>
@@ -141,6 +150,7 @@
             </div>
         }
     }
+    </div>
     @if (!tamHafta && Model.Toplam > Model.SayfaBoyutu)
     {
         <nav class="ykc-calendar-pagination" aria-label="Randevu sayfaları">

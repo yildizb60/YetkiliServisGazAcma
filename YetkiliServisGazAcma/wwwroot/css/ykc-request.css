@@ -101,6 +101,34 @@
 .ys-selected-device { display:flex; align-items:center; gap:7px; color:#18735e; font-size:11px; }
 .ys-commissioning-device-empty { margin:0; padding:10px; color:#73591e; background:#fff8e8; border-left:3px solid #d2a641; font-size:11px; }
 
+@media (min-width: 901px) {
+    .content.ys-commissioning-content { padding-top:12px; padding-bottom:12px; }
+    .ys-commissioning-request { min-height:0; max-height:none; }
+    .ys-commissioning-request .ykc-request-workspace { max-height:none; overflow:visible; }
+    .ys-commissioning-request .ykc-request-section { padding:10px 14px; }
+    .ys-commissioning-request .ykc-request-section-head { margin-bottom:8px; }
+    .ys-commissioning-request .ykc-request-section-icon { width:28px; height:28px; flex-basis:28px; }
+    .ys-commissioning-request .ykc-request-query-fields { gap:9px; }
+    .ys-commissioning-request .ykc-field label { margin-bottom:4px; font-size:11px; }
+    .ys-commissioning-request .ykc-field input,
+    .ys-commissioning-request .ykc-field select,
+    .ys-commissioning-request .ykc-request-query-fields .df-btn { min-height:34px; padding-block:5px; font-size:12px; }
+    .ys-commissioning-request .ykc-request-pending { min-height:104px; gap:7px; }
+    .ys-commissioning-request .ykc-request-pending > span { width:34px; height:34px; font-size:16px; }
+    .ys-commissioning-request .ykc-source-device { padding:10px 12px; }
+    .ys-commissioning-request .ykc-new-device { padding:8px 12px 10px; }
+    .ys-commissioning-request .ykc-device-entry-layout header { margin-bottom:8px; }
+    .ys-commissioning-request .ys-source-facts { gap:6px 12px; }
+    .ys-commissioning-request .ys-commissioning-device-picker { margin-top:9px; padding-top:8px; }
+    .ys-commissioning-request .ys-commissioning-device-picker h3 { margin-bottom:6px; }
+    .ys-commissioning-request .ys-commissioning-device-option { padding-block:7px; }
+    .ys-commissioning-request .ys-device-entry-pending { min-height:134px; }
+    .ys-commissioning-request .ys-commissioning-form-grid { gap:6px 10px; }
+    .ys-commissioning-request .ys-commissioning-form-grid textarea { min-height:42px; height:42px; padding-block:7px; }
+    .ys-commissioning-request .ys-commissioning-actions { margin-top:7px; padding-top:7px; }
+    .ys-commissioning-request .ys-commissioning-actions .df-btn { min-height:38px; }
+}
+
 @container (min-width: 1200px) {
     .ykc-request-lookup { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 12px 24px; align-items: end; }
     .ykc-request-lookup .ykc-request-section-head { display: block; margin-bottom: 0; }

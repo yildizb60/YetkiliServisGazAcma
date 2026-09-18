@@ -730,6 +730,33 @@
     background: var(--ys-green-soft);
 }
 
+.ys-brand-workspace { gap:9px; padding-bottom:0; }
+.ys-brand-workspace .ys-brand-layout { gap:9px; align-items:stretch; }
+.ys-brand-workspace .ys-panel-head { min-height:43px; padding:6px 10px; }
+.ys-brand-workspace .ys-section-icon { width:27px; height:27px; font-size:12px; }
+.ys-brand-workspace .ys-panel-title { font-size:12px; }
+.ys-brand-workspace .ys-panel-body { padding:10px; }
+.ys-brand-workspace .ys-brand-grid { gap:5px; }
+.ys-brand-workspace .ys-brand-option { min-height:38px; padding:6px 8px; font-size:10.5px; }
+.ys-brand-workspace .ys-actions { margin-top:8px !important; }
+.ys-brand-workspace .ys-actions .df-btn { min-height:32px; padding:5px 9px; font-size:10.5px; }
+.ys-brand-workspace .ys-field label { margin-bottom:4px; font-size:10px; }
+.ys-brand-workspace .ys-field input { min-height:34px; padding:6px 8px; font-size:11px; }
+.ys-brand-workspace .ys-field textarea { min-height:52px; height:52px; padding:7px 8px; font-size:11px; resize:vertical; }
+.ys-brand-workspace .ys-table th { padding:6px 9px; font-size:10.5px !important; }
+.ys-brand-workspace .ys-table td { padding:6px 9px; font-size:11px; }
+.ys-brand-workspace .ys-table th:last-child,
+.ys-brand-workspace .ys-table td:last-child { width:82px; }
+.ys-brand-workspace .ys-inline-input { min-height:31px; padding:5px 7px; font-size:11px; text-overflow:ellipsis; }
+.ys-brand-workspace .ys-table-actions { gap:5px; }
+.ys-brand-workspace .ys-table-actions > form { gap:5px; }
+.ys-brand-row-action { width:30px; height:30px; min-height:30px; padding:0; display:grid; place-items:center; border:1px solid #d4dee7; border-radius:5px; background:#fff; color:#476379; cursor:pointer; }
+.ys-brand-row-action:hover,
+.ys-brand-row-action:focus-visible { border-color:#89a9bf; background:#f3f8fb; color:#245f8c; outline:none; }
+.ys-brand-row-action.is-save { border-color:#b8ddcf; background:#edf8f3; color:#167a55; }
+.ys-brand-row-action.is-danger { border-color:#edcfd4; background:#fff5f6; color:#b42336; }
+.ys-new-record-action { min-height:29px !important; padding:4px 8px !important; font-size:10.5px !important; }
+
 .ys-editing-row td {
     background: #f8fbff !important;
 }

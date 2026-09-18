@@ -502,7 +502,7 @@ namespace YetkiliServisGazAcma.API.Controllers
 
         [HttpPost("takvim")]
         [ProducesResponseType(typeof(YkcTakvimSonuc), StatusCodes.Status200OK)]
-        [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel")]
+        [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma")]
         public async Task<IActionResult> Takvim([FromBody] YkcTakvimFiltre? filtre)
         {
             var kullanici = await AktifKullaniciAsync();

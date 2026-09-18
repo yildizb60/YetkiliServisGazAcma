@@ -458,7 +458,7 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpGet("takvim")]
-        [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel")]
+        [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma")]
         public async Task<IActionResult> Takvim([FromQuery] YkcTakvimFiltre filtre)
         {
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);

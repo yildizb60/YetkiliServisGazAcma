@@ -32,13 +32,18 @@ $firm = Token 'test.sertifikalifirma@demo.com'
 $admin = Token 'test.geneladmin@demo.com'
 $service = Token 'test.servis@demo.com'
 Check ((Post '/api/ykc/takvim' @{} $null).StatusCode -eq 401) 'Anonymous calendar denied'
-Check ((Post '/api/ykc/takvim' @{} $firm).StatusCode -eq 403) 'Certified firm cannot access the internal calendar'
+Check ((Post '/api/ykc/takvim' @{} $firm).StatusCode -eq 200) 'Certified firm can access its appointment calendar'
 Check ((Post '/api/ykc/takvim' @{} $service).StatusCode -eq 403) 'Service role cannot access the internal calendar'
 Check ((Post '/api/ykc/takvim' @{aktifSirketId=[int]::MaxValue} $staff).StatusCode -eq 403) 'Calendar rejects an unauthorized company'
 Check ((Post '/api/ykc/dashboard/ozet' @{aktifSirketId=[int]::MaxValue} $staff).StatusCode -eq 403) 'Dashboard rejects an unauthorized company'
 Check ((Post '/api/ykc/takvim' @{aktifSirketId=[int]::MaxValue} $admin).StatusCode -eq 403) 'Admin cannot select a nonexistent company'
 $body = @{baslangic='2026-09-01';bitis='2026-09-30'}
 $calendar = Calendar $body $staff
+$firmCalendar = Calendar $body $firm
+Check ($firmCalendar.toplam -gt 0) 'Certified firm appointment calendar contains its scoped records'
+Check (@($firmCalendar.kayitlar | Where-Object { $_.personel -or $_.ekip }).Count -eq 0) 'Certified firm calendar hides internal staff and team assignments'
+$firmIgnoredInternalFilters = Calendar ($body + @{il='__other_city__';bolge='__other_region__';personel='__other_team__'}) $firm
+Check ($firmIgnoredInternalFilters.toplam -eq $firmCalendar.toplam) 'Certified firm cannot narrow records by internal routing fields'
 Check ($calendar.toplam -gt 0) 'Existing appointment data is available for semantic checks'
 Check ($calendar.sayfaBoyutu -eq 25 -and $calendar.kayitlar.Count -le 25) 'Calendar page has a bounded record count'
 Check (($calendar.gunler | Measure-Object toplam -Sum).Sum -eq $calendar.toplam) 'Month counts cover all filtered records'
@@ -85,4 +90,4 @@ $dashboard = (Post '/api/ykc/dashboard/ozet' @{} $firm).Content | ConvertFrom-Js
 Check ($dashboard.toplam -gt 0) 'Certified firm dashboard loads its records'
 Check (@($dashboard.sonTalepler | Where-Object { $_.projedekiCihazBilgisi -or $_.eskiCihaz }).Count -eq 0) 'Firm dashboard keeps source-device information hidden'
 Check ($dashboard.toplam -eq ($dashboard.incelemede + $dashboard.randevuSaha + $dashboard.tamamlanan + $dashboard.redIptal)) 'Dashboard stage counts reconcile with the total'
-Write-Output "$passed checks passed. No business-data writes were performed."
+Write-Output "$passed checks passed. No YKC request data was changed."
