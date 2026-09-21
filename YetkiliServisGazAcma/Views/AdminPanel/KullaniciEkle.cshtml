@@ -18,7 +18,7 @@
     var sirketler = ViewBag.Sirketler as List<YetkiliServisGazAcma.Entities.Dag_Sirket> ?? new();
 }
 
-<div class="df-admin-workspace df-admin-editor df-user-create-workspace">
+<div class="df-admin-workspace df-admin-editor df-user-create-workspace df-management-form">
 
     <section class="df-admin-form-card">
         <div class="df-admin-form-body">
@@ -40,7 +40,7 @@
                     </div>
                     <div class="df-admin-form-grid">
                         <div class="df-admin-field is-half">
-                            <label>Rol *</label>
+                            <label for="rolSelect">Rol *</label>
                             <select name="rol" id="rolSelect" required>
                                 @if (genelSistemAdminMi)
                                 {
@@ -54,7 +54,7 @@
                             <small class="df-admin-field-note" id="roleHelp"></small>
                         </div>
                         <div class="df-admin-field is-half" id="sirketGroup">
-                            <label id="sirketLabel">Şirket *</label>
+                            <label id="sirketLabel" for="sirketIdSelect">Şirket *</label>
                             <select id="sirketIdSelect" name="SirketId">
                                 <option value="">Seçiniz</option>
                                 @foreach (var sirket in sirketler)
@@ -76,20 +76,20 @@
                     </div>
                     <div class="df-admin-form-grid">
                         <div class="df-admin-field is-half">
-                            <label>Ad Soyad *</label>
-                            <input name="adSoyad" value="@formAdSoyad" autocomplete="name" required />
+                            <label for="yeniKullaniciAd">Ad Soyad *</label>
+                            <input id="yeniKullaniciAd" name="adSoyad" value="@formAdSoyad" autocomplete="name" required />
                         </div>
                         <div class="df-admin-field is-half">
-                            <label>E-Posta *</label>
-                            <input type="email" name="email" value="@formEmail" autocomplete="email" required />
+                            <label for="yeniKullaniciEmail">E-Posta *</label>
+                            <input id="yeniKullaniciEmail" type="email" name="email" value="@formEmail" autocomplete="email" required />
                         </div>
                         <div class="df-admin-field is-half">
-                            <label>Telefon</label>
-                            <input name="telefon" value="@formTelefon" autocomplete="tel" />
+                            <label for="yeniKullaniciTelefon">Telefon</label>
+                            <input id="yeniKullaniciTelefon" name="telefon" value="@formTelefon" autocomplete="tel" />
                         </div>
                         <div class="df-admin-field is-half">
-                            <label>Geçici Şifre *</label>
-                            <input type="password" name="sifre" autocomplete="new-password" required />
+                            <label for="yeniKullaniciSifre">Geçici Şifre *</label>
+                            <input id="yeniKullaniciSifre" type="password" name="sifre" autocomplete="new-password" required />
                             <small class="df-admin-field-note">En az 6 karakter, en az bir küçük harf ve bir rakam.</small>
                         </div>
                     </div>

@@ -22,8 +22,8 @@
 .ops-firm-home .home-calendar-body { grid-template-columns:215px minmax(0,1fr); }
 .ops-firm-home .home-month { padding:8px 10px; }
 .ops-firm-home .home-month-nav { margin-bottom:4px; }
-.ops-firm-home .home-month-days > span { padding:4px 0; font-size:9px; }
-.ops-firm-home .home-month-days > a { height:22px; font-size:10.5px; }
+.ops-firm-home .home-month-days > span { padding:4px 0; font-size:10px; }
+.ops-firm-home .home-month-days > a { height:24px; font-size:11px; }
 .ops-firm-home .home-calendar-today { margin-top:4px; font-size:10px; }
 .ops-firm-home .home-visits > header { padding:9px 12px; }
 .ops-firm-home .home-visits h3 { font-size:13px; }

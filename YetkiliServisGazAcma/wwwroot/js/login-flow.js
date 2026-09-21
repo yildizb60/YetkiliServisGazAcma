@@ -2,6 +2,60 @@
     const shell = document.querySelector('.login-shell');
     if (!shell) return;
     let busy = false;
+
+    function initShowcase() {
+        const showcase = shell.querySelector('[data-login-showcase]');
+        if (!showcase) return;
+        const slides = Array.from(showcase.querySelectorAll('[data-login-slide]'));
+        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        let activeIndex = Math.max(0, slides.findIndex(slide => slide.classList.contains('is-active')));
+        let timer = null;
+        let cleanupTimer = null;
+
+        const transitionTo = nextIndex => {
+            const normalizedIndex = (nextIndex + slides.length) % slides.length;
+            if (normalizedIndex === activeIndex) return;
+
+            const current = slides[activeIndex];
+            const next = slides[normalizedIndex];
+            window.clearTimeout(cleanupTimer);
+            next.classList.remove('is-leaving');
+            next.classList.add('is-entering');
+            next.setAttribute('aria-hidden', 'false');
+
+            window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+                current.classList.remove('is-active');
+                current.classList.add('is-leaving');
+                current.setAttribute('aria-hidden', 'true');
+                next.classList.remove('is-entering');
+                next.classList.add('is-active');
+                activeIndex = normalizedIndex;
+
+                cleanupTimer = window.setTimeout(() => {
+                    current.classList.remove('is-leaving');
+                }, 1050);
+            }));
+        };
+        const stop = () => {
+            if (timer !== null) window.clearInterval(timer);
+            timer = null;
+        };
+        const start = () => {
+            stop();
+            if (!reduceMotion && slides.length > 1) {
+                timer = window.setInterval(() => transitionTo(activeIndex + 1), 8000);
+            }
+        };
+        document.addEventListener('visibilitychange', () => document.hidden ? stop() : start());
+        slides.forEach((slide, index) => {
+            const active = index === activeIndex;
+            slide.classList.toggle('is-active', active);
+            slide.classList.remove('is-entering', 'is-leaving');
+            slide.setAttribute('aria-hidden', String(!active));
+        });
+        start();
+    }
+
     function selectMode(mode, fillDemo) {
         const tabs = Array.from(shell.querySelectorAll('[data-login-mode]'));
         const tab = tabs.find(item => item.dataset.loginMode === mode);
@@ -22,11 +76,34 @@
         if (tab) selectMode(tab.dataset.loginMode, true);
         const demo = event.target.closest('.demo-login-btn');
         if (demo) {
+            event.preventDefault();
             const email = demo.dataset.demoUser || '';
             selectMode(email.includes('sertifikalifirma') ? 'firma' : email.includes('test.servis') ? 'servis' : 'personel', false);
-            shell.querySelector('#kullanici-adi').value = email;
-            shell.querySelector('#sifre').value = demo.dataset.demoPassword || '';
+            const userInput = shell.querySelector('#kullanici-adi');
+            const passwordInput = shell.querySelector('#sifre');
+            if (userInput) {
+                userInput.value = email;
+                userInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            if (passwordInput) {
+                passwordInput.value = demo.dataset.demoPassword || '';
+                passwordInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            demo.closest('details')?.removeAttribute('open');
+            userInput?.focus({ preventScroll: true });
         }
+    });
+    document.addEventListener('click', event => {
+        shell.querySelectorAll('.demo-logins[open]').forEach(details => {
+            if (!details.contains(event.target)) details.removeAttribute('open');
+        });
+    });
+    shell.addEventListener('keydown', event => {
+        if (event.key !== 'Escape') return;
+        const details = event.target.closest('.demo-logins[open]');
+        if (!details) return;
+        details.removeAttribute('open');
+        details.querySelector('summary')?.focus({ preventScroll: true });
     });
     shell.addEventListener('keydown', event => {
         const tab = event.target.closest('[data-login-mode]');
@@ -99,5 +176,6 @@
             form.removeAttribute('aria-busy');
         }
     });
+    initShowcase();
     selectMode('firma', true);
 })();

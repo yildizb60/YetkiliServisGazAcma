@@ -56,6 +56,9 @@ public sealed class YkcTakvimSonuc
     public int SayfaBoyutu { get; set; } = 25;
     public List<YkcTakvimKayit> Kayitlar { get; set; } = new();
     public List<YkcTakvimGunOzeti> Gunler { get; set; } = new();
+    public List<string> IlSecenekleri { get; set; } = new();
+    public List<string> BolgeSecenekleri { get; set; } = new();
+    public List<string> PersonelEkipSecenekleri { get; set; } = new();
 }
 
 public sealed class YkcTakvimGunOzeti
@@ -143,10 +146,31 @@ public partial class YkcTalepService
             filtre.Bolge = null;
             filtre.Personel = null;
         }
-        var query = YetkiKapsamiUygula(_context.Ykc_Talepler.AsNoTracking().Where(x => !x.SilindiMi), kullanici, genelYetkili, filtre.AktifSirketId)
+        var kapsamQuery = YetkiKapsamiUygula(_context.Ykc_Talepler.AsNoTracking().Where(x => !x.SilindiMi), kullanici, genelYetkili, filtre.AktifSirketId)
             .Where(x => x.RandevuTarihi >= filtre.Baslangic && x.RandevuTarihi < son
                 && x.Durum != YkcDurumDegerleri.Iptal && x.Durum != YkcDurumDegerleri.Reddedildi);
+
+        var ilSecenekleri = firmaGorunumu
+            ? new List<string>()
+            : await kapsamQuery
+                .Where(x => x.Il != null && x.Il != "")
+                .Select(x => x.Il!)
+                .Distinct()
+                .OrderBy(x => x)
+                .ToListAsync();
+
+        var query = kapsamQuery;
         if (!string.IsNullOrWhiteSpace(filtre.Il)) query = query.Where(x => x.Il == filtre.Il);
+
+        var bolgeSecenekleri = firmaGorunumu
+            ? new List<string>()
+            : await query
+                .Where(x => x.Bolge != null && x.Bolge != "")
+                .Select(x => x.Bolge!)
+                .Distinct()
+                .OrderBy(x => x)
+                .ToListAsync();
+
         if (!string.IsNullOrWhiteSpace(filtre.Bolge)) query = query.Where(x => x.Bolge == filtre.Bolge);
         if (!string.IsNullOrWhiteSpace(filtre.Musteri))
         {
@@ -167,6 +191,17 @@ public partial class YkcTalepService
                             Il = t.Il, Bolge = t.Bolge, Personel = u == null ? null : u.AdSoyad,
                             Ekip = t.AtananEkip, Durum = t.Durum
                         };
+
+        var personelEkipDegerleri = firmaGorunumu
+            ? new List<string?>()
+            : await projected
+                .Where(x => (x.Ekip != null && x.Ekip != "") || (x.Personel != null && x.Personel != ""))
+                .Select(x => x.Ekip != null && x.Ekip != "" ? x.Ekip : x.Personel)
+                .Distinct()
+                .OrderBy(x => x)
+                .ToListAsync();
+        var personelEkipSecenekleri = personelEkipDegerleri.OfType<string>().ToList();
+
         if (!string.IsNullOrWhiteSpace(filtre.Personel))
             projected = projected.Where(x => (x.Personel != null && x.Personel.Contains(filtre.Personel))
                 || (x.Ekip != null && x.Ekip.Contains(filtre.Personel)));
@@ -187,7 +222,8 @@ public partial class YkcTalepService
         }
         return new YkcTakvimSonuc {
             Filtre = filtre, Toplam = toplam, SayfaBoyutu = sayfaBoyutu, Gunler = gunler,
-            Kayitlar = kayitlar
+            Kayitlar = kayitlar, IlSecenekleri = ilSecenekleri, BolgeSecenekleri = bolgeSecenekleri,
+            PersonelEkipSecenekleri = personelEkipSecenekleri
         };
     }
 }

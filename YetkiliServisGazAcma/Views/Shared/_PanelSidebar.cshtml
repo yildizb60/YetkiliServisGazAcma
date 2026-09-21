@@ -97,26 +97,39 @@
     }
     else if (isSertifikaliFirmaPanel)
     {
-        Group("Cihaz Değişim İşlemleri", "bi-fire",
-            ("Yeni Cihaz Değişim Talebi", Link("Yeni", "Ykc"), "bi-plus-lg", Active("YkcYeni", "/ykc/yeni")),
-            ("Cihaz Değişim Taleplerim", Link("Talepler", "Ykc"), "bi-journal-text", Active("YkcTalepler", "/ykc/talepler", "/ykc/detay", "/ykc/fr265")),
-            ("Randevularım", Link("Takvim", "Ykc"), "bi-calendar3", Active("YkcTakvim", "/ykc/takvim")));
+        var firmaYkc = new List<(string, string, string, string)>();
+        if (ykcYetkileri.TalepOlusturabilir)
+            firmaYkc.Add(("Yeni Cihaz Değişim Talebi", Link("Yeni", "Ykc"), "bi-plus-lg", Active("YkcYeni", "/ykc/yeni")));
+        if (ykcYetkileri.TalepleriGorebilir)
+        {
+            firmaYkc.Add(("Cihaz Değişim Taleplerim", Link("Talepler", "Ykc"), "bi-journal-text", Active("YkcTalepler", "/ykc/talepler", "/ykc/detay", "/ykc/fr265")));
+            firmaYkc.Add(("Randevularım", Link("Takvim", "Ykc"), "bi-calendar3", Active("YkcTakvim", "/ykc/takvim")));
+        }
+        if (ykcYetkileri.RaporlariGorebilir)
+            firmaYkc.Add(("Cihaz Değişim Raporları", Link("Raporlar", "Ykc"), "bi-bar-chart-line", Active("YkcRaporlar", "/ykc/raporlar")));
+        Group("Cihaz Değişim İşlemleri", "bi-fire", firmaYkc.ToArray());
         Group("Hesabım", "bi-person-circle",
             ("Profilim", Link("Profil", "Ykc"), "bi-person", Active("Profil", "/ykc/profil")));
     }
     else
     {
         var area = isPersonelPanel ? "/personel-panel" : "/AdminPanel";
-        var certificates = new List<(string, string, string, string)> {
-            ("Onay Bekleyen Belgeler", onayBekleyenlerUrl, "bi-file-earmark-check", Active("OnayBekleyenler", area + "/onay-bekleyenler"))
-        };
-        if (isPersonelPanel)
-            certificates.Add(("Yetki Belgesi Geçmişi", Link("OnayGecmisi", "PersonelPanel"), "bi-clock-history", Active("OnayGecmisi", area + "/onay-gecmisi")));
-        else
-            certificates.Add(("Bitiş Uyarıları", Link("YetkiBelgesiUyarilari", "AdminPanel"), "bi-exclamation-triangle", Active("YetkiBelgesiUyarilari", area + "/yetki-belgesi-uyarilari")));
-        Group("Yetki Belgesi İşlemleri", "bi-file-earmark-check", certificates.ToArray());
-        Group("Cihaz Devreye Alma", "bi-bag-check",
-            ("Cihaz Devreye Alma Kayıtları", Link("DevreyeAlmalar", isPersonelPanel ? "PersonelPanel" : "AdminPanel"), "bi-list-check", Active("DevreyeAlmalar", area + "/devreyealmalar")));
+        if (!isPersonelPanel || ViewBag.YetkiBelgesi == true)
+        {
+            var certificates = new List<(string, string, string, string)> {
+                ("Onay Bekleyen Belgeler", onayBekleyenlerUrl, "bi-file-earmark-check", Active("OnayBekleyenler", area + "/onay-bekleyenler"))
+            };
+            if (isPersonelPanel)
+                certificates.Add(("Yetki Belgesi Geçmişi", Link("OnayGecmisi", "PersonelPanel"), "bi-clock-history", Active("OnayGecmisi", area + "/onay-gecmisi")));
+            else
+                certificates.Add(("Bitiş Uyarıları", Link("YetkiBelgesiUyarilari", "AdminPanel"), "bi-exclamation-triangle", Active("YetkiBelgesiUyarilari", area + "/yetki-belgesi-uyarilari")));
+            Group("Yetki Belgesi İşlemleri", "bi-file-earmark-check", certificates.ToArray());
+        }
+        if (!isPersonelPanel || ViewBag.YetkiRapor == true)
+        {
+            Group("Cihaz Devreye Alma", "bi-bag-check",
+                ("Cihaz Devreye Alma Kayıtları", Link("DevreyeAlmalar", isPersonelPanel ? "PersonelPanel" : "AdminPanel"), "bi-list-check", Active("DevreyeAlmalar", area + "/devreyealmalar")));
+        }
         var ykc = new List<(string, string, string, string)>();
         if (!isPersonelPanel || ykcYetkileri.TalepleriGorebilir)
         {
@@ -126,10 +139,10 @@
         if (!isPersonelPanel || ykcYetkileri.RaporlariGorebilir)
             ykc.Add(("Cihaz Değişim Raporları", Link("Raporlar", "Ykc"), "bi-bar-chart-line", Active("YkcRaporlar", "/ykc/raporlar")));
         Group("Cihaz Değişim İşlemleri", "bi-fire", ykc.ToArray());
-        var services = new List<(string, string, string, string)> {
-            ("Yetkili Servisler", Link("YetkiliServisler", isPersonelPanel ? "PersonelPanel" : "AdminPanel"), "bi-tools", Active("YetkiliServisler", area + "/yetkiliservisler"))
-        };
-        if (isPersonelPanel || genelSistemAdminMi)
+        var services = new List<(string, string, string, string)>();
+        if (!isPersonelPanel || ViewBag.YetkiServis == true)
+            services.Add(("Yetkili Servisler", Link("YetkiliServisler", isPersonelPanel ? "PersonelPanel" : "AdminPanel"), "bi-tools", Active("YetkiliServisler", area + "/yetkiliservisler")));
+        if ((!isPersonelPanel && genelSistemAdminMi) || (isPersonelPanel && ViewBag.YetkiMarka == true))
         {
             var brands = isPersonelPanel ? Link("Markalar", "PersonelPanel") : Link("Index", "Marka");
             services.Add(("Yetkili Servis Markaları", brands, "bi-tag", Active("Markalar", brands)));
@@ -142,8 +155,11 @@
                 ("Personeller", Link("Personeller", "AdminPanel"), "bi-person-badge", Active("Personeller", area + "/personeller")),
                 ("Kullanıcılar", Link("Kullanicilar", "AdminPanel"), "bi-people", Active("Kullanicilar", area + "/kullanicilar")),
                 ("Yetkiler", Link("Yetkiler", "AdminPanel"), "bi-shield-check", Active("Yetkiler", area + "/yetkiler")));
-        Group("Raporlama", "bi-bar-chart-line",
-            ("Operasyon Raporları", Link("Raporlar", isPersonelPanel ? "PersonelPanel" : "AdminPanel"), "bi-graph-up", Active("Raporlar", area + "/raporlar")));
+        if (!isPersonelPanel || ViewBag.YetkiRapor == true)
+        {
+            Group("Raporlama", "bi-bar-chart-line",
+                ("Operasyon Raporları", Link("Raporlar", isPersonelPanel ? "PersonelPanel" : "AdminPanel"), "bi-graph-up", Active("Raporlar", area + "/raporlar")));
+        }
         Group("Hesabım", "bi-person-circle",
             ("Profilim", Link("Profil", isPersonelPanel ? "PersonelPanel" : "AdminPanel"), "bi-person", Active("Profil", area + "/profil")));
     }

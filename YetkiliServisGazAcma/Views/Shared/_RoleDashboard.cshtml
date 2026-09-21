@@ -1,0 +1,141 @@
+@model YetkiliServisGazAcma.Models.ViewModels.RoleDashboardViewModel
+@{
+    var actions = Model.Actions
+        .GroupBy(item => $"{item.Url}|{item.Title}", StringComparer.OrdinalIgnoreCase)
+        .Select(group => group.First())
+        .ToList();
+    var visibleFacts = Model.Facts.Take(2).ToList();
+    var visibleFactUrls = visibleFacts
+        .Where(item => !string.IsNullOrWhiteSpace(item.Url))
+        .Select(item => item.Url!.Trim())
+        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+    var quickActions = string.Equals(Model.Variant, "personnel", StringComparison.OrdinalIgnoreCase)
+        ? Model.QuickActions.Take(3).ToList()
+        : Model.QuickActions
+            .Where(item => string.IsNullOrWhiteSpace(item.Url) || !visibleFactUrls.Contains(item.Url.Trim()))
+            .GroupBy(item => $"{item.Url}|{item.Title}", StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.First())
+            .Take(3)
+            .ToList();
+    var actionCount = actions.Count;
+    var useCompactActionCards = string.Equals(Model.Variant, "certified-firm", StringComparison.OrdinalIgnoreCase);
+    var actionLayoutClass = actionCount > 3
+        ? "is-carousel"
+        : $"is-count-{Math.Clamp(actionCount, 1, 3)}";
+}
+
+<div class="work-dashboard work-dashboard--personnel role-dashboard role-dashboard--@Model.Variant" data-dashboard>
+    <section class="personnel-command-center" aria-label="@Model.AriaLabel">
+        <div class="personnel-command-center__main">
+            <section class="personnel-welcome" aria-labelledby="role-dashboard-title">
+                <img class="personnel-welcome__visual" src="@Model.HeroImageUrl" alt="" aria-hidden="true" />
+                <div class="personnel-welcome__content">
+                    <span class="personnel-welcome__date"><i class="@Model.HeroKickerIcon" aria-hidden="true"></i>@Model.HeroKicker</span>
+                    <h1 id="role-dashboard-title">@Model.HeroTitle</h1>
+                    @if (visibleFacts.Count > 0)
+                    {
+                        <div class="personnel-welcome__facts">
+                        @foreach (var fact in visibleFacts)
+                        {
+                            @if (!string.IsNullOrWhiteSpace(fact.Url))
+                            {
+                                <a href="@fact.Url" aria-label="@fact.Value @fact.Label">
+                                    <i class="@fact.Icon" aria-hidden="true"></i>
+                                    <strong>@fact.Value</strong>
+                                    <span>@fact.Label</span>
+                                </a>
+                            }
+                            else
+                            {
+                                <span>
+                                    <i class="@fact.Icon" aria-hidden="true"></i>
+                                    <strong>@fact.Value</strong>
+                                    <span>@fact.Label</span>
+                                </span>
+                            }
+                        }
+                        </div>
+                    }
+                </div>
+            </section>
+
+            <section class="personnel-role-actions" aria-labelledby="role-dashboard-actions-title">
+                <header>
+                    <h2 id="role-dashboard-actions-title">@Model.ActionsTitle</h2>
+                    <div class="dashboard-carousel-controls" data-carousel-controls hidden>
+                        <button type="button" data-carousel-prev title="Önceki alanlar" aria-label="Önceki alanlar"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+                        <button type="button" data-carousel-next title="Sonraki alanlar" aria-label="Sonraki alanlar"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+                    </div>
+                </header>
+                <nav class="personnel-role-actions__grid @actionLayoutClass" aria-label="Erişilebilir işlem alanları" data-carousel-track>
+                    @foreach (var item in actions)
+                    {
+                        <a class="personnel-role-card is-@item.Tone" href="@item.Url" aria-label="@item.Title" data-carousel-card>
+                            <span class="personnel-role-card__top">
+                                <i class="@item.Icon" aria-hidden="true"></i>
+                                <i class="bi @(useCompactActionCards ? "bi-arrow-up-right" : "bi-three-dots-vertical")" aria-hidden="true"></i>
+                            </span>
+                            <strong>@item.Title</strong>
+                            @if (!string.IsNullOrWhiteSpace(item.MetricValue) || !string.IsNullOrWhiteSpace(item.MetricLabel))
+                            {
+                                <span class="personnel-role-card__metric">
+                                    @if (!string.IsNullOrWhiteSpace(item.MetricValue))
+                                    {
+                                        <b>@item.MetricValue</b>
+                                    }
+                                    <span>@item.MetricLabel</span>
+                                </span>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(item.Stat1Label) || !string.IsNullOrWhiteSpace(item.Stat1Value) || !string.IsNullOrWhiteSpace(item.Subtitle))
+                            {
+                                <span class="personnel-role-card__footer">
+                                    @if (!string.IsNullOrWhiteSpace(item.Stat1Label) || !string.IsNullOrWhiteSpace(item.Stat1Value))
+                                    {
+                                    <span><i class="bi bi-folder2-open" aria-hidden="true"></i>@item.Stat1Value @item.Stat1Label</span>
+                                    }
+                                    else
+                                    {
+                                        <span>@item.Subtitle</span>
+                                    }
+                                </span>
+                            }
+                        </a>
+                    }
+                </nav>
+            </section>
+
+            @if (quickActions.Count > 0)
+            {
+                <section class="personnel-work-queue" aria-labelledby="role-dashboard-quick-title">
+                    <header>
+                        <h2 id="role-dashboard-quick-title">@Model.QuickActionsTitle</h2>
+                        <span>@Model.QuickActionsMeta</span>
+                    </header>
+                    <div class="personnel-work-queue__list" style="--personnel-row-count: @quickActions.Count">
+                        @foreach (var item in quickActions)
+                        {
+                            <a class="personnel-work-row @(item.Featured ? "is-highlighted" : null)" href="@item.Url" aria-label="@item.Title">
+                                <span class="personnel-work-row__icon"><i class="@item.Icon" aria-hidden="true"></i></span>
+                                <strong class="personnel-work-row__title">@item.Title</strong>
+                                <span class="personnel-work-row__category">@item.Subtitle</span>
+                                <span class="personnel-work-row__metric"><strong>@item.MetricValue</strong><small>@item.MetricLabel</small></span>
+                                <span class="personnel-work-row__actions"><i class="bi bi-arrow-up-right" aria-hidden="true"></i><i class="bi bi-three-dots-vertical" aria-hidden="true"></i></span>
+                            </a>
+                        }
+                    </div>
+                </section>
+            }
+        </div>
+
+        <aside class="personnel-calendar-surface @(Model.ShowYkcCalendar ? null : "is-summary")" aria-label="@(Model.ShowYkcCalendar ? "Kontrol takvimi" : Model.SidePanel?.Title)">
+            @if (Model.ShowYkcCalendar)
+            {
+                @await Component.InvokeAsync("YkcRandevuOzeti")
+            }
+            else if (Model.SidePanel != null)
+            {
+                @await Html.PartialAsync("_RoleDashboardSummary", Model.SidePanel)
+            }
+        </aside>
+    </section>
+</div>

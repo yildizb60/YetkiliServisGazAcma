@@ -2677,6 +2677,1080 @@ button.df-admin-metric {
     line-height: 1.4;
 }
 
+/* Yetkili servis dizini: açılır satırlar ve bağlamı koruyan düzenleme paneli. */
+.df-service-list-modern .df-service-table-scroll {
+    overflow-x: auto;
+}
+
+.df-service-list-modern .df-service-grid {
+    min-width: 0;
+    grid-template-columns: minmax(145px, 1.45fr) minmax(145px, 1.15fr) minmax(78px, .68fr) 48px 62px 110px;
+}
+
+.df-service-list-modern .df-service-grid-head {
+    padding: 9px 27px;
+}
+
+.df-service-grid-actions-heading {
+    text-align: right;
+}
+
+.df-service-records {
+    min-width: 0;
+    padding: 10px 12px 12px;
+    display: grid;
+    gap: 8px;
+    background: #f8fafc;
+}
+
+.df-service-record {
+    overflow: hidden;
+    border: 1px solid #e0e6ef;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, .035);
+    transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+
+.df-service-record:hover {
+    border-color: #b8caec;
+    box-shadow: 0 8px 20px rgba(31, 95, 191, .09);
+    transform: translateY(-1px);
+}
+
+.df-service-record .df-service-row {
+    min-width: 0;
+    min-height: 68px;
+    border: 0;
+    padding: 10px 14px;
+    background: #fff;
+    transition: background-color .18s ease, color .18s ease;
+}
+
+.df-service-record:hover .df-service-row {
+    background: #f2f6ff;
+}
+
+.df-service-record.is-expanded {
+    border-color: #315fca;
+    box-shadow: 0 12px 26px rgba(40, 83, 179, .17);
+    transform: none;
+}
+
+.df-service-record.is-expanded .df-service-row,
+.df-service-record.is-expanded:hover .df-service-row {
+    background: #315fca;
+    color: #fff;
+}
+
+.df-service-record.is-expanded .df-service-name,
+.df-service-record.is-expanded .df-service-row small,
+.df-service-record.is-expanded .df-service-contact > span,
+.df-service-record.is-expanded .df-service-city {
+    color: #fff;
+}
+
+.df-service-record.is-expanded .df-service-row small {
+    opacity: .78;
+}
+
+.df-service-contact {
+    min-width: 0;
+}
+
+.df-service-contact > span {
+    display: block;
+    overflow: hidden;
+    color: #344054;
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.df-service-contact small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.df-service-city {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #475467;
+}
+
+.df-service-city i {
+    color: #1f5fbf;
+}
+
+.df-service-record.is-expanded .df-service-city i {
+    color: #dce7ff;
+}
+
+.df-service-record.is-expanded .df-service-count {
+    background: rgba(255, 255, 255, .16);
+    color: #fff;
+}
+
+.df-service-record.is-expanded .df-pill {
+    border-color: rgba(255, 255, 255, .34);
+    background: rgba(255, 255, 255, .14);
+    color: #fff;
+}
+
+.df-service-record .df-service-actions {
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+}
+
+.df-directory-action {
+    width: 32px;
+    height: 32px;
+    flex: 0 0 32px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #d8e0eb;
+    border-radius: 7px;
+    background: #fff;
+    color: #344054;
+    font: inherit;
+    text-decoration: none;
+    cursor: pointer;
+    transition: border-color .16s ease, background-color .16s ease, color .16s ease, transform .16s ease;
+}
+
+.df-directory-action:hover {
+    border-color: #adc1e7;
+    background: #eaf1ff;
+    color: #1f5fbf;
+    transform: translateY(-1px);
+}
+
+.df-directory-action.is-danger {
+    border-color: #f0d2d7;
+    color: #b42336;
+}
+
+.df-directory-action.is-danger:hover {
+    border-color: #e8b8c0;
+    background: #fff1f2;
+}
+
+.df-directory-action.is-disabled {
+    border-color: #e4e7ec;
+    background: #f4f6f8;
+    color: #98a2b3;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.df-service-record.is-expanded .df-directory-action {
+    border-color: rgba(255, 255, 255, .3);
+    background: rgba(255, 255, 255, .12);
+    color: #fff;
+}
+
+.df-service-record.is-expanded .df-directory-action:hover {
+    border-color: rgba(255, 255, 255, .58);
+    background: rgba(255, 255, 255, .22);
+}
+
+.df-service-record.is-expanded .df-directory-action.is-disabled {
+    opacity: .58;
+}
+
+.df-service-expand i {
+    transition: transform .2s ease;
+}
+
+.df-service-expand .visually-hidden {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+.df-service-record.is-expanded .df-service-expand i {
+    transform: rotate(180deg);
+}
+
+.df-service-record-detail {
+    display: grid;
+    grid-template-rows: 0fr;
+    border-top: 0 solid transparent;
+    opacity: 0;
+    transition: grid-template-rows .22s ease, opacity .18s ease, border-color .18s ease;
+}
+
+.df-service-record.is-expanded .df-service-record-detail {
+    grid-template-rows: 1fr;
+    border-top-width: 1px;
+    border-top-color: #d8e2f5;
+    opacity: 1;
+}
+
+.df-service-record-detail-inner {
+    min-height: 0;
+    overflow: hidden;
+}
+
+.df-service-detail-grid {
+    padding: 16px 18px 14px;
+    display: grid;
+    grid-template-columns: .85fr 1.15fr 1fr 1.8fr;
+    gap: 14px;
+    background: #fff;
+}
+
+.df-service-detail-grid > div {
+    min-width: 0;
+    padding-right: 14px;
+    border-right: 1px solid #e7ebf1;
+}
+
+.df-service-detail-grid > div:last-child {
+    padding-right: 0;
+    border-right: 0;
+}
+
+.df-service-detail-grid span,
+.df-service-detail-grid strong,
+.df-service-detail-grid small {
+    display: block;
+}
+
+.df-service-detail-grid span {
+    margin-bottom: 5px;
+    color: #667085;
+    font-size: 10px;
+    font-weight: 750;
+    text-transform: uppercase;
+}
+
+.df-service-detail-grid strong {
+    overflow-wrap: anywhere;
+    color: #172033;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.45;
+}
+
+.df-service-detail-grid small {
+    margin-top: 3px;
+    color: #667085;
+    font-size: 10px;
+}
+
+.df-service-detail-footer {
+    min-height: 48px;
+    padding: 8px 14px 8px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border-top: 1px solid #edf0f4;
+    background: #f8fafc;
+}
+
+.df-service-detail-footer > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: #667085;
+    font-size: 11px;
+    font-weight: 650;
+}
+
+.df-service-detail-footer > span i {
+    color: #1f5fbf;
+}
+
+html.df-sheet-open {
+    overflow: hidden;
+}
+
+.df-directory-sheet {
+    width: min(600px, calc(100vw - 24px));
+    height: 100dvh;
+    max-width: none;
+    max-height: none;
+    margin: 0 0 0 auto;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    border-left: 1px solid #dbe2ec;
+    border-radius: 0;
+    background: #fff;
+    color: #172033;
+    opacity: 0;
+    transform: translateX(100%);
+    transition: transform .22s ease, opacity .18s ease;
+}
+
+.df-directory-sheet[open] {
+    display: block;
+}
+
+.df-directory-sheet.is-visible {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.df-directory-sheet::backdrop {
+    background: rgba(20, 31, 52, .36);
+    backdrop-filter: blur(1.5px);
+}
+
+.df-directory-sheet-frame {
+    height: 100%;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    border-left: 1px solid #dce4ef;
+    background: #f4f7fb;
+    box-shadow: -20px 0 48px rgba(16, 24, 40, .18);
+}
+
+.df-directory-sheet-head {
+    min-height: 60px;
+    padding: 10px 18px 10px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    border-bottom: 1px solid #dce4ef;
+    background: #fff;
+}
+
+.df-directory-sheet-head h2 {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #172033;
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 1.25;
+}
+
+.df-directory-sheet-head h2::before {
+    width: 4px;
+    height: 24px;
+    border-radius: 4px;
+    background: #315fca;
+    content: "";
+}
+
+.df-directory-sheet-close {
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #d9e1ec;
+    border-radius: 8px;
+    background: #f8fafc;
+    color: #475467;
+    cursor: pointer;
+    transition: border-color .16s ease, background-color .16s ease, color .16s ease, transform .16s ease;
+}
+
+.df-directory-sheet-close:hover {
+    border-color: #b8c9e4;
+    background: #edf4ff;
+    color: #1f5fbf;
+    transform: translateY(-1px);
+}
+
+.df-directory-sheet-body {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+}
+
+.df-directory-sheet-loading,
+.df-directory-sheet-error {
+    min-height: 240px;
+    padding: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 10px;
+    color: #667085;
+    text-align: center;
+}
+
+.df-directory-sheet-loading .spinner-border {
+    color: #315fca;
+}
+
+.df-directory-sheet-error > i {
+    color: #b42336;
+    font-size: 28px;
+}
+
+.df-directory-sheet-error strong {
+    color: #172033;
+    font-size: 15px;
+}
+
+.df-directory-sheet-error p {
+    margin: -4px 0 5px;
+    font-size: 12px;
+}
+
+.df-directory-sheet-form {
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 14px 0;
+}
+
+.df-directory-sheet .df-admin-form-section {
+    margin: 0;
+    padding: 11px 14px;
+    border: 1px solid #dfe6ef;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 5px 16px rgba(20, 50, 69, .05);
+}
+
+.df-directory-sheet-form:has(> .df-admin-form-section:nth-of-type(3)) {
+    gap: 8px;
+    padding-top: 8px;
+}
+
+.df-directory-sheet-form:has(> .df-admin-form-section:nth-of-type(3)) > .df-admin-form-section {
+    padding: 9px 12px;
+}
+
+.df-directory-sheet-form:has(> .df-admin-form-section:nth-of-type(3)) .df-admin-form-section-head {
+    margin-bottom: 6px;
+}
+
+.df-directory-sheet-form:has(> .df-admin-form-section:nth-of-type(3)) .df-admin-form-actions {
+    padding-top: 7px;
+    padding-bottom: 7px;
+}
+
+.df-directory-sheet .df-admin-form-section-head {
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.df-directory-sheet .df-admin-form-section-head > span {
+    width: 28px;
+    height: 28px;
+    border: 1px solid #d7e5fb;
+    border-radius: 8px;
+    background: #edf4ff;
+    color: #315fca;
+    font-size: 13px;
+}
+
+.df-directory-sheet .df-admin-form-section:nth-of-type(2) .df-admin-form-section-head > span {
+    border-color: #cfe7df;
+    background: #edf8f4;
+    color: #168066;
+}
+
+.df-directory-sheet .df-admin-form-section-head h3 {
+    color: #172033;
+    font-size: 14px;
+    font-weight: 750;
+}
+
+.df-directory-sheet .df-admin-form-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px 10px;
+}
+
+.df-directory-sheet .df-admin-field {
+    grid-column: auto;
+    gap: 4px;
+}
+
+.df-directory-sheet .df-admin-field:nth-child(1),
+.df-directory-sheet .df-admin-field:nth-child(4) {
+    grid-column: span 2;
+}
+
+.df-directory-sheet .df-admin-field.is-wide {
+    grid-column: 1 / -1;
+}
+
+.df-directory-sheet .df-admin-field label {
+    color: #344054;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.df-directory-sheet .df-admin-field input,
+.df-directory-sheet .df-admin-field select {
+    min-height: 34px;
+    height: 34px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    border-color: #d7e0eb;
+    border-radius: 7px;
+    background: #fbfcfe;
+    color: #172033;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, .03);
+    transition: border-color .16s ease, background-color .16s ease, box-shadow .16s ease;
+}
+
+.df-directory-sheet .df-admin-field input:hover,
+.df-directory-sheet .df-admin-field select:hover,
+.df-directory-sheet .marka-search:hover {
+    border-color: #b9c7da;
+}
+
+.df-directory-sheet .df-admin-field input:focus,
+.df-directory-sheet .df-admin-field select:focus,
+.df-directory-sheet .marka-search:focus {
+    border-color: #4c73d3;
+    outline: 0;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(49, 95, 202, .12);
+}
+
+.df-directory-sheet .df-admin-choice-layout {
+    grid-template-columns: minmax(0, 1.6fr) minmax(185px, .95fr);
+    gap: 10px;
+}
+
+.df-directory-sheet .df-admin-choice-box {
+    padding: 8px;
+    border-color: #e0e7f0;
+    border-radius: 8px;
+    background: #f9fbfd;
+    box-shadow: none;
+}
+
+.df-directory-sheet .df-admin-section-title {
+    margin-bottom: 6px;
+    color: #26354a;
+    font-size: 12px;
+    font-weight: 750;
+}
+
+.df-directory-sheet .marka-search {
+    width: 100%;
+    min-height: 32px;
+    height: 32px;
+    margin-bottom: 5px;
+    border-color: #d7e0eb;
+    border-radius: 7px;
+    background: #fff;
+}
+
+.df-directory-sheet .marka-list {
+    max-height: none;
+    overflow: visible;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 5px;
+}
+
+.df-directory-sheet .df-admin-choice-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 5px;
+}
+
+.df-directory-sheet .df-admin-choice-list > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+}
+
+.df-directory-sheet .df-admin-choice-layout .df-admin-choice-list {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.df-directory-sheet .df-admin-choice,
+.df-directory-sheet .marka-item,
+.df-directory-sheet .marka-item-all {
+    min-height: 31px;
+    padding: 5px 7px;
+    gap: 6px;
+    border-color: #dfe6ef;
+    border-radius: 7px;
+    background: #fff;
+    color: #344054;
+    font-size: 11px;
+    transition: border-color .16s ease, background-color .16s ease, color .16s ease, box-shadow .16s ease;
+}
+
+.df-directory-sheet :is(.df-admin-choice, .marka-item, .marka-item-all):hover {
+    border-color: #b8c9e4;
+    background: #f3f7ff;
+}
+
+.df-directory-sheet :is(.df-admin-choice, .marka-item, .marka-item-all):has(input:checked) {
+    border-color: #9fb8ec;
+    background: #edf3ff;
+    color: #234fae;
+    box-shadow: inset 0 0 0 1px rgba(49, 95, 202, .08);
+}
+
+.df-directory-sheet :is(.df-admin-choice, .marka-item, .marka-item-all) input[type="checkbox"] {
+    accent-color: #315fca;
+}
+
+.df-directory-sheet .df-admin-choice-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+}
+
+.df-directory-sheet .df-admin-choice-icon img {
+    width: 17px;
+    height: 17px;
+}
+
+.df-directory-sheet .firma-kodu-hint {
+    margin-top: 0;
+    padding: 4px 7px;
+    font-size: 9px;
+}
+
+.df-directory-sheet .df-admin-form-actions {
+    position: static;
+    z-index: 3;
+    margin: auto -14px 0;
+    padding: 9px 18px;
+    border-top: 1px solid #dfe5ee;
+    background: rgba(255, 255, 255, .97);
+    box-shadow: 0 -10px 24px rgba(16, 24, 40, .07);
+}
+
+@media (max-width: 760px) {
+    .df-service-detail-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .df-service-detail-grid > div:nth-child(2) {
+        border-right: 0;
+    }
+
+    .df-service-detail-grid > div:nth-child(3) {
+        padding-top: 4px;
+    }
+
+    .df-service-detail-grid > div.is-wide {
+        padding-top: 4px;
+        border-right: 0;
+    }
+
+    .df-directory-sheet {
+        width: 100vw;
+    }
+
+    .df-directory-sheet .df-admin-form-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .df-directory-sheet .df-admin-field,
+    .df-directory-sheet .df-admin-field:nth-child(1),
+    .df-directory-sheet .df-admin-field:nth-child(2),
+    .df-directory-sheet .df-admin-field:nth-child(4),
+    .df-directory-sheet .df-admin-field.is-wide {
+        grid-column: auto;
+    }
+
+    .df-directory-sheet .df-admin-choice-layout,
+    .df-directory-sheet .marka-list,
+    .df-directory-sheet .df-admin-choice-list {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .df-directory-sheet-body {
+        overflow-y: auto;
+    }
+}
+
+@media (max-height: 680px) {
+    .df-directory-sheet-body {
+        overflow-y: auto;
+    }
+}
+
+/* Opt-in form layout: keep supporting text out of the control's height. */
+.df-admin-editor.df-management-form .df-admin-field {
+    min-width: 0;
+    align-content: start;
+    grid-template-rows: auto 40px auto;
+    gap: 6px;
+}
+
+.df-admin-editor.df-management-form .df-admin-field label {
+    margin: 0;
+    color: var(--op-ink);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 18px;
+}
+
+.df-admin-editor.df-management-form .df-admin-field input,
+.df-admin-editor.df-management-form .df-admin-field select {
+    height: 40px;
+    min-height: 40px;
+    border: 1px solid var(--op-border);
+    border-radius: 6px;
+    background-color: #fff;
+    color: var(--op-ink);
+    font-size: 13px;
+    box-shadow: none;
+}
+
+.df-admin-editor.df-management-form .df-admin-field input:focus,
+.df-admin-editor.df-management-form .df-admin-field select:focus {
+    border-color: var(--op-blue);
+    outline: 2px solid var(--df-primary-soft);
+    outline-offset: 1px;
+}
+
+.df-admin-editor.df-management-form .df-admin-field-note,
+.df-admin-editor.df-management-form .firma-kodu-hint {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--op-muted);
+    font-size: 11px;
+    font-weight: 400;
+    line-height: 1.5;
+}
+
+.df-admin-editor.df-management-form .df-admin-form-section-head h3 {
+    color: var(--op-ink);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.df-admin-editor.df-management-form .df-admin-form-section-head p {
+    font-size: 12px;
+}
+
+.df-admin-editor.df-management-form .df-admin-form-section-head > span {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+}
+
+.df-admin-editor.df-management-form .df-admin-form-grid {
+    gap: 12px 16px;
+}
+
+.df-admin-editor.df-management-form .df-admin-form-actions {
+    gap: 8px;
+    padding: 12px 18px;
+    background: #f8fafd;
+}
+
+.df-admin-editor.df-management-form .df-admin-form-actions .df-btn {
+    min-height: 36px;
+    font-size: 12px;
+}
+
+.permission-editor {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - 124px);
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--df-border);
+    border-radius: 8px;
+    background: var(--df-surface);
+    color: var(--df-text);
+    box-shadow: 0 4px 16px rgba(20, 50, 69, .04);
+}
+
+.permission-editor .permission-editor-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--df-border);
+}
+
+.permission-editor .permission-editor-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: var(--df-primary-soft);
+    color: var(--df-primary);
+    font-size: 18px;
+}
+
+.permission-editor .permission-editor-head h2 {
+    margin: 0;
+    color: var(--df-text);
+    font-size: 16px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.permission-editor .permission-editor-meta {
+    margin: 3px 0 0;
+    color: var(--df-muted);
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+
+.permission-editor .permission-editor-body,
+.permission-editor .permission-editor-body > form {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.permission-editor .permission-editor-note {
+    margin: 0;
+    padding: 10px 18px;
+    border-bottom: 1px solid var(--df-border);
+    background: #f8fafd;
+    color: var(--df-muted);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.permission-editor .permission-companies {
+    min-height: 0;
+    padding: 0 18px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-gutter: stable;
+    scroll-padding: 10px;
+}
+
+.permission-editor :is(summary, .permission-companies):focus-visible {
+    outline: 2px solid var(--df-primary);
+    outline-offset: -2px;
+}
+
+.permission-editor .company-permission + .company-permission {
+    border-top: 1px solid var(--df-border);
+}
+
+.permission-editor .company-permission > summary {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 46px;
+    padding: 10px 0;
+    list-style: none;
+    cursor: pointer;
+}
+
+.permission-editor .company-permission > summary::-webkit-details-marker { display: none; }
+.permission-editor .company-permission-name { flex: 1; min-width: 0; font-size: 13px; font-weight: 700; }
+.permission-editor .company-permission-state { color: var(--df-muted); font-size: 11px; white-space: nowrap; }
+.permission-editor .company-permission:has(.company-enable:checked) .company-permission-state { color: #167a60; }
+.permission-editor .company-permission-chevron { color: var(--df-muted); font-size: 12px; }
+.permission-editor .company-permission[open] .company-permission-chevron { transform: rotate(180deg); }
+.permission-editor :is(.company-enable, .permission-option) { width: 16px; height: 16px; margin: 2px 0 0; flex-shrink: 0; accent-color: var(--df-primary); }
+
+.permission-editor .permission-groups { padding: 0 0 10px 26px; }
+.permission-editor .permission-group { padding: 10px 0; }
+.permission-editor .permission-group + .permission-group { border-top: 1px solid var(--df-border); }
+.permission-editor .permission-group-title { margin: 0 0 6px; color: var(--df-text); font-size: 12px; font-weight: 700; }
+.permission-editor .permission-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 18px; }
+.permission-editor .permission-group--full { padding: 2px 0 8px; }
+.permission-editor .permission-group--full .permission-list { grid-template-columns: 1fr; }
+
+.permission-editor .permission-option-wrap {
+    display: grid;
+    grid-template-columns: 16px minmax(0, 1fr);
+    align-items: start;
+    gap: 9px;
+    min-width: 0;
+    margin: 0;
+    padding: 7px 8px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.permission-editor .permission-option-wrap:hover { background: #f8fafd; }
+.permission-editor .permission-option-wrap:has(input:checked) { border-color: #d4e6e0; background: #f0f8f5; }
+.permission-editor .permission-option-wrap:has(input:disabled) { opacity: .6; cursor: default; }
+.permission-editor .permission-option-label { display: block; color: var(--df-text); font-size: 12px; font-weight: 600; }
+.permission-editor .permission-option-description { display: block; margin-top: 2px; color: var(--df-muted); font-size: 11px; line-height: 1.5; }
+
+.permission-editor .permission-editor-actions {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 12px 18px;
+    border-top: 1px solid var(--df-border);
+    background: #f8fafd;
+}
+
+.permission-editor .permission-editor-actions .df-btn { min-height: 36px; font-size: 12px; }
+
+.df-permission-workspace {
+    gap: 16px;
+}
+
+.df-permission-workspace .matrix-card,
+.df-permission-workspace .df-permission-list {
+    overflow: hidden;
+    border: 1px solid var(--op-border);
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 4px 16px rgba(20, 50, 69, .04);
+}
+
+.df-permission-workspace .df-permission-list {
+    border-top: 1px solid var(--op-border);
+}
+
+.df-permission-workspace .matrix-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 56px;
+    padding: 10px 16px;
+    border-bottom: 1px solid transparent;
+    background: #fff;
+    color: var(--op-ink);
+    cursor: pointer;
+    list-style: none;
+}
+
+.df-permission-workspace .matrix-head::-webkit-details-marker { display: none; }
+.df-permission-workspace .matrix-card[open] .matrix-head { border-bottom-color: var(--op-border); }
+.df-permission-workspace .matrix-head:hover { background: #f8fafd; }
+
+.df-permission-workspace .matrix-heading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.df-permission-workspace .matrix-heading > i,
+.df-permission-workspace .df-service-list-head h3 > i {
+    display: inline-grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: #edf7fa;
+    color: #237d9f;
+    font-size: 15px;
+}
+
+.df-permission-workspace .matrix-heading strong {
+    display: block;
+    color: var(--op-ink);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.df-permission-workspace .matrix-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: #237d9f;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.df-permission-workspace .matrix-toggle .when-open,
+.df-permission-workspace .matrix-card[open] .matrix-toggle .when-closed { display: none; }
+.df-permission-workspace .matrix-card[open] .matrix-toggle .when-open { display: inline; }
+.df-permission-workspace .matrix-card[open] .matrix-toggle i { transform: rotate(180deg); }
+.df-permission-workspace .matrix-scroll { overflow-x: auto; }
+
+.df-permission-workspace .matrix-table {
+    width: 100%;
+    margin: 0;
+    border-collapse: collapse;
+}
+
+.df-permission-workspace .matrix-table th {
+    padding: 9px 16px;
+    border-bottom: 1px solid var(--op-border);
+    background: #f7fafc;
+    color: var(--op-muted);
+    font-size: 10px;
+    font-weight: 600 !important;
+    text-align: left;
+    text-transform: uppercase;
+}
+
+.df-permission-workspace .matrix-table td {
+    padding: 9px 16px;
+    border-bottom: 1px solid #edf2f5;
+    color: #2e465b;
+    font-size: 12px;
+    line-height: 1.5;
+    vertical-align: top;
+}
+
+.df-permission-workspace .matrix-table tr:last-child td { border-bottom: 0; }
+.df-permission-workspace .matrix-table tbody tr:hover { background: #f8fbfc; }
+
+.df-permission-workspace .role-badge,
+.df-permission-workspace .yetki-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 8px;
+    border: 1px solid #d8e8ee;
+    border-radius: 6px;
+    background: #eef7fa;
+    color: #21657c;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.df-permission-workspace .role-badge { padding-inline: 10px; }
+.df-permission-workspace .ok { color: #0b6e4f; font-weight: 500; }
+.df-permission-workspace .no { color: #9c3d47; font-weight: 500; }
+.df-permission-workspace .legend-wrap { padding: 10px 18px 14px; }
+.df-permission-workspace .legend,
+.df-permission-workspace .yetki-list { display: flex; flex-wrap: wrap; gap: 7px; }
+.df-permission-workspace .tablo-head,
+.df-permission-workspace .tablo-row { grid-template-columns: 1.2fr 1.4fr 1.2fr 1.6fr .8fr; }
+.df-permission-workspace .df-empty-value { color: var(--op-muted); }
+.df-permission-workspace .btn-link { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+
+@media (max-width: 960px) {
+    .df-permission-workspace .tablo-head,
+    .df-permission-workspace .tablo-row { grid-template-columns: 1fr; gap: 8px; }
+}
+
+@media (max-width: 900px) {
+    .permission-editor { max-height: none; }
+    .permission-editor .permission-companies { overflow: visible; }
+    .permission-editor .permission-groups { padding-left: 0; }
+    .permission-editor .permission-list { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+    .permission-editor .company-permission > summary { flex-wrap: wrap; }
+    .permission-editor .company-permission-name { flex-basis: calc(100% - 42px); }
+    .permission-editor .company-permission-state { margin-left: 26px; }
+    .permission-editor .company-permission-chevron { margin-left: auto; }
+}
+
 .df-admin-readonly-value {
     min-height: 42px;
     border: 1px solid #e0e6ee;
@@ -4644,7 +5718,7 @@ body.df-modal-open {
 }
 
 .df-service-create-workspace .df-admin-form-section {
-    padding: 12px 15px;
+    padding: 10px 15px;
 }
 
 .df-service-create-workspace .df-admin-form-section-head {

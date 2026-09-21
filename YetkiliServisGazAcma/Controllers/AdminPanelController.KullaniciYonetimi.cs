@@ -60,6 +60,12 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
 
+            var adminRoluVar = User.IsInRole(KullaniciRolAdlari.GenelSistemAdmin)
+                || User.IsInRole(KullaniciRolAdlari.EskiSuperAdmin)
+                || User.IsInRole(KullaniciRolAdlari.SirketAdmin);
+            if (!adminRoluVar && User.IsInRole(KullaniciRolAdlari.Personel))
+                return Redirect("/personel-panel");
+
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
             var dashboard = await GetAdminDashboardOzetAsync(kullanici, sirketId);
             ViewBag.AdminDashboardVeriKaynagi = "API";
@@ -81,6 +87,7 @@ namespace YetkiliServisGazAcma.Controllers
 
             ViewBag.Kullanici = kullanici;
             var genelSistemAdminMi = await _aktifSirketService.GenelSistemAdminMi(kullanici);
+            ViewBag.GenelSistemAdminMi = genelSistemAdminMi;
             var sirketler = await _aktifSirketService.KullaniciSirketleriAsync(kullanici);
             var aktifSirketAdi = sirketId.HasValue
                 ? sirketler.FirstOrDefault(x => x.Id == sirketId.Value)?.SirketAdi

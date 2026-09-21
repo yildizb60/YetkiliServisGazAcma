@@ -1,9 +1,10 @@
 @{
     ViewData["Title"] = "Cihaz Devreye Alma Raporları";
-    ViewData["PanelTitle"] = ViewData["Title"];
+    ViewData["PanelTitle"] = "Devreye Alma Raporu";
     ViewData["PanelModule"] = "Cihaz Devreye Alma";
     ViewData["PanelSubtitle"] = "Yetkili Servis";
     ViewData["ActiveMenu"] = "Raporlar";
+    ViewData["ContentClass"] = "ys-report-content";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
     DateTime basTarih = ViewBag.BasTarih;
     DateTime bitTarih = ViewBag.BitTarih;
@@ -20,6 +21,17 @@
 
 <div class="ys-workspace ys-reports-workspace">
     <section class="ys-report-controls">
+        <header class="ys-report-heading">
+            <div class="ys-report-heading-icon"><i class="bi bi-bar-chart-line" aria-hidden="true"></i></div>
+            <div>
+                <h1>Devreye Alma Raporu</h1>
+                <p>@basTarih.ToString("dd.MM.yyyy") - @bitTarih.ToString("dd.MM.yyyy") tarihleri arasındaki cihaz işlemleri</p>
+            </div>
+            <span class="ys-report-result-state @(raporVar ? "has-records" : null)">
+                <i class="bi @(raporVar ? "bi-check2-circle" : "bi-info-circle")" aria-hidden="true"></i>
+                @(raporVar ? $"{ViewBag.DevreyeSayisi} işlem bulundu" : "Kayıt bulunamadı")
+            </span>
+        </header>
         <form class="ys-query-grid" method="get" action="@Url.Action("Raporlar", "YetkiliServisPanel")">
             <div class="ys-field">
                 <label for="raporBas">Başlangıç</label>
@@ -30,52 +42,68 @@
                 <input type="date" id="raporBit" name="bit" value="@bitTarih.ToString("yyyy-MM-dd")" />
             </div>
             <div class="ys-report-control-actions">
-                <button class="df-btn df-btn-primary df-btn-sm" type="submit"><i class="bi bi-funnel" aria-hidden="true"></i> Uygula</button>
-                <a class="df-btn df-btn-secondary df-btn-sm ys-quiet-export is-pdf @(!raporVar ? "is-disabled" : "")" href="@(raporVar ? pdfUrl : "#")" aria-disabled="@(!raporVar ? "true" : "false")" title="Filtrelenen kayıtları PDF olarak indir"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF</a>
-                <a class="df-btn df-btn-secondary df-btn-sm ys-quiet-export is-excel @(!raporVar ? "is-disabled" : "")" href="@(raporVar ? excelUrl : "#")" aria-disabled="@(!raporVar ? "true" : "false")" title="Filtrelenen kayıtları Excel olarak indir"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel</a>
+                <button class="df-btn df-btn-primary df-btn-sm" type="submit"><i class="bi bi-arrow-repeat" aria-hidden="true"></i> Raporu Güncelle</button>
+                <a class="df-btn df-btn-secondary df-btn-sm ys-quiet-export is-pdf @(!raporVar ? "is-disabled" : "")" href="@(raporVar ? pdfUrl : "#")" aria-disabled="@(!raporVar ? "true" : "false")" tabindex="@(!raporVar ? "-1" : null)" title="Filtrelenen kayıtları PDF olarak indir"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF İndir</a>
+                <a class="df-btn df-btn-secondary df-btn-sm ys-quiet-export is-excel @(!raporVar ? "is-disabled" : "")" href="@(raporVar ? excelUrl : "#")" aria-disabled="@(!raporVar ? "true" : "false")" tabindex="@(!raporVar ? "-1" : null)" title="Filtrelenen kayıtları Excel olarak indir"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel İndir</a>
             </div>
         </form>
     </section>
 
-    <div class="ys-summary-strip" aria-label="Rapor özeti">
-        <div class="ys-summary-item">
-            <span class="ys-summary-icon"><i class="bi bi-collection" aria-hidden="true"></i></span>
-            <span class="ys-summary-copy"><strong>@ViewBag.DevreyeSayisi</strong><span>Toplam İşlem</span></span>
+    <section class="ys-report-summary" aria-labelledby="reportSummaryTitle">
+        <header class="ys-report-section-head">
+            <div>
+                <h2 id="reportSummaryTitle">Seçili Dönem Özeti</h2>
+                <p>İşlemlerin tamamlanma durumunu tek bakışta karşılaştırın.</p>
+            </div>
+        </header>
+        <div class="ys-summary-strip" aria-label="Rapor özeti">
+            <div class="ys-summary-item">
+                <span class="ys-summary-icon"><i class="bi bi-collection" aria-hidden="true"></i></span>
+                <span class="ys-summary-copy"><strong>@ViewBag.DevreyeSayisi</strong><span>Toplam İşlem</span></span>
+            </div>
+            <div class="ys-summary-item is-success">
+                <span class="ys-summary-icon"><i class="bi bi-check2-circle" aria-hidden="true"></i></span>
+                <span class="ys-summary-copy"><strong>@ViewBag.Tamamlanan</strong><span>Tamamlanan</span></span>
+            </div>
+            <div class="ys-summary-item is-warning">
+                <span class="ys-summary-icon"><i class="bi bi-hourglass-split" aria-hidden="true"></i></span>
+                <span class="ys-summary-copy"><strong>@ViewBag.Bekleyen</strong><span>Bekleyen</span></span>
+            </div>
+            <div class="ys-summary-item is-danger">
+                <span class="ys-summary-icon"><i class="bi bi-x-circle" aria-hidden="true"></i></span>
+                <span class="ys-summary-copy"><strong>@iptal</strong><span>İptal Edilen</span></span>
+            </div>
         </div>
-        <div class="ys-summary-item is-success">
-            <span class="ys-summary-icon"><i class="bi bi-check2-circle" aria-hidden="true"></i></span>
-            <span class="ys-summary-copy"><strong>@ViewBag.Tamamlanan</strong><span>Tamamlanan</span></span>
-        </div>
-        <div class="ys-summary-item is-warning">
-            <span class="ys-summary-icon"><i class="bi bi-hourglass-split" aria-hidden="true"></i></span>
-            <span class="ys-summary-copy"><strong>@ViewBag.Bekleyen</strong><span>Bekleyen</span></span>
-        </div>
-        <div class="ys-summary-item is-danger">
-            <span class="ys-summary-icon"><i class="bi bi-x-circle" aria-hidden="true"></i></span>
-            <span class="ys-summary-copy"><strong>@iptal</strong><span>İptal Edilen</span></span>
-        </div>
-    </div>
+    </section>
 
-    <section class="ys-chart-grid" aria-label="Rapor grafikleri">
-        <div class="ys-chart-panel">
-            <div class="ys-chart-title">Aylık İşlem Trendi</div>
-            <div class="ys-chart-wrap" id="wrapAylik">
-                <div class="ys-chart-empty">Veri bulunamadı</div>
-                <canvas id="aylikChart"></canvas>
+    <section class="ys-report-visuals" aria-labelledby="reportChartsTitle">
+        <header class="ys-report-section-head">
+            <div>
+                <h2 id="reportChartsTitle">İşlem Dağılımları</h2>
+                <p>İşlem yoğunluğunu dönem, durum ve cihaz markası açısından inceleyin.</p>
             </div>
-        </div>
-        <div class="ys-chart-panel">
-            <div class="ys-chart-title">İşlem Durumları</div>
-            <div class="ys-chart-wrap" id="wrapDurum">
-                <div class="ys-chart-empty">Veri bulunamadı</div>
-                <canvas id="durumChart"></canvas>
+        </header>
+        <div class="ys-chart-grid" aria-label="Rapor grafikleri">
+            <div class="ys-chart-panel">
+                <div class="ys-chart-title"><strong>Aylara Göre İşlem Sayısı</strong><span>Dönem içindeki işlem yoğunluğu</span></div>
+                <div class="ys-chart-wrap" id="wrapAylik">
+                    <div class="ys-chart-empty">Bu aralıkta aylık veri bulunamadı.</div>
+                    <canvas id="aylikChart"></canvas>
+                </div>
             </div>
-        </div>
-        <div class="ys-chart-panel">
-            <div class="ys-chart-title">Markaya Göre İşlem</div>
-            <div class="ys-chart-wrap" id="wrapMarka">
-                <div class="ys-chart-empty">Veri bulunamadı</div>
-                <canvas id="markaChart"></canvas>
+            <div class="ys-chart-panel">
+                <div class="ys-chart-title"><strong>Tamamlanma Durumu</strong><span>Sonuçlara göre işlem oranları</span></div>
+                <div class="ys-chart-wrap" id="wrapDurum">
+                    <div class="ys-chart-empty">Durum verisi bulunamadı.</div>
+                    <canvas id="durumChart"></canvas>
+                </div>
+            </div>
+            <div class="ys-chart-panel">
+                <div class="ys-chart-title"><strong>Cihaz Markası Dağılımı</strong><span>Markalara göre kayıt sayısı</span></div>
+                <div class="ys-chart-wrap" id="wrapMarka">
+                    <div class="ys-chart-empty">Marka verisi bulunamadı.</div>
+                    <canvas id="markaChart"></canvas>
+                </div>
             </div>
         </div>
     </section>

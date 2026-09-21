@@ -1,57 +1,129 @@
 @model YkcDashboardOzetDto
+@using YetkiliServisGazAcma.Models.ViewModels
 @{
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
     ViewData["Title"] = "Ana Sayfa";
     ViewData["PanelTitle"] = "Ana Sayfa";
-    ViewData["ActiveMenu"] = "Dashboard";
+    ViewData["ActiveMenu"] = "YkcOzet";
+    ViewData["ContentClass"] = "personnel-home-content role-dashboard-content";
+
+    var yetkiler = ViewBag.YkcYetkileri as YkcYetkiOzeti ?? new YkcYetkiOzeti();
+    var actions = new List<DashboardTileViewModel>();
+    var quickActions = new List<DashboardTileViewModel>();
+
+    if (yetkiler.TalepOlusturabilir)
+    {
+        actions.Add(new DashboardTileViewModel
+        {
+            Title = "Yeni Cihaz Değişim Talebi", Url = Url.Action("Yeni", "Ykc")!, Icon = "bi bi-plus-lg",
+            MetricLabel = "Yeni Kayıt Başlat", Subtitle = "Talep oluştur", Tone = "green"
+        });
+    }
+    if (yetkiler.TalepleriGorebilir)
+    {
+        actions.Add(new DashboardTileViewModel
+        {
+            Title = "Cihaz Değişim Taleplerim", Url = Url.Action("Talepler", "Ykc")!, Icon = "bi bi-journal-text",
+            MetricLabel = "Talep durumlarını görüntüle", Tone = "blue", Featured = Model.Incelemede > 0
+        });
+        actions.Add(new DashboardTileViewModel
+        {
+            Title = "Randevularım", Url = Url.Action("Takvim", "Ykc")!, Icon = "bi bi-calendar3",
+            MetricLabel = "Kontrol tarihlerini görüntüle", Tone = "cyan"
+        });
+    }
+    if (yetkiler.RaporlariGorebilir)
+    {
+        actions.Add(new DashboardTileViewModel
+        {
+            Title = "Cihaz Değişim Raporları", Url = Url.Action("Raporlar", "Ykc")!, Icon = "bi bi-bar-chart-line",
+            MetricLabel = "Sonuçları incele", Subtitle = "Raporlama", Tone = "amber"
+        });
+    }
+    actions.Add(new DashboardTileViewModel
+    {
+        Title = "Profilim", Url = Url.Action("Profil", "Ykc")!, Icon = "bi bi-person-circle",
+        MetricLabel = "Firma ve hesap bilgileri", Subtitle = "Hesabım", Tone = "amber"
+    });
+
+    if (yetkiler.TalepleriGorebilir)
+    {
+        foreach (var item in Model.SonTalepler.Take(3))
+        {
+            var durumEtiketi = item.Durum switch
+            {
+                YkcDurumDegerleri.TalepAlindi => "İncelemede",
+                YkcDurumDegerleri.AtamaBekliyor => "Atama Bekliyor",
+                YkcDurumDegerleri.Atandi => "Randevulu",
+                YkcDurumDegerleri.SahaIsleminde => "Kontrolde",
+                YkcDurumDegerleri.Tamamlandi => "Tamamlandı",
+                YkcDurumDegerleri.Reddedildi => "Reddedildi",
+                YkcDurumDegerleri.Iptal => "İptal",
+                _ => YkcDurumSunumu.Etiket(item.Durum)
+            };
+            quickActions.Add(new DashboardTileViewModel
+            {
+                Title = string.IsNullOrWhiteSpace(item.MusteriAdi) ? $"Talep #{item.Id}" : item.MusteriAdi,
+                Url = Url.Action("Detay", "Ykc", new { id = item.Id })!,
+                Icon = "bi bi-fire",
+                MetricValue = durumEtiketi,
+                MetricLabel = "",
+                Subtitle = $"Tesisat {item.TesisatNo ?? "-"} · {item.TalepTarihi:dd.MM.yyyy}",
+                Tone = item.Durum == YkcDurumDegerleri.Tamamlandi ? "green" : "blue",
+                Featured = quickActions.Count == 0
+            });
+        }
+    }
+
+    if (quickActions.Count == 0 && yetkiler.TalepleriGorebilir)
+    {
+        quickActions.Add(new DashboardTileViewModel
+        {
+            Title = "Taleplerimi görüntüle", Url = Url.Action("Talepler", "Ykc")!, Icon = "bi bi-journal-text",
+            MetricValue = Model.Toplam.ToString(), MetricLabel = "talep", Subtitle = "Cihaz değişim işlemleri", Tone = "blue", Featured = true
+        });
+        quickActions.Add(new DashboardTileViewModel
+        {
+            Title = "Kontrol randevularımı aç", Url = Url.Action("Takvim", "Ykc")!, Icon = "bi bi-calendar3",
+            MetricValue = Model.RandevuSaha.ToString(), MetricLabel = "kontrolde", Subtitle = "Randevu takvimi", Tone = "cyan"
+        });
+    }
+    if (quickActions.Count < 3)
+    {
+        quickActions.Add(new DashboardTileViewModel
+        {
+            Title = "Profil bilgilerim", Url = Url.Action("Profil", "Ykc")!, Icon = "bi bi-person-circle",
+            MetricValue = "Aç", MetricLabel = "", Subtitle = "Hesabım", Tone = "amber"
+        });
+    }
+
+    var dashboardModel = new RoleDashboardViewModel
+    {
+        Variant = "certified-firm",
+        AriaLabel = "Sertifikalı firma cihaz değişim özeti",
+        HeroTitle = "Sertifikalı Firma Paneli",
+        HeroKicker = DateTime.Today.ToString("dd MMMM yyyy, dddd", System.Globalization.CultureInfo.GetCultureInfo("tr-TR")),
+        HeroImageUrl = "/images/hero/sertifikali-firma-cihaz-degisim-dashboard.png",
+        ActionsTitle = "İşlem Alanlarım",
+        QuickActionsTitle = Model.SonTalepler.Count > 0 ? "Son Taleplerim" : "Hızlı İşlemler",
+        QuickActionsMeta = "Güncel durum",
+        ShowYkcCalendar = yetkiler.TalepleriGorebilir,
+        Facts = new List<RoleDashboardFactViewModel>
+        {
+            new() { Icon = "bi bi-journal-check", Value = Model.Toplam.ToString(), Label = "cihaz değişim talebi", Url = Url.Action("Talepler", "Ykc") },
+            new() { Icon = "bi bi-calendar-check", Value = Model.RandevuSaha.ToString(), Label = "kontrol sürecinde", Url = Url.Action("Takvim", "Ykc") }
+        },
+        Actions = actions,
+        QuickActions = quickActions
+    };
 }
+
 @section PageStyles {
-    <link rel="stylesheet" href="~/css/operations-home.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/personnel-home.css" asp-append-version="true" />
 }
-<div class="ops-home ops-firm-home">
-    <header class="ops-overview">
-        <div class="ops-overview-heading">
-            <h2>Cihaz Değişim İşlemlerim</h2>
-            <a class="df-btn df-btn-primary df-btn-sm" href="@Url.Action("Yeni", "Ykc")"><i class="bi bi-plus-lg" aria-hidden="true"></i>Yeni Talep</a>
-        </div>
-        <dl class="ops-overview-stats" aria-label="Talep durumu özeti">
-            <div><dt>Toplam talep</dt><dd>@Model.Toplam</dd></div>
-            <div><dt>İnceleme ve randevu bekleyen</dt><dd>@Model.Incelemede</dd></div>
-            <div><dt>Kontrol sürecinde</dt><dd>@Model.RandevuSaha</dd></div>
-            <div><dt>Tamamlanan</dt><dd>@Model.Tamamlanan</dd></div>
-        </dl>
-    </header>
-    @await Component.InvokeAsync("YkcRandevuOzeti")
-    <section class="ops-records" aria-labelledby="recent-title">
-        <header class="ops-section-heading">
-            <h2 id="recent-title"><i class="bi bi-clock-history" aria-hidden="true"></i>Son Cihaz Değişim Taleplerim</h2>
-            <a href="@Url.Action("Talepler", "Ykc")">Tüm Taleplerim<i class="bi bi-arrow-right" aria-hidden="true"></i></a>
-        </header>
-        @if (Model.SonTalepler.Count == 0)
-        {
-            <div class="ops-empty"><i class="bi bi-inbox" aria-hidden="true"></i><p>Henüz cihaz değişim talebiniz bulunmuyor.</p></div>
-        }
-        else
-        {
-            <div class="ops-table-scroll">
-                <table class="ops-table">
-                    <thead><tr><th>Talep No</th><th>Abone Adı Soyadı</th><th>Tesisat No</th><th>Kontrol Randevusu</th><th>Talep Durumu</th><th><span class="visually-hidden">Detay</span></th></tr></thead>
-                    <tbody>
-                    @foreach (var item in Model.SonTalepler.Take(5))
-                    {
-                        <tr>
-                            <td><a class="ops-record-link" href="@Url.Action("Detay", "Ykc", new { id = item.Id })">#@item.Id</a></td>
-                            <td>@(string.IsNullOrWhiteSpace(item.MusteriAdi) ? "Kayıtlı değil" : item.MusteriAdi)</td>
-                            <td>@item.TesisatNo</td>
-                            <td>@if (item.RandevuTarihi.HasValue) { <time>@item.RandevuTarihi.Value.ToString("dd.MM.yyyy") <b>@item.RandevuSaati</b></time> } else { <span class="ops-muted">Planlanmadı</span> }</td>
-                            <td><span class="df-pill @YkcDurumSunumu.CssSinifi(item.Durum)">@(item.Durum == YkcDurumDegerleri.TalepAlindi ? "İnceleme Bekleniyor" : YkcDurumSunumu.Etiket(item.Durum))</span></td>
-                            <td><a class="ops-icon-button" href="@Url.Action("Detay", "Ykc", new { id = item.Id })" aria-label="@($"Talep {item.Id} detayını aç")" title="Talep detayını aç"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a></td>
-                        </tr>
-                    }
-                    </tbody>
-                </table>
-            </div>
-        }
-        @if (Model.RedIptal > 0) { <footer class="ops-section-footer">@Model.RedIptal talep ret / iptal ile sonuçlandı.</footer> }
-    </section>
-</div>
+
+@await Html.PartialAsync("_RoleDashboard", dashboardModel)
+
+@section Scripts {
+    <script src="~/js/dashboard-carousel.js" asp-append-version="true"></script>
+}

@@ -1,198 +1,201 @@
 @using YetkiliServisGazAcma.Models.ViewModels
+@using YetkiliServisGazAcma.Entities
 @{
     ViewData["Title"] = "Yönetim Genel Bakışı";
     ViewData["PanelTitle"] = "Genel Bakış";
     ViewData["PanelSubtitle"] = ViewBag.AdminDashboardAltBaslik as string ?? "Yönetim";
     ViewData["ActiveMenu"] = "Dashboard";
-    ViewData["ContentClass"] = "admin-dashboard-content";
+    ViewData["ContentClass"] = "personnel-home-content role-dashboard-content";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
-    var onayBekleyen = ViewBag.OnayBekleyen is int ob ? ob : 0;
-    var suresiBitecek = ViewBag.SuresiBitecek is int sb ? sb : 0;
-    var toplamFirma = ViewBag.ToplamFirma is int tf ? tf : 0;
-    var toplamDevreyeAlma = ViewBag.ToplamDevreyeAlma is int td ? td : 0;
-    var toplamSirket = ViewBag.ToplamSirket is int ts ? ts : 0;
-    var buAyDevreyeAlma = ViewBag.BuAyDevreyeAlma is int ba ? ba : 0;
+    var onayBekleyen = Sayi(ViewBag.OnayBekleyen);
+    var suresiBitecek = Sayi(ViewBag.SuresiBitecek);
+    var toplamFirma = Sayi(ViewBag.ToplamFirma);
+    var buAyDevreyeAlma = Sayi(ViewBag.BuAyDevreyeAlma);
     var genelSistemAdminMi = ViewBag.GenelSistemAdminMi as bool? ?? false;
+    var sirketAdminMi = User.IsInRole(KullaniciRolAdlari.SirketAdmin);
+    var adminRoluVar = genelSistemAdminMi || sirketAdminMi;
     var rolAdi = ViewBag.AdminDashboardAltBaslik as string ?? (genelSistemAdminMi ? "Genel Sistem Admini" : "Şirket Admini");
     var kapsamAdi = ViewBag.AdminDashboardBaslik as string ?? "Yönetim Özeti";
-    var dikkatGerektiren = onayBekleyen + suresiBitecek;
+    var sonYetkiBelgeleri = ViewBag.SonYetkiBelgeleri as List<Ys_YetkiBelgesi> ?? new List<Ys_YetkiBelgesi>();
+    var sonDevreyeAlmalar = ViewBag.SonDevreyeAlmalar as List<Ys_DevreyeAlma> ?? new List<Ys_DevreyeAlma>();
+    var actions = new List<DashboardTileViewModel>();
 
-    var moduller = new List<DashboardTileViewModel>
+    if (adminRoluVar)
+    {
+        actions.Add(new DashboardTileViewModel
+        {
+            Title = "Yetki Belgesi İşlemleri", Url = Url.Action("OnayBekleyenler", "AdminPanel")!, Icon = "bi bi-file-earmark-check",
+            MetricLabel = "Belge kararları ve süre takibi", Tone = "amber", Featured = onayBekleyen > 0
+        });
+        actions.Add(new DashboardTileViewModel
+        {
+            Title = "Yetkili Servis Yönetimi", Url = Url.Action("YetkiliServisler", "AdminPanel")!, Icon = "bi bi-building-check",
+            MetricLabel = "Servis kayıtları ve yetkiler", Tone = "cyan"
+        });
+        actions.Add(new DashboardTileViewModel
+        {
+            Title = "Cihaz Devreye Alma", Url = Url.Action("DevreyeAlmalar", "AdminPanel")!, Icon = "bi bi-tools",
+            MetricLabel = "Kayıt ve sonuç takibi", Tone = "green"
+        });
+        actions.Add(new DashboardTileViewModel
+        {
+            Title = "Cihaz Değişim İşlemleri", Url = Url.Action("Talepler", "Ykc")!, Icon = "bi bi-fire",
+            MetricLabel = "Talep ve randevuları yönet", Subtitle = "Cihaz değişim süreci", Tone = "blue"
+        });
+        actions.Add(new DashboardTileViewModel
+        {
+            Title = "Kullanıcı ve Yetkiler", Url = Url.Action("Kullanicilar", "AdminPanel")!, Icon = "bi bi-people",
+            MetricLabel = "Hesap ve erişimleri yönet", Subtitle = "Kullanıcı yönetimi", Tone = "blue"
+        });
+        actions.Add(new DashboardTileViewModel
+        {
+            Title = "Şube Yönetimi", Url = Url.Action("Subeler", "AdminPanel")!, Icon = "bi bi-diagram-3",
+            MetricLabel = "Şube kapsamını görüntüle", Subtitle = "Şube yönetimi", Tone = "green"
+        });
+        actions.Add(new DashboardTileViewModel
+        {
+            Title = "Operasyon Raporları", Url = Url.Action("Raporlar", "AdminPanel")!, Icon = "bi bi-bar-chart-line",
+            MetricLabel = "Operasyon sonuçlarını incele", Subtitle = "Raporlama", Tone = "cyan"
+        });
+        if (genelSistemAdminMi)
+        {
+            actions.Add(new DashboardTileViewModel
+            {
+                Title = "Yetkili Servis Markaları", Url = Url.Action("Index", "Marka")!, Icon = "bi bi-tags",
+                MetricLabel = "Marka kapsamını yönet", Subtitle = "Marka yönetimi", Tone = "amber"
+            });
+        }
+    }
+
+    var quickActions = new List<DashboardTileViewModel>
     {
         new()
         {
-            Title = "Yetki Belgesi İşlemleri",
-            Subtitle = "Onay ve süre takibi",
-            Url = Url.Action("OnayBekleyenler", "AdminPanel")!,
-            Icon = "bi bi-file-earmark-check",
-            Tone = "amber"
+            Title = "Belge süre uyarıları", Url = Url.Action("YetkiBelgesiUyarilari", "AdminPanel")!, Icon = "bi bi-calendar2-x",
+            MetricValue = suresiBitecek.ToString(), MetricLabel = "uyarı", Subtitle = "Süre takibi",
+            Tone = "amber", Featured = suresiBitecek > 0
         },
         new()
         {
-            Title = "Yetkili Servisler",
-            Subtitle = "Servis kayıtları",
-            Url = Url.Action("YetkiliServisler", "AdminPanel")!,
-            Icon = "bi bi-building-check",
-            Tone = "cyan"
-        },
-        new()
-        {
-            Title = "Cihaz Devreye Alma",
-            Subtitle = "Kayıt ve durum takibi",
-            Url = Url.Action("DevreyeAlmalar", "AdminPanel")!,
-            Icon = "bi bi-clipboard2-check",
-            Tone = "green"
-        },
-        new()
-        {
-            Title = "Cihaz Değişim İşlemleri",
-            Subtitle = "Talep ve randevular",
-            Url = Url.Action("Talepler", "Ykc")!,
-            Icon = "bi bi-arrow-repeat",
-            Tone = "blue"
-        },
-        new()
-        {
-            Title = "Kullanıcı ve Yetkiler",
-            Subtitle = "Hesap ve erişim",
-            Url = Url.Action("Kullanicilar", "AdminPanel")!,
-            Icon = "bi bi-people",
-            Tone = "blue"
-        },
-        genelSistemAdminMi
-            ? new DashboardTileViewModel
-            {
-                Title = "Yetkili Servis Markaları",
-                Subtitle = "Marka kapsamı",
-                Url = Url.Action("Index", "Marka")!,
-                Icon = "bi bi-tags",
-                Tone = "cyan"
-            }
-            : new DashboardTileViewModel
-            {
-                Title = "Şube Yönetimi",
-                Subtitle = "Şube ve kapsam bilgileri",
-                Url = Url.Action("Subeler", "AdminPanel")!,
-                Icon = "bi bi-diagram-3",
-                Tone = "green"
-            }
+            Title = "Bu ay kaydedilen cihaz işlemleri", Url = Url.Action("DevreyeAlmalar", "AdminPanel")!, Icon = "bi bi-tools",
+            MetricValue = buAyDevreyeAlma.ToString(), MetricLabel = "kayıt", Subtitle = "Cihaz devreye alma", Tone = "green"
+        }
     };
+
+    var activityEntries = new List<(DateTime Tarih, DashboardTileViewModel Item)>();
+    foreach (var belge in sonYetkiBelgeleri)
+    {
+        if (belge.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor)
+            continue;
+
+        var durumBasligi = belge.Durum switch
+        {
+            YetkiBelgesiDurumDegerleri.Onaylandi => "Yetki belgesi onaylandı",
+            YetkiBelgesiDurumDegerleri.Reddedildi => "Yetki belgesi reddedildi",
+            _ => "Yetki belgesi güncellendi"
+        };
+        var tone = belge.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "green" : "amber";
+        var icon = belge.Durum == YetkiBelgesiDurumDegerleri.Onaylandi
+            ? "bi bi-patch-check"
+            : belge.Durum == YetkiBelgesiDurumDegerleri.Reddedildi ? "bi bi-x-circle" : "bi bi-file-earmark-arrow-up";
+        var tarih = belge.OlusturmaTarihi;
+        var firmaAdi = string.IsNullOrWhiteSpace(belge.Firma?.FirmaAdi) ? "Yetkili servis" : belge.Firma.FirmaAdi;
+        activityEntries.Add((tarih, new DashboardTileViewModel
+        {
+            Title = durumBasligi,
+            Url = Url.Action("YetkiliServisDetay", "AdminPanel", new { id = belge.FirmaId })!,
+            Icon = icon,
+            Tone = tone,
+            Subtitle = $"{firmaAdi} · {tarih:dd.MM.yyyy}",
+            MetricValue = tarih.ToString("HH:mm")
+        }));
+    }
+
+    foreach (var islem in sonDevreyeAlmalar)
+    {
+        var durumBasligi = islem.Durum switch
+        {
+            DevreyeAlmaDurumDegerleri.Tamamlandi => "Cihaz devreye alma tamamlandı",
+            DevreyeAlmaDurumDegerleri.Iptal => "Cihaz işlemi iptal edildi",
+            _ => "Cihaz devreye alma kaydı oluşturuldu"
+        };
+        var tone = islem.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi
+            ? "green"
+            : islem.Durum == DevreyeAlmaDurumDegerleri.Iptal ? "amber" : "blue";
+        var tarih = islem.OlusturmaTarihi;
+        var firmaAdi = string.IsNullOrWhiteSpace(islem.Firma?.FirmaAdi) ? "Yetkili servis" : islem.Firma.FirmaAdi;
+        var tesisat = string.IsNullOrWhiteSpace(islem.TesistatNo) ? "Tesisat belirtilmedi" : $"Tesisat {islem.TesistatNo}";
+        activityEntries.Add((tarih, new DashboardTileViewModel
+        {
+            Title = durumBasligi,
+            Url = Url.Action("DevreyeAlmaDetay", "AdminPanel", new { id = islem.Id })!,
+            Icon = islem.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? "bi bi-check2-circle" : "bi bi-tools",
+            Tone = tone,
+            Subtitle = $"{firmaAdi} · {tesisat} · {tarih:dd.MM.yyyy}",
+            MetricValue = tarih.ToString("HH:mm")
+        }));
+    }
+
+    var recentActivities = activityEntries
+        .OrderByDescending(entry => entry.Tarih)
+        .Select(entry => entry.Item)
+        .Take(6)
+        .ToList();
+    if (recentActivities.Count == 0)
+    {
+        recentActivities.Add(new DashboardTileViewModel
+        {
+            Title = "Henüz işlem kaydı bulunmuyor",
+            Url = Url.Action("Raporlar", "AdminPanel")!,
+            Icon = "bi bi-clock-history",
+            Tone = "blue",
+            Subtitle = "Yeni hareketler burada gösterilecek"
+        });
+    }
+
+    var dashboardModel = new RoleDashboardViewModel
+    {
+        Variant = genelSistemAdminMi ? "system-admin" : "company-admin",
+        AriaLabel = $"{rolAdi} yönetim özeti",
+        HeroTitle = "Yönetim Merkezi",
+        HeroKicker = $"{rolAdi} · {kapsamAdi}",
+        HeroKickerIcon = "bi bi-shield-check",
+        HeroImageUrl = "/images/hero/admin-yonetim-dashboard.png",
+        ActionsTitle = "Yönetim Alanları",
+        QuickActionsTitle = "Güncel Hareket",
+        QuickActionsMeta = "Güncel durum",
+        Facts = new List<RoleDashboardFactViewModel>
+        {
+            new() { Icon = "bi bi-file-earmark-check", Value = onayBekleyen.ToString(), Label = "karar bekleyen belge", Url = Url.Action("OnayBekleyenler", "AdminPanel") },
+            new() { Icon = "bi bi-building-check", Value = toplamFirma.ToString(), Label = "yetkili servis", Url = Url.Action("YetkiliServisler", "AdminPanel") }
+        },
+        Actions = actions,
+        QuickActions = quickActions,
+        SidePanel = new RoleDashboardSidePanelViewModel
+        {
+            Title = "Son İşlemler",
+            Icon = "bi bi-clock-history",
+            ItemsTitle = "Güncel Hareketler",
+            ActionText = "Tümünü Gör",
+            ActionUrl = Url.Action("Raporlar", "AdminPanel"),
+            Items = recentActivities
+        }
+    };
+}
+@functions {
+    private static int Sayi(object? value)
+    {
+        if (value is int sayi) return Math.Max(sayi, 0);
+        return int.TryParse(value?.ToString(), out var sonuc) ? Math.Max(sonuc, 0) : 0;
+    }
 }
 
 @section PageStyles {
-    <link rel="stylesheet" href="~/css/admin-dashboard.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/personnel-home.css" asp-append-version="true" />
 }
 
-<div class="work-dashboard work-dashboard--admin" data-dashboard>
-    <header class="work-dashboard__masthead">
-        <div class="work-dashboard__identity">
-            <span class="work-dashboard__identity-icon" aria-hidden="true"><i class="bi bi-shield-check"></i></span>
-            <div>
-                <span>@rolAdi</span>
-                <h1>@kapsamAdi</h1>
-            </div>
-        </div>
-        <div class="work-dashboard__masthead-actions">
-            @if (genelSistemAdminMi && toplamSirket > 0)
-            {
-                <span class="work-dashboard__scope"><i class="bi bi-buildings" aria-hidden="true"></i>@toplamSirket şirket</span>
-            }
-            <a class="work-dashboard__tool-button" href="@Url.Action("Raporlar", "AdminPanel")" title="Raporları aç" aria-label="Raporları aç"><i class="bi bi-bar-chart-line" aria-hidden="true"></i></a>
-            <a class="work-dashboard__primary-action" href="@Url.Action("OnayBekleyenler", "AdminPanel")">
-                <i class="bi bi-inbox" aria-hidden="true"></i><span>Belge Onayları</span>
-                @if (onayBekleyen > 0)
-                {
-                    <strong>@onayBekleyen</strong>
-                }
-            </a>
-        </div>
-    </header>
-
-    <section class="work-command-strip" aria-label="Yönetim durumu">
-        <a class="work-command-priority is-amber" href="@Url.Action("OnayBekleyenler", "AdminPanel")">
-            <span class="work-command-priority__icon"><i class="bi bi-file-earmark-check" aria-hidden="true"></i></span>
-            <span class="work-command-priority__copy">
-                <small>Öncelikli işlem</small>
-                <strong>@(onayBekleyen > 0 ? "Yetki belgesi onayı" : "Belge onayları güncel")</strong>
-                <em>@(onayBekleyen > 0 ? "İnceleme bekleyen kayıtlar var" : "Bekleyen belge bulunmuyor")</em>
-            </span>
-            <span class="work-command-priority__value">@onayBekleyen</span>
-            <i class="bi bi-arrow-right" aria-hidden="true"></i>
-        </a>
-        <div class="work-stat-cluster is-four" aria-label="Yönetim sayıları">
-            <a class="work-stat is-cyan" href="@Url.Action("YetkiliServisler", "AdminPanel")"><span>Yetkili servis</span><strong>@toplamFirma</strong></a>
-            <a class="work-stat is-green" href="@Url.Action("DevreyeAlmalar", "AdminPanel")"><span>Devreye alma</span><strong>@toplamDevreyeAlma</strong></a>
-            <a class="work-stat is-blue" href="@Url.Action("Raporlar", "AdminPanel")"><span>Bu ay kaydedilen</span><strong>@buAyDevreyeAlma</strong></a>
-            @if (genelSistemAdminMi)
-            {
-                <a class="work-stat is-slate" href="@Url.Action("Kullanicilar", "AdminPanel")"><span>Şirket kapsamı</span><strong>@toplamSirket</strong></a>
-            }
-            else
-            {
-                <a class="work-stat is-red" href="@Url.Action("YetkiBelgesiUyarilari", "AdminPanel")"><span>Süre uyarısı</span><strong>@suresiBitecek</strong></a>
-            }
-        </div>
-    </section>
-
-    <section class="work-dashboard__body">
-        <article class="work-surface work-inbox">
-            <header class="work-surface__head">
-                <div><span class="work-surface__icon is-amber"><i class="bi bi-list-task" aria-hidden="true"></i></span><div><h2>Öncelikli işler</h2><p>Bugün takip edilmesi gereken kayıtlar</p></div></div>
-                <span class="work-surface__count @(dikkatGerektiren > 0 ? "has-items" : null)">@dikkatGerektiren</span>
-            </header>
-            <div class="work-list">
-                <a href="@Url.Action("OnayBekleyenler", "AdminPanel")">
-                    <span class="work-list__icon is-amber"><i class="bi bi-file-earmark-text" aria-hidden="true"></i></span>
-                    <span><strong>Yetki belgesi onayları</strong><small>@(onayBekleyen > 0 ? $"{onayBekleyen} belge incelenmeli" : "Bekleyen kayıt bulunmuyor")</small></span>
-                    <b>@onayBekleyen</b><i class="bi bi-chevron-right" aria-hidden="true"></i>
-                </a>
-                <a href="@Url.Action("YetkiBelgesiUyarilari", "AdminPanel")">
-                    <span class="work-list__icon is-red"><i class="bi bi-calendar2-x" aria-hidden="true"></i></span>
-                    <span><strong>Belge süre uyarıları</strong><small>@(suresiBitecek > 0 ? $"{suresiBitecek} belge için takip gerekli" : "Süre uyarısı bulunmuyor")</small></span>
-                    <b>@suresiBitecek</b><i class="bi bi-chevron-right" aria-hidden="true"></i>
-                </a>
-                <a href="@Url.Action("Talepler", "Ykc")">
-                    <span class="work-list__icon is-blue"><i class="bi bi-arrow-repeat" aria-hidden="true"></i></span>
-                    <span><strong>Cihaz değişim süreci</strong><small>Talep, randevu ve kontrol kayıtları</small></span>
-                    <em>Aç</em><i class="bi bi-chevron-right" aria-hidden="true"></i>
-                </a>
-            </div>
-        </article>
-
-        <article class="work-surface work-coverage">
-            <header class="work-surface__head">
-                <div><span class="work-surface__icon is-blue"><i class="bi bi-diagram-3" aria-hidden="true"></i></span><div><h2>Yönetim kapsamı</h2><p>@rolAdi için güncel görünüm</p></div></div>
-            </header>
-            <dl class="work-coverage-grid">
-                <div><dt>Yetkili servis</dt><dd>@toplamFirma</dd></div>
-                <div><dt>Devreye alma kaydı</dt><dd>@toplamDevreyeAlma</dd></div>
-                <div><dt>Bu ay kaydedilen</dt><dd>@buAyDevreyeAlma</dd></div>
-                <div><dt>@(genelSistemAdminMi ? "Şirket" : "Süre uyarısı")</dt><dd>@(genelSistemAdminMi ? toplamSirket : suresiBitecek)</dd></div>
-            </dl>
-        </article>
-    </section>
-
-    <section class="work-dashboard__access" aria-label="Hızlı erişim">
-        <header class="work-dashboard__access-head">
-            <div><span class="work-dashboard__eyebrow"><i class="bi bi-grid-1x2" aria-hidden="true"></i>Hızlı erişim</span><h2>Yönetim modülleri</h2></div>
-            <div class="dashboard-carousel-controls" data-carousel-controls hidden>
-                <button type="button" data-carousel-prev title="Önceki modüller" aria-label="Önceki modüller"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
-                <button type="button" data-carousel-next title="Sonraki modüller" aria-label="Sonraki modüller"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
-            </div>
-        </header>
-        <nav class="work-module-track dashboard-carousel-track" aria-label="Yönetim modülleri" data-carousel-track>
-            @foreach (var modul in moduller)
-            {
-                <a class="work-module-card is-@modul.Tone" href="@modul.Url" data-carousel-card>
-                    <span class="work-module-card__icon"><i class="@modul.Icon" aria-hidden="true"></i></span>
-                    <span><strong>@modul.Title</strong><small>@modul.Subtitle</small></span>
-                    <i class="bi bi-arrow-right" aria-hidden="true"></i>
-                </a>
-            }
-        </nav>
-    </section>
-</div>
+@await Html.PartialAsync("_RoleDashboard", dashboardModel)
 
 @section Scripts {
     <script src="~/js/dashboard-carousel.js" asp-append-version="true"></script>

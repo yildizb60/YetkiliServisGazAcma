@@ -65,20 +65,25 @@
         </form>
     </details>
 
-    <section class="df-service-list">
+    <section class="df-service-list df-service-list-modern">
         <div class="df-service-list-head">
             <div>
-                <h3><i class="bi bi-list-check" aria-hidden="true"></i> Yetkili Servis Listesi</h3>
+                <h3><i class="bi bi-buildings" aria-hidden="true"></i> Servis Kayıtları</h3>
             </div>
             <div class="df-actions">
                 <span class="df-pill df-pill-info">@servisler.Count kayıt</span>
                 <a class="df-btn df-btn-secondary df-btn-sm" href="/yetkili-servisler" target="_blank"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> Genel Liste</a>
-                <a class="df-btn df-btn-primary df-btn-sm" href="/AdminPanel/yetkiliservisler/ekle"><i class="bi bi-plus-lg" aria-hidden="true"></i> Yeni Servis</a>
+                <a class="df-btn df-btn-primary df-btn-sm js-service-sheet-trigger"
+                   href="/AdminPanel/yetkiliservisler/ekle"
+                   data-sheet-url="/AdminPanel/yetkiliservisler/ekle"
+                   data-sheet-title="Yeni Yetkili Servis">
+                    <i class="bi bi-plus-lg" aria-hidden="true"></i> Yeni Servis
+                </a>
             </div>
         </div>
         <div class="df-service-table-scroll">
             <div class="df-service-grid df-service-grid-head">
-                <div>Firma</div><div>Şehir</div><div>Vergi No</div><div>İşlem</div><div>Durum</div><div>İşlemler</div>
+                <div>Firma</div><div>İletişim</div><div>Şehir</div><div>Devreye</div><div>Durum</div><div class="df-service-grid-actions-heading">İşlemler</div>
             </div>
             @if (servisler.Count == 0)
             {
@@ -89,36 +94,268 @@
             }
             else
             {
-                foreach (var servis in servisler)
-                {
-                    var devreyeSayisi = devreyeSayilari.TryGetValue(servis.Id, out var sayi) ? sayi : 0;
-                    <div class="df-service-grid df-service-row @(servis.AktifMi ? "is-active" : "is-passive")">
-                        <div>
-                            <span class="df-service-name">@(servis.FirmaAdi ?? "-")</span>
-                            <small>@(string.IsNullOrWhiteSpace(servis.YetkiliKisi) ? "Yetkili kişi tanımlı değil" : servis.YetkiliKisi)</small>
-                        </div>
-                        <div>@(servis.FaaliyetIli ?? "-")</div>
-                        <div>@(servis.VergiNo ?? "-")</div>
-                        <div><span class="df-service-count">@devreyeSayisi</span></div>
-                        <div><span class="df-pill @(servis.AktifMi ? "df-pill-success" : "df-pill-danger")">@(servis.AktifMi ? "Aktif" : "Pasif")</span></div>
-                        <div class="df-service-actions">
-                            <a class="df-icon-action" href="/AdminPanel/yetkiliservisler/detay/@servis.Id" title="Servis detayını görüntüle"><i class="bi bi-eye" aria-hidden="true"></i><span>Detay</span></a>
-                            <a class="df-icon-action" href="/AdminPanel/yetkiliservisler/duzenle/@servis.Id" title="Servisi düzenle"><i class="bi bi-pencil" aria-hidden="true"></i><span>Düzenle</span></a>
-                            @if (devreyeSayisi > 0)
-                            {
-                                <button type="button" class="df-icon-action is-disabled" disabled title="Bu servisin devreye alma işlemi olduğu için silinemez."><i class="bi bi-lock" aria-hidden="true"></i><span>Silinemez</span></button>
-                            }
-                            else
-                            {
-                                <form method="post" action="/AdminPanel/yetkiliservisler/sil/@servis.Id" onsubmit="return confirm('Bu yetkili servisi silmek istiyor musunuz?');">
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit" class="df-icon-action is-danger" title="Servisi sil"><i class="bi bi-trash3" aria-hidden="true"></i><span>Sil</span></button>
-                                </form>
-                            }
-                        </div>
-                    </div>
-                }
+                <div class="df-service-records">
+                    @foreach (var servis in servisler)
+                    {
+                        var devreyeSayisi = devreyeSayilari.TryGetValue(servis.Id, out var sayi) ? sayi : 0;
+                        var detayId = $"servis-detay-{servis.Id}";
+                        <article class="df-service-record @(servis.AktifMi ? "is-active" : "is-passive")" data-service-record>
+                            <div class="df-service-grid df-service-row">
+                                <div>
+                                    <span class="df-service-name">@(servis.FirmaAdi ?? "-")</span>
+                                    <small>@(string.IsNullOrWhiteSpace(servis.YetkiliKisi) ? "Yetkili kişi tanımlı değil" : servis.YetkiliKisi)</small>
+                                </div>
+                                <div class="df-service-contact">
+                                    <span>@(string.IsNullOrWhiteSpace(servis.Telefon) ? "Telefon tanımlı değil" : servis.Telefon)</span>
+                                    <small>@(string.IsNullOrWhiteSpace(servis.Email) ? "E-posta tanımlı değil" : servis.Email)</small>
+                                </div>
+                                <div class="df-service-city"><i class="bi bi-geo-alt" aria-hidden="true"></i><span>@(servis.FaaliyetIli ?? "-")</span></div>
+                                <div><span class="df-service-count" title="Devreye alma kaydı">@devreyeSayisi</span></div>
+                                <div><span class="df-pill @(servis.AktifMi ? "df-pill-success" : "df-pill-danger")">@(servis.AktifMi ? "Aktif" : "Pasif")</span></div>
+                                <div class="df-service-actions">
+                                    <a class="df-directory-action js-service-sheet-trigger"
+                                       href="/AdminPanel/yetkiliservisler/duzenle/@servis.Id"
+                                       data-sheet-url="/AdminPanel/yetkiliservisler/duzenle/@servis.Id"
+                                       data-sheet-title="Yetkili Servisi Düzenle"
+                                       title="Servisi düzenle"
+                                       aria-label="@(servis.FirmaAdi ?? "Yetkili servis") kaydını düzenle">
+                                        <i class="bi bi-pencil" aria-hidden="true"></i>
+                                    </a>
+                                    @if (devreyeSayisi > 0)
+                                    {
+                                        <button type="button" class="df-directory-action is-disabled" disabled title="Bu servisin devreye alma kaydı olduğu için silinemez." aria-label="Servis silinemez">
+                                            <i class="bi bi-lock" aria-hidden="true"></i>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <form method="post" action="/AdminPanel/yetkiliservisler/sil/@servis.Id" onsubmit="return confirm('Bu yetkili servisi silmek istiyor musunuz?');">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="df-directory-action is-danger" title="Servisi sil" aria-label="@(servis.FirmaAdi ?? "Yetkili servis") kaydını sil">
+                                                <i class="bi bi-trash3" aria-hidden="true"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                    <button type="button"
+                                            class="df-directory-action df-service-expand"
+                                            data-service-expand
+                                            aria-expanded="false"
+                                            aria-controls="@detayId"
+                                            title="Satır ayrıntılarını aç">
+                                        <i class="bi bi-chevron-down" aria-hidden="true"></i>
+                                        <span class="visually-hidden">Satır ayrıntılarını aç</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="df-service-record-detail" id="@detayId" aria-hidden="true">
+                                <div class="df-service-record-detail-inner">
+                                    <div class="df-service-detail-grid">
+                                        <div>
+                                            <span>Telefon</span>
+                                            <strong>@(string.IsNullOrWhiteSpace(servis.Telefon) ? "Tanımlı değil" : servis.Telefon)</strong>
+                                        </div>
+                                        <div>
+                                            <span>E-posta</span>
+                                            <strong>@(string.IsNullOrWhiteSpace(servis.Email) ? "Tanımlı değil" : servis.Email)</strong>
+                                        </div>
+                                        <div>
+                                            <span>Vergi bilgisi</span>
+                                            <strong>@(string.IsNullOrWhiteSpace(servis.VergiNo) ? "Numara tanımlı değil" : servis.VergiNo)</strong>
+                                            <small>@(string.IsNullOrWhiteSpace(servis.VergiDairesi) ? "Vergi dairesi tanımlı değil" : servis.VergiDairesi)</small>
+                                        </div>
+                                        <div class="is-wide">
+                                            <span>Adres</span>
+                                            <strong>@(string.IsNullOrWhiteSpace(servis.Adres) ? "Adres tanımlı değil" : servis.Adres)</strong>
+                                        </div>
+                                    </div>
+                                    <div class="df-service-detail-footer">
+                                        <span><i class="bi bi-wrench-adjustable-circle" aria-hidden="true"></i> @devreyeSayisi devreye alma kaydı</span>
+                                        <a class="df-btn df-btn-secondary df-btn-sm" href="/AdminPanel/yetkiliservisler/detay/@servis.Id">
+                                            Tüm ayrıntılar <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+                    }
+                </div>
             }
         </div>
     </section>
 </div>
+
+<dialog class="df-directory-sheet" data-service-sheet aria-labelledby="serviceSheetTitle">
+    <div class="df-directory-sheet-frame">
+        <header class="df-directory-sheet-head">
+            <div>
+                <h2 id="serviceSheetTitle" data-service-sheet-title>Yetkili Servis</h2>
+            </div>
+            <button type="button" class="df-directory-sheet-close" data-service-sheet-close title="Paneli kapat" aria-label="Paneli kapat">
+                <i class="bi bi-x-lg" aria-hidden="true"></i>
+            </button>
+        </header>
+        <div class="df-directory-sheet-body" data-service-sheet-body>
+            <div class="df-directory-sheet-loading" role="status">
+                <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                <span>Form hazırlanıyor</span>
+            </div>
+        </div>
+    </div>
+</dialog>
+
+@section Scripts {
+<script>
+    (function () {
+        var records = Array.prototype.slice.call(document.querySelectorAll("[data-service-record]"));
+        var sheet = document.querySelector("[data-service-sheet]");
+        var sheetTitle = document.querySelector("[data-service-sheet-title]");
+        var sheetBody = document.querySelector("[data-service-sheet-body]");
+        var closeButton = document.querySelector("[data-service-sheet-close]");
+        var activeRequest = 0;
+
+        function closeRecord(record) {
+            var toggle = record.querySelector("[data-service-expand]");
+            var detail = record.querySelector(".df-service-record-detail");
+            record.classList.remove("is-expanded");
+            toggle.setAttribute("aria-expanded", "false");
+            toggle.setAttribute("title", "Satır ayrıntılarını aç");
+            toggle.querySelector(".visually-hidden").textContent = "Satır ayrıntılarını aç";
+            detail.setAttribute("aria-hidden", "true");
+        }
+
+        records.forEach(function (record) {
+            var toggle = record.querySelector("[data-service-expand]");
+            toggle.addEventListener("click", function () {
+                var willOpen = !record.classList.contains("is-expanded");
+                records.forEach(function (item) {
+                    if (item !== record) closeRecord(item);
+                });
+
+                if (!willOpen) {
+                    closeRecord(record);
+                    return;
+                }
+
+                record.classList.add("is-expanded");
+                toggle.setAttribute("aria-expanded", "true");
+                toggle.setAttribute("title", "Satır ayrıntılarını kapat");
+                toggle.querySelector(".visually-hidden").textContent = "Satır ayrıntılarını kapat";
+                record.querySelector(".df-service-record-detail").setAttribute("aria-hidden", "false");
+            });
+        });
+
+        function closeSheet() {
+            if (!sheet || !sheet.open) return;
+            activeRequest += 1;
+            sheet.classList.remove("is-visible");
+            document.documentElement.classList.remove("df-sheet-open");
+            window.setTimeout(function () {
+                if (sheet.open) sheet.close();
+                sheetBody.replaceChildren();
+            }, 180);
+        }
+
+        function initializeServiceForm(container) {
+            var sehirSelect = container.querySelector("[data-firma-kodu-select]");
+            var firmaTarget = container.querySelector("[data-firma-kodu-target]");
+            var search = container.querySelector("#markaSearch");
+            var list = container.querySelector("#markaList");
+            var selectAll = container.querySelector("#markaSelectAll");
+
+            function firmaKoduGuncelle() {
+                if (!sehirSelect || !firmaTarget) return;
+                var option = sehirSelect.options[sehirSelect.selectedIndex];
+                var firmaKodu = option ? option.getAttribute("data-firma-kodu") : "";
+                firmaTarget.textContent = firmaKodu ? "Bağlı firma kodu: " + firmaKodu : "";
+                firmaTarget.classList.toggle("is-visible", !!firmaKodu);
+            }
+
+            if (sehirSelect) {
+                sehirSelect.addEventListener("change", firmaKoduGuncelle);
+                firmaKoduGuncelle();
+            }
+
+            if (search && list) {
+                search.addEventListener("input", function () {
+                    var query = search.value.toLocaleLowerCase("tr-TR");
+                    list.querySelectorAll(".marka-item").forEach(function (item) {
+                        var name = (item.getAttribute("data-name") || "").toLocaleLowerCase("tr-TR");
+                        item.style.display = name.indexOf(query) >= 0 ? "flex" : "none";
+                    });
+                });
+            }
+
+            if (selectAll && list) {
+                selectAll.addEventListener("change", function () {
+                    list.querySelectorAll(".marka-item input[type='checkbox']").forEach(function (checkbox) {
+                        checkbox.checked = selectAll.checked;
+                    });
+                });
+            }
+
+            var firstField = container.querySelector("input:not([type='hidden']), select");
+            if (firstField) firstField.focus();
+        }
+
+        async function openSheet(trigger) {
+            if (!sheet || !sheetBody) return;
+            var requestId = ++activeRequest;
+            var url = trigger.getAttribute("data-sheet-url") || trigger.getAttribute("href");
+            sheetTitle.textContent = trigger.getAttribute("data-sheet-title") || "Yetkili Servis";
+            sheetBody.innerHTML = '<div class="df-directory-sheet-loading" role="status"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span>Form hazırlanıyor</span></div>';
+
+            if (!sheet.open) sheet.showModal();
+            document.documentElement.classList.add("df-sheet-open");
+            window.requestAnimationFrame(function () { sheet.classList.add("is-visible"); });
+
+            try {
+                var response = await fetch(url, {
+                    credentials: "same-origin",
+                    headers: { "X-Requested-With": "XMLHttpRequest" }
+                });
+                if (!response.ok) throw new Error("Form alınamadı");
+
+                var html = await response.text();
+                if (requestId !== activeRequest) return;
+                var parsed = new DOMParser().parseFromString(html, "text/html");
+                var sourceForm = parsed.querySelector(".df-admin-form-body form");
+                if (!sourceForm) throw new Error("Form bulunamadı");
+
+                var form = document.importNode(sourceForm, true);
+                form.classList.add("df-directory-sheet-form");
+                sheetBody.replaceChildren(form);
+                initializeServiceForm(sheetBody);
+            } catch (error) {
+                if (requestId !== activeRequest) return;
+                sheetBody.innerHTML = '<div class="df-directory-sheet-error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i><strong>Form açılamadı.</strong><p>İşleme normal sayfada devam edebilirsiniz.</p></div>';
+                var fallback = document.createElement("a");
+                fallback.className = "df-btn df-btn-primary df-btn-sm";
+                fallback.href = url;
+                fallback.innerHTML = '<i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> Sayfada aç';
+                sheetBody.querySelector(".df-directory-sheet-error").appendChild(fallback);
+            }
+        }
+
+        document.querySelectorAll(".js-service-sheet-trigger").forEach(function (trigger) {
+            trigger.addEventListener("click", function (event) {
+                event.preventDefault();
+                openSheet(trigger);
+            });
+        });
+
+        sheetBody.addEventListener("click", function (event) {
+            var cancelLink = event.target.closest('a[href="/AdminPanel/yetkiliservisler"]');
+            if (!cancelLink) return;
+            event.preventDefault();
+            closeSheet();
+        });
+
+        closeButton.addEventListener("click", closeSheet);
+        sheet.addEventListener("cancel", function (event) {
+            event.preventDefault();
+            closeSheet();
+        });
+    })();
+</script>
+}

@@ -11,201 +11,11 @@
     var yetkiSirketAdlariMap = ViewBag.YetkiSirketAdlariMap as Dictionary<string, List<string>> ?? new();
 }
 
-@section Styles {
-    <style>
-        .tablo-head,
-        .tablo-row {
-            grid-template-columns: 1.2fr 1.4fr 1.2fr 1.6fr .8fr;
-        }
-
-        .yetki-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .yetki-badge {
-            background: var(--df-primary-soft);
-            color: var(--df-primary);
-            padding: 5px 8px;
-            border-radius: 6px;
-            font-size: 11px;
-            font-weight: 700;
-        }
-
-        .legend {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 8px;
-        }
-
-        .legend-wrap {
-            padding: 12px 20px 18px;
-        }
-
-        .matrix-card {
-            background: #fff;
-            border-radius: 8px;
-            border: 1px solid var(--df-border);
-            border-top: 3px solid var(--df-primary);
-            margin-bottom: 12px;
-            overflow: hidden;
-            box-shadow: 0 1px 2px rgba(16, 24, 40, .04);
-        }
-
-        .matrix-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            min-height: 62px;
-            padding: 10px 14px;
-            border-bottom: 1px solid transparent;
-            color: var(--df-text);
-            background: #f8fbff;
-            cursor: pointer;
-            list-style: none;
-        }
-
-        .matrix-card[open] .matrix-head {
-            border-bottom-color: var(--df-border);
-        }
-
-        .matrix-heading {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .matrix-heading > i {
-            width: 32px;
-            height: 32px;
-            border-radius: 7px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--df-primary);
-            background: var(--df-primary-soft);
-        }
-
-        .matrix-heading strong,
-        .matrix-heading small {
-            display: block;
-        }
-
-        .matrix-heading strong {
-            font-size: 14px;
-            font-weight: 700;
-        }
-
-        .matrix-heading small {
-            margin-top: 2px;
-            color: var(--df-muted);
-            font-size: 10px;
-            font-weight: 400;
-            line-height: 1.45;
-        }
-
-        .matrix-toggle {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            color: var(--df-primary);
-            font-size: 11px;
-            font-weight: 600;
-        }
-
-        .matrix-toggle .when-open,
-        .matrix-card[open] .matrix-toggle .when-closed {
-            display: none;
-        }
-
-        .matrix-card[open] .matrix-toggle .when-open {
-            display: inline;
-        }
-
-        .matrix-card[open] .matrix-toggle i {
-            transform: rotate(180deg);
-        }
-
-        .matrix-scroll {
-            overflow-x: auto;
-        }
-
-        .matrix-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 6px 0 10px;
-        }
-
-        .matrix-table th {
-            text-align: left;
-            padding: 9px 16px;
-            font-size: 10px;
-            font-weight: 600 !important;
-            color: #5f7388;
-            background: #f6fbff;
-            border-bottom: 1px solid #e2ecf6;
-            text-transform: uppercase;
-            letter-spacing: .04em;
-        }
-
-        .matrix-table td {
-            padding: 9px 16px;
-            border-bottom: 1px solid #edf3fa;
-            font-size: 12px;
-            font-weight: 400;
-            line-height: 1.5;
-            color: #2e3c49;
-            vertical-align: top;
-        }
-
-        .matrix-table tr:last-child td {
-            border-bottom: none;
-        }
-
-        .matrix-table tbody tr:hover {
-            background: #f8fcff;
-        }
-
-        .role-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 5px 10px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 600;
-            border: 1px solid #d5e7f7;
-            background: #eef7ff;
-            color: #14558f;
-        }
-
-        .ok {
-            color: #0b6e4f;
-            font-weight: 500;
-        }
-
-        .no {
-            color: #8b2f2f;
-            font-weight: 500;
-        }
-
-        @@media (max-width: 960px) {
-            .tablo-head,
-            .tablo-row {
-                grid-template-columns: 1fr;
-                gap: 8px;
-            }
-        }
-    </style>
-}
-
 <div class="df-admin-workspace df-permission-workspace">
 <details class="matrix-card">
     <summary class="matrix-head">
-        <span class="matrix-heading"><i class="bi bi-grid-3x3-gap"></i><span><strong>Rol - Yetki Matrisi</strong></span></span>
-        <span class="matrix-toggle"><span class="when-closed">Matrisi Aç</span><span class="when-open">Matrisi Kapat</span><i class="bi bi-chevron-down"></i></span>
+        <span class="matrix-heading"><i class="bi bi-grid-3x3-gap" aria-hidden="true"></i><span><strong>Rol - Yetki Matrisi</strong></span></span>
+        <span class="matrix-toggle"><span class="when-closed">Matrisi Aç</span><span class="when-open">Matrisi Kapat</span><i class="bi bi-chevron-down" aria-hidden="true"></i></span>
     </summary>
     <div class="matrix-scroll">
     <table class="matrix-table">
@@ -325,7 +135,7 @@
                 <div>
                     @if (sirketAdlari.Count == 0)
                     {
-                        <span style="color:#bbb;">-</span>
+                        <span class="df-empty-value">-</span>
                     }
                     else
                     {
@@ -340,7 +150,7 @@
                 <div>
                     @if (yetkiler.Count == 0)
                     {
-                        <span style="color:#bbb;">-</span>
+                        <span class="df-empty-value">-</span>
                     }
                     else
                     {
@@ -353,7 +163,7 @@
                     }
                 </div>
                 <div>
-                    <a class="btn-link" href="@Url.Action("YetkiDuzenle", "AdminPanel", new { id = p.Id })">Yetki Düzenle</a>
+                    <a class="btn-link" href="@Url.Action("YetkiDuzenle", "AdminPanel", new { id = p.Id })"><i class="bi bi-sliders2" aria-hidden="true"></i> Yetki Düzenle</a>
                 </div>
             </div>
         }

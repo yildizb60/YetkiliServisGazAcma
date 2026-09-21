@@ -28,7 +28,12 @@
             <div><span>Aktif Personel</span><strong>@aktifSayisi</strong></div>
             <div><span>Pasif Personel</span><strong>@pasifSayisi</strong></div>
         </div>
-        <a class="df-btn df-btn-primary df-btn-sm" href="@Url.Action("PersonelEkle", "AdminPanel")"><i class="bi bi-person-plus" aria-hidden="true"></i> Yeni Personel</a>
+        <a class="df-btn df-btn-primary df-btn-sm js-admin-form-sheet-trigger"
+           href="@Url.Action("PersonelEkle", "AdminPanel")"
+           data-sheet-url="@Url.Action("PersonelEkle", "AdminPanel")"
+           data-sheet-title="Yeni Personel">
+            <i class="bi bi-person-plus" aria-hidden="true"></i> Yeni Personel
+        </a>
     </div>
 
     <details class="df-user-filter" open="@(filtreAktif ? "open" : null)">
@@ -70,7 +75,12 @@
                         <div class="df-person-company"><strong>@(personel.Sirket?.SirketAdi ?? "-")</strong>@if (!string.IsNullOrWhiteSpace(personel.Sirket?.Il)){<small>@personel.Sirket.Il</small>}</div>
                         <div><span class="df-pill @(personel.AktifMi ? "df-pill-success" : "df-pill-danger")">@(personel.AktifMi ? "Aktif" : "Pasif")</span></div>
                         <div class="df-user-actions">
-                            <a class="df-icon-action" href="@Url.Action("KullaniciDuzenle", "AdminPanel", new { id = personel.Id, returnUrl = Url.Action("Personeller", "AdminPanel") })" title="Personeli düzenle" aria-label="@personel.AdSoyad personelini düzenle"><i class="bi bi-pencil" aria-hidden="true"></i></a>
+                            <a class="df-icon-action js-admin-form-sheet-trigger"
+                               href="@Url.Action("KullaniciDuzenle", "AdminPanel", new { id = personel.Id, returnUrl = Url.Action("Personeller", "AdminPanel") })"
+                               data-sheet-url="@Url.Action("KullaniciDuzenle", "AdminPanel", new { id = personel.Id, returnUrl = Url.Action("Personeller", "AdminPanel") })"
+                               data-sheet-title="Personeli Düzenle"
+                               title="Personeli düzenle"
+                               aria-label="@personel.AdSoyad personelini düzenle"><i class="bi bi-pencil" aria-hidden="true"></i></a>
                             <form method="post" action="@Url.Action("PersonelDurum", "AdminPanel", new { id = personel.Id })">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="aktif" value="@(personel.AktifMi ? "false" : "true")" />
@@ -87,3 +97,9 @@
         </div>
     </section>
 </div>
+
+@await Html.PartialAsync("_AdminFormDrawer")
+
+@section Scripts {
+    <script src="~/js/admin-form-drawer.js" asp-append-version="true"></script>
+}

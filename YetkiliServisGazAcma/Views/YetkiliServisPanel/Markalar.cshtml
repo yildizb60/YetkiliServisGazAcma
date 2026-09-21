@@ -19,14 +19,14 @@
 
 <div class="ys-workspace ys-brand-workspace">
     <div class="ys-brand-layout">
-        <section class="ys-panel is-green">
-            <div class="ys-panel-head">
+        <details class="ys-panel is-green ys-brand-disclosure ys-brand-disclosure--permissions">
+            <summary class="ys-panel-head">
                 <div class="ys-panel-heading">
                     <span class="ys-section-icon"><i class="bi bi-patch-check" aria-hidden="true"></i></span>
-                    <div><h2 class="ys-panel-title">Yetkili Markalar</h2></div>
+                    <div><h2 class="ys-panel-title">Marka Yetkilerini Yönet</h2></div>
                 </div>
-                <span class="df-pill df-pill-success">@seciliIds.Count seçili</span>
-            </div>
+                <i class="bi bi-chevron-down ys-brand-chevron" aria-hidden="true"></i>
+            </summary>
             <div class="ys-panel-body">
                 <form method="post" action="@Url.Action("MarkaGuncelle", "YetkiliServisPanel")">
                     @Html.AntiForgeryToken()
@@ -44,24 +44,25 @@
                     {
                         <div class="ys-empty">Seçilebilecek marka kaydı bulunmuyor.</div>
                     }
-                    <div class="ys-actions" style="margin-top:12px">
+                    <div class="ys-actions">
                         <button type="submit" class="df-btn df-btn-success"><i class="bi bi-check2" aria-hidden="true"></i> Marka Yetkilerini Kaydet</button>
                     </div>
                 </form>
             </div>
-        </section>
+        </details>
 
-        <section class="ys-panel is-blue">
-            <div class="ys-panel-head">
+        <details class="ys-panel is-blue ys-brand-disclosure ys-brand-disclosure--create">
+            <summary class="ys-panel-head">
                 <div class="ys-panel-heading">
                     <span class="ys-section-icon"><i class="bi bi-plus-circle" aria-hidden="true"></i></span>
                     <div><h2 class="ys-panel-title">Yeni Marka</h2></div>
                 </div>
-            </div>
+                <i class="bi bi-chevron-down ys-brand-chevron" aria-hidden="true"></i>
+            </summary>
             <div class="ys-panel-body">
                 <form method="post" action="@Url.Action("MarkaEkle", "YetkiliServisPanel")">
                     @Html.AntiForgeryToken()
-                    <div class="ys-form-grid" style="grid-template-columns:1fr">
+                    <div class="ys-form-grid ys-brand-create-fields">
                         <div class="ys-field">
                             <label for="yeniMarkaAdi">Marka Adı *</label>
                             <input type="text" id="yeniMarkaAdi" name="markaAdi" placeholder="Örn. Baymak" required />
@@ -71,19 +72,18 @@
                             <textarea id="yeniMarkaAciklama" name="aciklama" placeholder="Gerekliyse kısa açıklama"></textarea>
                         </div>
                     </div>
-                    <div class="ys-actions" style="margin-top:12px">
+                    <div class="ys-actions">
                         <button class="df-btn df-btn-primary" type="submit"><i class="bi bi-plus-lg" aria-hidden="true"></i> Marka Ekle</button>
                     </div>
                 </form>
             </div>
-        </section>
-    </div>
+        </details>
 
-    <section class="ys-panel is-cyan">
+    <section class="ys-panel is-cyan ys-brand-table-panel">
         <div class="ys-panel-head">
             <div class="ys-panel-heading">
                 <span class="ys-section-icon"><i class="bi bi-pencil-square" aria-hidden="true"></i></span>
-                    <div><h2 class="ys-panel-title">Kayıtlı Marka Yetkileri</h2></div>
+                    <div><h2 class="ys-panel-title">Hizmet Verdiğim Markalar</h2></div>
                 </div>
                 <span class="df-pill df-pill-info">@firmaMarkalar.Count kayıt</span>
         </div>
@@ -107,8 +107,14 @@
                         {
                             var formId = $"marka-edit-{fm.MarkaId}";
                             <tr data-row="@formId">
-                                <td><input class="ys-inline-input" type="text" name="markaAdi" form="@formId" value="@(fm.Marka?.MarkaAdi ?? "-")" readonly /></td>
-                                <td><input class="ys-inline-input" type="text" name="aciklama" form="@formId" value="@(fm.Marka?.Aciklama ?? "")" readonly /></td>
+                                <td>
+                                    <span class="ys-brand-value ys-brand-name" data-brand-value>@(fm.Marka?.MarkaAdi ?? "-")</span>
+                                    <input class="ys-inline-input" type="text" name="markaAdi" form="@formId" value="@(fm.Marka?.MarkaAdi ?? "-")" aria-label="Marka adı" readonly hidden />
+                                </td>
+                                <td>
+                                    <span class="ys-brand-value" data-brand-value>@(string.IsNullOrWhiteSpace(fm.Marka?.Aciklama) ? "-" : fm.Marka.Aciklama)</span>
+                                    <input class="ys-inline-input" type="text" name="aciklama" form="@formId" value="@(fm.Marka?.Aciklama ?? "")" aria-label="Marka açıklaması" readonly hidden />
+                                </td>
                                 <td>
                                     <div class="ys-table-actions">
                                         <form id="@formId" method="post" action="@Url.Action("MarkaDuzenle", "YetkiliServisPanel")">
@@ -135,6 +141,7 @@
             </table>
         </div>
     </section>
+    </div>
 </div>
 
 @section Scripts {
@@ -151,9 +158,11 @@
         const editing = row.classList.contains("ys-editing-row");
 
         row.classList.toggle("ys-editing-row", !editing);
+        row.querySelectorAll("[data-brand-value]").forEach(value => { value.hidden = !editing; });
         inputs.forEach(input => {
-            if (editing) input.setAttribute("readonly", "readonly");
-            else input.removeAttribute("readonly");
+            input.hidden = editing;
+            input.readOnly = editing;
+            if (editing) input.value = input.defaultValue;
         });
         if (saveBtn) saveBtn.hidden = editing;
         if (editIcon) editIcon.className = editing ? "bi bi-pencil" : "bi bi-x-lg";
@@ -163,6 +172,7 @@
             editBtn.setAttribute("aria-label", label);
         }
         if (!editing) inputs[0]?.focus();
+        else editBtn?.focus();
     }
 </script>
 }

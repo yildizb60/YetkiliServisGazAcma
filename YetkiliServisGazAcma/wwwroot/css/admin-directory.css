@@ -55,3 +55,77 @@
     padding: 0;
     font-size: 14px;
 }
+
+.df-user-directory .df-user-row {
+    position: relative;
+    transition: background-color .16s ease, box-shadow .16s ease, color .16s ease;
+}
+
+.df-user-directory .df-user-row:hover {
+    background: #edf4ff;
+    box-shadow: inset 3px 0 #315fca;
+}
+
+.df-user-directory .df-user-row:hover .df-user-avatar {
+    border-color: #aec3ef;
+    background: #dfeaff;
+    color: #234fae;
+}
+
+.df-account-sheet .df-directory-sheet-body {
+    background: #f4f7fb;
+}
+
+.df-account-sheet .df-directory-sheet-form {
+    gap: 10px;
+    padding: 12px 14px 0;
+}
+
+.df-account-sheet .df-admin-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px 11px;
+}
+
+.df-account-sheet .df-admin-field,
+.df-account-sheet .df-admin-field:nth-child(1),
+.df-account-sheet .df-admin-field:nth-child(2),
+.df-account-sheet .df-admin-field:nth-child(4),
+.df-account-sheet .df-admin-field.is-half,
+.df-account-sheet .df-admin-field.is-wide {
+    grid-column: auto;
+}
+
+.df-account-sheet .df-admin-form-section-head p {
+    display: none;
+}
+
+.df-account-sheet .df-admin-field-note {
+    font-size: 9.5px;
+    line-height: 1.35;
+}
+
+.df-account-sheet .df-admin-readonly-value {
+    min-height: 34px;
+}
+
+.df-account-sheet .df-admin-password-panel {
+    margin: 0;
+    border: 1px solid #dfe6ef;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.df-account-sheet .df-admin-password-panel > summary {
+    min-height: 42px;
+    padding: 8px 13px;
+}
+
+.df-account-sheet .df-admin-password-body {
+    padding: 9px 13px 12px;
+}
+
+@media (max-width: 760px) {
+    .df-account-sheet .df-admin-form-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

@@ -55,46 +55,13 @@
     };
 }
 
-@section Styles {
-    <style>
-        .permission-editor { background: var(--df-surface, #fff); border: 1px solid var(--df-border, #e3e7f0); border-radius: 8px; }
-        .permission-editor-head { padding: 18px 20px; border-bottom: 1px solid var(--df-border, #e3e7f0); }
-        .permission-editor-head h2 { margin: 0; font-size: 18px; color: var(--df-text, #1e2d4a); }
-        .permission-editor-meta { margin: 5px 0 0; color: var(--df-muted, #566280); font-size: 13px; }
-        .permission-editor-body { padding: 20px; }
-        .permission-editor-note { margin: 0 0 16px; padding: 10px 12px; border-left: 3px solid var(--df-primary, #2e4ec8); background: var(--df-primary-soft, #eef1fb); color: var(--df-text-soft, #3d4f6e); font-size: 13px; line-height: 1.5; }
-        .company-permission { border-top: 1px solid var(--df-border, #e3e7f0); }
-        .company-permission:first-of-type { border-top: 0; }
-        .company-permission > summary { display: flex; align-items: center; gap: 10px; padding: 15px 0; cursor: pointer; list-style: none; color: var(--df-text, #1e2d4a); font-weight: 700; }
-        .company-permission > summary::before { content: "+"; display: grid; place-items: center; width: 18px; height: 18px; color: var(--df-primary, #2e4ec8); font-size: 17px; line-height: 1; }
-        .company-permission[open] > summary::before { content: "-"; }
-        .company-enable { width: 16px; height: 16px; accent-color: var(--df-primary, #2e4ec8); }
-        .company-permission-name { flex: 1; }
-        .company-permission-state { color: var(--df-muted, #566280); font-size: 12px; font-weight: 500; }
-        .permission-groups { padding: 0 0 18px 28px; }
-        .permission-group + .permission-group { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--df-border, #e3e7f0); }
-        .permission-group-title { margin: 0; color: var(--df-text, #1e2d4a); font-size: 14px; font-weight: 700; }
-        .permission-group-description { margin: 3px 0 10px; color: var(--df-muted, #566280); font-size: 12px; }
-        .permission-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 20px; }
-        .permission-option-wrap { display: grid; grid-template-columns: auto 1fr; column-gap: 9px; align-items: start; min-width: 0; padding: 8px 0; }
-        .permission-option { width: 16px; height: 16px; margin: 2px 0 0; accent-color: var(--df-primary, #2e4ec8); }
-        .permission-option-label { color: var(--df-text, #1e2d4a); font-size: 13px; font-weight: 650; }
-        .permission-option-description { display: block; margin-top: 2px; color: var(--df-muted, #566280); font-size: 12px; line-height: 1.4; }
-        .permission-option-wrap:has(input:disabled) { opacity: .5; }
-        .permission-editor-actions { display: flex; gap: 10px; padding-top: 20px; border-top: 1px solid var(--df-border, #e3e7f0); }
-        @@media (max-width: 780px) {
-            .permission-editor-body { padding: 16px; }
-            .permission-groups { padding-left: 0; }
-            .permission-list { grid-template-columns: 1fr; }
-            .company-permission-state { display: none; }
-        }
-    </style>
-}
-
 <section class="permission-editor">
     <header class="permission-editor-head">
-        <h2>@(personel?.AdSoyad ?? "Personel")</h2>
-        <p class="permission-editor-meta">@(personel?.Email ?? "E-posta bilgisi bulunmuyor")</p>
+        <span class="permission-editor-icon"><i class="bi bi-person-lock" aria-hidden="true"></i></span>
+        <div>
+            <h2>@(personel?.AdSoyad ?? "Personel")</h2>
+            <p class="permission-editor-meta">@(personel?.Email ?? "E-posta bilgisi bulunmuyor")</p>
+        </div>
     </header>
     <div class="permission-editor-body">
         <p class="permission-editor-note">
@@ -103,6 +70,7 @@
         </p>
         <form method="post">
             @Html.AntiForgeryToken()
+            <div class="permission-companies" role="region" aria-label="Şirket ve işlem yetkileri" tabindex="0">
             @for (var index = 0; index < sirketler.Count; index++)
             {
                 var sirket = sirketler[index];
@@ -112,16 +80,20 @@
                 var sirketSecili = seciliSirketIds.Contains(sirket.Id) || sirketYetkileri.Count > 0;
                 <details class="company-permission" @(index == 0 ? "open" : null)>
                     <summary>
-                        <input type="checkbox" class="company-enable" name="sirketIds" value="@sirket.Id" @(sirketSecili ? "checked" : null) />
+                        <input type="checkbox" class="company-enable" name="sirketIds" value="@sirket.Id" aria-label="@sirket.SirketAdi için yetkiyi etkinleştir" @(sirketSecili ? "checked" : null) />
                         <span class="company-permission-name">@sirket.SirketAdi</span>
                         <span class="company-permission-state">@(sirketSecili ? "Yetki veriliyor" : "Yetki kapalı")</span>
+                        <i class="bi bi-chevron-down company-permission-chevron" aria-hidden="true"></i>
                     </summary>
                     <div class="permission-groups">
-                        @foreach (var grup in yetkiGruplari)
+                        @foreach (var grup in yetkiGruplari.OrderByDescending(x => x.Yetkiler.Any(y => y.Kod == "TAM_YETKI")))
                         {
-                            <section class="permission-group">
-                                <h3 class="permission-group-title">@grup.Baslik</h3>
-                                <p class="permission-group-description">@grup.Aciklama</p>
+                            var tamYetkiGrubu = grup.Yetkiler.Any(y => y.Kod == "TAM_YETKI");
+                            <section class="permission-group @(tamYetkiGrubu ? "permission-group--full" : "")">
+                                @if (!tamYetkiGrubu)
+                                {
+                                    <h3 class="permission-group-title">@grup.Baslik</h3>
+                                }
                                 <div class="permission-list">
                                     @foreach (var yetki in grup.Yetkiler)
                                     {
@@ -140,9 +112,10 @@
                     </div>
                 </details>
             }
+            </div>
             <div class="permission-editor-actions">
-                <button type="submit" class="df-btn df-btn-primary">Kaydet</button>
-                <a class="df-btn df-btn-secondary" href="/AdminPanel/yetkiler">Vazgeç</a>
+                <a class="df-btn df-btn-secondary" href="/AdminPanel/yetkiler"><i class="bi bi-x-lg" aria-hidden="true"></i> Vazgeç</a>
+                <button type="submit" class="df-btn df-btn-primary"><i class="bi bi-check2" aria-hidden="true"></i> Kaydet</button>
             </div>
         </form>
     </div>
@@ -158,9 +131,16 @@
             var requestView = company.querySelector('[data-permission="YKC_TALEP_GOR"]');
             var ykcDependent = company.querySelectorAll('[data-permission="YKC_ATAMA_YAP"], [data-permission="YKC_FR265_IMZA_ISLEM"], [data-permission="YKC_RAPOR_GOR"]');
 
+            function refreshSummary() {
+                var selectedCount = options.filter(function (option) { return option.checked; }).length;
+                company.querySelector(".company-permission-state").textContent = !companyToggle.checked
+                    ? "Yetki kapalı"
+                    : fullAccess && fullAccess.checked ? "Tam yetki" : selectedCount + " yetki seçili";
+            }
+
             function refreshCompanyState() {
                 options.forEach(function (option) { option.disabled = !companyToggle.checked; });
-                company.querySelector(".company-permission-state").textContent = companyToggle.checked ? "Yetki veriliyor" : "Yetki kapalı";
+                refreshSummary();
             }
 
             function syncYkcPermissions(changed) {
@@ -185,11 +165,13 @@
                 option.addEventListener("change", function () {
                     syncFullAccess(option);
                     syncYkcPermissions(option);
+                    refreshSummary();
                 });
             });
             refreshCompanyState();
             syncFullAccess(fullAccess);
             syncYkcPermissions();
+            refreshSummary();
         });
     })();
 </script>
