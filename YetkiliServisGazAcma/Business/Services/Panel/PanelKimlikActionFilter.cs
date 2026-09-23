@@ -56,8 +56,16 @@ namespace YetkiliServisGazAcma.Business.Services
 
                     if (context.HttpContext.User.IsInRole(KullaniciRolAdlari.Personel))
                     {
-                        var yetkiler = await _personelPanelApiClient.YetkilerimAsync(kullanici, aktifSirketId)
-                            ?? new List<string>();
+                        List<string> yetkiler;
+                        try
+                        {
+                            yetkiler = await _personelPanelApiClient.YetkilerimAsync(kullanici, aktifSirketId)
+                                ?? new List<string>();
+                        }
+                        catch (ApiIntegrationException)
+                        {
+                            yetkiler = new List<string>();
+                        }
                         var tamYetkili = yetkiler.Contains(YetkiTipleri.TAM_YETKI, StringComparer.OrdinalIgnoreCase);
                         bool Yetkili(string kod) => tamYetkili || yetkiler.Contains(kod, StringComparer.OrdinalIgnoreCase);
 

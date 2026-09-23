@@ -1,11 +1,8 @@
-@using YetkiliServisGazAcma.Entities
 @{
     ViewData["Title"] = "Cihaz Devreye Alma Raporları";
     ViewData["PanelTitle"] = "Raporlar";
     ViewData["PanelModule"] = "Yetkili Servis Paneli";
-    ViewData["PanelSubtitle"] = "Yetkili Servis";
     ViewData["ActiveMenu"] = "Raporlar";
-    ViewData["ContentClass"] = "ys-report-content";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
     DateTime basTarih = ViewBag.BasTarih;
@@ -13,276 +10,89 @@
     var toplam = Convert.ToInt32(ViewBag.DevreyeSayisi);
     var tamamlanan = Convert.ToInt32(ViewBag.Tamamlanan);
     var bekleyen = Convert.ToInt32(ViewBag.Bekleyen);
-    var iptal = Math.Max(toplam - tamamlanan - bekleyen, 0);
-    var tamamlanmaOrani = toplam > 0 ? (int)Math.Round(tamamlanan * 100d / toplam) : 0;
-    var sonIslemler = ViewBag.SonIslemler as List<Ys_DevreyeAlma> ?? new List<Ys_DevreyeAlma>();
-    var markaLabels = ViewBag.ChartMarkaLabels as List<string> ?? new List<string>();
-    var markaData = ViewBag.ChartMarkaData as List<int> ?? new List<int>();
-    var oneCikanMarka = markaLabels.FirstOrDefault() ?? "Kayıt yok";
-    var oneCikanMarkaSayisi = markaData.FirstOrDefault();
-    var raporVar = toplam > 0;
+    var durumlar = ViewBag.ChartDurumData as List<int> ?? new List<int>();
+    var iptal = durumlar.Count > 2 ? durumlar[2] : 0;
+    var aylar = ViewBag.ChartAylikLabels as List<string> ?? new List<string>();
+    var aylik = ViewBag.ChartAylikData as List<int> ?? new List<int>();
+    var chartCount = Math.Min(6, Math.Min(aylar.Count, aylik.Count));
+    var chartMax = Math.Max(1, aylik.DefaultIfEmpty(0).Max());
+    var tamamlanmaOrani = toplam == 0 ? 0 : Math.Round(tamamlanan * 100d / toplam, 1);
+    string CssYuzde(double value) => Math.Clamp(value, 0, 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
     var pdfUrl = Url.Action("RaporlarPdf", "YetkiliServisPanel", new { bas = basTarih.ToString("yyyy-MM-dd"), bit = bitTarih.ToString("yyyy-MM-dd") });
     var excelUrl = Url.Action("RaporlarExcel", "YetkiliServisPanel", new { bas = basTarih.ToString("yyyy-MM-dd"), bit = bitTarih.ToString("yyyy-MM-dd") });
-    var jsonOptions = new System.Text.Json.JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
-}
-
-@functions {
-    private static string DurumEtiketi(int durum) => durum switch
-    {
-        DevreyeAlmaDurumDegerleri.Tamamlandi => "Tamamlandı",
-        DevreyeAlmaDurumDegerleri.Iptal => "İptal",
-        _ => "Bekliyor"
-    };
-
-    private static string DurumSinifi(int durum) => durum switch
-    {
-        DevreyeAlmaDurumDegerleri.Tamamlandi => "is-success",
-        DevreyeAlmaDurumDegerleri.Iptal => "is-danger",
-        _ => "is-warning"
-    };
 }
 
 @section PageStyles {
-    <link rel="stylesheet" href="~/css/ys-operations.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/admin-reports.css" asp-append-version="true" />
 }
 
-<div class="ys-workspace ys-reports-workspace">
-    <section class="ys-report-toolbar" aria-label="Rapor dönemi ve indirme seçenekleri">
-        <div class="ys-report-toolbar__meta">
-            <span class="ys-report-toolbar__icon"><i class="bi bi-calendar-range" aria-hidden="true"></i></span>
-            <span class="ys-report-period">
-                <small>Seçili dönem</small>
-                <strong>@basTarih.ToString("dd.MM.yyyy") - @bitTarih.ToString("dd.MM.yyyy")</strong>
-            </span>
-            <span class="ys-report-result-state @(raporVar ? "has-records" : null)">
-                <i class="bi @(raporVar ? "bi-check2-circle" : "bi-info-circle")" aria-hidden="true"></i>
-                @(raporVar ? $"{toplam} işlem" : "Kayıt yok")
-            </span>
+<main class="df-admin-report-workspace df-operations-report df-role-report df-service-operations-report">
+    <section class="df-ops-command" aria-labelledby="serviceReportHeading">
+        <div class="df-ops-command-copy">
+            <span class="df-ops-command-icon" aria-hidden="true"><i class="bi bi-bag-check"></i></span>
+            <div><h1 id="serviceReportHeading">Devreye alma raporları</h1><p>@basTarih.ToString("dd.MM.yyyy") - @bitTarih.ToString("dd.MM.yyyy")</p></div>
         </div>
-
-        <form class="ys-report-filter" method="get" action="@Url.Action("Raporlar", "YetkiliServisPanel")">
-            <div class="ys-field">
-                <label for="raporBas">Başlangıç</label>
-                <input type="date" id="raporBas" name="bas" value="@basTarih.ToString("yyyy-MM-dd")" />
-            </div>
-            <div class="ys-field">
-                <label for="raporBit">Bitiş</label>
-                <input type="date" id="raporBit" name="bit" value="@bitTarih.ToString("yyyy-MM-dd")" />
-            </div>
-            <div class="ys-report-control-actions">
-                <button class="df-btn df-btn-primary df-btn-sm" type="submit"><i class="bi bi-funnel" aria-hidden="true"></i> Uygula</button>
-                <a class="df-btn df-btn-secondary df-btn-sm ys-quiet-export is-pdf" href="@pdfUrl" title="Seçili dönemi PDF olarak indir"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF</a>
-                <a class="df-btn df-btn-secondary df-btn-sm ys-quiet-export is-excel" href="@excelUrl" title="Seçili dönemi Excel olarak indir"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel</a>
-            </div>
+        <form method="get" action="@Url.Action("Raporlar", "YetkiliServisPanel")" class="df-ops-filter">
+            <div class="df-admin-field"><label for="raporBas">Başlangıç</label><input id="raporBas" type="date" name="bas" value="@basTarih.ToString("yyyy-MM-dd")" /></div>
+            <div class="df-admin-field"><label for="raporBit">Bitiş</label><input id="raporBit" type="date" name="bit" value="@bitTarih.ToString("yyyy-MM-dd")" /></div>
+            <button class="df-btn df-btn-primary df-btn-sm" type="submit"><i class="bi bi-funnel" aria-hidden="true"></i> Uygula</button>
         </form>
     </section>
 
-    <section class="ys-report-kpis" aria-label="Seçili dönem özeti">
-        <article class="ys-report-kpi is-primary">
-            <span class="ys-report-kpi__icon"><i class="bi bi-clipboard2-data" aria-hidden="true"></i></span>
-            <div><small>Toplam işlem</small><strong>@toplam</strong><span>Seçili tarih aralığı</span></div>
-        </article>
-        <article class="ys-report-kpi is-success">
-            <span class="ys-report-kpi__icon"><i class="bi bi-check2-circle" aria-hidden="true"></i></span>
-            <div><small>Tamamlanan</small><strong>@tamamlanan</strong><span>Sonuçlanan kayıt</span></div>
-        </article>
-        <article class="ys-report-kpi is-rate">
-            <span class="ys-report-kpi__icon"><i class="bi bi-pie-chart" aria-hidden="true"></i></span>
-            <div><small>Tamamlanma oranı</small><strong>%@tamamlanmaOrani</strong><span>@bekleyen bekleyen, @iptal iptal</span></div>
-        </article>
-        <article class="ys-report-kpi is-brand">
-            <span class="ys-report-kpi__icon"><i class="bi bi-tags" aria-hidden="true"></i></span>
-            <div><small>En yoğun marka</small><strong title="@oneCikanMarka">@oneCikanMarka</strong><span>@oneCikanMarkaSayisi işlem</span></div>
-        </article>
+    <section class="df-ops-kpis" aria-label="Devreye alma göstergeleri">
+        <article class="df-ops-kpi is-volume"><span class="df-ops-kpi-icon"><i class="bi bi-inboxes" aria-hidden="true"></i></span><div><span>Toplam kayıt</span><strong>@toplam</strong></div></article>
+        <article class="df-ops-kpi is-duration"><span class="df-ops-kpi-icon"><i class="bi bi-check2-circle" aria-hidden="true"></i></span><div><span>Tamamlanan</span><strong>@tamamlanan</strong></div></article>
+        <article class="df-ops-kpi is-compliance"><span class="df-ops-kpi-icon"><i class="bi bi-hourglass-split" aria-hidden="true"></i></span><div><span>Bekleyen</span><strong>@bekleyen</strong></div></article>
+        <article class="df-ops-kpi is-repeat"><span class="df-ops-kpi-icon"><i class="bi bi-x-circle" aria-hidden="true"></i></span><div><span>İptal</span><strong>@iptal</strong></div></article>
     </section>
 
-    <div class="ys-report-dashboard-grid">
-        <section class="ys-report-data-panel is-trend" aria-labelledby="reportTrendTitle">
-            <header class="ys-report-data-head">
-                <div>
-                    <h2 id="reportTrendTitle">Aylık işlem hacmi</h2>
-                    <p>Devreye alma kayıtlarının aylara göre dağılımı</p>
-                </div>
-                <span><strong>@toplam</strong> işlem</span>
-            </header>
-            <div class="ys-chart-wrap is-large" id="wrapAylik">
-                <div class="ys-chart-empty">Bu tarih aralığında aylık veri bulunamadı.</div>
-                <canvas id="aylikChart" aria-label="Aylara göre işlem grafiği"></canvas>
-            </div>
-        </section>
-
-        <section class="ys-report-data-panel is-status" aria-labelledby="reportStatusTitle">
-            <header class="ys-report-data-head">
-                <div>
-                    <h2 id="reportStatusTitle">İşlem sonuçları</h2>
-                    <p>Kayıtların güncel durum dağılımı</p>
-                </div>
-            </header>
-            <div class="ys-chart-wrap is-donut" id="wrapDurum">
-                <div class="ys-chart-empty">Durum verisi bulunamadı.</div>
-                <canvas id="durumChart" aria-label="İşlem durumları grafiği"></canvas>
-                <span class="ys-donut-label"><strong>%@tamamlanmaOrani</strong><small>tamamlandı</small></span>
-            </div>
-            <div class="ys-status-breakdown" aria-label="Durum sayıları">
-                <span class="is-success"><i aria-hidden="true"></i>Tamamlanan <strong>@tamamlanan</strong></span>
-                <span class="is-warning"><i aria-hidden="true"></i>Bekleyen <strong>@bekleyen</strong></span>
-                <span class="is-danger"><i aria-hidden="true"></i>İptal <strong>@iptal</strong></span>
-            </div>
-        </section>
-
-        <section class="ys-report-data-panel is-records" aria-labelledby="reportRecordsTitle">
-            <header class="ys-report-data-head">
-                <div>
-                    <h2 id="reportRecordsTitle">Son işlemler</h2>
-                    <p>Seçili dönemdeki en güncel devreye alma kayıtları</p>
-                </div>
-                <a href="@Url.Action("Gecmis", "DevreyeAlma")">Tümünü Gör <i class="bi bi-chevron-right" aria-hidden="true"></i></a>
-            </header>
-            @if (sonIslemler.Count == 0)
+    <section class="df-ops-overview" aria-label="Devreye alma grafikleri">
+        <div class="df-ops-monthly">
+            <header class="df-ops-section-head"><div><h2>Aylık devreye alma işlemleri</h2></div><span>@toplam kayıt</span></header>
+            @if (chartCount == 0)
             {
-                <div class="ys-report-empty"><i class="bi bi-inbox" aria-hidden="true"></i><span>Bu dönemde gösterilecek işlem bulunmuyor.</span></div>
+                <div class="df-ops-empty">Seçili dönemde işlem yok.</div>
             }
             else
             {
-                <div class="ys-table-wrap ys-report-table-wrap">
-                    <table class="ys-table ys-report-table">
-                        <thead>
-                            <tr><th>Tarih</th><th>Müşteri / Tesisat</th><th>Cihaz</th><th>Teknisyen</th><th>Durum</th><th><span class="visually-hidden">Detay</span></th></tr>
-                        </thead>
-                        <tbody>
-                        @foreach (var islem in sonIslemler)
-                        {
-                            var cihazMarka = islem.CihazMarka ?? islem.Marka?.MarkaAdi;
-                            var cihaz = string.Join(" / ", new[] { cihazMarka, islem.CihazTipi }.Where(x => !string.IsNullOrWhiteSpace(x)));
-                            <tr>
-                                <td><time datetime="@islem.DevreyeAlmaTarihi.ToString("yyyy-MM-dd")">@islem.DevreyeAlmaTarihi.ToString("dd.MM.yyyy")</time></td>
-                                <td><strong>@(string.IsNullOrWhiteSpace(islem.MusteriAdi) ? "Müşteri bilgisi yok" : islem.MusteriAdi)</strong><small>Tesisat: @(islem.TesistatNo ?? "-")</small></td>
-                                <td><strong>@(string.IsNullOrWhiteSpace(cihaz) ? "Cihaz bilgisi yok" : cihaz)</strong>@if (!string.IsNullOrWhiteSpace(islem.CihazModeli)) { <small>@islem.CihazModeli</small> }</td>
-                                <td>@(string.IsNullOrWhiteSpace(islem.TeknisyenAdi) ? "-" : islem.TeknisyenAdi)</td>
-                                <td><span class="ys-report-status @DurumSinifi(islem.Durum)">@DurumEtiketi(islem.Durum)</span></td>
-                                <td><a class="ys-report-detail" href="@Url.Action("Detay", "DevreyeAlma", new { id = islem.Id })" title="İşlem detayını aç" aria-label="İşlem detayını aç"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a></td>
-                            </tr>
-                        }
-                        </tbody>
-                    </table>
+                <div class="df-ops-monthly-chart" style="--chart-count:@chartCount" role="img" aria-label="Aylık devreye alma işlemleri">
+                    @for (var index = 0; index < chartCount; index++)
+                    {
+                        <div class="df-ops-month" title="@aylar[index]: @aylik[index] kayıt">
+                            <strong>@aylik[index]</strong>
+                            <span class="df-ops-month-track"><i style="--bar:@CssYuzde(aylik[index] * 100d / chartMax)%"></i></span>
+                            <small>@aylar[index]</small>
+                        </div>
+                    }
                 </div>
             }
-        </section>
-
-        <section class="ys-report-data-panel is-brands" aria-labelledby="reportBrandsTitle">
-            <header class="ys-report-data-head">
-                <div>
-                    <h2 id="reportBrandsTitle">Marka dağılımı</h2>
-                    <p>En çok işlem yapılan cihaz markaları</p>
-                </div>
-            </header>
-            <div class="ys-chart-wrap is-brands" id="wrapMarka">
-                <div class="ys-chart-empty">Marka verisi bulunamadı.</div>
-                <canvas id="markaChart" aria-label="Cihaz markaları grafiği"></canvas>
-            </div>
-        </section>
-    </div>
-</div>
-
-<div id="raporChartData"
-     data-aylik-labels='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.ChartAylikLabels ?? new List<string>(), jsonOptions))'
-     data-aylik-data='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.ChartAylikData ?? new List<int>(), jsonOptions))'
-     data-durum-data='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.ChartDurumData ?? new List<int>(), jsonOptions))'
-     data-marka-labels='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.ChartMarkaLabels ?? new List<string>(), jsonOptions))'
-     data-marka-data='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.ChartMarkaData ?? new List<int>(), jsonOptions))'
-     hidden></div>
-
-@section Scripts {
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script>
-    (function () {
-        const root = document.getElementById("raporChartData");
-        if (!root) return;
-
-        const parseArray = (raw) => {
-            if (!raw) return [];
-            try { const data = JSON.parse(raw); return Array.isArray(data) ? data : []; }
-            catch { return []; }
-        };
-        const aylikLabels = parseArray(root.dataset.aylikLabels);
-        const aylikData = parseArray(root.dataset.aylikData).map(Number);
-        const durumData = parseArray(root.dataset.durumData).map(Number);
-        const markaLabels = parseArray(root.dataset.markaLabels);
-        const markaData = parseArray(root.dataset.markaData).map(Number);
-        const hasAnyPositive = (items) => items.some(value => Number(value) > 0);
-        const markHasData = (id) => document.getElementById(id)?.classList.add("has-data");
-        const markRendered = (id) => document.getElementById(id)?.classList.add("chart-rendered");
-
-        const renderFallback = (wrapId, labels, data) => {
-            const wrap = document.getElementById(wrapId);
-            if (!wrap) return;
-            const max = Math.max(...data, 1);
-            const holder = document.createElement("div");
-            holder.className = "ys-chart-fallback";
-            labels.forEach((label, index) => {
-                const value = Number(data[index]) || 0;
-                const row = document.createElement("div");
-                row.className = "ys-chart-fallback-row";
-                const labelElement = document.createElement("span");
-                labelElement.textContent = label;
-                const bar = document.createElement("span");
-                bar.className = "ys-chart-fallback-bar";
-                const fill = document.createElement("span");
-                fill.className = "ys-chart-fallback-fill";
-                fill.style.width = `${Math.max(value > 0 ? 5 : 0, Math.round((value / max) * 100))}%`;
-                bar.appendChild(fill);
-                const valueElement = document.createElement("strong");
-                valueElement.textContent = value;
-                row.append(labelElement, bar, valueElement);
-                holder.appendChild(row);
-            });
-            wrap.appendChild(holder);
-        };
-
-        const aylikHasData = aylikLabels.length > 0 && hasAnyPositive(aylikData);
-        const durumHasData = durumData.length === 3 && hasAnyPositive(durumData);
-        const markaHasData = markaLabels.length > 0 && hasAnyPositive(markaData);
-        if (aylikHasData) { markHasData("wrapAylik"); renderFallback("wrapAylik", aylikLabels, aylikData); }
-        if (durumHasData) { markHasData("wrapDurum"); renderFallback("wrapDurum", ["Tamamlanan", "Bekleyen", "İptal"], durumData); }
-        if (markaHasData) { markHasData("wrapMarka"); renderFallback("wrapMarka", markaLabels, markaData); }
-        if (typeof Chart === "undefined") return;
-
-        Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
-        Chart.defaults.color = "#667085";
-        const commonOptions = {
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: { duration: 450 },
-            plugins: {
-                legend: { display: false },
-                tooltip: { padding: 9, displayColors: false, backgroundColor: "#172033", titleFont: { size: 11 }, bodyFont: { size: 11 } }
+        </div>
+        <aside class="df-ops-status" aria-labelledby="serviceReportStatusHeading">
+            <header class="df-ops-section-head"><div><h2 id="serviceReportStatusHeading">Durum dağılımı</h2></div></header>
+            @if (toplam == 0)
+            {
+                <div class="df-ops-empty">Seçili dönemde kayıt yok.</div>
             }
-        };
+            else
+            {
+                <div class="df-ops-completion">
+                    <div class="df-ops-ring" style="--value:@CssYuzde(tamamlanmaOrani)" aria-label="Tamamlanan yüzde @tamamlanmaOrani"><strong>%@tamamlanmaOrani.ToString("0.#")</strong><span>tamamlandı</span></div>
+                    <dl>
+                        <div><dt><i class="is-complete" aria-hidden="true"></i> Tamamlanan</dt><dd>@tamamlanan</dd></div>
+                        <div><dt><i class="is-active" aria-hidden="true"></i> Bekleyen</dt><dd>@bekleyen</dd></div>
+                        <div><dt><i class="is-cancelled" aria-hidden="true"></i> İptal</dt><dd>@iptal</dd></div>
+                    </dl>
+                </div>
+            }
+        </aside>
+    </section>
 
-        if (aylikHasData) {
-            markRendered("wrapAylik");
-            new Chart(document.getElementById("aylikChart"), {
-                type: "bar",
-                data: { labels: aylikLabels, datasets: [{ label: "İşlem", data: aylikData, backgroundColor: "#356ce1", hoverBackgroundColor: "#2458c7", borderRadius: 6, borderSkipped: false, maxBarThickness: 48 }] },
-                options: { ...commonOptions, scales: { x: { grid: { display: false }, ticks: { font: { size: 10 } } }, y: { beginAtZero: true, grid: { color: "#edf0f4" }, ticks: { precision: 0, font: { size: 10 } } } } }
-            });
-        }
-        if (durumHasData) {
-            markRendered("wrapDurum");
-            new Chart(document.getElementById("durumChart"), {
-                type: "doughnut",
-                data: { labels: ["Tamamlanan", "Bekleyen", "İptal"], datasets: [{ data: durumData, backgroundColor: ["#1d9b73", "#f2bd3e", "#e45f68"], borderColor: "#fff", borderWidth: 3, hoverOffset: 3 }] },
-                options: { ...commonOptions, cutout: "70%" }
-            });
-        }
-        if (markaHasData) {
-            markRendered("wrapMarka");
-            new Chart(document.getElementById("markaChart"), {
-                type: "bar",
-                data: { labels: markaLabels, datasets: [{ label: "İşlem", data: markaData, backgroundColor: ["#2d6cdf", "#16a0b8", "#1d9b73", "#7651c8", "#e69a35", "#d8586a"], borderRadius: 5, borderSkipped: false, maxBarThickness: 22 }] },
-                options: { ...commonOptions, indexAxis: "y", scales: { x: { beginAtZero: true, grid: { color: "#edf0f4" }, ticks: { precision: 0, font: { size: 9 } } }, y: { grid: { display: false }, ticks: { font: { size: 9 } } } } }
-            });
-        }
-    })();
-</script>
-}
+    <section class="df-ops-download-strip" aria-label="Devreye alma raporu indirme seçenekleri">
+        <div><h2>Devreye alma kayıtları</h2><span>@basTarih.ToString("dd.MM.yyyy") - @bitTarih.ToString("dd.MM.yyyy")</span></div>
+        <div class="df-ops-export-actions">
+            <a class="df-btn df-btn-sm df-btn-pdf" href="@pdfUrl"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF</a>
+            <a class="df-btn df-btn-sm df-btn-excel" href="@excelUrl"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel</a>
+            <a class="df-btn df-btn-sm df-btn-secondary" href="@Url.Action("Gecmis", "DevreyeAlma")"><i class="bi bi-list-ul" aria-hidden="true"></i> Kayıtlar</a>
+        </div>
+    </section>
+</main>

@@ -28,12 +28,12 @@
         <form method="get" action="/AdminPanel/yetkiliservisler">
             <div class="df-service-filter-grid">
                 <div class="filtre-alan">
-                    <label>Firma / Yetkili</label>
-                    <input type="text" name="q" value="@seciliQ" placeholder="Firma, yetkili, VKN veya telefon..." />
+                    <label for="admin-servis-q">Firma / Yetkili</label>
+                    <input id="admin-servis-q" type="text" name="q" value="@seciliQ" placeholder="Firma, yetkili, VKN veya telefon..." />
                 </div>
                 <div class="filtre-alan">
-                    <label>Şehir</label>
-                    <select name="il">
+                    <label for="admin-servis-il">Şehir</label>
+                    <select id="admin-servis-il" name="il">
                         <option value="">Tümü</option>
                         @foreach (var sehir in sehirler)
                         {
@@ -42,16 +42,16 @@
                     </select>
                 </div>
                 <div class="filtre-alan">
-                    <label>Cihaz Devreye Alma Kaydı</label>
-                    <select name="devreyeSiralama">
+                    <label for="admin-servis-devreye-siralama">Cihaz Devreye Alma Kaydı</label>
+                    <select id="admin-servis-devreye-siralama" name="devreyeSiralama">
                         <option value="">Varsayılan</option>
                         <option value="azalan" selected="@(seciliDevreyeSiralama == "azalan" ? "selected" : null)">En çoktan aza</option>
                         <option value="artan" selected="@(seciliDevreyeSiralama == "artan" ? "selected" : null)">En azdan çoğa</option>
                     </select>
                 </div>
                 <div class="filtre-alan">
-                    <label>Durum</label>
-                    <select name="durum">
+                    <label for="admin-servis-durum">Durum</label>
+                    <select id="admin-servis-durum" name="durum">
                         <option value="" selected="@(seciliDurum == null ? "selected" : null)">Tümü</option>
                         <option value="1" selected="@(seciliDurum == 1 ? "selected" : null)">Aktif</option>
                         <option value="0" selected="@(seciliDurum == 0 ? "selected" : null)">Pasif</option>
@@ -83,7 +83,7 @@
         </div>
         <div class="df-service-table-scroll">
             <div class="df-service-grid df-service-grid-head">
-                <div>Firma</div><div>İletişim</div><div>Şehir</div><div>Cihaz Devreye Alma</div><div>Durum</div><div class="df-service-grid-actions-heading">İşlemler</div>
+                <div>Yetkili Servis</div><div>İletişim</div><div>Şehir</div><div>Cihaz Devreye Alma</div><div>Durum</div><div class="df-service-grid-actions-heading">İşlemler</div>
             </div>
             @if (servisler.Count == 0)
             {

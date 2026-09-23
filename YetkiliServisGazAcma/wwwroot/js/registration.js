@@ -62,6 +62,24 @@
 
     const panels = Array.from(form.querySelectorAll('[data-registration-step]'));
     const stepButtons = Array.from(form.querySelectorAll('[data-registration-step-target]'));
+    const tcInput = form.querySelector('#TcKimlikNo');
+    const tcError = form.querySelector('#tc-kimlik-hata');
+    let tcTouched = false;
+
+    function validateTc(showMessage = false) {
+        if (!tcInput) return;
+        const valid = /^[0-9]{11}$/.test(tcInput.value.trim());
+        const message = valid ? '' : 'T.C. kimlik no 11 haneli ve sayısal olmalıdır.';
+        tcInput.setCustomValidity(message);
+        const visible = !valid && (showMessage || tcTouched || tcInput.value.length >= 11);
+        tcError.textContent = visible ? message : '';
+        tcError.hidden = !visible;
+        tcInput.setAttribute('aria-invalid', String(visible));
+    }
+
+    tcInput?.addEventListener('blur', () => { tcTouched = true; validateTc(); });
+    tcInput?.addEventListener('input', () => validateTc());
+    validateTc();
 
     function firstInvalid(panel) {
         return Array.from(panel.querySelectorAll('input, select')).find(control => !control.checkValidity());
@@ -70,6 +88,7 @@
     function showStep(step, validatePrevious = false) {
         const previousPanel = panels.find(panel => panel.dataset.registrationStep === '1');
         if (step === 2 && validatePrevious) {
+            validateTc(true);
             const invalid = firstInvalid(previousPanel);
             if (invalid) {
                 invalid.reportValidity();
@@ -83,7 +102,8 @@
         });
         stepButtons.forEach(button => {
             const buttonStep = Number(button.dataset.registrationStepTarget);
-            button.setAttribute('aria-selected', String(buttonStep === step));
+            if (buttonStep === step) button.setAttribute('aria-current', 'step');
+            else button.removeAttribute('aria-current');
             button.classList.toggle('is-complete', buttonStep < step);
         });
         return true;
@@ -97,6 +117,7 @@
     }));
 
     form.addEventListener('submit', event => {
+        validateTc(true);
         const invalid = Array.from(form.elements).find(control => typeof control.checkValidity === 'function' && !control.checkValidity());
         if (!invalid) return;
         event.preventDefault();
@@ -110,7 +131,14 @@
     const updateCompanyCode = () => {
         const option = citySelect?.options[citySelect.selectedIndex];
         const code = option?.dataset.firmaKodu || '';
-        cityCode.textContent = code ? `Firma kodu: ${code}` : '';
+        const names = {
+            CORUMGAZ: 'Çorumgaz Doğalgaz A.Ş.',
+            KARGAZ: 'Kargaz',
+            SURMELIGAZ: 'Sürmeligaz',
+            MARMARAGAZ_YALOVA: 'Marmaragaz',
+            MARMARAGAZ_CORLU: 'Marmaragaz'
+        };
+        cityCode.textContent = code ? `Dağıtım şirketi: ${names[code] || option.textContent}` : '';
         cityCode.hidden = !code;
     };
     citySelect?.addEventListener('change', updateCompanyCode);

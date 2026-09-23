@@ -74,7 +74,12 @@
 
 .df-account-sheet .df-directory-sheet-body {
     background: #f4f7fb;
-    overflow-y: hidden;
+    overflow-y: auto;
+}
+
+.df-account-sheet .df-directory-sheet-form {
+    min-height: 100%;
+    height: auto;
 }
 
 .df-account-sheet .df-directory-sheet-form {

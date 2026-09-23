@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -26,7 +27,8 @@ namespace YetkiliServisGazAcma.API.Controllers
         private readonly SehirFirmaKoduService _sehirFirmaKoduService;
         private readonly YkcImzaAkisService _ykcImzaAkisService;
         private readonly YkcYetkiService _ykcYetkiService;
-        private readonly YkcSorguKaydiService _sorguKayitlari;
+        private readonly IYkcSorguKaydiService _sorguKayitlari;
+        private readonly IConfiguration? _configuration;
 
         public YkcApiController(
             YkcTalepService ykcTalepService,
@@ -37,7 +39,8 @@ namespace YetkiliServisGazAcma.API.Controllers
             SehirFirmaKoduService sehirFirmaKoduService,
             YkcImzaAkisService ykcImzaAkisService,
             YkcYetkiService ykcYetkiService,
-            YkcSorguKaydiService sorguKayitlari)
+            IYkcSorguKaydiService sorguKayitlari,
+            IConfiguration? configuration = null)
         {
             _ykcTalepService = ykcTalepService;
             _userManager = userManager;
@@ -48,6 +51,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             _ykcImzaAkisService = ykcImzaAkisService;
             _ykcYetkiService = ykcYetkiService;
             _sorguKayitlari = sorguKayitlari;
+            _configuration = configuration;
         }
 
         [HttpPost("tesisat-sorgula")]
@@ -158,7 +162,7 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             foreach (var cihaz in cihazlar)
             {
-                cihaz.SorguReferansi = _sorguKayitlari.Ekle(kullanici.Id, new YkcTalepKaydetDto
+                cihaz.SorguReferansi = await _sorguKayitlari.EkleAsync(kullanici.Id, new YkcTalepKaydetDto
                 {
                     FirmaId = firma?.Id,
                     SirketId = sirket?.Id,
@@ -301,6 +305,9 @@ namespace YetkiliServisGazAcma.API.Controllers
                 });
             }
 
+            if (kayitlar.Count == 0)
+                return BadRequest(new { basarili = false, mesaj = "Filtrelere uygun rapor kaydı bulunamadı." });
+
             var icOperasyon = kullanici.KullaniciTipi != KullaniciTipiDegerleri.SertifikaliFirma;
             var zaman = DateTime.Now.ToString("yyyyMMdd_HHmm");
             if (excelMi)
@@ -417,7 +424,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (string.IsNullOrWhiteSpace(fizikselYol))
                 return NotFound(new { basarili = false, mesaj = "Dosya yolu gecersiz." });
 
-            var kokYol = Path.GetFullPath(BelgeKokYolu(dosya));
+            var kokYol = Path.GetFullPath(BelgeKokYolu(dosya, fizikselYol));
 
             if (!fizikselYol.StartsWith(kokYol + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
                 return Forbid();
@@ -793,10 +800,10 @@ namespace YetkiliServisGazAcma.API.Controllers
 
         private string PrivateYkcBelgeRoot()
         {
-            return Path.Combine(_environment.ContentRootPath, "App_Data", "ykc-belgeler");
+            return PrivateDocumentStorage.Root(_environment, _configuration, "ykc-belgeler");
         }
 
-        private string BelgeKokYolu(Ykc_FormDosya dosya)
+        private string BelgeKokYolu(Ykc_FormDosya dosya, string fizikselYol)
         {
             var yol = dosya.DosyaYolu?.Trim().Replace('\\', '/').TrimStart('/') ?? "";
             if (yol.StartsWith("uploads/ykc/", StringComparison.OrdinalIgnoreCase)
@@ -805,7 +812,10 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return WebRootPath();
             }
 
-            return PrivateYkcBelgeRoot();
+            var legacyRoot = PrivateDocumentStorage.LegacyRoot(_environment, "ykc-belgeler");
+            return PrivateDocumentStorage.IsInRoot(fizikselYol, legacyRoot)
+                ? legacyRoot
+                : PrivateYkcBelgeRoot();
         }
 
         private string? ResolveYkcBelgeYolu(Ykc_FormDosya dosya)
@@ -824,9 +834,9 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (yol.StartsWith("ykc/", StringComparison.OrdinalIgnoreCase))
                 yol = yol["ykc/".Length..];
 
-            return Path.GetFullPath(Path.Combine(
-                PrivateYkcBelgeRoot(),
-                yol.Replace('/', Path.DirectorySeparatorChar)));
+            var relative = yol.Replace('/', Path.DirectorySeparatorChar);
+            return PrivateDocumentStorage.ExistingFile(_environment, _configuration, "ykc-belgeler", relative)
+                ?? Path.GetFullPath(Path.Combine(PrivateYkcBelgeRoot(), relative));
         }
 
         private static async Task<string> DosyaHashAsync(string fizikselYol)

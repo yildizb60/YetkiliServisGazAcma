@@ -11,6 +11,7 @@ namespace YetkiliServisGazAcma.Business.Services
         private readonly ILogger<LocalApiProcessService> _logger;
         private Process? _process;
         private bool _portConflictLogged;
+        private DateTimeOffset _lastStartTime;
 
         public LocalApiProcessService(
             IOptions<ApiIntegrationOptions> options,
@@ -89,6 +90,10 @@ namespace YetkiliServisGazAcma.Business.Services
             if (_process is { HasExited: false })
                 return;
 
+            if (_process is { HasExited: true }
+                && DateTimeOffset.UtcNow - _lastStartTime < TimeSpan.FromSeconds(30))
+                return;
+
             if (_process != null)
             {
                 _logger.LogWarning(
@@ -144,6 +149,8 @@ namespace YetkiliServisGazAcma.Business.Services
                     _logger.LogWarning("Yerel API sureci baslatilamadi.");
                     return;
                 }
+
+                _lastStartTime = DateTimeOffset.UtcNow;
 
                 _logger.LogInformation(
                     "Yerel API gelistirme icin baslatildi. Pid: {Pid}, Url: {Url}, Kaynak: {Kaynak}",

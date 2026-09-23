@@ -20,10 +20,8 @@
     var summaryMetrics = new List<RoleDashboardMetricViewModel>();
 
     var onayBekleyen = Sayi(ViewBag.OnayBekleyen);
-    var onaylanan = Sayi(ViewBag.OnaylananBelge);
     var toplamDevreyeAlma = Sayi(ViewBag.ToplamDevreyeAlma);
     var buAyDevreyeAlma = Sayi(ViewBag.BuAy);
-    var servisToplam = Sayi(ViewBag.ServisToplam);
     var servisAktif = Sayi(ViewBag.ServisAktif);
 
     if (belgeYetkisi)
@@ -32,8 +30,7 @@
         actions.Add(new DashboardTileViewModel
         {
             Title = "Yetki Belgesi Onayları", Url = url, Icon = "bi bi-file-earmark-check",
-            MetricValue = onayBekleyen.ToString(), MetricLabel = "bekleyen belge", Subtitle = "Belge kararları",
-            Stat1Label = "onaylandı", Stat1Value = onaylanan.ToString(), Tone = "amber", Featured = onayBekleyen > 0
+            MetricLabel = "Belgeleri değerlendir", Tone = "amber", Featured = onayBekleyen > 0
         });
         quickActions.Add(new DashboardTileViewModel
         {
@@ -52,8 +49,7 @@
         actions.Add(new DashboardTileViewModel
         {
             Title = "Cihaz Değişim İşlemleri", Url = taleplerUrl, Icon = "bi bi-fire",
-            MetricValue = (ykc?.Incelemede ?? 0).ToString(), MetricLabel = "inceleme bekleyen", Subtitle = "Talep ve kontrol süreci",
-            Stat1Label = "kontrolde", Stat1Value = (ykc?.RandevuSaha ?? 0).ToString(), Tone = "blue",
+            MetricLabel = "Talep ve randevuları yönet", Tone = "blue",
             Featured = (ykc?.Incelemede ?? 0) > 0
         });
         quickActions.Add(new DashboardTileViewModel
@@ -71,8 +67,7 @@
         actions.Add(new DashboardTileViewModel
         {
             Title = "Cihaz Devreye Alma Kayıtları", Url = url, Icon = "bi bi-tools",
-            MetricValue = buAyDevreyeAlma.ToString(), MetricLabel = "bu ay kaydedilen", Subtitle = "Kayıt ve raporlama",
-            Stat1Label = "toplam kayıt", Stat1Value = toplamDevreyeAlma.ToString(), Tone = "green"
+            MetricLabel = "Kayıtları görüntüle", Tone = "green"
         });
         quickActions.Add(new DashboardTileViewModel
         {
@@ -89,8 +84,7 @@
         actions.Add(new DashboardTileViewModel
         {
             Title = "Yetkili Servis Yönetimi", Url = url, Icon = "bi bi-building-check",
-            MetricValue = servisAktif.ToString(), MetricLabel = "aktif servis", Subtitle = "Servis kayıtları",
-            Stat1Label = "toplam servis", Stat1Value = servisToplam.ToString(), Tone = "cyan"
+            MetricLabel = "Servisleri yönet", Tone = "cyan"
         });
         quickActions.Add(new DashboardTileViewModel
         {
@@ -107,7 +101,7 @@
         actions.Add(new DashboardTileViewModel
         {
             Title = "Yetkili Servis Markaları", Url = url, Icon = "bi bi-tags",
-            MetricLabel = "Marka kapsamını yönet", Subtitle = "Marka yönetimi", Tone = "cyan"
+            MetricLabel = "Markaları yönet", Tone = "cyan"
         });
         quickActions.Add(new DashboardTileViewModel
         {
@@ -122,7 +116,7 @@
         actions.Add(new DashboardTileViewModel
         {
             Title = "Cihaz Değişim Raporları", Url = url, Icon = "bi bi-bar-chart-line",
-            MetricLabel = "Operasyon sonuçlarını incele", Subtitle = "Cihaz değişim raporları", Tone = "blue"
+            MetricLabel = "Raporları görüntüle", Tone = "blue"
         });
         quickActions.Add(new DashboardTileViewModel
         {
@@ -137,7 +131,7 @@
         actions.Add(new DashboardTileViewModel
         {
             Title = "Profilim", Url = profilUrl, Icon = "bi bi-person-circle",
-            MetricLabel = "Hesap bilgilerini görüntüle", Subtitle = "Hesabım", Tone = "blue"
+            MetricLabel = "Hesap bilgilerini görüntüle", Tone = "blue"
         });
     }
     if (quickActions.Count < 3)

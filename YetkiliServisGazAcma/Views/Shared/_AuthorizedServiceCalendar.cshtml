@@ -105,7 +105,11 @@
                 <span>@(seciliTarih == DateTime.Today ? "Bugün · " : null)@seciliTarih.ToString("dd MMMM dddd", tr)</span>
                 <small>@gununIslemleri.Count işlem</small>
             </div>
-            @if (gununIslemleri.Count == 0)
+            @if (!Model.IsDataComplete)
+            {
+                <div class="home-visits-empty" role="status"><i class="bi bi-cloud-slash" aria-hidden="true"></i><p>Takvim verilerinin tamamı şu anda alınamıyor. Geçmiş ekranından yeniden deneyin.</p></div>
+            }
+            else if (gununIslemleri.Count == 0)
             {
                 <div class="home-visits-empty"><i class="bi bi-calendar2-check" aria-hidden="true"></i><p>Seçili günde devreye alma işlemi yok.</p></div>
             }

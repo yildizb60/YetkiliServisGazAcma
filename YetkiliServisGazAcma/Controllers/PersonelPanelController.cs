@@ -610,8 +610,30 @@ namespace YetkiliServisGazAcma.Controllers
             var yetkiResult = await YetkiKontrol(YetkiTipleri.YETKI_BELGESI_ONAY);
             if (yetkiResult != null) return yetkiResult;
 
-            var tab = durum == "2" ? "reddedilen" : "onaylanan";
-            return RedirectToAction(nameof(OnayBekleyenler), new { tab, firma = q });
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
+            if (kullanici == null) return Redirect("/giris");
+
+            var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
+            List<Ys_YetkiBelgesi> belgeler;
+            try
+            {
+                belgeler = await _yetkiBelgesiOnayApiClient.OnayGecmisiAsync(
+                    kullanici, sirketId, bas, bit, q, durum) ?? new List<Ys_YetkiBelgesi>();
+            }
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
+                belgeler = new List<Ys_YetkiBelgesi>();
+            }
+
+            ViewBag.Bas = bas;
+            ViewBag.Bit = bit;
+            ViewBag.Q = q ?? "";
+            ViewBag.Durum = durum ?? "";
+            ViewBag.Kullanici = kullanici;
+            await SetPersonelYetkiViewBags(kullanici);
+            await SetPersonelNotifViewBags(kullanici);
+            return View("~/Views/PersonelPanel/OnayGecmisi.cshtml", belgeler);
         }
 
         [HttpGet("markalar")]

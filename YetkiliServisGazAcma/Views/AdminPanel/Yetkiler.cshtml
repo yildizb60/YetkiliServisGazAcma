@@ -98,7 +98,7 @@
         <strong>@toplamPersonel personel</strong>
     </div>
     <div class="tablo-head">
-        <div>Personel</div><div>Yetki Kapsamı</div><div>İşlem Yetkileri</div><div>İşlem</div>
+        <div>Personel</div><div>E-posta</div><div>Yetki Kapsamı</div><div>İşlem Yetkileri</div><div>İşlem</div>
     </div>
     @if (personeller == null || personeller.Count == 0)
     {
@@ -110,13 +110,16 @@
         {
             var yetkiler = yetkiMap.ContainsKey(p.Id) ? yetkiMap[p.Id] : new List<string>();
             var sirketAdlari = yetkiSirketAdlariMap.ContainsKey(p.Id) ? yetkiSirketAdlariMap[p.Id] : new List<string>();
-            var gorunenYetkiler = yetkiler.Take(4).ToList();
+            var gorunenYetkiler = yetkiler.Take(2).ToList();
+            var kalanYetkiAdlari = yetkiler.Skip(gorunenYetkiler.Count)
+                .Select(y => yetkiIsimler.TryGetValue(y, out var ad) ? ad : y);
 
             <div class="tablo-row">
                 <div class="df-permission-person" data-label="Personel">
                     <span class="df-permission-person-icon"><i class="bi bi-person" aria-hidden="true"></i></span>
-                    <span><strong>@(p.AdSoyad ?? "-")</strong><small>@(p.Email ?? "E-posta bilgisi yok")</small></span>
+                    <span><strong>@(p.AdSoyad ?? "-")</strong></span>
                 </div>
+                <div class="df-permission-email" data-label="E-posta" title="@p.Email">@(p.Email ?? "E-posta bilgisi yok")</div>
                 <div data-label="Yetki kapsamı">
                     @if (sirketAdlari.Count == 0)
                     {
@@ -146,7 +149,7 @@
                             }
                             @if (yetkiler.Count > gorunenYetkiler.Count)
                             {
-                                <span class="df-permission-token-more">+@(yetkiler.Count - gorunenYetkiler.Count) yetki</span>
+                                <span class="df-permission-token-more" title="@string.Join(", ", kalanYetkiAdlari)">+@(yetkiler.Count - gorunenYetkiler.Count) yetki</span>
                             }
                         </div>
                     }

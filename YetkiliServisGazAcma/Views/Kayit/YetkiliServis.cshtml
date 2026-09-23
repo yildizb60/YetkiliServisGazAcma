@@ -9,6 +9,7 @@
     var tumKategoriler = ViewBag.Kategoriler as List<YetkiliServisGazAcma.Entities.UrunKategori> ?? new();
     var seciliMarkalar = new HashSet<int>(ViewBag.SeciliMarkaIdleri as IEnumerable<int> ?? Array.Empty<int>());
     var seciliKategoriler = new HashSet<int>(ViewBag.SeciliKategoriIdleri as IEnumerable<int> ?? Array.Empty<int>());
+    var seciliIlce = ViewBag.SeciliIlce as string;
     var ilkAdim = ViewBag.Hata != null ? 2 : 1;
 
     string NormalizeKategori(string? value)
@@ -31,7 +32,7 @@
     bool KullanilanKategoriMi(string? value)
     {
         var key = NormalizeKategori(value);
-        return key == "kombi" || key.Contains("merkezikazan") || key.Contains("sofben") || key.Contains("sohben");
+        return key == "kombi" || key.Contains("merkezikazan") || key.Contains("sofben") || key.Contains("sohben") || key.Contains("gazkullanicicihaz");
     }
 
     string KategoriIkonu(string? value)
@@ -39,6 +40,7 @@
         var key = NormalizeKategori(value);
         if (key.Contains("merkezikazan")) return "bi-building-gear";
         if (key.Contains("sofben") || key.Contains("sohben")) return "bi-droplet-half";
+        if (key.Contains("gazkullanicicihaz")) return "bi-grid-3x3-gap";
         return "bi-fire";
     }
 
@@ -71,21 +73,17 @@
               method="post"
               action="/kayit/yetkili-servis"
               data-registration-form
+              novalidate
               data-initial-step="@ilkAdim">
             @Html.AntiForgeryToken()
 
-            <header class="registration-card-head">
-                <span class="registration-title-icon"><i class="bi bi-building-add" aria-hidden="true"></i></span>
-                <div>
-                    <h1>Yetkili Servis Kayıt Ekranı</h1>
-                </div>
-            </header>
+            <header class="login-card-head registration-card-head"><h1>Yetkili Servis Kayıt Ekranı</h1></header>
 
             <div class="registration-progress" aria-label="Kayıt adımları">
-                <button type="button" data-registration-step-target="1" aria-selected="true">
+                <button type="button" data-registration-step-target="1" aria-current="step">
                     <span>1</span><strong>Firma bilgileri</strong><i class="bi bi-check-lg" aria-hidden="true"></i>
                 </button>
-                <button type="button" data-registration-step-target="2" aria-selected="false">
+                <button type="button" data-registration-step-target="2">
                     <span>2</span><strong>Yetki ve hesap</strong><i class="bi bi-check-lg" aria-hidden="true"></i>
                 </button>
             </div>
@@ -101,36 +99,33 @@
 
             <section class="registration-step-panel" data-registration-step="1" aria-label="Firma bilgileri">
                 <div class="registration-field-grid">
-                    <div class="registration-field is-wide">
-                        <label for="FirmaAdi">Firma unvanı <span>*</span></label>
-                        <input id="FirmaAdi" type="text" name="FirmaAdi" placeholder="Yetkili servis firma unvanı" required autocomplete="organization" value="@Model?.FirmaAdi" />
+                    <div class="registration-field">
+                        <label for="FirmaAdi">Firma / Kurum Adı <span>*</span></label>
+                        <input id="FirmaAdi" type="text" name="FirmaAdi" placeholder="Firma veya kurum adı" required autocomplete="organization" value="@Model?.FirmaAdi" />
                     </div>
                     <div class="registration-field">
-                        <label for="VergiNo">VKN <span>*</span></label>
-                        <input id="VergiNo" type="text" name="VergiNo" maxlength="10" inputmode="numeric" placeholder="10 haneli VKN" required value="@Model?.VergiNo" />
-                    </div>
-                    <div class="registration-field">
-                        <label for="VergiDairesi">Vergi dairesi <span>*</span></label>
-                        <input id="VergiDairesi" type="text" name="VergiDairesi" placeholder="Vergi dairesi" required value="@Model?.VergiDairesi" />
-                    </div>
-                    <div class="registration-field">
-                        <label for="YetkiliKisi">Yetkili kişi <span>*</span></label>
+                        <label for="YetkiliKisi">Yetkili Ad Soyad <span>*</span></label>
                         <input id="YetkiliKisi" type="text" name="YetkiliKisi" placeholder="Ad Soyad" required autocomplete="name" value="@Model?.YetkiliKisi" />
                     </div>
                     <div class="registration-field">
+                        <label for="VergiNo">VKN <span>*</span></label>
+                        <input id="VergiNo" type="text" name="VergiNo" maxlength="10" inputmode="numeric" pattern="[0-9]{10}" placeholder="10 haneli VKN" required value="@Model?.VergiNo" />
+                    </div>
+                    <div class="registration-field">
                         <label for="TcKimlikNo">T.C. kimlik no <span>*</span></label>
-                        <input id="TcKimlikNo" type="text" name="TcKimlikNo" maxlength="11" inputmode="numeric" placeholder="11 haneli T.C. kimlik no" required value="@Model?.TcKimlikNo" />
+                        <input id="TcKimlikNo" type="text" name="TcKimlikNo" maxlength="11" inputmode="numeric" pattern="[0-9]{11}" placeholder="11 haneli T.C. kimlik no" aria-describedby="tc-kimlik-hata" required value="@Model?.TcKimlikNo" />
+                        <small id="tc-kimlik-hata" class="registration-field-error" aria-live="polite" hidden></small>
+                    </div>
+                    <div class="registration-field">
+                        <label for="Email">E-posta Adresi <span>*</span></label>
+                        <input id="Email" type="email" name="Email" placeholder="ornek@firma.com" required autocomplete="email" value="@Model?.Email" />
                     </div>
                     <div class="registration-field">
                         <label for="Telefon">Telefon <span>*</span></label>
                         <input id="Telefon" type="tel" name="Telefon" placeholder="05XX XXX XX XX" required autocomplete="tel" value="@Model?.Telefon" />
                     </div>
                     <div class="registration-field">
-                        <label for="Email">E-posta <span>*</span></label>
-                        <input id="Email" type="email" name="Email" placeholder="ornek@firma.com" required autocomplete="email" value="@Model?.Email" />
-                    </div>
-                    <div class="registration-field">
-                        <label for="FaaliyetIli">Faaliyet ili <span>*</span></label>
+                        <label for="FaaliyetIli">İl <span>*</span></label>
                         <select name="FaaliyetIli" id="FaaliyetIli" data-firma-kodu-select required>
                             <option value="">İl seçin</option>
                             @foreach (var sehir in sehirler)
@@ -139,12 +134,16 @@
                                 <option value="@sehir" data-firma-kodu="@firmaKodu" selected="@(string.Equals(Model?.FaaliyetIli, sehir, StringComparison.CurrentCultureIgnoreCase) ? "selected" : null)">@sehir</option>
                             }
                         </select>
-                        <small class="registration-field-hint" data-firma-kodu-target></small>
+                    </div>
+                    <div class="registration-field">
+                        <label for="Ilce">İlçe <span>*</span></label>
+                        <input id="Ilce" type="text" name="ilce" maxlength="100" placeholder="İlçe" required value="@seciliIlce" />
                     </div>
                     <div class="registration-field is-address">
                         <label for="Adres">Adres <span>*</span></label>
                         <input id="Adres" type="text" name="Adres" placeholder="Açık firma adresi" required autocomplete="street-address" value="@Model?.Adres" />
                     </div>
+                    <div class="registration-company-note" data-firma-kodu-target hidden></div>
                 </div>
 
                 <footer class="registration-step-actions">
@@ -153,14 +152,8 @@
                 </footer>
             </section>
 
-            <section class="registration-step-panel" data-registration-step="2" aria-labelledby="registration-authority-title" hidden>
-                <div class="registration-security-row">
-                    <div class="registration-section-title is-green">
-                        <span><i class="bi bi-shield-check" aria-hidden="true"></i></span>
-                        <h2 id="registration-authority-title">Hesap güvenliği</h2>
-                    </div>
-                    <p><i class="bi bi-info-circle" aria-hidden="true"></i> Kullanıcı adınız VKN olacaktır.</p>
-                </div>
+            <section class="registration-step-panel" data-registration-step="2" aria-label="Yetki ve hesap" hidden>
+                <p class="registration-account-note">VKN, T.C. kimlik no veya e-posta adresinizle giriş yapabilirsiniz.</p>
 
                 <div class="registration-password-grid">
                     <div class="registration-field">

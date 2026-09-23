@@ -70,6 +70,7 @@ namespace YetkiliServisGazAcma.Controllers
             var ayBasi = new DateTime(seciliTarih.Year, seciliTarih.Month, 1);
             var aySonu = ayBasi.AddMonths(1).AddDays(-1);
             var takvimIslemleri = new List<Ys_DevreyeAlma>();
+            var takvimVerisiTam = true;
 
             try
             {
@@ -79,6 +80,7 @@ namespace YetkiliServisGazAcma.Controllers
             }
             catch (ApiIntegrationException)
             {
+                takvimVerisiTam = false;
                 takvimIslemleri = dashboard.SonIslemler
                     .Where(x => x.DevreyeAlmaTarihi.Date >= ayBasi && x.DevreyeAlmaTarihi.Date <= aySonu)
                     .ToList();
@@ -101,6 +103,7 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.TakvimTarih = seciliTarih;
             ViewBag.TakvimGorunum = gorunum;
             ViewBag.TakvimIslemleri = takvimIslemleri;
+            ViewBag.TakvimVerisiTam = takvimVerisiTam;
 
             return View("~/Views/YetkiliServisPanel/Index.cshtml");
         }
@@ -482,12 +485,9 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.YetkiBelgesiOnayli = rapor.YetkiBelgesiOnayli;
             ViewBag.YetkiBelgesiBekleyen = rapor.YetkiBelgesiBekleyen;
             ViewBag.YetkiBelgesiReddedilen = rapor.YetkiBelgesiReddedilen;
-            ViewBag.SonIslemler = rapor.SonIslemler;
             ViewBag.ChartAylikLabels = rapor.ChartAylikLabels;
             ViewBag.ChartAylikData = rapor.ChartAylikData;
             ViewBag.ChartDurumData = rapor.ChartDurumData;
-            ViewBag.ChartMarkaLabels = rapor.ChartMarkaLabels;
-            ViewBag.ChartMarkaData = rapor.ChartMarkaData;
             ViewBag.Firma = rapor.Firma;
             ViewBag.Kullanici = kullanici;
             await SetBildirimler(kullanici);

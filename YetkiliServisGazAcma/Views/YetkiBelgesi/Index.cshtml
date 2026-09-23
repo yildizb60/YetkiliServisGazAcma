@@ -72,13 +72,14 @@
                     var baslangic = belge.YetkiBelgesiBaslangicTarihi ?? belge.OlusturmaTarihi;
                     var suresiDolmus = belge.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor && belge.YetkiBelgesiBitisTarihi.Date < DateTime.Today;
                     var durumText = suresiDolmus ? "Süresi Doldu" : belge.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor ? "Onay Bekliyor" : belge.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "Onaylandı" : "Reddedildi";
-                    var durumClass = suresiDolmus ? "df-pill-danger" : belge.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor ? "df-pill-warning" : belge.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "df-pill-success" : "df-pill-danger";
+                    var durumClass = suresiDolmus ? "is-expired" : belge.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor ? "is-pending" : belge.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "is-approved" : "is-rejected";
+                    var durumIcon = suresiDolmus ? "bi-calendar-x" : belge.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor ? "bi-hourglass-split" : belge.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "bi-check-circle" : "bi-x-circle";
                     var searchText = $"{belge.OlusturmaTarihi:dd.MM.yyyy} {baslangic:dd.MM.yyyy} {belge.YetkiBelgesiBitisTarihi:dd.MM.yyyy} {durumText}";
                     <tr class="sert-row" data-search="@searchText" data-durum="@durumText">
                         <td><div class="df-cell-main"><i class="bi bi-file-earmark-text" aria-hidden="true"></i> Yetki Belgesi</div><div class="df-cell-sub">@belge.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm") tarihinde yüklendi</div>@if (!string.IsNullOrWhiteSpace(belge.RedGerekce)) { <div class="df-cell-sub">Red gerekçesi: @belge.RedGerekce</div> }</td>
                         <td>@baslangic.ToString("dd.MM.yyyy")</td>
                         <td>@belge.YetkiBelgesiBitisTarihi.ToString("dd.MM.yyyy")</td>
-                        <td><span class="df-pill @durumClass">@durumText</span></td>
+                        <td><span class="ys-certificate-state @durumClass"><i class="bi @durumIcon" aria-hidden="true"></i>@durumText</span></td>
                         <td><div class="df-actions">
                             <a class="df-icon-action" href="@Url.Action("Dosya", "YetkiBelgesi", new { id = belge.Id })" target="_blank" rel="noopener" title="Belgeyi görüntüle"><i class="bi bi-eye" aria-hidden="true"></i><span>Görüntüle</span></a>
                             <form method="post" action="@Url.Action("Sil", "YetkiBelgesi")" onsubmit="return confirm('Yetki belgesini silmek istiyor musunuz?');">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@belge.Id" /><button class="df-icon-action is-danger" type="submit" title="Belgeyi sil"><i class="bi bi-trash3" aria-hidden="true"></i><span>Sil</span></button></form>

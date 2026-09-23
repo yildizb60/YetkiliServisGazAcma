@@ -2697,12 +2697,15 @@ button.df-admin-metric {
 
 .df-service-list-modern .df-service-grid {
     min-width: 0;
-    grid-template-columns: minmax(145px, 1.45fr) minmax(145px, 1.15fr) minmax(78px, .68fr) 48px 62px 110px;
+    grid-template-columns: minmax(135px, 1.4fr) minmax(140px, 1.3fr) minmax(80px, .65fr) minmax(112px, .75fr) 64px 104px;
 }
 
 .df-service-list-modern .df-service-grid-head {
     padding: 9px 27px;
 }
+
+.df-service-list-modern .df-service-grid-head > div:nth-child(4),
+.df-service-list-modern .df-service-row > div:nth-child(4) { text-align: center; }
 
 .df-service-grid-actions-heading {
     text-align: right;
@@ -3088,6 +3091,7 @@ html.df-sheet-open {
     overflow-y: auto;
     overscroll-behavior: contain;
     scrollbar-width: thin;
+    scroll-padding-bottom: 64px;
 }
 
 .df-directory-sheet-loading,
@@ -3123,8 +3127,7 @@ html.df-sheet-open {
 }
 
 .df-directory-sheet-form {
-    height: 100%;
-    min-height: 0;
+    min-height: 100%;
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -3337,8 +3340,6 @@ html.df-sheet-open {
 }
 
 .df-directory-sheet .df-admin-form-actions {
-    position: static;
-    z-index: 3;
     margin: auto -14px 0;
     padding: 9px 18px;
     border-top: 1px solid #dfe5ee;
@@ -3347,7 +3348,7 @@ html.df-sheet-open {
 }
 
 .df-admin-service-sheet .df-directory-sheet-body {
-    overflow-y: hidden;
+    overflow-y: auto;
 }
 
 .df-admin-service-sheet .df-admin-service-editor-form {
@@ -3931,7 +3932,7 @@ html.df-sheet-open {
 }
 
 .df-permission-sheet .df-directory-sheet-body {
-    overflow-y: hidden;
+    overflow-y: auto;
     background: #f4f7fb;
 }
 
@@ -3967,7 +3968,7 @@ html.df-sheet-open {
 }
 
 .df-permission-sheet .df-permission-editor-form {
-    height: 100%;
+    min-height: 100%;
     padding: 0;
     gap: 0;
     background: #fff;
@@ -5837,24 +5838,24 @@ body.df-modal-open {
 
 .df-permission-workspace .tablo-head,
 .df-permission-workspace .tablo-row {
-    grid-template-columns: minmax(220px, 1.15fr) minmax(180px, .9fr) minmax(320px, 1.65fr) 92px;
-    gap: 16px;
+    grid-template-columns: minmax(210px, 1.3fr) minmax(170px, 1fr) minmax(140px, .85fr) minmax(215px, 1.5fr) 84px;
+    gap: 9px;
 }
 
-.df-permission-workspace .tablo-head { padding-block: 9px; }
-.df-permission-workspace .tablo-row { min-height: 76px; padding-block: 10px; }
+.df-permission-workspace .tablo-head { padding-block: 8px; }
+.df-permission-workspace .tablo-row { min-height: 54px; padding-block: 7px; }
 
 .df-permission-person {
     display: grid;
-    grid-template-columns: 38px minmax(0, 1fr);
+    grid-template-columns: 32px minmax(0, 1fr);
     align-items: center;
-    gap: 10px;
+    gap: 7px;
     min-width: 0;
 }
 
 .df-permission-person-icon {
-    width: 38px;
-    height: 38px;
+    width: 32px;
+    height: 32px;
     display: grid;
     place-items: center;
     border: 1px solid #cfdbef;
@@ -5869,10 +5870,12 @@ body.df-modal-open {
 .df-permission-person small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .df-permission-person strong { color: #223b50; font-size: 11.5px; font-weight: 750; }
 .df-permission-person small { margin-top: 3px; color: #758696; font-size: 9.5px; }
+.df-permission-email { min-width: 0; overflow: hidden; color: #526679; font-size: 10.5px; text-overflow: ellipsis; white-space: nowrap; }
 
-.df-permission-workspace .yetki-list { gap: 5px; }
+.df-permission-workspace .yetki-list { gap: 4px; }
 .df-permission-workspace .df-permission-token {
-    min-height: 24px;
+    min-height: 22px;
+    padding: 3px 6px;
     border-color: #d7e2ed;
     background: #f7f9fc;
     color: #3d5a70;
@@ -5886,8 +5889,8 @@ body.df-modal-open {
 .df-permission-workspace .df-permission-token[data-permission-code="TAM_YETKI"] { border-color: #ead8ad; background: #fff7e3; color: #986006; }
 
 .df-permission-token-more {
-    min-height: 24px;
-    padding: 4px 7px;
+    min-height: 22px;
+    padding: 3px 6px;
     display: inline-flex;
     align-items: center;
     border: 1px dashed #cbd6e1;
@@ -5902,8 +5905,8 @@ body.df-modal-open {
 @media (max-width: 1050px) {
     .df-permission-workspace .tablo-head,
     .df-permission-workspace .tablo-row {
-        grid-template-columns: minmax(190px, 1fr) minmax(160px, .8fr) minmax(240px, 1.25fr) 86px;
-        gap: 10px;
+        grid-template-columns: minmax(110px, 1fr) minmax(140px, 1.15fr) minmax(120px, .85fr) minmax(180px, 1.4fr) 78px;
+        gap: 8px;
     }
 }
 
@@ -7290,15 +7293,7 @@ body.df-modal-open {
     .df-approval-workspace .is-admin-approval .df-approval-filter-grid { grid-template-columns: 1fr; }
 }
 
-/* Personel servis dizini: açıklayıcı sütunlar ve tek parça kayan düzenleme yüzeyi. */
-.df-personnel-service-directory .df-service-list-modern .df-service-grid {
-    grid-template-columns:minmax(150px,1.3fr) minmax(170px,1.2fr) minmax(105px,.72fr) 112px 66px 110px;
-}
-.df-personnel-service-directory .df-service-grid-head > div:nth-child(4) {
-    line-height:1.2;
-    text-align:center;
-}
-.df-personnel-service-directory .df-service-row > div:nth-child(4) { text-align:center; }
+/* Personel servis dizini: tek parça kayan düzenleme yüzeyi. */
 .df-personnel-service-directory .df-service-detail-grid {
     grid-template-columns:.85fr 1fr 1.25fr 1.25fr;
 }
@@ -7344,19 +7339,16 @@ body.df-modal-open {
     color:#fff;
 }
 .df-personnel-service-sheet .df-directory-sheet-body {
-    overflow-y:hidden;
+    overflow-y:auto;
 }
 .df-personnel-service-sheet .df-directory-sheet-editor {
     min-height:100%;
-    height:100%;
+    height:auto;
     padding:10px 12px 0;
     box-sizing:border-box;
 }
 .df-personnel-service-sheet .service-editor {
     box-shadow:none;
-}
-.df-personnel-service-sheet .service-editor-actions {
-    position:static;
 }
 @media (max-width:760px) {
     .df-personnel-service-directory .df-service-detail-grid { grid-template-columns:1fr; }
@@ -7377,4 +7369,10 @@ body.df-modal-open {
     .df-personnel-service-sheet .df-directory-sheet-editor { height:auto; min-height:100%; }
     .df-personnel-service-sheet .service-editor,
     .df-personnel-service-sheet .service-editor-form { height:auto; min-height:100%; }
+}
+
+.df-directory-sheet :is(.df-admin-form-actions, .permission-editor-actions, .service-editor-actions) {
+    position: sticky;
+    bottom: 0;
+    z-index: 3;
 }

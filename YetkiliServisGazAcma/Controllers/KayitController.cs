@@ -60,6 +60,7 @@ namespace YetkiliServisGazAcma.Controllers
         [Route("kayit/yetkili-servis")]
         public async Task<IActionResult> YetkiliServis(
             Ys_Firma firma,
+            string? ilce,
             string sifre,
             string sifreTekrar,
             List<int> markaIdleri,
@@ -69,6 +70,7 @@ namespace YetkiliServisGazAcma.Controllers
             if (sifre != sifreTekrar)
             {
                 ViewBag.Hata = "Şifreler eşleşmiyor.";
+                ViewBag.SeciliIlce = ilce;
                 ViewBag.SeciliMarkaIdleri = markaIdleri;
                 ViewBag.SeciliKategoriIdleri = kategoriIdleri;
                 await BasvuruListeleriniYukle();
@@ -83,8 +85,8 @@ namespace YetkiliServisGazAcma.Controllers
                 Email = firma.Email,
                 Adres = firma.Adres,
                 FaaliyetIli = firma.FaaliyetIli,
+                Ilce = ilce?.Trim(),
                 VergiNo = firma.VergiNo,
-                VergiDairesi = firma.VergiDairesi,
                 TcKimlikNo = firma.TcKimlikNo,
                 Sifre = sifre,
                 MarkaIdleri = markaIdleri ?? new List<int>(),
@@ -97,6 +99,7 @@ namespace YetkiliServisGazAcma.Controllers
             if (apiSonuc == null)
             {
                 ViewBag.Hata = "Kayıt işlemi API üzerinden gönderilemedi. Lütfen API uygulamasının çalıştığını kontrol edin.";
+                ViewBag.SeciliIlce = ilce;
                 ViewBag.SeciliMarkaIdleri = markaIdleri;
                 ViewBag.SeciliKategoriIdleri = kategoriIdleri;
                 await BasvuruListeleriniYukle();
@@ -109,6 +112,7 @@ namespace YetkiliServisGazAcma.Controllers
                     mesaj = "E-posta adresi zaten kayitli.";
 
                 ViewBag.Hata = mesaj ?? "Kayıt işlemi başarısız oldu.";
+                ViewBag.SeciliIlce = ilce;
                 ViewBag.SeciliMarkaIdleri = markaIdleri;
                 ViewBag.SeciliKategoriIdleri = kategoriIdleri;
                 await BasvuruListeleriniYukle();

@@ -118,7 +118,7 @@
                                aria-current="@(gun == Model.Tarih ? "date" : null)"
                                aria-label="@($"{gun.ToString("dd MMMM yyyy", tr)}{(count > 0 ? $", {count} randevu" : "")}")">
                                 @gun.Day
-                                @if ((Model.FirmaGorunumu && count > 0) || (!Model.FirmaGorunumu && gun == DateTime.Today))
+                                @if (count > 0 || (!Model.FirmaGorunumu && gun == DateTime.Today))
                                 {
                                     <i class="home-month-dot" aria-hidden="true"></i>
                                 }

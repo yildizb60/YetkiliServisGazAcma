@@ -221,6 +221,7 @@ namespace YetkiliServisGazAcma.Business.Services
             public string? Email { get; set; }
             public string? Adres { get; set; }
             public string? FaaliyetIli { get; set; }
+            public string? Ilce { get; set; }
             public string? VergiNo { get; set; }
             public string? VergiDairesi { get; set; }
             public string? TcKimlikNo { get; set; }

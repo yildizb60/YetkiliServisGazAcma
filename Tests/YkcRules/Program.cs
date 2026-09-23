@@ -1,4 +1,10 @@
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.FileProviders;
 using YetkiliServisGazAcma.Business.Services;
+using YetkiliServisGazAcma.Business.Services.Online;
 using YetkiliServisGazAcma.Entities;
 
 var passed = 0;
@@ -18,6 +24,25 @@ string ExcelParcasi(byte[] bytes, string path)
 }
 
 // No database or external providers: checks cannot alter application records.
+var onlineHandler = new RecordingOnlineHandler();
+using var onlineHttp = new HttpClient(onlineHandler);
+var disabledOnline = new OnlineCihazBilgileriClient(onlineHttp,
+    Options.Create(new OnlineServiceOptions()), NullLogger<OnlineCihazBilgileriClient>.Instance);
+var disabledResult = await disabledOnline.YSCihazBilgileriGetirAsync("CORUMGAZ", 1000132, 432237);
+Check(!disabledResult.Basarili && onlineHandler.Calls == 0,
+    "Unconfigured online service cannot call a default test endpoint");
+var missingEndpoint = new OnlineCihazBilgileriClient(onlineHttp,
+    Options.Create(new OnlineServiceOptions { Enabled = true }), NullLogger<OnlineCihazBilgileriClient>.Instance);
+var missingEndpointResult = await missingEndpoint.YSCihazBilgileriGetirAsync("CORUMGAZ", 1000132, 432237);
+Check(!missingEndpointResult.Basarili && onlineHandler.Calls == 0,
+    "Enabled online service requires an explicit endpoint");
+var configuredOnline = new OnlineCihazBilgileriClient(onlineHttp,
+    Options.Create(new OnlineServiceOptions { Enabled = true, Endpoint = "https://example.invalid/Online.svc" }),
+    NullLogger<OnlineCihazBilgileriClient>.Instance);
+await configuredOnline.YSCihazBilgileriGetirAsync("CORUMGAZ", 1000132, 432237);
+Check(onlineHandler.Calls == 1 && onlineHandler.LastUri?.AbsoluteUri == "https://example.invalid/Online.svc",
+    "Configured online service uses its explicit endpoint");
+
 var adminSetup = YetkiliServisIlkKurulumService.Degerlendir(
     YetkiliServisOlusturmaTipleri.Admin, true, true, true, true);
 Check(adminSetup.zorunluMu && adminSetup.tamamlandiMi && adminSetup.eksikler.Count == 0,
@@ -87,6 +112,50 @@ Check(snapshots.Uygula("firm-a", padded) && padded.TesisatNo == "100" && padded.
 var invalidNumber = Request(); invalidNumber.TesisatNo = "+100";
 Check(!snapshots.Uygula("firm-a", invalidNumber), "Non-digit identifier rejected");
 
+var storageFixture = Path.Combine(Path.GetTempPath(), "ykc-storage-test-" + Guid.NewGuid().ToString("N"));
+try
+{
+    var environment = new StorageTestEnvironment { ContentRootPath = Path.Combine(storageFixture, "app") };
+    var persistentRoot = Path.Combine(storageFixture, "persistent");
+    var storageConfig = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+    {
+        ["DocumentStorage:RootPath"] = persistentRoot
+    }).Build();
+    var legacy = PrivateDocumentStorage.LegacyRoot(environment, "ykc-belgeler");
+    Check(PrivateDocumentStorage.Root(environment, null, "ykc-belgeler") == legacy,
+        "Unconfigured private storage keeps the existing path");
+    Check(PrivateDocumentStorage.Root(environment, storageConfig, "ykc-belgeler") == Path.Combine(persistentRoot, "ykc-belgeler"),
+        "Configured private storage is outside the application folder");
+    Directory.CreateDirectory(legacy);
+    File.WriteAllText(Path.Combine(legacy, "existing.pdf"), "fixture");
+    Check(PrivateDocumentStorage.ExistingFile(environment, storageConfig, "ykc-belgeler", "existing.pdf") == Path.Combine(legacy, "existing.pdf"),
+        "Previously stored private documents remain readable");
+    Check(PrivateDocumentStorage.ExistingFile(environment, storageConfig, "ykc-belgeler", "../secret.txt") == null,
+        "Private storage rejects path traversal");
+    var invalidStorageConfig = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+    {
+        ["DocumentStorage:RootPath"] = Path.Combine(environment.ContentRootPath, "App_Data")
+    }).Build();
+    var invalidRootRejected = false;
+    try
+    {
+        PrivateDocumentStorage.Root(environment, invalidStorageConfig, "ykc-belgeler");
+    }
+    catch (InvalidOperationException)
+    {
+        invalidRootRejected = true;
+    }
+    Check(invalidRootRejected, "Private storage cannot be configured inside the publish folder");
+}
+finally
+{
+    var full = Path.GetFullPath(storageFixture);
+    if (Path.GetFileName(full).StartsWith("ykc-storage-test-", StringComparison.Ordinal)
+        && PrivateDocumentStorage.IsInRoot(full, Path.GetTempPath())
+        && Directory.Exists(full))
+        Directory.Delete(full, recursive: true);
+}
+
 var appointment = new DateTime(2030, 1, 2, 15, 0, 0);
 Check(YkcRandevuKurali.Cakisiyor(appointment, appointment, 0), "Same minute conflicts without invented visit duration");
 Check(!YkcRandevuKurali.Cakisiyor(appointment, appointment.AddMinutes(1), 0), "Different minute allowed with default interval");
@@ -101,6 +170,10 @@ Check(YkcRandevuKurali.GecerliSaatDilimi(new TimeSpan(14, 0, 0), 30)
     "Whole and half hours are valid 30-minute appointment slots");
 Check(!YkcRandevuKurali.GecerliSaatDilimi(new TimeSpan(14, 15, 0), 30),
     "Quarter-hour values are rejected for 30-minute appointment slots");
+Check(!YkcRandevuKurali.MesaiSaatindeMi(new TimeSpan(5, 30, 0)), "05:30 is outside working hours");
+Check(YkcRandevuKurali.MesaiSaatindeMi(new TimeSpan(8, 0, 0)), "08:00 is the first appointment slot");
+Check(YkcRandevuKurali.MesaiSaatindeMi(new TimeSpan(17, 30, 0)), "17:30 is the last 30-minute appointment slot");
+Check(!YkcRandevuKurali.MesaiSaatindeMi(new TimeSpan(18, 0, 0)), "18:00 is closing time");
 Check(YkcTakvimGorunumKurali.DoneminTumKayitlariGerekli(new DateTime(2026, 9, 7), new DateTime(2026, 9, 13)),
     "Exact Monday-Sunday range requests complete week records");
 Check(YkcTakvimGorunumKurali.DoneminTumKayitlariGerekli(new DateTime(2026, 9, 1), new DateTime(2026, 9, 30)),
@@ -236,3 +309,29 @@ if (args.Length == 2 && args[0] == "--form-output")
     File.WriteAllBytes(Path.Combine(args[1], "ykc-report.xlsx"), icOperasyonExcel);
 }
 Console.WriteLine($"{passed} checks passed. No application data changed.");
+
+sealed class RecordingOnlineHandler : HttpMessageHandler
+{
+    public int Calls { get; private set; }
+    public Uri? LastUri { get; private set; }
+
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        Calls++;
+        LastUri = request.RequestUri;
+        return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.ServiceUnavailable)
+        {
+            Content = new StringContent("")
+        });
+    }
+}
+
+sealed class StorageTestEnvironment : IWebHostEnvironment
+{
+    public string EnvironmentName { get; set; } = "Development";
+    public string ApplicationName { get; set; } = "YkcRules";
+    public string ContentRootPath { get; set; } = string.Empty;
+    public string WebRootPath { get; set; } = string.Empty;
+    public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
+    public IFileProvider WebRootFileProvider { get; set; } = new NullFileProvider();
+}

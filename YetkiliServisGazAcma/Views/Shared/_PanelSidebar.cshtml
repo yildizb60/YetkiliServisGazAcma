@@ -84,7 +84,7 @@
     var homeActive = ActiveExact(isSertifikaliFirmaPanel ? "YkcOzet" : "Dashboard", home, home + "/index");
     if (isYetkiliServisPanel)
     {
-        Group("Cihaz Devreye Alma", "bi-bag-check",
+        Group("Cihaz Devreye Alma İşlemleri", "bi-bag-check",
             ("Yeni Cihaz Devreye Alma Kaydı", Link("Index", "DevreyeAlma"), "bi-plus-lg", ActiveExact("DevreyeAl", "/ys-devreyeal")),
             ("İşlem Geçmişi", Link("Gecmis", "DevreyeAlma"), "bi-clock-history", Active("DevreyeGecmis", "/ys-devreyeal/gecmis", "/ys-devreyeal/detay")),
             ("Cihaz Devreye Alma Raporları", Link("Raporlar", "YetkiliServisPanel"), "bi-bar-chart-line", Active("Raporlar", "/ys-panel/raporlar")));
@@ -127,7 +127,7 @@
         }
         if (!isPersonelPanel || ViewBag.YetkiRapor == true)
         {
-            Group("Cihaz Devreye Alma", "bi-bag-check",
+            Group("Cihaz Devreye Alma İşlemleri", "bi-bag-check",
                 ("Cihaz Devreye Alma Kayıtları", Link("DevreyeAlmalar", isPersonelPanel ? "PersonelPanel" : "AdminPanel"), "bi-list-check", Active("DevreyeAlmalar", area + "/devreyealmalar")));
         }
         var ykc = new List<(string, string, string, string)>();
@@ -158,7 +158,7 @@
         if (!isPersonelPanel || ViewBag.YetkiRapor == true)
         {
             Group("Raporlama", "bi-bar-chart-line",
-                ("Operasyon Raporları", Link("Raporlar", isPersonelPanel ? "PersonelPanel" : "AdminPanel"), "bi-graph-up", Active("Raporlar", area + "/raporlar")));
+                ("Raporlar", Link("Raporlar", isPersonelPanel ? "PersonelPanel" : "AdminPanel"), "bi-graph-up", Active("Raporlar", area + "/raporlar")));
         }
         Group("Hesabım", "bi-person-circle",
             ("Profilim", Link("Profil", isPersonelPanel ? "PersonelPanel" : "AdminPanel"), "bi-person", Active("Profil", area + "/profil")));

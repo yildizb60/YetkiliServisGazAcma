@@ -77,8 +77,8 @@
         tabs.forEach(item => { item.setAttribute('aria-selected', String(item === tab)); item.tabIndex = item === tab ? 0 : -1; });
         shell.querySelector('#login-panel').setAttribute('aria-labelledby', tab.id);
         const personel = mode === 'personel';
-        shell.querySelector('label[for="kullanici-adi"]').textContent = personel ? 'E-posta Adresi' : 'VKN veya E-posta';
-        shell.querySelector('#kullanici-adi').placeholder = personel ? 'E-posta adresiniz' : 'VKN veya e-posta adresiniz';
+        shell.querySelector('label[for="kullanici-adi"]').textContent = personel ? 'E-posta Adresi' : mode === 'servis' ? 'VKN, T.C. Kimlik No veya E-posta' : 'VKN veya E-posta';
+        shell.querySelector('#kullanici-adi').placeholder = personel ? 'E-posta adresiniz' : mode === 'servis' ? 'Kayıtlı giriş bilginiz' : 'VKN veya e-posta adresiniz';
         shell.querySelector('.login-registration').hidden = mode !== 'servis';
         if (fillDemo && tab.dataset.demoUser) {
             shell.querySelector('#kullanici-adi').value = tab.dataset.demoUser;

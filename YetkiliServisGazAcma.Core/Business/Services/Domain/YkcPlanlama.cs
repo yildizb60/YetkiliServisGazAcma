@@ -75,6 +75,9 @@ public static class YkcRandevuKurali
     public static bool Cakisiyor(DateTime birinci, DateTime ikinci, int asgariAralikDakika)
         => birinci == ikinci || Math.Abs((birinci - ikinci).TotalMinutes) < Math.Clamp(asgariAralikDakika, 0, 240);
 
+    public static bool MesaiSaatindeMi(TimeSpan saat)
+        => saat >= TimeSpan.FromHours(8) && saat < TimeSpan.FromHours(18);
+
     public static bool GecerliSaatDilimi(TimeSpan saat, int dilimDakika)
     {
         var dilim = Math.Clamp(dilimDakika, 1, 240);

@@ -66,7 +66,9 @@ namespace YetkiliServisGazAcma.Controllers
             return key == "kombi"
                 || key.Contains("merkezikazan")
                 || key.Contains("sofben")
-                || key.Contains("sohben");
+                || key.Contains("sohben")
+                || key == "ocak"
+                || key.Contains("gazkullanicicihaz");
         }
 
         private static string NormalizeKategori(string? ad)

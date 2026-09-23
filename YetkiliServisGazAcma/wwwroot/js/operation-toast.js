@@ -63,7 +63,7 @@
 
     const pendingConfirmations = new WeakMap();
 
-    function showConfirmation(form) {
+    function showConfirmation(form, submitter) {
         const current = pendingConfirmations.get(form);
         if (current?.isConnected) return;
 
@@ -74,6 +74,8 @@
             timeout: 0
         });
         toast.classList.add('is-confirm');
+        toast.setAttribute('role', 'alertdialog');
+        toast.setAttribute('aria-modal', 'true');
 
         const actions = document.createElement('span');
         actions.className = 'df-operation-toast-actions';
@@ -83,9 +85,14 @@
         toast.append(actions);
         pendingConfirmations.set(form, toast);
 
-        actions.querySelector('.is-cancel').addEventListener('click', () => {
+        const cancelButton = actions.querySelector('.is-cancel');
+        const returnFocus = submitter instanceof HTMLElement
+            ? submitter
+            : form.querySelector('button[type="submit"], input[type="submit"]');
+        cancelButton.addEventListener('click', () => {
             pendingConfirmations.delete(form);
             dismiss(toast);
+            returnFocus?.focus();
         });
         actions.querySelector('.is-confirm-action').addEventListener('click', () => {
             pendingConfirmations.delete(form);
@@ -93,6 +100,7 @@
             dismiss(toast);
             form.requestSubmit();
         });
+        cancelButton.focus();
     }
 
     stack.querySelectorAll('[data-operation-toast]').forEach(bind);
@@ -104,7 +112,7 @@
             return;
         }
         event.preventDefault();
-        showConfirmation(form);
+        showConfirmation(form, event.submitter);
     });
     document.addEventListener('click', event => {
         const control = event.target.closest('a[href], button');

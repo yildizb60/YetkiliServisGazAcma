@@ -142,6 +142,7 @@
             SelectedDate = takvimTarih,
             ViewMode = takvimGorunum,
             HistoryUrl = Url.Action("Gecmis", "DevreyeAlma")!,
+            IsDataComplete = ViewBag.TakvimVerisiTam as bool? ?? true,
             Items = takvimIslemleri.Select(item => new AuthorizedServiceCalendarItemViewModel
             {
                 Id = item.Id,

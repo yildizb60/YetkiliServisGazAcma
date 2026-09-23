@@ -73,7 +73,7 @@
             {
                 <form method="post" action="/giris/sifre-unuttum">
                     @Html.AntiForgeryToken()
-                    <div class="login-field"><label for="sifre-kullanici">VKN veya E-posta</label><input id="sifre-kullanici" type="text" name="kullaniciAdi" placeholder="VKN veya e-posta adresiniz" autocomplete="username" required /></div>
+                    <div class="login-field"><label for="sifre-kullanici">VKN, T.C. Kimlik No veya E-posta</label><input id="sifre-kullanici" type="text" name="kullaniciAdi" placeholder="Kayıtlı giriş bilginiz" autocomplete="username" required /></div>
                     <button type="submit" class="login-submit">SMS Kodu Gönder</button>
                 </form>
                 <a class="login-link" href="/giris">Giriş ekranına dön</a>

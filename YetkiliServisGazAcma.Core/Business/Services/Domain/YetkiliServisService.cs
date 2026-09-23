@@ -54,7 +54,8 @@ namespace YetkiliServisGazAcma.Business.Services
             Ys_Firma firma,
             string sifre,
             List<int> markaIdleri,
-            List<int> kategoriIdleri)
+            List<int> kategoriIdleri,
+            string? ilce = null)
         {
             // VKN kontrolü — aynı VKN ile kayıt var mı?
             var mevcutFirma = await VknIleGetir(firma.VergiNo!);
@@ -76,6 +77,7 @@ namespace YetkiliServisGazAcma.Business.Services
             {
                 UserName = firma.VergiNo,
                 Email = firma.Email,
+                PhoneNumber = firma.Telefon?.Trim(),
                 AdSoyad = firma.YetkiliKisi,
                 KullaniciTipi = KullaniciTipiDegerleri.YetkiliServis, // Yetkili Servis
                 FirmaId = firma.Id,
@@ -124,6 +126,23 @@ namespace YetkiliServisGazAcma.Business.Services
                         SilindiMi = false
                     });
                 }
+            }
+
+            if (!string.IsNullOrWhiteSpace(ilce))
+            {
+                _context.Ys_Subeler.Add(new Ys_Sube
+                {
+                    FirmaId = firma.Id,
+                    SubeAdi = "Merkez",
+                    Il = firma.FaaliyetIli,
+                    Ilce = ilce.Trim(),
+                    Telefon = firma.Telefon,
+                    Adres = firma.Adres,
+                    AktifMi = true,
+                    OlusturmaTarihi = DateTime.Now,
+                    OlusturanKullanici = firma.VergiNo,
+                    SilindiMi = false
+                });
             }
 
             await _context.SaveChangesAsync();

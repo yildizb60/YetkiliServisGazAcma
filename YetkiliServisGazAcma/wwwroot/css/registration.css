@@ -18,10 +18,10 @@
 }
 
 .registration-shell .login-visual { min-height: 0; }
-.registration-side { padding: 16px 28px; overflow: hidden; }
-.registration-shell .registration-card { max-width: none; height: 100%; margin: 0; display: flex; flex-direction: column; min-height: 0; }
+.registration-side { min-height: 0; padding: 16px 28px; overflow: hidden; }
+.registration-shell .registration-card { max-width: none; height: auto; margin-block: auto; display: flex; flex-direction: column; min-height: 0; }
 
-.registration-card-head { min-height: 50px; display: flex; align-items: center; gap: 11px; }
+.registration-card-head { min-height: 40px; display: flex; align-items: center; margin-bottom: 10px; }
 .registration-title-icon {
     width: 38px;
     height: 38px;
@@ -35,7 +35,7 @@
     color: var(--reg-blue);
     font-size: 18px;
 }
-.registration-card h1 { font-size: 23px; }
+.registration-card h1 { font-size: 25px; }
 
 .registration-progress { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 6px 0 10px; border-bottom: 1px solid var(--reg-line); }
 .registration-progress button {
@@ -68,8 +68,8 @@
 }
 .registration-progress button strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 650; }
 .registration-progress button > i { display: none; color: var(--reg-green); }
-.registration-progress button[aria-selected="true"] { border-bottom-color: var(--reg-blue); background: var(--reg-blue-soft); color: var(--reg-blue); }
-.registration-progress button[aria-selected="true"] > span { background: var(--reg-blue); color: #fff; }
+.registration-progress button[aria-current="step"] { border-bottom-color: var(--reg-blue); background: var(--reg-blue-soft); color: var(--reg-blue); }
+.registration-progress button[aria-current="step"] > span { background: var(--reg-blue); color: #fff; }
 .registration-progress button.is-complete > span { display: none; }
 .registration-progress button.is-complete > i { display: inline-block; }
 .registration-progress button:focus-visible { outline: 2px solid #8fc5e5; outline-offset: -3px; }
@@ -77,14 +77,14 @@
 .registration-alert { margin: -2px 0 10px; padding: 8px 10px; display: flex; align-items: flex-start; gap: 8px; border-left: 3px solid #b74343; background: #fff4f4; color: #95323a; font-size: 11px; }
 .registration-alert i { margin-top: 1px; }
 .registration-step-panel[hidden] { display: none !important; }
-.registration-step-panel:not([hidden]) { min-height: 0; flex: 1; display: flex; flex-direction: column; }
+.registration-step-panel:not([hidden]) { min-height: 0; display: flex; flex-direction: column; }
 
 .registration-section-title { min-height: 30px; margin-bottom: 9px; display: flex; align-items: center; gap: 8px; }
 .registration-section-title > span { width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; background: var(--reg-blue-soft); color: var(--reg-blue); }
 .registration-section-title.is-green > span { background: var(--reg-green-soft); color: #27854b; }
 .registration-section-title h2, .registration-selection-head h2 { margin: 0; color: var(--reg-ink); font-size: 13px; line-height: 1.2; font-weight: 700; }
 
-.registration-field-grid, .registration-password-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px 11px; }
+.registration-field-grid, .registration-password-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 11px; }
 .registration-field { min-width: 0; }
 .registration-field.is-wide, .registration-field.is-address { grid-column: span 2; }
 .registration-field label { display: block; margin: 0 0 4px; color: #3b566c; font-size: 11px; font-weight: 650; }
@@ -103,7 +103,12 @@
 }
 .registration-field input::placeholder { color: #8798a6; }
 .registration-field input:focus, .registration-field select:focus, .registration-search:focus-within { outline: 2px solid #c6e0ef; outline-offset: 1px; border-color: var(--reg-blue); }
-.registration-field-hint { display: block; height: 0; position: relative; top: 2px; color: var(--reg-blue); font-size: 9px; }
+.registration-field-error { display:block; margin-top:4px; color:#a63742; font-size:10px; line-height:1.3; }
+.registration-field-error[hidden] { display:none; }
+.registration-field input[aria-invalid="true"] { border-color:#cf6670; }
+.registration-company-note { grid-column:1 / -1; min-height:30px; padding:7px 10px; border:1px solid #cde4da; border-radius:5px; background:#f1f9f5; color:#22674f; font-size:11px; font-weight:650; }
+.registration-company-note[hidden] { display:none; }
+.registration-account-note { margin:0 0 12px; color:var(--reg-muted); font-size:11px; }
 
 .registration-security-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .registration-security-row .registration-section-title { margin-bottom: 8px; }
@@ -117,7 +122,7 @@
 .registration-password-control button:focus-visible { outline: 2px solid #8fc5e5; }
 
 .registration-selection-grid { min-height: 0; display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(180px, .75fr); gap: 12px; }
-.registration-selection { min-width: 0; padding: 11px; border: 1px solid var(--reg-line); border-radius: 7px; background: #fbfdff; }
+.registration-selection { min-width: 0; min-height: 0; padding: 11px; display: flex; flex-direction: column; border: 1px solid var(--reg-line); border-radius: 7px; background: #fbfdff; }
 .registration-selection.is-service-selection { background: #fffdf9; }
 .registration-selection-head { min-height: 28px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .registration-selection-head > div { min-width: 0; display: flex; align-items: center; gap: 7px; }
@@ -128,20 +133,20 @@
 
 .registration-search { height: 34px; margin-bottom: 8px; padding: 0 9px; display: flex; align-items: center; gap: 7px; border: 1px solid var(--reg-line); border-radius: 5px; background: #fff; color: var(--reg-muted); }
 .registration-search input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--reg-ink); font: inherit; font-size: 11px; }
-.registration-brand-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.registration-brand-list { min-height: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
 .registration-choice { min-width: 0; min-height: 32px; padding: 5px 7px; display: flex; align-items: center; gap: 6px; border: 1px solid #e1e8ee; border-radius: 5px; background: #fff; color: #3c5366; font-size: 10px; font-weight: 650; cursor: pointer; }
 .registration-choice > span:last-child { min-width: 0; overflow-wrap: anywhere; }
 .registration-choice:hover { border-color: #adc9da; }
 .registration-choice:has(input:checked) { border-color: #98c4df; background: var(--reg-blue-soft); color: #195d8d; }
 .registration-choice:has(input:focus-visible) { outline: 2px solid #8fc5e5; outline-offset: 1px; }
 .registration-choice[hidden] { display: none; }
-.registration-service-list { display: grid; gap: 7px; }
+.registration-service-list { min-height: 0; display: grid; gap: 7px; }
 .registration-choice.is-service { min-height: 43px; }
 .registration-choice.is-service:has(input:checked) { border-color: #e5bd7c; background: var(--reg-amber-soft); color: #87520a; }
 .registration-service-icon { width: 25px; height: 25px; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; border-radius: 5px; background: var(--reg-amber-soft); color: var(--reg-amber); font-size: 13px; }
 .registration-service-icon img { width: 17px; height: 17px; object-fit: contain; }
 
-.registration-step-actions { margin-top: auto; padding-top: 9px; display: flex; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px solid var(--reg-line); }
+.registration-step-actions { margin-top: 16px; padding-top: 9px; display: flex; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px solid var(--reg-line); }
 .registration-secondary, .registration-primary { min-height: 40px; padding: 8px 14px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; border-radius: 5px; font: inherit; font-size: 12px; font-weight: 650; text-decoration: none; cursor: pointer; }
 .registration-secondary { border: 1px solid var(--reg-line); background: #fff; color: #425b6e; }
 .registration-secondary:hover { border-color: #adc9da; color: var(--reg-blue); }
@@ -150,14 +155,22 @@
 .registration-primary.is-submit { border-color: var(--reg-green); background: var(--reg-green); }
 .registration-primary.is-submit:hover { border-color: #3f8d29; background: #3f8d29; }
 
+@media (min-width: 981px) {
+    .registration-shell .registration-side {
+        align-items: flex-start;
+        padding-top: clamp(14px, calc(50dvh - 285px), 95px);
+    }
+
+    .registration-shell .registration-card { margin-block: 0; }
+}
+
 @media (max-height: 760px) and (min-width: 981px) {
     .registration-side { padding-block: 11px; }
     .registration-card-head { min-height: 44px; }
-    .registration-card h1 { font-size: 21px; }
     .registration-title-icon { width: 34px; height: 34px; font-size: 16px; }
     .registration-progress { margin-block: 4px 8px; }
     .registration-progress button { min-height: 36px; padding-block: 5px; }
-    .registration-field-grid { gap-block: 5px; }
+    .registration-field-grid { row-gap: 7px; }
     .registration-field label { margin-bottom: 3px; }
     .registration-field input, .registration-field select { min-height: 34px; padding-block: 5px; }
     .registration-step-actions { padding-top: 7px; }
@@ -177,6 +190,7 @@
     .registration-progress button strong { font-size: 10px; }
     .registration-field-grid, .registration-password-grid, .registration-selection-grid { grid-template-columns: 1fr; }
     .registration-field.is-wide, .registration-field.is-address { grid-column: span 1; }
+    .registration-company-note { grid-column:1; }
     .registration-brand-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .registration-security-row { align-items: flex-start; flex-direction: column; gap: 0; }
     .registration-step-actions { position: sticky; bottom: 0; margin-inline: -16px; padding: 10px 16px; background: #fff; }

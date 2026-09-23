@@ -2,7 +2,7 @@
 @using YetkiliServisGazAcma.Entities
 @{
     var genelSistemAdminMi = ViewBag.GenelSistemAdminMi as bool? ?? false;
-    var panelBasligi = genelSistemAdminMi ? "Sistem Operasyon Raporları" : "Şirket Operasyon Raporları";
+    var panelBasligi = "Raporlar";
     ViewData["Title"] = panelBasligi;
     ViewData["PanelTitle"] = panelBasligi;
     ViewData["PanelSubtitle"] = genelSistemAdminMi ? "Genel Sistem Admini" : "Şirket Admini";
@@ -122,10 +122,16 @@
         </article>
     </section>
 
-    <section class="df-ops-overview" aria-label="Talep eğilimi ve durum dağılımı">
+    <div class="df-ops-tabs" role="tablist" aria-label="Rapor bölümleri">
+        <button type="button" id="opsTabOverview" role="tab" aria-controls="opsPanelOverview" aria-selected="true" tabindex="0"><i class="bi bi-bar-chart" aria-hidden="true"></i> Genel Bakış</button>
+        <button type="button" id="opsTabBreakdowns" role="tab" aria-controls="opsPanelBreakdowns" aria-selected="false" tabindex="-1"><i class="bi bi-diagram-3" aria-hidden="true"></i> Kırılımlar</button>
+        <button type="button" id="opsTabExports" role="tab" aria-controls="opsPanelExports" aria-selected="false" tabindex="-1"><i class="bi bi-download" aria-hidden="true"></i> Rapor Çıktıları</button>
+    </div>
+
+    <section id="opsPanelOverview" class="df-ops-overview" role="tabpanel" aria-labelledby="opsTabOverview">
         <div class="df-ops-monthly">
             <header class="df-ops-section-head">
-                <div><h2>Aylık talep hacmi</h2><p>Bitiş tarihine göre son altı ay</p></div>
+                <div><h2>Aylık talep hacmi</h2></div>
                 <span><i class="bi bi-graph-up" aria-hidden="true"></i> @aylikData.Sum() talep</span>
             </header>
             @if (aylikLabels.Count == 0 || aylikData.Count == 0)
@@ -148,7 +154,7 @@
             }
         </div>
         <aside class="df-ops-status" aria-labelledby="opsStatusHeading">
-            <header class="df-ops-section-head"><div><h2 id="opsStatusHeading">Talep durumu</h2><p>Seçili dönemin güncel görünümü</p></div></header>
+            <header class="df-ops-section-head"><div><h2 id="opsStatusHeading">Talep durumu</h2></div></header>
             <div class="df-ops-completion">
                 <div class="df-ops-ring" style="--value:@CssYuzde(tamamlanmaOrani)" aria-label="Tamamlanma oranı yüzde @tamamlanmaOrani"><strong>%@tamamlanmaOrani.ToString("0.#")</strong><span>tamamlandı</span></div>
                 <dl>
@@ -161,9 +167,9 @@
         </aside>
     </section>
 
-    <section class="df-ops-breakdowns" aria-label="Operasyon kırılımları">
+    <section id="opsPanelBreakdowns" class="df-ops-breakdowns" role="tabpanel" aria-labelledby="opsTabBreakdowns" hidden>
         <div class="df-ops-breakdown">
-            <header><span><i class="bi bi-buildings" aria-hidden="true"></i></span><div><h2>Firma bazlı talepler</h2><p>En yoğun yetkili servisler</p></div></header>
+            <header><span><i class="bi bi-buildings" aria-hidden="true"></i></span><div><h2>Firma bazlı talepler</h2></div></header>
             @if (firmaLabels.Count == 0)
             {
                 <div class="df-ops-empty is-compact">Firma kırılımı bulunamadı.</div>
@@ -179,7 +185,7 @@
             }
         </div>
         <div class="df-ops-breakdown">
-            <header><span><i class="bi bi-geo-alt" aria-hidden="true"></i></span><div><h2>İl ve ilçe yoğunluğu</h2><p>Talebin oluştuğu bölgeler</p></div></header>
+            <header><span><i class="bi bi-geo-alt" aria-hidden="true"></i></span><div><h2>İl ve ilçe yoğunluğu</h2></div></header>
             @if (lokasyonLabels.Count == 0)
             {
                 <div class="df-ops-empty is-compact">Konum kırılımı bulunamadı.</div>
@@ -195,7 +201,7 @@
             }
         </div>
         <div class="df-ops-breakdown">
-            <header><span><i class="bi bi-people" aria-hidden="true"></i></span><div><h2>Ekip başına iş</h2><p>Atama yükünün dağılımı</p></div></header>
+            <header><span><i class="bi bi-people" aria-hidden="true"></i></span><div><h2>Ekip başına iş</h2></div></header>
             @if (ekipLabels.Count == 0)
             {
                 <div class="df-ops-empty is-compact">Ekip ataması bulunamadı.</div>
@@ -211,7 +217,7 @@
             }
         </div>
         <div class="df-ops-breakdown">
-            <header><span><i class="bi bi-clipboard-x" aria-hidden="true"></i></span><div><h2>Reddedilme nedenleri</h2><p>En sık kaydedilen gerekçeler</p></div></header>
+            <header><span><i class="bi bi-clipboard-x" aria-hidden="true"></i></span><div><h2>Reddedilme nedenleri</h2></div></header>
             @if (redLabels.Count == 0)
             {
                 <div class="df-ops-empty is-compact">Seçili dönemde reddedilen talep yok.</div>
@@ -228,24 +234,24 @@
         </div>
     </section>
 
-    <section class="df-ops-exports" aria-labelledby="opsExportHeading">
+    <section id="opsPanelExports" class="df-ops-exports" role="tabpanel" aria-labelledby="opsTabExports" hidden>
         <header>
             <span><i class="bi bi-download" aria-hidden="true"></i></span>
-            <div><h2 id="opsExportHeading">Rapor çıktıları</h2><p>İhtiyacınız olan kayıt grubunu PDF veya Excel olarak alın.</p></div>
+            <div><h2 id="opsExportHeading">Rapor çıktıları</h2></div>
         </header>
         <div class="df-ops-export-row">
             <div><strong>Cihaz değişim operasyonları</strong><small>@talepSayisi kayıt · seçili dönem ve şirket kapsamı</small></div>
             <div class="df-ops-export-actions">
-                <a class="df-btn df-btn-sm df-btn-pdf @(!operasyonVar ? "is-disabled" : "")" aria-disabled="@(!operasyonVar ? "true" : "false")" href="@Url.Action("OperasyonRaporPdf", "AdminPanel", new { bas = basTarih.ToString("yyyy-MM-dd"), bit = bitTarih.ToString("yyyy-MM-dd"), sirketId = seciliSirketId })"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF</a>
-                <a class="df-btn df-btn-sm df-btn-excel @(!operasyonVar ? "is-disabled" : "")" aria-disabled="@(!operasyonVar ? "true" : "false")" href="@Url.Action("OperasyonRaporExcel", "AdminPanel", new { bas = basTarih.ToString("yyyy-MM-dd"), bit = bitTarih.ToString("yyyy-MM-dd"), sirketId = seciliSirketId })"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel</a>
+                <a class="df-btn df-btn-sm df-btn-pdf @(!operasyonVar ? "is-disabled" : "")" aria-disabled="@(!operasyonVar ? "true" : "false")" tabindex="@(!operasyonVar ? "-1" : null)" href="@(operasyonVar ? Url.Action("OperasyonRaporPdf", "AdminPanel", new { bas = basTarih.ToString("yyyy-MM-dd"), bit = bitTarih.ToString("yyyy-MM-dd"), sirketId = seciliSirketId }) : null)"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF</a>
+                <a class="df-btn df-btn-sm df-btn-excel @(!operasyonVar ? "is-disabled" : "")" aria-disabled="@(!operasyonVar ? "true" : "false")" tabindex="@(!operasyonVar ? "-1" : null)" href="@(operasyonVar ? Url.Action("OperasyonRaporExcel", "AdminPanel", new { bas = basTarih.ToString("yyyy-MM-dd"), bit = bitTarih.ToString("yyyy-MM-dd"), sirketId = seciliSirketId }) : null)"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel</a>
                 <a class="df-icon-action" href="/ykc/raporlar?bas=@basTarih.ToString("yyyy-MM-dd")&bit=@bitTarih.ToString("yyyy-MM-dd")" title="Cihaz değişim kayıtlarını aç" aria-label="Cihaz değişim kayıtlarını aç"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
             </div>
         </div>
         <div class="df-ops-export-row">
             <div><strong>Cihaz devreye alma kayıtları</strong><small>@devreyeSayisi kayıt · servis işlemleri</small></div>
             <div class="df-ops-export-actions">
-                <a class="df-btn df-btn-sm df-btn-pdf @(devreyeSayisi == 0 ? "is-disabled" : "")" aria-disabled="@(devreyeSayisi == 0 ? "true" : "false")" href="@Url.Action("RaporlarPdf", "AdminPanel", new { bas = basTarih.ToString("yyyy-MM-dd"), bit = bitTarih.ToString("yyyy-MM-dd"), sirketId = seciliSirketId })"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF</a>
-                <a class="df-btn df-btn-sm df-btn-excel @(devreyeSayisi == 0 ? "is-disabled" : "")" aria-disabled="@(devreyeSayisi == 0 ? "true" : "false")" href="@Url.Action("RaporlarExcel", "AdminPanel", new { bas = basTarih.ToString("yyyy-MM-dd"), bit = bitTarih.ToString("yyyy-MM-dd"), sirketId = seciliSirketId })"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel</a>
+                <a class="df-btn df-btn-sm df-btn-pdf @(devreyeSayisi == 0 ? "is-disabled" : "")" aria-disabled="@(devreyeSayisi == 0 ? "true" : "false")" tabindex="@(devreyeSayisi == 0 ? "-1" : null)" href="@(devreyeSayisi > 0 ? Url.Action("RaporlarPdf", "AdminPanel", new { bas = basTarih.ToString("yyyy-MM-dd"), bit = bitTarih.ToString("yyyy-MM-dd"), sirketId = seciliSirketId }) : null)"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF</a>
+                <a class="df-btn df-btn-sm df-btn-excel @(devreyeSayisi == 0 ? "is-disabled" : "")" aria-disabled="@(devreyeSayisi == 0 ? "true" : "false")" tabindex="@(devreyeSayisi == 0 ? "-1" : null)" href="@(devreyeSayisi > 0 ? Url.Action("RaporlarExcel", "AdminPanel", new { bas = basTarih.ToString("yyyy-MM-dd"), bit = bitTarih.ToString("yyyy-MM-dd"), sirketId = seciliSirketId }) : null)"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel</a>
                 <a class="df-icon-action" href="@Url.Action("DevreyeAlmalar", "AdminPanel")" title="Devreye alma kayıtlarını aç" aria-label="Devreye alma kayıtlarını aç"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
             </div>
         </div>
@@ -255,3 +261,31 @@
         </div>
     </section>
 </main>
+
+@section Scripts {
+<script>
+(() => {
+    const tabs = Array.from(document.querySelectorAll('.df-ops-tabs [role="tab"]'));
+    const selectTab = (tab, focus = false) => {
+        for (const item of tabs) {
+            const selected = item === tab;
+            item.setAttribute('aria-selected', String(selected));
+            item.tabIndex = selected ? 0 : -1;
+            document.getElementById(item.getAttribute('aria-controls')).hidden = !selected;
+        }
+        if (focus) tab.focus();
+    };
+    for (const tab of tabs) {
+        tab.addEventListener('click', () => selectTab(tab));
+        tab.addEventListener('keydown', event => {
+            if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+            event.preventDefault();
+            const index = tabs.indexOf(tab);
+            const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1
+                : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+            selectTab(tabs[next], true);
+        });
+    }
+})();
+</script>
+}

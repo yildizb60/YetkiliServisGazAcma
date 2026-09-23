@@ -253,10 +253,13 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (string.IsNullOrWhiteSpace(dto.FaaliyetIli))
                 return BadRequest(new { basarili = false, mesaj = "Il bilgisi zorunludur" });
 
+            if (dto.Ilce?.Length > 100)
+                return BadRequest(new { basarili = false, mesaj = "Ilce en fazla 100 karakter olabilir" });
+
             if (!string.IsNullOrWhiteSpace(dto.Email) && !new EmailAddressAttribute().IsValid(dto.Email))
                 return BadRequest(new { basarili = false, mesaj = "E-posta formati gecersiz" });
 
-            if (!string.IsNullOrWhiteSpace(dto.Telefon) && !TelefonFormatiGecerliMi(dto.Telefon))
+            if (string.IsNullOrWhiteSpace(dto.Telefon) || !TelefonFormatiGecerliMi(dto.Telefon))
                 return BadRequest(new { basarili = false, mesaj = "Telefon numarasi 05XXXXXXXXX veya 90XXXXXXXXXX formatinda olmalidir" });
 
             if (!string.IsNullOrWhiteSpace(dto.TcKimlikNo)
@@ -285,7 +288,8 @@ namespace YetkiliServisGazAcma.API.Controllers
                 firma,
                 dto.Sifre,
                 dto.MarkaIdleri ?? new List<int>(),
-                dto.KategoriIdleri ?? new List<int>());
+                dto.KategoriIdleri ?? new List<int>(),
+                dto.Ilce);
 
             if (!sonuc.basarili)
                 return BadRequest(new { basarili = false, mesaj = sonuc.mesaj });
@@ -298,7 +302,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             var digits = new string(telefon.Where(char.IsDigit).ToArray());
             return digits.Length == 10 && digits.StartsWith("5", StringComparison.Ordinal)
                 || digits.Length == 11 && digits.StartsWith("05", StringComparison.Ordinal)
-                || digits.Length == 12 && digits.StartsWith("90", StringComparison.Ordinal);
+                || digits.Length == 12 && digits.StartsWith("905", StringComparison.Ordinal);
         }
 
         [HttpPost("getir")]
@@ -572,6 +576,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         public string? Email { get; set; }
         public string? Adres { get; set; }
         public string? FaaliyetIli { get; set; }
+        public string? Ilce { get; set; }
         public string? VergiNo { get; set; }
         public string? VergiDairesi { get; set; }
         public string? TcKimlikNo { get; set; }

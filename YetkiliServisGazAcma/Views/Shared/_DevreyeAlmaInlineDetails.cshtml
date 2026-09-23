@@ -14,49 +14,83 @@
         : adminPaneli
             ? Url.Action("DevreyeAlmaExcel", "AdminPanel", new { id = Model.Id })
             : Url.Action("DevreyeAlmaExcel", "PersonelPanel", new { id = Model.Id });
-    var cihazMarka = Model.CihazMarka ?? Model.Marka?.MarkaAdi;
-    var cihazModeli = string.Equals(Model.CihazModeli?.Trim(), cihazMarka?.Trim(), StringComparison.OrdinalIgnoreCase)
-        || string.Equals(Model.CihazModeli?.Trim(), Model.CihazTipi?.Trim(), StringComparison.OrdinalIgnoreCase)
-            ? null
-            : Model.CihazModeli;
-    var cihazOzeti = string.Join(" · ", new[] { Model.CihazTipi, cihazMarka, cihazModeli }.Where(x => !string.IsNullOrWhiteSpace(x)));
-    var tarihVar = Model.DevreyeAlmaTarihi.Year > 1900;
+    var detay = servisPaneli
+        ? Url.Action("Detay", "DevreyeAlma", new { id = Model.Id })
+        : adminPaneli
+            ? Url.Action("DevreyeAlmaDetay", "AdminPanel", new { id = Model.Id })
+            : Url.Action("DevreyeAlmaDetay", "PersonelPanel", new { id = Model.Id });
+    var adresVar = !string.IsNullOrWhiteSpace(Model.Adres);
+    var cihazDetayVar = !string.IsNullOrWhiteSpace(Model.SeriNo) || !string.IsNullOrWhiteSpace(Model.CihazKapasite);
+    var belgeVar = !string.IsNullOrWhiteSpace(Model.UygunlukBelgeNo)
+        || Model.UygunlukTarihi.HasValue
+        || !string.IsNullOrWhiteSpace(Model.TeknisyenYetkiBelgesiNo);
+    var notVar = !string.IsNullOrWhiteSpace(Model.Notlar);
 }
 
 <tr id="devreye-alma-detay-@Model.Id" class="df-commissioning-detail-row" hidden>
     <td colspan="@colspan">
         <div class="df-commissioning-detail-panel">
-            <div class="df-commissioning-detail-grid">
-                <section>
-                    <span><i class="bi bi-person-vcard" aria-hidden="true"></i> Abone ve Tesisat</span>
-                    <strong>@(string.IsNullOrWhiteSpace(Model.MusteriAdi) ? "Abone adı kayıtlı değil" : Model.MusteriAdi)</strong>
-                    <small>Tesisat: @(Model.TesistatNo ?? "-") · Abone: @(Model.AboneNo ?? "-")</small>
-                </section>
-                <section>
-                    <span><i class="bi bi-geo-alt" aria-hidden="true"></i> İletişim ve Adres</span>
-                    <strong>@(string.IsNullOrWhiteSpace(Model.Adres) ? "Adres bilgisi bulunmuyor" : Model.Adres)</strong>
-                    <small>@(string.IsNullOrWhiteSpace(Model.MusteriTelefon) ? "Telefon bilgisi bulunmuyor" : Model.MusteriTelefon)</small>
-                </section>
-                <section>
-                    <span><i class="bi bi-fire" aria-hidden="true"></i> Devreye Alınan Cihaz</span>
-                    <strong>@(string.IsNullOrWhiteSpace(cihazOzeti) ? "Cihaz bilgisi bulunmuyor" : cihazOzeti)</strong>
-                    <small>Seri No: @(string.IsNullOrWhiteSpace(Model.SeriNo) ? "-" : Model.SeriNo) · Kapasite: @(string.IsNullOrWhiteSpace(Model.CihazKapasite) ? "-" : Model.CihazKapasite)</small>
-                </section>
-                <section>
-                    <span><i class="bi bi-building-check" aria-hidden="true"></i> Servis ve İşlem</span>
-                    <strong>@(Model.Firma?.FirmaAdi ?? "Yetkili servis bilgisi yok")</strong>
-                    <small>@(string.IsNullOrWhiteSpace(Model.TeknisyenAdi) ? "Teknisyen bilgisi yok" : Model.TeknisyenAdi) · @(tarihVar ? Model.DevreyeAlmaTarihi.ToString("dd.MM.yyyy") : "Tarih bilgisi yok")</small>
-                </section>
-            </div>
+            @if (adresVar || cihazDetayVar || belgeVar || notVar)
+            {
+                <div class="df-commissioning-detail-grid">
+                    @if (adresVar)
+                    {
+                        <section>
+                            <span><i class="bi bi-geo-alt" aria-hidden="true"></i> Abone Adresi</span>
+                            <p>@Model.Adres</p>
+                        </section>
+                    }
+                    @if (cihazDetayVar)
+                    {
+                        <section>
+                            <span><i class="bi bi-fire" aria-hidden="true"></i> Cihaz Ayrıntıları</span>
+                            <dl class="df-commissioning-extra-facts">
+                                @if (!string.IsNullOrWhiteSpace(Model.SeriNo))
+                                {
+                                    <div><dt>Seri No</dt><dd>@Model.SeriNo</dd></div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(Model.CihazKapasite))
+                                {
+                                    <div><dt>Kapasite</dt><dd>@Model.CihazKapasite</dd></div>
+                                }
+                            </dl>
+                        </section>
+                    }
+                    @if (belgeVar)
+                    {
+                        <section>
+                            <span><i class="bi bi-file-earmark-check" aria-hidden="true"></i> Belge Bilgileri</span>
+                            <dl class="df-commissioning-extra-facts">
+                                @if (!string.IsNullOrWhiteSpace(Model.UygunlukBelgeNo))
+                                {
+                                    <div><dt>Uygunluk Belge No</dt><dd>@Model.UygunlukBelgeNo</dd></div>
+                                }
+                                @if (Model.UygunlukTarihi.HasValue)
+                                {
+                                    <div><dt>Uygunluk Tarihi</dt><dd>@Model.UygunlukTarihi.Value.ToString("dd.MM.yyyy")</dd></div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(Model.TeknisyenYetkiBelgesiNo))
+                                {
+                                    <div><dt>Teknisyen Yetki Belgesi</dt><dd>@Model.TeknisyenYetkiBelgesiNo</dd></div>
+                                }
+                            </dl>
+                        </section>
+                    }
+                    @if (notVar)
+                    {
+                        <section>
+                            <span><i class="bi bi-chat-left-text" aria-hidden="true"></i> İşlem Notu</span>
+                            <p>@Model.Notlar</p>
+                        </section>
+                    }
+                </div>
+            }
             <footer class="df-commissioning-detail-footer">
                 <div>
                     <span>Kayıt #@Model.Id</span>
-                    @if (!string.IsNullOrWhiteSpace(Model.Notlar))
-                    {
-                        <small title="@Model.Notlar">@Model.Notlar</small>
-                    }
                 </div>
                 <div class="df-actions">
+                    <a class="df-btn df-btn-sm df-btn-secondary" href="@detay"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> Kayıt Detayı</a>
                     <a class="df-btn df-btn-sm df-commissioning-export is-pdf" href="@pdf" target="_blank" rel="noopener"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF</a>
                     <a class="df-btn df-btn-sm df-commissioning-export is-excel" href="@excel" target="_blank" rel="noopener"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel</a>
                 </div>

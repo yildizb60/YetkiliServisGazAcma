@@ -12,6 +12,8 @@
     var onaylananlar = ViewBag.Onaylananlar as List<Ys_YetkiBelgesi> ?? new List<Ys_YetkiBelgesi>();
     var reddedilenler = ViewBag.Reddedilenler as List<Ys_YetkiBelgesi> ?? new List<Ys_YetkiBelgesi>();
     var suresiDolanlar = ViewBag.SuresiDolanlar as List<Ys_YetkiBelgesi> ?? new List<Ys_YetkiBelgesi>();
+    var listelenenBelgeSayisi = bekleyenler.Concat(onaylananlar).Concat(reddedilenler).Concat(suresiDolanlar)
+        .Select(x => x.Id).Distinct().Count();
 }
 
 @section PageStyles {
@@ -20,6 +22,7 @@
 
 <div class="approval-board df-approval-workspace">
     <section class="df-page-panel approval-panels is-admin-approval">
+        <div class="df-approval-list-total"><span>Listelenen yetki belgesi</span><strong>@listelenenBelgeSayisi</strong></div>
         <div class="df-approval-status-bar" role="tablist" data-approval-tabs aria-label="Yetki belgesi durumu">
             <button type="button" role="tab" id="personnel-approval-waiting-tab" aria-controls="personnel-approval-waiting" aria-selected="true" class="approval-tab approval-metric is-waiting active" data-target="bekleyen"><i class="bi bi-hourglass-split" aria-hidden="true"></i><span>Onay Bekleyen</span><strong>@bekleyenler.Count</strong></button>
             <button type="button" role="tab" id="personnel-approval-approved-tab" aria-controls="personnel-approval-approved" aria-selected="false" class="approval-tab approval-metric is-approved" data-target="onaylanan"><i class="bi bi-check-circle" aria-hidden="true"></i><span>Onaylanan</span><strong>@onaylananlar.Count</strong></button>

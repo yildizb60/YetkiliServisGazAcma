@@ -20,7 +20,7 @@
         <thead>
             <tr>
                 <th>Yetkili Servis</th>
-                <th>Firma Adresi</th>
+                <th>Dağıtım Şirketi / Adres</th>
                 <th>Yetki Başlangıcı</th>
                 <th>Son Geçerlilik Tarihi</th>
                 <th>Yükleme Tarihi</th>
@@ -73,14 +73,14 @@
                             <div class="df-cell-main">@firmaAdi</div>
                             @if (!string.IsNullOrWhiteSpace(vergiNo))
                             {
-                                <div class="df-cell-note">Vergi No: @vergiNo</div>
-                            }
-                            @if (!string.IsNullOrWhiteSpace(sirketAdi))
-                            {
-                                <div class="df-cell-note">Bağlı şirket: @sirketAdi</div>
+                                <div class="df-approval-firm-id"><span>VKN</span><strong>@vergiNo</strong></div>
                             }
                         </td>
                         <td>
+                            @if (!string.IsNullOrWhiteSpace(sirketAdi))
+                            {
+                                <div class="df-approval-company"><small>Dağıtım Şirketi</small><strong>@sirketAdi</strong></div>
+                            }
                             <div class="df-cell-address">@(string.IsNullOrWhiteSpace(firmaAdres) ? "Adres bilgisi girilmemiş" : firmaAdres)</div>
                             @if (!string.IsNullOrWhiteSpace(s.Firma?.FaaliyetIli))
                             {
@@ -127,7 +127,7 @@
                                     </details>
                                     @if (!onaylanabilir)
                                     {
-                                        <span class="df-cell-sub">Belgenin tarih aralığı karar vermeye uygun değil.</span>
+                                        <span class="df-cell-sub">Belgenin tarih aralığı nedeniyle belge onaylanamaz.</span>
                                     }
                             }
                             else if (durum == "suresi-dolan")

@@ -10,10 +10,10 @@ namespace YetkiliServisGazAcma.Business.Services
     public partial class YkcTalepService
     {
         private readonly AppDbContext _context;
-        private readonly YkcSorguKaydiService? _sorguKayitlari;
+        private readonly IYkcSorguKaydiService? _sorguKayitlari;
         private readonly YkcPlanlamaOptions _planlama;
 
-        public YkcTalepService(AppDbContext context, YkcSorguKaydiService? sorguKayitlari = null, IOptions<YkcPlanlamaOptions>? planlama = null)
+        public YkcTalepService(AppDbContext context, IYkcSorguKaydiService? sorguKayitlari = null, IOptions<YkcPlanlamaOptions>? planlama = null)
         {
             _context = context;
             _sorguKayitlari = sorguKayitlari;
@@ -227,7 +227,7 @@ namespace YetkiliServisGazAcma.Business.Services
 
         public async Task<YkcIslemSonuc> OlusturAsync(YkcTalepKaydetDto dto, AppKullanici kullanici)
         {
-            if (_sorguKayitlari?.Uygula(kullanici.Id, dto) != true)
+            if (_sorguKayitlari is null || !await _sorguKayitlari.UygulaAsync(kullanici.Id, dto))
                 return YkcIslemSonuc.HataliSonuc("Tesisatı yeniden sorgulayıp değiştirilecek cihazı seçin. Sorgu kaydının süresi dolmuş olabilir.");
             if (!dto.SirketId.HasValue || !dto.FirmaId.HasValue)
                 return YkcIslemSonuc.HataliSonuc("Talep oluşturmak için aktif şirket ve sertifikalı firma kaydı gerekir.");
@@ -389,6 +389,8 @@ namespace YetkiliServisGazAcma.Business.Services
 
             if (!TimeSpan.TryParseExact(dto.RandevuSaati, @"hh\:mm", CultureInfo.InvariantCulture, out var saat))
                 return YkcIslemSonuc.HataliSonuc("Randevu saati SS:dd biçiminde olmalıdır.");
+            if (!YkcRandevuKurali.MesaiSaatindeMi(saat))
+                return YkcIslemSonuc.HataliSonuc("Randevu saati 08.00-18.00 çalışma saatleri içinde olmalıdır.");
             if (!YkcRandevuKurali.GecerliSaatDilimi(saat, _planlama.RandevuDilimDakika))
                 return YkcIslemSonuc.HataliSonuc($"Randevu saati {_planlama.RandevuDilimDakika} dakikalık dilimlerden biri olmalıdır.");
             var randevu = dto.RandevuTarihi.Value.Date.Add(saat);
@@ -929,7 +931,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 .Distinct()
                 .Take(5000)
                 .ToList();
-            if (kayitIdleri?.Count > 0)
+            if (kayitIdleri is not null)
                 query = query.Where(x => kayitIdleri.Contains(x.Id));
 
             var swaggerOrnekFiltre = SwaggerOrnekFiltreMi(filtre);
@@ -1555,6 +1557,8 @@ namespace YetkiliServisGazAcma.Business.Services
     {
         public int Id { get; set; }
         public string? FirmaAdi { get; set; }
+        public string? FirmaVergiNo { get; set; }
+        public string? FirmaFaaliyetIli { get; set; }
         public string? SirketAdi { get; set; }
         public string? MusteriAdi { get; set; }
         public string? TesisatNo { get; set; }
@@ -1592,6 +1596,8 @@ namespace YetkiliServisGazAcma.Business.Services
             {
                 Id = talep.Id,
                 FirmaAdi = talep.Firma?.FirmaAdi,
+                FirmaVergiNo = talep.Firma?.VergiNo,
+                FirmaFaaliyetIli = talep.Firma?.FaaliyetIli,
                 SirketAdi = talep.Sirket?.SirketAdi,
                 MusteriAdi = talep.MusteriAdi,
                 TesisatNo = talep.TesisatNo,

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using YetkiliServisGazAcma.Business.Services;
@@ -14,6 +15,7 @@ namespace YetkiliServisGazAcma.Controllers
         private readonly ApiKullaniciOturumu _kullaniciOturumu;
         private readonly YkcApiClient _ykcApiClient;
         private readonly ILogger<YkcController> _logger;
+        private readonly IWebHostEnvironment _hostEnvironment;
 
         private static string? GecerliKaynak(string? kaynak) => kaynak?.ToLowerInvariant() switch
         {
@@ -32,11 +34,13 @@ namespace YetkiliServisGazAcma.Controllers
         public YkcController(
             ApiKullaniciOturumu kullaniciOturumu,
             YkcApiClient ykcApiClient,
-            ILogger<YkcController> logger)
+            ILogger<YkcController> logger,
+            IWebHostEnvironment hostEnvironment)
         {
             _kullaniciOturumu = kullaniciOturumu;
             _ykcApiClient = ykcApiClient;
             _logger = logger;
+            _hostEnvironment = hostEnvironment;
         }
 
         [HttpGet("")]
@@ -234,7 +238,8 @@ namespace YetkiliServisGazAcma.Controllers
             DateTime? bas, DateTime? bit, [FromQuery(Name = "ids")] List<int>? ids)
         {
             return await RaporDosyasi(
-                RaporFiltresi(tesisatNo, firma, il, ilce, bolge, ekip, marka, hedefUygulama, durum, bas, bit, kayitIdleri: ids),
+                RaporFiltresi(tesisatNo, firma, il, ilce, bolge, ekip, marka, hedefUygulama, durum, bas, bit,
+                    kayitIdleri: Request.Query.ContainsKey("ids") ? ids ?? new List<int>() : null),
                 excelMi: false);
         }
 
@@ -245,7 +250,8 @@ namespace YetkiliServisGazAcma.Controllers
             DateTime? bas, DateTime? bit, [FromQuery(Name = "ids")] List<int>? ids)
         {
             return await RaporDosyasi(
-                RaporFiltresi(tesisatNo, firma, il, ilce, bolge, ekip, marka, hedefUygulama, durum, bas, bit, kayitIdleri: ids),
+                RaporFiltresi(tesisatNo, firma, il, ilce, bolge, ekip, marka, hedefUygulama, durum, bas, bit,
+                    kayitIdleri: Request.Query.ContainsKey("ids") ? ids ?? new List<int>() : null),
                 excelMi: true);
         }
 
@@ -552,6 +558,8 @@ namespace YetkiliServisGazAcma.Controllers
 
             var sonuc = await _ykcApiClient.AtamaYapAsync(kullanici, model);
             TempData[sonuc?.Basarili == true ? "Basarili" : "Hata"] = sonuc?.Mesaj ?? "Cihaz değişim talebi ataması kaydedilemedi.";
+            if (sonuc?.Basarili == true && _hostEnvironment.IsDevelopment() && User.IsInRole(KullaniciRolAdlari.Personel))
+                TempData["DemoSms"] = "Randevu SMS'i yalnızca simüle edildi; müşteriye gerçek mesaj gönderilmedi.";
             return RedirectToAction(nameof(Detay), new { id = model.TalepId, kaynak = GecerliKaynak(kaynak) });
         }
 

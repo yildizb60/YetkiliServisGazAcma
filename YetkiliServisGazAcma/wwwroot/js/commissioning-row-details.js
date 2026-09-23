@@ -11,7 +11,15 @@
         detail.hidden = !expanded;
         toggle.setAttribute("aria-expanded", String(expanded));
         toggle.setAttribute("title", expanded ? "İşlem ayrıntılarını kapat" : "İşlem ayrıntılarını görüntüle");
-        toggle.setAttribute("aria-label", expanded ? "İşlem ayrıntılarını kapat" : "İşlem ayrıntılarını görüntüle");
+        if (!toggle.dataset.recordLabel) {
+            toggle.dataset.recordLabel = (toggle.getAttribute("aria-label") || "")
+                .replace(/\s*işlem ayrıntılarını (görüntüle|kapat)$/i, "")
+                .trim();
+        }
+        const action = expanded ? "kapat" : "görüntüle";
+        toggle.setAttribute("aria-label", toggle.dataset.recordLabel
+            ? `${toggle.dataset.recordLabel} işlem ayrıntılarını ${action}`
+            : `İşlem ayrıntılarını ${action}`);
 
         const icon = toggle.querySelector("i");
         if (icon) {

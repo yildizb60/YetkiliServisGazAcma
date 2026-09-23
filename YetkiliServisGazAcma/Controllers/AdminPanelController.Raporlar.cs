@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using YetkiliServisGazAcma.Business.Services;
+using YetkiliServisGazAcma.Entities;
 
 namespace YetkiliServisGazAcma.Controllers
 {
@@ -79,7 +80,8 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
 
-            var sonuc = await _adminRaporApiClient.RaporlarOzetAsync(kullanici, sirketId, bas, bit, tip);
+            var kapsamSirketId = await RaporKapsamSirketIdAsync(kullanici, sirketId);
+            var sonuc = await _adminRaporApiClient.RaporlarOzetAsync(kullanici, kapsamSirketId, bas, bit, tip);
             if (sonuc == null)
             {
                 TempData["Hata"] = "Rapor ozeti API uzerinden alinamadi.";
@@ -95,11 +97,10 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.Kullanici = kullanici;
             ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
             var genelSistemAdminMi = await _aktifSirketService.GenelSistemAdminMi(kullanici);
-            var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
             ViewBag.GenelSistemAdminMi = genelSistemAdminMi;
-            ViewBag.AktifSirketAdi = genelSistemAdminMi
+            ViewBag.AktifSirketAdi = genelSistemAdminMi && !kapsamSirketId.HasValue
                 ? "Tüm dağıtım şirketleri"
-                : sonuc.Sirketler.FirstOrDefault(x => x.Id == aktifSirketId)?.SirketAdi
+                : sonuc.Sirketler.FirstOrDefault(x => x.Id == kapsamSirketId)?.SirketAdi
                     ?? kullanici.Sirket?.SirketAdi
                     ?? "Aktif dağıtım şirketi";
             ViewBag.BasTarih = sonuc.BasTarih;
@@ -112,7 +113,7 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.ListeTipi = sonuc.ListeTipi;
             ViewBag.SonIslemler = sonuc.SonIslemler;
             ViewBag.YetkiBelgesiIslemler = sonuc.YetkiBelgesiIslemler;
-            ViewBag.SeciliSirketId = genelSistemAdminMi ? sirketId : aktifSirketId;
+            ViewBag.SeciliSirketId = kapsamSirketId;
             ViewBag.Sirketler = sonuc.Sirketler;
             ViewBag.OperasyonTalepSayisi = sonuc.OperasyonTalepSayisi;
             ViewBag.OperasyonTamamlanan = sonuc.OperasyonTamamlanan;
@@ -151,7 +152,7 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
 
-            var kapsamSirketId = sirketId ?? await _aktifSirketService.AktifSirketIdAsync(kullanici);
+            var kapsamSirketId = await RaporKapsamSirketIdAsync(kullanici, sirketId);
             var dosya = await _adminRaporApiClient.RaporlarPdfAsync(kullanici, kapsamSirketId, bas, bit, ids);
             if (dosya == null)
             {
@@ -176,7 +177,7 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
 
-            var kapsamSirketId = sirketId ?? await _aktifSirketService.AktifSirketIdAsync(kullanici);
+            var kapsamSirketId = await RaporKapsamSirketIdAsync(kullanici, sirketId);
             var dosya = await _adminRaporApiClient.RaporlarExcelAsync(kullanici, kapsamSirketId, bas, bit, ids);
             if (dosya == null)
             {
@@ -208,10 +209,7 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
 
-            var genelSistemAdminMi = await _aktifSirketService.GenelSistemAdminMi(kullanici);
-            var kapsamSirketId = genelSistemAdminMi
-                ? sirketId
-                : await _aktifSirketService.AktifSirketIdAsync(kullanici);
+            var kapsamSirketId = await RaporKapsamSirketIdAsync(kullanici, sirketId);
             var filtre = new YkcTalepListeFiltre
             {
                 SirketId = kapsamSirketId,
@@ -235,7 +233,18 @@ namespace YetkiliServisGazAcma.Controllers
             }
 
             TempData["Hata"] = "Operasyon raporu dosyasi su anda olusturulamadi.";
-            return RedirectToAction(nameof(Raporlar), new { bas, bit, sirketId });
+            return RedirectToAction(nameof(Raporlar), new { bas, bit, sirketId = kapsamSirketId });
+        }
+
+        private async Task<int?> RaporKapsamSirketIdAsync(AppKullanici kullanici, int? istenenSirketId)
+        {
+            if (await _aktifSirketService.GenelSistemAdminMi(kullanici))
+                return istenenSirketId;
+
+            if (await _aktifSirketService.SirketAdminMi(kullanici))
+                return kullanici.SirketId;
+
+            return await _aktifSirketService.AktifSirketIdAsync(kullanici);
         }
 
         [HttpGet("onay-bekleyenler")]

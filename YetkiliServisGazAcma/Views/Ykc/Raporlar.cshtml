@@ -122,7 +122,7 @@
     private static string DurumYazi(int durum) => YkcDurumSunumu.Etiket(durum);
     private static string DurumClass(int durum) => YkcDurumSunumu.CssSinifi(durum);
 
-    private static string ImzaDurumYazi(int durum, bool imzaliBelgeVar)
+    private static string ImzaDurumYazi(int durum, bool imzaliBelgeVar, string? imzaDurumu)
     {
         if (imzaliBelgeVar)
             return "İmzalı belge hazır";
@@ -130,54 +130,65 @@
         if (durum == YkcDurumDegerleri.Reddedildi || durum == YkcDurumDegerleri.Iptal)
             return "İmza süreci kapalı";
 
-        if (durum == YkcDurumDegerleri.TalepAlindi || durum == YkcDurumDegerleri.AtamaBekliyor)
-            return "Form süreci başlamadı";
-
-        if (durum == YkcDurumDegerleri.Atandi || durum == YkcDurumDegerleri.SahaIsleminde)
-            return "Form hazırlanıyor";
-
-        return "İmzalı belge bekleniyor";
+        return imzaDurumu switch
+        {
+            YkcImzaDurumDegerleri.ImzayaGonderildi => "İmzaya gönderildi",
+            YkcImzaDurumDegerleri.ImzaBekliyor => "İmzalar bekleniyor",
+            YkcImzaDurumDegerleri.KismiImzali => "Kısmen imzalandı",
+            YkcImzaDurumDegerleri.Tamamlandi => "İmzalı belge doğrulanıyor",
+            YkcImzaDurumDegerleri.Hata => "İmza işlemi hatalı",
+            YkcImzaDurumDegerleri.Iptal => "İmza işlemi iptal edildi",
+            _ => durum == YkcDurumDegerleri.SahaIsleminde ? "İmzaya gönderilmedi" : "İmza süreci başlamadı"
+        };
     }
 
-    private static string ImzaDurumClass(int durum, bool imzaliBelgeVar)
+    private static string ImzaDurumClass(int durum, bool imzaliBelgeVar, string? imzaDurumu)
     {
         if (imzaliBelgeVar)
             return "df-pill-success";
 
-        if (durum == YkcDurumDegerleri.Reddedildi || durum == YkcDurumDegerleri.Iptal)
+        if (durum == YkcDurumDegerleri.Reddedildi || durum == YkcDurumDegerleri.Iptal
+            || imzaDurumu == YkcImzaDurumDegerleri.Hata || imzaDurumu == YkcImzaDurumDegerleri.Iptal)
             return "df-pill-danger";
 
-        if (durum == YkcDurumDegerleri.TalepAlindi || durum == YkcDurumDegerleri.AtamaBekliyor)
-            return "df-pill-muted";
-
-        if (durum == YkcDurumDegerleri.Atandi || durum == YkcDurumDegerleri.SahaIsleminde)
-            return "df-pill-primary";
-
-        return "df-pill-warning";
+        return imzaDurumu is YkcImzaDurumDegerleri.ImzaBekliyor or YkcImzaDurumDegerleri.KismiImzali
+            ? "df-pill-warning"
+            : imzaDurumu is YkcImzaDurumDegerleri.ImzayaGonderildi or YkcImzaDurumDegerleri.Tamamlandi
+                ? "df-pill-primary"
+                : "df-pill-muted";
     }
 
-    private static string ImzaDurumKisaYazi(int durum, bool imzaliBelgeVar)
+    private static string ImzaDurumKisaYazi(int durum, bool imzaliBelgeVar, string? imzaDurumu)
     {
         if (imzaliBelgeVar)
             return "Belge hazır";
         if (durum == YkcDurumDegerleri.Reddedildi || durum == YkcDurumDegerleri.Iptal)
             return "Kapalı";
-        if (durum == YkcDurumDegerleri.TalepAlindi || durum == YkcDurumDegerleri.AtamaBekliyor)
-            return "Form bekliyor";
-        if (durum == YkcDurumDegerleri.Atandi || durum == YkcDurumDegerleri.SahaIsleminde)
-            return "Hazırlanıyor";
-        return "İmza bekliyor";
+        return imzaDurumu switch
+        {
+            YkcImzaDurumDegerleri.ImzayaGonderildi => "İmzaya gönderildi",
+            YkcImzaDurumDegerleri.ImzaBekliyor => "İmza bekleniyor",
+            YkcImzaDurumDegerleri.KismiImzali => "Kısmi imza",
+            YkcImzaDurumDegerleri.Tamamlandi => "Belge doğrulanıyor",
+            YkcImzaDurumDegerleri.Hata => "İmza hatası",
+            YkcImzaDurumDegerleri.Iptal => "İmza iptal",
+            _ => "İmza başlamadı"
+        };
     }
 
-    private static string ImzaDurumIkonu(int durum, bool imzaliBelgeVar)
+    private static string ImzaDurumIkonu(int durum, bool imzaliBelgeVar, string? imzaDurumu)
     {
         if (imzaliBelgeVar)
             return "bi bi-file-earmark-check";
         if (durum == YkcDurumDegerleri.Reddedildi || durum == YkcDurumDegerleri.Iptal)
             return "bi bi-slash-circle";
-        if (durum == YkcDurumDegerleri.Atandi || durum == YkcDurumDegerleri.SahaIsleminde)
-            return "bi bi-file-earmark-text";
-        return "bi bi-hourglass-split";
+        return imzaDurumu switch
+        {
+            YkcImzaDurumDegerleri.Hata or YkcImzaDurumDegerleri.Iptal => "bi bi-exclamation-circle",
+            YkcImzaDurumDegerleri.ImzayaGonderildi or YkcImzaDurumDegerleri.ImzaBekliyor
+                or YkcImzaDurumDegerleri.KismiImzali or YkcImzaDurumDegerleri.Tamamlandi => "bi bi-pen",
+            _ => "bi bi-clock-history"
+        };
     }
 }
 
@@ -340,7 +351,7 @@
                         }
                         <th>Yeni Kullanılan Cihaz</th>
                         <th>Randevu / Ekip</th>
-                        <th>Süreç Sonucu</th>
+                        <th>Talep / İmza Durumu</th>
                         <th>Detay</th>
                     </tr>
                 </thead>
@@ -353,6 +364,9 @@
                     {
                         foreach (var kayit in Model.Kayitlar)
                         {
+                            var yeniModelVar = !string.IsNullOrWhiteSpace(kayit.YeniModel)
+                                && !string.Equals(kayit.YeniModel.Trim(), kayit.YeniMarka?.Trim(), StringComparison.OrdinalIgnoreCase)
+                                && !string.Equals(kayit.YeniModel.Trim(), kayit.YeniCihazTipi?.Trim(), StringComparison.OrdinalIgnoreCase);
                             <tr>
                                 <td class="ykc-report-select-cell" data-label="Seç"><input class="ykc-report-row-check" type="checkbox" value="@kayit.Id" aria-label="#@kayit.Id numaralı rapor kaydını seç" /></td>
                                 <td data-label="Kayıt"><div class="ykc-cell-main"><span class="ykc-code">#@kayit.Id</span></div><div class="ykc-muted">@kayit.TalepTarihi.ToString("dd.MM.yyyy HH:mm")</div></td>
@@ -360,14 +374,14 @@
                                 <td data-label="Tesisat Bilgileri"><dl class="ykc-id-list"><div><dt>Tesisat No:</dt><dd>@Deger(kayit.TesisatNo)</dd></div><div><dt>Abone No:</dt><dd>@Deger(kayit.AboneNo)</dd></div></dl></td>
                                 @if (icOperasyonGorsun)
                                 {
-                                    <td data-label="Firma"><div class="ykc-cell-main">@Deger(kayit.FirmaAdi)</div><div class="ykc-muted">@Deger(kayit.SirketAdi)</div></td>
+                                    <td data-label="Firma"><div class="ykc-cell-main">@Deger(kayit.FirmaAdi)</div>@if (!string.IsNullOrWhiteSpace(kayit.FirmaVergiNo)) { <div class="ykc-muted">VKN: @kayit.FirmaVergiNo</div> }@if (!string.IsNullOrWhiteSpace(kayit.FirmaFaaliyetIli)) { <div class="ykc-muted">@kayit.FirmaFaaliyetIli</div> }</td>
                                 }
                                 <td data-label="Cihaz Türü"><div class="ykc-cell-main">@Deger(kayit.YeniCihazTipi)</div>@if (icOperasyonGorsun && !string.Equals(kayit.EskiCihazTipi, kayit.YeniCihazTipi, StringComparison.OrdinalIgnoreCase)) { <div class="ykc-muted">Projede: @Deger(kayit.EskiCihazTipi)</div> }</td>
                                 @if (icOperasyonGorsun)
                                 {
                                     <td data-label="Projedeki Cihaz"><div class="ykc-device-column is-project"><strong>@Deger(kayit.EskiMarka)</strong><small>Kapasite: @Deger(kayit.EskiKapasite)</small><small>Baca tipi: @Deger(kayit.EskiBacaTipi)</small></div></td>
                                 }
-                                <td data-label="Yeni Kullanılan Cihaz"><div class="ykc-device-column is-new"><strong>@Deger(kayit.YeniMarka)</strong><small>Model: @Deger(kayit.YeniModel)</small><small>Kapasite: @Deger(kayit.YeniKapasite)</small><small>Baca tipi: @Deger(kayit.YeniBacaTipi)</small></div></td>
+                                <td data-label="Yeni Kullanılan Cihaz"><div class="ykc-device-column is-new"><strong>@Deger(kayit.YeniMarka)</strong>@if (yeniModelVar) { <small>Model: @kayit.YeniModel</small> }<small>Kapasite: @Deger(kayit.YeniKapasite)</small><small>Baca tipi: @Deger(kayit.YeniBacaTipi)</small></div></td>
                                 <td data-label="Randevu / Ekip">
                                     <div class="ykc-cell-main ykc-report-appointment">@RandevuYazi(kayit.RandevuTarihi, kayit.RandevuSaati, kayit.SiradakiKontrolNo)</div>
                                     @if (icOperasyonGorsun)
@@ -375,7 +389,7 @@
                                         <div class="ykc-muted">@AtamaYazi(kayit.AtananEkip, kayit.Bolge)</div>
                                     }
                                 </td>
-                                <td data-label="Süreç Sonucu"><div class="ykc-report-process"><span class="ykc-report-state @DurumClass(kayit.Durum)"><i class="bi bi-circle-fill" aria-hidden="true"></i>@DurumYazi(kayit.Durum)</span><span class="ykc-report-form-state @ImzaDurumClass(kayit.Durum, kayit.ImzaliNihaiBelgeVar)" title="@ImzaDurumYazi(kayit.Durum, kayit.ImzaliNihaiBelgeVar)"><i class="@ImzaDurumIkonu(kayit.Durum, kayit.ImzaliNihaiBelgeVar)" aria-hidden="true"></i>@ImzaDurumKisaYazi(kayit.Durum, kayit.ImzaliNihaiBelgeVar)</span></div></td>
+                                <td data-label="Talep / İmza Durumu"><div class="ykc-report-process"><span class="ykc-report-state @DurumClass(kayit.Durum)"><i class="bi bi-circle-fill" aria-hidden="true"></i>@DurumYazi(kayit.Durum)</span><span class="ykc-report-form-state @ImzaDurumClass(kayit.Durum, kayit.ImzaliNihaiBelgeVar, kayit.ImzaDurumu)" title="@ImzaDurumYazi(kayit.Durum, kayit.ImzaliNihaiBelgeVar, kayit.ImzaDurumu)"><i class="@ImzaDurumIkonu(kayit.Durum, kayit.ImzaliNihaiBelgeVar, kayit.ImzaDurumu)" aria-hidden="true"></i>@ImzaDurumKisaYazi(kayit.Durum, kayit.ImzaliNihaiBelgeVar, kayit.ImzaDurumu)</span></div></td>
                                 <td data-label="Detay">
                                     <button class="ykc-detail-action ykc-row-view-details"
                                             type="button"
@@ -385,6 +399,8 @@
                                             data-detail-url="@Url.Action("Detay", "Ykc", new { id = kayit.Id, kaynak = "rapor" })"
                                             data-tesisat="@Deger(kayit.TesisatNo)"
                                             data-firma="@Deger(kayit.FirmaAdi)"
+                                            data-firma-vkn="@Deger(kayit.FirmaVergiNo)"
+                                            data-firma-il="@Deger(kayit.FirmaFaaliyetIli)"
                                             data-sirket="@Deger(kayit.SirketAdi)"
                                             data-musteri="@Deger(kayit.MusteriAdi)"
                                             data-proje="@Deger(kayit.ProjeNo)"
@@ -395,7 +411,7 @@
                                             data-eski-kapasite="@(icOperasyonGorsun ? Deger(kayit.EskiKapasite) : "-")"
                                             data-eski-baca="@(icOperasyonGorsun ? Deger(kayit.EskiBacaTipi) : "-")"
                                             data-yeni-marka="@Deger(kayit.YeniMarka)"
-                                            data-yeni-model="@Deger(kayit.YeniModel)"
+                                            data-yeni-model="@(yeniModelVar ? kayit.YeniModel : "")"
                                             data-yeni-kapasite="@Deger(kayit.YeniKapasite)"
                                             data-yeni-baca="@Deger(kayit.YeniBacaTipi)"
                                             data-ikinci-el="@(kayit.IkinciElCihazMi == true ? "Evet" : "Hayır")"
@@ -405,7 +421,7 @@
                                             data-randevu="@RandevuYazi(kayit.RandevuTarihi, kayit.RandevuSaati, kayit.SiradakiKontrolNo)"
                                             data-durum="@DurumYazi(kayit.Durum)"
                                             data-durum-class="@DurumClass(kayit.Durum)"
-                                            data-imza-durumu="@ImzaDurumYazi(kayit.Durum, kayit.ImzaliNihaiBelgeVar)">
+                                            data-imza-durumu="@ImzaDurumYazi(kayit.Durum, kayit.ImzaliNihaiBelgeVar, kayit.ImzaDurumu)">
                                         <i class="bi bi-eye" aria-hidden="true"></i>
                                     </button>
                                 </td>
@@ -470,25 +486,40 @@
                 <section class="ykc-modal-section ykc-modal-section-company">
                     <div class="ykc-modal-section-title"><i class="bi bi-building-check"></i> Firma Bilgileri</div>
                     <div class="ykc-modal-info">
-                        <div class="ykc-modal-item"><div class="ykc-modal-label">Firma</div><div class="ykc-modal-value" id="ykcModalFirma">-</div></div>
-                        <div class="ykc-modal-item"><div class="ykc-modal-label">Şirket</div><div class="ykc-modal-value" id="ykcModalSirket">-</div></div>
-                        <div class="ykc-modal-item"><div class="ykc-modal-label">Talep Tarihi</div><div class="ykc-modal-value" id="ykcModalTalepTarihi">-</div></div>
-                        <div class="ykc-modal-item"><div class="ykc-modal-label">Kayıt</div><div class="ykc-modal-value" id="ykcModalKayit">-</div></div>
+                        <div class="ykc-modal-item"><div class="ykc-modal-label">Sertifikalı Firma</div><div class="ykc-modal-value" id="ykcModalFirma">-</div></div>
+                        <div class="ykc-modal-item"><div class="ykc-modal-label">VKN</div><div class="ykc-modal-value" id="ykcModalFirmaVkn">-</div></div>
+                        <div class="ykc-modal-item"><div class="ykc-modal-label">Faaliyet İli</div><div class="ykc-modal-value" id="ykcModalFirmaIl">-</div></div>
+                        <div class="ykc-modal-item"><div class="ykc-modal-label">Dağıtım Şirketi</div><div class="ykc-modal-value" id="ykcModalSirket">-</div></div>
                     </div>
                 </section>
 
                 <section class="ykc-modal-section ykc-modal-section-device">
-                    <div class="ykc-modal-section-title"><i class="bi bi-arrow-left-right"></i> Cihaz Bilgisi</div>
-                    <div class="ykc-modal-info">
+                    <div class="ykc-modal-section-title"><i class="bi bi-arrow-left-right"></i> Cihaz Karşılaştırması</div>
+                    <div class="ykc-modal-device-pair @(icOperasyonGorsun ? null : "is-single")">
                         @if (icOperasyonGorsun)
                         {
-                            <div class="ykc-modal-item"><div class="ykc-modal-label">Projedeki Cihaz</div><div class="ykc-modal-value" id="ykcModalEskiCihaz">-</div></div>
+                            <div class="ykc-modal-device-side is-project">
+                                <h4>Projedeki Cihaz</h4>
+                                <dl>
+                                    <div><dt>Tür</dt><dd id="ykcModalEskiTip">-</dd></div>
+                                    <div><dt>Marka</dt><dd id="ykcModalEskiMarka">-</dd></div>
+                                    <div><dt>Kapasite (kcal/h)</dt><dd id="ykcModalEskiKapasite">-</dd></div>
+                                    <div><dt>Baca Tipi</dt><dd id="ykcModalEskiBaca">-</dd></div>
+                                </dl>
+                            </div>
                         }
-                        <div class="ykc-modal-item"><div class="ykc-modal-label">Yeni Kullanılan Cihaz</div><div class="ykc-modal-value" id="ykcModalYeniCihaz">-</div></div>
-                        <div class="ykc-modal-item"><div class="ykc-modal-label">@(icOperasyonGorsun ? "Kapasite Karşılaştırması (kcal/h)" : "Yeni Kapasite (kcal/h)")</div><div class="ykc-modal-value" id="ykcModalKapasite">-</div></div>
-                        <div class="ykc-modal-item"><div class="ykc-modal-label">@(icOperasyonGorsun ? "Baca Tipi Karşılaştırması" : "Yeni Baca Tipi")</div><div class="ykc-modal-value" id="ykcModalBacaTipi">-</div></div>
-                        <div class="ykc-modal-item"><div class="ykc-modal-label">İkinci El Cihaz</div><div class="ykc-modal-value" id="ykcModalIkinciEl">-</div></div>
+                        <div class="ykc-modal-device-side is-new">
+                            <h4>Yeni Kullanılan Cihaz</h4>
+                            <dl>
+                                <div><dt>Tür</dt><dd id="ykcModalYeniTip">-</dd></div>
+                                <div><dt>Marka</dt><dd id="ykcModalYeniMarka">-</dd></div>
+                                <div id="ykcModalYeniModelRow"><dt>Model</dt><dd id="ykcModalYeniModel">-</dd></div>
+                                <div><dt>Kapasite (kcal/h)</dt><dd id="ykcModalYeniKapasite">-</dd></div>
+                                <div><dt>Baca Tipi</dt><dd id="ykcModalYeniBaca">-</dd></div>
+                            </dl>
+                        </div>
                     </div>
+                    <div class="ykc-modal-device-secondhand"><span>İkinci El Cihaz</span><strong id="ykcModalIkinciEl">-</strong></div>
                 </section>
 
                 <section class="ykc-modal-section ykc-modal-section-signature">
@@ -582,17 +613,21 @@
                 text('ykcModalProje', data.proje);
                 text('ykcModalSayac', data.sayac);
                 text('ykcModalFirma', data.firma);
+                text('ykcModalFirmaVkn', data.firmaVkn);
+                text('ykcModalFirmaIl', data.firmaIl);
                 text('ykcModalSirket', data.sirket);
-                text('ykcModalTalepTarihi', data.talepTarihi);
-                text('ykcModalKayit', 'Talep #' + data.id);
-                text('ykcModalEskiCihaz', birlestir(data.eskiCihaz, data.eskiMarka));
-                text('ykcModalYeniCihaz', birlestir(data.yeniCihaz, birlestir(data.yeniMarka, data.yeniModel)));
-                text('ykcModalKapasite', icOperasyonGorsun
-                    ? 'Projedeki: ' + (data.eskiKapasite || '-') + ' / Yeni Kullanılan: ' + (data.yeniKapasite || '-')
-                    : (data.yeniKapasite || '-'));
-                text('ykcModalBacaTipi', icOperasyonGorsun
-                    ? 'Projedeki: ' + (data.eskiBaca || '-') + ' / Yeni Kullanılan: ' + (data.yeniBaca || '-')
-                    : (data.yeniBaca || '-'));
+                if (icOperasyonGorsun) {
+                    text('ykcModalEskiTip', data.eskiCihaz);
+                    text('ykcModalEskiMarka', data.eskiMarka);
+                    text('ykcModalEskiKapasite', data.eskiKapasite);
+                    text('ykcModalEskiBaca', data.eskiBaca);
+                }
+                text('ykcModalYeniTip', data.yeniCihaz);
+                text('ykcModalYeniMarka', data.yeniMarka);
+                text('ykcModalYeniModel', data.yeniModel);
+                document.getElementById('ykcModalYeniModelRow').hidden = !data.yeniModel?.trim();
+                text('ykcModalYeniKapasite', data.yeniKapasite);
+                text('ykcModalYeniBaca', data.yeniBaca);
                 text('ykcModalIkinciEl', data.ikinciEl);
                 text('ykcModalImzaDurumu', data.imzaDurumu);
 

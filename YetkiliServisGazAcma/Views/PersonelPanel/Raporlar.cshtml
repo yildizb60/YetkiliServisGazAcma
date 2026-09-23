@@ -1,5 +1,5 @@
 @{
-    ViewData["Title"] = "Operasyon Raporları";
+    ViewData["Title"] = "Raporlar";
     ViewData["PanelTitle"] = ViewData["Title"];
     ViewData["PanelSubtitle"] = "Personel Paneli";
     ViewData["ActiveMenu"] = "Raporlar";
@@ -24,9 +24,12 @@
         ?? (belgeRaporu
             ? new List<string> { "Onaylanan", "Onay Bekleyen", "Reddedilen" }
             : new List<string> { "Tamamlanan", "Bekleyen", "İptal" });
-    var durumToplam = Math.Max(1, durumSayilari.Sum());
-    var raporAylarJson = System.Text.Json.JsonSerializer.Serialize(raporAylar);
-    var raporAylikJson = System.Text.Json.JsonSerializer.Serialize(raporAylik);
+    var durumToplam = durumSayilari.Sum();
+    var chartMax = Math.Max(1, raporAylik.DefaultIfEmpty(0).Max());
+    var chartCount = Math.Min(6, Math.Min(raporAylar.Count, raporAylik.Count));
+    var ilkDurumEtiketi = durumEtiketleri.FirstOrDefault() ?? "İşlem";
+    var ilkDurumOrani = durumToplam == 0 ? 0 : Math.Round(durumSayilari.FirstOrDefault() * 100d / durumToplam, 1);
+    string CssYuzde(double value) => Math.Clamp(value, 0, 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
 
     var seciliBelgeToplam = raporTipi == "onayli" ? Convert.ToInt32(ViewBag.YetkiBelgesiOnayli)
         : raporTipi == "bekleyen" ? Convert.ToInt32(ViewBag.YetkiBelgesiBekleyen)
@@ -42,16 +45,8 @@
         "ykc" => "Cihaz Değişim İşlemleri",
         _ => "Cihaz Devreye Alma İşlemleri"
     };
-    var raporAciklama = raporTipi switch
-    {
-        "onayli" => "Dönem içinde onaylanan servis yetki belgeleri",
-        "bekleyen" => "Karar bekleyen servis yetki belgeleri",
-        "reddedilen" => "Dönem içinde reddedilen servis yetki belgeleri",
-        "ykc" => "Cihaz değişim talepleri ve süreç sonuçları",
-        _ => "Yetkili servislerin cihaz devreye alma kayıtları"
-    };
     var raporIkonu = ykcRaporu ? "bi-arrow-repeat" : belgeRaporu ? "bi-file-earmark-check" : "bi-bag-check";
-    var grafikBasligi = ykcRaporu ? "Firmalara Göre İşlem Dağılımı" : belgeRaporu ? "Aylık Belge İşlemleri" : "Aylık Devreye Alma İşlemleri";
+    var grafikBasligi = ykcRaporu ? "Firmalara göre işlemler" : belgeRaporu ? "Aylık belge işlemleri" : "Aylık devreye alma işlemleri";
     var pdfUrl = ykcRaporu
         ? Url.Action("RaporPdf", "Ykc", new { bas = basTarih.ToString("yyyy-MM-dd"), bit = bitTarih.ToString("yyyy-MM-dd") })
         : Url.Action("RaporlarPdf", "PersonelPanel", new { bas = basTarih.ToString("yyyy-MM-dd"), bit = bitTarih.ToString("yyyy-MM-dd"), tip = belgeRaporu ? raporTipi : null });
@@ -69,15 +64,15 @@
     <link rel="stylesheet" href="~/css/admin-reports.css" asp-append-version="true" />
 }
 
-<div class="df-admin-report-workspace df-personnel-report-workspace">
-    <section class="df-page-panel df-personnel-report-controls" aria-labelledby="report-selection-title">
-        <div class="df-personnel-report-controls-head">
-            <span><i class="bi bi-sliders2" aria-hidden="true"></i></span>
-            <div><h2 id="report-selection-title">Rapor Seçimi</h2><small>İşlem türü ve dönem</small></div>
+<main class="df-admin-report-workspace df-operations-report df-role-report df-personnel-operations-report">
+    <section class="df-ops-command" aria-labelledby="personnelReportHeading">
+        <div class="df-ops-command-copy">
+            <span class="df-ops-command-icon" aria-hidden="true"><i class="bi @raporIkonu"></i></span>
+            <div><h1 id="personnelReportHeading">Raporlar</h1><p>@basTarih.ToString("dd.MM.yyyy") - @bitTarih.ToString("dd.MM.yyyy")</p></div>
         </div>
-        <form method="get" action="@Url.Action("Raporlar", "PersonelPanel")" class="df-personnel-report-form">
+        <form method="get" action="@Url.Action("Raporlar", "PersonelPanel")" class="df-ops-filter">
             <div class="df-admin-field is-report-type">
-                <label for="tip">Rapor Türü</label>
+                <label for="tip">Rapor türü</label>
                 <select id="tip" name="tip">
                     @if (genelRaporYetkisi || ykcRaporYetkisi)
                     {
@@ -104,107 +99,71 @@
             </div>
             <div class="df-admin-field"><label for="bas">Başlangıç</label><input id="bas" type="date" name="bas" value="@basTarih.ToString("yyyy-MM-dd")" /></div>
             <div class="df-admin-field"><label for="bit">Bitiş</label><input id="bit" type="date" name="bit" value="@bitTarih.ToString("yyyy-MM-dd")" /></div>
-            <button class="df-btn df-btn-primary" type="submit"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Raporu Hazırla</button>
+            <button class="df-btn df-btn-primary df-btn-sm" type="submit"><i class="bi bi-funnel" aria-hidden="true"></i> Uygula</button>
         </form>
     </section>
 
-    <section class="df-page-panel df-personnel-report-result" aria-labelledby="report-result-title">
-        <header class="df-personnel-report-result-head">
-            <span class="df-personnel-report-result-icon" aria-hidden="true"><i class="bi @raporIkonu"></i></span>
-            <div class="df-personnel-report-result-copy">
-                <h2 id="report-result-title">@raporTipiAdi</h2>
-                <p>@raporAciklama</p>
-                <small>@basTarih.ToString("dd.MM.yyyy") - @bitTarih.ToString("dd.MM.yyyy")</small>
-            </div>
-            <div class="df-personnel-report-total"><strong>@raporToplam</strong><span>kayıt</span></div>
-            <div class="df-personnel-report-actions">
-                <a class="df-btn df-btn-sm df-btn-pdf @(!disAktarilabilir ? "is-disabled" : "")" href="@(disAktarilabilir ? pdfUrl : "#")" aria-disabled="@(!disAktarilabilir ? "true" : "false")" title="Hazırlanan raporu PDF olarak indir"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF</a>
-                <a class="df-btn df-btn-sm df-btn-excel @(!disAktarilabilir ? "is-disabled" : "")" href="@(disAktarilabilir ? excelUrl : "#")" aria-disabled="@(!disAktarilabilir ? "true" : "false")" title="Hazırlanan raporu Excel olarak indir"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel</a>
-                <a class="df-btn df-btn-sm df-btn-secondary" href="@kayitlarUrl"><i class="bi bi-list-ul" aria-hidden="true"></i> Kayıtlar</a>
-            </div>
-        </header>
-        <div class="df-personnel-report-preview">
-            <section class="df-personnel-report-chart" aria-labelledby="report-chart-title">
-                <div class="df-personnel-report-section-head"><h3 id="report-chart-title">@grafikBasligi</h3><span>Dönem görünümü</span></div>
-                <div class="df-personnel-report-chart-wrap" id="reportChartWrap">
-                    <div class="chart-empty">Seçilen dönem için grafik verisi bulunamadı.</div>
-                    <canvas id="reportChart"></canvas>
-                </div>
-            </section>
-            <aside class="df-personnel-report-status" aria-labelledby="report-status-title">
-                <div class="df-personnel-report-section-head"><h3 id="report-status-title">Durum Özeti</h3><span>@durumSayilari.Sum() işlem</span></div>
-                <div class="df-personnel-report-status-list">
-                    @if (!durumSayilari.Any())
+    <section class="df-ops-kpis" aria-label="@raporTipiAdi göstergeleri">
+        <article class="df-ops-kpi is-volume"><span class="df-ops-kpi-icon"><i class="bi bi-inboxes" aria-hidden="true"></i></span><div><span>Toplam kayıt</span><strong>@raporToplam</strong></div></article>
+        @for (var index = 0; index < 3; index++)
+        {
+            var etiket = index < durumEtiketleri.Count ? durumEtiketleri[index] : "Diğer";
+            var sayi = index < durumSayilari.Count ? durumSayilari[index] : 0;
+            var ton = index == 0 ? "is-duration" : index == 1 ? "is-compliance" : "is-repeat";
+            var ikon = index == 0 ? "bi-check2-circle" : index == 1 ? "bi-hourglass-split" : "bi-list-check";
+            <article class="df-ops-kpi @ton"><span class="df-ops-kpi-icon"><i class="bi @ikon" aria-hidden="true"></i></span><div><span>@etiket</span><strong>@sayi</strong></div></article>
+        }
+    </section>
+
+    <section class="df-ops-overview" aria-label="@raporTipiAdi grafikleri">
+        <div class="df-ops-monthly">
+            <header class="df-ops-section-head"><div><h2>@grafikBasligi</h2></div><span>@raporToplam kayıt</span></header>
+            @if (chartCount == 0)
+            {
+                <div class="df-ops-empty">Seçili dönemde grafik verisi yok.</div>
+            }
+            else
+            {
+                <div class="df-ops-monthly-chart" style="--chart-count:@chartCount" role="img" aria-label="@grafikBasligi">
+                    @for (var index = 0; index < chartCount; index++)
                     {
-                        <div class="df-personnel-report-empty">Durum verisi bulunamadı.</div>
+                        <div class="df-ops-month" title="@raporAylar[index]: @raporAylik[index] kayıt">
+                            <strong>@raporAylik[index]</strong>
+                            <span class="df-ops-month-track"><i style="--bar:@CssYuzde(raporAylik[index] * 100d / chartMax)%"></i></span>
+                            <small>@raporAylar[index]</small>
+                        </div>
                     }
-                    else
-                    {
+                </div>
+            }
+        </div>
+        <aside class="df-ops-status" aria-labelledby="personnelReportStatusHeading">
+            <header class="df-ops-section-head"><div><h2 id="personnelReportStatusHeading">Durum dağılımı</h2></div></header>
+            @if (durumToplam == 0)
+            {
+                <div class="df-ops-empty">Seçili dönemde kayıt yok.</div>
+            }
+            else
+            {
+                <div class="df-ops-completion">
+                    <div class="df-ops-ring" style="--value:@CssYuzde(ilkDurumOrani)" aria-label="@ilkDurumEtiketi yüzde @ilkDurumOrani"><strong>%@ilkDurumOrani.ToString("0.#")</strong><span>@ilkDurumEtiketi</span></div>
+                    <dl>
                         @for (var index = 0; index < durumSayilari.Count; index++)
                         {
                             var etiket = index < durumEtiketleri.Count ? durumEtiketleri[index] : $"Durum {index + 1}";
-                            <div>
-                                <span><i class="is-tone-@(index % 3)" aria-hidden="true"></i>@etiket</span>
-                                <strong>@durumSayilari[index]</strong>
-                                <progress max="@durumToplam" value="@durumSayilari[index]" aria-label="@etiket: @durumSayilari[index]"></progress>
-                            </div>
+                            <div><dt><i class="is-status-@(index % 4)" aria-hidden="true"></i> @etiket</dt><dd>@durumSayilari[index]</dd></div>
                         }
-                    }
+                    </dl>
                 </div>
-            </aside>
+            }
+        </aside>
+    </section>
+
+    <section class="df-ops-download-strip" aria-label="@raporTipiAdi indirme seçenekleri">
+        <div><h2>@raporTipiAdi</h2><span>@basTarih.ToString("dd.MM.yyyy") - @bitTarih.ToString("dd.MM.yyyy")</span></div>
+        <div class="df-ops-export-actions">
+            <a class="df-btn df-btn-sm df-btn-pdf @(!disAktarilabilir ? "is-disabled" : "")" href="@(disAktarilabilir ? pdfUrl : null)" aria-disabled="@(!disAktarilabilir ? "true" : "false")" tabindex="@(!disAktarilabilir ? "-1" : null)"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF</a>
+            <a class="df-btn df-btn-sm df-btn-excel @(!disAktarilabilir ? "is-disabled" : "")" href="@(disAktarilabilir ? excelUrl : null)" aria-disabled="@(!disAktarilabilir ? "true" : "false")" tabindex="@(!disAktarilabilir ? "-1" : null)"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel</a>
+            <a class="df-btn df-btn-sm df-btn-secondary" href="@kayitlarUrl"><i class="bi bi-list-ul" aria-hidden="true"></i> Kayıtlar</a>
         </div>
     </section>
-</div>
-
-<div id="raporData"
-     data-labels='@Html.Raw(raporAylarJson)'
-     data-values='@Html.Raw(raporAylikJson)'
-     data-chart-type="@(ykcRaporu ? "bar" : "line")"
-     hidden></div>
-
-@section Scripts {
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script>
-(function () {
-    const dataEl = document.getElementById('raporData');
-    const canvas = document.getElementById('reportChart');
-    const wrap = document.getElementById('reportChartWrap');
-    if (!dataEl || !canvas || !wrap || typeof Chart === 'undefined') return;
-    const parse = value => {
-        try {
-            const result = JSON.parse(value || '[]');
-            return Array.isArray(result) ? result : [];
-        } catch {
-            return [];
-        }
-    };
-    const labels = parse(dataEl.dataset.labels);
-    const values = parse(dataEl.dataset.values).map(Number);
-    if (!labels.length || !values.some(value => value > 0)) return;
-    const bar = dataEl.dataset.chartType === 'bar';
-    wrap.classList.add('has-data');
-    new Chart(canvas, {
-        type: bar ? 'bar' : 'line',
-        data: {
-            labels,
-            datasets: [{
-                data: values,
-                borderColor: '#315fca',
-                backgroundColor: bar ? '#315fca' : 'rgba(49,95,202,.12)',
-                borderWidth: bar ? 0 : 2,
-                borderRadius: bar ? 5 : 0,
-                fill: !bar,
-                tension: .3,
-                pointRadius: bar ? 0 : 2
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: { y: { beginAtZero: true, ticks: { precision: 0 } }, x: { grid: { display: false } } }
-        }
-    });
-})();
-</script>
-}
+</main>

@@ -129,12 +129,13 @@
             if (firmaKullanicisiMi) {
                 roleHelp.textContent = "Firma hesabı oluşturulur ve seçilen dağıtım şirketine bağlanır.";
             } else if (rol === "Personel") {
-                roleHelp.textContent = "Personelin ek işlem yetkileri Yetkiler ekranından belirlenir.";
+                roleHelp.textContent = "";
             } else if (rol === "SirketAdmin" || rol === "SuperAdmin") {
                 roleHelp.textContent = "Şirket yöneticisi yalnızca bağlı şirketteki kayıtları yönetir.";
             } else {
                 roleHelp.textContent = "Sistem genelindeki yönetim hesabıdır.";
             }
+            roleHelp.hidden = !roleHelp.textContent;
         }
 
         rolSelect.addEventListener("change", uygulaRolDavranisi);

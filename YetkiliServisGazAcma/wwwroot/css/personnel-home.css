@@ -524,6 +524,7 @@
 /* Admin ana sayfaları da rol kartlarında aynı kompakt ve taranabilir dili kullanır. */
 :is(.role-dashboard--company-admin, .role-dashboard--system-admin) .personnel-command-center {
     --personnel-role-height: clamp(160px, 21dvh, 174px);
+    --personnel-viewport-offset: 90px;
 }
 
 :is(.role-dashboard--company-admin, .role-dashboard--system-admin) .personnel-role-actions__grid {
@@ -1706,7 +1707,15 @@
     .role-dashboard--personnel .personnel-role-actions__grid,
     .role-dashboard--personnel .personnel-role-actions__grid.is-count-1,
     .role-dashboard--personnel .personnel-role-actions__grid.is-count-2,
-    .role-dashboard--personnel .personnel-role-actions__grid.is-carousel {
+    .role-dashboard--personnel .personnel-role-actions__grid.is-carousel,
+    .role-dashboard--company-admin .personnel-role-actions__grid,
+    .role-dashboard--company-admin .personnel-role-actions__grid.is-count-1,
+    .role-dashboard--company-admin .personnel-role-actions__grid.is-count-2,
+    .role-dashboard--company-admin .personnel-role-actions__grid.is-carousel,
+    .role-dashboard--system-admin .personnel-role-actions__grid,
+    .role-dashboard--system-admin .personnel-role-actions__grid.is-count-1,
+    .role-dashboard--system-admin .personnel-role-actions__grid.is-count-2,
+    .role-dashboard--system-admin .personnel-role-actions__grid.is-carousel {
         grid-template-columns: none;
         grid-auto-flow: column;
         grid-auto-columns: min(120px, 42vw);
@@ -1717,7 +1726,9 @@
 
     .role-dashboard--certified-firm .personnel-role-card,
     .role-dashboard--authorized-service .personnel-role-card,
-    .role-dashboard--personnel .personnel-role-card {
+    .role-dashboard--personnel .personnel-role-card,
+    .role-dashboard--company-admin .personnel-role-card,
+    .role-dashboard--system-admin .personnel-role-card {
         min-height: 120px;
     }
 

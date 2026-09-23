@@ -40,6 +40,11 @@ body { background: #eef3f6; color: var(--login-ink); font: 14px/1.5 "Segoe UI", 
 }
 .login-shell--panel .login-side {
     padding-inline: clamp(40px, 4.5vw, 62px);
+    padding-block: 26px;
+    min-height: 0;
+}
+.login-shell--panel:has(.login-message) .login-side {
+    padding-block: 12px;
 }
 .login-shell--panel .login-card {
     max-width: 420px;

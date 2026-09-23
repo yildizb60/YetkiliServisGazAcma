@@ -92,7 +92,7 @@
     background:#fff;
     box-shadow:0 10px 24px rgba(32,64,120,.10);
 }
-.df-commissioning-detail-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); }
+.df-commissioning-detail-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(185px,1fr)); }
 .df-commissioning-detail-grid > section {
     min-width:0;
     min-height:76px;
@@ -105,8 +105,11 @@
 .df-commissioning-detail-grid > section:last-child { border-right:0; }
 .df-commissioning-detail-grid > section > span { display:flex; align-items:center; gap:6px; color:#63778b; font-size:9.5px; font-weight:700; text-transform:uppercase; }
 .df-commissioning-detail-grid > section > span i { color:#315fca; font-size:12px; }
-.df-commissioning-detail-grid > section > strong { overflow:hidden; color:#1f3448; font-size:11.5px; font-weight:700; line-height:1.4; text-overflow:ellipsis; }
-.df-commissioning-detail-grid > section > small { overflow:hidden; color:#687d90; font-size:10px; font-weight:500; line-height:1.45; text-overflow:ellipsis; }
+.df-commissioning-detail-grid > section > p { margin:0; color:#1f3448; font-size:11.5px; font-weight:600; line-height:1.4; overflow-wrap:anywhere; }
+.df-commissioning-extra-facts { display:grid; gap:6px; margin:0; }
+.df-commissioning-extra-facts > div { display:grid; gap:2px; min-width:0; }
+.df-commissioning-extra-facts dt { color:#687d90; font-size:10px; font-weight:500; }
+.df-commissioning-extra-facts dd { margin:0; color:#1f3448; font-size:11.5px; font-weight:650; line-height:1.35; overflow-wrap:anywhere; }
 .df-commissioning-detail-footer {
     min-height:46px;
     padding:7px 10px 7px 13px;
@@ -128,31 +131,47 @@
 .df-commissioning-export.is-excel { border-color:#b9dfd0; background:#edf9f4; color:#147a58; }
 .df-commissioning-export.is-excel:hover { border-color:#178965; background:#178965; color:#fff; }
 .df-approval-action {
-    min-height:30px;
-    padding:5px 9px;
+    min-height:36px;
+    padding:4px 10px 4px 5px;
     display:inline-flex;
     align-items:center;
     justify-content:center;
-    gap:6px;
-    border:1px solid #d8e2eb;
+    gap:7px;
+    border:1px solid transparent;
     border-radius:7px;
-    background:#fff;
-    font:700 10px/1.2 inherit;
+    font-family:inherit;
+    font-size:11px;
+    font-weight:700;
+    line-height:1.2;
     letter-spacing:0;
     cursor:pointer;
     white-space:nowrap;
+    box-shadow:0 2px 6px rgba(36,59,77,.08);
     transition:border-color .16s ease, background-color .16s ease, color .16s ease, box-shadow .16s ease, transform .16s ease;
 }
-.df-approval-action:hover,
-.df-approval-action:focus-visible { outline:0; transform:translateY(-1px); }
-.df-approval-action.is-approve { border-color:#b9dfd1; background:#f1faf6; color:#16745a; }
+.df-approval-action i {
+    width:24px;
+    height:24px;
+    display:grid;
+    place-items:center;
+    border-radius:5px;
+    font-size:14px;
+}
+.df-approval-action:hover { transform:translateY(-1px); }
+.df-approval-action:focus-visible { outline:2px solid #315fca; outline-offset:2px; }
+.df-approval-action.is-approve { border-color:#187f61; background:#187f61; color:#fff; }
+.df-approval-action.is-approve i { background:rgba(255,255,255,.17); }
 .df-approval-action.is-approve:hover,
-.df-approval-action.is-approve:focus-visible { border-color:#65b89d; background:#e7f6ef; box-shadow:0 4px 10px rgba(22,116,90,.12); }
-.df-approval-action.is-reject { border-color:#edcbd0; background:#fff6f7; color:#ad394a; list-style:none; }
+.df-approval-action.is-approve:focus-visible { border-color:#126d53; background:#126d53; box-shadow:0 5px 12px rgba(22,116,90,.2); }
+.df-approval-action.is-reject { border-color:#e7cbd0; background:#fff; color:#a73e4c; list-style:none; }
+.df-approval-action.is-reject i { background:#fff0f2; color:#b74355; }
 .df-approval-action.is-reject::-webkit-details-marker { display:none; }
 .df-approval-action.is-reject:hover,
-.df-approval-action.is-reject:focus-visible { border-color:#d98591; background:#fff0f2; box-shadow:0 4px 10px rgba(173,57,74,.1); }
-.df-approval-action.is-confirm { width:100%; margin-top:7px; }
+.df-approval-action.is-reject:focus-visible { border-color:#c96572; background:#fff4f5; box-shadow:0 4px 10px rgba(173,57,74,.12); }
+.df-approval-action.is-confirm { width:100%; margin-top:7px; border-color:#b74355; background:#b74355; color:#fff; }
+.df-approval-action.is-confirm i { background:rgba(255,255,255,.17); color:#fff; }
+.df-approval-action.is-confirm:hover,
+.df-approval-action.is-confirm:focus-visible { border-color:#9e3345; background:#9e3345; }
 .df-operation-id-list { display:grid; gap:3px; margin:0; }
 .df-operation-id-list > div { display:grid; grid-template-columns:54px minmax(0,1fr); gap:4px; }
 .df-operation-id-list dt { color:#758797; font-size:9px; font-weight:500; white-space:nowrap; }
@@ -192,6 +211,12 @@
 .ys-certificate-upload > .df-btn { min-height:38px; white-space:nowrap; }
 .ys-certificate-upload input[type="file"] { min-height:38px; padding:4px; border:1px solid var(--df-border); border-radius:5px; background:#fff; color:#607587; font-size:11px; }
 .ys-certificate-upload input[type="file"]::file-selector-button { height:28px; margin-right:8px; padding:0 10px; border:0; border-radius:4px; background:#edf4f8; color:#31566f; font:600 11px inherit; cursor:pointer; }
+.ys-certificate-state { display:inline-flex; align-items:center; gap:6px; padding:5px 8px; border:1px solid; border-radius:5px; font-size:11px; font-weight:700; white-space:nowrap; }
+.ys-certificate-state i { font-size:13px; }
+.ys-certificate-state.is-pending { border-color:#edd7a8; background:#fff8e9; color:#926414; }
+.ys-certificate-state.is-approved { border-color:#b9dfd0; background:#edf8f2; color:#167a5b; }
+.ys-certificate-state.is-expired,
+.ys-certificate-state.is-rejected { border-color:#e9c2c7; background:#fff2f3; color:#a43e4a; }
 
 .df-certificate-workspace { gap:8px; }
 .df-certificate-workspace > .df-admin-filter {
@@ -242,6 +267,8 @@
 .df-history-result.is-rejected { color:#a94550; }
 
 .df-approval-workspace .approval-panels.is-admin-approval { border:1px solid var(--df-border); border-top:3px solid #2879aa; border-radius:6px; background:#fff; overflow:hidden; box-shadow:0 1px 2px rgba(25,50,68,.04); }
+.df-approval-list-total { min-height:42px; padding:7px 14px; display:flex; align-items:center; gap:9px; border-bottom:1px solid var(--df-border); background:#fff; color:#365474; font-size:12px; font-weight:600; }
+.df-approval-list-total strong { min-width:28px; padding:3px 7px; border-radius:5px; background:#e8f0ff; color:#315ac3; font-size:13px; text-align:center; }
 .df-approval-workspace .df-approval-status-bar { display:grid !important; grid-template-columns:repeat(4,minmax(0,1fr)); background:#f7f9fb !important; border-bottom:1px solid var(--df-border); }
 .df-approval-workspace .df-approval-status-bar .approval-metric { width:100%; min-height:48px !important; padding:8px 14px !important; color:#52687a !important; font-size:12px !important; font-weight:600 !important; }
 .df-approval-workspace .df-approval-status-bar .approval-metric + .approval-metric { border-left:1px solid var(--df-border) !important; }
@@ -259,6 +286,13 @@
 .df-approval-workspace .df-approval-table th { color:#53677a !important; font-weight:600 !important; }
 .df-approval-workspace .df-approval-table .df-cell-main { color:#263f55; font-weight:600 !important; }
 .df-approval-workspace .df-cell-note { margin-top:3px; color:#7a8b99; font-size:10px; font-weight:450; }
+.df-approval-firm-id { margin-top:5px; display:flex; align-items:baseline; gap:6px; color:#607789; font-size:10px; }
+.df-approval-firm-id span { font-weight:600; }
+.df-approval-firm-id strong { color:#365474; font-weight:600; }
+.df-approval-company { display:grid; gap:2px; margin-bottom:6px; }
+.df-approval-company small { color:#6b8090; font-size:9px; font-weight:650; }
+.df-approval-company strong { color:#23475f; font-size:11px; font-weight:650; line-height:1.35; overflow-wrap:anywhere; }
+.df-approval-company + .df-cell-address { padding-top:5px; border-top:1px solid #e5edf3; }
 .df-approval-workspace .df-approval-period { gap:8px; }
 .df-approval-workspace .df-approval-row-actions { gap:6px; }
 
@@ -458,15 +492,19 @@
 }
 .df-certificate-flow-nav a:hover { border-color:#cfdaea; background:#fff; color:#315fca; }
 .df-certificate-flow-nav a.is-active { border-color:#cbd9f1; background:#edf4ff; color:#2858ba; }
-.df-approval-workspace .df-approval-table { min-width:1320px !important; }
-.df-approval-workspace .df-approval-table th:nth-child(1) { width:16% !important; }
-.df-approval-workspace .df-approval-table th:nth-child(2) { width:18% !important; }
+.df-approval-workspace .df-approval-table { width:100%; min-width:980px !important; }
+.df-approval-workspace .df-approval-table th:nth-child(1) { width:14% !important; }
+.df-approval-workspace .df-approval-table th:nth-child(2) { width:16% !important; }
 .df-approval-workspace .df-approval-table th:nth-child(3) { width:10% !important; }
-.df-approval-workspace .df-approval-table th:nth-child(4) { width:12% !important; }
-.df-approval-workspace .df-approval-table th:nth-child(5) { width:12% !important; }
-.df-approval-workspace .df-approval-table th:nth-child(6) { width:10% !important; }
-.df-approval-workspace .df-approval-table th:nth-child(7) { width:9% !important; }
-.df-approval-workspace .df-approval-table th:nth-child(8) { width:13% !important; }
+.df-approval-workspace .df-approval-table th:nth-child(4) { width:11% !important; }
+.df-approval-workspace .df-approval-table th:nth-child(5) { width:10% !important; }
+.df-approval-workspace .df-approval-table th:nth-child(6) { width:12% !important; }
+.df-approval-workspace .df-approval-table th:nth-child(7) { width:12% !important; }
+.df-approval-workspace .df-approval-table th:nth-child(8) { width:15% !important; }
+.df-approval-workspace .df-approval-table th,
+.df-approval-workspace .df-approval-table td { padding:9px 7px !important; }
+.df-approval-workspace .df-approval-table th { white-space:normal !important; line-height:1.3; overflow-wrap:normal; }
+.df-approval-workspace .df-approval-row-actions { align-items:flex-start; }
 .df-approval-workspace .df-approval-table td { vertical-align:top; }
 .df-cell-address {
     display:-webkit-box;

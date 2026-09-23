@@ -127,6 +127,13 @@
     .ys-commissioning-request .ys-commissioning-form-grid textarea { min-height:42px; height:42px; padding-block:7px; }
     .ys-commissioning-request .ys-commissioning-actions { margin-top:7px; padding-top:7px; }
     .ys-commissioning-request .ys-commissioning-actions .df-btn { min-height:38px; }
+    .ys-commissioning-request .ykc-request-lookup { padding:18px 20px; }
+    .ys-commissioning-request .ykc-request-lookup .ykc-request-section-head { margin-bottom:16px; }
+    .ys-commissioning-request .ykc-request-lookup .ykc-request-section-icon { width:32px; height:32px; flex-basis:32px; }
+    .ys-commissioning-request .ykc-request-lookup .ykc-request-query-fields { gap:14px; }
+    .ys-commissioning-request .ykc-request-lookup .ykc-field label { margin-bottom:6px; font-size:13px; }
+    .ys-commissioning-request .ykc-request-lookup .ykc-field input,
+    .ys-commissioning-request .ykc-request-lookup .ykc-request-query-fields .df-btn { min-height:42px; padding-block:9px; font-size:14px; }
 }
 
 @container (min-width: 1200px) {

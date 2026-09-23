@@ -53,6 +53,7 @@ namespace YetkiliServisGazAcma.Models.ViewModels
         public DateTime SelectedDate { get; set; } = DateTime.Today;
         public string ViewMode { get; set; } = "ay";
         public string HistoryUrl { get; set; } = "/devreyealma/gecmis";
+        public bool IsDataComplete { get; set; } = true;
         public List<AuthorizedServiceCalendarItemViewModel> Items { get; set; } = new();
     }
 

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using System.Security.Cryptography;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
@@ -15,6 +16,7 @@ namespace YetkiliServisGazAcma.API.Services
         private readonly IYkcImzaProvider _imzaProvider;
         private readonly IWebHostEnvironment _environment;
         private readonly ILogger<YkcImzaAkisService> _logger;
+        private readonly IConfiguration? _configuration;
 
         public YkcImzaAkisService(
             AppDbContext context,
@@ -22,7 +24,8 @@ namespace YetkiliServisGazAcma.API.Services
             YkcFr265FormService fr265FormService,
             IYkcImzaProvider imzaProvider,
             IWebHostEnvironment environment,
-            ILogger<YkcImzaAkisService> logger)
+            ILogger<YkcImzaAkisService> logger,
+            IConfiguration? configuration = null)
         {
             _context = context;
             _talepService = talepService;
@@ -30,6 +33,7 @@ namespace YetkiliServisGazAcma.API.Services
             _imzaProvider = imzaProvider;
             _environment = environment;
             _logger = logger;
+            _configuration = configuration;
         }
 
         public YkcImzaEntegrasyonDto EntegrasyonBilgisi()
@@ -533,20 +537,16 @@ namespace YetkiliServisGazAcma.API.Services
             if (yol.StartsWith("ykc/", StringComparison.OrdinalIgnoreCase))
                 yol = yol["ykc/".Length..];
 
-            var kok = Path.GetFullPath(PrivateBelgeKoku());
-            var fizikselYol = Path.GetFullPath(Path.Combine(kok, yol.Replace('/', Path.DirectorySeparatorChar)));
-            if (!fizikselYol.StartsWith(kok + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
-                || !File.Exists(fizikselYol))
-            {
-                return null;
-            }
+            var fizikselYol = PrivateDocumentStorage.ExistingFile(
+                _environment, _configuration, "ykc-belgeler", yol.Replace('/', Path.DirectorySeparatorChar));
+            if (fizikselYol is null) return null;
 
             return await File.ReadAllBytesAsync(fizikselYol, cancellationToken);
         }
 
         private string PrivateBelgeKoku()
         {
-            return Path.Combine(_environment.ContentRootPath, "App_Data", "ykc-belgeler");
+            return PrivateDocumentStorage.Root(_environment, _configuration, "ykc-belgeler");
         }
 
         private static Ykc_ImzaSureci? AktifSurec(Ykc_Talep talep)
