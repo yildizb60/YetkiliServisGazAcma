@@ -73,7 +73,7 @@
                         <div class="df-user-identity"><span class="df-user-avatar">@basHarfler</span><strong>@(personel.AdSoyad ?? "-")</strong></div>
                         <div class="df-person-contact"><span>@(personel.Email ?? "-")</span>@if (!string.IsNullOrWhiteSpace(personel.PhoneNumber)){<small>@personel.PhoneNumber</small>}</div>
                         <div class="df-person-company"><strong>@(personel.Sirket?.SirketAdi ?? "-")</strong>@if (!string.IsNullOrWhiteSpace(personel.Sirket?.Il)){<small>@personel.Sirket.Il</small>}</div>
-                        <div><span class="df-pill @(personel.AktifMi ? "df-pill-success" : "df-pill-danger")">@(personel.AktifMi ? "Aktif" : "Pasif")</span></div>
+                        <div><span class="df-account-status @(personel.AktifMi ? "is-active" : "is-passive")"><i class="bi @(personel.AktifMi ? "bi-check-circle-fill" : "bi-pause-circle-fill")" aria-hidden="true"></i>@(personel.AktifMi ? "Aktif" : "Pasif")</span></div>
                         <div class="df-user-actions">
                             <a class="df-icon-action js-admin-form-sheet-trigger"
                                href="@Url.Action("KullaniciDuzenle", "AdminPanel", new { id = personel.Id, returnUrl = Url.Action("Personeller", "AdminPanel") })"
@@ -86,7 +86,7 @@
                                 <input type="hidden" name="aktif" value="@(personel.AktifMi ? "false" : "true")" />
                                 <button type="submit" class="df-icon-action @(personel.AktifMi ? "is-warning" : "is-success")" title="@(personel.AktifMi ? "Personeli pasifleştir" : "Personeli aktifleştir")" aria-label="@personel.AdSoyad personelini @(personel.AktifMi ? "pasifleştir" : "aktifleştir")"><i class="bi @(personel.AktifMi ? "bi-pause-circle" : "bi-play-circle")" aria-hidden="true"></i></button>
                             </form>
-                            <form method="post" action="@Url.Action("PersonelSil", "AdminPanel", new { id = personel.Id })" onsubmit="return confirm('Personeli silmek istediğinize emin misiniz?');">
+                            <form method="post" action="@Url.Action("PersonelSil", "AdminPanel", new { id = personel.Id })" data-toast-confirm data-confirm-title="Personeli sil" data-confirm-message="@personel.AdSoyad adlı personel silinecek. Bu işlem geri alınamaz." data-confirm-action="Personeli Sil">
                                 @Html.AntiForgeryToken()
                                 <button type="submit" class="df-icon-action is-danger" title="Personeli sil" aria-label="@personel.AdSoyad personelini sil"><i class="bi bi-trash3" aria-hidden="true"></i></button>
                             </form>

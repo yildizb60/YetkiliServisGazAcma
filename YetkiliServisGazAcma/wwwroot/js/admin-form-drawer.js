@@ -8,6 +8,7 @@
     var sheetBody = sheet.querySelector("[data-admin-form-sheet-body]");
     var closeButton = sheet.querySelector("[data-admin-form-sheet-close]");
     var activeRequest = 0;
+    var closeTimer = 0;
 
     function setLoading() {
         sheetBody.innerHTML = '<div class="df-directory-sheet-loading" role="status"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span>Form hazırlanıyor</span></div>';
@@ -23,7 +24,9 @@
         activeRequest += 1;
         sheet.classList.remove("is-visible");
         document.documentElement.classList.remove("df-sheet-open");
-        window.setTimeout(function () {
+        window.clearTimeout(closeTimer);
+        closeTimer = window.setTimeout(function () {
+            closeTimer = 0;
             if (sheet.open) sheet.close();
             sheetBody.replaceChildren();
         }, 180);
@@ -64,20 +67,101 @@
         updateRoleFields();
     }
 
+    function initializePermissionFields(container) {
+        var companySelect = container.querySelector("[data-permission-company-select]");
+        var companies = Array.from(container.querySelectorAll("[data-permission-company]"));
+
+        function showSelectedCompany() {
+            if (!companySelect) return;
+            companies.forEach(function (company) {
+                var current = company.dataset.permissionCompany === companySelect.value;
+                company.classList.toggle("is-current", current);
+                if (current) company.open = true;
+            });
+        }
+
+        if (companySelect) companySelect.addEventListener("change", showSelectedCompany);
+        showSelectedCompany();
+
+        companies.forEach(function (company) {
+            var companyToggle = company.querySelector(".company-enable");
+            var options = Array.from(company.querySelectorAll(".permission-option"));
+            var fullAccess = company.querySelector('[data-permission="TAM_YETKI"]');
+            var requestView = company.querySelector('[data-permission="YKC_TALEP_GOR"]');
+            var ykcDependent = company.querySelectorAll('[data-permission="YKC_ATAMA_YAP"], [data-permission="YKC_FR265_IMZA_ISLEM"], [data-permission="YKC_RAPOR_GOR"]');
+            if (!companyToggle) return;
+
+            function refreshSummary() {
+                var state = company.querySelector(".company-permission-state");
+                if (!state) return;
+                var selectedCount = options.filter(function (option) { return option.checked; }).length;
+                state.textContent = !companyToggle.checked
+                    ? "Yetki kapalı"
+                    : fullAccess && fullAccess.checked ? "Tam yetki" : selectedCount + " yetki seçili";
+            }
+
+            function refreshCompanyState() {
+                options.forEach(function (option) { option.disabled = !companyToggle.checked; });
+                refreshSummary();
+            }
+
+            function syncYkcPermissions(changed) {
+                if (!requestView) return;
+                if (changed === requestView && !requestView.checked) {
+                    ykcDependent.forEach(function (option) { option.checked = false; });
+                } else if (Array.from(ykcDependent).some(function (option) { return option.checked; })) {
+                    requestView.checked = true;
+                }
+            }
+
+            function syncFullAccess(changed) {
+                if (!fullAccess) return;
+                if (changed === fullAccess && fullAccess.checked) {
+                    options.forEach(function (option) { if (option !== fullAccess) option.checked = false; });
+                }
+                if (changed !== fullAccess && changed && changed.checked) fullAccess.checked = false;
+            }
+
+            companyToggle.addEventListener("change", refreshCompanyState);
+            options.forEach(function (option) {
+                option.addEventListener("change", function () {
+                    syncFullAccess(option);
+                    syncYkcPermissions(option);
+                    refreshSummary();
+                });
+            });
+            refreshCompanyState();
+            syncFullAccess(fullAccess);
+            syncYkcPermissions();
+            refreshSummary();
+        });
+    }
+
+    function mountableForm(parsed) {
+        return parsed.querySelector(".df-admin-form-body form, .permission-editor-body form");
+    }
+
     function mountForm(parsed, sourceUrl) {
-        var sourceContainer = parsed.querySelector(".df-admin-form-body");
+        var sourceContainer = parsed.querySelector(".df-admin-form-body, .permission-editor-body");
         var sourceForm = sourceContainer ? sourceContainer.querySelector("form") : null;
         if (!sourceForm) throw new Error("Form içeriği bulunamadı.");
 
         var form = document.importNode(sourceForm, true);
         var sourceAlert = sourceContainer.querySelector(".df-alert");
+        var sourcePermissionHead = parsed.querySelector(".permission-editor-head");
         if (!form.getAttribute("action")) form.setAttribute("action", sourceUrl);
         form.classList.add("df-directory-sheet-form");
+        if (sourcePermissionHead) {
+            var permissionHead = document.importNode(sourcePermissionHead, true);
+            permissionHead.classList.add("df-permission-sheet-context");
+            form.prepend(permissionHead);
+        }
         if (sourceAlert) form.prepend(document.importNode(sourceAlert, true));
         sheetBody.replaceChildren(form);
         initializeRoleFields(sheetBody);
+        initializePermissionFields(sheetBody);
 
-        var firstField = form.querySelector("input:not([type='hidden']), select, textarea");
+        var firstField = form.querySelector("select:not([hidden]), input:not([type='hidden']):not(:disabled), textarea:not(:disabled)");
         if (firstField) firstField.focus();
     }
 
@@ -96,8 +180,12 @@
         var url = trigger.getAttribute("data-sheet-url") || trigger.getAttribute("href");
         if (!url) return;
 
+        window.clearTimeout(closeTimer);
+        closeTimer = 0;
         var requestId = ++activeRequest;
         sheet.dataset.activeUrl = url;
+        sheet.dataset.variant = trigger.getAttribute("data-sheet-variant") || "account";
+        sheet.classList.toggle("df-permission-sheet", sheet.dataset.variant === "permission");
         sheetTitle.textContent = trigger.getAttribute("data-sheet-title") || "Kayıt İşlemi";
         setLoading();
 
@@ -134,12 +222,12 @@
 
             var html = await response.text();
             var parsed = new DOMParser().parseFromString(html, "text/html");
-            if (response.redirected && !parsed.querySelector(".df-admin-form-body form")) {
+            if (response.redirected && !mountableForm(parsed)) {
                 window.location.assign(response.url);
                 return;
             }
 
-            if (parsed.querySelector(".df-admin-form-body form")) {
+            if (mountableForm(parsed)) {
                 mountForm(parsed, form.action || sheet.dataset.activeUrl);
                 return;
             }
@@ -168,7 +256,7 @@
     });
 
     sheetBody.addEventListener("click", function (event) {
-        var cancel = event.target.closest(".df-admin-form-actions a");
+        var cancel = event.target.closest(".df-admin-form-actions a, .permission-editor-actions a");
         if (cancel) {
             event.preventDefault();
             closeSheet();

@@ -116,13 +116,13 @@
         var area = isPersonelPanel ? "/personel-panel" : "/AdminPanel";
         if (!isPersonelPanel || ViewBag.YetkiBelgesi == true)
         {
-            var certificates = new List<(string, string, string, string)> {
-                ("Onay Bekleyen Belgeler", onayBekleyenlerUrl, "bi-file-earmark-check", Active("OnayBekleyenler", area + "/onay-bekleyenler"))
-            };
+            var certificates = new List<(string, string, string, string)>();
             if (isPersonelPanel)
-                certificates.Add(("Yetki Belgesi Geçmişi", Link("OnayGecmisi", "PersonelPanel"), "bi-clock-history", Active("OnayGecmisi", area + "/onay-gecmisi")));
+                certificates.Add(("Belge Onay ve Takip", onayBekleyenlerUrl, "bi-file-earmark-check", Active("OnayBekleyenler", area + "/onay-bekleyenler", area + "/onay-gecmisi")));
             else
-                certificates.Add(("Bitiş Uyarıları", Link("YetkiBelgesiUyarilari", "AdminPanel"), "bi-exclamation-triangle", Active("YetkiBelgesiUyarilari", area + "/yetki-belgesi-uyarilari")));
+            {
+                certificates.Add(("Belge Onay ve Takip", onayBekleyenlerUrl, "bi-file-earmark-check", Active("OnayBekleyenler", area + "/onay-bekleyenler", area + "/onay-gecmisi", area + "/yetki-belgesi-uyarilari")));
+            }
             Group("Yetki Belgesi İşlemleri", "bi-file-earmark-check", certificates.ToArray());
         }
         if (!isPersonelPanel || ViewBag.YetkiRapor == true)

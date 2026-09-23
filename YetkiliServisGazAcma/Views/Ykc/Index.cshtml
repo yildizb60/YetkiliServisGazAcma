@@ -4,6 +4,7 @@
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
     ViewData["Title"] = "Ana Sayfa";
     ViewData["PanelTitle"] = "Ana Sayfa";
+    ViewData["PanelModule"] = "Sertifikalı Firma Paneli";
     ViewData["ActiveMenu"] = "YkcOzet";
     ViewData["ContentClass"] = "personnel-home-content role-dashboard-content";
 
@@ -16,7 +17,7 @@
         actions.Add(new DashboardTileViewModel
         {
             Title = "Yeni Cihaz Değişim Talebi", Url = Url.Action("Yeni", "Ykc")!, Icon = "bi bi-plus-lg",
-            MetricLabel = "Yeni Kayıt Başlat", Subtitle = "Talep oluştur", Tone = "green"
+            MetricLabel = "Yeni kayıt başlat", Subtitle = "Talep oluştur", Tone = "green"
         });
     }
     if (yetkiler.TalepleriGorebilir)
@@ -24,12 +25,12 @@
         actions.Add(new DashboardTileViewModel
         {
             Title = "Cihaz Değişim Taleplerim", Url = Url.Action("Talepler", "Ykc")!, Icon = "bi bi-journal-text",
-            MetricLabel = "Talep durumlarını görüntüle", Tone = "blue", Featured = Model.Incelemede > 0
+            MetricLabel = "Talepleri görüntüle", Tone = "blue", Featured = Model.Incelemede > 0
         });
         actions.Add(new DashboardTileViewModel
         {
             Title = "Randevularım", Url = Url.Action("Takvim", "Ykc")!, Icon = "bi bi-calendar3",
-            MetricLabel = "Kontrol tarihlerini görüntüle", Tone = "cyan"
+            MetricLabel = "Takvimi görüntüle", Tone = "cyan"
         });
     }
     if (yetkiler.RaporlariGorebilir)
@@ -37,13 +38,13 @@
         actions.Add(new DashboardTileViewModel
         {
             Title = "Cihaz Değişim Raporları", Url = Url.Action("Raporlar", "Ykc")!, Icon = "bi bi-bar-chart-line",
-            MetricLabel = "Sonuçları incele", Subtitle = "Raporlama", Tone = "amber"
+            MetricLabel = "Raporları görüntüle", Subtitle = "Raporlama", Tone = "amber"
         });
     }
     actions.Add(new DashboardTileViewModel
     {
         Title = "Profilim", Url = Url.Action("Profil", "Ykc")!, Icon = "bi bi-person-circle",
-        MetricLabel = "Firma ve hesap bilgileri", Subtitle = "Hesabım", Tone = "amber"
+        MetricLabel = "Firma ve hesap bilgileri", Subtitle = "Hesabım", Tone = "violet"
     });
 
     if (yetkiler.TalepleriGorebilir)

@@ -3,7 +3,6 @@
     ViewData["Title"] = "İşlem Yapacağınız Şirketi Seçin";
     var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
     var sirketler = ViewBag.Sirketler as List<YetkiliServisGazAcma.Entities.Dag_Sirket> ?? new();
-    int? aktifSirketId = ViewBag.AktifSirketId as int?;
     var genelSistemAdminMi = ViewBag.GenelSistemAdminMi as bool? ?? false;
     string returnUrl = ViewBag.ReturnUrl as string ?? "/personel-panel";
 }
@@ -22,7 +21,6 @@
             <header class="login-card-head company-select-head">
                 <div>
                     <h1 id="company-select-title">İşlem Yapacağınız Şirketi Seçin</h1>
-                    <p>@(kullanici?.AdSoyad ?? "Kullanıcı") hesabıyla devam ediyorsunuz.</p>
                 </div>
             </header>
             @if (TempData["Hata"] != null) { <div class="login-message is-error">@TempData["Hata"]</div> }
@@ -32,18 +30,16 @@
                 <div class="company-select-list" role="radiogroup" aria-label="Dağıtım şirketi">
                     @if (genelSistemAdminMi)
                     {
-                        var selectedAll = !aktifSirketId.HasValue;
-                        <label class="company-select-option @(selectedAll ? "is-selected" : "")">
-                            <input type="radio" name="sirketId" value="0" required checked="@(selectedAll ? "checked" : null)" />
+                        <label class="company-select-option">
+                            <input type="radio" name="sirketId" value="0" required />
                             <span><strong>Tüm Şirketler</strong><small>Genel yönetim ve tüm kayıtlar</small></span>
                             <i class="bi bi-check-circle-fill company-select-check" aria-hidden="true"></i>
                         </label>
                     }
                     @foreach (var sirket in sirketler)
                     {
-                        var selected = aktifSirketId == sirket.Id;
-                        <label class="company-select-option @(selected ? "is-selected" : "")">
-                            <input type="radio" name="sirketId" value="@sirket.Id" required checked="@(selected ? "checked" : null)" />
+                        <label class="company-select-option">
+                            <input type="radio" name="sirketId" value="@sirket.Id" required />
                             <span><strong>@sirket.SirketAdi</strong><small>@(string.IsNullOrWhiteSpace(sirket.Il) ? "Şirket kaydı" : sirket.Il)</small></span>
                             <i class="bi bi-check-circle-fill company-select-check" aria-hidden="true"></i>
                         </label>

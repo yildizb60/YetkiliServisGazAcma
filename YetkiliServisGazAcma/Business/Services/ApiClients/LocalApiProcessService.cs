@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net.Sockets;
 using Microsoft.Extensions.Options;
 
 namespace YetkiliServisGazAcma.Business.Services
@@ -9,6 +10,7 @@ namespace YetkiliServisGazAcma.Business.Services
         private readonly IWebHostEnvironment _environment;
         private readonly ILogger<LocalApiProcessService> _logger;
         private Process? _process;
+        private bool _portConflictLogged;
 
         public LocalApiProcessService(
             IOptions<ApiIntegrationOptions> options,
@@ -40,8 +42,26 @@ namespace YetkiliServisGazAcma.Business.Services
 
                     if (!apiHazir)
                     {
-                        StartLocalApi();
-                        await WaitForApiAsync(stoppingToken);
+                        if (await IsApiPortInUseAsync(stoppingToken))
+                        {
+                            if (!_portConflictLogged)
+                            {
+                                _logger.LogWarning(
+                                    "Yerel API adresi kullanimda ancak API hazirlik denetimi basarisiz. Ikinci bir API sureci baslatilmadi: {Url}",
+                                    _options.BaseUrl);
+                                _portConflictLogged = true;
+                            }
+                        }
+                        else
+                        {
+                            _portConflictLogged = false;
+                            StartLocalApi();
+                            await WaitForApiAsync(stoppingToken);
+                        }
+                    }
+                    else
+                    {
+                        _portConflictLogged = false;
                     }
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -188,6 +208,27 @@ namespace YetkiliServisGazAcma.Business.Services
                 return response.IsSuccessStatusCode;
             }
             catch
+            {
+                return false;
+            }
+        }
+
+        private async Task<bool> IsApiPortInUseAsync(CancellationToken cancellationToken)
+        {
+            if (!Uri.TryCreate(_options.BaseUrl, UriKind.Absolute, out var uri))
+                return false;
+
+            try
+            {
+                using var client = new TcpClient();
+                await client.ConnectAsync(uri.Host, uri.Port, cancellationToken);
+                return client.Connected;
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (SocketException)
             {
                 return false;
             }

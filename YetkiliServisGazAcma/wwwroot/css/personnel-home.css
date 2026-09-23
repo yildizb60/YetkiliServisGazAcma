@@ -14,19 +14,25 @@
     --personnel-role-height: clamp(224px, 31dvh, 238px);
     --personnel-queue-height: clamp(146px, 21dvh, 158px);
     --personnel-panel-height: calc(var(--personnel-hero-height) + var(--personnel-role-height) + var(--personnel-queue-height) + 20px);
+    --personnel-viewport-offset: 86px;
     width: min(100%, 1480px);
     min-width: 0;
-    height: var(--personnel-panel-height);
+    height: max(var(--personnel-panel-height), calc(100dvh - var(--personnel-viewport-offset)));
     margin: 0 auto;
     display: grid;
     grid-template-columns: minmax(0, 1.78fr) minmax(390px, .92fr);
     gap: 30px;
 }
 
+.personnel-command-center.is-single-column {
+    grid-template-columns: minmax(0, 1fr);
+}
+
 .personnel-command-center__main {
     min-width: 0;
+    min-height: 0;
     display: grid;
-    grid-template-rows: var(--personnel-hero-height) var(--personnel-role-height) var(--personnel-queue-height);
+    grid-template-rows: var(--personnel-hero-height) var(--personnel-role-height) minmax(var(--personnel-queue-height), 1fr);
     gap: 10px;
 }
 
@@ -144,6 +150,7 @@
 .personnel-work-queue {
     width: 100%;
     min-width: 0;
+    min-height: 0;
     display: grid;
     grid-template-rows: 28px minmax(0, 1fr);
     gap: 7px;
@@ -350,150 +357,302 @@
     transform: translateY(-2px);
 }
 
-/* Sertifikalı firma işlemleri, akıllı kontrol kartları gibi kısa ve taranabilir tutulur. */
-.role-dashboard--certified-firm .personnel-role-actions__grid {
-    --role-card-gap: 12px;
-    grid-template-columns: repeat(3, minmax(0, 184px));
-    justify-content: start;
+/* Panel işlem kartları kısa, taranabilir ve alanı tam doldurur. */
+.role-dashboard--certified-firm .personnel-command-center,
+.role-dashboard--authorized-service .personnel-command-center,
+.role-dashboard--personnel .personnel-command-center {
+    --personnel-role-height: clamp(160px, 21dvh, 174px);
 }
 
-.role-dashboard--certified-firm .personnel-role-actions__grid.is-count-1 {
-    grid-template-columns: minmax(0, 184px);
+.role-dashboard--certified-firm .personnel-role-actions__grid,
+.role-dashboard--authorized-service .personnel-role-actions__grid,
+.role-dashboard--personnel .personnel-role-actions__grid {
+    --role-card-gap: 10px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    justify-content: stretch;
+    padding: 3px 1px 4px;
+    box-sizing: border-box;
 }
 
-.role-dashboard--certified-firm .personnel-role-actions__grid.is-count-2 {
-    grid-template-columns: repeat(2, minmax(0, 184px));
+.role-dashboard--certified-firm .personnel-role-actions__grid.is-count-1,
+.role-dashboard--authorized-service .personnel-role-actions__grid.is-count-1,
+.role-dashboard--personnel .personnel-role-actions__grid.is-count-1 {
+    grid-template-columns: minmax(0, 1fr);
 }
 
-.role-dashboard--certified-firm .personnel-role-actions__grid.is-carousel {
+.role-dashboard--certified-firm .personnel-role-actions__grid.is-count-2,
+.role-dashboard--authorized-service .personnel-role-actions__grid.is-count-2,
+.role-dashboard--personnel .personnel-role-actions__grid.is-count-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.role-dashboard--certified-firm .personnel-role-actions__grid.is-carousel,
+.role-dashboard--authorized-service .personnel-role-actions__grid.is-carousel,
+.role-dashboard--personnel .personnel-role-actions__grid.is-carousel {
     grid-template-columns: none;
-    grid-auto-columns: min(184px, calc((100% - (var(--role-card-gap) * 3)) / 4));
+    grid-auto-columns: calc((100% - 30px) / 4);
 }
 
-.role-dashboard--certified-firm .personnel-role-card {
+.role-dashboard--certified-firm .personnel-role-card,
+.role-dashboard--authorized-service .personnel-role-card,
+.role-dashboard--personnel .personnel-role-card {
     --certified-card-accent: #315ac3;
-    --certified-card-shadow: rgba(49, 90, 195, .2);
+    --certified-card-shadow: rgba(36, 59, 77, .12);
     position: relative;
     grid-template-areas:
-        "status"
         "icon"
-        "title";
-    grid-template-rows: 20px minmax(0, 1fr) 38px;
-    gap: 5px;
-    padding: 12px 13px 13px;
-    border-color: #e3e9ef;
-    border-radius: 16px;
+        "title"
+        "status";
+    grid-template-rows: 42px minmax(27px, auto) minmax(14px, auto);
+    align-content: center;
+    gap: 3px;
+    padding: 11px 9px 10px;
+    border-color: #edf0f4;
+    border-radius: 8px;
     background: #fff;
     color: #243b4d;
-    box-shadow: 0 8px 19px rgba(35, 65, 85, .1);
+    box-shadow: 0 5px 14px rgba(36, 59, 77, .09);
 }
 
-.role-dashboard--certified-firm .personnel-role-card.is-amber {
+.role-dashboard--certified-firm .personnel-role-card.is-amber,
+.role-dashboard--authorized-service .personnel-role-card.is-amber,
+.role-dashboard--personnel .personnel-role-card.is-amber {
     --certified-card-accent: #b94740;
     --certified-card-shadow: rgba(185, 71, 64, .2);
 }
 
-.role-dashboard--certified-firm .personnel-role-card.is-green {
+.role-dashboard--certified-firm .personnel-role-card.is-green,
+.role-dashboard--authorized-service .personnel-role-card.is-green,
+.role-dashboard--personnel .personnel-role-card.is-green {
     --certified-card-accent: #187f61;
     --certified-card-shadow: rgba(24, 127, 97, .24);
 }
 
-.role-dashboard--certified-firm .personnel-role-card.is-cyan {
+.role-dashboard--certified-firm .personnel-role-card.is-cyan,
+.role-dashboard--authorized-service .personnel-role-card.is-cyan,
+.role-dashboard--personnel .personnel-role-card.is-cyan {
     --certified-card-accent: #16869d;
-    --certified-card-shadow: rgba(22, 134, 157, .2);
 }
 
-.role-dashboard--certified-firm .personnel-role-card__top {
+.role-dashboard--certified-firm .personnel-role-card.is-violet,
+.role-dashboard--authorized-service .personnel-role-card.is-violet,
+.role-dashboard--personnel .personnel-role-card.is-violet {
+    --certified-card-accent: #7651c8;
+}
+
+.role-dashboard--certified-firm .personnel-role-card__top,
+.role-dashboard--authorized-service .personnel-role-card__top,
+.role-dashboard--personnel .personnel-role-card__top {
     grid-area: icon;
-    align-self: center;
+    align-self: start;
     justify-content: center;
 }
 
-.role-dashboard--certified-firm .personnel-role-card__top > i:first-child {
-    width: 48px;
-    height: 48px;
-    border-radius: 14px;
-    background: color-mix(in srgb, var(--certified-card-accent) 12%, white);
-    color: var(--certified-card-accent);
-    font-size: 20px;
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--certified-card-accent) 12%, transparent);
+.role-dashboard--certified-firm .personnel-role-card__top > i:first-child,
+.role-dashboard--authorized-service .personnel-role-card__top > i:first-child,
+.role-dashboard--personnel .personnel-role-card__top > i:first-child {
+    width: 40px;
+    height: 40px;
+    border-radius: 9px;
+    background: var(--certified-card-accent);
+    color: #fff;
+    font-size: 18px;
+    box-shadow: 0 4px 8px color-mix(in srgb, var(--certified-card-accent) 24%, transparent);
 }
 
-.role-dashboard--certified-firm .personnel-role-card__top > i:last-child {
-    width: 25px;
-    height: 25px;
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    display: grid;
-    place-items: center;
-    border: 1px solid #e4eaf0;
-    border-radius: 50%;
-    background: #f7f9fb;
-    color: #607789;
-    font-size: 11px;
+.role-dashboard--certified-firm .personnel-role-card.is-amber .personnel-role-card__top > i:first-child,
+.role-dashboard--authorized-service .personnel-role-card.is-amber .personnel-role-card__top > i:first-child,
+.role-dashboard--personnel .personnel-role-card.is-amber .personnel-role-card__top > i:first-child {
+    background: var(--certified-card-accent);
 }
 
-.role-dashboard--certified-firm .personnel-role-card > strong {
+.role-dashboard--certified-firm .personnel-role-card__top > i:last-child,
+.role-dashboard--authorized-service .personnel-role-card__top > i:last-child,
+.role-dashboard--personnel .personnel-role-card__top > i:last-child {
+    display: none;
+}
+
+.role-dashboard--certified-firm .personnel-role-card > strong,
+.role-dashboard--authorized-service .personnel-role-card > strong,
+.role-dashboard--personnel .personnel-role-card > strong {
     grid-area: title;
-    align-self: end;
+    align-self: center;
+    text-align: center;
     color: #243b4d;
-    font-size: 12.5px;
-    line-height: 1.25;
+    font-size: 11px;
+    line-height: 1.15;
+    -webkit-line-clamp: 2;
 }
 
-.role-dashboard--certified-firm .personnel-role-card__metric {
+.role-dashboard--certified-firm .personnel-role-card__metric,
+.role-dashboard--authorized-service .personnel-role-card__metric,
+.role-dashboard--personnel .personnel-role-card__metric {
     grid-area: status;
-    padding-right: 27px;
+    justify-content: center;
+    text-align: center;
     color: #607789;
-    font-size: 9.5px;
-    font-weight: 700;
+    font-size: 9px;
+    font-weight: 500;
     line-height: 1.15;
     white-space: normal;
 }
 
-.role-dashboard--certified-firm .personnel-role-card__metric span {
+.role-dashboard--certified-firm .personnel-role-card__metric span,
+.role-dashboard--authorized-service .personnel-role-card__metric span,
+.role-dashboard--personnel .personnel-role-card__metric span {
     display: -webkit-box;
     -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 1;
 }
 
-.role-dashboard--certified-firm .personnel-role-card__footer {
+.role-dashboard--certified-firm .personnel-role-card__footer,
+.role-dashboard--authorized-service .personnel-role-card__footer,
+.role-dashboard--personnel .personnel-role-card__footer {
     display: none;
 }
 
-.role-dashboard--certified-firm .personnel-role-card:first-child {
-    border-color: #187f61;
-    background: #187f61;
-    box-shadow: 0 15px 24px -7px rgba(24, 127, 97, .42), 0 5px 12px rgba(35, 65, 85, .1);
-}
-
-.role-dashboard--certified-firm .personnel-role-card:first-child > strong,
-.role-dashboard--certified-firm .personnel-role-card:first-child .personnel-role-card__metric {
-    color: #fff;
-}
-
-.role-dashboard--certified-firm .personnel-role-card:first-child .personnel-role-card__top > i:first-child,
-.role-dashboard--certified-firm .personnel-role-card:first-child .personnel-role-card__top > i:last-child {
-    border-color: rgba(255, 255, 255, .24);
-    background: rgba(255, 255, 255, .16);
-    color: #fff;
-    box-shadow: none;
-}
-
 .role-dashboard--certified-firm .personnel-role-card:hover,
-.role-dashboard--certified-firm .personnel-role-card:focus-visible {
+.role-dashboard--certified-firm .personnel-role-card:focus-visible,
+.role-dashboard--authorized-service .personnel-role-card:hover,
+.role-dashboard--authorized-service .personnel-role-card:focus-visible,
+.role-dashboard--personnel .personnel-role-card:hover,
+.role-dashboard--personnel .personnel-role-card:focus-visible {
     border-color: var(--certified-card-accent);
-    box-shadow: 0 13px 24px -8px var(--certified-card-shadow), 0 5px 12px rgba(35, 65, 85, .09);
+    box-shadow: 0 9px 17px -5px var(--certified-card-shadow), 0 4px 10px rgba(35, 65, 85, .08);
 }
 
-.role-dashboard--certified-firm .personnel-work-row__icon {
+/* Admin ana sayfaları da rol kartlarında aynı kompakt ve taranabilir dili kullanır. */
+:is(.role-dashboard--company-admin, .role-dashboard--system-admin) .personnel-command-center {
+    --personnel-role-height: clamp(160px, 21dvh, 174px);
+}
+
+:is(.role-dashboard--company-admin, .role-dashboard--system-admin) .personnel-role-actions__grid {
+    --role-card-gap: 10px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    justify-content: stretch;
+    padding: 3px 1px 4px;
+    box-sizing: border-box;
+}
+
+:is(.role-dashboard--company-admin, .role-dashboard--system-admin) .personnel-role-actions__grid.is-count-1 {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+:is(.role-dashboard--company-admin, .role-dashboard--system-admin) .personnel-role-actions__grid.is-count-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+:is(.role-dashboard--company-admin, .role-dashboard--system-admin) .personnel-role-actions__grid.is-carousel {
+    grid-template-columns: none;
+    grid-auto-columns: calc((100% - 30px) / 4);
+}
+
+:is(.role-dashboard--company-admin, .role-dashboard--system-admin) .personnel-role-card {
+    --certified-card-accent: #315ac3;
+    --certified-card-shadow: rgba(36, 59, 77, .12);
+    position: relative;
+    grid-template-areas: "icon" "title" "status";
+    grid-template-rows: 42px minmax(27px, auto) minmax(14px, auto);
+    align-content: center;
+    gap: 3px;
+    padding: 11px 9px 10px;
+    border-color: #edf0f4;
+    border-radius: 8px;
+    background: #fff;
+    color: #243b4d;
+    box-shadow: 0 5px 14px rgba(36, 59, 77, .09);
+}
+
+:is(.role-dashboard--company-admin, .role-dashboard--system-admin) .personnel-role-card.is-amber {
+    --certified-card-accent: #b94740;
+    --certified-card-shadow: rgba(185, 71, 64, .2);
+}
+
+:is(.role-dashboard--company-admin, .role-dashboard--system-admin) .personnel-role-card.is-amber .personnel-role-card__top > i:first-child {
+    background: var(--certified-card-accent);
+}
+
+:is(.role-dashboard--company-admin, .role-dashboard--system-admin) .personnel-role-card.is-green {
+    --certified-card-accent: #187f61;
+    --certified-card-shadow: rgba(24, 127, 97, .24);
+}
+
+:is(.role-dashboard--company-admin, .role-dashboard--system-admin) .personnel-role-card.is-cyan {
+    --certified-card-accent: #16869d;
+}
+
+:is(.role-dashboard--company-admin, .role-dashboard--system-admin) .personnel-role-card.is-violet {
+    --certified-card-accent: #7651c8;
+}
+
+:is(.role-dashboard--company-admin, .role-dashboard--system-admin) .personnel-role-card__top {
+    grid-area: icon;
+    align-self: start;
+    justify-content: center;
+}
+
+:is(.role-dashboard--company-admin, .role-dashboard--system-admin) .personnel-role-card__top > i:first-child {
+    width: 40px;
+    height: 40px;
+    border-radius: 9px;
+    background: var(--certified-card-accent);
+    color: #fff;
+    font-size: 18px;
+    box-shadow: 0 4px 8px color-mix(in srgb, var(--certified-card-accent) 24%, transparent);
+}
+
+:is(.role-dashboard--company-admin, .role-dashboard--system-admin) .personnel-role-card__top > i:last-child {
+    display: none;
+}
+
+:is(.role-dashboard--company-admin, .role-dashboard--system-admin) .personnel-role-card > strong {
+    grid-area: title;
+    align-self: center;
+    text-align: center;
+    color: #243b4d;
+    font-size: 11px;
+    line-height: 1.15;
+    -webkit-line-clamp: 2;
+}
+
+:is(.role-dashboard--company-admin, .role-dashboard--system-admin) .personnel-role-card__metric {
+    grid-area: status;
+    justify-content: center;
+    text-align: center;
+    color: #607789;
+    font-size: 9px;
+    font-weight: 500;
+    line-height: 1.15;
+    white-space: normal;
+}
+
+:is(.role-dashboard--company-admin, .role-dashboard--system-admin) .personnel-role-card__metric span {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+}
+
+:is(.role-dashboard--company-admin, .role-dashboard--system-admin) .personnel-role-card__footer {
+    display: none;
+}
+
+:is(.role-dashboard--company-admin, .role-dashboard--system-admin) .personnel-role-card:hover,
+:is(.role-dashboard--company-admin, .role-dashboard--system-admin) .personnel-role-card:focus-visible {
+    border-color: var(--certified-card-accent);
+    box-shadow: 0 9px 17px -5px var(--certified-card-shadow), 0 4px 10px rgba(35, 65, 85, .08);
+}
+
+.role-dashboard--certified-firm .personnel-work-row__icon,
+.role-dashboard--authorized-service .personnel-work-row__icon,
+.role-dashboard--personnel .personnel-work-row__icon {
     overflow: hidden;
     box-sizing: border-box;
     font-size: 0;
 }
 
-.role-dashboard--certified-firm .personnel-work-row__icon > i {
+.role-dashboard--certified-firm .personnel-work-row__icon > i,
+.role-dashboard--authorized-service .personnel-work-row__icon > i,
+.role-dashboard--personnel .personnel-work-row__icon > i {
     width: 100%;
     height: 100%;
     display: grid;
@@ -505,6 +664,7 @@
 .personnel-work-queue__list {
     width: 100%;
     min-width: 0;
+    min-height: 0;
     display: grid;
     grid-template-rows: repeat(var(--personnel-row-count, 3), minmax(0, 1fr));
     gap: 7px;
@@ -513,7 +673,7 @@
 .personnel-work-row {
     min-width: 0;
     display: grid;
-    grid-template-columns: 30px minmax(190px, 1.45fr) minmax(100px, .72fr) minmax(125px, .78fr) 42px;
+    grid-template-columns: 28px minmax(190px, 1.45fr) minmax(100px, .72fr) minmax(125px, .78fr) 42px;
     align-items: center;
     gap: 10px;
     padding: 3px 12px;
@@ -529,14 +689,32 @@
 }
 
 .personnel-work-row__icon {
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     display: grid;
     place-items: center;
-    border-radius: 8px;
+    overflow: hidden;
+    border-radius: 6px;
     background: #e8eef5;
     color: #2f61ba;
-    font-size: 12px;
+    font-size: 0;
+    line-height: 1;
+    box-sizing: border-box;
+}
+
+.personnel-work-row__icon > i {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    font-size: 11px;
+    line-height: 1;
+}
+
+.personnel-work-row__icon > i::before {
+    display: block;
+    line-height: 1;
 }
 
 .personnel-work-row__metric {
@@ -642,6 +820,10 @@
 
 .personnel-calendar-surface .home-calendar.has-view-modes {
     grid-template-rows: auto auto auto auto minmax(0, 1fr);
+}
+
+.personnel-calendar-surface .home-calendar.is-authorized-service-calendar {
+    grid-template-rows: auto auto auto minmax(0, 1fr);
 }
 
 .personnel-calendar-surface .home-calendar-heading {
@@ -901,7 +1083,7 @@
 
 .personnel-calendar-surface .home-visits {
     min-height: 0;
-    height: 100%;
+    height: auto;
     display: grid;
     grid-template-rows: auto auto minmax(0, 1fr) auto;
     margin-top: 12px;
@@ -909,6 +1091,10 @@
     overflow: hidden;
     background: #fff;
     box-sizing: border-box;
+}
+
+.personnel-calendar-surface .home-calendar.is-firm-calendar .home-visits {
+    grid-template-rows: auto minmax(0, 1fr) auto;
 }
 
 .personnel-calendar-surface .home-visits > header {
@@ -1174,6 +1360,7 @@
 }
 
 .personnel-calendar-surface .home-visits-empty {
+    height: 100%;
     min-height: 76px;
     gap: 6px;
     position: relative;
@@ -1506,6 +1693,32 @@
 
     .personnel-role-card {
         min-height: 190px;
+    }
+
+    .role-dashboard--certified-firm .personnel-role-actions__grid,
+    .role-dashboard--certified-firm .personnel-role-actions__grid.is-count-1,
+    .role-dashboard--certified-firm .personnel-role-actions__grid.is-count-2,
+    .role-dashboard--certified-firm .personnel-role-actions__grid.is-carousel,
+    .role-dashboard--authorized-service .personnel-role-actions__grid,
+    .role-dashboard--authorized-service .personnel-role-actions__grid.is-count-1,
+    .role-dashboard--authorized-service .personnel-role-actions__grid.is-count-2,
+    .role-dashboard--authorized-service .personnel-role-actions__grid.is-carousel,
+    .role-dashboard--personnel .personnel-role-actions__grid,
+    .role-dashboard--personnel .personnel-role-actions__grid.is-count-1,
+    .role-dashboard--personnel .personnel-role-actions__grid.is-count-2,
+    .role-dashboard--personnel .personnel-role-actions__grid.is-carousel {
+        grid-template-columns: none;
+        grid-auto-flow: column;
+        grid-auto-columns: min(120px, 42vw);
+        justify-content: start;
+        overflow-x: auto;
+        overflow-y: hidden;
+    }
+
+    .role-dashboard--certified-firm .personnel-role-card,
+    .role-dashboard--authorized-service .personnel-role-card,
+    .role-dashboard--personnel .personnel-role-card {
+        min-height: 120px;
     }
 
     .personnel-welcome {

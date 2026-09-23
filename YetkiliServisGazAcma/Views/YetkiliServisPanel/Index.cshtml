@@ -16,6 +16,9 @@
     var bekleyenIslem = Sayi(ViewBag.BekleyenIslem);
     var iptalIslem = Sayi(ViewBag.IptalIslem);
     var bugun = DateTime.Today;
+    var takvimTarih = ViewBag.TakvimTarih is DateTime tarih ? tarih.Date : bugun;
+    var takvimGorunum = ViewBag.TakvimGorunum as string ?? "ay";
+    var takvimIslemleri = ViewBag.TakvimIslemleri as List<Ys_DevreyeAlma> ?? new List<Ys_DevreyeAlma>();
     var firmaAdi = string.IsNullOrWhiteSpace(firma?.FirmaAdi) ? "Yetkili Servis" : firma.FirmaAdi;
     var ilkKurulumZorunlu = ViewBag.IlkKurulumZorunlu as bool? ?? false;
     var ilkKurulumTamamlandi = ViewBag.IlkKurulumTamamlandi as bool? ?? true;
@@ -116,31 +119,6 @@
         });
     }
 
-    var sideMetrics = new List<RoleDashboardMetricViewModel>
-    {
-        new() { Label = "Toplam kayıt", Value = toplam.ToString(), Icon = "bi bi-archive", Tone = "blue", Url = Url.Action("Gecmis", "DevreyeAlma") },
-        new() { Label = "Tamamlanan", Value = tamamlananIslem.ToString(), Icon = "bi bi-check2-circle", Tone = "green", Url = Url.Action("Gecmis", "DevreyeAlma") },
-        new() { Label = "Aktif marka", Value = aktifMarkaSayisi.ToString(), Icon = "bi bi-tags", Tone = "cyan", Url = Url.Action("Markalar", "YetkiliServisPanel") },
-        new() { Label = "Aktif şube", Value = aktifSubeSayisi.ToString(), Icon = "bi bi-building", Tone = "blue", Url = Url.Action("Subeler", "YetkiliServisPanel") }
-    };
-
-    var attentionItems = new List<DashboardTileViewModel>();
-    if (bekleyenIslem > 0)
-    {
-        attentionItems.Add(new DashboardTileViewModel
-        {
-            Title = "Sonuç bekleyen işlemler", Url = Url.Action("Gecmis", "DevreyeAlma")!, Icon = "bi bi-hourglass-split",
-            MetricValue = bekleyenIslem.ToString(), Subtitle = "İşlem takibi", Tone = "amber"
-        });
-    }
-    if (iptalIslem > 0)
-    {
-        attentionItems.Add(new DashboardTileViewModel
-        {
-            Title = "İptal edilen işlemler", Url = Url.Action("Gecmis", "DevreyeAlma")!, Icon = "bi bi-x-circle",
-            MetricValue = iptalIslem.ToString(), Subtitle = "Durum kontrolü", Tone = "amber"
-        });
-    }
     var dashboardModel = new RoleDashboardViewModel
     {
         Variant = "authorized-service",
@@ -159,11 +137,23 @@
         },
         Actions = actions,
         QuickActions = quickActions,
-        SidePanel = new RoleDashboardSidePanelViewModel
+        AuthorizedServiceCalendar = new AuthorizedServiceCalendarViewModel
         {
-            Title = "Hizmet Özeti", Icon = "bi bi-grid-1x2", ItemsTitle = "Dikkat Gerektirenler",
-            ActionText = "Geçmişi Aç", ActionUrl = Url.Action("Gecmis", "DevreyeAlma"),
-            Metrics = sideMetrics, Items = attentionItems
+            SelectedDate = takvimTarih,
+            ViewMode = takvimGorunum,
+            HistoryUrl = Url.Action("Gecmis", "DevreyeAlma")!,
+            Items = takvimIslemleri.Select(item => new AuthorizedServiceCalendarItemViewModel
+            {
+                Id = item.Id,
+                Date = item.DevreyeAlmaTarihi,
+                Title = string.IsNullOrWhiteSpace(item.MusteriAdi) ? "Müşteri bilgisi yok" : item.MusteriAdi,
+                InstallationNo = item.TesistatNo ?? "",
+                Address = item.Adres ?? "",
+                StatusLabel = DevreyeAlmaDurumu(item.Durum),
+                StatusCssClass = DevreyeAlmaDurumSinifi(item.Durum),
+                IsComplete = item.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi,
+                DetailsUrl = Url.Action("Detay", "DevreyeAlma", new { id = item.Id })!
+            }).ToList()
         }
     };
 }
@@ -173,6 +163,20 @@
         if (value is int sayi) return Math.Max(sayi, 0);
         return int.TryParse(value?.ToString(), out var sonuc) ? Math.Max(sonuc, 0) : 0;
     }
+
+    private static string DevreyeAlmaDurumu(int durum) => durum switch
+    {
+        DevreyeAlmaDurumDegerleri.Tamamlandi => "Tamamlandı",
+        DevreyeAlmaDurumDegerleri.Iptal => "İptal",
+        _ => "Bekliyor"
+    };
+
+    private static string DevreyeAlmaDurumSinifi(int durum) => durum switch
+    {
+        DevreyeAlmaDurumDegerleri.Tamamlandi => "df-pill-success",
+        DevreyeAlmaDurumDegerleri.Iptal => "df-pill-danger",
+        _ => "df-pill-warning"
+    };
 }
 
 @section PageStyles {

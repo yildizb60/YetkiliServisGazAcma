@@ -231,10 +231,10 @@ namespace YetkiliServisGazAcma.Controllers
         public async Task<IActionResult> RaporPdf(
             string? tesisatNo, string? firma, string? il, string? ilce, string? bolge,
             string? ekip, string? marka, string? hedefUygulama, int? durum,
-            DateTime? bas, DateTime? bit)
+            DateTime? bas, DateTime? bit, [FromQuery(Name = "ids")] List<int>? ids)
         {
             return await RaporDosyasi(
-                RaporFiltresi(tesisatNo, firma, il, ilce, bolge, ekip, marka, hedefUygulama, durum, bas, bit),
+                RaporFiltresi(tesisatNo, firma, il, ilce, bolge, ekip, marka, hedefUygulama, durum, bas, bit, kayitIdleri: ids),
                 excelMi: false);
         }
 
@@ -242,10 +242,10 @@ namespace YetkiliServisGazAcma.Controllers
         public async Task<IActionResult> RaporExcel(
             string? tesisatNo, string? firma, string? il, string? ilce, string? bolge,
             string? ekip, string? marka, string? hedefUygulama, int? durum,
-            DateTime? bas, DateTime? bit)
+            DateTime? bas, DateTime? bit, [FromQuery(Name = "ids")] List<int>? ids)
         {
             return await RaporDosyasi(
-                RaporFiltresi(tesisatNo, firma, il, ilce, bolge, ekip, marka, hedefUygulama, durum, bas, bit),
+                RaporFiltresi(tesisatNo, firma, il, ilce, bolge, ekip, marka, hedefUygulama, durum, bas, bit, kayitIdleri: ids),
                 excelMi: true);
         }
 
@@ -465,6 +465,9 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null) return Redirect("/giris");
             if (!YkcYetkileri().TalepleriGorebilir) return Redirect("/yetkisiz-erisim");
             PanelViewBag(kullanici, "YkcTakvim", "Cihaz Değişim Randevuları", "");
+            filtre.GorunumKayitlariniGetir = YkcTakvimGorunumKurali.DoneminTumKayitlariGerekli(
+                filtre.Baslangic,
+                filtre.Bitis);
             try
             {
                 var sonuc = await _ykcApiClient.TakvimAsync(kullanici, filtre);
@@ -638,7 +641,8 @@ namespace YetkiliServisGazAcma.Controllers
             DateTime? bas,
             DateTime? bit,
             int sayfa = 1,
-            int sayfaBoyutu = 10)
+            int sayfaBoyutu = 10,
+            IEnumerable<int>? kayitIdleri = null)
         {
             return new YkcTalepListeFiltre
             {
@@ -651,6 +655,7 @@ namespace YetkiliServisGazAcma.Controllers
                 Marka = marka,
                 HedefUygulama = hedefUygulama,
                 Durum = durum,
+                KayitIdleri = kayitIdleri?.Where(x => x > 0).Distinct().Take(5000).ToList(),
                 BaslangicTarihi = bas,
                 BitisTarihi = bit,
                 Sayfa = Math.Max(sayfa, 1),

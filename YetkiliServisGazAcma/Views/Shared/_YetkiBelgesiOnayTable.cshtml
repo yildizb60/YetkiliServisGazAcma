@@ -19,18 +19,21 @@
     <table class="df-table df-approval-table">
         <thead>
             <tr>
-                <th>Firma / Dağıtım Şirketi</th>
-                <th>Belge Geçerliliği</th>
+                <th>Yetkili Servis</th>
+                <th>Firma Adresi</th>
+                <th>Yetki Başlangıcı</th>
+                <th>Son Geçerlilik Tarihi</th>
                 <th>Yükleme Tarihi</th>
                 <th>Durum</th>
-                <th>@(bekleyen ? "Belge / Karar" : "Belge / Sonuç")</th>
+                <th>Belge</th>
+                <th>Onay İşlemleri</th>
             </tr>
         </thead>
         <tbody>
             @if (!kayitlar.Any())
             {
                 <tr class="approval-empty-row">
-                    <td colspan="5">
+                    <td colspan="8">
                         <div class="df-empty">
                             <div class="df-empty-title">@bosMetin</div>
                         </div>
@@ -46,10 +49,12 @@
                     var suresiDolmus = kalanGun < 0;
                     var onaylanabilir = YetkiBelgesiService.OnaylanabilirMi(s, DateTime.Today);
                     var kalanYazi = kalanGun < 0 ? $"{Math.Abs(kalanGun)} gün geçti" : $"{kalanGun} gün kaldı";
-                    var durumClass = s.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "df-pill-success" : s.Durum == YetkiBelgesiDurumDegerleri.Reddedildi || suresiDolmus ? "df-pill-danger" : "df-pill-warning";
+                    var durumClass = s.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "is-approved" : s.Durum == YetkiBelgesiDurumDegerleri.Reddedildi ? "is-rejected" : suresiDolmus ? "is-expired" : "is-waiting";
+                    var durumIcon = s.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "bi-check-circle" : s.Durum == YetkiBelgesiDurumDegerleri.Reddedildi ? "bi-x-circle" : suresiDolmus ? "bi-calendar-x" : "bi-hourglass-split";
                     var durumYazi = s.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "Onaylandı" : s.Durum == YetkiBelgesiDurumDegerleri.Reddedildi ? "Reddedildi" : suresiDolmus ? "Süresi doldu" : "Onay bekliyor";
                     var firmaAdi = s.Firma?.FirmaAdi ?? "";
                     var sirketAdi = s.Firma?.Sirket?.SirketAdi ?? "";
+                    var firmaAdres = s.Firma?.Adres ?? "";
                     var vergiNo = s.Firma?.VergiNo ?? "";
                     var yukleme = s.OlusturmaTarihi.ToString("yyyy-MM-dd");
                     var baslangicFiltre = baslangic.ToString("yyyy-MM-dd");
@@ -58,6 +63,7 @@
                     <tr data-approval-row="true"
                         data-firma="@firmaAdi"
                         data-sirket="@sirketAdi"
+                        data-adres="@($"{firmaAdres} {s.Firma?.FaaliyetIli}")"
                         data-vergi="@vergiNo"
                         data-yukleme="@yukleme"
                         data-baslangic="@baslangicFiltre"
@@ -65,28 +71,40 @@
                         data-durum="@durum">
                         <td>
                             <div class="df-cell-main">@firmaAdi</div>
-                            <div class="df-cell-sub">@(string.IsNullOrWhiteSpace(sirketAdi) ? "Dağıtım şirketi belirtilmedi" : sirketAdi)</div>
                             @if (!string.IsNullOrWhiteSpace(vergiNo))
                             {
                                 <div class="df-cell-note">Vergi No: @vergiNo</div>
                             }
+                            @if (!string.IsNullOrWhiteSpace(sirketAdi))
+                            {
+                                <div class="df-cell-note">Bağlı şirket: @sirketAdi</div>
+                            }
                         </td>
                         <td>
-                            <div class="df-approval-period"><span><small>Başlangıç</small>@baslangic.ToString("dd.MM.yyyy")</span><span><small>Bitiş</small>@s.YetkiBelgesiBitisTarihi.ToString("dd.MM.yyyy")</span></div>
-                            <div class="df-cell-sub">@kalanYazi</div>
+                            <div class="df-cell-address">@(string.IsNullOrWhiteSpace(firmaAdres) ? "Adres bilgisi girilmemiş" : firmaAdres)</div>
+                            @if (!string.IsNullOrWhiteSpace(s.Firma?.FaaliyetIli))
+                            {
+                                <div class="df-cell-note"><i class="bi bi-geo-alt" aria-hidden="true"></i> @s.Firma.FaaliyetIli</div>
+                            }
                         </td>
+                        <td><time datetime="@baslangic.ToString("yyyy-MM-dd")">@baslangic.ToString("dd.MM.yyyy")</time></td>
+                        <td><time datetime="@s.YetkiBelgesiBitisTarihi.ToString("yyyy-MM-dd")">@s.YetkiBelgesiBitisTarihi.ToString("dd.MM.yyyy")</time><div class="df-cell-sub">@kalanYazi</div></td>
                         <td>@s.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</td>
-                        <td><span class="df-pill @durumClass">@durumYazi</span></td>
+                        <td>
+                            <span class="df-certificate-status @durumClass"><i class="bi @durumIcon" aria-hidden="true"></i>@durumYazi</span>
+                        </td>
+                        <td>
+                            @if (!string.IsNullOrWhiteSpace(s.DosyaYolu))
+                            {
+                                <a class="df-document-link" href="@Url.Action("Dosya", "YetkiBelgesi", new { id = s.Id })" target="_blank" rel="noopener noreferrer"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i><span>Belgeyi İncele</span></a>
+                            }
+                            else
+                            {
+                                <span class="df-cell-sub">Dosya yüklenmemiş</span>
+                            }
+                        </td>
                         <td>
                             <div class="df-approval-row-actions">
-                                @if (!string.IsNullOrWhiteSpace(s.DosyaYolu))
-                                {
-                                    <a class="df-btn df-btn-secondary df-btn-sm" href="@Url.Action("Dosya", "YetkiBelgesi", new { id = s.Id })" target="_blank" rel="noopener noreferrer"><i class="bi bi-eye" aria-hidden="true"></i> İncele</a>
-                                }
-                                else
-                                {
-                                    <span class="df-cell-sub">Dosya yok</span>
-                                }
                             @if (bekleyen)
                             {
                                     @if (onaylanabilir)
@@ -94,21 +112,29 @@
                                         <form method="post" action="@onayUrl">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="id" value="@s.Id" />
-                                            <button type="submit" class="df-btn df-btn-success df-btn-sm"><i class="bi bi-check2" aria-hidden="true"></i> Onayla</button>
+                                            <button type="submit" class="df-approval-action is-approve"><i class="bi bi-check2" aria-hidden="true"></i><span>Onayla</span></button>
                                         </form>
                                     }
                                     <details class="df-approval-reject">
-                                        <summary class="df-btn df-btn-danger df-btn-sm"><i class="bi bi-x-lg" aria-hidden="true"></i> Reddet</summary>
+                                        <summary class="df-approval-action is-reject"><i class="bi bi-x-lg" aria-hidden="true"></i><span>Reddet</span></summary>
                                         <form method="post" action="@redUrl">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="id" value="@s.Id" />
                                             <label for="red-gerekce-@(panel)-@(durum)-@(s.Id)">Red gerekçesi</label>
                                             <input class="df-control" id="red-gerekce-@(panel)-@(durum)-@(s.Id)" type="text" name="gerekce" required maxlength="500" />
-                                            <button type="submit" class="df-btn df-btn-danger df-btn-sm">Reddi Kaydet</button>
+                                            <button type="submit" class="df-approval-action is-reject is-confirm"><i class="bi bi-check2" aria-hidden="true"></i><span>Reddi Kaydet</span></button>
                                         </form>
                                     </details>
+                                    @if (!onaylanabilir)
+                                    {
+                                        <span class="df-cell-sub">Belgenin tarih aralığı karar vermeye uygun değil.</span>
+                                    }
                             }
-                            else if (durum != "suresi-dolan")
+                            else if (durum == "suresi-dolan")
+                            {
+                                <span class="df-cell-sub">Geçerlilik süresi dolduğu için karar verilemez.</span>
+                            }
+                            else
                             {
                                 <div class="df-approval-decision"><strong>@(s.OnaylayanKullanici ?? "Sistem")</strong><span>
                                     @(s.OnayTarihi.HasValue ? s.OnayTarihi.Value.ToString("dd.MM.yyyy HH:mm") : "-")

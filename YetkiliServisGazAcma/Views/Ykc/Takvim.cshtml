@@ -82,8 +82,9 @@
     const int varsayilanBaslangicSaati = 8;
     const int varsayilanBitisSaati = 18;
     const double saatYuksekligi = 58;
+    var gorunumKayitlari = tamHafta || tamAy ? Model.GorunumKayitlari : Model.Kayitlar;
     var kayitSaatleri = new List<TimeSpan>();
-    foreach (var kayit in Model.Kayitlar)
+    foreach (var kayit in gorunumKayitlari)
     {
         if (TimeSpan.TryParse(kayit.Saat, out var kayitSaati)) kayitSaatleri.Add(kayitSaati);
     }
@@ -97,7 +98,7 @@
         for (var gunIndex = 0; gunIndex < 7; gunIndex++)
         {
             var gun = haftaBasi.AddDays(gunIndex);
-            var gunKayitlari = Model.Kayitlar.Where(x => x.Tarih.Date == gun).OrderBy(x => x.Saat).ThenBy(x => x.Id).Take(5).ToList();
+            var gunKayitlari = gorunumKayitlari.Where(x => x.Tarih.Date == gun).OrderBy(x => x.Saat).ThenBy(x => x.Id).Take(5).ToList();
             haftalikKayitlar[gun] = gunKayitlari;
             var sonrakiBosKonum = 0d;
             foreach (var kayit in gunKayitlari)
@@ -310,7 +311,7 @@
                                 @if (count > 0)
                                 {
                                     <span><i aria-hidden="true"></i>@count randevu</span>
-                                    var ilkKayit = Model.Kayitlar.FirstOrDefault(x => x.Tarih.Date == monthDay);
+                                    var ilkKayit = gorunumKayitlari.FirstOrDefault(x => x.Tarih.Date == monthDay);
                                     @if (ilkKayit != null) { <small>@ilkKayit.Saat · @ilkKayit.Musteri</small> }
                                 }
                             </a>

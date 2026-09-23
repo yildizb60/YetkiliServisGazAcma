@@ -8,8 +8,15 @@ namespace YetkiliServisGazAcma.API.Controllers
         [HttpPost("yetkili-servisler/liste")]
         public async Task<IActionResult> YetkiliServisler([FromBody] AdminYetkiliServisListeFiltreDto? dto)
         {
+            var kullanici = await AktifKullaniciAsync();
+            if (kullanici == null)
+                return Unauthorized();
+
             var kapsam = await KapsamSirketIdAsync(dto?.SirketId);
             if (kapsam.gecersiz)
+                return Forbid();
+
+            if (!await KullaniciYonetebilirMi(kullanici, kapsam.sirketId))
                 return Forbid();
 
             var sonuc = await _yetkiliServisListeService.ListeleAsync(new AdminYetkiliServisListeFiltre
@@ -48,8 +55,15 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (dto == null || dto.Id <= 0)
                 return BadRequest(new { basarili = false, mesaj = "Yetkili servis id zorunludur" });
 
+            var kullanici = await AktifKullaniciAsync();
+            if (kullanici == null)
+                return Unauthorized();
+
             var kapsam = await KapsamSirketIdAsync(dto.SirketId);
             if (kapsam.gecersiz)
+                return Forbid();
+
+            if (!await KullaniciYonetebilirMi(kullanici, kapsam.sirketId))
                 return Forbid();
 
             var sonuc = await _yetkiliServisListeService.GetirAsync(dto.Id, kapsam.sirketId);

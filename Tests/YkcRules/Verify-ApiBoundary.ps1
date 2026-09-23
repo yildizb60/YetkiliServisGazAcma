@@ -29,6 +29,15 @@ $firm = Token 'test.sertifikalifirma@demo.com'
 $staff = Token 'test.personel@demo.com'
 $admin = Token 'test.geneladmin@demo.com'
 $service = Token 'test.servis@demo.com'
+$publicBrands = Post '/api/marka/liste' @{tumunuGetir=$false} $null
+Check ($publicBrands.StatusCode -eq 200) 'Public registration can read active brands'
+Check ((Post '/api/marka/liste' @{tumunuGetir=$true} $null).StatusCode -eq 401) 'Anonymous caller cannot read the brand management list'
+Check ((Post '/api/marka/liste' @{tumunuGetir=$true} $service).StatusCode -eq 403) 'Service role cannot read the brand management list'
+Check ((Post '/api/marka/liste' @{tumunuGetir=$true} $staff).StatusCode -eq 200) 'Authorized staff can read the brand management list'
+$firstBrand = @($publicBrands.Content | ConvertFrom-Json) | Select-Object -First 1
+if ($firstBrand) {
+    Check ((Post '/api/marka/getir' @{id=$firstBrand.id} $service).StatusCode -eq 403) 'Service role cannot open a brand management record'
+}
 $r = Post '/api/panel-kapsam/ykc-yetkileri' @{} $firm
 Check ($r.StatusCode -eq 200) 'Firm can read its own permissions'
 $permissions = $r.Content | ConvertFrom-Json
@@ -40,6 +49,12 @@ $companies = (Post '/api/panel-kapsam/sirketler' @{} $staff).Content | ConvertFr
 Check ($companies.Count -gt 0) 'Staff company assignments are available'
 foreach ($company in $companies) {
     Check ((Post '/api/panel-kapsam/ykc-yetkileri' @{aktifSirketId=$company.id} $staff).StatusCode -eq 200) 'Assigned staff company is accepted'
+    $permissionResponse = Post '/api/personel-panel/yetkilerim' @{sirketId=$company.id} $staff
+    Check ($permissionResponse.StatusCode -eq 200) 'Staff permissions can be read for an assigned company'
+    $permissions = @((($permissionResponse.Content | ConvertFrom-Json).yetkiler))
+    $canManageUsers = $permissions -contains 'TAM_YETKI' -or $permissions -contains 'KULLANICI_YONET'
+    $serviceListStatus = (Post '/api/admin-panel/yetkili-servisler/liste' @{sirketId=$company.id} $staff).StatusCode
+    Check ($serviceListStatus -eq $(if ($canManageUsers) { 200 } else { 403 })) 'Authorized-service list enforces KULLANICI_YONET for the selected company'
 }
 Check ((Post '/api/panel-kapsam/ykc-yetkileri' @{aktifSirketId=[int]::MaxValue} $staff).StatusCode -eq 403) 'Out-of-scope staff company is denied'
 Check ((Post '/api/panel-kapsam/kimlik' @{aktifSirketId=[int]::MaxValue} $firm).StatusCode -eq 403) 'Company identity endpoint rejects out-of-scope company'

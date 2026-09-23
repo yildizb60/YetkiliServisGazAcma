@@ -1,9 +1,19 @@
+@{
+    var registrationMode = string.Equals(ViewData["LoginHeaderMode"]?.ToString(), "registration", StringComparison.OrdinalIgnoreCase);
+}
 <header class="login-topbar">
     <a class="login-topbar-brand" href="/giris" aria-label="Giriş sayfası">
         <img src="/images/company/corumgaz-kargaz-surmeligaz-logo.png" alt="Şirket logosu" />
     </a>
     <nav aria-label="Genel bağlantılar">
         <a href="/yetkili-servisler"><i class="bi bi-tools" aria-hidden="true"></i><span>Yetkili Servisler</span></a>
-        <a href="/kayit/yetkili-servis"><i class="bi bi-person-plus" aria-hidden="true"></i><span>Servis Kaydı</span></a>
+        @if (registrationMode)
+        {
+            <a href="/giris"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i><span>Giriş Yap</span></a>
+        }
+        else
+        {
+            <a href="/kayit/yetkili-servis"><i class="bi bi-person-plus" aria-hidden="true"></i><span>Servis Kaydı</span></a>
+        }
     </nav>
 </header>

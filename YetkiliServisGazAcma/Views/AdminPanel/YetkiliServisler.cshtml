@@ -42,7 +42,7 @@
                     </select>
                 </div>
                 <div class="filtre-alan">
-                    <label>Devreye Alma</label>
+                    <label>Cihaz Devreye Alma Kaydı</label>
                     <select name="devreyeSiralama">
                         <option value="">Varsayılan</option>
                         <option value="azalan" selected="@(seciliDevreyeSiralama == "azalan" ? "selected" : null)">En çoktan aza</option>
@@ -83,7 +83,7 @@
         </div>
         <div class="df-service-table-scroll">
             <div class="df-service-grid df-service-grid-head">
-                <div>Firma</div><div>İletişim</div><div>Şehir</div><div>Devreye</div><div>Durum</div><div class="df-service-grid-actions-heading">İşlemler</div>
+                <div>Firma</div><div>İletişim</div><div>Şehir</div><div>Cihaz Devreye Alma</div><div>Durum</div><div class="df-service-grid-actions-heading">İşlemler</div>
             </div>
             @if (servisler.Count == 0)
             {
@@ -185,7 +185,7 @@
     </section>
 </div>
 
-<dialog class="df-directory-sheet" data-service-sheet aria-labelledby="serviceSheetTitle">
+<dialog class="df-directory-sheet df-admin-service-sheet" data-service-sheet aria-labelledby="serviceSheetTitle">
     <div class="df-directory-sheet-frame">
         <header class="df-directory-sheet-head">
             <div>
@@ -213,6 +213,7 @@
         var sheetBody = document.querySelector("[data-service-sheet-body]");
         var closeButton = document.querySelector("[data-service-sheet-close]");
         var activeRequest = 0;
+        var closeTimer = 0;
 
         function closeRecord(record) {
             var toggle = record.querySelector("[data-service-expand]");
@@ -250,7 +251,9 @@
             activeRequest += 1;
             sheet.classList.remove("is-visible");
             document.documentElement.classList.remove("df-sheet-open");
-            window.setTimeout(function () {
+            window.clearTimeout(closeTimer);
+            closeTimer = window.setTimeout(function () {
+                closeTimer = 0;
                 if (sheet.open) sheet.close();
                 sheetBody.replaceChildren();
             }, 180);
@@ -300,6 +303,8 @@
 
         async function openSheet(trigger) {
             if (!sheet || !sheetBody) return;
+            window.clearTimeout(closeTimer);
+            closeTimer = 0;
             var requestId = ++activeRequest;
             var url = trigger.getAttribute("data-sheet-url") || trigger.getAttribute("href");
             sheetTitle.textContent = trigger.getAttribute("data-sheet-title") || "Yetkili Servis";

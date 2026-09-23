@@ -61,7 +61,51 @@
 
     window.operationToast = Object.freeze({ info: showInfo, warning: showWarning, error: showError });
 
+    const pendingConfirmations = new WeakMap();
+
+    function showConfirmation(form) {
+        const current = pendingConfirmations.get(form);
+        if (current?.isConnected) return;
+
+        const toast = show(form.dataset.confirmMessage || 'Bu işlemi onaylıyor musunuz?', {
+            type: 'warning',
+            title: form.dataset.confirmTitle || 'İşlemi onaylayın',
+            icon: 'bi-exclamation-triangle-fill',
+            timeout: 0
+        });
+        toast.classList.add('is-confirm');
+
+        const actions = document.createElement('span');
+        actions.className = 'df-operation-toast-actions';
+        actions.innerHTML = '<button type="button" class="df-toast-action is-cancel">Vazgeç</button>'
+            + '<button type="button" class="df-toast-action is-confirm-action"></button>';
+        actions.querySelector('.is-confirm-action').textContent = form.dataset.confirmAction || 'Onayla';
+        toast.append(actions);
+        pendingConfirmations.set(form, toast);
+
+        actions.querySelector('.is-cancel').addEventListener('click', () => {
+            pendingConfirmations.delete(form);
+            dismiss(toast);
+        });
+        actions.querySelector('.is-confirm-action').addEventListener('click', () => {
+            pendingConfirmations.delete(form);
+            form.dataset.toastConfirmed = 'true';
+            dismiss(toast);
+            form.requestSubmit();
+        });
+    }
+
     stack.querySelectorAll('[data-operation-toast]').forEach(bind);
+    document.addEventListener('submit', event => {
+        const form = event.target.closest('form[data-toast-confirm]');
+        if (!form) return;
+        if (form.dataset.toastConfirmed === 'true') {
+            delete form.dataset.toastConfirmed;
+            return;
+        }
+        event.preventDefault();
+        showConfirmation(form);
+    });
     document.addEventListener('click', event => {
         const control = event.target.closest('a[href], button');
         if (!control || event.defaultPrevented || control.dataset.noDownloadToast !== undefined || control.disabled) return;

@@ -21,7 +21,7 @@
                 <div class="df-alert df-alert-danger">@ViewBag.Hata</div>
             }
 
-            <form method="post" action="/AdminPanel/personeller/ekle">
+            <form method="post" action="/AdminPanel/personeller/ekle" class="df-account-editor-form is-personnel-create">
                 @Html.AntiForgeryToken()
 
                 <section class="df-admin-form-section">
@@ -29,7 +29,6 @@
                         <span><i class="bi bi-person-vcard"></i></span>
                         <div>
                             <h3>Personel Bilgileri</h3>
-                            <p>Personelin kimlik ve iletişim bilgilerini girin.</p>
                         </div>
                     </div>
                     <div class="df-admin-form-grid">
@@ -53,7 +52,6 @@
                         <span><i class="bi bi-building-lock"></i></span>
                         <div>
                             <h3>Şirket ve Giriş Bilgileri</h3>
-                            <p>Personelin çalışacağı şirketi ve ilk giriş şifresini belirleyin.</p>
                         </div>
                     </div>
                     <div class="df-admin-form-grid">

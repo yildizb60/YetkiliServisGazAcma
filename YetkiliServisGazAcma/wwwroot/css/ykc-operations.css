@@ -3697,6 +3697,55 @@
     padding:6px 9px;
     border-right:1px solid #e3e9ee;
 }
+
+/* Rapor tablosu: seçilebilir kayıtlar ve ayrı cihaz sütunları. */
+.ykc-report-page .ykc-data-toolbar {
+    min-height:48px;
+    padding:8px 14px;
+}
+.ykc-report-page .ykc-header-actions { flex-wrap:wrap; }
+.ykc-selected-count {
+    min-width:54px;
+    color:#607486;
+    font-size:10px;
+    font-weight:650;
+    text-align:center;
+}
+.ykc-report-page button.ykc-export-action:disabled {
+    opacity:.42;
+    cursor:not-allowed;
+}
+.ykc-report-select-cell {
+    width:42px;
+    text-align:center;
+}
+.ykc-report-select-cell input {
+    width:16px;
+    height:16px;
+    margin:0;
+    accent-color:#315fca;
+}
+.ykc-report-page .ykc-report-table.is-internal { min-width:1380px; }
+.ykc-report-page .ykc-report-table.is-firm { min-width:1120px; }
+.ykc-report-page .ykc-report-table.is-internal th:nth-child(2) { width:84px; }
+.ykc-report-page .ykc-report-table.is-internal th:nth-child(3) { width:150px; }
+.ykc-report-page .ykc-report-table.is-internal th:nth-child(4) { width:150px; }
+.ykc-report-page .ykc-report-table.is-internal th:nth-child(5) { width:145px; }
+.ykc-report-page .ykc-report-table.is-internal th:nth-child(6) { width:110px; }
+.ykc-report-page .ykc-report-table.is-internal th:nth-child(7) { width:160px; }
+.ykc-report-page .ykc-report-table.is-internal th:nth-child(8) { width:170px; }
+.ykc-report-page .ykc-report-table.is-internal th:nth-child(9) { width:170px; }
+.ykc-report-page .ykc-report-table.is-internal th:nth-child(10) { width:145px; }
+.ykc-report-page .ykc-report-table.is-internal th:nth-child(11) { width:54px; }
+.ykc-report-page .ykc-report-table.is-firm th:nth-child(2) { width:84px; }
+.ykc-report-page .ykc-report-table.is-firm th:nth-child(3) { width:180px; }
+.ykc-report-page .ykc-report-table.is-firm th:nth-child(4) { width:170px; }
+.ykc-report-page .ykc-report-table.is-firm th:nth-child(5) { width:120px; }
+.ykc-report-page .ykc-report-table.is-firm th:nth-child(6) { width:190px; }
+.ykc-report-page .ykc-report-table.is-firm th:nth-child(7) { width:170px; }
+.ykc-report-page .ykc-report-table.is-firm th:nth-child(8) { width:145px; }
+.ykc-report-page .ykc-report-table.is-firm th:nth-child(9) { width:54px; }
+.ykc-report-page .ykc-device-column { min-height:58px; }
 .ykc-report-insight:last-child { border-right:0; }
 .ykc-report-insight.is-summary { display:grid; grid-template-columns:27px minmax(64px,.55fr) minmax(0,1fr); align-items:center; gap:7px; }
 .ykc-report-insight-icon { width:27px; height:27px; display:grid; place-items:center; border-radius:5px; background:#eaf1f6; color:#426c88; font-size:12px; }

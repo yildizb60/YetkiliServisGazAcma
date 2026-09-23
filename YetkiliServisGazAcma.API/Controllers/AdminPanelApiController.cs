@@ -211,9 +211,6 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (sirketId == null)
                 return false;
 
-            if (kullanici.SirketId == sirketId)
-                return true;
-
             return await _context.Dag_PersonelYetkiler.AnyAsync(x =>
                 x.KullaniciId == kullanici.Id &&
                 !x.SilindiMi &&
@@ -684,6 +681,27 @@ namespace YetkiliServisGazAcma.API.Controllers
         public int YetkiBelgesiOnayli { get; set; }
         public int YetkiBelgesiBekleyen { get; set; }
         public int YetkiBelgesiReddedilen { get; set; }
+        public int OperasyonTalepSayisi { get; set; }
+        public int OperasyonTamamlanan { get; set; }
+        public int OperasyonAktif { get; set; }
+        public int OperasyonReddedilen { get; set; }
+        public int OperasyonIptal { get; set; }
+        public double OrtalamaTamamlanmaSaati { get; set; }
+        public int TamamlanmaSuresiKayitSayisi { get; set; }
+        public double IlkKontrolUygunlukOrani { get; set; }
+        public int IlkKontrolKayitSayisi { get; set; }
+        public double TekrarRandevuOrani { get; set; }
+        public int KontrolEdilenTalepSayisi { get; set; }
+        public List<string> OperasyonAylikLabels { get; set; } = new();
+        public List<int> OperasyonAylikData { get; set; } = new();
+        public List<string> OperasyonFirmaLabels { get; set; } = new();
+        public List<int> OperasyonFirmaData { get; set; } = new();
+        public List<string> OperasyonLokasyonLabels { get; set; } = new();
+        public List<int> OperasyonLokasyonData { get; set; } = new();
+        public List<string> OperasyonEkipLabels { get; set; } = new();
+        public List<int> OperasyonEkipData { get; set; } = new();
+        public List<string> OperasyonRedNedeniLabels { get; set; } = new();
+        public List<int> OperasyonRedNedeniData { get; set; } = new();
         public List<string?> ChartSirketLabels { get; set; } = new();
         public List<int> ChartSirketData { get; set; } = new();
         public List<string> ChartAylikLabels { get; set; } = new();
@@ -891,6 +909,8 @@ namespace YetkiliServisGazAcma.API.Controllers
         public int FirmaId { get; set; }
         public string? FirmaAdi { get; set; }
         public string? VergiNo { get; set; }
+        public string? FirmaAdres { get; set; }
+        public string? FirmaFaaliyetIli { get; set; }
         public string? SirketAdi { get; set; }
         public int Durum { get; set; }
         public DateTime OlusturmaTarihi { get; set; }
@@ -909,6 +929,8 @@ namespace YetkiliServisGazAcma.API.Controllers
                 FirmaId = yetkiBelgesi.FirmaId,
                 FirmaAdi = yetkiBelgesi.Firma?.FirmaAdi,
                 VergiNo = yetkiBelgesi.Firma?.VergiNo,
+                FirmaAdres = yetkiBelgesi.Firma?.Adres,
+                FirmaFaaliyetIli = yetkiBelgesi.Firma?.FaaliyetIli,
                 SirketAdi = yetkiBelgesi.Firma?.Sirket?.SirketAdi,
                 Durum = yetkiBelgesi.Durum,
                 OlusturmaTarihi = yetkiBelgesi.OlusturmaTarihi,

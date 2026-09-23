@@ -6,6 +6,8 @@
     Layout = "_PanelLayout";
     ViewData["ActiveMenu"] = "DevreyeGecmis";
     ViewData["PanelArea"] = "YetkiliServis";
+    ViewData["DevreyeAlmaAlan"] = "/ys-devreyeal";
+    ViewData["DevreyeAlmaColspan"] = 6;
     var markaList = ViewBag.MarkaList as List<string> ?? new List<string>();
     string seciliMarka = ViewBag.SeciliMarka as string ?? "";
     string seciliBas = ViewBag.SeciliBas as string ?? "";
@@ -21,8 +23,6 @@
         || !string.IsNullOrWhiteSpace(seciliDurum);
     int toplam = Sayi(ViewBag.Toplam);
     int tamamlanan = Sayi(ViewBag.Tamamlanan);
-    int bekleyen = Sayi(ViewBag.Bekleyen);
-    int iptal = Sayi(ViewBag.Iptal);
     if (toplam == 0 && !filtreAktif)
         toplam = Model.Count;
 
@@ -57,18 +57,10 @@
 
 <div class="df-admin-workspace df-operations-directory">
     <section class="df-admin-list-card">
-        <div class="df-service-list-head is-operation-toolbar">
-            <div class="df-operation-list-count" aria-label="@Model.Count kayıt görüntüleniyor"><i class="bi bi-clock-history" aria-hidden="true"></i><strong>@Model.Count</strong><span>kayıt</span></div>
-            <div class="df-export-actions">
-                <a class="df-btn df-btn-primary df-btn-sm" href="@Url.Action("Index", "DevreyeAlma")"><i class="bi bi-plus-lg" aria-hidden="true"></i> Yeni Kayıt</a>
-            </div>
-        </div>
-
-        <div class="ys-certificate-summary df-history-status-bar" role="group" aria-label="Duruma göre filtrele">
+        <div class="ys-certificate-summary df-history-status-bar" role="group" aria-label="Devreye alma özeti ve yeni kayıt">
             <a href="@ListeUrl(null)" aria-pressed="@(string.IsNullOrWhiteSpace(seciliDurum) ? "true" : "false")"><i class="bi bi-collection" aria-hidden="true"></i><span>Toplam</span><strong>@toplam</strong></a>
             <a href="@ListeUrl("tamamlandi")" aria-pressed="@(string.Equals(seciliDurum, "tamamlandi", StringComparison.OrdinalIgnoreCase) ? "true" : "false")"><i class="bi bi-check2-circle" aria-hidden="true"></i><span>Tamamlanan</span><strong>@tamamlanan</strong></a>
-            <a href="@ListeUrl("bekliyor")" aria-pressed="@(string.Equals(seciliDurum, "bekliyor", StringComparison.OrdinalIgnoreCase) ? "true" : "false")"><i class="bi bi-hourglass-split" aria-hidden="true"></i><span>Bekleyen</span><strong>@bekleyen</strong></a>
-            <a href="@ListeUrl("iptal")" aria-pressed="@(string.Equals(seciliDurum, "iptal", StringComparison.OrdinalIgnoreCase) ? "true" : "false")"><i class="bi bi-x-circle" aria-hidden="true"></i><span>İptal</span><strong>@iptal</strong></a>
+            <a class="is-create-action" href="@Url.Action("Index", "DevreyeAlma")"><i class="bi bi-plus-lg" aria-hidden="true"></i><span>Yeni Kayıt</span><strong aria-hidden="true"><i class="bi bi-arrow-right"></i></strong></a>
         </div>
 
         <details class="df-admin-filter" open="@(filtreAktif ? "open" : null)">
@@ -131,35 +123,20 @@
                             || string.Equals(d.CihazModeli?.Trim(), d.CihazTipi?.Trim(), StringComparison.OrdinalIgnoreCase)
                                 ? null
                                 : d.CihazModeli;
-                        <tr>
+                        var detaySatiriId = $"devreye-alma-detay-{d.Id}";
+                        <tr class="df-commissioning-record-row" data-commissioning-record>
                             <td><div class="df-cell-main">@(string.IsNullOrWhiteSpace(d.MusteriAdi) ? "Abone adı kayıtlı değil" : d.MusteriAdi)</div>@if (!string.IsNullOrWhiteSpace(d.MusteriTelefon)) { <div class="df-cell-sub"><i class="bi bi-telephone" aria-hidden="true"></i> @d.MusteriTelefon</div> }</td>
                             <td><dl class="df-operation-id-list"><div><dt>Tesisat No:</dt><dd>@(d.TesistatNo ?? "-")</dd></div><div><dt>Abone No:</dt><dd>@(d.AboneNo ?? "-")</dd></div></dl></td>
                             <td><dl class="df-device-facts"><div><dt>Tür</dt><dd>@(string.IsNullOrWhiteSpace(d.CihazTipi) ? "-" : d.CihazTipi)</dd></div><div><dt>Marka</dt><dd>@(string.IsNullOrWhiteSpace(cihazMarka) ? "-" : cihazMarka)</dd></div>@if (!string.IsNullOrWhiteSpace(cihazModeli)) { <div class="df-device-model"><dt>Model</dt><dd title="@cihazModeli">@cihazModeli</dd></div> }</dl></td>
                             <td><time class="df-cell-value" datetime="@(tarihVar ? d.DevreyeAlmaTarihi.ToString("yyyy-MM-dd") : null)">@(tarihVar ? d.DevreyeAlmaTarihi.ToString("dd.MM.yyyy") : "Tarih bilgisi yok")</time>@if (!string.IsNullOrWhiteSpace(d.TeknisyenAdi)) { <div class="df-cell-sub">Teknisyen: @d.TeknisyenAdi</div> }</td>
                             <td><span class="df-pill @durumSinif">@durumYazi</span></td>
-                            <td><button class="df-icon-action commissioning-row-action ys-commissioning-row-view" type="button"
-                                        aria-label="@(string.IsNullOrWhiteSpace(d.MusteriAdi) ? "Devreye alma kaydını görüntüle" : $"{d.MusteriAdi} devreye alma kaydını görüntüle")"
-                                        title="İşlem detayını görüntüle"
-                                        data-id="@d.Id"
-                                        data-detail-url="@Url.Action("Detay", "DevreyeAlma", new { id = d.Id })"
-                                        data-pdf-url="@Url.Action("PdfIndir", "DevreyeAlma", new { id = d.Id })"
-                                        data-excel-url="@Url.Action("ExcelIndir", "DevreyeAlma", new { id = d.Id })"
-                                        data-musteri="@(d.MusteriAdi ?? "-")"
-                                        data-telefon="@(d.MusteriTelefon ?? "-")"
-                                        data-tc="@(d.MusteriTcNo ?? "-")"
-                                        data-tesisat="@(d.TesistatNo ?? "-")"
-                                        data-abone="@(d.AboneNo ?? "-")"
-                                        data-adres="@(d.Adres ?? "-")"
-                                        data-marka="@(cihazMarka ?? "-")"
-                                        data-cihaz="@(d.CihazTipi ?? "-")"
-                                        data-model="@(cihazModeli ?? "-")"
-                                        data-kapasite="@(d.CihazKapasite ?? "-")"
-                                        data-teknisyen="@(d.TeknisyenAdi ?? "-")"
-                                        data-notlar="@(d.Notlar ?? "-")"
-                                        data-tarih="@(tarihVar ? d.DevreyeAlmaTarihi.ToString("dd.MM.yyyy") : "-")"
-                                        data-durum="@durumYazi"
-                                        data-durum-class="@durumSinif"><i class="bi bi-eye" aria-hidden="true"></i></button></td>
+                            <td>
+                                <div class="df-commissioning-row-actions">
+                                    <button class="df-icon-action commissioning-row-action df-commissioning-expand" type="button" data-commissioning-expand aria-expanded="false" aria-controls="@detaySatiriId" title="İşlem ayrıntılarını görüntüle" aria-label="@(string.IsNullOrWhiteSpace(d.MusteriAdi) ? "İşlem ayrıntılarını görüntüle" : $"{d.MusteriAdi} işlem ayrıntılarını görüntüle")"><i class="bi bi-eye" aria-hidden="true"></i></button>
+                                </div>
+                            </td>
                         </tr>
+                        <partial name="_DevreyeAlmaInlineDetails" model="d" />
                     }
                     </tbody>
                 </table>
@@ -168,116 +145,6 @@
     </section>
 </div>
 
-<div class="ykc-report-modal ys-commissioning-modal" id="commissioningDetailModal" aria-hidden="true">
-    <div class="ykc-report-modal-backdrop" data-commissioning-modal-close></div>
-    <div class="ykc-report-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="commissioningModalTitle" tabindex="-1">
-        <div class="ykc-report-modal-header">
-            <div class="ykc-modal-title-wrap">
-                <div class="ykc-modal-icon"><i class="bi bi-clipboard2-check" aria-hidden="true"></i></div>
-                <div><h3 class="ykc-modal-title" id="commissioningModalTitle">Devreye Alma Detayı</h3><div class="ykc-modal-subtitle" id="commissioningModalSubtitle">-</div></div>
-            </div>
-            <button class="ykc-modal-close" type="button" data-commissioning-modal-close aria-label="Kapat"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
-        </div>
-        <div class="ykc-report-modal-body">
-            <div class="ykc-modal-stats">
-                <div class="ykc-modal-stat ykc-modal-stat-primary"><i class="bi bi-activity"></i><div><small>Durum</small><strong><span class="df-pill" id="commissioningModalStatus">-</span></strong></div></div>
-                <div class="ykc-modal-stat ykc-modal-stat-date"><i class="bi bi-calendar2-check"></i><div><small>Devreye Alma</small><strong id="commissioningModalDate">-</strong></div></div>
-                <div class="ykc-modal-stat ykc-modal-stat-route"><i class="bi bi-person-gear"></i><div><small>Teknisyen</small><strong id="commissioningModalTechnicianStat">-</strong></div></div>
-            </div>
-            <div class="ykc-modal-grid commissioning-modal-grid">
-                <section class="ykc-modal-section ykc-modal-section-customer">
-                    <div class="ykc-modal-section-title"><i class="bi bi-person-vcard"></i> Abone ve Tesisat</div>
-                    <div class="ykc-modal-info commissioning-modal-info">
-                        <div class="ykc-modal-item"><div class="ykc-modal-label">Abone Adı Soyadı</div><div class="ykc-modal-value" id="commissioningModalCustomer">-</div></div>
-                        <div class="ykc-modal-item"><div class="ykc-modal-label">Tesisat No</div><div class="ykc-modal-value" id="commissioningModalInstallation">-</div></div>
-                        <div class="ykc-modal-item"><div class="ykc-modal-label">Abone No</div><div class="ykc-modal-value" id="commissioningModalSubscriber">-</div></div>
-                        <div class="ykc-modal-item" data-optional-modal-field><div class="ykc-modal-label">Telefon</div><div class="ykc-modal-value" id="commissioningModalPhone">-</div></div>
-                        <div class="ykc-modal-item" data-optional-modal-field><div class="ykc-modal-label">T.C. Kimlik No</div><div class="ykc-modal-value" id="commissioningModalTc">-</div></div>
-                        <div class="ykc-modal-item is-wide" data-optional-modal-field><div class="ykc-modal-label">Adres</div><div class="ykc-modal-value" id="commissioningModalAddress">-</div></div>
-                    </div>
-                </section>
-                <section class="ykc-modal-section ykc-modal-section-device">
-                    <div class="ykc-modal-section-title"><i class="bi bi-fire"></i> Cihaz ve İşlem</div>
-                    <div class="ykc-modal-info commissioning-modal-info">
-                        <div class="ykc-modal-item"><div class="ykc-modal-label">Cihaz Tipi</div><div class="ykc-modal-value" id="commissioningModalDevice">-</div></div>
-                        <div class="ykc-modal-item"><div class="ykc-modal-label">Marka</div><div class="ykc-modal-value" id="commissioningModalBrand">-</div></div>
-                        <div class="ykc-modal-item" data-optional-modal-field><div class="ykc-modal-label">Model</div><div class="ykc-modal-value" id="commissioningModalModel">-</div></div>
-                        <div class="ykc-modal-item" data-optional-modal-field><div class="ykc-modal-label">Kapasite</div><div class="ykc-modal-value" id="commissioningModalCapacity">-</div></div>
-                        <div class="ykc-modal-item"><div class="ykc-modal-label">Teknisyen</div><div class="ykc-modal-value" id="commissioningModalTechnician">-</div></div>
-                        <div class="ykc-modal-item is-wide" data-optional-modal-field><div class="ykc-modal-label">İşlem Notu</div><div class="ykc-modal-value" id="commissioningModalNote">-</div></div>
-                    </div>
-                </section>
-            </div>
-        </div>
-        <div class="ykc-report-modal-footer">
-            <button class="df-btn df-btn-secondary" type="button" data-commissioning-modal-close>Kapat</button>
-            <a class="df-btn df-btn-danger" id="commissioningModalPdf" href="#"><i class="bi bi-file-earmark-pdf"></i> PDF</a>
-            <a class="df-btn df-btn-success" id="commissioningModalExcel" href="#"><i class="bi bi-file-earmark-excel"></i> Excel</a>
-            <a class="df-btn df-btn-primary" id="commissioningModalDetail" href="#"><i class="bi bi-arrow-right-circle"></i> Tam Detay</a>
-        </div>
-    </div>
-</div>
-
 @section Scripts {
-    <script>
-        (function () {
-            const modal = document.getElementById("commissioningDetailModal");
-            let lastTrigger = null;
-            const setText = (id, value) => {
-                const element = document.getElementById(id);
-                if (!element) return;
-                const normalized = value && value.trim ? (value.trim() || "-") : (value || "-");
-                element.textContent = normalized;
-                const optionalField = element.closest("[data-optional-modal-field]");
-                if (optionalField) optionalField.hidden = normalized === "-";
-            };
-            const closeModal = () => {
-                if (!modal) return;
-                modal.classList.remove("is-open");
-                modal.setAttribute("aria-hidden", "true");
-                document.body.style.overflow = "";
-                lastTrigger?.focus();
-            };
-            document.addEventListener("click", function (event) {
-                const trigger = event.target.closest(".ys-commissioning-row-view");
-                if (trigger && modal) {
-                    const data = trigger.dataset;
-                    lastTrigger = trigger;
-                    setText("commissioningModalTitle", data.musteri === "-" ? "Devreye Alma Detayı" : data.musteri);
-                    setText("commissioningModalSubtitle", "Tesisat No: " + (data.tesisat || "-"));
-                    setText("commissioningModalDate", data.tarih);
-                    setText("commissioningModalTechnicianStat", data.teknisyen);
-                    setText("commissioningModalCustomer", data.musteri);
-                    setText("commissioningModalPhone", data.telefon);
-                    setText("commissioningModalTc", data.tc);
-                    setText("commissioningModalAddress", data.adres);
-                    setText("commissioningModalInstallation", data.tesisat);
-                    setText("commissioningModalSubscriber", data.abone);
-                    setText("commissioningModalDevice", data.cihaz);
-                    setText("commissioningModalBrand", data.marka);
-                    setText("commissioningModalModel", data.model);
-                    setText("commissioningModalCapacity", data.kapasite);
-                    setText("commissioningModalTechnician", data.teknisyen);
-                    setText("commissioningModalNote", data.notlar);
-                    const status = document.getElementById("commissioningModalStatus");
-                    if (status) {
-                        status.textContent = data.durum || "-";
-                        status.className = "df-pill " + (data.durumClass || "df-pill-muted");
-                    }
-                    document.getElementById("commissioningModalDetail").href = data.detailUrl || "#";
-                    document.getElementById("commissioningModalPdf").href = data.pdfUrl || "#";
-                    document.getElementById("commissioningModalExcel").href = data.excelUrl || "#";
-                    modal.classList.add("is-open");
-                    modal.setAttribute("aria-hidden", "false");
-                    document.body.style.overflow = "hidden";
-                    modal.querySelector("[data-commissioning-modal-close]")?.focus();
-                    return;
-                }
-                if (event.target.closest("[data-commissioning-modal-close]")) closeModal();
-            });
-            document.addEventListener("keydown", function (event) {
-                if (event.key === "Escape" && modal?.classList.contains("is-open")) closeModal();
-            });
-        })();
-    </script>
+    <script src="~/js/commissioning-row-details.js" asp-append-version="true"></script>
 }

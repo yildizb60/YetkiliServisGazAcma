@@ -18,19 +18,31 @@
             .Take(3)
             .ToList();
     var actionCount = actions.Count;
-    var useCompactActionCards = string.Equals(Model.Variant, "certified-firm", StringComparison.OrdinalIgnoreCase);
+    var useCompactActionCards = string.Equals(Model.Variant, "certified-firm", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(Model.Variant, "authorized-service", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(Model.Variant, "personnel", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(Model.Variant, "company-admin", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(Model.Variant, "system-admin", StringComparison.OrdinalIgnoreCase);
     var actionLayoutClass = actionCount > 3
         ? "is-carousel"
         : $"is-count-{Math.Clamp(actionCount, 1, 3)}";
+    var hasCalendar = Model.ShowYkcCalendar || Model.AuthorizedServiceCalendar != null;
+    var hasSidePanel = hasCalendar || Model.SidePanel != null;
+    var calendarLabel = Model.ShowYkcCalendar
+        ? "Kontrol takvimi"
+        : Model.AuthorizedServiceCalendar != null ? "Devreye alma takvimi" : Model.SidePanel?.Title;
 }
 
 <div class="work-dashboard work-dashboard--personnel role-dashboard role-dashboard--@Model.Variant" data-dashboard>
-    <section class="personnel-command-center" aria-label="@Model.AriaLabel">
+    <section class="personnel-command-center @(!hasSidePanel ? "is-single-column" : null)" aria-label="@Model.AriaLabel">
         <div class="personnel-command-center__main">
             <section class="personnel-welcome" aria-labelledby="role-dashboard-title">
                 <img class="personnel-welcome__visual" src="@Model.HeroImageUrl" alt="" aria-hidden="true" />
                 <div class="personnel-welcome__content">
-                    <span class="personnel-welcome__date"><i class="@Model.HeroKickerIcon" aria-hidden="true"></i>@Model.HeroKicker</span>
+                    @if (!string.IsNullOrWhiteSpace(Model.HeroKicker))
+                    {
+                        <span class="personnel-welcome__date"><i class="@Model.HeroKickerIcon" aria-hidden="true"></i>@Model.HeroKicker</span>
+                    }
                     <h1 id="role-dashboard-title">@Model.HeroTitle</h1>
                     @if (visibleFacts.Count > 0)
                     {
@@ -127,15 +139,23 @@
             }
         </div>
 
-        <aside class="personnel-calendar-surface @(Model.ShowYkcCalendar ? null : "is-summary")" aria-label="@(Model.ShowYkcCalendar ? "Kontrol takvimi" : Model.SidePanel?.Title)">
-            @if (Model.ShowYkcCalendar)
-            {
-                @await Component.InvokeAsync("YkcRandevuOzeti")
-            }
-            else if (Model.SidePanel != null)
-            {
-                @await Html.PartialAsync("_RoleDashboardSummary", Model.SidePanel)
-            }
-        </aside>
+        @if (hasSidePanel)
+        {
+            <aside class="personnel-calendar-surface @(hasCalendar ? null : "is-summary")" aria-label="@calendarLabel">
+                @if (Model.ShowYkcCalendar)
+                {
+                    @await Component.InvokeAsync("YkcRandevuOzeti", new { baslik = Model.YkcCalendarTitle })
+                }
+                else if (Model.AuthorizedServiceCalendar != null)
+                {
+                    @await Html.PartialAsync("_AuthorizedServiceCalendar", Model.AuthorizedServiceCalendar)
+                }
+                else if (Model.SidePanel != null)
+                {
+                    @await Html.PartialAsync("_RoleDashboardSummary", Model.SidePanel)
+                }
+            </aside>
+        }
     </section>
+
 </div>

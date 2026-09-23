@@ -51,7 +51,7 @@
                 <div class="df-alert df-alert-danger">@ViewBag.Hata</div>
             }
 
-            <form method="post">
+            <form method="post" class="df-account-editor-form is-user-edit">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="returnUrl" value="@returnUrl" />
 
@@ -77,18 +77,10 @@
                         </div>
                         <div class="df-admin-field is-half">
                             <label>Hesap Durumu</label>
-                            <select name="aktifMi">
-                                @if (hedef?.AktifMi == true)
-                                {
-                                    <option value="true" selected="selected">Aktif</option>
-                                    <option value="false">Pasif</option>
-                                }
-                                else
-                                {
-                                    <option value="true">Aktif</option>
-                                    <option value="false" selected="selected">Pasif</option>
-                                }
-                            </select>
+                            <div class="df-account-state-control" role="radiogroup" aria-label="Hesap durumu">
+                                <label><input type="radio" name="aktifMi" value="true" checked="@(hedef?.AktifMi == true ? "checked" : null)" /><span><i class="bi bi-check-circle-fill" aria-hidden="true"></i>Aktif</span></label>
+                                <label><input type="radio" name="aktifMi" value="false" checked="@(hedef?.AktifMi != true ? "checked" : null)" /><span><i class="bi bi-pause-circle-fill" aria-hidden="true"></i>Pasif</span></label>
+                            </div>
                         </div>
                     </div>
                 </section>

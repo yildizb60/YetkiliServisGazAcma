@@ -1,223 +1,257 @@
+@using System.Globalization
+@using YetkiliServisGazAcma.Entities
 @{
-    ViewData["Title"] = "Operasyon Raporları";
-    ViewData["PanelTitle"] = "Operasyon Raporları";
-    ViewData["PanelSubtitle"] = "Admin Paneli";
+    var genelSistemAdminMi = ViewBag.GenelSistemAdminMi as bool? ?? false;
+    var panelBasligi = genelSistemAdminMi ? "Sistem Operasyon Raporları" : "Şirket Operasyon Raporları";
+    ViewData["Title"] = panelBasligi;
+    ViewData["PanelTitle"] = panelBasligi;
+    ViewData["PanelSubtitle"] = genelSistemAdminMi ? "Genel Sistem Admini" : "Şirket Admini";
     ViewData["ActiveMenu"] = "Raporlar";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
-    var sirketler = ViewBag.Sirketler as List<YetkiliServisGazAcma.Entities.Dag_Sirket>;
-    var listeTipi = ViewBag.ListeTipi as string ?? "devreye";
-    var raporTipi = ViewBag.RaporTipi as string ?? "devreye";
-    var belgeRaporu = listeTipi == "yetkiBelgesi";
+    var sirketler = ViewBag.Sirketler as List<Dag_Sirket> ?? new();
     int? seciliSirketId = ViewBag.SeciliSirketId as int?;
     DateTime basTarih = ViewBag.BasTarih;
     DateTime bitTarih = ViewBag.BitTarih;
-    var seciliBelgeToplam = raporTipi == "onayli" ? Convert.ToInt32(ViewBag.YetkiBelgesiOnayli)
-        : raporTipi == "bekleyen" ? Convert.ToInt32(ViewBag.YetkiBelgesiBekleyen)
-        : raporTipi == "reddedilen" ? Convert.ToInt32(ViewBag.YetkiBelgesiReddedilen)
-        : 0;
-    var raporToplam = belgeRaporu ? seciliBelgeToplam : Convert.ToInt32(ViewBag.DevreyeSayisi ?? 0);
-    var raporVar = raporToplam > 0;
-    var raporTipiAdi = raporTipi switch
+    var kapsamAdi = ViewBag.AktifSirketAdi as string ?? "Aktif kapsam";
+
+    var talepSayisi = Convert.ToInt32(ViewBag.OperasyonTalepSayisi ?? 0);
+    var tamamlanan = Convert.ToInt32(ViewBag.OperasyonTamamlanan ?? 0);
+    var aktif = Convert.ToInt32(ViewBag.OperasyonAktif ?? 0);
+    var reddedilen = Convert.ToInt32(ViewBag.OperasyonReddedilen ?? 0);
+    var iptal = Convert.ToInt32(ViewBag.OperasyonIptal ?? 0);
+    var ortalamaSaat = Convert.ToDouble(ViewBag.OrtalamaTamamlanmaSaati ?? 0, CultureInfo.InvariantCulture);
+    var sureKayitSayisi = Convert.ToInt32(ViewBag.TamamlanmaSuresiKayitSayisi ?? 0);
+    var ilkKontrolOrani = Convert.ToDouble(ViewBag.IlkKontrolUygunlukOrani ?? 0, CultureInfo.InvariantCulture);
+    var ilkKontrolSayisi = Convert.ToInt32(ViewBag.IlkKontrolKayitSayisi ?? 0);
+    var tekrarRandevuOrani = Convert.ToDouble(ViewBag.TekrarRandevuOrani ?? 0, CultureInfo.InvariantCulture);
+    var kontrolEdilenSayisi = Convert.ToInt32(ViewBag.KontrolEdilenTalepSayisi ?? 0);
+
+    var aylikLabels = ViewBag.OperasyonAylikLabels as List<string> ?? new();
+    var aylikData = ViewBag.OperasyonAylikData as List<int> ?? new();
+    var firmaLabels = ViewBag.OperasyonFirmaLabels as List<string> ?? new();
+    var firmaData = ViewBag.OperasyonFirmaData as List<int> ?? new();
+    var lokasyonLabels = ViewBag.OperasyonLokasyonLabels as List<string> ?? new();
+    var lokasyonData = ViewBag.OperasyonLokasyonData as List<int> ?? new();
+    var ekipLabels = ViewBag.OperasyonEkipLabels as List<string> ?? new();
+    var ekipData = ViewBag.OperasyonEkipData as List<int> ?? new();
+    var redLabels = ViewBag.OperasyonRedNedeniLabels as List<string> ?? new();
+    var redData = ViewBag.OperasyonRedNedeniData as List<int> ?? new();
+
+    var aylikMax = Math.Max(1, aylikData.DefaultIfEmpty(0).Max());
+    var firmaMax = Math.Max(1, firmaData.DefaultIfEmpty(0).Max());
+    var lokasyonMax = Math.Max(1, lokasyonData.DefaultIfEmpty(0).Max());
+    var ekipMax = Math.Max(1, ekipData.DefaultIfEmpty(0).Max());
+    var redMax = Math.Max(1, redData.DefaultIfEmpty(0).Max());
+    var tamamlanmaOrani = talepSayisi == 0 ? 0 : Math.Round(tamamlanan * 100d / talepSayisi, 1);
+    var operasyonVar = talepSayisi > 0;
+    var devreyeSayisi = Convert.ToInt32(ViewBag.DevreyeSayisi ?? 0);
+
+    string CssYuzde(double value) => Math.Clamp(value, 0, 100).ToString("0.##", CultureInfo.InvariantCulture);
+    string SureMetni(double saat)
     {
-        "onayli" => "Onaylanan Yetki Belgeleri",
-        "bekleyen" => "Onay Bekleyen Yetki Belgeleri",
-        "reddedilen" => "Reddedilen Yetki Belgeleri",
-        _ => "Cihaz Devreye Alma İşlemleri"
-    };
-    var durumEtiketleriJson = System.Text.Json.JsonSerializer.Serialize(
-        belgeRaporu
-            ? new[] { "Onaylanan", "Onay Bekleyen", "Reddedilen" }
-            : new[] { "Tamamlanan", "Bekleyen", "İptal" });
-    var excelUrl = Url.Action("RaporlarExcel", "AdminPanel", new
-    {
-        bas = basTarih.ToString("yyyy-MM-dd"),
-        bit = bitTarih.ToString("yyyy-MM-dd"),
-        sirketId = seciliSirketId
-    });
+        if (sureKayitSayisi == 0) return "-";
+        if (saat < 24) return $"{saat:0.#} saat";
+        return $"{saat / 24:0.#} gün";
+    }
 }
 
 @section PageStyles {
     <link rel="stylesheet" href="~/css/admin-reports.css" asp-append-version="true" />
 }
 
-<div class="df-admin-report-workspace">
-    <section class="df-page-panel df-admin-report-filter">
-        <form method="get" action="@Url.Action("Raporlar", "AdminPanel")" class="df-admin-report-form">
-            <div class="df-admin-report-fields">
-                <div class="df-admin-field"><label>Başlangıç</label><input type="date" name="bas" value="@basTarih.ToString("yyyy-MM-dd")" /></div>
-                <div class="df-admin-field"><label>Bitiş</label><input type="date" name="bit" value="@bitTarih.ToString("yyyy-MM-dd")" /></div>
-                <div class="df-admin-field">
-                    <label>Şirket</label>
-                    <select name="sirketId">
-                        <option value="">Tümü</option>
-                        @if (sirketler != null)
+<main class="df-admin-report-workspace df-operations-report">
+    <section class="df-ops-command" aria-labelledby="opsReportHeading">
+        <div class="df-ops-command-copy">
+            <span class="df-ops-command-icon" aria-hidden="true"><i class="bi bi-activity"></i></span>
+            <div>
+                <h1 id="opsReportHeading">Operasyon performansı</h1>
+                <p>@kapsamAdi · @basTarih.ToString("dd.MM.yyyy") - @bitTarih.ToString("dd.MM.yyyy")</p>
+            </div>
+        </div>
+        <form method="get" action="@Url.Action("Raporlar", "AdminPanel")" class="df-ops-filter">
+            <input type="hidden" name="tip" value="operasyon" />
+            <div class="df-admin-field">
+                <label for="reportStart">Başlangıç</label>
+                <input id="reportStart" type="date" name="bas" value="@basTarih.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="df-admin-field">
+                <label for="reportEnd">Bitiş</label>
+                <input id="reportEnd" type="date" name="bit" value="@bitTarih.ToString("yyyy-MM-dd")" />
+            </div>
+            @if (genelSistemAdminMi)
+            {
+                <div class="df-admin-field is-company-filter">
+                    <label for="reportCompany">Şirket kapsamı</label>
+                    <select id="reportCompany" name="sirketId">
+                        <option value="">Tüm şirketler</option>
+                        @foreach (var sirket in sirketler)
                         {
-                            foreach (var s in sirketler)
-                            {
-                                <option value="@s.Id" selected="@(seciliSirketId.HasValue && seciliSirketId.Value == s.Id ? "selected" : null)">@s.SirketAdi</option>
-                            }
+                            <option value="@sirket.Id" selected="@(seciliSirketId == sirket.Id ? "selected" : null)">@sirket.SirketAdi</option>
                         }
                     </select>
                 </div>
-            </div>
-            <fieldset class="df-report-type-control">
-                <legend>Rapor Türü</legend>
-                <div class="df-report-type-options">
-                    <label class="@(raporTipi == "devreye" ? "active" : "")"><input type="radio" name="tip" value="devreye" checked="@(raporTipi == "devreye" ? "checked" : null)" /><i class="bi bi-fire"></i><span>Cihaz Devreye Alma İşlemleri</span></label>
-                    <label class="@(raporTipi == "onayli" ? "active" : "")"><input type="radio" name="tip" value="onayli" checked="@(raporTipi == "onayli" ? "checked" : null)" /><i class="bi bi-patch-check"></i><span>Onaylanan Yetki Belgeleri</span></label>
-                    <label class="@(raporTipi == "bekleyen" ? "active" : "")"><input type="radio" name="tip" value="bekleyen" checked="@(raporTipi == "bekleyen" ? "checked" : null)" /><i class="bi bi-hourglass-split"></i><span>Onay Bekleyen Yetki Belgeleri</span></label>
-                    <label class="@(raporTipi == "reddedilen" ? "active" : "")"><input type="radio" name="tip" value="reddedilen" checked="@(raporTipi == "reddedilen" ? "checked" : null)" /><i class="bi bi-x-circle"></i><span>Reddedilen Yetki Belgeleri</span></label>
-                </div>
-            </fieldset>
-            <div class="df-admin-report-submit"><button class="df-btn df-btn-primary" type="submit"><i class="bi bi-funnel-fill"></i> Filtrele</button></div>
-        </form>
-    </section>
-
-    <section class="df-report-charts" aria-label="Rapor grafikleri">
-        <div class="df-report-chart"><h3>@(belgeRaporu ? "Aylık Yetki Belgesi Trendi" : "Aylık Cihaz Devreye Alma Trendi")</h3><div class="chart-wrap" id="wrapAylik"><div class="chart-empty">Veri bulunamadı</div><canvas id="aylikChart"></canvas></div></div>
-        <div class="df-report-chart"><h3>@(belgeRaporu ? "Yetki Belgesi Durumları" : "Devreye Alma Durumları")</h3><div class="chart-wrap" id="wrapDurum"><div class="chart-empty">Veri bulunamadı</div><canvas id="durumChart"></canvas></div></div>
-        <div class="df-report-chart"><h3>@(belgeRaporu ? "Şirkete Göre Yetki Belgeleri" : "Şirkete Göre Devreye Almalar")</h3><div class="chart-wrap" id="wrapSirket"><div class="chart-empty">Veri bulunamadı</div><canvas id="sirketChart"></canvas></div></div>
-    </section>
-
-    <section class="df-report-output-bar" aria-label="Seçili rapor özeti">
-        <div class="df-report-output-icon" aria-hidden="true"><i class="bi @(belgeRaporu ? "bi-file-earmark-check" : "bi-bag-check")"></i></div>
-        <div class="df-report-output-copy">
-            <span>Seçili rapor</span>
-            <strong>@raporTipiAdi</strong>
-            <small>@basTarih.ToString("dd.MM.yyyy") - @bitTarih.ToString("dd.MM.yyyy") · @raporToplam kayıt</small>
-        </div>
-        <div class="df-report-output-actions">
-            @if (!belgeRaporu)
-            {
-                <a class="df-btn df-btn-sm df-btn-pdf @(!raporVar ? "is-disabled" : "")" href="@Url.Action("RaporlarPdf", "AdminPanel", new { bas = basTarih.ToString("yyyy-MM-dd"), bit = bitTarih.ToString("yyyy-MM-dd"), sirketId = seciliSirketId })" aria-disabled="@(!raporVar ? "true" : "false")" title="Filtrelenen kayıtları PDF olarak indir"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF</a>
-                <a class="df-btn df-btn-sm df-btn-excel @(!raporVar ? "is-disabled" : "")" href="@excelUrl" aria-disabled="@(!raporVar ? "true" : "false")" title="Filtrelenen kayıtları Excel olarak indir"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel</a>
-                <a class="df-btn df-btn-sm df-btn-secondary" href="@Url.Action("DevreyeAlmalar", "AdminPanel")"><i class="bi bi-list-ul" aria-hidden="true"></i> Kayıtları Gör</a>
             }
             else
             {
-                <a class="df-btn df-btn-sm df-btn-secondary" href="@Url.Action("OnayBekleyenler", "AdminPanel", new { durum = raporTipi })"><i class="bi bi-list-ul" aria-hidden="true"></i> Kayıtları Gör</a>
+                <div class="df-ops-scope" aria-label="Rapor kapsamı">
+                    <span>Rapor kapsamı</span>
+                    <strong>@kapsamAdi</strong>
+                </div>
+            }
+            <button class="df-btn df-btn-primary df-btn-sm" type="submit"><i class="bi bi-funnel" aria-hidden="true"></i> Uygula</button>
+        </form>
+    </section>
+
+    <section class="df-ops-kpis" aria-label="Temel operasyon göstergeleri">
+        <article class="df-ops-kpi is-volume">
+            <span class="df-ops-kpi-icon"><i class="bi bi-inboxes" aria-hidden="true"></i></span>
+            <div><span>Talep sayısı</span><strong>@talepSayisi</strong><small>Seçili tarih aralığı</small></div>
+        </article>
+        <article class="df-ops-kpi is-duration">
+            <span class="df-ops-kpi-icon"><i class="bi bi-stopwatch" aria-hidden="true"></i></span>
+            <div><span>Ortalama tamamlanma</span><strong>@SureMetni(ortalamaSaat)</strong><small>@(sureKayitSayisi == 0 ? "Tamamlanan kayıt yok" : $"{sureKayitSayisi} tamamlanan talep")</small></div>
+        </article>
+        <article class="df-ops-kpi is-compliance">
+            <span class="df-ops-kpi-icon"><i class="bi bi-patch-check" aria-hidden="true"></i></span>
+            <div><span>İlk kontrolde uygunluk</span><strong>@(ilkKontrolSayisi == 0 ? "-" : $"%{ilkKontrolOrani:0.#}")</strong><small>@(ilkKontrolSayisi == 0 ? "Kontrol sonucu yok" : $"{ilkKontrolSayisi} ilk kontrol")</small></div>
+        </article>
+        <article class="df-ops-kpi is-repeat">
+            <span class="df-ops-kpi-icon"><i class="bi bi-arrow-repeat" aria-hidden="true"></i></span>
+            <div><span>Tekrar randevu oranı</span><strong>@(kontrolEdilenSayisi == 0 ? "-" : $"%{tekrarRandevuOrani:0.#}")</strong><small>@(kontrolEdilenSayisi == 0 ? "Kontrol sonucu yok" : $"{kontrolEdilenSayisi} kontrol edilen talep")</small></div>
+        </article>
+    </section>
+
+    <section class="df-ops-overview" aria-label="Talep eğilimi ve durum dağılımı">
+        <div class="df-ops-monthly">
+            <header class="df-ops-section-head">
+                <div><h2>Aylık talep hacmi</h2><p>Bitiş tarihine göre son altı ay</p></div>
+                <span><i class="bi bi-graph-up" aria-hidden="true"></i> @aylikData.Sum() talep</span>
+            </header>
+            @if (aylikLabels.Count == 0 || aylikData.Count == 0)
+            {
+                <div class="df-ops-empty">Aylık talep verisi bulunamadı.</div>
+            }
+            else
+            {
+                <div class="df-ops-monthly-chart" role="img" aria-label="Son altı aya ait talep sayıları">
+                    @for (var i = 0; i < Math.Min(aylikLabels.Count, aylikData.Count); i++)
+                    {
+                        var bar = aylikData[i] * 100d / aylikMax;
+                        <div class="df-ops-month" title="@aylikLabels[i]: @aylikData[i] talep">
+                            <strong>@aylikData[i]</strong>
+                            <span class="df-ops-month-track"><i style="--bar:@CssYuzde(bar)%"></i></span>
+                            <small>@aylikLabels[i]</small>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+        <aside class="df-ops-status" aria-labelledby="opsStatusHeading">
+            <header class="df-ops-section-head"><div><h2 id="opsStatusHeading">Talep durumu</h2><p>Seçili dönemin güncel görünümü</p></div></header>
+            <div class="df-ops-completion">
+                <div class="df-ops-ring" style="--value:@CssYuzde(tamamlanmaOrani)" aria-label="Tamamlanma oranı yüzde @tamamlanmaOrani"><strong>%@tamamlanmaOrani.ToString("0.#")</strong><span>tamamlandı</span></div>
+                <dl>
+                    <div><dt><i class="is-active"></i> Süreçte</dt><dd>@aktif</dd></div>
+                    <div><dt><i class="is-complete"></i> Tamamlanan</dt><dd>@tamamlanan</dd></div>
+                    <div><dt><i class="is-rejected"></i> Reddedilen</dt><dd>@reddedilen</dd></div>
+                    <div><dt><i class="is-cancelled"></i> İptal</dt><dd>@iptal</dd></div>
+                </dl>
+            </div>
+        </aside>
+    </section>
+
+    <section class="df-ops-breakdowns" aria-label="Operasyon kırılımları">
+        <div class="df-ops-breakdown">
+            <header><span><i class="bi bi-buildings" aria-hidden="true"></i></span><div><h2>Firma bazlı talepler</h2><p>En yoğun yetkili servisler</p></div></header>
+            @if (firmaLabels.Count == 0)
+            {
+                <div class="df-ops-empty is-compact">Firma kırılımı bulunamadı.</div>
+            }
+            else
+            {
+                <ol class="df-ops-rank-list">
+                    @for (var i = 0; i < Math.Min(firmaLabels.Count, firmaData.Count); i++)
+                    {
+                        <li><span title="@firmaLabels[i]">@firmaLabels[i]</span><strong>@firmaData[i]</strong><i style="--share:@CssYuzde(firmaData[i] * 100d / firmaMax)%"></i></li>
+                    }
+                </ol>
+            }
+        </div>
+        <div class="df-ops-breakdown">
+            <header><span><i class="bi bi-geo-alt" aria-hidden="true"></i></span><div><h2>İl ve ilçe yoğunluğu</h2><p>Talebin oluştuğu bölgeler</p></div></header>
+            @if (lokasyonLabels.Count == 0)
+            {
+                <div class="df-ops-empty is-compact">Konum kırılımı bulunamadı.</div>
+            }
+            else
+            {
+                <ol class="df-ops-rank-list is-location">
+                    @for (var i = 0; i < Math.Min(lokasyonLabels.Count, lokasyonData.Count); i++)
+                    {
+                        <li><span title="@lokasyonLabels[i]">@lokasyonLabels[i]</span><strong>@lokasyonData[i]</strong><i style="--share:@CssYuzde(lokasyonData[i] * 100d / lokasyonMax)%"></i></li>
+                    }
+                </ol>
+            }
+        </div>
+        <div class="df-ops-breakdown">
+            <header><span><i class="bi bi-people" aria-hidden="true"></i></span><div><h2>Ekip başına iş</h2><p>Atama yükünün dağılımı</p></div></header>
+            @if (ekipLabels.Count == 0)
+            {
+                <div class="df-ops-empty is-compact">Ekip ataması bulunamadı.</div>
+            }
+            else
+            {
+                <ol class="df-ops-rank-list is-team">
+                    @for (var i = 0; i < Math.Min(ekipLabels.Count, ekipData.Count); i++)
+                    {
+                        <li><span title="@ekipLabels[i]">@ekipLabels[i]</span><strong>@ekipData[i]</strong><i style="--share:@CssYuzde(ekipData[i] * 100d / ekipMax)%"></i></li>
+                    }
+                </ol>
+            }
+        </div>
+        <div class="df-ops-breakdown">
+            <header><span><i class="bi bi-clipboard-x" aria-hidden="true"></i></span><div><h2>Reddedilme nedenleri</h2><p>En sık kaydedilen gerekçeler</p></div></header>
+            @if (redLabels.Count == 0)
+            {
+                <div class="df-ops-empty is-compact">Seçili dönemde reddedilen talep yok.</div>
+            }
+            else
+            {
+                <ol class="df-ops-rank-list is-rejection">
+                    @for (var i = 0; i < Math.Min(redLabels.Count, redData.Count); i++)
+                    {
+                        <li><span title="@redLabels[i]">@redLabels[i]</span><strong>@redData[i]</strong><i style="--share:@CssYuzde(redData[i] * 100d / redMax)%"></i></li>
+                    }
+                </ol>
             }
         </div>
     </section>
-</div>
 
-<div id="raporChartData"
-     data-aylik-labels='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.ChartAylikLabels ?? new List<string>(), new System.Text.Json.JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping }))'
-     data-aylik-data='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.ChartAylikData ?? new List<int>(), new System.Text.Json.JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping }))'
-     data-durum-data='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.ChartDurumData ?? new List<int>(), new System.Text.Json.JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping }))'
-     data-durum-labels='@Html.Raw(durumEtiketleriJson)'
-     data-sirket-labels='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.ChartSirketLabels ?? new List<string>(), new System.Text.Json.JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping }))'
-     data-sirket-data='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.ChartSirketData ?? new List<int>(), new System.Text.Json.JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping }))'
-     style="display:none"></div>
-
-@section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <script>
-        (function () {
-            document.querySelectorAll('.df-report-type-options input[type="radio"]').forEach(function (input) {
-                input.addEventListener('change', function () {
-                    document.querySelectorAll('.df-report-type-options label').forEach(function (label) {
-                        label.classList.toggle('active', label.contains(input));
-                    });
-                });
-            });
-
-            const root = document.getElementById("raporChartData");
-            if (!root) return;
-
-            const parseArray = (raw) => {
-                if (!raw) return [];
-                try {
-                    const data = JSON.parse(raw);
-                    return Array.isArray(data) ? data : [];
-                } catch {
-                    return [];
-                }
-            };
-
-            const aylikLabels = parseArray(root.dataset.aylikLabels);
-            const aylikData = parseArray(root.dataset.aylikData).map(Number);
-            const durumData = parseArray(root.dataset.durumData).map(Number);
-            const durumLabels = parseArray(root.dataset.durumLabels);
-            const sirketLabels = parseArray(root.dataset.sirketLabels);
-            const sirketData = parseArray(root.dataset.sirketData).map(Number);
-
-            const hasAnyPositive = (arr) => arr.some(x => Number(x) > 0);
-            const markHasData = (wrapId) => {
-                const wrap = document.getElementById(wrapId);
-                if (wrap) wrap.classList.add("has-data");
-            };
-
-            if (typeof Chart === "undefined") return;
-
-            if (aylikLabels.length > 0 && hasAnyPositive(aylikData)) {
-                markHasData("wrapAylik");
-                new Chart(document.getElementById("aylikChart"), {
-                    type: "line",
-                    data: {
-                        labels: aylikLabels,
-                        datasets: [{
-                            label: "İşlem",
-                            data: aylikData,
-                            borderColor: "#1B9FD4",
-                            backgroundColor: "rgba(27, 159, 212, 0.18)",
-                            fill: true,
-                            borderWidth: 2,
-                            tension: 0.35,
-                            pointRadius: 3
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
-                    }
-                });
-            }
-
-            if (durumData.length === 3 && hasAnyPositive(durumData)) {
-                markHasData("wrapDurum");
-                new Chart(document.getElementById("durumChart"), {
-                    type: "doughnut",
-                    data: {
-                        labels: durumLabels,
-                        datasets: [{
-                            data: durumData,
-                            backgroundColor: ["#4CAF7D", "#1B9FD4", "#E24B4A"],
-                            borderWidth: 0
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { position: "bottom" } }
-                    }
-                });
-            }
-
-            if (sirketLabels.length > 0 && hasAnyPositive(sirketData)) {
-                markHasData("wrapSirket");
-                new Chart(document.getElementById("sirketChart"), {
-                    type: "bar",
-                    data: {
-                        labels: sirketLabels,
-                        datasets: [{
-                            label: "İşlem",
-                            data: sirketData,
-                            backgroundColor: "#1B9FD4"
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
-                    }
-                });
-            }
-        })();
-
-    </script>
-}
+    <section class="df-ops-exports" aria-labelledby="opsExportHeading">
+        <header>
+            <span><i class="bi bi-download" aria-hidden="true"></i></span>
+            <div><h2 id="opsExportHeading">Rapor çıktıları</h2><p>İhtiyacınız olan kayıt grubunu PDF veya Excel olarak alın.</p></div>
+        </header>
+        <div class="df-ops-export-row">
+            <div><strong>Cihaz değişim operasyonları</strong><small>@talepSayisi kayıt · seçili dönem ve şirket kapsamı</small></div>
+            <div class="df-ops-export-actions">
+                <a class="df-btn df-btn-sm df-btn-pdf @(!operasyonVar ? "is-disabled" : "")" aria-disabled="@(!operasyonVar ? "true" : "false")" href="@Url.Action("OperasyonRaporPdf", "AdminPanel", new { bas = basTarih.ToString("yyyy-MM-dd"), bit = bitTarih.ToString("yyyy-MM-dd"), sirketId = seciliSirketId })"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF</a>
+                <a class="df-btn df-btn-sm df-btn-excel @(!operasyonVar ? "is-disabled" : "")" aria-disabled="@(!operasyonVar ? "true" : "false")" href="@Url.Action("OperasyonRaporExcel", "AdminPanel", new { bas = basTarih.ToString("yyyy-MM-dd"), bit = bitTarih.ToString("yyyy-MM-dd"), sirketId = seciliSirketId })"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel</a>
+                <a class="df-icon-action" href="/ykc/raporlar?bas=@basTarih.ToString("yyyy-MM-dd")&bit=@bitTarih.ToString("yyyy-MM-dd")" title="Cihaz değişim kayıtlarını aç" aria-label="Cihaz değişim kayıtlarını aç"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+            </div>
+        </div>
+        <div class="df-ops-export-row">
+            <div><strong>Cihaz devreye alma kayıtları</strong><small>@devreyeSayisi kayıt · servis işlemleri</small></div>
+            <div class="df-ops-export-actions">
+                <a class="df-btn df-btn-sm df-btn-pdf @(devreyeSayisi == 0 ? "is-disabled" : "")" aria-disabled="@(devreyeSayisi == 0 ? "true" : "false")" href="@Url.Action("RaporlarPdf", "AdminPanel", new { bas = basTarih.ToString("yyyy-MM-dd"), bit = bitTarih.ToString("yyyy-MM-dd"), sirketId = seciliSirketId })"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF</a>
+                <a class="df-btn df-btn-sm df-btn-excel @(devreyeSayisi == 0 ? "is-disabled" : "")" aria-disabled="@(devreyeSayisi == 0 ? "true" : "false")" href="@Url.Action("RaporlarExcel", "AdminPanel", new { bas = basTarih.ToString("yyyy-MM-dd"), bit = bitTarih.ToString("yyyy-MM-dd"), sirketId = seciliSirketId })"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel</a>
+                <a class="df-icon-action" href="@Url.Action("DevreyeAlmalar", "AdminPanel")" title="Devreye alma kayıtlarını aç" aria-label="Devreye alma kayıtlarını aç"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+            </div>
+        </div>
+        <div class="df-ops-export-row">
+            <div><strong>Yetki belgesi işlemleri</strong><small>Onay, ret ve belge geçmişi</small></div>
+            <div class="df-ops-export-actions"><a class="df-btn df-btn-secondary df-btn-sm" href="@Url.Action("OnayBekleyenler", "AdminPanel")"><i class="bi bi-file-earmark-check" aria-hidden="true"></i> Kayıtları Aç</a></div>
+        </div>
+    </section>
+</main>

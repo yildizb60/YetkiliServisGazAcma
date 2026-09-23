@@ -389,6 +389,8 @@ namespace YetkiliServisGazAcma.Business.Services
 
             if (!TimeSpan.TryParseExact(dto.RandevuSaati, @"hh\:mm", CultureInfo.InvariantCulture, out var saat))
                 return YkcIslemSonuc.HataliSonuc("Randevu saati SS:dd biçiminde olmalıdır.");
+            if (!YkcRandevuKurali.GecerliSaatDilimi(saat, _planlama.RandevuDilimDakika))
+                return YkcIslemSonuc.HataliSonuc($"Randevu saati {_planlama.RandevuDilimDakika} dakikalık dilimlerden biri olmalıdır.");
             var randevu = dto.RandevuTarihi.Value.Date.Add(saat);
             var gunBas = randevu.Date.AddDays(-1);
             var gunSon = randevu.Date.AddDays(2);
@@ -922,6 +924,14 @@ namespace YetkiliServisGazAcma.Business.Services
         {
             query = YetkiKapsamiUygula(query, kullanici, genelYetkili);
 
+            var kayitIdleri = filtre.KayitIdleri?
+                .Where(x => x > 0)
+                .Distinct()
+                .Take(5000)
+                .ToList();
+            if (kayitIdleri?.Count > 0)
+                query = query.Where(x => kayitIdleri.Contains(x.Id));
+
             var swaggerOrnekFiltre = SwaggerOrnekFiltreMi(filtre);
             var sirketId = PozitifId(filtre.SirketId);
             var firmaId = PozitifId(filtre.FirmaId);
@@ -1106,6 +1116,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 dto.EskiCihazTipi = null;
                 dto.EskiMarka = null;
                 dto.EskiKapasite = null;
+                dto.EskiBacaTipi = null;
                 dto.AtananEkip = null;
                 dto.HedefUygulama = null;
             }
@@ -1253,6 +1264,7 @@ namespace YetkiliServisGazAcma.Business.Services
         public string? HedefUygulama { get; set; }
         public int? Durum { get; set; }
         public int? KontrolNo { get; set; }
+        public List<int>? KayitIdleri { get; set; }
         public DateTime? BaslangicTarihi { get; set; }
         public DateTime? BitisTarihi { get; set; }
         public int Sayfa { get; set; } = 1;
@@ -1556,10 +1568,12 @@ namespace YetkiliServisGazAcma.Business.Services
         public string? EskiCihazTipi { get; set; }
         public string? EskiMarka { get; set; }
         public string? EskiKapasite { get; set; }
+        public string? EskiBacaTipi { get; set; }
         public string? YeniCihazTipi { get; set; }
         public string? YeniMarka { get; set; }
         public string? YeniModel { get; set; }
         public string? YeniKapasite { get; set; }
+        public string? YeniBacaTipi { get; set; }
         public bool? IkinciElCihazMi { get; set; }
         public string? Bolge { get; set; }
         public string? AtananEkip { get; set; }
@@ -1591,10 +1605,12 @@ namespace YetkiliServisGazAcma.Business.Services
                 EskiCihazTipi = talep.EskiCihazTipi,
                 EskiMarka = talep.EskiMarka,
                 EskiKapasite = talep.EskiKapasite,
+                EskiBacaTipi = talep.EskiBacaTipi,
                 YeniCihazTipi = talep.YeniCihazTipi,
                 YeniMarka = talep.YeniMarka,
                 YeniModel = talep.YeniModel,
                 YeniKapasite = talep.YeniKapasite,
+                YeniBacaTipi = talep.YeniBacaTipi,
                 IkinciElCihazMi = talep.IkinciElCihazMi,
                 Bolge = YkcBolgeAtamaKurali.BolgeBelirle(talep.Bolge, talep.Il),
                 AtananEkip = talep.AtananEkip,

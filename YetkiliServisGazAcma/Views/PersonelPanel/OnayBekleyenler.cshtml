@@ -1,10 +1,11 @@
 @model List<YetkiliServisGazAcma.Entities.Ys_YetkiBelgesi>
 @using YetkiliServisGazAcma.Entities
 @{
-    ViewData["Title"] = "Onay Bekleyen Belgeler";
+    ViewData["Title"] = "Yetki Belgesi Onay ve Takip";
     ViewData["PanelTitle"] = ViewData["Title"];
     ViewData["PanelSubtitle"] = "Personel Paneli";
     ViewData["ActiveMenu"] = "OnayBekleyenler";
+    ViewData["PanelArea"] = "Personel";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
     var bekleyenler = Model ?? new List<Ys_YetkiBelgesi>();
@@ -30,7 +31,7 @@
         <div class="df-approval-filter-body">
             <div class="df-approval-filter-grid">
                 <div class="filtre-alan"><label>Firma</label><input type="text" id="filterFirma" placeholder="Firma adı" autocomplete="off" /></div>
-                <div class="filtre-alan"><label>Şirket</label><input type="text" id="filterSirket" placeholder="Şirket adı" autocomplete="off" /></div>
+                <div class="filtre-alan"><label>Adres / İl</label><input type="text" id="filterAdres" placeholder="Adres veya il bilgisi" autocomplete="off" /></div>
                 <div class="filtre-alan"><label>Yükleme</label><input type="date" id="filterYukleme" /></div>
                 <div class="filtre-alan"><label>Başlangıç</label><input type="date" id="filterBaslangic" /></div>
                 <div class="filtre-alan"><label>Bitiş</label><input type="date" id="filterBitis" /></div>
@@ -61,9 +62,10 @@
 <script>
 (() => {
     const tabs = document.querySelector('[data-approval-tabs]');
+    const query = new URLSearchParams(window.location.search);
     const fields = {
         firma: document.getElementById('filterFirma'),
-        sirket: document.getElementById('filterSirket'),
+        adres: document.getElementById('filterAdres'),
         yukleme: document.getElementById('filterYukleme'),
         baslangic: document.getElementById('filterBaslangic'),
         bitis: document.getElementById('filterBitis')
@@ -76,7 +78,7 @@
         if (!panel) return;
         const values = {
             firma: normalize(fields.firma?.value),
-            sirket: normalize(fields.sirket?.value),
+            adres: normalize(fields.adres?.value),
             yukleme: fields.yukleme?.value || '',
             baslangic: fields.baslangic?.value || '',
             bitis: fields.bitis?.value || ''
@@ -87,7 +89,7 @@
         rows.forEach(row => {
             let visible = true;
             if (values.firma) visible = normalize(row.dataset.firma).includes(values.firma) || normalize(row.dataset.vergi).includes(values.firma);
-            if (values.sirket) visible = visible && normalize(row.dataset.sirket).includes(values.sirket);
+            if (values.adres) visible = visible && normalize(row.dataset.adres).includes(values.adres);
             if (values.yukleme) visible = visible && row.dataset.yukleme === values.yukleme;
             if (values.baslangic) visible = visible && row.dataset.baslangic >= values.baslangic;
             if (values.bitis) visible = visible && row.dataset.bitis <= values.bitis;
@@ -113,6 +115,10 @@
         const tab = event.target.closest('[data-target]');
         if (tab) activatePanel(tab.dataset.target);
     });
+    const requestedTab = query.get('tab');
+    const initialTab = ['bekleyen', 'onaylanan', 'reddedilen', 'suresi-dolan'].includes(requestedTab) ? requestedTab : 'bekleyen';
+    if (fields.firma && query.get('firma')) fields.firma.value = query.get('firma');
+    activatePanel(initialTab);
     document.getElementById('approvalFilterApply')?.addEventListener('click', applyFilters);
     document.getElementById('approvalFilterClear')?.addEventListener('click', () => {
         Object.values(fields).forEach(field => { if (field) field.value = ''; });

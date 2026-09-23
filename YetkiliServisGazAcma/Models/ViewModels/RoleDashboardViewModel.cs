@@ -12,6 +12,8 @@ namespace YetkiliServisGazAcma.Models.ViewModels
         public string QuickActionsTitle { get; set; } = "Hızlı İşlemler";
         public string QuickActionsMeta { get; set; } = "Güncel durum";
         public bool ShowYkcCalendar { get; set; }
+        public string? YkcCalendarTitle { get; set; }
+        public AuthorizedServiceCalendarViewModel? AuthorizedServiceCalendar { get; set; }
         public List<RoleDashboardFactViewModel> Facts { get; set; } = new();
         public List<DashboardTileViewModel> Actions { get; set; } = new();
         public List<DashboardTileViewModel> QuickActions { get; set; } = new();
@@ -44,5 +46,26 @@ namespace YetkiliServisGazAcma.Models.ViewModels
         public string Icon { get; set; } = "bi bi-activity";
         public string Tone { get; set; } = "blue";
         public string? Url { get; set; }
+    }
+
+    public sealed class AuthorizedServiceCalendarViewModel
+    {
+        public DateTime SelectedDate { get; set; } = DateTime.Today;
+        public string ViewMode { get; set; } = "ay";
+        public string HistoryUrl { get; set; } = "/devreyealma/gecmis";
+        public List<AuthorizedServiceCalendarItemViewModel> Items { get; set; } = new();
+    }
+
+    public sealed class AuthorizedServiceCalendarItemViewModel
+    {
+        public int Id { get; set; }
+        public DateTime Date { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string InstallationNo { get; set; } = string.Empty;
+        public string Address { get; set; } = string.Empty;
+        public string StatusLabel { get; set; } = string.Empty;
+        public string StatusCssClass { get; set; } = "df-pill-warning";
+        public bool IsComplete { get; set; }
+        public string DetailsUrl { get; set; } = string.Empty;
     }
 }

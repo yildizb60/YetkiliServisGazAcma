@@ -610,42 +610,23 @@ namespace YetkiliServisGazAcma.Controllers
             var yetkiResult = await YetkiKontrol(YetkiTipleri.YETKI_BELGESI_ONAY);
             if (yetkiResult != null) return yetkiResult;
 
-            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
-            if (kullanici == null) return Redirect("/giris");
-
-            var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            List<Ys_YetkiBelgesi> onaylar;
-            try
-            {
-                onaylar = await _yetkiBelgesiOnayApiClient.OnayGecmisiAsync(kullanici, sirketId, bas, bit, q, durum)
-                    ?? new List<Ys_YetkiBelgesi>();
-            }
-            catch (ApiIntegrationException ex)
-            {
-                TempData["Hata"] = ex.Message;
-                onaylar = new List<Ys_YetkiBelgesi>();
-            }
-
-            ViewBag.Kullanici = kullanici;
-            ViewBag.Bas = bas;
-            ViewBag.Bit = bit;
-            ViewBag.Q = q ?? "";
-            ViewBag.Durum = durum ?? "";
-            await SetPersonelYetkiViewBags(kullanici);
-            await SetPersonelNotifViewBags(kullanici);
-            return View("~/Views/PersonelPanel/OnayGecmisi.cshtml", onaylar);
+            var tab = durum == "2" ? "reddedilen" : "onaylanan";
+            return RedirectToAction(nameof(OnayBekleyenler), new { tab, firma = q });
         }
 
         [HttpGet("markalar")]
         public async Task<IActionResult> Markalar()
         {
+            var yetkiResult = await YetkiKontrol(YetkiTipleri.MARKA_YONET);
+            if (yetkiResult != null) return yetkiResult;
+
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             List<Ys_Marka> markalar;
             try
             {
-                markalar = await _markaApiClient.TumunuGetirAsync() ?? new List<Ys_Marka>();
+                markalar = await _markaApiClient.TumunuGetirAsync(kullanici) ?? new List<Ys_Marka>();
             }
             catch (ApiIntegrationException ex)
             {
@@ -784,6 +765,9 @@ namespace YetkiliServisGazAcma.Controllers
         [HttpGet("yetkiliservisler")]
         public async Task<IActionResult> YetkiliServisler(string? q, string? il, string? durum, string? siralama)
         {
+            var yetkiResult = await YetkiKontrol(YetkiTipleri.KULLANICI_YONET);
+            if (yetkiResult != null) return yetkiResult;
+
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
@@ -812,6 +796,7 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.Durum = durum ?? "";
             ViewBag.Siralama = siralama ?? "";
             ViewBag.DevreyeSayilari = devreyeSayilari;
+            ViewBag.Sehirler = _sehirFirmaKoduService.Sehirler();
             await SetPersonelYetkiViewBags(kullanici);
             await SetPersonelNotifViewBags(kullanici);
             return View("~/Views/PersonelPanel/YetkiliServisler.cshtml", servisler);
@@ -820,6 +805,9 @@ namespace YetkiliServisGazAcma.Controllers
         [HttpGet("yetkiliservisler/detay/{id}")]
         public async Task<IActionResult> YetkiliServisDetay(int id)
         {
+            var yetkiResult = await YetkiKontrol(YetkiTipleri.KULLANICI_YONET);
+            if (yetkiResult != null) return yetkiResult;
+
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
@@ -854,10 +842,18 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
+            if (!string.Equals(
+                    Request.Headers["X-Requested-With"].ToString(),
+                    "XMLHttpRequest",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return Redirect("/personel-panel/yetkiliservisler?panel=ekle");
+            }
+
             ViewBag.Kullanici = kullanici;
             ViewBag.Sehirler = _sehirFirmaKoduService.Sehirler();
             ViewBag.Kategoriler = await KullanilanKategorileriGetir();
-            ViewBag.Markalar = await _markaApiClient.TumunuGetirAsync() ?? new List<Ys_Marka>();
+            ViewBag.Markalar = await _markaApiClient.AktifleriGetirAsync() ?? new List<Ys_Marka>();
 
             await SetPersonelYetkiViewBags(kullanici);
             await SetPersonelNotifViewBags(kullanici);
@@ -919,6 +915,14 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
+            if (!string.Equals(
+                    Request.Headers["X-Requested-With"].ToString(),
+                    "XMLHttpRequest",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return Redirect($"/personel-panel/yetkiliservisler?duzenle={id}");
+            }
+
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
             AdminYetkiliServisDetaySonuc? detay;
             try
@@ -938,7 +942,7 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.Servis = servis;
             ViewBag.Sehirler = _sehirFirmaKoduService.Sehirler();
             ViewBag.Kategoriler = await KullanilanKategorileriGetir();
-            ViewBag.Markalar = await _markaApiClient.TumunuGetirAsync() ?? new List<Ys_Marka>();
+            ViewBag.Markalar = await _markaApiClient.AktifleriGetirAsync() ?? new List<Ys_Marka>();
             ViewBag.SeciliKategoriler = servis.FirmaKategoriler?.Where(x => !x.SilindiMi).Select(x => x.KategoriId).ToList() ?? new List<int>();
             ViewBag.SeciliMarkalar = servis.FirmaMarkalar?.Where(x => !x.SilindiMi).Select(x => x.MarkaId).ToList() ?? new List<int>();
 

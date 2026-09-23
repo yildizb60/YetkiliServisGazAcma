@@ -124,13 +124,20 @@
                             : kullanici.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma
                                 ? "is-certified"
                                 : "is-admin";
+                    var tipIcon = kullanici.KullaniciTipi == KullaniciTipiDegerleri.Personel
+                        ? "bi-person-badge"
+                        : kullanici.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis
+                            ? "bi-tools"
+                            : kullanici.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma
+                                ? "bi-building-check"
+                                : "bi-shield-check";
 
                     <div class="df-user-grid df-user-row">
                         <div class="df-user-identity"><span class="df-user-avatar">@basHarfler</span><strong>@(kullanici.AdSoyad ?? "-")</strong></div>
                         <div class="df-user-email">@(kullanici.Email ?? "-")</div>
-                        <div><span class="df-user-type @tipClass">@tip</span></div>
+                        <div><span class="df-user-role @tipClass"><i class="bi @tipIcon" aria-hidden="true"></i><span>@tip</span></span></div>
                         <div>@(bagli ?? "-")</div>
-                        <div><span class="df-pill @(kullanici.AktifMi ? "df-pill-success" : "df-pill-danger")">@(kullanici.AktifMi ? "Aktif" : "Pasif")</span></div>
+                        <div><span class="df-account-status @(kullanici.AktifMi ? "is-active" : "is-passive")"><i class="bi @(kullanici.AktifMi ? "bi-check-circle-fill" : "bi-pause-circle-fill")" aria-hidden="true"></i>@(kullanici.AktifMi ? "Aktif" : "Pasif")</span></div>
                         <div class="df-user-actions">
                             @if (kullaniciIslemYapilabilir)
                             {
@@ -147,7 +154,7 @@
                                     <input type="hidden" name="aktif" value='@(kullanici.AktifMi ? "false" : "true")' />
                                     <button type="submit" class="df-icon-action @(kullanici.AktifMi ? "is-warning" : "is-success")" title="@(kullanici.AktifMi ? "Kullanıcıyı pasifleştir" : "Kullanıcıyı aktifleştir")" aria-label="@kullanici.AdSoyad kullanıcısını @(kullanici.AktifMi ? "pasifleştir" : "aktifleştir")"><i class="bi @(kullanici.AktifMi ? "bi-pause-circle" : "bi-play-circle")" aria-hidden="true"></i></button>
                                 </form>
-                                <form method="post" action="@Url.Action("KullaniciSil", "AdminPanel", new { id = kullanici.Id })" onsubmit="return confirm('Kullanıcıyı silmek istediğinize emin misiniz?');">
+                                <form method="post" action="@Url.Action("KullaniciSil", "AdminPanel", new { id = kullanici.Id })" data-toast-confirm data-confirm-title="Kullanıcıyı sil" data-confirm-message="@kullanici.AdSoyad adlı kullanıcı silinecek. Bu işlem geri alınamaz." data-confirm-action="Kullanıcıyı Sil">
                                     @Html.AntiForgeryToken()
                                     <button type="submit" class="df-icon-action is-danger" title="Kullanıcıyı sil" aria-label="@kullanici.AdSoyad kullanıcısını sil"><i class="bi bi-trash3" aria-hidden="true"></i></button>
                                 </form>

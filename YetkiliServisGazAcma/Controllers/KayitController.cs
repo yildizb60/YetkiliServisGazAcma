@@ -30,7 +30,7 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.Sehirler = _sehirFirmaKoduService.Sehirler();
             ViewBag.SehirFirmaKodlari = _sehirFirmaKoduService.TumKodlar();
 
-            var markalar = await _markaApiClient.TumunuGetirAsync();
+            var markalar = await _markaApiClient.AktifleriGetirAsync();
             ViewBag.Markalar = markalar == null
                 ? new List<Ys_Marka>()
                 : markalar
@@ -69,6 +69,8 @@ namespace YetkiliServisGazAcma.Controllers
             if (sifre != sifreTekrar)
             {
                 ViewBag.Hata = "Şifreler eşleşmiyor.";
+                ViewBag.SeciliMarkaIdleri = markaIdleri;
+                ViewBag.SeciliKategoriIdleri = kategoriIdleri;
                 await BasvuruListeleriniYukle();
                 return View(firma);
             }
@@ -95,6 +97,8 @@ namespace YetkiliServisGazAcma.Controllers
             if (apiSonuc == null)
             {
                 ViewBag.Hata = "Kayıt işlemi API üzerinden gönderilemedi. Lütfen API uygulamasının çalıştığını kontrol edin.";
+                ViewBag.SeciliMarkaIdleri = markaIdleri;
+                ViewBag.SeciliKategoriIdleri = kategoriIdleri;
                 await BasvuruListeleriniYukle();
                 return View(firma);
             }
@@ -105,6 +109,8 @@ namespace YetkiliServisGazAcma.Controllers
                     mesaj = "E-posta adresi zaten kayitli.";
 
                 ViewBag.Hata = mesaj ?? "Kayıt işlemi başarısız oldu.";
+                ViewBag.SeciliMarkaIdleri = markaIdleri;
+                ViewBag.SeciliKategoriIdleri = kategoriIdleri;
                 await BasvuruListeleriniYukle();
                 return View(firma);
             }

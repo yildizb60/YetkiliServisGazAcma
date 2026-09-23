@@ -27,7 +27,7 @@
                 <div class="df-alert df-alert-danger">@ViewBag.Hata</div>
             }
 
-            <form method="post" action="/AdminPanel/Kullanicilar/ekle">
+            <form method="post" action="/AdminPanel/Kullanicilar/ekle" class="df-account-editor-form is-user-create">
                 @Html.AntiForgeryToken()
 
                 <section class="df-admin-form-section">
@@ -35,7 +35,7 @@
                         <span><i class="bi bi-diagram-3"></i></span>
                         <div>
                             <h3>Rol ve Bağlantı</h3>
-                            <p>Kullanıcının sistemde ne yapacağını ve hangi şirkette çalışacağını belirleyin.</p>
+                            <p>Rol ve kurumsal kapsam</p>
                         </div>
                     </div>
                     <div class="df-admin-form-grid">
@@ -71,7 +71,7 @@
                         <span><i class="bi bi-person-vcard"></i></span>
                         <div>
                             <h3>Hesap Bilgileri</h3>
-                            <p>Oturum açacak kişiye ait temel iletişim ve giriş bilgilerini girin.</p>
+                            <p>Kimlik ve güvenli giriş</p>
                         </div>
                     </div>
                     <div class="df-admin-form-grid">

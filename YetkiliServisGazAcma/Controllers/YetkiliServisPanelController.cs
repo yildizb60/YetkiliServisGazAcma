@@ -13,13 +13,16 @@ namespace YetkiliServisGazAcma.Controllers
     {
         private readonly ApiKullaniciOturumu _kullaniciOturumu;
         private readonly YetkiliServisPanelApiClient _yetkiliServisPanelApiClient;
+        private readonly YetkiliServisDevreyeAlmaApiClient _devreyeAlmaApiClient;
 
         public YetkiliServisPanelController(
             ApiKullaniciOturumu kullaniciOturumu,
-            YetkiliServisPanelApiClient yetkiliServisPanelApiClient)
+            YetkiliServisPanelApiClient yetkiliServisPanelApiClient,
+            YetkiliServisDevreyeAlmaApiClient devreyeAlmaApiClient)
         {
             _kullaniciOturumu = kullaniciOturumu;
             _yetkiliServisPanelApiClient = yetkiliServisPanelApiClient;
+            _devreyeAlmaApiClient = devreyeAlmaApiClient;
         }
 
         private async Task SetBildirimler(AppKullanici kullanici)
@@ -52,13 +55,34 @@ namespace YetkiliServisGazAcma.Controllers
         [HttpGet]
         [Route("")]
         [Route("index")]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(DateTime? takvimTarih, string? takvimGorunum)
         {
             var kullanici = await GetYetkiliServisKullanici();
             if (kullanici == null) return Redirect("/giris");
 
             var dashboard = await _yetkiliServisPanelApiClient.DashboardAsync(kullanici)
                 ?? new YsPanelDashboardSonuc();
+            var seciliTarih = takvimTarih?.Date ?? DateTime.Today;
+            if (seciliTarih.Year is < 2000 or > 2100)
+                seciliTarih = DateTime.Today;
+
+            var gorunum = takvimGorunum is "gun" or "yil" ? takvimGorunum : "ay";
+            var ayBasi = new DateTime(seciliTarih.Year, seciliTarih.Month, 1);
+            var aySonu = ayBasi.AddMonths(1).AddDays(-1);
+            var takvimIslemleri = new List<Ys_DevreyeAlma>();
+
+            try
+            {
+                var takvimSonucu = await _devreyeAlmaApiClient.GecmisAsync(
+                    kullanici, null, ayBasi, aySonu, null, null);
+                takvimIslemleri = takvimSonucu?.Islemler ?? takvimIslemleri;
+            }
+            catch (ApiIntegrationException)
+            {
+                takvimIslemleri = dashboard.SonIslemler
+                    .Where(x => x.DevreyeAlmaTarihi.Date >= ayBasi && x.DevreyeAlmaTarihi.Date <= aySonu)
+                    .ToList();
+            }
 
             ViewBag.Firma = dashboard.Firma;
             ViewBag.BuAy = dashboard.BuAy;
@@ -74,6 +98,9 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.Bildirimler = dashboard.Bildirimler;
             ViewBag.BildirimSayisi = dashboard.BildirimSayisi;
             ViewBag.YetkiBelgesiUyariGun = dashboard.YetkiBelgesiUyariGun;
+            ViewBag.TakvimTarih = seciliTarih;
+            ViewBag.TakvimGorunum = gorunum;
+            ViewBag.TakvimIslemleri = takvimIslemleri;
 
             return View("~/Views/YetkiliServisPanel/Index.cshtml");
         }

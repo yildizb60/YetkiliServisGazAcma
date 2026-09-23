@@ -11,20 +11,33 @@
         let activeIndex = Math.max(0, slides.findIndex(slide => slide.classList.contains('is-active')));
         let timer = null;
         let cleanupTimer = null;
+        let phaseTimers = [];
+        let transitioning = false;
+
+        const schedule = (callback, delay) => {
+            const phaseTimer = window.setTimeout(callback, delay);
+            phaseTimers.push(phaseTimer);
+        };
 
         const transitionTo = nextIndex => {
             const normalizedIndex = (nextIndex + slides.length) % slides.length;
-            if (normalizedIndex === activeIndex) return;
+            if (normalizedIndex === activeIndex || transitioning) return;
 
             const current = slides[activeIndex];
             const next = slides[normalizedIndex];
+            transitioning = true;
             window.clearTimeout(cleanupTimer);
+            phaseTimers.forEach(window.clearTimeout);
+            phaseTimers = [];
             next.classList.remove('is-leaving');
             next.classList.add('is-entering');
             next.setAttribute('aria-hidden', 'false');
+            current.classList.add('is-device-leaving');
 
-            window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+            schedule(() => current.classList.add('is-overlays-leaving'), 230);
+            schedule(() => {
                 current.classList.remove('is-active');
+                current.classList.remove('is-device-leaving', 'is-overlays-leaving');
                 current.classList.add('is-leaving');
                 current.setAttribute('aria-hidden', 'true');
                 next.classList.remove('is-entering');
@@ -33,8 +46,9 @@
 
                 cleanupTimer = window.setTimeout(() => {
                     current.classList.remove('is-leaving');
-                }, 1050);
-            }));
+                    transitioning = false;
+                }, 640);
+            }, 650);
         };
         const stop = () => {
             if (timer !== null) window.clearInterval(timer);
@@ -43,14 +57,14 @@
         const start = () => {
             stop();
             if (!reduceMotion && slides.length > 1) {
-                timer = window.setInterval(() => transitionTo(activeIndex + 1), 8000);
+                timer = window.setInterval(() => transitionTo(activeIndex + 1), 5200);
             }
         };
         document.addEventListener('visibilitychange', () => document.hidden ? stop() : start());
         slides.forEach((slide, index) => {
             const active = index === activeIndex;
             slide.classList.toggle('is-active', active);
-            slide.classList.remove('is-entering', 'is-leaving');
+            slide.classList.remove('is-entering', 'is-leaving', 'is-device-leaving', 'is-overlays-leaving');
             slide.setAttribute('aria-hidden', String(!active));
         });
         start();

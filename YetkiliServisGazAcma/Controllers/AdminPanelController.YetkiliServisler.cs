@@ -11,6 +11,7 @@ namespace YetkiliServisGazAcma.Controllers
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
+            if (!await KullaniciYonetebilirMi(kullanici)) return Redirect("/AdminPanel");
 
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
             var apiSonuc = await _adminYetkiliServisApiClient.ListeleAsync(kullanici, aktifSirketId, q, il, durum, devreyeSiralama);
@@ -39,13 +40,14 @@ namespace YetkiliServisGazAcma.Controllers
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
+            if (!await KullaniciYonetebilirMi(kullanici)) return Redirect("/AdminPanel");
 
             ViewBag.Kullanici = kullanici;
             ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
             ViewBag.Sehirler = _sehirFirmaKoduService.Sehirler();
             ViewBag.SehirFirmaKodlari = _sehirFirmaKoduService.TumKodlar();
             ViewBag.Kategoriler = await KullanilanKategorileriGetir();
-            ViewBag.Markalar = await _markaApiClient.TumunuGetirAsync() ?? new List<Ys_Marka>();
+            ViewBag.Markalar = await _markaApiClient.AktifleriGetirAsync() ?? new List<Ys_Marka>();
             return View("~/Views/AdminPanel/YetkiliServisEkle.cshtml");
         }
 
@@ -65,6 +67,7 @@ namespace YetkiliServisGazAcma.Controllers
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
+            if (!await KullaniciYonetebilirMi(kullanici)) return Redirect("/AdminPanel");
 
             if (string.IsNullOrWhiteSpace(firmaAdi))
             {
@@ -104,6 +107,7 @@ namespace YetkiliServisGazAcma.Controllers
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
+            if (!await KullaniciYonetebilirMi(kullanici)) return Redirect("/AdminPanel");
 
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
             var sonuc = await _adminYetkiliServisApiClient.DetayAsync(kullanici, id, aktifSirketId);
@@ -128,6 +132,7 @@ namespace YetkiliServisGazAcma.Controllers
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
+            if (!await KullaniciYonetebilirMi(kullanici)) return Redirect("/AdminPanel");
 
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
             var sonuc = await _adminYetkiliServisApiClient.DetayAsync(kullanici, id, aktifSirketId);
@@ -169,6 +174,7 @@ namespace YetkiliServisGazAcma.Controllers
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
+            if (!await KullaniciYonetebilirMi(kullanici)) return Redirect("/AdminPanel");
 
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
             var sonuc = await _adminYetkiliServisApiClient.GuncelleAsync(
@@ -195,6 +201,7 @@ namespace YetkiliServisGazAcma.Controllers
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
+            if (!await KullaniciYonetebilirMi(kullanici)) return Redirect("/AdminPanel");
 
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
             var sonuc = await _adminYetkiliServisApiClient.SilAsync(kullanici, id, aktifSirketId);

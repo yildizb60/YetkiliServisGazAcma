@@ -27,6 +27,7 @@ namespace YetkiliServisGazAcma.Controllers
         private readonly AdminYetkiBelgesiOnayApiClient _adminYetkiBelgesiOnayApiClient;
         private readonly AdminSubeApiClient _adminSubeApiClient;
         private readonly AdminRaporApiClient _adminRaporApiClient;
+        private readonly YkcApiClient _ykcApiClient;
         private readonly MarkaApiClient _markaApiClient;
         private readonly UrunKategoriApiClient _urunKategoriApiClient;
 
@@ -40,6 +41,7 @@ namespace YetkiliServisGazAcma.Controllers
             AdminYetkiBelgesiOnayApiClient adminYetkiBelgesiOnayApiClient,
             AdminSubeApiClient adminSubeApiClient,
             AdminRaporApiClient adminRaporApiClient,
+            YkcApiClient ykcApiClient,
             MarkaApiClient markaApiClient,
             UrunKategoriApiClient urunKategoriApiClient)
         {
@@ -52,6 +54,7 @@ namespace YetkiliServisGazAcma.Controllers
             _adminYetkiBelgesiOnayApiClient = adminYetkiBelgesiOnayApiClient;
             _adminSubeApiClient = adminSubeApiClient;
             _adminRaporApiClient = adminRaporApiClient;
+            _ykcApiClient = ykcApiClient;
             _markaApiClient = markaApiClient;
             _urunKategoriApiClient = urunKategoriApiClient;
         }

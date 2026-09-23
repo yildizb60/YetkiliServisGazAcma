@@ -26,7 +26,7 @@
 <link rel="stylesheet" href="~/css/home-calendar.css" asp-append-version="true" />
 <section class="home-calendar @(Model.FirmaGorunumu ? "is-firm-calendar" : "has-view-modes")" id="home-calendar" aria-labelledby="home-calendar-title">
     <header class="home-calendar-heading">
-        <h2 id="home-calendar-title"><i class="bi bi-calendar2-week" aria-hidden="true"></i>@(Model.FirmaGorunumu ? "Cihaz Değişim Randevularım" : "Cihaz Değişim Kontrol Takvimi")</h2>
+        <h2 id="home-calendar-title"><i class="bi bi-calendar2-week" aria-hidden="true"></i>@(Model.Baslik ?? (Model.FirmaGorunumu ? "Cihaz Değişim Randevularım" : "Cihaz Değişim Kontrol Takvimi"))</h2>
         <a href="@takvimLink">Takvimi Aç <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
     </header>
     @if (!Model.FirmaGorunumu)

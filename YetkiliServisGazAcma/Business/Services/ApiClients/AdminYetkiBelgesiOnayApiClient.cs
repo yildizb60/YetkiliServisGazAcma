@@ -165,6 +165,8 @@ namespace YetkiliServisGazAcma.Business.Services
             public int FirmaId { get; set; }
             public string? FirmaAdi { get; set; }
             public string? VergiNo { get; set; }
+            public string? FirmaAdres { get; set; }
+            public string? FirmaFaaliyetIli { get; set; }
             public string? SirketAdi { get; set; }
             public int Durum { get; set; }
             public DateTime OlusturmaTarihi { get; set; }
@@ -194,6 +196,8 @@ namespace YetkiliServisGazAcma.Business.Services
                         Id = FirmaId,
                         FirmaAdi = FirmaAdi,
                         VergiNo = VergiNo,
+                        Adres = FirmaAdres,
+                        FaaliyetIli = FirmaFaaliyetIli,
                         Sirket = new Dag_Sirket { SirketAdi = SirketAdi }
                     }
                 };

@@ -94,6 +94,19 @@ Check(YkcRandevuKurali.Cakisiyor(appointment, appointment.AddMinutes(9), 10), "C
 Check(!YkcRandevuKurali.Cakisiyor(appointment, appointment.AddMinutes(10), 10), "Exact interval boundary allowed");
 Check(YkcRandevuKurali.Cakisiyor(appointment, appointment.AddMinutes(-9), 10), "Interval is symmetric");
 Check(YkcRandevuKurali.Cakisiyor(appointment.Date, appointment.Date.AddMinutes(-5), 10), "Interval crosses midnight");
+Check(YkcRandevuKurali.Cakisiyor(appointment, appointment.AddMinutes(29), 30), "Appointments inside the 30-minute team window conflict");
+Check(!YkcRandevuKurali.Cakisiyor(appointment, appointment.AddMinutes(30), 30), "Exactly 30 minutes apart is allowed");
+Check(YkcRandevuKurali.GecerliSaatDilimi(new TimeSpan(14, 0, 0), 30)
+      && YkcRandevuKurali.GecerliSaatDilimi(new TimeSpan(14, 30, 0), 30),
+    "Whole and half hours are valid 30-minute appointment slots");
+Check(!YkcRandevuKurali.GecerliSaatDilimi(new TimeSpan(14, 15, 0), 30),
+    "Quarter-hour values are rejected for 30-minute appointment slots");
+Check(YkcTakvimGorunumKurali.DoneminTumKayitlariGerekli(new DateTime(2026, 9, 7), new DateTime(2026, 9, 13)),
+    "Exact Monday-Sunday range requests complete week records");
+Check(YkcTakvimGorunumKurali.DoneminTumKayitlariGerekli(new DateTime(2026, 9, 1), new DateTime(2026, 9, 30)),
+    "Exact calendar month requests complete month records");
+Check(!YkcTakvimGorunumKurali.DoneminTumKayitlariGerekli(new DateTime(2026, 9, 2), new DateTime(2026, 9, 8)),
+    "Arbitrary seven-day range remains paged");
 Check(YkcKontrolAkisKurali.YeniRandevuGerekli(YkcFr265KontrolSonucDegerleri.UygunDegil),
     "Unsuccessful control requires a new appointment");
 Check(!YkcKontrolAkisKurali.YeniRandevuGerekli(YkcFr265KontrolSonucDegerleri.Uygun),
@@ -166,10 +179,12 @@ var raporKaydi = new YkcRaporKayitDto
     EskiCihazTipi = "Kombi",
     EskiMarka = "Kaynak Marka",
     EskiKapasite = "20000 kcal/h",
+    EskiBacaTipi = "Hermetik Kaynak",
     YeniCihazTipi = "Kombi",
     YeniMarka = "Yeni Marka",
     YeniModel = "=HYPERLINK(\"https://example.invalid\")",
     YeniKapasite = "24000 kcal/h",
+    YeniBacaTipi = "Yoğuşmalı Yeni",
     Il = "Çorum",
     Ilce = "Merkez",
     Durum = YkcDurumDegerleri.Tamamlandi,
@@ -178,13 +193,14 @@ var raporKaydi = new YkcRaporKayitDto
 var icOperasyonExcel = YkcRaporExcelService.Olustur(new[] { raporKaydi }, icOperasyon: true);
 var icOperasyonExcelXml = ExcelParcasi(icOperasyonExcel, "xl/worksheets/sheet1.xml");
 Check(icOperasyonExcel[0] == (byte)'P' && icOperasyonExcel[1] == (byte)'K', "YKC export is a real XLSX package");
-Check(icOperasyonExcelXml.Contains("Projedeki Marka") && icOperasyonExcelXml.Contains("Berrin Yıldız"),
-    "Internal XLSX contains Turkish headings and report data");
+Check(icOperasyonExcelXml.Contains("Projedeki Baca Tipi") && icOperasyonExcelXml.Contains("Hermetik Kaynak") && icOperasyonExcelXml.Contains("Berrin Yıldız"),
+    "Internal XLSX contains source-device chimney data and report fields");
 Check(icOperasyonExcelXml.Contains("=HYPERLINK") && !icOperasyonExcelXml.Contains("<f>"),
     "Formula-looking values remain plain Excel text");
 var firmaExcelXml = ExcelParcasi(YkcRaporExcelService.Olustur(new[] { raporKaydi }, icOperasyon: false), "xl/worksheets/sheet1.xml");
-Check(!firmaExcelXml.Contains("Projedeki Marka") && !firmaExcelXml.Contains("Kaynak Marka"),
-    "Firm XLSX does not expose source-device columns");
+Check(!firmaExcelXml.Contains("Projedeki Marka") && !firmaExcelXml.Contains("Kaynak Marka") && !firmaExcelXml.Contains("Hermetik Kaynak")
+      && firmaExcelXml.Contains("Yeni Kullanılan Baca Tipi") && firmaExcelXml.Contains("Yoğuşmalı Yeni"),
+    "Firm XLSX exposes the new chimney field without source-device data");
 var raporPdf = YkcRaporPdfService.Olustur(new[] { raporKaydi }, icOperasyon: true);
 Check(System.Text.Encoding.ASCII.GetString(raporPdf, 0, 5) == "%PDF-", "YKC report export is a PDF");
 

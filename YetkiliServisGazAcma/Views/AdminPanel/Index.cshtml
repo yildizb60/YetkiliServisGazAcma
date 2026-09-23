@@ -16,16 +16,13 @@
     var sirketAdminMi = User.IsInRole(KullaniciRolAdlari.SirketAdmin);
     var adminRoluVar = genelSistemAdminMi || sirketAdminMi;
     var rolAdi = ViewBag.AdminDashboardAltBaslik as string ?? (genelSistemAdminMi ? "Genel Sistem Admini" : "Şirket Admini");
-    var kapsamAdi = ViewBag.AdminDashboardBaslik as string ?? "Yönetim Özeti";
-    var sonYetkiBelgeleri = ViewBag.SonYetkiBelgeleri as List<Ys_YetkiBelgesi> ?? new List<Ys_YetkiBelgesi>();
-    var sonDevreyeAlmalar = ViewBag.SonDevreyeAlmalar as List<Ys_DevreyeAlma> ?? new List<Ys_DevreyeAlma>();
     var actions = new List<DashboardTileViewModel>();
 
     if (adminRoluVar)
     {
         actions.Add(new DashboardTileViewModel
         {
-            Title = "Yetki Belgesi İşlemleri", Url = Url.Action("OnayBekleyenler", "AdminPanel")!, Icon = "bi bi-file-earmark-check",
+            Title = "Yetki Belgesi İşlemleri", Url = Url.Action("OnayBekleyenler", "AdminPanel")!, Icon = "bi bi-file-earmark-check-fill",
             MetricLabel = "Belge kararları ve süre takibi", Tone = "amber", Featured = onayBekleyen > 0
         });
         actions.Add(new DashboardTileViewModel
@@ -53,11 +50,6 @@
             Title = "Şube Yönetimi", Url = Url.Action("Subeler", "AdminPanel")!, Icon = "bi bi-diagram-3",
             MetricLabel = "Şube kapsamını görüntüle", Subtitle = "Şube yönetimi", Tone = "green"
         });
-        actions.Add(new DashboardTileViewModel
-        {
-            Title = "Operasyon Raporları", Url = Url.Action("Raporlar", "AdminPanel")!, Icon = "bi bi-bar-chart-line",
-            MetricLabel = "Operasyon sonuçlarını incele", Subtitle = "Raporlama", Tone = "cyan"
-        });
         if (genelSistemAdminMi)
         {
             actions.Add(new DashboardTileViewModel
@@ -83,83 +75,12 @@
         }
     };
 
-    var activityEntries = new List<(DateTime Tarih, DashboardTileViewModel Item)>();
-    foreach (var belge in sonYetkiBelgeleri)
-    {
-        if (belge.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor)
-            continue;
-
-        var durumBasligi = belge.Durum switch
-        {
-            YetkiBelgesiDurumDegerleri.Onaylandi => "Yetki belgesi onaylandı",
-            YetkiBelgesiDurumDegerleri.Reddedildi => "Yetki belgesi reddedildi",
-            _ => "Yetki belgesi güncellendi"
-        };
-        var tone = belge.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "green" : "amber";
-        var icon = belge.Durum == YetkiBelgesiDurumDegerleri.Onaylandi
-            ? "bi bi-patch-check"
-            : belge.Durum == YetkiBelgesiDurumDegerleri.Reddedildi ? "bi bi-x-circle" : "bi bi-file-earmark-arrow-up";
-        var tarih = belge.OlusturmaTarihi;
-        var firmaAdi = string.IsNullOrWhiteSpace(belge.Firma?.FirmaAdi) ? "Yetkili servis" : belge.Firma.FirmaAdi;
-        activityEntries.Add((tarih, new DashboardTileViewModel
-        {
-            Title = durumBasligi,
-            Url = Url.Action("YetkiliServisDetay", "AdminPanel", new { id = belge.FirmaId })!,
-            Icon = icon,
-            Tone = tone,
-            Subtitle = $"{firmaAdi} · {tarih:dd.MM.yyyy}",
-            MetricValue = tarih.ToString("HH:mm")
-        }));
-    }
-
-    foreach (var islem in sonDevreyeAlmalar)
-    {
-        var durumBasligi = islem.Durum switch
-        {
-            DevreyeAlmaDurumDegerleri.Tamamlandi => "Cihaz devreye alma tamamlandı",
-            DevreyeAlmaDurumDegerleri.Iptal => "Cihaz işlemi iptal edildi",
-            _ => "Cihaz devreye alma kaydı oluşturuldu"
-        };
-        var tone = islem.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi
-            ? "green"
-            : islem.Durum == DevreyeAlmaDurumDegerleri.Iptal ? "amber" : "blue";
-        var tarih = islem.OlusturmaTarihi;
-        var firmaAdi = string.IsNullOrWhiteSpace(islem.Firma?.FirmaAdi) ? "Yetkili servis" : islem.Firma.FirmaAdi;
-        var tesisat = string.IsNullOrWhiteSpace(islem.TesistatNo) ? "Tesisat belirtilmedi" : $"Tesisat {islem.TesistatNo}";
-        activityEntries.Add((tarih, new DashboardTileViewModel
-        {
-            Title = durumBasligi,
-            Url = Url.Action("DevreyeAlmaDetay", "AdminPanel", new { id = islem.Id })!,
-            Icon = islem.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? "bi bi-check2-circle" : "bi bi-tools",
-            Tone = tone,
-            Subtitle = $"{firmaAdi} · {tesisat} · {tarih:dd.MM.yyyy}",
-            MetricValue = tarih.ToString("HH:mm")
-        }));
-    }
-
-    var recentActivities = activityEntries
-        .OrderByDescending(entry => entry.Tarih)
-        .Select(entry => entry.Item)
-        .Take(6)
-        .ToList();
-    if (recentActivities.Count == 0)
-    {
-        recentActivities.Add(new DashboardTileViewModel
-        {
-            Title = "Henüz işlem kaydı bulunmuyor",
-            Url = Url.Action("Raporlar", "AdminPanel")!,
-            Icon = "bi bi-clock-history",
-            Tone = "blue",
-            Subtitle = "Yeni hareketler burada gösterilecek"
-        });
-    }
-
     var dashboardModel = new RoleDashboardViewModel
     {
         Variant = genelSistemAdminMi ? "system-admin" : "company-admin",
         AriaLabel = $"{rolAdi} yönetim özeti",
-        HeroTitle = "Yönetim Merkezi",
-        HeroKicker = $"{rolAdi} · {kapsamAdi}",
+        HeroTitle = genelSistemAdminMi ? "Genel Sistem Admin Paneli" : "Şirket Admin Paneli",
+        HeroKicker = string.Empty,
         HeroKickerIcon = "bi bi-shield-check",
         HeroImageUrl = "/images/hero/admin-yonetim-dashboard.png",
         ActionsTitle = "Yönetim Alanları",
@@ -167,20 +88,13 @@
         QuickActionsMeta = "Güncel durum",
         Facts = new List<RoleDashboardFactViewModel>
         {
-            new() { Icon = "bi bi-file-earmark-check", Value = onayBekleyen.ToString(), Label = "karar bekleyen belge", Url = Url.Action("OnayBekleyenler", "AdminPanel") },
+            new() { Icon = "bi bi-file-earmark-check-fill", Value = onayBekleyen.ToString(), Label = "karar bekleyen belge", Url = Url.Action("OnayBekleyenler", "AdminPanel") },
             new() { Icon = "bi bi-building-check", Value = toplamFirma.ToString(), Label = "yetkili servis", Url = Url.Action("YetkiliServisler", "AdminPanel") }
         },
         Actions = actions,
         QuickActions = quickActions,
-        SidePanel = new RoleDashboardSidePanelViewModel
-        {
-            Title = "Son İşlemler",
-            Icon = "bi bi-clock-history",
-            ItemsTitle = "Güncel Hareketler",
-            ActionText = "Tümünü Gör",
-            ActionUrl = Url.Action("Raporlar", "AdminPanel"),
-            Items = recentActivities
-        }
+        ShowYkcCalendar = true,
+        YkcCalendarTitle = "Takvim"
     };
 }
 @functions {
