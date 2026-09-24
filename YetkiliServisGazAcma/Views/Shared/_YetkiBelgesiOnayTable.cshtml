@@ -21,9 +21,9 @@
             <tr>
                 <th>Yetkili Servis</th>
                 <th>Bağlı Şirket</th>
-                <th>Başlangıç Tarihi</th>
-                <th>Bitiş Tarihi</th>
-                <th>Yükleme Tarihi</th>
+                <th>Belge Geçerlilik Başlangıcı</th>
+                <th>Yetki Belgesi Bitiş Tarihi</th>
+                <th>Belge Yükleme Tarihi</th>
                 <th>Durum</th>
                 <th>Belge</th>
                 <th>@(bekleyen ? "Onay İşlemleri" : "Son İşlem")</th>
@@ -73,7 +73,6 @@
                         <td>
                             <div class="df-approval-service-name">
                                 <span class="df-cell-main">@firmaAdi</span>
-                                <button type="button" class="df-approval-expand" data-approval-expand aria-controls="@detailId" aria-expanded="false" aria-label="@firmaAdi ayrıntılarını aç" title="Satır ayrıntılarını aç"><i class="bi bi-chevron-down" aria-hidden="true"></i></button>
                             </div>
                         </td>
                         <td>
@@ -101,35 +100,38 @@
                         </td>
                         <td>
                             <div class="df-approval-row-actions">
-                            @if (bekleyen)
-                            {
-                                    @if (onaylanabilir)
+                                <div class="df-approval-primary-actions">
+                                    @if (bekleyen)
                                     {
-                                        <form method="post" action="@onayUrl">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="id" value="@s.Id" />
-                                            <button type="submit" class="df-approval-action is-approve"><i class="bi bi-check2" aria-hidden="true"></i><span>Onayla</span></button>
-                                        </form>
+                                        @if (onaylanabilir)
+                                        {
+                                            <form method="post" action="@onayUrl">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@s.Id" />
+                                                <button type="submit" class="df-approval-action is-approve"><i class="bi bi-check2" aria-hidden="true"></i><span>Onayla</span></button>
+                                            </form>
+                                        }
+                                        <details class="df-approval-reject">
+                                            <summary class="df-approval-action is-reject"><i class="bi bi-x-lg" aria-hidden="true"></i><span>Reddet</span></summary>
+                                            <form method="post" action="@redUrl">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@s.Id" />
+                                                <label for="red-gerekce-@(panel)-@(durum)-@(s.Id)">Red gerekçesi</label>
+                                                <input class="df-control" id="red-gerekce-@(panel)-@(durum)-@(s.Id)" type="text" name="gerekce" required maxlength="500" />
+                                                <button type="submit" class="df-approval-action is-reject is-confirm"><i class="bi bi-check2" aria-hidden="true"></i><span>Reddi Kaydet</span></button>
+                                            </form>
+                                        </details>
                                     }
-                                    <details class="df-approval-reject">
-                                        <summary class="df-approval-action is-reject"><i class="bi bi-x-lg" aria-hidden="true"></i><span>Reddet</span></summary>
-                                        <form method="post" action="@redUrl">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="id" value="@s.Id" />
-                                            <label for="red-gerekce-@(panel)-@(durum)-@(s.Id)">Red gerekçesi</label>
-                                            <input class="df-control" id="red-gerekce-@(panel)-@(durum)-@(s.Id)" type="text" name="gerekce" required maxlength="500" />
-                                            <button type="submit" class="df-approval-action is-reject is-confirm"><i class="bi bi-check2" aria-hidden="true"></i><span>Reddi Kaydet</span></button>
-                                        </form>
-                                    </details>
-                            }
-                            else if (durum == "suresi-dolan")
-                            {
-                                <span class="df-cell-sub">Karar verilemez</span>
-                            }
-                            else
-                            {
-                                <div class="df-approval-decision"><strong>@(s.OnaylayanKullanici ?? "Sistem")</strong></div>
-                            }
+                                    else if (durum == "suresi-dolan")
+                                    {
+                                        <span class="df-cell-sub">Karar verilemez</span>
+                                    }
+                                    else
+                                    {
+                                        <div class="df-approval-decision"><strong>@(s.OnaylayanKullanici ?? "Sistem")</strong></div>
+                                    }
+                                </div>
+                                <button type="button" class="df-approval-expand" data-approval-expand aria-controls="@detailId" aria-expanded="false" aria-label="@firmaAdi ayrıntılarını aç" title="Satır ayrıntılarını aç"><i class="bi bi-chevron-down" aria-hidden="true"></i></button>
                             </div>
                         </td>
                     </tr>

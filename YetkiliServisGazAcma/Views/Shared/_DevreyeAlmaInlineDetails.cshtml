@@ -14,11 +14,9 @@
         : adminPaneli
             ? Url.Action("DevreyeAlmaExcel", "AdminPanel", new { id = Model.Id })
             : Url.Action("DevreyeAlmaExcel", "PersonelPanel", new { id = Model.Id });
-    var detay = servisPaneli
-        ? Url.Action("Detay", "DevreyeAlma", new { id = Model.Id })
-        : adminPaneli
-            ? Url.Action("DevreyeAlmaDetay", "AdminPanel", new { id = Model.Id })
-            : Url.Action("DevreyeAlmaDetay", "PersonelPanel", new { id = Model.Id });
+    var detay = adminPaneli
+        ? Url.Action("DevreyeAlmaDetay", "AdminPanel", new { id = Model.Id })
+        : Url.Action("DevreyeAlmaDetay", "PersonelPanel", new { id = Model.Id });
     var adresVar = !string.IsNullOrWhiteSpace(Model.Adres);
     var cihazDetayVar = !string.IsNullOrWhiteSpace(Model.SeriNo) || !string.IsNullOrWhiteSpace(Model.CihazKapasite);
     var belgeVar = !string.IsNullOrWhiteSpace(Model.UygunlukBelgeNo)
@@ -90,7 +88,10 @@
                     <span>Kayıt #@Model.Id</span>
                 </div>
                 <div class="df-actions">
-                    <a class="df-btn df-btn-sm df-btn-secondary" href="@detay"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> Kayıt Detayı</a>
+                    @if (!servisPaneli)
+                    {
+                        <a class="df-btn df-btn-sm df-btn-secondary" href="@detay"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> Kayıt Detayı</a>
+                    }
                     <a class="df-btn df-btn-sm df-commissioning-export is-pdf" href="@pdf" target="_blank" rel="noopener"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF</a>
                     <a class="df-btn df-btn-sm df-commissioning-export is-excel" href="@excel" target="_blank" rel="noopener"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel</a>
                 </div>

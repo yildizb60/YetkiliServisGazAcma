@@ -39,13 +39,36 @@ BEGIN TRY
 
     IF @SofbenId IS NOT NULL
     BEGIN
+        -- Eski ve yeni adla bagli firmalarda tek etkin hizmet baglantisi birak.
+        ;WITH SiraliBaglar AS (
+            SELECT bag.Id,
+                ROW_NUMBER() OVER (
+                    PARTITION BY bag.FirmaId
+                    ORDER BY CASE WHEN bag.KategoriId = @SofbenId THEN 0 ELSE 1 END, bag.Id
+                ) AS SiraNo
+            FROM dbo.Ys_FirmaKategoriler AS bag
+            INNER JOIN dbo.Ys_UrunKategoriler AS kategori ON kategori.Id = bag.KategoriId
+            WHERE bag.SilindiMi = 0
+              AND (bag.KategoriId = @SofbenId OR kategori.Ad = N'Şofbenler')
+        )
+        UPDATE bag
+        SET SilindiMi = 1,
+            SilinmeTarihi = GETDATE(),
+            SilenKullanici = N'hizmet-turu-script',
+            GuncellemeTarihi = GETDATE(),
+            GuncelleyenKullanici = N'hizmet-turu-script'
+        FROM dbo.Ys_FirmaKategoriler AS bag
+        INNER JOIN SiraliBaglar AS sirali ON sirali.Id = bag.Id
+        WHERE sirali.SiraNo > 1;
+
         UPDATE bag
         SET KategoriId = @SofbenId,
             GuncellemeTarihi = GETDATE(),
             GuncelleyenKullanici = N'hizmet-turu-script'
         FROM dbo.Ys_FirmaKategoriler AS bag
         INNER JOIN dbo.Ys_UrunKategoriler AS kategori ON kategori.Id = bag.KategoriId
-        WHERE kategori.Ad = N'Şofbenler';
+        WHERE kategori.Ad = N'Şofbenler'
+          AND bag.SilindiMi = 0;
     END;
 
     IF EXISTS (

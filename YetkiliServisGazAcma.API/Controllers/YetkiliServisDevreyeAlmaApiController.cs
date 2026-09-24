@@ -376,7 +376,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return Ok(new YsMarkaKontrolSonucDto { Yetkili = false, Mesaj = "Ilk kurulum tamamlanmadan islem yapilamaz." });
 
             if (string.IsNullOrWhiteSpace(dto?.CihazMarka))
-                return Ok(new YsMarkaKontrolSonucDto { Yetkili = false, Mesaj = "Servisten gelen cihaz marka bilgisi bulunamadi." });
+                return Ok(new YsMarkaKontrolSonucDto { Yetkili = false, Mesaj = "Servis bu cihaz için marka bilgisi döndürmedi. Kaynak kayıt düzeltilmeden devreye alma kaydedilemez." });
 
             var marka = await MarkaBulAsync(dto.CihazMarka);
             if (marka == null)
@@ -384,13 +384,13 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return Ok(new YsMarkaKontrolSonucDto
                 {
                     Yetkili = false,
-                    Mesaj = $"Servisten gelen '{dto.CihazMarka}' markasi sistem markalari ile eslesmedi."
+                    Mesaj = $"{dto.CihazMarka} markası sistemde kayıtlı değil. Yetkili yöneticinizin markayı ve firma yetkisini tanımlaması gerekir."
                 });
             }
 
             var yetkiVar = await FirmaMarkaYetkisiVarAsync(kullanici.FirmaId.Value, marka.Id);
             if (!yetkiVar)
-                return Ok(new YsMarkaKontrolSonucDto { Yetkili = false, Mesaj = "Bu marka icin yetkiniz bulunmamaktadir!" });
+                return Ok(new YsMarkaKontrolSonucDto { Yetkili = false, Mesaj = "Bu marka için firmanızın yetkisi bulunmuyor. Yetki kaydınızı kontrol ettirin." });
 
             return Ok(new YsMarkaKontrolSonucDto
             {

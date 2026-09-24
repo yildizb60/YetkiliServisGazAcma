@@ -36,4 +36,13 @@
             setRecordState(record, willOpen);
         });
     });
+
+    const linkedDetail = document.getElementById(window.location.hash.slice(1));
+    if (linkedDetail?.matches(".df-commissioning-detail-row")) {
+        const record = records.find(item => item.querySelector("[data-commissioning-expand]")?.getAttribute("aria-controls") === linkedDetail.id);
+        if (record) {
+            setRecordState(record, true);
+            record.scrollIntoView({ block: "nearest" });
+        }
+    }
 })();

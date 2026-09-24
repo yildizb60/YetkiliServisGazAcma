@@ -50,7 +50,7 @@
             <legend class="visually-hidden">Devreye alma kayıt bilgileri</legend>
             <div class="ykc-device-entry-layout">
                 <section class="ykc-source-device" aria-labelledby="ys-source-title">
-                    <header><div><span class="ykc-request-section-icon"><i class="bi bi-person-vcard" aria-hidden="true"></i></span><h2 id="ys-source-title">Müşteri ve Tesisat</h2></div><span class="df-pill df-pill-success" id="b-durum"></span></header>
+                    <header><div><span class="ykc-request-section-icon"><i class="bi bi-person-vcard" aria-hidden="true"></i></span><h2 id="ys-source-title">Müşteri ve Tesisat</h2><span class="df-pill df-pill-success" id="b-durum"></span></div></header>
                     <dl class="ykc-request-customer ys-source-facts">
                         <div><dt>Müşteri Adı</dt><dd id="b-musteriAdi">-</dd></div>
                         <div><dt>Telefon</dt><dd id="b-musteriTelefon">-</dd></div>
@@ -67,7 +67,7 @@
 
                 <section class="ykc-new-device" aria-labelledby="ys-entry-title">
                     <header><div><span class="ykc-request-section-icon is-green"><i class="bi bi-clipboard2-check" aria-hidden="true"></i></span><h2 id="ys-entry-title">Devreye Alma Bilgileri</h2></div></header>
-                    <div id="ysDevicePending" class="ys-device-entry-pending"><i class="bi bi-hand-index-thumb" aria-hidden="true"></i><span><strong>Projedeki cihazı seçin</strong><small>Seçimin ardından kayıt alanları burada açılır.</small></span></div>
+                    <div id="ysDevicePending" class="ys-device-entry-pending" aria-live="polite" aria-atomic="true"><i class="bi bi-hand-index-thumb" aria-hidden="true"></i><span><strong>Projedeki cihazı seçin</strong><small>Seçimin ardından kayıt alanları burada açılır.</small></span></div>
                     <fieldset id="formKart" class="ys-commissioning-form" hidden disabled>
                         <legend class="visually-hidden">Cihaz ve teknisyen bilgileri</legend>
                         <div class="ys-commissioning-form-grid">
@@ -97,6 +97,7 @@
     let seciliMarkaAdi = "";
     let servisCihazlari = [];
     let seciliServisCihazIndex = -1;
+    let markaKontrolSirasi = 0;
 
     const islemHatasi = (mesaj, alan) => {
         window.operationToast?.error(mesaj, 6000);
@@ -112,6 +113,7 @@
     }
 
     function temizleSonrakiAdimlar() {
+        markaKontrolSirasi++;
         const sonuc = document.getElementById("musteriBilgiKart");
         if (sonuc) { sonuc.hidden = true; sonuc.disabled = true; }
         document.getElementById("ysCommissioningPending").hidden = false;
@@ -122,6 +124,26 @@
         seciliMarkaAdi = "";
         servisCihazlari = [];
         seciliServisCihazIndex = -1;
+        cihazUyarisiSifirla();
+    }
+
+    function cihazUyarisiSifirla() {
+        const pending = document.getElementById("ysDevicePending");
+        pending.classList.remove("is-warning");
+        pending.querySelector("i").className = "bi bi-hand-index-thumb";
+        pending.querySelector("strong").textContent = "Projedeki cihazı seçin";
+        pending.querySelector("small").textContent = "Seçimin ardından kayıt alanları burada açılır.";
+        document.querySelectorAll(".ys-commissioning-device-option.is-unavailable").forEach(button => button.classList.remove("is-unavailable"));
+    }
+
+    function cihazUyarisiGoster(index, mesaj) {
+        secimleriTemizle();
+        const pending = document.getElementById("ysDevicePending");
+        pending.classList.add("is-warning");
+        pending.querySelector("i").className = "bi bi-exclamation-triangle";
+        pending.querySelector("strong").textContent = "Bu cihazla devam edilemiyor";
+        pending.querySelector("small").textContent = mesaj;
+        document.querySelectorAll(".ys-commissioning-device-option")[index]?.classList.add("is-unavailable");
     }
 
     function cihazAlanlariniTemizle() {
@@ -132,6 +154,7 @@
     }
 
     function secimleriTemizle() {
+        markaKontrolSirasi++;
         seciliMarkaId = 0;
         seciliMarkaAdi = "";
         seciliServisCihazIndex = -1;
@@ -227,8 +250,14 @@
         if (!cihaz) return;
         if (seciliServisCihazIndex === index) { secimleriTemizle(); return; }
 
+        cihazUyarisiSifirla();
+        const kontrolSirasi = ++markaKontrolSirasi;
         seciliServisCihazIndex = index;
         document.querySelectorAll(".ys-commissioning-device-option").forEach((button, buttonIndex) => button.classList.toggle("is-selected", buttonIndex === index));
+        if (!cihaz.cihazMarka?.trim()) {
+            cihazUyarisiGoster(index, "Servis bu cihaz için marka bilgisi döndürmedi. Kaynak kayıt düzeltilmeden devreye alma kaydedilemez.");
+            return;
+        }
         const tipSelect = document.getElementById("cihazTipi");
         if (cihaz.cihazTipi) {
             const secenek = Array.from(tipSelect.options).find(option => option.value.toLocaleLowerCase("tr-TR") === cihaz.cihazTipi.toLocaleLowerCase("tr-TR"));
@@ -237,10 +266,10 @@
         document.getElementById("cihazKapasite").value = cihaz.cihazKapasite || "";
         document.getElementById("cihazModeli").value = cihaz.cihazModeli || "";
         document.getElementById("f-cihazMarka").value = cihaz.cihazMarka || "";
-        await markaKontrolEt(cihaz);
+        await markaKontrolEt(cihaz, index, kontrolSirasi);
     }
 
-    async function markaKontrolEt(cihaz) {
+    async function markaKontrolEt(cihaz, index, kontrolSirasi) {
         const tesistatNo = (document.getElementById("f-tesistatNo")?.value || "").trim();
         if (!tesistatNo) { islemHatasi("Önce tesisat sorgulaması yapılmalıdır.", document.getElementById("tesistatNo")); return; }
         try {
@@ -249,9 +278,11 @@
                 headers: { "Content-Type": "application/json", "RequestVerificationToken": antiForgeryToken },
                 body: JSON.stringify({ cihazMarka: cihaz?.cihazMarka || "" })
             });
+            if (kontrolSirasi !== markaKontrolSirasi) return;
             if (!response.ok) { islemHatasi("Marka yetkisi kontrol edilemedi."); return; }
             const data = await response.json();
-            if (!data.yetkili) { secimleriTemizle(); islemHatasi(data.mesaj || "Bu marka için yetkiniz bulunmuyor."); return; }
+            if (kontrolSirasi !== markaKontrolSirasi) return;
+            if (!data.yetkili) { cihazUyarisiGoster(index, data.mesaj || "Bu marka için firmanızın yetkisi bulunmuyor."); return; }
 
             seciliMarkaId = data.markaId || 0;
             seciliMarkaAdi = data.markaAdi || cihaz?.cihazMarka || "";
@@ -263,7 +294,7 @@
             document.getElementById("formKart").disabled = false;
             document.getElementById("cihazModeli")?.focus({ preventScroll: true });
         } catch {
-            islemHatasi("Bağlantı kurulamadı. Lütfen yeniden deneyin.");
+            if (kontrolSirasi === markaKontrolSirasi) islemHatasi("Bağlantı kurulamadı. Lütfen yeniden deneyin.");
         }
     }
 

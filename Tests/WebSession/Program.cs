@@ -11,6 +11,7 @@ CheckRole(CepTelefonuKurali.GecerliMi("905551234567"), "international mobile num
 CheckRole(!CepTelefonuKurali.GecerliMi(null), "missing phone cannot create an SMS login account");
 CheckRole(!CepTelefonuKurali.GecerliMi("03645551234"), "landline cannot be used for SMS login");
 CheckRole(!CepTelefonuKurali.GecerliMi("0555abc1234567"), "letters are not accepted in a mobile number");
+CheckRole(!CepTelefonuKurali.GecerliMi("٠٥٥٥١٢٣٤٥٦٧"), "non-ASCII digits are not accepted in a mobile number");
 CheckRole(KullaniciRolTutarlilikKurali.FirmaRolleriUyumlu(
     KullaniciTipiDegerleri.SertifikaliFirma, [KullaniciRolAdlari.SertifikaliFirma]),
     "certified firm role matches its user type");

@@ -4315,7 +4315,7 @@
 .ykc-firm-history-panel > summary:focus-visible { outline:2px solid #315ac3; outline-offset:4px; }
 .ykc-firm-demo-note { margin:8px 0 0; font-size:11px; color:#797248; }
 .ykc-staff-record-body { display:grid; grid-template-columns:minmax(0,1fr) minmax(400px,.82fr); grid-template-areas:"info actions"; border-top:1px solid #dce5ec; }
-.ykc-detail-page:has(> .ykc-staff-record) { padding-bottom:0; }
+.ykc-detail-page:has(> .ykc-firm-record) { padding-bottom:0; }
 .content:has(> .ykc-detail-page > .ykc-staff-record) { padding-bottom:20px; }
 .ykc-staff-record .ykc-firm-record-head { padding:10px 16px; }
 .ykc-staff-identity-fields { display:grid; align-items:start; gap:3px; margin-top:4px; }
@@ -4349,14 +4349,22 @@
 .ykc-detail-page.is-streamlined .ykc-staff-record .ykc-assignment-region small { display:inline; white-space:nowrap; }
 .ykc-detail-page.is-streamlined .ykc-staff-record .ykc-assignment-region strong { margin:0; }
 .ykc-detail-page .ykc-staff-record { border-top-color:#315ac3; box-shadow:0 8px 24px rgba(36,59,77,.07); }
-.ykc-detail-page .ykc-staff-record .ykc-firm-record-head { background:#f3f7ff; }
+.ykc-detail-page .ykc-staff-record .ykc-firm-record-head { background:linear-gradient(110deg,#f9fbfd,#f3f8f6); }
 .ykc-detail-page .ykc-staff-record .ykc-firm-record-number { color:#315ac3; font-weight:700; }
 .ykc-detail-page .ykc-staff-record .ykc-firm-record-head h1 { color:#183a54; }
-.ykc-detail-page.is-streamlined .ykc-staff-record .ykc-focus-section { background:#eef5ff; border-left-color:#c4d7ef; }
+.ykc-detail-page.is-streamlined .ykc-staff-record .ykc-focus-section { background:#f5faf8; border-left-color:#cee4dc; }
 .ykc-detail-page .ykc-staff-record .ykc-focus-icon { color:#fff; background:#315ac3; border-color:#315ac3; }
 .ykc-detail-page .ykc-staff-record .ykc-firm-data-section h2 > i { color:#187f61; }
 .ykc-detail-page .ykc-staff-record .ykc-assignment-region { color:#254b5d; background:#ecf8f3; border-color:#c9e7d8; }
 .ykc-detail-page .ykc-staff-record .ykc-assignment-region > i { color:#187f61; }
+.ykc-staff-data #staff-company .ykc-firm-data-grid { grid-template-columns:repeat(6,minmax(0,1fr)); column-gap:20px; }
+.ykc-staff-data #staff-company .ykc-firm-data-grid > div { min-width:0; padding:10px 0; border-bottom:1px solid #e2eaf0; }
+.ykc-staff-data #staff-company .ykc-firm-data-grid dt { color:#607989; font-weight:600; }
+.ykc-staff-data #staff-company .ykc-firm-data-grid dd { color:#203e53; font-size:13px; font-weight:650; line-height:1.4; }
+.ykc-staff-data #staff-company .ykc-firm-data-grid > div:nth-child(-n+2) dd { font-size:15px; font-weight:700; }
+.ykc-staff-data #staff-company .ykc-firm-data-grid > div:nth-child(-n+2) { grid-column:span 3; }
+.ykc-staff-data #staff-company .ykc-firm-data-grid > div:nth-child(n+3):nth-child(-n+5) { grid-column:span 2; }
+.ykc-staff-data #staff-company .ykc-firm-data-grid > div:nth-child(n+6) { grid-column:span 3; }
 .ykc-staff-record .ykc-assignment-form textarea { height:40px; min-height:40px; }
 .ykc-detail-page.is-streamlined .ykc-staff-record .ykc-focus-section:has(.ykc-assignment-disclosure) { padding-bottom:8px; }
 .ykc-staff-record .ykc-focus-section:has(.ykc-assignment-disclosure) .ykc-other-actions { margin-top:8px; padding-top:5px; }
@@ -4408,6 +4416,15 @@
 .ykc-staff-record .ykc-control-active .ykc-form-actions .df-btn { width:100%; }
 @media(max-width:1100px) { .ykc-staff-record-body { grid-template-columns:minmax(0,1fr) 360px; } }
 @media(max-width:800px) { .ykc-staff-record-body { grid-template-columns:1fr; grid-template-areas:"actions" "info"; } .ykc-detail-page.is-streamlined .ykc-staff-record .ykc-focus-section { border-left:0; border-bottom:1px solid #dce5ec; } }
+@media(max-width:700px) {
+    .ykc-staff-data #staff-company .ykc-firm-data-grid { grid-template-columns:repeat(2,minmax(0,1fr)); column-gap:12px; }
+    .ykc-staff-data #staff-company .ykc-firm-data-grid > div:nth-child(n):nth-child(n) { grid-column:auto; }
+    .ykc-staff-data #staff-company .ykc-firm-data-grid > div:nth-child(-n+2):nth-child(n) { grid-column:1 / -1; }
+}
+@media(max-width:420px) {
+    .ykc-staff-data #staff-company .ykc-firm-data-grid { grid-template-columns:minmax(0,1fr); }
+    .ykc-staff-data #staff-company .ykc-firm-data-grid > div:nth-child(n):nth-child(n) { grid-column:1; }
+}
 .ykc-firm-control-result { display:flex; align-items:center; flex-wrap:wrap; gap:10px; font-size:12px; padding:8px 0; }
 .ykc-firm-control-result strong { font-weight:500; }
 .ykc-firm-control-result p { width:100%; margin:0; color:#9a4949; }
@@ -4436,3 +4453,35 @@
     .ykc-detail-page.is-streamlined .ykc-process-line { overflow-x: auto; justify-content: flex-start; }
     .ykc-operation-toast { top: 64px; right: 12px; }
 }
+
+/* Sertifikali firma detayinda yerlesimi koruyup panel renklerini guclendirir. */
+.ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) {
+    border-color: #d4e0e8;
+    border-top-color: #315ac3;
+    box-shadow: 0 9px 24px rgba(20, 50, 69, .11);
+}
+
+.ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-record-head {
+    background: repeating-linear-gradient(135deg, rgba(49, 90, 195, .04) 0 1px, transparent 1px 14px), linear-gradient(110deg, #f3f8fc, #e8f3f1);
+    box-shadow: inset 0 -1px #cddfe8, 0 6px 16px rgba(24, 62, 81, .08);
+}
+
+.ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-record-number { color: #315ac3; }
+.ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-record-head h1 { color: #20394a; }
+.ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-record-head p { color: #587084; }
+.ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-control-status {
+    background: #e8f5ed;
+    border-color: #b8dfc9;
+    box-shadow: inset 4px 0 #187f61;
+}
+
+.ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-record-activity {
+    background: #f3f7fa;
+    border-color: #d8e3eb;
+}
+
+.ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-data-section h2 { color: #20394a; }
+.ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-data-section dt { color: #576f80; }
+.ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-data-section dd { color: #20394a; }
+.ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-record-data .ykc-firm-data-section:nth-child(3) h2 > i { color: #b94740; }
+.ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-record-activity .ykc-firm-data-section:first-child h2 > i { color: #16869d; }

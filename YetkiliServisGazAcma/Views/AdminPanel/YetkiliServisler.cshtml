@@ -8,7 +8,6 @@
 
     var servisler = ViewBag.YetkiliServisler as List<Ys_Firma> ?? new List<Ys_Firma>();
     var sehirler = ViewBag.Sehirler as List<string> ?? new List<string>();
-    var devreyeSayilari = ViewBag.DevreyeSayilari as Dictionary<int, int> ?? new Dictionary<int, int>();
     var seciliQ = ViewBag.SeciliQ as string ?? "";
     var seciliIl = ViewBag.SeciliIl as string ?? "";
     var seciliDurum = ViewBag.SeciliDurum is int d ? d : (int?)null;
@@ -17,9 +16,11 @@
         || !string.IsNullOrWhiteSpace(seciliIl)
         || seciliDurum.HasValue
         || !string.IsNullOrWhiteSpace(seciliDevreyeSiralama);
+    ViewData["ServiceDirectoryAdmin"] = true;
+    ViewData["ServiceDirectoryCanManage"] = true;
 }
 
-<div class="df-service-directory">
+<div class="df-service-directory df-service-directory--detailed">
     <details class="df-service-filter" open="@(filtreAktif ? "open" : null)">
         <summary>
             <span><i class="bi bi-funnel" aria-hidden="true"></i><strong>Filtreler</strong><small>Firma, şehir, durum veya işlem sayısına göre listeyi daraltın.</small></span>
@@ -81,107 +82,7 @@
                 </a>
             </div>
         </div>
-        <div class="df-service-table-scroll">
-            <div class="df-service-grid df-service-grid-head">
-                <div>Yetkili Servis</div><div>İletişim</div><div>Şehir</div><div>Cihaz Devreye Alma</div><div>Durum</div><div class="df-service-grid-actions-heading">İşlemler</div>
-            </div>
-            @if (servisler.Count == 0)
-            {
-                <div class="df-empty">
-                    <div class="df-empty-title">Yetkili servis kaydı bulunamadı.</div>
-                    <p class="df-empty-text">Filtreleri temizleyip yeniden deneyin.</p>
-                </div>
-            }
-            else
-            {
-                <div class="df-service-records">
-                    @foreach (var servis in servisler)
-                    {
-                        var devreyeSayisi = devreyeSayilari.TryGetValue(servis.Id, out var sayi) ? sayi : 0;
-                        var detayId = $"servis-detay-{servis.Id}";
-                        <article class="df-service-record @(servis.AktifMi ? "is-active" : "is-passive")" data-service-record>
-                            <div class="df-service-grid df-service-row">
-                                <div>
-                                    <span class="df-service-name">@(servis.FirmaAdi ?? "-")</span>
-                                    <small>@(string.IsNullOrWhiteSpace(servis.YetkiliKisi) ? "Yetkili kişi tanımlı değil" : servis.YetkiliKisi)</small>
-                                </div>
-                                <div class="df-service-contact">
-                                    <span>@(string.IsNullOrWhiteSpace(servis.Telefon) ? "Telefon tanımlı değil" : servis.Telefon)</span>
-                                    <small>@(string.IsNullOrWhiteSpace(servis.Email) ? "E-posta tanımlı değil" : servis.Email)</small>
-                                </div>
-                                <div class="df-service-city"><i class="bi bi-geo-alt" aria-hidden="true"></i><span>@(servis.FaaliyetIli ?? "-")</span></div>
-                                <div><span class="df-service-count" title="Devreye alma kaydı" aria-label="@devreyeSayisi cihaz devreye alma kaydı">@devreyeSayisi</span></div>
-                                <div><span class="df-pill @(servis.AktifMi ? "df-pill-success" : "df-pill-danger")">@(servis.AktifMi ? "Aktif" : "Pasif")</span></div>
-                                <div class="df-service-actions">
-                                    <a class="df-directory-action js-service-sheet-trigger"
-                                       href="/AdminPanel/yetkiliservisler/duzenle/@servis.Id"
-                                       data-sheet-url="/AdminPanel/yetkiliservisler/duzenle/@servis.Id"
-                                       data-sheet-title="Yetkili Servisi Düzenle"
-                                       title="Servisi düzenle"
-                                       aria-label="@(servis.FirmaAdi ?? "Yetkili servis") kaydını düzenle">
-                                        <i class="bi bi-pencil" aria-hidden="true"></i>
-                                    </a>
-                                    @if (devreyeSayisi > 0)
-                                    {
-                                        <button type="button" class="df-directory-action is-disabled" disabled title="Bu servisin devreye alma kaydı olduğu için silinemez." aria-label="Servis silinemez">
-                                            <i class="bi bi-lock" aria-hidden="true"></i>
-                                        </button>
-                                    }
-                                    else
-                                    {
-                                        <form method="post" action="/AdminPanel/yetkiliservisler/sil/@servis.Id" data-toast-confirm data-confirm-title="Yetkili servisi sil" data-confirm-message="@servis.FirmaAdi adlı servis silinecek. Bu işlem geri alınamaz." data-confirm-action="Servisi Sil">
-                                            @Html.AntiForgeryToken()
-                                            <button type="submit" class="df-directory-action is-danger" title="Servisi sil" aria-label="@(servis.FirmaAdi ?? "Yetkili servis") kaydını sil">
-                                                <i class="bi bi-trash3" aria-hidden="true"></i>
-                                            </button>
-                                        </form>
-                                    }
-                                    <button type="button"
-                                            class="df-directory-action df-service-expand"
-                                            data-service-expand
-                                            aria-expanded="false"
-                                            aria-controls="@detayId"
-                                            title="Satır ayrıntılarını aç">
-                                        <i class="bi bi-chevron-down" aria-hidden="true"></i>
-                                        <span class="visually-hidden">Satır ayrıntılarını aç</span>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div class="df-service-record-detail" id="@detayId" aria-hidden="true">
-                                <div class="df-service-record-detail-inner">
-                                    <div class="df-service-detail-grid">
-                                        <div>
-                                            <span>Telefon</span>
-                                            <strong>@(string.IsNullOrWhiteSpace(servis.Telefon) ? "Tanımlı değil" : servis.Telefon)</strong>
-                                        </div>
-                                        <div>
-                                            <span>E-posta</span>
-                                            <strong>@(string.IsNullOrWhiteSpace(servis.Email) ? "Tanımlı değil" : servis.Email)</strong>
-                                        </div>
-                                        <div>
-                                            <span>Vergi bilgisi</span>
-                                            <strong>@(string.IsNullOrWhiteSpace(servis.VergiNo) ? "Numara tanımlı değil" : servis.VergiNo)</strong>
-                                            <small>@(string.IsNullOrWhiteSpace(servis.VergiDairesi) ? "Vergi dairesi tanımlı değil" : servis.VergiDairesi)</small>
-                                        </div>
-                                        <div class="is-wide">
-                                            <span>Adres</span>
-                                            <strong>@(string.IsNullOrWhiteSpace(servis.Adres) ? "Adres tanımlı değil" : servis.Adres)</strong>
-                                        </div>
-                                    </div>
-                                    <div class="df-service-detail-footer">
-                                        <span><i class="bi bi-wrench-adjustable-circle" aria-hidden="true"></i> @devreyeSayisi devreye alma kaydı</span>
-                                        <a class="df-btn df-btn-secondary df-btn-sm" href="/AdminPanel/yetkiliservisler/detay/@servis.Id">
-                                            Tüm ayrıntılar <i class="bi bi-arrow-right" aria-hidden="true"></i>
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        </article>
-                    }
-                </div>
-            }
-        </div>
+        <partial name="_YetkiliServisKayitlari" model="servisler" />
     </section>
 </div>
 
@@ -223,6 +124,7 @@
             toggle.setAttribute("title", "Satır ayrıntılarını aç");
             toggle.querySelector(".visually-hidden").textContent = "Satır ayrıntılarını aç";
             detail.setAttribute("aria-hidden", "true");
+            detail.hidden = true;
         }
 
         records.forEach(function (record) {
@@ -242,7 +144,9 @@
                 toggle.setAttribute("aria-expanded", "true");
                 toggle.setAttribute("title", "Satır ayrıntılarını kapat");
                 toggle.querySelector(".visually-hidden").textContent = "Satır ayrıntılarını kapat";
-                record.querySelector(".df-service-record-detail").setAttribute("aria-hidden", "false");
+                var detail = record.querySelector(".df-service-record-detail");
+                detail.hidden = false;
+                detail.setAttribute("aria-hidden", "false");
             });
         });
 

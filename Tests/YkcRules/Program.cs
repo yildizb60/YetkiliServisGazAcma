@@ -72,6 +72,17 @@ approvalDocument.Durum = YetkiBelgesiDurumDegerleri.OnaydaBekliyor;
 approvalDocument.SilindiMi = true;
 Check(!YetkiBelgesiService.OnaylanabilirMi(approvalDocument, approvalDay), "Deleted certificate cannot be approved");
 
+var deletableDocument = new Ys_YetkiBelgesi { Durum = YetkiBelgesiDurumDegerleri.OnaydaBekliyor };
+Check(YetkiBelgesiService.SilinebilirMi(deletableDocument), "Pending certificate can be deleted");
+deletableDocument.Durum = YetkiBelgesiDurumDegerleri.Reddedildi;
+Check(YetkiBelgesiService.SilinebilirMi(deletableDocument), "Rejected certificate can be deleted");
+deletableDocument.Durum = YetkiBelgesiDurumDegerleri.Onaylandi;
+Check(!YetkiBelgesiService.SilinebilirMi(deletableDocument), "Approved certificate cannot be deleted");
+deletableDocument.Durum = YetkiBelgesiDurumDegerleri.OnaydaBekliyor;
+deletableDocument.SilindiMi = true;
+Check(!YetkiBelgesiService.SilinebilirMi(deletableDocument), "Deleted certificate cannot be deleted again");
+Check(!YetkiBelgesiService.SilinebilirMi(null), "Missing certificate cannot be deleted");
+
 using var snapshots = new YkcSorguKaydiService();
 var reference = snapshots.Ekle("firm-a", new YkcTalepKaydetDto {
     TesisatNo = "100", SozlesmeNo = "200", FirmaId = 7, SirketId = 3,

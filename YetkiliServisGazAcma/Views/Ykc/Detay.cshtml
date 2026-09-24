@@ -135,7 +135,7 @@
     {
         YkcDurumDegerleri.TalepAlindi => "Talebi incelemeye alın",
         YkcDurumDegerleri.AtamaBekliyor => "Randevu ve yönlendirmeyi planlayın",
-        YkcDurumDegerleri.Atandi => "Randevu sonucunu kaydedin",
+        YkcDurumDegerleri.Atandi => "Randevuyu yönetin",
         YkcDurumDegerleri.SahaIsleminde => "Form ve imza işlemlerini tamamlayın",
         YkcDurumDegerleri.Tamamlandi => "Talep tamamlandı",
         YkcDurumDegerleri.Reddedildi => "Talep reddedildi",
@@ -722,6 +722,12 @@
             const time = document.getElementById('randevuSaati');
             const route = document.getElementById('ykcRoute');
             const team = document.getElementById('ykcTeam');
+            const pastAppointmentMessage = 'Geçmiş tarih veya saat için randevu kaydedilemez.';
+            date?.addEventListener('invalid', event => {
+                if (!date.validity.rangeUnderflow) return;
+                event.preventDefault();
+                window.operationToast?.error(pastAppointmentMessage);
+            });
             team?.addEventListener('change', () => {
                 const selected = team.selectedOptions[0];
                 if (selected?.dataset.route) route.value = selected.dataset.route;
@@ -742,8 +748,7 @@
                     const selected = new Date(date.value + 'T' + time.value);
                     if (!Number.isNaN(selected.valueOf()) && selected < new Date()) {
                         event.preventDefault();
-                        alert('Geçmiş tarih veya saat için randevu kaydedilemez.');
-                        date.focus();
+                        window.operationToast?.error(pastAppointmentMessage);
                     }
                 });
             });

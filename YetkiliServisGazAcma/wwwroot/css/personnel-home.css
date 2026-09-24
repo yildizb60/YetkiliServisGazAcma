@@ -1143,6 +1143,41 @@
     box-sizing: border-box;
 }
 
+.personnel-calendar-surface .is-authorized-service-calendar .home-visit-list {
+    scrollbar-gutter: auto;
+}
+
+.personnel-calendar-surface .is-authorized-service-calendar .home-visit {
+    padding-block: 5px;
+}
+
+.personnel-calendar-surface .is-authorized-service-calendar .home-visit-person {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 2px 6px;
+}
+
+.personnel-calendar-surface .is-authorized-service-calendar .home-visit-person > strong {
+    grid-column: 1;
+    align-self: center;
+}
+
+.personnel-calendar-surface .is-authorized-service-calendar .home-visit-tags {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+}
+
+.personnel-calendar-surface .is-authorized-service-calendar .home-visit-tags > .df-pill {
+    max-width: none;
+    min-height: 18px;
+    padding: 2px 5px;
+}
+
+.personnel-calendar-surface .is-authorized-service-calendar .home-visit-meta,
+.personnel-calendar-surface .is-authorized-service-calendar .home-visit-person > small {
+    grid-column: 1 / -1;
+}
+
 .personnel-calendar-surface .home-visit,
 .personnel-calendar-surface .home-calendar.is-firm-calendar .home-visit {
     position: relative;

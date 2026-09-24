@@ -7,7 +7,7 @@
     ViewData["ActiveMenu"] = "DevreyeGecmis";
     ViewData["PanelArea"] = "YetkiliServis";
     ViewData["DevreyeAlmaAlan"] = "/ys-devreyeal";
-    ViewData["DevreyeAlmaColspan"] = 6;
+    ViewData["DevreyeAlmaColspan"] = 7;
     var markaList = ViewBag.MarkaList as List<string> ?? new List<string>();
     string seciliMarka = ViewBag.SeciliMarka as string ?? "";
     string seciliBas = ViewBag.SeciliBas as string ?? "";
@@ -21,32 +21,9 @@
         || !string.IsNullOrWhiteSpace(seciliMusteri)
         || !string.IsNullOrWhiteSpace(seciliTesisat)
         || !string.IsNullOrWhiteSpace(seciliDurum);
-    int toplam = Sayi(ViewBag.Toplam);
-    int tamamlanan = Sayi(ViewBag.Tamamlanan);
-    if (toplam == 0 && !filtreAktif)
-        toplam = Model.Count;
-
-    string ListeUrl(string? durum)
-    {
-        return Url.Action("Gecmis", "DevreyeAlma", new
-        {
-            marka = string.IsNullOrWhiteSpace(seciliMarka) ? null : seciliMarka,
-            tesisat = string.IsNullOrWhiteSpace(seciliTesisat) ? null : seciliTesisat,
-            musteri = string.IsNullOrWhiteSpace(seciliMusteri) ? null : seciliMusteri,
-            bas = string.IsNullOrWhiteSpace(seciliBas) ? null : seciliBas,
-            bit = string.IsNullOrWhiteSpace(seciliBit) ? null : seciliBit,
-            durum
-        })!;
-    }
 }
 
 @functions {
-    private static int Sayi(object? value)
-    {
-        if (value is int sayi) return Math.Max(sayi, 0);
-        return int.TryParse(value?.ToString(), out var sonuc) ? Math.Max(sonuc, 0) : 0;
-    }
-
     private static string? Secili(bool kosul) => kosul ? "selected" : null;
 }
 
@@ -57,10 +34,9 @@
 
 <div class="df-admin-workspace df-operations-directory">
     <section class="df-admin-list-card">
-        <div class="ys-certificate-summary df-history-status-bar" role="group" aria-label="Devreye alma özeti ve yeni kayıt">
-            <a href="@ListeUrl(null)" aria-pressed="@(string.IsNullOrWhiteSpace(seciliDurum) ? "true" : "false")"><i class="bi bi-collection" aria-hidden="true"></i><span>Toplam</span><strong>@toplam</strong></a>
-            <a href="@ListeUrl("tamamlandi")" aria-pressed="@(string.Equals(seciliDurum, "tamamlandi", StringComparison.OrdinalIgnoreCase) ? "true" : "false")"><i class="bi bi-check2-circle" aria-hidden="true"></i><span>Tamamlanan</span><strong>@tamamlanan</strong></a>
-            <a class="is-create-action" href="@Url.Action("Index", "DevreyeAlma")"><i class="bi bi-plus-lg" aria-hidden="true"></i><span>Yeni Kayıt</span><strong aria-hidden="true"><i class="bi bi-arrow-right"></i></strong></a>
+        <div class="df-commissioning-history-toolbar">
+            <span>@Model.Count kayıt</span>
+            <a class="df-btn df-btn-success df-btn-sm" href="@Url.Action("Index", "DevreyeAlma")"><i class="bi bi-plus-lg" aria-hidden="true"></i> Yeni Kayıt</a>
         </div>
 
         <details class="df-admin-filter" open="@(filtreAktif ? "open" : null)">
@@ -111,7 +87,7 @@
         {
             <div class="df-admin-table-scroll">
                 <table class="df-table df-commissioning-table is-firm-history">
-                    <thead><tr><th>Abone</th><th>Tesisat Bilgileri</th><th>Cihaz Bilgileri</th><th>Devreye Alma</th><th>Durum</th><th>İşlem</th></tr></thead>
+                    <thead><tr><th>Abone</th><th>Tesisat Bilgileri</th><th>Devreye Alınan Cihaz Bilgileri</th><th>Cihaz Devreye Alma Tarihi</th><th>Yetkili Ad Soyad</th><th>Durum</th><th>İşlem</th></tr></thead>
                     <tbody>
                     @foreach (var d in Model)
                     {
@@ -128,7 +104,8 @@
                             <td><div class="df-cell-main">@(string.IsNullOrWhiteSpace(d.MusteriAdi) ? "Abone adı kayıtlı değil" : d.MusteriAdi)</div>@if (!string.IsNullOrWhiteSpace(d.MusteriTelefon)) { <div class="df-cell-sub"><i class="bi bi-telephone" aria-hidden="true"></i> @d.MusteriTelefon</div> }</td>
                             <td><dl class="df-operation-id-list"><div><dt>Tesisat No:</dt><dd>@(d.TesistatNo ?? "-")</dd></div><div><dt>Abone No:</dt><dd>@(d.AboneNo ?? "-")</dd></div></dl></td>
                             <td><dl class="df-device-facts"><div><dt>Tür</dt><dd>@(string.IsNullOrWhiteSpace(d.CihazTipi) ? "-" : d.CihazTipi)</dd></div><div><dt>Marka</dt><dd>@(string.IsNullOrWhiteSpace(cihazMarka) ? "-" : cihazMarka)</dd></div>@if (!string.IsNullOrWhiteSpace(cihazModeli)) { <div class="df-device-model"><dt>Model</dt><dd title="@cihazModeli">@cihazModeli</dd></div> }</dl></td>
-                            <td><time class="df-cell-value" datetime="@(tarihVar ? d.DevreyeAlmaTarihi.ToString("yyyy-MM-dd") : null)">@(tarihVar ? d.DevreyeAlmaTarihi.ToString("dd.MM.yyyy") : "Tarih bilgisi yok")</time>@if (!string.IsNullOrWhiteSpace(d.TeknisyenAdi)) { <div class="df-cell-sub">Teknisyen: @d.TeknisyenAdi</div> }</td>
+                            <td><time class="df-cell-value" datetime="@(tarihVar ? d.DevreyeAlmaTarihi.ToString("yyyy-MM-dd") : null)">@(tarihVar ? d.DevreyeAlmaTarihi.ToString("dd.MM.yyyy") : "Tarih bilgisi yok")</time></td>
+                            <td><div class="df-cell-value">@(string.IsNullOrWhiteSpace(d.TeknisyenAdi) ? "-" : d.TeknisyenAdi)</div></td>
                             <td><span class="df-pill @durumSinif">@durumYazi</span></td>
                             <td>
                                 <div class="df-commissioning-row-actions">

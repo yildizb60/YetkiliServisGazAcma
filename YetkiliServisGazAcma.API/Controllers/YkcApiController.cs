@@ -793,10 +793,10 @@ namespace YetkiliServisGazAcma.API.Controllers
 
         private async Task<bool> TalepDosyasinaYetkiliMiAsync(Ykc_Talep talep, AppKullanici kullanici)
         {
-            if (await GenelYetkiliMiAsync(kullanici))
-                return true;
+            if (kullanici.FirmaId.HasValue)
+                return talep.FirmaId == kullanici.FirmaId.Value;
 
-            if (kullanici.FirmaId.HasValue && talep.FirmaId == kullanici.FirmaId.Value)
+            if (await GenelYetkiliMiAsync(kullanici))
                 return true;
 
             if (kullanici.SirketId.HasValue && talep.SirketId == kullanici.SirketId.Value)

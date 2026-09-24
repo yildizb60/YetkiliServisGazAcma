@@ -249,6 +249,12 @@ namespace YetkiliServisGazAcma.Business.Services
                 && belge.YetkiBelgesiBitisTarihi.Date >= tarih.Date;
         }
 
+        public static bool SilinebilirMi(Ys_YetkiBelgesi? belge)
+        {
+            return belge != null && !belge.SilindiMi
+                && belge.Durum != YetkiBelgesiDurumDegerleri.Onaylandi;
+        }
+
         public static bool GecerliMi(Ys_YetkiBelgesi? belge, DateTime tarih)
         {
             var gun = tarih.Date;

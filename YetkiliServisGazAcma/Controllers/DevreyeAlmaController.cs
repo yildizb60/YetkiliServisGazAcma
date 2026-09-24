@@ -119,19 +119,10 @@ namespace YetkiliServisGazAcma.Controllers
 
         [HttpGet]
         [Route("detay/{id}")]
-        public async Task<IActionResult> Detay(int id)
+        public IActionResult Detay(int id)
         {
-            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
-            if (kullanici == null) return Redirect("/giris");
-
-            var islem = await _devreyeAlmaApiClient.DetayAsync(kullanici, id);
-
-            if (islem == null) return Redirect("/ys-devreyeal/gecmis");
-
-            ViewBag.Firma = islem.Firma;
-            ViewBag.Kullanici = kullanici;
-            await SetBildirimler(kullanici);
-            return View("~/Views/DevreyeAlma/Detay.cshtml", islem);
+            var gecmisUrl = Url.Action(nameof(Gecmis), "DevreyeAlma") ?? "/ys-devreyeal/gecmis";
+            return Redirect(id > 0 ? $"{gecmisUrl}#devreye-alma-detay-{id}" : gecmisUrl);
         }
 
         [HttpGet]
