@@ -17,6 +17,12 @@ namespace YetkiliServisGazAcma.Business.Services
         {
             var query = _context.Ys_Firmalar
                 .Include(x => x.Sirket)
+                .Include(x => x.FirmaKategoriler!)
+                    .ThenInclude(x => x.Kategori)
+                .Include(x => x.FirmaMarkalar!)
+                    .ThenInclude(x => x.Marka)
+                .AsSplitQuery()
+                .AsNoTracking()
                 .Where(x => !x.SilindiMi
                     && _context.Users.Any(u =>
                         u.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis &&

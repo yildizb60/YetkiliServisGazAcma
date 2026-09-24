@@ -50,12 +50,13 @@ namespace YetkiliServisGazAcma.API.Services
             int talepId,
             AppKullanici kullanici,
             bool genelYetkili,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            int? dogrulanmisSirketId = null)
         {
             if (!_imzaProvider.KullanilabilirMi)
                 return YkcIslemSonuc.HataliSonuc("Dijital imza sağlayıcısı henüz yapılandırılmadı; belge gönderilmedi.");
 
-            var detay = await _talepService.GetirAsync(talepId, kullanici, genelYetkili);
+            var detay = await _talepService.GetirAsync(talepId, kullanici, genelYetkili, dogrulanmisSirketId);
             if (detay == null)
                 return YkcIslemSonuc.HataliSonuc("Cihaz değişim talebi bulunamadı.");
 
@@ -69,7 +70,8 @@ namespace YetkiliServisGazAcma.API.Services
                 .Include(x => x.FormDosyalari)
                 .Include(x => x.ImzaSurecleri)
                     .ThenInclude(x => x.Imzacilar)
-                .FirstOrDefaultAsync(x => x.Id == talepId && !x.SilindiMi, cancellationToken);
+                .FirstOrDefaultAsync(x => x.Id == talepId && !x.SilindiMi
+                    && (!dogrulanmisSirketId.HasValue || x.SirketId == dogrulanmisSirketId.Value), cancellationToken);
 
             if (talep == null)
                 return YkcIslemSonuc.HataliSonuc("Cihaz değişim talebi bulunamadı.");
@@ -206,12 +208,13 @@ namespace YetkiliServisGazAcma.API.Services
             int talepId,
             AppKullanici kullanici,
             bool genelYetkili,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            int? dogrulanmisSirketId = null)
         {
             if (!_imzaProvider.KullanilabilirMi)
                 return YkcIslemSonuc.HataliSonuc("Dijital imza sağlayıcısı henüz yapılandırılmadı.");
 
-            var detay = await _talepService.GetirAsync(talepId, kullanici, genelYetkili);
+            var detay = await _talepService.GetirAsync(talepId, kullanici, genelYetkili, dogrulanmisSirketId);
             if (detay == null)
                 return YkcIslemSonuc.HataliSonuc("Cihaz değişim talebi bulunamadı.");
 
@@ -219,7 +222,8 @@ namespace YetkiliServisGazAcma.API.Services
                 .Include(x => x.FormDosyalari)
                 .Include(x => x.ImzaSurecleri)
                     .ThenInclude(x => x.Imzacilar)
-                .FirstOrDefaultAsync(x => x.Id == talepId && !x.SilindiMi, cancellationToken);
+                .FirstOrDefaultAsync(x => x.Id == talepId && !x.SilindiMi
+                    && (!dogrulanmisSirketId.HasValue || x.SirketId == dogrulanmisSirketId.Value), cancellationToken);
 
             var surec = talep == null ? null : AktifSurec(talep);
             if (talep == null || surec == null || string.IsNullOrWhiteSpace(surec.ProviderDocumentId))

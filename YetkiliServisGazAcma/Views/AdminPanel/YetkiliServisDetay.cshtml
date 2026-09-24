@@ -18,11 +18,12 @@
     var kategoriler = servis?.FirmaKategoriler?.Where(x => !x.SilindiMi
             && x.Kategori != null
             && !x.Kategori.SilindiMi
-            && x.Kategori.AktifMi
-            && KullanilanKategoriMi(x.Kategori.Ad))
+            && x.Kategori.AktifMi)
         .Select(x => x.Kategori!)
-        .GroupBy(x => NormalizeKategori(x.Ad))
+        .GroupBy(x => x.Id)
         .Select(g => g.First())
+        .OrderBy(x => x.SiraNo)
+        .ThenBy(x => x.Ad)
         .ToList() ?? new List<UrunKategori>();
 
     var durumClass = servis?.AktifMi == true ? "df-pill-success" : "df-pill-danger";
@@ -42,12 +43,6 @@
             && !string.Equals(value.Trim(), "string", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static bool KullanilanKategoriMi(string? ad)
-    {
-        var key = NormalizeKategori(ad);
-        return key == "kombi" || key.Contains("merkezikazan") || key.Contains("sofben") || key.Contains("sohben");
-    }
-
     private static string NormalizeKategori(string? ad)
     {
         if (string.IsNullOrWhiteSpace(ad)) return string.Empty;
@@ -59,8 +54,10 @@
     private static string KategoriIkon(string? ad)
     {
         var key = NormalizeKategori(ad);
-        if (key.Contains("kombi") || key.Contains("kazan")) return "bi-fire";
+        if (key.Contains("kombi")) return "bi-fire";
         if (key.Contains("sofben") || key.Contains("sohben")) return "bi-droplet";
+        if (key == "ocak") return "bi-grid-3x3-gap";
+        if (key.Contains("gazkullanicicihaz")) return "bi-grid-3x3-gap";
         return "bi-tools";
     }
 }

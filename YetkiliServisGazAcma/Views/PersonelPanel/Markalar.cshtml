@@ -75,7 +75,7 @@
                                     {
                                         <div class="df-actions">
                                             <button class="df-icon-action js-personnel-brand-edit" type="button" data-id="@marka.Id" data-name="@marka.MarkaAdi" data-description="@marka.Aciklama" data-active="@marka.AktifMi.ToString().ToLowerInvariant()"><i class="bi bi-pencil-square"></i> Düzenle</button>
-                                            <form method="post" action="/personel-panel/markalar/sil/@marka.Id" onsubmit="return confirm('Bu markayı silmek istediğinize emin misiniz?');">
+                                            <form method="post" action="/personel-panel/markalar/sil/@marka.Id" data-toast-confirm data-confirm-title="Markayı sil" data-confirm-message="@marka.MarkaAdi markası silinecek. Bu işlem geri alınamaz." data-confirm-action="Markayı Sil">
                                                 @Html.AntiForgeryToken()
                                                 <button type="submit" class="df-icon-action is-danger"><i class="bi bi-trash"></i> Sil</button>
                                             </form>

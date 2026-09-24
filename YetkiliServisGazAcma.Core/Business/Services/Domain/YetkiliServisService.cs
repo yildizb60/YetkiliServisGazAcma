@@ -57,6 +57,15 @@ namespace YetkiliServisGazAcma.Business.Services
             List<int> kategoriIdleri,
             string? ilce = null)
         {
+            var secilenKategoriIds = kategoriIdleri?.Distinct().ToList() ?? new List<int>();
+            if (secilenKategoriIds.Count > 0)
+            {
+                var gecerliKategoriSayisi = await _context.UrunKategoriler
+                    .CountAsync(x => secilenKategoriIds.Contains(x.Id) && !x.SilindiMi && x.AktifMi);
+                if (gecerliKategoriSayisi != secilenKategoriIds.Count)
+                    return (false, "Geçersiz hizmet türü seçildi.");
+            }
+
             // VKN kontrolü — aynı VKN ile kayıt var mı?
             var mevcutFirma = await VknIleGetir(firma.VergiNo!);
             if (mevcutFirma != null)
@@ -112,9 +121,9 @@ namespace YetkiliServisGazAcma.Business.Services
             }
 
             // Kategorileri ata
-            if (kategoriIdleri != null && kategoriIdleri.Count > 0)
+            if (secilenKategoriIds.Count > 0)
             {
-                foreach (var kategoriId in kategoriIdleri.Distinct())
+                foreach (var kategoriId in secilenKategoriIds)
                 {
                     _context.Ys_FirmaKategoriler.Add(new Ys_FirmaKategori
                     {

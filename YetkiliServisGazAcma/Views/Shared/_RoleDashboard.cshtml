@@ -126,7 +126,7 @@
                     <div class="personnel-work-queue__list" style="--personnel-row-count: @quickActions.Count">
                         @foreach (var item in quickActions)
                         {
-                            <a class="personnel-work-row @(item.Featured ? "is-highlighted" : null)" href="@item.Url" aria-label="@item.Title">
+                            <a class="personnel-work-row @(item.Featured ? "is-highlighted" : null)" href="@item.Url">
                                 <span class="personnel-work-row__icon"><i class="@item.Icon" aria-hidden="true"></i></span>
                                 <strong class="personnel-work-row__title">@item.Title</strong>
                                 <span class="personnel-work-row__category">@item.Subtitle</span>

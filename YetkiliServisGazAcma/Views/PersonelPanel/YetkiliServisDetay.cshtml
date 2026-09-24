@@ -33,20 +33,13 @@
             .Replace("ç", "c");
     }
 
-    bool KullanilanKategoriMi(string? value)
-    {
-        var key = NormalizeKategori(value);
-        return key == "kombi"
-            || key.Contains("merkezikazan")
-            || key.Contains("sofben")
-            || key.Contains("sohben");
-    }
-
     string KategoriIkon(string? value)
     {
         var key = NormalizeKategori(value);
-        if (key.Contains("kombi") || key.Contains("kazan")) return "bi-fire";
+        if (key.Contains("kombi")) return "bi-fire";
         if (key.Contains("sofben") || key.Contains("sohben")) return "bi-droplet";
+        if (key == "ocak") return "bi-grid-3x3-gap";
+        if (key.Contains("gazkullanicicihaz")) return "bi-grid-3x3-gap";
         return "bi-tools";
     }
 
@@ -58,8 +51,12 @@
     }
 
     var kategoriler = Model.FirmaKategoriler?
-        .Where(x => !x.SilindiMi && x.Kategori != null && KullanilanKategoriMi(x.Kategori.Ad))
+        .Where(x => !x.SilindiMi && x.Kategori != null && !x.Kategori.SilindiMi && x.Kategori.AktifMi)
         .Select(x => x.Kategori!)
+        .GroupBy(x => x.Id)
+        .Select(g => g.First())
+        .OrderBy(x => x.SiraNo)
+        .ThenBy(x => x.Ad)
         .ToList() ?? new List<YetkiliServisGazAcma.Entities.UrunKategori>();
 }
 

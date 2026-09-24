@@ -127,7 +127,7 @@
                                                 <i class="bi bi-check2" aria-hidden="true"></i>
                                             </button>
                                         </form>
-                                        <form method="post" action="@Url.Action("MarkaSil", "YetkiliServisPanel")" onsubmit="return confirm('Bu marka yetkisini kaldırmak istediğinize emin misiniz?');">
+                                        <form method="post" action="@Url.Action("MarkaSil", "YetkiliServisPanel")" data-toast-confirm data-confirm-title="Marka yetkisini kaldır" data-confirm-message="Bu markanın yetkisi kaldırılacak." data-confirm-action="Yetkiyi Kaldır">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="id" value="@fm.MarkaId" />
                                             <button type="submit" class="df-icon-action ys-brand-row-action is-danger" title="Marka yetkisini kaldır" aria-label="Marka yetkisini kaldır"><i class="bi bi-trash" aria-hidden="true"></i></button>

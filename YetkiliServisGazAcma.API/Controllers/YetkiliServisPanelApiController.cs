@@ -218,7 +218,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 .ToList() ?? new List<int>();
 
             var seciliKategoriIds = firma.FirmaKategoriler?
-                .Where(x => !x.SilindiMi)
+                .Where(x => !x.SilindiMi && tumKategoriler.Any(k => k.Id == x.KategoriId))
                 .Select(x => x.KategoriId)
                 .ToList() ?? new List<int>();
 
@@ -757,7 +757,9 @@ namespace YetkiliServisGazAcma.API.Controllers
                 Sirket = firma.Sirket == null ? null : YsPanelSirketDto.FromEntity(firma.Sirket),
                 YetkiBelgeleri = firma.YetkiBelgeleri?.Select(YsPanelYetkiBelgesiDto.FromEntity).ToList() ?? new(),
                 FirmaMarkalar = firma.FirmaMarkalar?.Select(YsPanelFirmaMarkaDto.FromEntity).ToList() ?? new(),
-                FirmaKategoriler = firma.FirmaKategoriler?.Select(YsPanelFirmaKategoriDto.FromEntity).ToList() ?? new(),
+                FirmaKategoriler = firma.FirmaKategoriler?
+                    .Where(x => !x.SilindiMi && x.Kategori != null && !x.Kategori.SilindiMi && x.Kategori.AktifMi)
+                    .Select(YsPanelFirmaKategoriDto.FromEntity).ToList() ?? new(),
                 Subeler = firma.Subeler?.Select(YsPanelSubeDto.FromEntity).ToList() ?? new()
             };
         }

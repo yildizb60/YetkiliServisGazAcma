@@ -110,7 +110,7 @@
                                     <small>@(string.IsNullOrWhiteSpace(servis.Email) ? "E-posta tanımlı değil" : servis.Email)</small>
                                 </div>
                                 <div class="df-service-city"><i class="bi bi-geo-alt" aria-hidden="true"></i><span>@(servis.FaaliyetIli ?? "-")</span></div>
-                                <div><span class="df-service-count" title="Devreye alma kaydı">@devreyeSayisi</span></div>
+                                <div><span class="df-service-count" title="Devreye alma kaydı" aria-label="@devreyeSayisi cihaz devreye alma kaydı">@devreyeSayisi</span></div>
                                 <div><span class="df-pill @(servis.AktifMi ? "df-pill-success" : "df-pill-danger")">@(servis.AktifMi ? "Aktif" : "Pasif")</span></div>
                                 <div class="df-service-actions">
                                     <a class="df-directory-action js-service-sheet-trigger"
@@ -129,7 +129,7 @@
                                     }
                                     else
                                     {
-                                        <form method="post" action="/AdminPanel/yetkiliservisler/sil/@servis.Id" onsubmit="return confirm('Bu yetkili servisi silmek istiyor musunuz?');">
+                                        <form method="post" action="/AdminPanel/yetkiliservisler/sil/@servis.Id" data-toast-confirm data-confirm-title="Yetkili servisi sil" data-confirm-message="@servis.FirmaAdi adlı servis silinecek. Bu işlem geri alınamaz." data-confirm-action="Servisi Sil">
                                             @Html.AntiForgeryToken()
                                             <button type="submit" class="df-directory-action is-danger" title="Servisi sil" aria-label="@(servis.FirmaAdi ?? "Yetkili servis") kaydını sil">
                                                 <i class="bi bi-trash3" aria-hidden="true"></i>

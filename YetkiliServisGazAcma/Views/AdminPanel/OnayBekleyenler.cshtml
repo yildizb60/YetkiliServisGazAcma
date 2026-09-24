@@ -1,6 +1,6 @@
 @using YetkiliServisGazAcma.Entities
 @{
-    ViewData["Title"] = "Onay Bekleyen Belgeler";
+    ViewData["Title"] = "Yetki Belgesi İşlemleri";
     ViewData["PanelTitle"] = ViewData["Title"];
     ViewData["PanelSubtitle"] = "Admin Paneli";
     ViewData["ActiveMenu"] = "OnayBekleyenler";
@@ -10,6 +10,8 @@
     var onaylananlar = ViewBag.Onaylananlar as List<Ys_YetkiBelgesi> ?? new List<Ys_YetkiBelgesi>();
     var reddedilenler = ViewBag.Reddedilenler as List<Ys_YetkiBelgesi> ?? new List<Ys_YetkiBelgesi>();
     var suresiDolanlar = ViewBag.SuresiDolanlar as List<Ys_YetkiBelgesi> ?? new List<Ys_YetkiBelgesi>();
+    var listelenenBelgeSayisi = bekleyenler.Concat(onaylananlar).Concat(reddedilenler).Concat(suresiDolanlar)
+        .Select(x => x.Id).Distinct().Count();
 }
 
 @section PageStyles {
@@ -18,6 +20,7 @@
 
 <div class="approval-board df-approval-workspace">
     <section class="df-page-panel approval-panels is-admin-approval">
+        <div class="df-approval-list-total"><span>Listelenen yetki belgesi</span><strong>@listelenenBelgeSayisi</strong></div>
         <div class="df-approval-status-bar" role="tablist" data-approval-tabs aria-label="Yetki belgesi durumu">
             <button type="button" role="tab" id="admin-approval-waiting-tab" aria-controls="admin-approval-waiting" aria-selected="true" class="approval-tab approval-metric is-waiting active" data-target="bekleyen"><i class="bi bi-hourglass-split" aria-hidden="true"></i><span>Onay Bekleyen</span><strong>@bekleyenler.Count</strong></button>
             <button type="button" role="tab" id="admin-approval-approved-tab" aria-controls="admin-approval-approved" aria-selected="false" class="approval-tab approval-metric is-approved" data-target="onaylanan"><i class="bi bi-check-circle" aria-hidden="true"></i><span>Onaylananlar</span><strong>@onaylananlar.Count</strong></button>
@@ -72,6 +75,7 @@
 </div>
 
 @section Scripts {
+<script src="~/js/approval-row-details.js" asp-append-version="true"></script>
 <script>
 (function () {
     var tabs = document.querySelector('[data-approval-tabs]');
@@ -125,7 +129,9 @@
             if (filters.yukleme) visible = visible && row.dataset.yukleme === filters.yukleme;
             if (filters.baslangic) visible = visible && row.dataset.baslangic >= filters.baslangic;
             if (filters.bitis) visible = visible && row.dataset.bitis <= filters.bitis;
-            row.style.display = visible ? '' : 'none';
+            row.hidden = !visible;
+            var detail = row.nextElementSibling;
+            if (detail?.matches('[data-approval-detail]')) detail.hidden = !visible || !row.classList.contains('is-expanded');
             if (visible) visibleCount++;
         });
         var empty = activePanel.querySelector('.df-approval-filter-empty');

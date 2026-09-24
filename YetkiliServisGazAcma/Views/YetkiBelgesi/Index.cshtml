@@ -82,7 +82,7 @@
                         <td><span class="ys-certificate-state @durumClass"><i class="bi @durumIcon" aria-hidden="true"></i>@durumText</span></td>
                         <td><div class="df-actions">
                             <a class="df-icon-action" href="@Url.Action("Dosya", "YetkiBelgesi", new { id = belge.Id })" target="_blank" rel="noopener" title="Belgeyi görüntüle"><i class="bi bi-eye" aria-hidden="true"></i><span>Görüntüle</span></a>
-                            <form method="post" action="@Url.Action("Sil", "YetkiBelgesi")" onsubmit="return confirm('Yetki belgesini silmek istiyor musunuz?');">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@belge.Id" /><button class="df-icon-action is-danger" type="submit" title="Belgeyi sil"><i class="bi bi-trash3" aria-hidden="true"></i><span>Sil</span></button></form>
+                            <form method="post" action="@Url.Action("Sil", "YetkiBelgesi")" data-toast-confirm data-confirm-title="Yetki belgesini sil" data-confirm-message="Yetki belgesi silinecek. Bu işlem geri alınamaz." data-confirm-action="Belgeyi Sil">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@belge.Id" /><button class="df-icon-action is-danger" type="submit" title="Belgeyi sil"><i class="bi bi-trash3" aria-hidden="true"></i><span>Sil</span></button></form>
                         </div></td>
                     </tr>
                 }

@@ -25,8 +25,10 @@
             ? new List<string> { "Onaylanan", "Onay Bekleyen", "Reddedilen" }
             : new List<string> { "Tamamlanan", "Bekleyen", "İptal" });
     var durumToplam = durumSayilari.Sum();
-    var chartMax = Math.Max(1, raporAylik.DefaultIfEmpty(0).Max());
-    var chartCount = Math.Min(6, Math.Min(raporAylar.Count, raporAylik.Count));
+    var chartLength = Math.Min(raporAylar.Count, raporAylik.Count);
+    var chartStart = Math.Max(0, chartLength - 6);
+    var chartCount = chartLength - chartStart;
+    var chartMax = Math.Max(1, raporAylik.Skip(chartStart).Take(chartCount).DefaultIfEmpty(0).Max());
     var ilkDurumEtiketi = durumEtiketleri.FirstOrDefault() ?? "İşlem";
     var ilkDurumOrani = durumToplam == 0 ? 0 : Math.Round(durumSayilari.FirstOrDefault() * 100d / durumToplam, 1);
     string CssYuzde(double value) => Math.Clamp(value, 0, 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
@@ -125,7 +127,7 @@
             else
             {
                 <div class="df-ops-monthly-chart" style="--chart-count:@chartCount" role="img" aria-label="@grafikBasligi">
-                    @for (var index = 0; index < chartCount; index++)
+                    @for (var index = chartStart; index < chartLength; index++)
                     {
                         <div class="df-ops-month" title="@raporAylar[index]: @raporAylik[index] kayıt">
                             <strong>@raporAylik[index]</strong>

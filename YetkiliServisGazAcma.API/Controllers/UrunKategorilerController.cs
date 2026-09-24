@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Globalization;
-using System.Text;
 using YetkiliServisGazAcma.Models;
 
 namespace YetkiliServisGazAcma.API.Controllers
@@ -26,22 +24,6 @@ namespace YetkiliServisGazAcma.API.Controllers
                 .ThenBy(x => x.Ad)
                 .ToListAsync();
 
-            if (dto?.TumunuGetir != true)
-            {
-                kategoriler = kategoriler
-                    .Where(x => KullanilanKategoriMi(x.Ad))
-                    .GroupBy(x => NormalizeKategori(x.Ad))
-                    .Select(g => g
-                        .OrderByDescending(x => x.AktifMi)
-                        .ThenBy(x => string.IsNullOrWhiteSpace(x.IconUrl) ? 1 : 0)
-                        .ThenBy(x => x.SiraNo)
-                        .ThenBy(x => x.Ad)
-                        .First())
-                    .OrderBy(x => x.SiraNo)
-                    .ThenBy(x => x.Ad)
-                    .ToList();
-            }
-
             var list = kategoriler
                 .Select(x => new
                 {
@@ -56,36 +38,6 @@ namespace YetkiliServisGazAcma.API.Controllers
             return Ok(list);
         }
 
-        private static bool KullanilanKategoriMi(string? ad)
-        {
-            var key = NormalizeKategori(ad);
-
-            return key == "kombi"
-                || key.Contains("merkezikazan")
-                || key.Contains("sofben")
-                || key.Contains("sohben")
-                || key == "ocak"
-                || key.Contains("gazkullanicicihaz");
-        }
-
-        private static string NormalizeKategori(string? ad)
-        {
-            if (string.IsNullOrWhiteSpace(ad))
-                return string.Empty;
-
-            var normalized = ad.Trim().ToLower(new CultureInfo("tr-TR")).Normalize(NormalizationForm.FormD);
-            var chars = normalized
-                .Where(ch => CharUnicodeInfo.GetUnicodeCategory(ch) != UnicodeCategory.NonSpacingMark && char.IsLetterOrDigit(ch))
-                .ToArray();
-
-            return new string(chars)
-                .Replace("ı", "i")
-                .Replace("ş", "s")
-                .Replace("ğ", "g")
-                .Replace("ü", "u")
-                .Replace("ö", "o")
-                .Replace("ç", "c");
-        }
     }
 
     public class UrunKategoriListeFiltreDto

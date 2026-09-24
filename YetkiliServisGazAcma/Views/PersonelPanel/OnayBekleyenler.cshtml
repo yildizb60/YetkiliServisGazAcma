@@ -62,6 +62,7 @@
 </div>
 
 @section Scripts {
+<script src="~/js/approval-row-details.js" asp-append-version="true"></script>
 <script>
 (() => {
     const tabs = document.querySelector('[data-approval-tabs]');
@@ -97,6 +98,8 @@
             if (values.baslangic) visible = visible && row.dataset.baslangic >= values.baslangic;
             if (values.bitis) visible = visible && row.dataset.bitis <= values.bitis;
             row.hidden = !visible;
+            const detail = row.nextElementSibling;
+            if (detail?.matches('[data-approval-detail]')) detail.hidden = !visible || !row.classList.contains('is-expanded');
             if (visible) visibleCount++;
         });
         const empty = panel.querySelector('.df-approval-filter-empty');

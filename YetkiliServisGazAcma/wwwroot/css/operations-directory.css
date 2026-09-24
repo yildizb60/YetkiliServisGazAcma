@@ -552,6 +552,46 @@
 }
 .df-document-link:hover { border-color:#b8caea; background:#edf4ff; }
 .df-document-link.is-icon { width:32px; padding:0; justify-content:center; font-size:14px; }
+
+.df-approval-workspace .df-approval-table.is-compact-approval { min-width:960px !important; }
+.df-approval-workspace .df-approval-table.is-compact-approval th:nth-child(1) { width:16% !important; }
+.df-approval-workspace .df-approval-table.is-compact-approval th:nth-child(2) { width:18% !important; }
+.df-approval-workspace .df-approval-table.is-compact-approval th:nth-child(3) { width:11% !important; }
+.df-approval-workspace .df-approval-table.is-compact-approval th:nth-child(4) { width:11% !important; }
+.df-approval-workspace .df-approval-table.is-compact-approval th:nth-child(5) { width:10% !important; }
+.df-approval-workspace .df-approval-table.is-compact-approval th:nth-child(6) { width:11% !important; }
+.df-approval-workspace .df-approval-table.is-compact-approval th:nth-child(7) { width:6% !important; }
+.df-approval-workspace .df-approval-table.is-compact-approval th:nth-child(8) { width:17% !important; }
+.df-approval-workspace .df-approval-table.is-compact-approval td { padding:7px 9px !important; vertical-align:middle; }
+.df-approval-workspace .df-approval-table.is-compact-approval td:nth-child(7),
+.df-approval-workspace .df-approval-table.is-compact-approval th:nth-child(7) { text-align:center; }
+.is-compact-approval .df-approval-service-name { min-width:0; display:flex; align-items:center; justify-content:space-between; gap:5px; }
+.is-compact-approval .df-approval-service-name .df-cell-main { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.is-compact-approval .df-approval-company-name { display:-webkit-box; overflow:hidden; color:#304b60; font-weight:600; line-height:1.3; -webkit-box-orient:vertical; -webkit-line-clamp:2; }
+.is-compact-approval .df-approval-company-city { display:flex; align-items:center; gap:4px; margin-top:3px; color:#718596; font-size:10px; }
+.is-compact-approval .df-approval-expand { width:27px; height:27px; flex:0 0 27px; display:grid; place-items:center; border:1px solid #dce5ef; border-radius:5px; background:#fff; color:#315ac3; cursor:pointer; }
+.is-compact-approval .df-approval-expand:hover,
+.is-compact-approval .df-approval-expand:focus-visible { border-color:#a8bfea; background:#edf4ff; outline:none; }
+.is-compact-approval tr.is-expanded .df-approval-expand i { transform:rotate(180deg); }
+.is-compact-approval .df-approval-expand i { transition:transform .18s ease; }
+.is-compact-approval .df-approval-row-actions { align-items:center; flex-wrap:nowrap; gap:4px; }
+.is-compact-approval .df-approval-action { min-height:30px; padding:3px 7px 3px 3px; gap:4px; font-size:10px; }
+.is-compact-approval .df-approval-action i { width:20px; height:20px; font-size:12px; }
+.is-compact-approval .df-approval-decision { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.is-compact-approval .df-approval-decision strong { overflow:hidden; text-overflow:ellipsis; }
+.is-compact-approval tr.is-expanded > td { background:#f1f6ff; }
+.df-approval-workspace .df-approval-table.is-compact-approval .df-approval-detail-row > td { padding:0 !important; background:#f8fbff; }
+.df-approval-detail-grid { padding:11px 14px; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px 16px; border-block:1px solid #dbe7f5; }
+.df-approval-detail-grid > div { min-width:0; }
+.df-approval-detail-grid > div.is-wide { grid-column:span 2; }
+.df-approval-detail-grid span { display:block; margin-bottom:3px; color:#61788b; font-size:10px; font-weight:650; }
+.df-approval-detail-grid strong { display:block; overflow-wrap:anywhere; color:#29495d; font-size:11px; font-weight:650; line-height:1.35; }
+
+@media (max-width:760px) {
+    .df-approval-detail-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .df-approval-detail-grid > div.is-wide { grid-column:1 / -1; }
+}
+
 .df-approval-history-table { min-width:1120px; }
 .df-approval-history-table th:nth-child(1) { width:20%; }
 .df-approval-history-table th:nth-child(2) { width:12%; }

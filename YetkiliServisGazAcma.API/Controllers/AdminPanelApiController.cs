@@ -218,7 +218,11 @@ namespace YetkiliServisGazAcma.API.Controllers
                 (x.YetkiTipi == YetkiTipleri.TAM_YETKI || x.YetkiTipi == YetkiTipleri.KULLANICI_YONET));
         }
 
-        private async Task<bool> RaporGorebilirMi(int? sirketId)
+        private Task<bool> RaporGorebilirMi(int? sirketId) => PersonelYetkisiVarMi(sirketId, YetkiTipleri.RAPOR_GOR);
+
+        private Task<bool> YetkiBelgesiOnaylayabilirMi(int? sirketId) => PersonelYetkisiVarMi(sirketId, YetkiTipleri.YETKI_BELGESI_ONAY);
+
+        private async Task<bool> PersonelYetkisiVarMi(int? sirketId, string yetkiTipi)
         {
             var kullanici = await AktifKullaniciAsync();
             if (kullanici == null || !kullanici.AktifMi)
@@ -238,7 +242,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 x.KullaniciId == kullanici.Id
                 && !x.SilindiMi
                 && x.SirketId == sirketId.Value
-                && (x.YetkiTipi == YetkiTipleri.TAM_YETKI || x.YetkiTipi == YetkiTipleri.RAPOR_GOR));
+                && (x.YetkiTipi == YetkiTipleri.TAM_YETKI || x.YetkiTipi == yetkiTipi));
         }
 
         private async Task<bool> KullaniciKapsamindaMi(AppKullanici yapan, AppKullanici hedef, int? sirketId)

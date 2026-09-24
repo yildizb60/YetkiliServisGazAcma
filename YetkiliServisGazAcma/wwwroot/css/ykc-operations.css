@@ -4270,28 +4270,31 @@
 @keyframes ykcToastIn { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes ykcToastOut { to { opacity: 0; transform: translateY(-10px); } }
 
-.ykc-firm-record { background:#fff; border:1px solid #d7e2eb; border-top:3px solid #2674ae; border-radius:6px; overflow:hidden; }
+.ykc-firm-record { background:#fff; border:1px solid #ccdbe7; border-top:3px solid #315ac3; border-radius:6px; overflow:hidden; box-shadow:0 8px 24px rgba(20,50,69,.09); }
 .ykc-firm-record-head { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px 20px; }
-.ykc-firm-record-number { font-size:12px; color:#6a7e8f; }
-.ykc-firm-record-head h1 { margin:3px 0; font-size:20px; font-weight:600; color:#233f53; }
+.ykc-detail-page .ykc-firm-record-head { background:#f3f7ff; }
+.ykc-firm-record-number { font-size:12px; color:#315ac3; font-weight:700; }
+.ykc-firm-record-head h1 { margin:3px 0; font-size:20px; font-weight:700; color:#17384c; }
 .ykc-firm-record-head p { margin:0; font-size:13px; color:#587084; }
 .ykc-firm-record-actions { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:8px; }
-.ykc-firm-control-status { display:flex; align-items:center; gap:12px; padding:15px 20px; background:#eff7fb; border-block:1px solid #d9e7ef; }
-.ykc-firm-control-status > i { color:#2674ae; font-size:24px; }
+.ykc-firm-control-status { display:flex; align-items:center; gap:12px; padding:15px 20px; background:#edf8f3; border-block:1px solid #c8e6d8; }
+.ykc-firm-control-status > i { color:#168565; font-size:24px; }
 .ykc-firm-control-status > div { flex:1; min-width:0; }
-.ykc-firm-control-status h2 { margin:0; font-size:15px; font-weight:600; color:#29485f; }
+.ykc-firm-control-status h2 { margin:0; font-size:15px; font-weight:700; color:#174d3f; }
 .ykc-firm-control-status p { margin:4px 0 0; font-size:12px; line-height:1.6; color:#60798b; max-width:550px; }
-.ykc-firm-control-status > time { padding-left:20px; border-left:1px solid #ccdfe9; }
+.ykc-firm-control-status > time { padding-left:20px; border-left:1px solid #b7dccb; }
 .ykc-firm-control-status > time span { display:block; font-size:11px; color:#657e8e; }
-.ykc-firm-control-status > time strong { display:block; font-weight:500; font-size:15px; white-space:nowrap; color:#28536d; }
+.ykc-firm-control-status > time strong { display:block; font-weight:650; font-size:15px; white-space:nowrap; color:#174d3f; }
 .ykc-firm-control-status > time b { margin-left:8px; color:#16795b; font-weight:600; }
 .ykc-firm-record-grid { display:grid; grid-template-columns:minmax(0,1.7fr) minmax(270px,1fr); }
 .ykc-firm-record-data { min-width:0; }
-.ykc-firm-record-activity { min-width:0; border-left:1px solid #e0e8ee; background:#fbfcfd; }
+.ykc-firm-record-activity { min-width:0; border-left:1px solid #d8e4ee; background:#f9fbff; }
 .ykc-firm-data-section { padding:16px 20px; }
 .ykc-firm-data-section + .ykc-firm-data-section { border-top:1px solid #e0e8ee; }
-.ykc-firm-data-section h2 { display:flex; align-items:center; gap:8px; margin:0 0 14px; font-size:14px; font-weight:600; color:#2f4c61; }
-.ykc-firm-data-section h2 > i { color:#2684a8; font-size:17px; }
+.ykc-firm-data-section h2 { display:flex; align-items:center; gap:8px; margin:0 0 14px; font-size:14px; font-weight:700; color:#203e53; }
+.ykc-firm-data-section h2 > i { color:#315ac3; font-size:17px; }
+.ykc-firm-record-data .ykc-firm-data-section:nth-child(2) h2 > i { color:#168565; }
+.ykc-firm-record-activity .ykc-firm-data-section:first-child h2 > i { color:#b94740; }
 .ykc-firm-data-section h2 > small { margin-left:auto; color:#7c8c99; font-size:11px; font-weight:400; }
 .ykc-firm-data-section dl { margin:0; display:grid; gap:12px; }
 .ykc-firm-data-section dt { color:#6d8191; font-size:11px; font-weight:400; }
@@ -4299,12 +4302,17 @@
 .ykc-firm-data-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
 .ykc-firm-data-grid .wide { grid-column:1 / -1; }
 .ykc-firm-history { margin:0; padding:0; list-style:none; display:grid; gap:13px; }
-.ykc-firm-history li { padding-left:12px; border-left:2px solid #c6deeb; display:grid; gap:3px; }
+.ykc-firm-history li { padding-left:12px; border-left:2px solid #9cb8e9; display:grid; gap:3px; }
 .ykc-firm-history time { color:#708594; font-size:11px; }
 .ykc-firm-history strong { font-size:12px; font-weight:500; color:#304f64; }
 .ykc-firm-history span { font-size:11px; color:#718493; }
-.ykc-firm-history-more { margin-top:14px; }
-.ykc-firm-history-more summary { cursor:pointer; color:#2674ae; font-size:12px; margin-bottom:10px; }
+.ykc-firm-history-panel > summary { display:flex; align-items:center; justify-content:space-between; gap:10px; cursor:pointer; list-style:none; }
+.ykc-firm-history-panel > summary::-webkit-details-marker { display:none; }
+.ykc-firm-history-panel > summary h2 { min-width:0; flex:1; margin:0; }
+.ykc-firm-history-panel > summary > i { color:#315ac3; transition:transform .18s ease; }
+.ykc-firm-history-panel[open] > summary { margin-bottom:14px; }
+.ykc-firm-history-panel[open] > summary > i { transform:rotate(180deg); }
+.ykc-firm-history-panel > summary:focus-visible { outline:2px solid #315ac3; outline-offset:4px; }
 .ykc-firm-demo-note { margin:8px 0 0; font-size:11px; color:#797248; }
 .ykc-staff-record-body { display:grid; grid-template-columns:minmax(0,1fr) minmax(400px,.82fr); grid-template-areas:"info actions"; border-top:1px solid #dce5ec; }
 .ykc-detail-page:has(> .ykc-staff-record) { padding-bottom:0; }
@@ -4341,10 +4349,10 @@
 .ykc-detail-page.is-streamlined .ykc-staff-record .ykc-assignment-region small { display:inline; white-space:nowrap; }
 .ykc-detail-page.is-streamlined .ykc-staff-record .ykc-assignment-region strong { margin:0; }
 .ykc-detail-page .ykc-staff-record { border-top-color:#315ac3; box-shadow:0 8px 24px rgba(36,59,77,.07); }
-.ykc-detail-page .ykc-staff-record .ykc-firm-record-head { background:#f7faff; }
+.ykc-detail-page .ykc-staff-record .ykc-firm-record-head { background:#f3f7ff; }
 .ykc-detail-page .ykc-staff-record .ykc-firm-record-number { color:#315ac3; font-weight:700; }
 .ykc-detail-page .ykc-staff-record .ykc-firm-record-head h1 { color:#183a54; }
-.ykc-detail-page.is-streamlined .ykc-staff-record .ykc-focus-section { background:#f5f9fd; border-left-color:#d7e4f0; }
+.ykc-detail-page.is-streamlined .ykc-staff-record .ykc-focus-section { background:#eef5ff; border-left-color:#c4d7ef; }
 .ykc-detail-page .ykc-staff-record .ykc-focus-icon { color:#fff; background:#315ac3; border-color:#315ac3; }
 .ykc-detail-page .ykc-staff-record .ykc-firm-data-section h2 > i { color:#187f61; }
 .ykc-detail-page .ykc-staff-record .ykc-assignment-region { color:#254b5d; background:#ecf8f3; border-color:#c9e7d8; }
@@ -4377,10 +4385,10 @@
 .ykc-staff-record .ykc-comparison-table { min-width:0; table-layout:fixed; font-size:12px; }
 .ykc-staff-record .ykc-comparison-table th,.ykc-staff-record .ykc-comparison-table td { padding:7px 8px; font-size:11px; font-weight:400; overflow-wrap:anywhere; white-space:normal; }
 .ykc-staff-record .ykc-comparison-table thead th { font-weight:600; }
-.ykc-staff-record .ykc-comparison-table thead th:nth-child(2) { color:#173e5b; background:#dceaf3; font-weight:700; }
-.ykc-staff-record .ykc-comparison-table thead th:nth-child(3) { color:#155a42; background:#dcefe6; font-weight:700; }
-.ykc-staff-record .ykc-comparison-table tbody td:nth-child(2) { background:#f2f7fa; color:#25465e; font-weight:550; }
-.ykc-staff-record .ykc-comparison-table tbody td:nth-child(3) { background:#f0f8f4; color:#205743; font-weight:550; }
+.ykc-staff-record .ykc-comparison-table thead th:nth-child(2) { color:#214589; background:#e1ebfb; font-weight:700; }
+.ykc-staff-record .ykc-comparison-table thead th:nth-child(3) { color:#155a42; background:#dbf0e5; font-weight:700; }
+.ykc-staff-record .ykc-comparison-table tbody td:nth-child(2) { background:#f0f5fd; color:#25465e; font-weight:550; }
+.ykc-staff-record .ykc-comparison-table tbody td:nth-child(3) { background:#eef8f2; color:#205743; font-weight:550; }
 .ykc-secondhand-status { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:9px; padding:8px 10px; border:1px solid #d8e4ec; border-radius:5px; background:#f7fafc; color:#4c6578; font-size:12px; }
 .ykc-secondhand-status strong { min-width:46px; padding:3px 8px; border-radius:4px; background:#e6f4ee; color:#16745a; text-align:center; font-size:13px; font-weight:650; }
 .ykc-staff-record .ykc-other-actions { margin-top:8px; border-top:1px solid #dce5ec; padding-top:6px; }

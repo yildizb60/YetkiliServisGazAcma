@@ -29,29 +29,17 @@
             .Replace("ç", "c");
     }
 
-    bool KullanilanKategoriMi(string? value)
-    {
-        var key = NormalizeKategori(value);
-        return key == "kombi" || key.Contains("merkezikazan") || key.Contains("sofben") || key.Contains("sohben") || key.Contains("gazkullanicicihaz");
-    }
-
     string KategoriIkonu(string? value)
     {
         var key = NormalizeKategori(value);
-        if (key.Contains("merkezikazan")) return "bi-building-gear";
+        if (key == "ocak") return "bi-grid-3x3-gap";
         if (key.Contains("sofben") || key.Contains("sohben")) return "bi-droplet-half";
         if (key.Contains("gazkullanicicihaz")) return "bi-grid-3x3-gap";
         return "bi-fire";
     }
 
     var kategoriler = tumKategoriler
-        .Where(x => KullanilanKategoriMi(x.Ad))
-        .GroupBy(x => NormalizeKategori(x.Ad))
-        .Select(g => g.OrderByDescending(x => x.AktifMi)
-            .ThenBy(x => string.IsNullOrWhiteSpace(x.IconUrl) ? 1 : 0)
-            .ThenBy(x => x.SiraNo)
-            .ThenBy(x => x.Ad)
-            .First())
+        .Where(x => !x.SilindiMi && x.AktifMi)
         .OrderBy(x => x.SiraNo)
         .ThenBy(x => x.Ad)
         .ToList();

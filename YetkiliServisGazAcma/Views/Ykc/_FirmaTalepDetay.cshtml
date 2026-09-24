@@ -106,19 +106,15 @@
             {
                 <section class="ykc-firm-data-section"><h2><i class="bi bi-file-earmark-check" aria-hidden="true"></i>Sonuç Belgesi</h2><a class="df-btn df-btn-secondary df-btn-sm" href="@Url.Action("DosyaAc", "Ykc", new { id = nihai.Id })"><i class="bi bi-download" aria-hidden="true"></i>İmzalı PDF'yi İndir</a></section>
             }
-            <section class="ykc-firm-data-section" aria-labelledby="firm-history-title">
-                <h2 id="firm-history-title"><i class="bi bi-clock-history" aria-hidden="true"></i>İşlem Geçmişi <small>@Model.Gecmis.Count kayıt</small></h2>
+            <details class="ykc-firm-data-section ykc-firm-history-panel" aria-labelledby="firm-history-title">
+                <summary><h2 id="firm-history-title"><i class="bi bi-clock-history" aria-hidden="true"></i>İşlem Geçmişi <small>@Model.Gecmis.Count kayıt</small></h2><i class="bi bi-chevron-down" aria-hidden="true"></i></summary>
                 <ol class="ykc-firm-history">
-                    @foreach (var kayit in Model.Gecmis.Take(3))
+                    @foreach (var kayit in Model.Gecmis)
                     {
                         <li><time>@kayit.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</time><strong>@IslemAdi(kayit.IslemTipi)</strong>@if (kayit.YeniDurum.HasValue) { <span>@YkcDurumSunumu.Etiket(kayit.YeniDurum.Value)</span> }</li>
                     }
                 </ol>
-                @if (Model.Gecmis.Count > 3)
-                {
-                    <details class="ykc-firm-history-more"><summary>Önceki işlemler (@(Model.Gecmis.Count - 3))</summary><ol class="ykc-firm-history">@foreach (var kayit in Model.Gecmis.Skip(3)) { <li><time>@kayit.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</time><strong>@IslemAdi(kayit.IslemTipi)</strong></li> }</ol></details>
-                }
-            </section>
+            </details>
         </aside>
     </div>
 </section>

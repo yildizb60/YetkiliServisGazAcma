@@ -2,10 +2,13 @@
     const stack = document.querySelector('[data-operation-toast-stack]');
     if (!stack) return;
     const cleanup = new WeakMap();
+    const dismissCallbacks = new WeakMap();
 
     function dismiss(toast) {
         if (!toast || toast.classList.contains('is-leaving')) return;
         cleanup.get(toast)?.();
+        dismissCallbacks.get(toast)?.();
+        dismissCallbacks.delete(toast);
         toast.classList.add('is-leaving');
         setTimeout(() => toast.remove(), 220);
     }
@@ -61,11 +64,19 @@
 
     window.operationToast = Object.freeze({ info: showInfo, warning: showWarning, error: showError });
 
-    const pendingConfirmations = new WeakMap();
+    let activeConfirmation = null;
+    let confirmationCount = 0;
 
     function showConfirmation(form, submitter) {
-        const current = pendingConfirmations.get(form);
-        if (current?.isConnected) return;
+        if (activeConfirmation?.isConnected) {
+            activeConfirmation.querySelector('.is-cancel')?.focus();
+            return;
+        }
+
+        const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        const returnFocus = submitter instanceof HTMLElement
+            ? submitter
+            : form.querySelector('button[type="submit"], input[type="submit"]') || previouslyFocused;
 
         const toast = show(form.dataset.confirmMessage || 'Bu işlemi onaylıyor musunuz?', {
             type: 'warning',
@@ -75,7 +86,9 @@
         });
         toast.classList.add('is-confirm');
         toast.setAttribute('role', 'alertdialog');
-        toast.setAttribute('aria-modal', 'true');
+        const title = toast.querySelector('.df-operation-toast-copy strong');
+        title.id = 'df-toast-confirm-title-' + (++confirmationCount);
+        toast.setAttribute('aria-labelledby', title.id);
 
         const actions = document.createElement('span');
         actions.className = 'df-operation-toast-actions';
@@ -83,19 +96,47 @@
             + '<button type="button" class="df-toast-action is-confirm-action"></button>';
         actions.querySelector('.is-confirm-action').textContent = form.dataset.confirmAction || 'Onayla';
         toast.append(actions);
-        pendingConfirmations.set(form, toast);
+        activeConfirmation = toast;
 
         const cancelButton = actions.querySelector('.is-cancel');
-        const returnFocus = submitter instanceof HTMLElement
-            ? submitter
-            : form.querySelector('button[type="submit"], input[type="submit"]');
-        cancelButton.addEventListener('click', () => {
-            pendingConfirmations.delete(form);
-            dismiss(toast);
-            returnFocus?.focus();
+        const inertSiblings = [...document.body.children]
+            .filter(element => element !== stack)
+            .map(element => [element, element.inert]);
+        inertSiblings.forEach(([element]) => { element.inert = true; });
+
+        const onKeydown = event => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                event.stopPropagation();
+                dismiss(toast);
+                return;
+            }
+            if (event.key !== 'Tab') return;
+            const buttons = [...toast.querySelectorAll('button:not(:disabled)')];
+            const first = buttons[0];
+            const last = buttons[buttons.length - 1];
+            if (!first) {
+                event.preventDefault();
+            } else if (event.shiftKey && (document.activeElement === first || !toast.contains(document.activeElement))) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && (document.activeElement === last || !toast.contains(document.activeElement))) {
+                event.preventDefault();
+                first.focus();
+            }
+        };
+        toast.addEventListener('keydown', onKeydown);
+        dismissCallbacks.set(toast, () => {
+            activeConfirmation = null;
+            toast.removeEventListener('keydown', onKeydown);
+            inertSiblings.forEach(([element, wasInert]) => { element.inert = wasInert; });
+            const target = returnFocus?.isConnected ? returnFocus : previouslyFocused;
+            if (target?.isConnected) target.focus();
         });
+        toast.setAttribute('aria-modal', 'true');
+
+        cancelButton.addEventListener('click', () => dismiss(toast));
         actions.querySelector('.is-confirm-action').addEventListener('click', () => {
-            pendingConfirmations.delete(form);
             form.dataset.toastConfirmed = 'true';
             dismiss(toast);
             form.requestSubmit();

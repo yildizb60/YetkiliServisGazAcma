@@ -14,8 +14,10 @@
     var iptal = durumlar.Count > 2 ? durumlar[2] : 0;
     var aylar = ViewBag.ChartAylikLabels as List<string> ?? new List<string>();
     var aylik = ViewBag.ChartAylikData as List<int> ?? new List<int>();
-    var chartCount = Math.Min(6, Math.Min(aylar.Count, aylik.Count));
-    var chartMax = Math.Max(1, aylik.DefaultIfEmpty(0).Max());
+    var chartLength = Math.Min(aylar.Count, aylik.Count);
+    var chartStart = Math.Max(0, chartLength - 6);
+    var chartCount = chartLength - chartStart;
+    var chartMax = Math.Max(1, aylik.Skip(chartStart).Take(chartCount).DefaultIfEmpty(0).Max());
     var tamamlanmaOrani = toplam == 0 ? 0 : Math.Round(tamamlanan * 100d / toplam, 1);
     string CssYuzde(double value) => Math.Clamp(value, 0, 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
     var pdfUrl = Url.Action("RaporlarPdf", "YetkiliServisPanel", new { bas = basTarih.ToString("yyyy-MM-dd"), bit = bitTarih.ToString("yyyy-MM-dd") });
@@ -56,7 +58,7 @@
             else
             {
                 <div class="df-ops-monthly-chart" style="--chart-count:@chartCount" role="img" aria-label="Aylık devreye alma işlemleri">
-                    @for (var index = 0; index < chartCount; index++)
+                    @for (var index = chartStart; index < chartLength; index++)
                     {
                         <div class="df-ops-month" title="@aylar[index]: @aylik[index] kayıt">
                             <strong>@aylik[index]</strong>

@@ -11,6 +11,7 @@ namespace YetkiliServisGazAcma.Controllers
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
+            if (!await KullaniciYonetebilirMi(kullanici)) return Forbid();
 
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
             var sonuc = await _adminSubeApiClient.ListeleAsync(kullanici, aktifSirketId, q, firmaId);
@@ -39,6 +40,7 @@ namespace YetkiliServisGazAcma.Controllers
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
+            if (!await KullaniciYonetebilirMi(kullanici)) return Forbid();
 
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
             var sonuc = await _adminSubeApiClient.EkleAsync(kullanici, aktifSirketId, firmaId, subeAdi, il, ilce, telefon, adres, aktifMi);
@@ -52,6 +54,7 @@ namespace YetkiliServisGazAcma.Controllers
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
+            if (!await KullaniciYonetebilirMi(kullanici)) return Forbid();
 
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
             var sonuc = await _adminSubeApiClient.DetayAsync(kullanici, id, aktifSirketId);
@@ -74,6 +77,7 @@ namespace YetkiliServisGazAcma.Controllers
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
+            if (!await KullaniciYonetebilirMi(kullanici)) return Forbid();
 
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
             var sonuc = await _adminSubeApiClient.GuncelleAsync(kullanici, id, aktifSirketId, firmaId, subeAdi, il, ilce, telefon, adres, aktifMi);
@@ -88,6 +92,7 @@ namespace YetkiliServisGazAcma.Controllers
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
+            if (!await KullaniciYonetebilirMi(kullanici)) return Forbid();
 
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
             var sonuc = await _adminSubeApiClient.DurumAsync(kullanici, id, aktifSirketId);
@@ -102,6 +107,7 @@ namespace YetkiliServisGazAcma.Controllers
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
+            if (!await KullaniciYonetebilirMi(kullanici)) return Forbid();
 
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
             var sonuc = await _adminSubeApiClient.SilAsync(kullanici, id, aktifSirketId);

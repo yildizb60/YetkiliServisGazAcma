@@ -2700,12 +2700,23 @@ button.df-admin-metric {
     grid-template-columns: minmax(135px, 1.4fr) minmax(140px, 1.3fr) minmax(80px, .65fr) minmax(112px, .75fr) 64px 104px;
 }
 
+.df-personnel-service-directory .df-service-list-modern .df-service-grid {
+    grid-template-columns: minmax(115px, 1.35fr) minmax(110px, 1.1fr) minmax(108px, 1.15fr) minmax(70px, .65fr) minmax(110px, .9fr) minmax(58px, .55fr) 106px;
+    gap: 8px;
+}
+
 .df-service-list-modern .df-service-grid-head {
     padding: 9px 27px;
 }
 
 .df-service-list-modern .df-service-grid-head > div:nth-child(4),
 .df-service-list-modern .df-service-row > div:nth-child(4) { text-align: center; }
+
+.df-personnel-service-directory .df-service-grid-head > div:nth-child(4),
+.df-personnel-service-directory .df-service-row > div:nth-child(4) { text-align: left; }
+
+.df-personnel-service-directory .df-service-grid-head > div:nth-child(5),
+.df-personnel-service-directory .df-service-row > div:nth-child(5) { text-align: center; }
 
 .df-service-grid-actions-heading {
     text-align: right;
@@ -2788,6 +2799,52 @@ button.df-admin-metric {
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
+.df-service-person {
+    display: block;
+    overflow: hidden;
+    color: #30495d;
+    font-size: 12px;
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.df-personnel-service-directory .df-service-volume {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 5px;
+    color: #315ac3;
+    white-space: nowrap;
+}
+
+.df-personnel-service-directory .df-service-volume strong { font-size: 17px; line-height: 1; }
+.df-personnel-service-directory .df-service-volume span { color: #64798a; font-size: 10px; font-weight: 600; }
+
+.df-personnel-service-directory .df-service-state {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #168565;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.df-personnel-service-directory .df-service-state::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    flex: 0 0 7px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.df-personnel-service-directory .df-service-state.is-passive { color: #b94740; }
+
+.df-personnel-service-directory .df-service-record.is-expanded .df-service-person,
+.df-personnel-service-directory .df-service-record.is-expanded .df-service-volume,
+.df-personnel-service-directory .df-service-record.is-expanded .df-service-volume span,
+.df-personnel-service-directory .df-service-record.is-expanded .df-service-state { color: #fff; }
 
 .df-service-city {
     min-width: 0;
@@ -3431,6 +3488,16 @@ html.df-sheet-open {
 
     .df-directory-sheet .df-admin-form-grid {
         grid-template-columns: minmax(0, 1fr);
+    }
+
+    .df-admin-service-sheet .df-admin-service-editor-form .df-admin-form-grid,
+    .df-admin-service-sheet .df-admin-service-editor-form .df-admin-choice-layout,
+    .df-admin-service-sheet .df-admin-service-editor-form .df-admin-choice-list {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .df-admin-service-sheet .df-admin-service-editor-form .df-admin-field:first-child {
+        grid-column: auto;
     }
 
     .df-directory-sheet .df-admin-field,
@@ -7295,15 +7362,9 @@ body.df-modal-open {
 
 /* Personel servis dizini: tek parça kayan düzenleme yüzeyi. */
 .df-personnel-service-directory .df-service-detail-grid {
-    grid-template-columns:.85fr 1fr 1.25fr 1.25fr;
+    grid-template-columns:repeat(3,minmax(0,1fr));
 }
-.df-personnel-service-directory .df-service-detail-grid > div.is-wide {
-    grid-column:1 / -1;
-    padding-top:12px;
-    padding-right:0;
-    border-top:1px solid #e7ebf1;
-    border-right:0;
-}
+.df-personnel-service-directory .df-service-detail-grid > div:nth-child(3n) { border-right:0; }
 .df-personnel-service-sheet {
     width:min(620px, calc(100vw - 24px));
     overflow:hidden;
@@ -7351,9 +7412,73 @@ body.df-modal-open {
     box-shadow:none;
 }
 @media (max-width:760px) {
+    .df-service-list-modern,
+    .df-service-list-modern .df-service-table-scroll,
+    .df-service-list-modern .df-service-records,
+    .df-service-list-modern .df-service-record {
+        min-width:0;
+        max-width:100%;
+        box-sizing:border-box;
+    }
+    .df-service-list-modern .df-service-table-scroll { overflow-x:clip; }
+    .df-service-list-modern .df-service-grid-head { display:none; }
+    .df-service-list-modern .df-service-records { padding:8px; }
+    .df-service-list-modern .df-service-grid.df-service-row {
+        width:100%;
+        grid-template-columns:minmax(0,1fr) auto;
+        gap:8px 10px;
+        padding:11px 12px;
+    }
+    .df-service-list-modern .df-service-row > div:nth-child(1),
+    .df-service-list-modern .df-service-row > div:nth-child(2) { grid-column:1 / -1; }
+    .df-service-list-modern .df-service-row > div:nth-child(3),
+    .df-service-list-modern .df-service-row > div:nth-child(5) { grid-column:1; }
+    .df-service-list-modern .df-service-row > div:nth-child(4),
+    .df-service-list-modern .df-service-row > div:nth-child(6) { grid-column:2; }
+    .df-service-list-modern .df-service-row > div:nth-child(4) {
+        display:flex;
+        align-items:center;
+        justify-content:flex-end;
+        gap:5px;
+    }
+    .df-service-list-modern .df-service-row > div:nth-child(4)::before {
+        content:"Devreye alma";
+        color:#667085;
+        font-size:10px;
+    }
+    .df-service-list-modern .df-service-record.is-expanded .df-service-row > div:nth-child(4)::before { color:#fff; }
+    .df-personnel-service-directory .df-service-list-modern .df-service-row > div:nth-child(1),
+    .df-personnel-service-directory .df-service-list-modern .df-service-row > div:nth-child(2),
+    .df-personnel-service-directory .df-service-list-modern .df-service-row > div:nth-child(3) { grid-column:1 / -1; }
+    .df-personnel-service-directory .df-service-list-modern .df-service-row > div:nth-child(4),
+    .df-personnel-service-directory .df-service-list-modern .df-service-row > div:nth-child(6) { grid-column:1; }
+    .df-personnel-service-directory .df-service-list-modern .df-service-row > div:nth-child(5),
+    .df-personnel-service-directory .df-service-list-modern .df-service-row > div:nth-child(7) { grid-column:2; }
+    .df-personnel-service-directory .df-service-list-modern .df-service-row > div:nth-child(4) { justify-content:flex-start; }
+    .df-personnel-service-directory .df-service-list-modern .df-service-row > div:nth-child(4)::before { content:none; }
+    .df-personnel-service-directory .df-service-list-modern .df-service-row > div:nth-child(5) { text-align:right; }
+    .df-personnel-service-directory .df-service-list-modern .df-service-row > div:nth-child(5)::before {
+        content:"Devreye alma ";
+        margin-right:5px;
+        color:#667085;
+        font-size:10px;
+    }
+    .df-personnel-service-directory .df-service-list-modern .df-service-record.is-expanded .df-service-row > div:nth-child(5)::before { color:#fff; }
+    .df-personnel-service-directory .df-service-list-modern .df-service-person { white-space:normal; }
+    .df-service-list-modern .df-service-name,
+    .df-service-list-modern .df-service-contact small {
+        overflow-wrap:anywhere;
+        white-space:normal;
+    }
+    .df-service-list-modern .df-service-detail-grid { grid-template-columns:1fr; }
+    .df-service-list-modern .df-service-detail-grid > div {
+        padding:8px 0;
+        border-right:0;
+        border-bottom:1px solid #e7ebf1;
+    }
+    .df-service-list-modern .df-service-detail-footer { flex-wrap:wrap; }
     .df-personnel-service-directory .df-service-detail-grid { grid-template-columns:1fr; }
-    .df-personnel-service-directory .df-service-detail-grid > div,
-    .df-personnel-service-directory .df-service-detail-grid > div.is-wide {
+    .df-personnel-service-directory .df-service-detail-grid > div {
         grid-column:auto;
         padding:10px 0;
         border-top:0;

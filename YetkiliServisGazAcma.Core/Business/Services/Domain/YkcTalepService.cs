@@ -23,10 +23,11 @@ namespace YetkiliServisGazAcma.Business.Services
         public async Task<YkcTalepListeSonuc> ListeAsync(
             YkcTalepListeFiltre filtre,
             AppKullanici kullanici,
-            bool genelYetkili)
+            bool genelYetkili,
+            int? dogrulanmisSirketId = null)
         {
             var query = TalepOkumaQuery();
-            query = FiltreleriUygula(query, filtre, kullanici, genelYetkili);
+            query = FiltreleriUygula(query, filtre, kullanici, genelYetkili, dogrulanmisSirketId);
 
             var toplam = await query.CountAsync();
             var sayfa = Math.Max(filtre.Sayfa, 1);
@@ -53,9 +54,10 @@ namespace YetkiliServisGazAcma.Business.Services
         public async Task<YkcRaporSonuc> RaporAsync(
             YkcTalepListeFiltre filtre,
             AppKullanici kullanici,
-            bool genelYetkili)
+            bool genelYetkili,
+            int? dogrulanmisSirketId = null)
         {
-            var query = FiltreleriUygula(TalepOkumaQuery(), filtre, kullanici, genelYetkili);
+            var query = FiltreleriUygula(TalepOkumaQuery(), filtre, kullanici, genelYetkili, dogrulanmisSirketId);
 
             var toplam = await query.CountAsync();
             var durumOzetleri = await query
@@ -114,10 +116,11 @@ namespace YetkiliServisGazAcma.Business.Services
             YkcTalepListeFiltre filtre,
             AppKullanici kullanici,
             bool genelYetkili,
-            int kayitLimiti)
+            int kayitLimiti,
+            int? dogrulanmisSirketId = null)
         {
             var limit = Math.Clamp(kayitLimiti, 1, 5001);
-            var kayitlar = await FiltreleriUygula(TalepOkumaQuery(), filtre, kullanici, genelYetkili)
+            var kayitlar = await FiltreleriUygula(TalepOkumaQuery(), filtre, kullanici, genelYetkili, dogrulanmisSirketId)
                 .OrderByDescending(x => x.TalepTarihi)
                 .ThenByDescending(x => x.Id)
                 .Take(limit)
@@ -179,9 +182,10 @@ namespace YetkiliServisGazAcma.Business.Services
             };
         }
 
-        public async Task<YkcTalepDetayDto?> GetirAsync(int id, AppKullanici kullanici, bool genelYetkili)
+        public async Task<YkcTalepDetayDto?> GetirAsync(
+            int id, AppKullanici kullanici, bool genelYetkili, int? dogrulanmisSirketId = null)
         {
-            var talep = await YetkiKapsamiUygula(TalepOkumaQuery(), kullanici, genelYetkili)
+            var talep = await YetkiKapsamiUygula(TalepOkumaQuery(), kullanici, genelYetkili, dogrulanmisSirketId)
                 .FirstOrDefaultAsync(x => x.Id == id);
 
             if (talep == null)
@@ -310,13 +314,14 @@ namespace YetkiliServisGazAcma.Business.Services
         public async Task<YkcIslemSonuc> AtamaYapAsync(
             YkcAtamaKaydetDto dto,
             AppKullanici kullanici,
-            bool genelYetkili)
-            => await _context.Database.CreateExecutionStrategy().ExecuteAsync(() => AtamaKaydetAsync(dto, kullanici, genelYetkili));
+            bool genelYetkili,
+            int? dogrulanmisSirketId = null)
+            => await _context.Database.CreateExecutionStrategy().ExecuteAsync(() => AtamaKaydetAsync(dto, kullanici, genelYetkili, dogrulanmisSirketId));
 
-        private async Task<YkcIslemSonuc> AtamaKaydetAsync(YkcAtamaKaydetDto dto, AppKullanici kullanici, bool genelYetkili)
+        private async Task<YkcIslemSonuc> AtamaKaydetAsync(YkcAtamaKaydetDto dto, AppKullanici kullanici, bool genelYetkili, int? dogrulanmisSirketId)
         {
             await using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
-            var talep = await YetkiKapsamiUygula(_context.Ykc_Talepler.Where(x => !x.SilindiMi), kullanici, genelYetkili)
+            var talep = await YetkiKapsamiUygula(_context.Ykc_Talepler.Where(x => !x.SilindiMi), kullanici, genelYetkili, dogrulanmisSirketId)
                 .FirstOrDefaultAsync(x => x.Id == dto.TalepId);
 
             if (talep == null)
@@ -366,7 +371,7 @@ namespace YetkiliServisGazAcma.Business.Services
 
             if (!string.IsNullOrWhiteSpace(dto.EkipId))
             {
-                var ekip = (await EkiplerAsync(talep.Id, kullanici, genelYetkili))
+                var ekip = (await EkiplerAsync(talep.Id, kullanici, genelYetkili, dogrulanmisSirketId))
                     .SingleOrDefault(x => x.Id == dto.EkipId);
                 if (ekip == null)
                     return YkcIslemSonuc.HataliSonuc("Seçilen ekip bu şirket, il ve tesisat bölgesine atanamaz.");
@@ -458,9 +463,10 @@ namespace YetkiliServisGazAcma.Business.Services
         public async Task<YkcIslemSonuc> DurumGuncelleAsync(
             YkcDurumGuncelleDto dto,
             AppKullanici kullanici,
-            bool genelYetkili)
+            bool genelYetkili,
+            int? dogrulanmisSirketId = null)
         {
-            var talep = await YetkiKapsamiUygula(_context.Ykc_Talepler.Where(x => !x.SilindiMi), kullanici, genelYetkili)
+            var talep = await YetkiKapsamiUygula(_context.Ykc_Talepler.Where(x => !x.SilindiMi), kullanici, genelYetkili, dogrulanmisSirketId)
                 .FirstOrDefaultAsync(x => x.Id == dto.TalepId);
 
             if (talep == null)
@@ -521,9 +527,10 @@ namespace YetkiliServisGazAcma.Business.Services
         public async Task<YkcIslemSonuc> KontrolleriKaydetAsync(
             YkcKontrolKaydetDto dto,
             AppKullanici kullanici,
-            bool genelYetkili)
+            bool genelYetkili,
+            int? dogrulanmisSirketId = null)
         {
-            var talep = await YetkiKapsamiUygula(TalepQuery(), kullanici, genelYetkili)
+            var talep = await YetkiKapsamiUygula(TalepQuery(), kullanici, genelYetkili, dogrulanmisSirketId)
                 .FirstOrDefaultAsync(x => x.Id == dto.TalepId);
 
             if (talep == null)
@@ -693,9 +700,10 @@ namespace YetkiliServisGazAcma.Business.Services
         public async Task<YkcIslemSonuc> DosyaEkleAsync(
             YkcDosyaKaydetDto dto,
             AppKullanici kullanici,
-            bool genelYetkili)
+            bool genelYetkili,
+            int? dogrulanmisSirketId = null)
         {
-            var talep = await YetkiKapsamiUygula(_context.Ykc_Talepler.Where(x => !x.SilindiMi), kullanici, genelYetkili)
+            var talep = await YetkiKapsamiUygula(_context.Ykc_Talepler.Where(x => !x.SilindiMi), kullanici, genelYetkili, dogrulanmisSirketId)
                 .FirstOrDefaultAsync(x => x.Id == dto.TalepId);
 
             if (talep == null)
@@ -922,9 +930,10 @@ namespace YetkiliServisGazAcma.Business.Services
             IQueryable<Ykc_Talep> query,
             YkcTalepListeFiltre filtre,
             AppKullanici kullanici,
-            bool genelYetkili)
+            bool genelYetkili,
+            int? dogrulanmisSirketId = null)
         {
-            query = YetkiKapsamiUygula(query, kullanici, genelYetkili);
+            query = YetkiKapsamiUygula(query, kullanici, genelYetkili, dogrulanmisSirketId);
 
             var kayitIdleri = filtre.KayitIdleri?
                 .Where(x => x > 0)

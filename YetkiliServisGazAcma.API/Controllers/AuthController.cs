@@ -60,10 +60,7 @@ public sealed class AuthController(UserManager<AppKullanici> users, SignInManage
                     .Where(f => f.Id == user.FirmaId.Value && !f.SilindiMi)
                     .Select(f => f.Telefon)
                     .FirstOrDefaultAsync();
-                var digits = new string((firmPhone ?? "").Where(char.IsDigit).ToArray());
-                if ((digits.Length == 10 && digits.StartsWith('5'))
-                    || (digits.Length == 11 && digits.StartsWith("05", StringComparison.Ordinal))
-                    || (digits.Length == 12 && digits.StartsWith("905", StringComparison.Ordinal)))
+                if (CepTelefonuKurali.GecerliMi(firmPhone))
                     phone = firmPhone;
             }
             return await ChallengeAsync(user, "GIRIS", identity?.DogrulamaReferansi, phone);
@@ -131,6 +128,8 @@ public sealed class AuthController(UserManager<AppKullanici> users, SignInManage
     {
         var user = await users.GetUserAsync(User);
         if (user?.AktifMi != true) return Unauthorized();
+        if (!CepTelefonuKurali.GecerliMi(dto.PhoneNumber))
+            return Error("Telefon numarası 05XXXXXXXXX veya 90XXXXXXXXXX formatında olmalıdır.");
         user.AdSoyad = dto.AdSoyad.Trim();
         var emailChanged = !string.Equals(user.Email, dto.Email.Trim(), StringComparison.OrdinalIgnoreCase);
         var phoneChanged = user.PhoneNumber != dto.PhoneNumber?.Trim();
@@ -192,7 +191,7 @@ public sealed class AuthController(UserManager<AppKullanici> users, SignInManage
             return null;
 
         var serviceUsers = await users.Users
-            .Where(u => u.FirmaId == firmIds[0] && u.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis)
+            .Where(u => u.FirmaId == firmIds[0] && u.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis && u.AktifMi)
             .Take(2)
             .ToListAsync();
         return serviceUsers.Count == 1 ? serviceUsers[0] : null;

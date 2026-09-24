@@ -138,9 +138,9 @@ public static class YkcKontrolAkisKurali
 
 public partial class YkcTalepService
 {
-    public async Task<List<YkcEkipSecenegi>> EkiplerAsync(int id, AppKullanici kullanici, bool genelYetkili)
+    public async Task<List<YkcEkipSecenegi>> EkiplerAsync(int id, AppKullanici kullanici, bool genelYetkili, int? dogrulanmisSirketId = null)
     {
-        var talep = await YetkiKapsamiUygula(_context.Ykc_Talepler.AsNoTracking().Where(x => !x.SilindiMi), kullanici, genelYetkili)
+        var talep = await YetkiKapsamiUygula(_context.Ykc_Talepler.AsNoTracking().Where(x => !x.SilindiMi), kullanici, genelYetkili, dogrulanmisSirketId)
             .FirstOrDefaultAsync(x => x.Id == id);
         if (talep == null) return new();
         return _planlama.Ekipler.Where(x => x.SirketId == talep.SirketId

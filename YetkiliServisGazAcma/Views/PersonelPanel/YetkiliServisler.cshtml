@@ -86,7 +86,7 @@
         </div>
         <div class="df-service-table-scroll">
             <div class="df-service-grid df-service-grid-head">
-                <div>Yetkili Servis</div><div>İletişim</div><div>Şehir</div><div>Cihaz Devreye Alma</div><div>Durum</div><div class="df-service-grid-actions-heading">İşlemler</div>
+                <div>Firma Adı</div><div>Yetkili Ad Soyad</div><div>İletişim</div><div>Şehir</div><div>Cihaz Devreye Alma</div><div>Durum</div><div class="df-service-grid-actions-heading">İşlemler</div>
             </div>
             @if (Model.Count == 0)
             {
@@ -100,14 +100,17 @@
                         var devreyeSayisi = devreyeSayilari.TryGetValue(servis.Id, out var sayi) ? sayi : 0;
                         var detayId = $"personel-servis-detay-{servis.Id}";
                         var markaAdlari = string.Join(", ", servis.FirmaMarkalar?.Where(x => x.Marka != null && !string.IsNullOrWhiteSpace(x.Marka.MarkaAdi)).Select(x => x.Marka!.MarkaAdi) ?? Enumerable.Empty<string?>());
-                        var kategoriAdlari = string.Join(", ", servis.FirmaKategoriler?.Where(x => x.Kategori != null && !string.IsNullOrWhiteSpace(x.Kategori.Ad)).Select(x => x.Kategori!.Ad) ?? Enumerable.Empty<string?>());
-                        <article class="df-service-record @(servis.AktifMi ? "is-active" : "is-passive")" data-service-record>
+                        var kategoriAdlari = string.Join(", ", servis.FirmaKategoriler?
+                            .Where(x => !x.SilindiMi && x.Kategori != null && !x.Kategori.SilindiMi && x.Kategori.AktifMi && !string.IsNullOrWhiteSpace(x.Kategori.Ad))
+                            .Select(x => x.Kategori!.Ad).Distinct() ?? Enumerable.Empty<string?>());
+                        <article class="df-service-record @(servis.AktifMi ? "is-active" : "is-passive")" data-service-record data-service-id="@servis.Id">
                             <div class="df-service-grid df-service-row">
-                                <div><span class="df-service-name">@(servis.FirmaAdi ?? "-")</span><small>@(string.IsNullOrWhiteSpace(servis.YetkiliKisi) ? "Yetkili kişi tanımlı değil" : servis.YetkiliKisi)</small></div>
-                                <div class="df-service-contact"><span>@(string.IsNullOrWhiteSpace(servis.Telefon) ? "Telefon tanımlı değil" : servis.Telefon)</span><small>@(string.IsNullOrWhiteSpace(servis.Email) ? "E-posta tanımlı değil" : servis.Email)</small></div>
+                                <div><span class="df-service-name">@(servis.FirmaAdi ?? "-")</span></div>
+                                <div><span class="df-service-person">@(string.IsNullOrWhiteSpace(servis.YetkiliKisi) ? "Tanımlı değil" : servis.YetkiliKisi)</span></div>
+                                <div class="df-service-contact"><span>@(string.IsNullOrWhiteSpace(servis.Telefon) ? "Telefon tanımlı değil" : servis.Telefon)</span></div>
                                 <div class="df-service-city"><i class="bi bi-geo-alt" aria-hidden="true"></i><span>@(servis.FaaliyetIli ?? "-")</span></div>
-                                <div><span class="df-service-count" title="Toplam cihaz devreye alma kaydı">@devreyeSayisi</span></div>
-                                <div><span class="df-pill @(servis.AktifMi ? "df-pill-success" : "df-pill-danger")">@(servis.AktifMi ? "Aktif" : "Pasif")</span></div>
+                                <div><span class="df-service-volume" aria-label="@devreyeSayisi cihaz devreye alma kaydı"><strong>@devreyeSayisi</strong><span>kayıt</span></span></div>
+                                <div><span class="df-service-state @(servis.AktifMi ? "is-active" : "is-passive")">@(servis.AktifMi ? "Aktif" : "Pasif")</span></div>
                                 <div class="df-service-actions">
                                     @if (servisYonetebilir)
                                     {
@@ -118,7 +121,7 @@
                                         }
                                         else
                                         {
-                                            <form method="post" action="/personel-panel/yetkiliservisler/sil/@servis.Id" onsubmit="return confirm('Bu yetkili servisi silmek istiyor musunuz?');">
+                                            <form method="post" action="/personel-panel/yetkiliservisler/sil/@servis.Id" data-toast-confirm data-confirm-title="Yetkili servisi sil" data-confirm-message="@servis.FirmaAdi adlı servis silinecek. Bu işlem geri alınamaz." data-confirm-action="Servisi Sil">
                                                 @Html.AntiForgeryToken()
                                                 <button type="submit" class="df-directory-action is-danger" title="Servisi sil" aria-label="@(servis.FirmaAdi ?? "Yetkili servis") kaydını sil"><i class="bi bi-trash3" aria-hidden="true"></i></button>
                                             </form>
@@ -130,15 +133,12 @@
                             <div class="df-service-record-detail" id="@detayId" aria-hidden="true" hidden>
                                 <div class="df-service-record-detail-inner">
                                     <div class="df-service-detail-grid">
+                                        <div><span>E-posta</span><strong>@(string.IsNullOrWhiteSpace(servis.Email) ? "Tanımlı değil" : servis.Email)</strong></div>
                                         <div><span>Vergi bilgisi</span><strong>@(string.IsNullOrWhiteSpace(servis.VergiNo) ? "Numara tanımlı değil" : servis.VergiNo)</strong><small>@(string.IsNullOrWhiteSpace(servis.VergiDairesi) ? "Vergi dairesi tanımlı değil" : servis.VergiDairesi)</small></div>
                                         <div><span>Bağlı dağıtım şirketi</span><strong>@(string.IsNullOrWhiteSpace(servis.Sirket?.SirketAdi) ? "Şirket bilgisi tanımlı değil" : servis.Sirket.SirketAdi)</strong></div>
                                         <div><span>Yetkili markalar</span><strong>@(string.IsNullOrWhiteSpace(markaAdlari) ? "Marka atanmamış" : markaAdlari)</strong></div>
                                         <div><span>Hizmet kategorileri</span><strong>@(string.IsNullOrWhiteSpace(kategoriAdlari) ? "Kategori atanmamış" : kategoriAdlari)</strong></div>
-                                        <div class="is-wide"><span>Açık adres</span><strong>@(string.IsNullOrWhiteSpace(servis.Adres) ? "Adres tanımlı değil" : servis.Adres)</strong></div>
-                                    </div>
-                                    <div class="df-service-detail-footer">
-                                        <span><i class="bi bi-card-checklist" aria-hidden="true"></i> Vergi, marka ve hizmet kapsamı</span>
-                                        <a class="df-btn df-btn-secondary df-btn-sm" href="/personel-panel/yetkiliservisler/detay/@servis.Id">Tüm ayrıntılar <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+                                        <div><span>Açık adres</span><strong>@(string.IsNullOrWhiteSpace(servis.Adres) ? "Adres tanımlı değil" : servis.Adres)</strong></div>
                                     </div>
                                 </div>
                             </div>
@@ -278,6 +278,16 @@
 
         var initialParams = new URLSearchParams(window.location.search);
         var initialTrigger = null;
+        var selectedId = initialParams.get("servis");
+        if (selectedId && /^\d+$/.test(selectedId)) {
+            var selectedRecord = records.find(function (record) { return record.dataset.serviceId === selectedId; });
+            if (selectedRecord) {
+                selectedRecord.querySelector("[data-service-expand]").click();
+                selectedRecord.scrollIntoView({ block: "nearest" });
+            }
+            initialParams.delete("servis");
+            window.history.replaceState({}, document.title, window.location.pathname + (initialParams.toString() ? "?" + initialParams.toString() : ""));
+        }
         var editId = initialParams.get("duzenle");
         if (editId && /^\d+$/.test(editId)) {
             initialTrigger = Array.prototype.find.call(

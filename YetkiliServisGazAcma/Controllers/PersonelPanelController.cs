@@ -832,27 +832,7 @@ namespace YetkiliServisGazAcma.Controllers
 
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
-
-            var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            AdminYetkiliServisDetaySonuc? detay;
-            try
-            {
-                detay = await _adminYetkiliServisApiClient.DetayAsync(kullanici, id, sirketId);
-            }
-            catch (ApiIntegrationException ex)
-            {
-                TempData["Hata"] = ex.Message;
-                return RedirectToAction(nameof(YetkiliServisler));
-            }
-
-            var firma = detay?.Servis;
-            if (firma == null) return RedirectToAction(nameof(YetkiliServisler));
-            firma.Subeler = detay!.Subeler;
-
-            ViewBag.Kullanici = kullanici;
-            await SetPersonelYetkiViewBags(kullanici);
-            await SetPersonelNotifViewBags(kullanici);
-            return View("~/Views/PersonelPanel/YetkiliServisDetay.cshtml", firma);
+            return Redirect($"/personel-panel/yetkiliservisler?servis={id}");
         }
 
         [HttpGet("yetkiliservisler/ekle")]

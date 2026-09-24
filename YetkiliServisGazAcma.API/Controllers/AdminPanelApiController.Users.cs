@@ -217,6 +217,9 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (kullanici.Id == hedef.Id && !dto.AktifMi)
                 return Ok(AdminIslemSonucDto.Basarisiz("Kendi hesabinizi pasiflestiremezsiniz."));
 
+            if (!CepTelefonuKurali.GecerliMi(dto.Telefon))
+                return Ok(AdminIslemSonucDto.Basarisiz("Telefon numarasi 05XXXXXXXXX veya 90XXXXXXXXXX formatinda olmalidir."));
+
             if (!GenelSistemAdminMi(kullanici) &&
                 (hedef.KullaniciTipi == KullaniciTipiDegerleri.GenelSistemAdmin || hedef.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin))
                 return Ok(AdminIslemSonucDto.Basarisiz("Sirket admini genel sistem admini veya sirket admini hesabini duzenleyemez."));
@@ -270,10 +273,16 @@ namespace YetkiliServisGazAcma.API.Controllers
                 hedef.FirmaId = null;
             }
 
+            var oncekiEmail = hedef.Email;
+            var telefonDegisti = !string.Equals(hedef.PhoneNumber?.Trim(), dto.Telefon?.Trim(), StringComparison.Ordinal);
             hedef.AdSoyad = dto.AdSoyad;
             hedef.Email = dto.Email;
-            hedef.UserName = dto.Email;
-            hedef.PhoneNumber = dto.Telefon;
+            if (string.IsNullOrWhiteSpace(hedef.UserName)
+                || string.Equals(hedef.UserName, oncekiEmail, StringComparison.OrdinalIgnoreCase))
+                hedef.UserName = dto.Email;
+            hedef.PhoneNumber = dto.Telefon?.Trim();
+            if (telefonDegisti)
+                hedef.PhoneNumberConfirmed = false;
             hedef.AktifMi = dto.AktifMi;
 
             await using var transaction = await _context.Database.BeginTransactionAsync();
@@ -368,22 +377,42 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (string.IsNullOrWhiteSpace(email))
                 return Ok(AdminIslemSonucDto.Basarisiz("E-posta zorunludur."));
 
+            if (!CepTelefonuKurali.GecerliMi(dto.Telefon))
+                return Ok(AdminIslemSonucDto.Basarisiz("Telefon numarasi 05XXXXXXXXX veya 90XXXXXXXXXX formatinda olmalidir."));
+
             var mevcut = await _userManager.FindByEmailAsync(email);
             if (mevcut != null)
                 return Ok(AdminIslemSonucDto.Basarisiz("Bu e-posta ile kayitli bir kullanici zaten var."));
 
+            Ys_Firma? secilenFirma = null;
+            if (dto.FirmaId.HasValue)
+            {
+                if (kullaniciTipi != KullaniciTipiDegerleri.YetkiliServis)
+                    return Ok(AdminIslemSonucDto.Basarisiz("Mevcut firma yalnizca yetkili servis hesabina baglanabilir."));
+
+                secilenFirma = await _context.Ys_Firmalar.FirstOrDefaultAsync(x =>
+                    x.Id == dto.FirmaId.Value && !x.SilindiMi && x.AktifMi);
+                if (secilenFirma == null || secilenFirma.SirketId != dto.SirketId)
+                    return Ok(AdminIslemSonucDto.Basarisiz("Secilen yetkili servis bulunamadi veya farkli bir sirkete bagli."));
+
+                if (await _context.Users.AnyAsync(x => x.FirmaId == secilenFirma.Id
+                    && (x.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis
+                        || x.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma)))
+                    return Ok(AdminIslemSonucDto.Basarisiz("Bu firmaya ait bir giris hesabi zaten var. Kullanicilar ekranindan duzenleyin."));
+            }
+
             var yeni = new AppKullanici
             {
-                UserName = email,
+                UserName = !string.IsNullOrWhiteSpace(secilenFirma?.VergiNo) ? secilenFirma.VergiNo.Trim() : email,
                 Email = email,
-                PhoneNumber = dto.Telefon,
+                PhoneNumber = dto.Telefon?.Trim(),
                 AdSoyad = dto.AdSoyad,
                 KullaniciTipi = kullaniciTipi,
                 SirketId = (kullaniciTipi == KullaniciTipiDegerleri.SirketAdmin ||
                             kullaniciTipi == KullaniciTipiDegerleri.Personel ||
                             kullaniciTipi == KullaniciTipiDegerleri.YetkiliServis ||
                             kullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma) ? dto.SirketId : null,
-                FirmaId = null,
+                FirmaId = secilenFirma?.Id,
                 AktifMi = true,
                 EmailConfirmed = true
             };
@@ -392,9 +421,10 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (!createSonuc.Succeeded)
                 return Ok(AdminIslemSonucDto.Basarisiz(string.Join(", ", createSonuc.Errors.Select(x => x.Description))));
 
-            Ys_Firma? firma = null;
-            if (kullaniciTipi == KullaniciTipiDegerleri.YetkiliServis ||
-                kullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma)
+            Ys_Firma? firma = secilenFirma;
+            var yeniFirmaOlusturuldu = false;
+            if ((kullaniciTipi == KullaniciTipiDegerleri.YetkiliServis ||
+                kullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma) && firma == null)
             {
                 try
                 {
@@ -411,14 +441,22 @@ namespace YetkiliServisGazAcma.API.Controllers
 
                     _context.Ys_Firmalar.Add(firma);
                     await _context.SaveChangesAsync();
+                    yeniFirmaOlusturuldu = true;
 
                     yeni.FirmaId = firma.Id;
                     yeni.SirketId = firma.SirketId;
-                    await _userManager.UpdateAsync(yeni);
+                    var baglantiSonucu = await _userManager.UpdateAsync(yeni);
+                    if (!baglantiSonucu.Succeeded)
+                        throw new InvalidOperationException("Firma hesabı kullanıcıya bağlanamadı.");
                 }
                 catch
                 {
                     await _userManager.DeleteAsync(yeni);
+                    if (yeniFirmaOlusturuldu && firma != null)
+                    {
+                        _context.Ys_Firmalar.Remove(firma);
+                        await _context.SaveChangesAsync();
+                    }
                     return Ok(AdminIslemSonucDto.Basarisiz("Firma kullanicisi kaydi olusturulurken hata olustu. Lutfen tekrar deneyin."));
                 }
             }
@@ -430,7 +468,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 if (string.IsNullOrWhiteSpace(ysRol))
                 {
                     await _userManager.DeleteAsync(yeni);
-                    if (firma != null)
+                    if (yeniFirmaOlusturuldu && firma != null)
                     {
                         _context.Ys_Firmalar.Remove(firma);
                         await _context.SaveChangesAsync();
@@ -447,7 +485,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (!rolVarMi)
             {
                 await _userManager.DeleteAsync(yeni);
-                if (firma != null)
+                if (yeniFirmaOlusturuldu && firma != null)
                 {
                     _context.Ys_Firmalar.Remove(firma);
                     await _context.SaveChangesAsync();
@@ -460,7 +498,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (!rolSonuc.Succeeded)
             {
                 await _userManager.DeleteAsync(yeni);
-                if (firma != null)
+                if (yeniFirmaOlusturuldu && firma != null)
                 {
                     _context.Ys_Firmalar.Remove(firma);
                     await _context.SaveChangesAsync();

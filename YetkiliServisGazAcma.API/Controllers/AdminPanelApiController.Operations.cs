@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using YetkiliServisGazAcma.Business.Services;
+using YetkiliServisGazAcma.Entities;
 
 namespace YetkiliServisGazAcma.API.Controllers
 {
@@ -30,21 +31,7 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             return Ok(new AdminYetkiliServisListeDto
             {
-                Servisler = sonuc.Servisler.Select(x => new AdminYetkiliServisDto
-                {
-                    Id = x.Id,
-                    FirmaAdi = x.FirmaAdi,
-                    YetkiliKisi = x.YetkiliKisi,
-                    VergiNo = x.VergiNo,
-                    VergiDairesi = x.VergiDairesi,
-                    Telefon = x.Telefon,
-                    Email = x.Email,
-                    Adres = x.Adres,
-                    FaaliyetIli = x.FaaliyetIli,
-                    AktifMi = x.AktifMi,
-                    SirketId = x.SirketId,
-                    SirketAdi = x.Sirket?.SirketAdi
-                }).ToList(),
+                Servisler = sonuc.Servisler.Select(MapYetkiliServis).ToList(),
                 DevreyeSayilari = sonuc.DevreyeSayilari
             });
         }
@@ -72,42 +59,7 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             return Ok(new AdminYetkiliServisDetayDto
             {
-                Servis = new AdminYetkiliServisDto
-                {
-                    Id = sonuc.Servis.Id,
-                    FirmaAdi = sonuc.Servis.FirmaAdi,
-                    YetkiliKisi = sonuc.Servis.YetkiliKisi,
-                    VergiNo = sonuc.Servis.VergiNo,
-                    VergiDairesi = sonuc.Servis.VergiDairesi,
-                    Telefon = sonuc.Servis.Telefon,
-                    Email = sonuc.Servis.Email,
-                    Adres = sonuc.Servis.Adres,
-                    FaaliyetIli = sonuc.Servis.FaaliyetIli,
-                    AktifMi = sonuc.Servis.AktifMi,
-                    SirketId = sonuc.Servis.SirketId,
-                    SirketAdi = sonuc.Servis.Sirket?.SirketAdi,
-                    Kategoriler = sonuc.Servis.FirmaKategoriler?
-                        .Where(x => !x.SilindiMi && x.Kategori != null)
-                        .Select(x => new AdminYetkiliServisKategoriDto
-                        {
-                            Id = x.Kategori!.Id,
-                            Ad = x.Kategori.Ad,
-                            IconUrl = x.Kategori.IconUrl
-                        })
-                        .GroupBy(x => x.Id)
-                        .Select(x => x.First())
-                        .ToList() ?? new List<AdminYetkiliServisKategoriDto>(),
-                    Markalar = sonuc.Servis.FirmaMarkalar?
-                        .Where(x => !x.SilindiMi && x.Marka != null)
-                        .Select(x => new AdminYetkiliServisMarkaDto
-                        {
-                            Id = x.Marka!.Id,
-                            MarkaAdi = x.Marka.MarkaAdi
-                        })
-                        .GroupBy(x => x.Id)
-                        .Select(x => x.First())
-                        .ToList() ?? new List<AdminYetkiliServisMarkaDto>()
-                },
+                Servis = MapYetkiliServis(sonuc.Servis),
                 YetkiBelgeleri = sonuc.YetkiBelgeleri.Select(x => new AdminYetkiliServisYetkiBelgesiDto
                 {
                     Id = x.Id,
@@ -136,6 +88,46 @@ namespace YetkiliServisGazAcma.API.Controllers
                     MarkaAdi = x.Marka?.MarkaAdi
                 }).ToList()
             });
+        }
+
+        private static AdminYetkiliServisDto MapYetkiliServis(Ys_Firma servis)
+        {
+            return new AdminYetkiliServisDto
+            {
+                Id = servis.Id,
+                FirmaAdi = servis.FirmaAdi,
+                YetkiliKisi = servis.YetkiliKisi,
+                VergiNo = servis.VergiNo,
+                VergiDairesi = servis.VergiDairesi,
+                Telefon = servis.Telefon,
+                Email = servis.Email,
+                Adres = servis.Adres,
+                FaaliyetIli = servis.FaaliyetIli,
+                AktifMi = servis.AktifMi,
+                SirketId = servis.SirketId,
+                SirketAdi = servis.Sirket?.SirketAdi,
+                Kategoriler = servis.FirmaKategoriler?
+                    .Where(x => !x.SilindiMi && x.Kategori != null && !x.Kategori.SilindiMi && x.Kategori.AktifMi)
+                    .Select(x => new AdminYetkiliServisKategoriDto
+                    {
+                        Id = x.Kategori!.Id,
+                        Ad = x.Kategori.Ad,
+                        IconUrl = x.Kategori.IconUrl
+                    })
+                    .GroupBy(x => x.Id)
+                    .Select(x => x.First())
+                    .ToList() ?? new List<AdminYetkiliServisKategoriDto>(),
+                Markalar = servis.FirmaMarkalar?
+                    .Where(x => !x.SilindiMi && x.Marka != null)
+                    .Select(x => new AdminYetkiliServisMarkaDto
+                    {
+                        Id = x.Marka!.Id,
+                        MarkaAdi = x.Marka.MarkaAdi
+                    })
+                    .GroupBy(x => x.Id)
+                    .Select(x => x.First())
+                    .ToList() ?? new List<AdminYetkiliServisMarkaDto>()
+            };
         }
 
         [HttpPost("yetkili-servisler/ekle")]
@@ -195,6 +187,8 @@ namespace YetkiliServisGazAcma.API.Controllers
             var kapsam = await KapsamSirketIdAsync(dto?.SirketId);
             if (kapsam.gecersiz)
                 return Forbid();
+            if (!await YetkiBelgesiOnaylayabilirMi(kapsam.sirketId))
+                return Forbid();
 
             return Ok(await _adminYetkiBelgesiOnayApiService.ListeleAsync(kapsam.sirketId));
         }
@@ -204,6 +198,8 @@ namespace YetkiliServisGazAcma.API.Controllers
         {
             var kapsam = await KapsamSirketIdAsync(dto?.SirketId);
             if (kapsam.gecersiz)
+                return Forbid();
+            if (!await YetkiBelgesiOnaylayabilirMi(kapsam.sirketId))
                 return Forbid();
 
             return Ok(await _adminYetkiBelgesiOnayApiService.GecmisAsync(dto, kapsam.sirketId));
@@ -215,6 +211,11 @@ namespace YetkiliServisGazAcma.API.Controllers
             var kapsam = await KapsamSirketIdAsync(dto?.SirketId);
             if (kapsam.gecersiz)
                 return Forbid();
+            var kullanici = await AktifKullaniciAsync();
+            if (kullanici == null)
+                return Unauthorized();
+            if (!await KullaniciYonetebilirMi(kullanici, kapsam.sirketId))
+                return Forbid();
 
             return Ok(await _adminSubeApiService.ListeleAsync(dto, kapsam.sirketId));
         }
@@ -224,6 +225,11 @@ namespace YetkiliServisGazAcma.API.Controllers
         {
             var kapsam = await KapsamSirketIdAsync(dto?.SirketId);
             if (kapsam.gecersiz)
+                return Forbid();
+            var kullanici = await AktifKullaniciAsync();
+            if (kullanici == null)
+                return Unauthorized();
+            if (!await KullaniciYonetebilirMi(kullanici, kapsam.sirketId))
                 return Forbid();
 
             return Ok(await _adminSubeApiService.GetirAsync(dto, kapsam.sirketId));
@@ -239,6 +245,8 @@ namespace YetkiliServisGazAcma.API.Controllers
             var kapsam = await KapsamSirketIdAsync(dto?.SirketId);
             if (kapsam.gecersiz)
                 return Forbid();
+            if (!await KullaniciYonetebilirMi(kullanici, kapsam.sirketId))
+                return Forbid();
 
             return Ok(await _adminSubeApiService.EkleAsync(dto, kapsam.sirketId, kullanici.UserName ?? "sistem"));
         }
@@ -252,6 +260,8 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             var kapsam = await KapsamSirketIdAsync(dto?.SirketId);
             if (kapsam.gecersiz)
+                return Forbid();
+            if (!await KullaniciYonetebilirMi(kullanici, kapsam.sirketId))
                 return Forbid();
 
             return Ok(await _adminSubeApiService.GuncelleAsync(dto, kapsam.sirketId, kullanici.UserName ?? "sistem"));
@@ -267,6 +277,8 @@ namespace YetkiliServisGazAcma.API.Controllers
             var kapsam = await KapsamSirketIdAsync(dto?.SirketId);
             if (kapsam.gecersiz)
                 return Forbid();
+            if (!await KullaniciYonetebilirMi(kullanici, kapsam.sirketId))
+                return Forbid();
 
             return Ok(await _adminSubeApiService.DurumDegistirAsync(dto, kapsam.sirketId, kullanici.UserName ?? "sistem"));
         }
@@ -280,6 +292,8 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             var kapsam = await KapsamSirketIdAsync(dto?.SirketId);
             if (kapsam.gecersiz)
+                return Forbid();
+            if (!await KullaniciYonetebilirMi(kullanici, kapsam.sirketId))
                 return Forbid();
 
             return Ok(await _adminSubeApiService.SilAsync(dto, kapsam.sirketId, kullanici.UserName ?? "sistem"));
@@ -395,6 +409,8 @@ namespace YetkiliServisGazAcma.API.Controllers
         {
             var kapsam = await KapsamSirketIdAsync(dto?.SirketId);
             if (kapsam.gecersiz)
+                return Forbid();
+            if (!await RaporGorebilirMi(kapsam.sirketId) && !await YetkiBelgesiOnaylayabilirMi(kapsam.sirketId))
                 return Forbid();
 
             return Ok(await _adminRaporApiService.YetkiBelgesiUyarilariAsync(kapsam.sirketId));

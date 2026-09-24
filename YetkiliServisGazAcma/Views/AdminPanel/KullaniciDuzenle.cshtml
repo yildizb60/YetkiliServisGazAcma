@@ -72,8 +72,8 @@
                             <input type="email" name="email" value="@(hedef?.Email ?? "")" autocomplete="email" required />
                         </div>
                         <div class="df-admin-field is-half">
-                            <label>Telefon</label>
-                            <input name="telefon" value="@(hedef?.PhoneNumber ?? "")" autocomplete="tel" />
+                            <label>Telefon *</label>
+                            <input name="telefon" type="tel" value="@(hedef?.PhoneNumber ?? "")" autocomplete="tel" required />
                         </div>
                         <div class="df-admin-field is-half">
                             <label>Hesap Durumu</label>
