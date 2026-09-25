@@ -157,11 +157,31 @@
 
 @media (min-width: 981px) {
     .registration-shell .registration-side {
-        align-items: flex-start;
+        align-items: stretch;
         padding-top: clamp(14px, calc(50dvh - 285px), 95px);
     }
 
-    .registration-shell .registration-card { margin-block: 0; }
+    .registration-shell .registration-card { height: 100%; margin-block: 0; }
+    .registration-step-panel:not([hidden]) { flex: 1; overflow: hidden; }
+    .registration-step-panel[data-registration-step="1"] .registration-field-grid {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        align-content: start;
+    }
+    .registration-step-panel[data-registration-step="2"] .registration-selection-grid {
+        flex: 1;
+        grid-template-rows: minmax(0, 1fr);
+    }
+    .registration-selection { overflow: hidden; }
+    .registration-brand-list, .registration-service-list {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        align-content: start;
+        grid-auto-rows: max-content;
+    }
+    .registration-step-actions { flex: none; }
 }
 
 @media (max-height: 760px) and (min-width: 981px) {

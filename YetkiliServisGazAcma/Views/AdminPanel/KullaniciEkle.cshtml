@@ -37,7 +37,6 @@
                         <span><i class="bi bi-diagram-3"></i></span>
                         <div>
                             <h3>Rol ve Bağlantı</h3>
-                            <p>Rol ve kurumsal kapsam</p>
                         </div>
                     </div>
                     <div class="df-admin-form-grid">
@@ -83,7 +82,6 @@
                         <span><i class="bi bi-person-vcard"></i></span>
                         <div>
                             <h3>Hesap Bilgileri</h3>
-                            <p>Kimlik ve güvenli giriş</p>
                         </div>
                     </div>
                     <div class="df-admin-form-grid">
@@ -151,7 +149,7 @@
             } else if (rol === "Personel") {
                 roleHelp.textContent = "";
             } else if (rol === "SirketAdmin" || rol === "SuperAdmin") {
-                roleHelp.textContent = "Şirket yöneticisi yalnızca bağlı şirketteki kayıtları yönetir.";
+                roleHelp.textContent = "";
             } else {
                 roleHelp.textContent = "Sistem genelindeki yönetim hesabıdır.";
             }

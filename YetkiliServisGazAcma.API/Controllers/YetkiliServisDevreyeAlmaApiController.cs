@@ -376,7 +376,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return Ok(new YsMarkaKontrolSonucDto { Yetkili = false, Mesaj = "Ilk kurulum tamamlanmadan islem yapilamaz." });
 
             if (string.IsNullOrWhiteSpace(dto?.CihazMarka))
-                return Ok(new YsMarkaKontrolSonucDto { Yetkili = false, Mesaj = "Servis bu cihaz için marka bilgisi döndürmedi. Kaynak kayıt düzeltilmeden devreye alma kaydedilemez." });
+                return Ok(new YsMarkaKontrolSonucDto { Yetkili = false, Mesaj = "Cihaz marka bilgisi bulunmadığından devreye alma yapılamaz." });
 
             var marka = await MarkaBulAsync(dto.CihazMarka);
             if (marka == null)
@@ -384,13 +384,13 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return Ok(new YsMarkaKontrolSonucDto
                 {
                     Yetkili = false,
-                    Mesaj = $"{dto.CihazMarka} markası sistemde kayıtlı değil. Yetkili yöneticinizin markayı ve firma yetkisini tanımlaması gerekir."
+                    Mesaj = $"{dto.CihazMarka} markasında işlem yetkiniz yok."
                 });
             }
 
             var yetkiVar = await FirmaMarkaYetkisiVarAsync(kullanici.FirmaId.Value, marka.Id);
             if (!yetkiVar)
-                return Ok(new YsMarkaKontrolSonucDto { Yetkili = false, Mesaj = "Bu marka için firmanızın yetkisi bulunmuyor. Yetki kaydınızı kontrol ettirin." });
+                return Ok(new YsMarkaKontrolSonucDto { Yetkili = false, Mesaj = $"{marka.MarkaAdi} markasında işlem yetkiniz yok." });
 
             return Ok(new YsMarkaKontrolSonucDto
             {
@@ -455,7 +455,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return Ok(new YsDevreyeAlmaIslemSonucDto
                 {
                     Basarili = false,
-                    Mesaj = "Servisten gelen cihaz markasi sistem markalari ile eslesmedi.",
+                    Mesaj = $"{dto.CihazMarka} markasında işlem yetkiniz yok.",
                     RedirectUrl = "/ys-devreyeal"
                 });
             }
@@ -466,7 +466,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return Ok(new YsDevreyeAlmaIslemSonucDto
                 {
                     Basarili = false,
-                    Mesaj = "Bu marka icin yetkiniz bulunmamaktadir!",
+                    Mesaj = $"{marka.MarkaAdi} markasında işlem yetkiniz yok.",
                     RedirectUrl = "/ys-devreyeal"
                 });
             }

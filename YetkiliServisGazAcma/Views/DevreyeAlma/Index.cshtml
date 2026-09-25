@@ -255,7 +255,7 @@
         seciliServisCihazIndex = index;
         document.querySelectorAll(".ys-commissioning-device-option").forEach((button, buttonIndex) => button.classList.toggle("is-selected", buttonIndex === index));
         if (!cihaz.cihazMarka?.trim()) {
-            cihazUyarisiGoster(index, "Servis bu cihaz için marka bilgisi döndürmedi. Kaynak kayıt düzeltilmeden devreye alma kaydedilemez.");
+            cihazUyarisiGoster(index, `${cihaz.cihazTipi || "Cihaz"} marka bilgisi bulunmadığından devreye alma yapamazsınız.`);
             return;
         }
         const tipSelect = document.getElementById("cihazTipi");

@@ -675,6 +675,51 @@
     margin: 0;
 }
 
+.ys-branch-workspace .ys-panel.is-blue { border-top-color:#315fca; }
+.ys-branch-workspace .ys-panel-head { background:#f8fbff; }
+.ys-branch-workspace .ys-branch-count { display:inline-flex; align-items:center; gap:5px; color:#4b6174; font-size:11px; font-weight:650; }
+.ys-branch-workspace .ys-branch-count i { color:#168565; }
+.ys-branch-table { min-width:780px; table-layout:fixed; }
+.ys-branch-table th:nth-child(1) { width:35%; }
+.ys-branch-table th:nth-child(2) { width:19%; }
+.ys-branch-table th:nth-child(3) { width:18%; }
+.ys-branch-table th:nth-child(4) { width:11%; }
+.ys-branch-table th:nth-child(5) { width:17%; text-align:center; }
+.ys-branch-table td:last-child { text-align:center; }
+.ys-branch-table .ys-table-actions { justify-content:center; gap:6px; }
+.ys-branch-table .ys-table-secondary { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ys-branch-status { display:inline-flex; align-items:center; gap:6px; color:#52677a; font-size:11px; font-weight:650; }
+.ys-branch-status::before { width:7px; height:7px; flex:none; border-radius:50%; background:#a8b4bf; content:""; }
+.ys-branch-status.is-active { color:#167a5b; }
+.ys-branch-status.is-active::before { background:#16a376; }
+.ys-branch-status.is-passive { color:#a34b45; }
+.ys-branch-status.is-passive::before { background:#ce6961; }
+.ys-branch-action { width:32px; height:32px; padding:0; display:inline-grid; place-items:center; border:1px solid #d8e3ee; border-radius:6px; background:#fff; color:#315fca; text-decoration:none; cursor:pointer; }
+.ys-branch-action:hover,.ys-branch-action:focus-visible { border-color:#a6bdea; background:#edf4ff; color:#244dab; }
+.ys-branch-action.is-danger { color:#b44a4a; }
+.ys-branch-action.is-danger:hover { border-color:#ebc7c7; background:#fff3f3; }
+.ys-branch-sheet { width:min(560px,calc(100vw - 24px)); }
+.ys-branch-sheet .df-directory-sheet-frame { background:#f8faff; }
+.ys-branch-sheet .df-directory-sheet-head h2 { font-size:16px; }
+.ys-branch-sheet .df-directory-sheet-body { overflow:hidden; }
+.ys-branch-editor { height:100%; min-height:0; box-sizing:border-box; padding:18px; display:flex; flex-direction:column; gap:14px; }
+.ys-branch-editor-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; align-content:start; }
+.ys-branch-editor .ys-field label { font-size:11px; color:#3e566b; }
+.ys-branch-editor .ys-field input,.ys-branch-editor .ys-field textarea { min-height:40px; border-color:#d9e3ef; }
+.ys-branch-editor .ys-field textarea { min-height:64px; max-height:88px; resize:none; }
+.ys-branch-active { min-height:40px; padding:8px 11px; display:flex; align-items:center; gap:9px; border:1px solid #cfe4dc; border-radius:6px; background:#f1f9f5; color:#176f53; font-size:11px; font-weight:700; }
+.ys-branch-active input { width:16px; height:16px; margin:0; accent-color:#168565; }
+.ys-branch-editor-actions { margin-top:auto; padding-top:12px; display:flex; justify-content:flex-end; gap:8px; border-top:1px solid #d9e3ee; }
+@media (max-width:620px) {
+    .ys-branch-editor-fields { grid-template-columns:1fr; gap:8px; }
+    .ys-branch-sheet .df-directory-sheet-body { overflow-y:auto; }
+    .ys-branch-editor { height:auto; min-height:100%; }
+}
+@media (max-height:620px) {
+    .ys-branch-sheet .df-directory-sheet-body { overflow-y:auto; }
+    .ys-branch-editor { height:auto; min-height:100%; }
+}
+
 .ys-empty {
     min-height: 110px;
     padding: 24px;

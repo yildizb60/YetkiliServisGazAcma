@@ -818,6 +818,7 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.Durum = durum ?? "";
             ViewBag.Siralama = siralama ?? "";
             ViewBag.DevreyeSayilari = devreyeSayilari;
+            ViewBag.Ilceler = listeSonuc?.Ilceler ?? new Dictionary<int, string>();
             ViewBag.Sehirler = _sehirFirmaKoduService.Sehirler();
             await SetPersonelYetkiViewBags(kullanici);
             await SetPersonelNotifViewBags(kullanici);

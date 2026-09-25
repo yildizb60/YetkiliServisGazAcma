@@ -3654,7 +3654,7 @@
 .ykc-results .ykc-report-table.is-firm { min-width: 860px; }
 .ykc-results .ykc-report-table th,
 .ykc-results .ykc-report-table td {
-    padding: 10px 9px;
+    padding: 7px 9px;
     overflow-wrap: normal;
     word-break: normal;
 }
@@ -3765,7 +3765,7 @@
 .ykc-report-page .ykc-report-table.is-firm th:nth-child(7) { width:170px; }
 .ykc-report-page .ykc-report-table.is-firm th:nth-child(8) { width:145px; }
 .ykc-report-page .ykc-report-table.is-firm th:nth-child(9) { width:54px; }
-.ykc-report-page .ykc-device-column { min-height:58px; }
+.ykc-report-page .ykc-device-column { min-height:0; }
 .ykc-report-insight:last-child { border-right:0; }
 .ykc-report-insight.is-summary { display:grid; grid-template-columns:27px minmax(64px,.55fr) minmax(0,1fr); align-items:center; gap:7px; }
 .ykc-report-insight-icon { width:27px; height:27px; display:grid; place-items:center; border-radius:5px; background:#eaf1f6; color:#426c88; font-size:12px; }
@@ -4357,14 +4357,12 @@
 .ykc-detail-page .ykc-staff-record .ykc-firm-data-section h2 > i { color:#187f61; }
 .ykc-detail-page .ykc-staff-record .ykc-assignment-region { color:#254b5d; background:#ecf8f3; border-color:#c9e7d8; }
 .ykc-detail-page .ykc-staff-record .ykc-assignment-region > i { color:#187f61; }
-.ykc-staff-data #staff-company .ykc-firm-data-grid { grid-template-columns:repeat(6,minmax(0,1fr)); column-gap:20px; }
-.ykc-staff-data #staff-company .ykc-firm-data-grid > div { min-width:0; padding:10px 0; border-bottom:1px solid #e2eaf0; }
+.ykc-staff-data #staff-company .ykc-firm-data-grid { grid-template-columns:repeat(3,minmax(0,1fr)); column-gap:16px; }
+.ykc-staff-data #staff-company .ykc-firm-data-grid > div { min-width:0; padding:6px 0; border-bottom:1px solid #e2eaf0; }
 .ykc-staff-data #staff-company .ykc-firm-data-grid dt { color:#607989; font-weight:600; }
 .ykc-staff-data #staff-company .ykc-firm-data-grid dd { color:#203e53; font-size:13px; font-weight:650; line-height:1.4; }
-.ykc-staff-data #staff-company .ykc-firm-data-grid > div:nth-child(-n+2) dd { font-size:15px; font-weight:700; }
-.ykc-staff-data #staff-company .ykc-firm-data-grid > div:nth-child(-n+2) { grid-column:span 3; }
-.ykc-staff-data #staff-company .ykc-firm-data-grid > div:nth-child(n+3):nth-child(-n+5) { grid-column:span 2; }
-.ykc-staff-data #staff-company .ykc-firm-data-grid > div:nth-child(n+6) { grid-column:span 3; }
+.ykc-staff-data #staff-company .ykc-firm-data-grid > div:nth-child(-n+2) dd { font-size:13px; font-weight:650; }
+.ykc-staff-data #staff-company .ykc-firm-data-grid > div:nth-child(n) { grid-column:auto; }
 .ykc-staff-record .ykc-assignment-form textarea { height:40px; min-height:40px; }
 .ykc-detail-page.is-streamlined .ykc-staff-record .ykc-focus-section:has(.ykc-assignment-disclosure) { padding-bottom:8px; }
 .ykc-staff-record .ykc-focus-section:has(.ykc-assignment-disclosure) .ykc-other-actions { margin-top:8px; padding-top:5px; }
@@ -4462,21 +4460,21 @@
 }
 
 .ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-record-head {
-    background: repeating-linear-gradient(135deg, rgba(49, 90, 195, .04) 0 1px, transparent 1px 14px), linear-gradient(110deg, #f3f8fc, #e8f3f1);
-    box-shadow: inset 0 -1px #cddfe8, 0 6px 16px rgba(24, 62, 81, .08);
+    background:#f7fafb;
+    box-shadow:inset 0 -1px #dce6eb;
 }
 
 .ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-record-number { color: #315ac3; }
 .ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-record-head h1 { color: #20394a; }
 .ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-record-head p { color: #587084; }
 .ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-control-status {
-    background: #e8f5ed;
-    border-color: #b8dfc9;
+    background: #f4faf6;
+    border-color: #d4e9dc;
     box-shadow: inset 4px 0 #187f61;
 }
 
 .ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-record-activity {
-    background: #f3f7fa;
+    background: #fbfcfd;
     border-color: #d8e3eb;
 }
 
@@ -4485,3 +4483,10 @@
 .ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-data-section dd { color: #20394a; }
 .ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-record-data .ykc-firm-data-section:nth-child(3) h2 > i { color: #b94740; }
 .ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-record-activity .ykc-firm-data-section:first-child h2 > i { color: #16869d; }
+.ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-record-activity .ykc-firm-data-section:first-child dl { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px 14px; }
+.ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-data-section { padding:13px 18px; }
+.ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-data-section h2 { margin-bottom:10px; }
+.ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-data-section dd { font-size:12px; line-height:1.35; }
+@media (max-width:600px) {
+    .ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-record-activity .ykc-firm-data-section:first-child dl { grid-template-columns:minmax(0,1fr); }
+}

@@ -265,7 +265,7 @@
                         <th>Abone Adı Soyadı</th>
                         @if (icOperasyonGorsun) { <th>Firma</th> }
                         <th>Tesisat ve Abone Bilgileri</th>
-                        <th>Cihaz Türü</th>
+                        <th>Yakıcı Cihaz Tipi</th>
                         @if (icOperasyonGorsun)
                         {
                             <th>Projedeki Cihaz</th>
@@ -307,20 +307,19 @@
                                     <dl class="ykc-id-list">
                                         <div><dt>Tesisat No:</dt><dd>@Deger(talep.TesisatNo)</dd></div>
                                         <div><dt>Sözleşme No:</dt><dd>@Deger(talep.SozlesmeNo)</dd></div>
-                                        <div><dt>Abone No:</dt><dd>@Deger(talep.AboneNo)</dd></div>
                                     </dl>
                                 </td>
-                                <td data-label="Cihaz Türü"><span class="ykc-device-type">@Deger(talep.YeniCihazBilgisi?.Tip)</span></td>
+                                <td data-label="Yakıcı Cihaz Tipi"><span class="ykc-device-type">@Deger(talep.YeniCihazBilgisi?.Tip)</span></td>
                                 @if (icOperasyonGorsun)
                                 {
                                     <td data-label="Projedeki Cihaz" class="ykc-project-device-cell">
-                                        <div class="ykc-device-summary is-project"><strong title="Marka: @Deger(talep.ProjedekiCihazBilgisi?.Marka)">@Deger(talep.ProjedekiCihazBilgisi?.Marka)</strong><span title="Kapasite"><i class="bi bi-speedometer2" aria-hidden="true"></i>@Deger(talep.ProjedekiCihazBilgisi?.Kapasite) kcal/h</span></div>
+                                        <div class="ykc-device-summary is-project"><strong title="Marka: @Deger(talep.ProjedekiCihazBilgisi?.Marka)">@Deger(talep.ProjedekiCihazBilgisi?.Marka)</strong><span title="Baca tipi"><i class="bi bi-wind" aria-hidden="true"></i>Baca: @Deger(talep.ProjedekiCihazBilgisi?.BacaTipi)</span><span title="Kapasite"><i class="bi bi-speedometer2" aria-hidden="true"></i>Kapasite: @Deger(talep.ProjedekiCihazBilgisi?.Kapasite) kcal/h</span></div>
                                     </td>
                                     <td class="ykc-device-arrow-cell" aria-label="Projedeki cihazdan yeni kullanılan cihaza geçiş">
                                         <i class="bi bi-arrow-right" aria-hidden="true" title="Projedeki cihazdan yeni kullanılan cihaza geçiş"></i>
                                     </td>
                                 }
-                                <td data-label="Yeni Kullanılan Cihaz"><div class="ykc-device-summary is-new"><strong title="Marka: @Deger(talep.YeniCihazBilgisi?.Marka)">@Deger(talep.YeniCihazBilgisi?.Marka)</strong><span title="Kapasite"><i class="bi bi-speedometer2" aria-hidden="true"></i>@Deger(talep.YeniCihazBilgisi?.Kapasite) kcal/h</span></div></td>
+                                <td data-label="Yeni Kullanılan Cihaz"><div class="ykc-device-summary is-new"><strong title="Marka: @Deger(talep.YeniCihazBilgisi?.Marka)">@Deger(talep.YeniCihazBilgisi?.Marka)</strong><span title="Baca tipi"><i class="bi bi-wind" aria-hidden="true"></i>Baca: @Deger(talep.YeniCihazBilgisi?.BacaTipi)</span><span title="Kapasite"><i class="bi bi-speedometer2" aria-hidden="true"></i>Kapasite: @Deger(talep.YeniCihazBilgisi?.Kapasite) kcal/h</span></div></td>
                                 <td data-label="Kontrol Randevusu">
                                     <div class="ykc-primary-cell @(randevuPlanli ? null : "is-pending-appointment")">@RandevuYazi(talep.RandevuTarihi, talep.RandevuSaati, talep.SiradakiKontrolNo)</div>
                                     @if (talep.KontrolAlaniDolduMu)

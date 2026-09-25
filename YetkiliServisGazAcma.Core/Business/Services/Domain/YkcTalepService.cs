@@ -1085,6 +1085,10 @@ namespace YetkiliServisGazAcma.Business.Services
         {
             // A firm account is always restricted to its own records, even if a stale
             // or incorrectly assigned privileged role reaches this layer.
+            if (kullanici.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma
+                && !kullanici.FirmaId.HasValue)
+                return query.Where(x => false);
+
             if (kullanici.FirmaId.HasValue)
             {
                 query = query.Where(x => x.FirmaId == kullanici.FirmaId.Value);
@@ -1495,6 +1499,7 @@ namespace YetkiliServisGazAcma.Business.Services
     {
         public string? Tip { get; set; }
         public string? Marka { get; set; }
+        public string? BacaTipi { get; set; }
         public string? Kapasite { get; set; }
     }
 
@@ -1542,8 +1547,8 @@ namespace YetkiliServisGazAcma.Business.Services
                 Bolge = YkcBolgeAtamaKurali.BolgeBelirle(talep.Bolge, talep.Il),
                 EskiCihaz = CihazOzeti(talep.EskiMarka, talep.EskiCihazTipi, talep.EskiKapasite),
                 YeniCihaz = CihazOzeti(talep.YeniMarka, talep.YeniCihazTipi, talep.YeniKapasite),
-                ProjedekiCihazBilgisi = new() { Tip = talep.EskiCihazTipi, Marka = talep.EskiMarka, Kapasite = talep.EskiKapasite },
-                YeniCihazBilgisi = new() { Tip = talep.YeniCihazTipi, Marka = talep.YeniMarka, Kapasite = talep.YeniKapasite },
+                ProjedekiCihazBilgisi = new() { Tip = talep.EskiCihazTipi, Marka = talep.EskiMarka, BacaTipi = talep.EskiBacaTipi, Kapasite = talep.EskiKapasite },
+                YeniCihazBilgisi = new() { Tip = talep.YeniCihazTipi, Marka = talep.YeniMarka, BacaTipi = talep.YeniBacaTipi, Kapasite = talep.YeniKapasite },
                 Durum = talep.Durum,
                 TalepTarihi = talep.TalepTarihi,
                 AtananEkip = talep.AtananEkip,

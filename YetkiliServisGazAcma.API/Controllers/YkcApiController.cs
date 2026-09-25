@@ -727,6 +727,11 @@ namespace YetkiliServisGazAcma.API.Controllers
         private async Task<bool> OkumaSirketineYetkiliMiAsync(
             AppKullanici kullanici, int? sirketId, string yetkiTipi = YetkiTipleri.YKC_TALEP_GOR)
         {
+            if ((User.IsInRole("SertifikaliFirma")
+                    || kullanici.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma)
+                && !kullanici.FirmaId.HasValue)
+                return false;
+
             if (sirketId.HasValue)
             {
                 if (!await _context.Dag_Sirketler.AnyAsync(x => x.Id == sirketId.Value && x.AktifMi && !x.SilindiMi))
@@ -793,8 +798,12 @@ namespace YetkiliServisGazAcma.API.Controllers
 
         private async Task<bool> TalepDosyasinaYetkiliMiAsync(Ykc_Talep talep, AppKullanici kullanici)
         {
+            if (User.IsInRole("SertifikaliFirma")
+                || kullanici.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma)
+                return YkcYetkiService.FirmaDosyasinaErisimVarMi(kullanici, talep);
+
             if (kullanici.FirmaId.HasValue)
-                return talep.FirmaId == kullanici.FirmaId.Value;
+                return YkcYetkiService.FirmaDosyasinaErisimVarMi(kullanici, talep);
 
             if (await GenelYetkiliMiAsync(kullanici))
                 return true;

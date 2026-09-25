@@ -32,7 +32,8 @@ namespace YetkiliServisGazAcma.API.Controllers
             return Ok(new AdminYetkiliServisListeDto
             {
                 Servisler = sonuc.Servisler.Select(MapYetkiliServis).ToList(),
-                DevreyeSayilari = sonuc.DevreyeSayilari
+                DevreyeSayilari = sonuc.DevreyeSayilari,
+                Ilceler = sonuc.Ilceler
             });
         }
 

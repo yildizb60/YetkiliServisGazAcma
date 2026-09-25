@@ -1,6 +1,7 @@
 @model YkcTalepDetayDto
 @{
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
+    ViewData["ContentClass"] = "fr265-preview-content";
     var formTarihi = Model.TalepTarihi.ToString("dd.MM.yyyy");
     var imzaEntegrasyonu = ViewBag.ImzaEntegrasyonu as YkcImzaEntegrasyonDto ?? new YkcImzaEntegrasyonDto();
     var ykcYetkileri = ViewBag.YkcYetkileri as YkcYetkiOzeti ?? new YkcYetkiOzeti();
@@ -47,10 +48,24 @@
 @section Styles {
     <link rel="stylesheet" href="~/css/form-pdf-viewer.css" asp-append-version="true" />
     <style>
-        .fr265-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+        .fr265-toolbar { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-bottom:0; }
         .fr265-toolbar-title { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
         .fr265-ready-badge { color:#147357; background:#edf8f3; padding:5px 8px; border-radius:4px; font-size:12px; }
         .fr265-demo { font-size:13px; color:#795d16; margin:8px 0; }
+    </style>
+}
+@section PageStyles {
+    <style>
+        .content.fr265-preview-content { height:calc(100dvh - 80px); min-height:0; box-sizing:border-box; padding:10px 16px; display:flex; flex-direction:column; gap:8px; overflow:hidden; }
+        .fr265-preview-content .fr265-toolbar { flex:none; min-height:34px; }
+        .fr265-preview-content .fr265-toolbar .df-actions { gap:6px; }
+        .fr265-preview-content .form-pdf-viewer { min-height:0; flex:1; display:flex; flex-direction:column; }
+        .fr265-preview-content .form-pdf-controls { min-height:38px; padding:3px 10px; flex:none; }
+        .fr265-preview-content .form-pdf-scroll { min-height:0; height:auto; flex:1; padding:9px; }
+        @@media (max-width:760px) {
+            .content.fr265-preview-content { height:auto; min-height:calc(100dvh - 80px); overflow:visible; }
+            .fr265-preview-content .form-pdf-scroll { min-height:420px; height:calc(100dvh - 240px); }
+        }
     </style>
 }
 <div class="fr265-toolbar">

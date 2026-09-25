@@ -31,6 +31,7 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.SeciliDurum = durum;
             ViewBag.Sehirler = _sehirFirmaKoduService.Sehirler();
             ViewBag.DevreyeSayilari = devreyeSayilari;
+            ViewBag.Ilceler = apiSonuc?.Ilceler ?? new Dictionary<int, string>();
             ViewBag.SeciliDevreyeSiralama = devreyeSiralama ?? "";
             return View("~/Views/AdminPanel/YetkiliServisler.cshtml");
         }
@@ -117,13 +118,35 @@ namespace YetkiliServisGazAcma.Controllers
                 return Redirect("/AdminPanel/yetkiliservisler");
             }
 
-            ViewBag.Kullanici = kullanici;
-            ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
-            ViewBag.Servis = sonuc.Servis;
-            ViewBag.YetkiBelgeleri = sonuc.YetkiBelgeleri;
-            ViewBag.Subeler = sonuc.Subeler;
-            ViewBag.Devreye = sonuc.Devreye;
-            return View("~/Views/AdminPanel/YetkiliServisDetay.cshtml");
+            return Redirect($"/AdminPanel/yetkiliservisler?servis={id}");
+        }
+
+        [HttpGet("yetkiliservisler/pdf/{id:int}")]
+        public Task<IActionResult> YetkiliServisPdf(int id) => YetkiliServisDosyasi(id, pdf: true);
+
+        [HttpGet("yetkiliservisler/excel/{id:int}")]
+        public Task<IActionResult> YetkiliServisExcel(int id) => YetkiliServisDosyasi(id, pdf: false);
+
+        private async Task<IActionResult> YetkiliServisDosyasi(int id, bool pdf)
+        {
+            if (id <= 0) return NotFound();
+
+            var kullanici = await GetCurrentUser();
+            if (kullanici == null) return Redirect("/giris");
+            if (!await KullaniciYonetebilirMi(kullanici)) return Forbid();
+
+            var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
+            var detay = await _adminYetkiliServisApiClient.DetayAsync(kullanici, id, aktifSirketId);
+            if (detay?.Servis == null) return NotFound();
+
+            var icerik = pdf
+                ? YetkiliServisKayitDosyasi.PdfOlustur(detay)
+                : YetkiliServisKayitDosyasi.ExcelOlustur(detay);
+            var uzanti = pdf ? "pdf" : "xlsx";
+            var icerikTuru = pdf
+                ? "application/pdf"
+                : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            return this.HassasDosya(icerik, icerikTuru, $"Yetkili_Servis_{id}.{uzanti}");
         }
 
         [HttpGet("yetkiliservis-duzenle/{id}")]

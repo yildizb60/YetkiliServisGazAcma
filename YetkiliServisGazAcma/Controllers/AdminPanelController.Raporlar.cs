@@ -43,9 +43,7 @@ namespace YetkiliServisGazAcma.Controllers
                 return Redirect("/AdminPanel/devreyealmalar");
             }
 
-            ViewBag.Kullanici = kullanici;
-            ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
-            return View("~/Views/AdminPanel/DevreyeAlmaDetay.cshtml", kayit);
+            return Redirect($"/AdminPanel/devreyealmalar#devreye-alma-detay-{id}");
         }
 
         [HttpGet("devreyealmalar/pdf/{id:int}")]

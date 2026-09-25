@@ -344,7 +344,7 @@
                         {
                             <th>Firma</th>
                         }
-                        <th>Cihaz Türü</th>
+                        <th>Yakıcı Cihaz Tipi</th>
                         @if (icOperasyonGorsun)
                         {
                             <th>Projedeki Cihaz</th>
@@ -374,9 +374,9 @@
                                 <td data-label="Tesisat Bilgileri"><dl class="ykc-id-list"><div><dt>Tesisat No:</dt><dd>@Deger(kayit.TesisatNo)</dd></div><div><dt>Abone No:</dt><dd>@Deger(kayit.AboneNo)</dd></div></dl></td>
                                 @if (icOperasyonGorsun)
                                 {
-                                    <td data-label="Firma"><div class="ykc-cell-main">@Deger(kayit.FirmaAdi)</div>@if (!string.IsNullOrWhiteSpace(kayit.FirmaVergiNo)) { <div class="ykc-muted">VKN: @kayit.FirmaVergiNo</div> }@if (!string.IsNullOrWhiteSpace(kayit.FirmaFaaliyetIli)) { <div class="ykc-muted">@kayit.FirmaFaaliyetIli</div> }</td>
+                                    <td data-label="Firma"><div class="ykc-cell-main">@Deger(kayit.FirmaAdi)</div></td>
                                 }
-                                <td data-label="Cihaz Türü"><div class="ykc-cell-main">@Deger(kayit.YeniCihazTipi)</div>@if (icOperasyonGorsun && !string.Equals(kayit.EskiCihazTipi, kayit.YeniCihazTipi, StringComparison.OrdinalIgnoreCase)) { <div class="ykc-muted">Projede: @Deger(kayit.EskiCihazTipi)</div> }</td>
+                                <td data-label="Yakıcı Cihaz Tipi"><div class="ykc-cell-main">@Deger(kayit.YeniCihazTipi)</div>@if (icOperasyonGorsun && !string.Equals(kayit.EskiCihazTipi, kayit.YeniCihazTipi, StringComparison.OrdinalIgnoreCase)) { <div class="ykc-muted">Projede: @Deger(kayit.EskiCihazTipi)</div> }</td>
                                 @if (icOperasyonGorsun)
                                 {
                                     <td data-label="Projedeki Cihaz"><div class="ykc-device-column is-project"><strong>@Deger(kayit.EskiMarka)</strong><small>Kapasite: @Deger(kayit.EskiKapasite)</small><small>Baca tipi: @Deger(kayit.EskiBacaTipi)</small></div></td>

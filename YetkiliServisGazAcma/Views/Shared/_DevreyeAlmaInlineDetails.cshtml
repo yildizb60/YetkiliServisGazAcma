@@ -14,9 +14,9 @@
         : adminPaneli
             ? Url.Action("DevreyeAlmaExcel", "AdminPanel", new { id = Model.Id })
             : Url.Action("DevreyeAlmaExcel", "PersonelPanel", new { id = Model.Id });
-    var detay = adminPaneli
-        ? Url.Action("DevreyeAlmaDetay", "AdminPanel", new { id = Model.Id })
-        : Url.Action("DevreyeAlmaDetay", "PersonelPanel", new { id = Model.Id });
+    var detay = !servisPaneli && !adminPaneli
+        ? Url.Action("DevreyeAlmaDetay", "PersonelPanel", new { id = Model.Id })
+        : null;
     var adresVar = !string.IsNullOrWhiteSpace(Model.Adres);
     var cihazDetayVar = !string.IsNullOrWhiteSpace(Model.SeriNo) || !string.IsNullOrWhiteSpace(Model.CihazKapasite);
     var belgeVar = !string.IsNullOrWhiteSpace(Model.UygunlukBelgeNo)
@@ -88,7 +88,7 @@
                     <span>Kayıt #@Model.Id</span>
                 </div>
                 <div class="df-actions">
-                    @if (!servisPaneli)
+                    @if (detay != null)
                     {
                         <a class="df-btn df-btn-sm df-btn-secondary" href="@detay"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> Kayıt Detayı</a>
                     }

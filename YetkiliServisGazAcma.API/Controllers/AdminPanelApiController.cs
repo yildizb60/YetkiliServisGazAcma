@@ -811,6 +811,7 @@ namespace YetkiliServisGazAcma.API.Controllers
     {
         public List<AdminYetkiliServisDto> Servisler { get; set; } = new();
         public Dictionary<int, int> DevreyeSayilari { get; set; } = new();
+        public Dictionary<int, string> Ilceler { get; set; } = new();
     }
 
     public class AdminYetkiliServisDetayDto

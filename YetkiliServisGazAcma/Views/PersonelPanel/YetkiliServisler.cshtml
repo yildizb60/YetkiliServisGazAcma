@@ -28,7 +28,7 @@
 <div class="df-service-directory df-service-directory--detailed">
     <details class="df-service-filter" open="@(filtreAktif ? "open" : null)">
         <summary>
-            <span><i class="bi bi-funnel" aria-hidden="true"></i><strong>Filtreler</strong><small>Firma, şehir, durum veya işlem sayısına göre listeyi daraltın.</small></span>
+            <span><i class="bi bi-funnel" aria-hidden="true"></i><strong>Filtreler</strong></span>
             <span>@(filtreAktif ? "Filtre uygulandı" : "Aç") <i class="bi bi-chevron-down" aria-hidden="true"></i></span>
         </summary>
         <form method="get" action="/personel-panel/yetkiliservisler">
@@ -38,7 +38,7 @@
                     <input id="personel-servis-q" type="text" name="q" value="@q" placeholder="Firma, yetkili, VKN veya telefon..." />
                 </div>
                 <div class="filtre-alan">
-                    <label for="personel-servis-il">Şehir</label>
+                    <label for="personel-servis-il">İl</label>
                     <select id="personel-servis-il" name="il">
                         <option value="">Tümü</option>
                         @foreach (var sehir in sehirler)

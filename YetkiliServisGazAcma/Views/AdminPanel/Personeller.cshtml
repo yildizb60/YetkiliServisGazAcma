@@ -54,7 +54,7 @@
     <section class="df-user-list">
         <div class="df-user-table-scroll">
             <div class="df-user-grid df-person-grid df-user-grid-head">
-                <div>Personel</div><div>İletişim</div><div>Dağıtım Şirketi</div><div>Durum</div><div>İşlemler</div>
+                <div>Personel</div><div>E-posta</div><div>Telefon</div><div>Dağıtım Şirketi</div><div>Durum</div><div>İşlemler</div>
             </div>
             @if (personeller.Count == 0)
             {
@@ -71,7 +71,8 @@
                     var basHarfler = string.Concat(adParcalari);
                     <div class="df-user-grid df-person-grid df-user-row">
                         <div class="df-user-identity"><span class="df-user-avatar">@basHarfler</span><strong>@(personel.AdSoyad ?? "-")</strong></div>
-                        <div class="df-person-contact"><span>@(personel.Email ?? "-")</span>@if (!string.IsNullOrWhiteSpace(personel.PhoneNumber)){<small>@personel.PhoneNumber</small>}</div>
+                        <div class="df-person-email">@(personel.Email ?? "-")</div>
+                        <div class="df-person-phone">@(string.IsNullOrWhiteSpace(personel.PhoneNumber) ? "-" : personel.PhoneNumber)</div>
                         <div class="df-person-company"><strong>@(personel.Sirket?.SirketAdi ?? "-")</strong>@if (!string.IsNullOrWhiteSpace(personel.Sirket?.Il)){<small>@personel.Sirket.Il</small>}</div>
                         <div><span class="df-account-status @(personel.AktifMi ? "is-active" : "is-passive")"><i class="bi @(personel.AktifMi ? "bi-check-circle-fill" : "bi-pause-circle-fill")" aria-hidden="true"></i>@(personel.AktifMi ? "Aktif" : "Pasif")</span></div>
                         <div class="df-user-actions">

@@ -23,7 +23,7 @@
 <div class="df-service-directory df-service-directory--detailed">
     <details class="df-service-filter" open="@(filtreAktif ? "open" : null)">
         <summary>
-            <span><i class="bi bi-funnel" aria-hidden="true"></i><strong>Filtreler</strong><small>Firma, şehir, durum veya işlem sayısına göre listeyi daraltın.</small></span>
+            <span><i class="bi bi-funnel" aria-hidden="true"></i><strong>Filtreler</strong></span>
             <span>@(filtreAktif ? "Filtre uygulandı" : "Aç") <i class="bi bi-chevron-down" aria-hidden="true"></i></span>
         </summary>
         <form method="get" action="/AdminPanel/yetkiliservisler">
@@ -33,7 +33,7 @@
                     <input id="admin-servis-q" type="text" name="q" value="@seciliQ" placeholder="Firma, yetkili, VKN veya telefon..." />
                 </div>
                 <div class="filtre-alan">
-                    <label for="admin-servis-il">Şehir</label>
+                    <label for="admin-servis-il">İl</label>
                     <select id="admin-servis-il" name="il">
                         <option value="">Tümü</option>
                         @foreach (var sehir in sehirler)
@@ -149,6 +149,21 @@
                 detail.setAttribute("aria-hidden", "false");
             });
         });
+
+        var query = new URLSearchParams(window.location.search);
+        var selectedId = query.get("servis");
+        var selectedRecord = records.find(function (record) {
+            return record.getAttribute("data-service-id") === selectedId;
+        });
+        if (selectedRecord) {
+            selectedRecord.querySelector("[data-service-expand]").click();
+            window.requestAnimationFrame(function () {
+                selectedRecord.scrollIntoView({ block: "nearest" });
+            });
+            query.delete("servis");
+            var cleanUrl = window.location.pathname + (query.toString() ? "?" + query.toString() : "") + window.location.hash;
+            window.history.replaceState(null, "", cleanUrl);
+        }
 
         function closeSheet() {
             if (!sheet || !sheet.open) return;

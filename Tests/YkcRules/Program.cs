@@ -24,6 +24,30 @@ string ExcelParcasi(byte[] bytes, string path)
 }
 
 // No database or external providers: checks cannot alter application records.
+var listDevice = YkcTalepDto.FromEntity(new Ykc_Talep
+{
+    EskiCihazTipi = "Kombi",
+    EskiMarka = "Buderus",
+    EskiBacaTipi = null,
+    EskiKapasite = "20000",
+    YeniCihazTipi = "Kombi",
+    YeniMarka = "Bosch",
+    YeniBacaTipi = "Hermetik",
+    YeniKapasite = "2460"
+});
+Check(listDevice.ProjedekiCihazBilgisi?.BacaTipi == null
+      && listDevice.ProjedekiCihazBilgisi?.Marka == "Buderus"
+      && listDevice.YeniCihazBilgisi?.BacaTipi == "Hermetik",
+    "Request list preserves missing source chimney and entered new-device chimney");
+var firmFileUser = new AppKullanici { KullaniciTipi = KullaniciTipiDegerleri.SertifikaliFirma, FirmaId = 7, SirketId = 3 };
+Check(YkcYetkiService.FirmaDosyasinaErisimVarMi(firmFileUser, new Ykc_Talep { FirmaId = 7, SirketId = 3 }),
+    "Certified firm can access its own request file");
+Check(!YkcYetkiService.FirmaDosyasinaErisimVarMi(firmFileUser, new Ykc_Talep { FirmaId = 8, SirketId = 3 }),
+    "Certified firm cannot access another firm's file in the same company");
+firmFileUser.FirmaId = null;
+Check(!YkcYetkiService.FirmaDosyasinaErisimVarMi(firmFileUser, new Ykc_Talep { FirmaId = 8, SirketId = 3 }),
+    "Certified firm without a firm assignment cannot use company scope for files");
+
 var onlineHandler = new RecordingOnlineHandler();
 using var onlineHttp = new HttpClient(onlineHandler);
 var disabledOnline = new OnlineCihazBilgileriClient(onlineHttp,
@@ -310,6 +334,26 @@ Check(belgeExcelXml.Contains("Demo Yetkili Servis") && belgeExcelXml.Contains("O
     "Certificate XLSX contains scoped report data");
 var belgePdf = YetkiBelgesiRaporPdfService.Olustur(new[] { yetkiBelgesi }, "Onaylanan Yetki Belgeleri");
 Check(System.Text.Encoding.ASCII.GetString(belgePdf, 0, 5) == "%PDF-", "Certificate report export is a PDF");
+var servisDetayi = new AdminYetkiliServisDetaySonuc
+{
+    Servis = new Ys_Firma
+    {
+        FirmaAdi = "Demo Yetkili Servis",
+        YetkiliKisi = "Ayşe Yılmaz",
+        FaaliyetIli = "Çorum",
+        Telefon = "05550000000",
+        Sirket = new Dag_Sirket { SirketAdi = "Çorumgaz Doğalgaz A.Ş." },
+        AktifMi = true
+    },
+    Subeler = new List<Ys_Sube> { new() { Ilce = "Merkez" } }
+};
+var servisExcel = YetkiliServisKayitDosyasi.ExcelOlustur(servisDetayi);
+var servisExcelXml = ExcelParcasi(servisExcel, "xl/worksheets/sheet1.xml");
+Check(servisExcelXml.Contains("Demo Yetkili Servis") && servisExcelXml.Contains("Merkez")
+      && servisExcelXml.Contains("Ayşe Yılmaz"),
+    "Service record XLSX contains firm, responsible person and branch district");
+var servisPdf = YetkiliServisKayitDosyasi.PdfOlustur(servisDetayi);
+Check(System.Text.Encoding.ASCII.GetString(servisPdf, 0, 5) == "%PDF-", "Service record export is a PDF");
 if (args.Length == 2 && args[0] == "--form-output")
 {
     Directory.CreateDirectory(args[1]);

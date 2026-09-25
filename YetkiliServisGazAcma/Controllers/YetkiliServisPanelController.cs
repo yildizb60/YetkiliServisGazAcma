@@ -179,6 +179,9 @@ namespace YetkiliServisGazAcma.Controllers
         [Route("subeler/duzenle/{id:int}")]
         public async Task<IActionResult> SubeDuzenle(int id)
         {
+            if (Request.Headers["X-Requested-With"] != "XMLHttpRequest")
+                return RedirectToAction(nameof(Subeler), new { duzenle = id });
+
             var kullanici = await GetYetkiliServisKullanici();
             if (kullanici == null) return Redirect("/giris");
 

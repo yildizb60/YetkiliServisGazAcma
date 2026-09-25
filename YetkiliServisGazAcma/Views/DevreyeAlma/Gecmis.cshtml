@@ -7,7 +7,7 @@
     ViewData["ActiveMenu"] = "DevreyeGecmis";
     ViewData["PanelArea"] = "YetkiliServis";
     ViewData["DevreyeAlmaAlan"] = "/ys-devreyeal";
-    ViewData["DevreyeAlmaColspan"] = 7;
+    ViewData["DevreyeAlmaColspan"] = 8;
     var markaList = ViewBag.MarkaList as List<string> ?? new List<string>();
     string seciliMarka = ViewBag.SeciliMarka as string ?? "";
     string seciliBas = ViewBag.SeciliBas as string ?? "";
@@ -87,7 +87,7 @@
         {
             <div class="df-admin-table-scroll">
                 <table class="df-table df-commissioning-table is-firm-history">
-                    <thead><tr><th>Abone</th><th>Tesisat Bilgileri</th><th>Devreye Alınan Cihaz Bilgileri</th><th>Cihaz Devreye Alma Tarihi</th><th>Yetkili Ad Soyad</th><th>Durum</th><th>İşlem</th></tr></thead>
+                    <thead><tr><th>Abone</th><th>Tesisat Bilgileri</th><th>Yakıcı Cihaz Tipi</th><th>Devreye Alınan Cihaz Bilgileri</th><th>Cihaz Devreye Alma Tarihi</th><th>Yetkili Ad Soyad</th><th>Durum</th><th>İşlem</th></tr></thead>
                     <tbody>
                     @foreach (var d in Model)
                     {
@@ -103,7 +103,8 @@
                         <tr class="df-commissioning-record-row" data-commissioning-record>
                             <td><div class="df-cell-main">@(string.IsNullOrWhiteSpace(d.MusteriAdi) ? "Abone adı kayıtlı değil" : d.MusteriAdi)</div>@if (!string.IsNullOrWhiteSpace(d.MusteriTelefon)) { <div class="df-cell-sub"><i class="bi bi-telephone" aria-hidden="true"></i> @d.MusteriTelefon</div> }</td>
                             <td><dl class="df-operation-id-list"><div><dt>Tesisat No:</dt><dd>@(d.TesistatNo ?? "-")</dd></div><div><dt>Abone No:</dt><dd>@(d.AboneNo ?? "-")</dd></div></dl></td>
-                            <td><dl class="df-device-facts"><div><dt>Tür</dt><dd>@(string.IsNullOrWhiteSpace(d.CihazTipi) ? "-" : d.CihazTipi)</dd></div><div><dt>Marka</dt><dd>@(string.IsNullOrWhiteSpace(cihazMarka) ? "-" : cihazMarka)</dd></div>@if (!string.IsNullOrWhiteSpace(cihazModeli)) { <div class="df-device-model"><dt>Model</dt><dd title="@cihazModeli">@cihazModeli</dd></div> }</dl></td>
+                            <td><span class="df-device-type-tag">@(string.IsNullOrWhiteSpace(d.CihazTipi) ? "-" : d.CihazTipi)</span></td>
+                            <td><dl class="df-device-facts"><div><dt>Marka</dt><dd>@(string.IsNullOrWhiteSpace(cihazMarka) ? "-" : cihazMarka)</dd></div>@if (!string.IsNullOrWhiteSpace(cihazModeli)) { <div class="df-device-model"><dt>Model</dt><dd title="@cihazModeli">@cihazModeli</dd></div> }</dl></td>
                             <td><time class="df-cell-value" datetime="@(tarihVar ? d.DevreyeAlmaTarihi.ToString("yyyy-MM-dd") : null)">@(tarihVar ? d.DevreyeAlmaTarihi.ToString("dd.MM.yyyy") : "Tarih bilgisi yok")</time></td>
                             <td><div class="df-cell-value">@(string.IsNullOrWhiteSpace(d.TeknisyenAdi) ? "-" : d.TeknisyenAdi)</div></td>
                             <td><span class="df-pill @durumSinif">@durumYazi</span></td>

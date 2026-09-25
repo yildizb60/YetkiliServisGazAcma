@@ -42,7 +42,7 @@
         const record = records.find(item => item.querySelector("[data-commissioning-expand]")?.getAttribute("aria-controls") === linkedDetail.id);
         if (record) {
             setRecordState(record, true);
-            record.scrollIntoView({ block: "nearest" });
+            record.scrollIntoView({ block: "start" });
         }
     }
 })();

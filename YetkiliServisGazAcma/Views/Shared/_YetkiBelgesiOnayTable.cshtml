@@ -21,7 +21,6 @@
             <tr>
                 <th>Yetkili Servis</th>
                 <th>Bağlı Şirket</th>
-                <th>Belge Geçerlilik Başlangıcı</th>
                 <th>Yetki Belgesi Bitiş Tarihi</th>
                 <th>Belge Yükleme Tarihi</th>
                 <th>Durum</th>
@@ -33,7 +32,7 @@
             @if (!kayitlar.Any())
             {
                 <tr class="approval-empty-row">
-                    <td colspan="8">
+                    <td colspan="7">
                         <div class="df-empty">
                             <div class="df-empty-title">@bosMetin</div>
                         </div>
@@ -82,7 +81,6 @@
                                 <small class="df-approval-company-city"><i class="bi bi-geo-alt" aria-hidden="true"></i>@s.Firma.FaaliyetIli</small>
                             }
                         </td>
-                        <td><time datetime="@baslangicFiltre">@baslangic.ToString("dd.MM.yyyy")</time></td>
                         <td><time datetime="@bitisFiltre">@s.YetkiBelgesiBitisTarihi.ToString("dd.MM.yyyy")</time></td>
                         <td><time datetime="@yukleme">@s.OlusturmaTarihi.ToString("dd.MM.yyyy")</time></td>
                         <td>
@@ -124,7 +122,7 @@
                                     }
                                     else if (durum == "suresi-dolan")
                                     {
-                                        <span class="df-cell-sub">Karar verilemez</span>
+                                        <span class="df-cell-sub">Süresi doldu</span>
                                     }
                                     else
                                     {
@@ -136,12 +134,13 @@
                         </td>
                     </tr>
                     <tr id="@detailId" class="df-approval-detail-row" data-approval-detail hidden>
-                            <td colspan="8">
+                            <td colspan="7">
                                 <div class="df-approval-detail-grid">
                                     <div><span>Vergi No</span><strong>@(string.IsNullOrWhiteSpace(vergiNo) ? "Tanımlı değil" : vergiNo)</strong></div>
                                     <div><span>Yetkili Kişi</span><strong>@(string.IsNullOrWhiteSpace(s.Firma?.YetkiliKisi) ? "Tanımlı değil" : s.Firma.YetkiliKisi)</strong></div>
-                                    <div><span>Geçerlilik</span><strong>@kalanYazi</strong></div>
-                                    <div><span>Yükleme</span><strong>@s.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</strong></div>
+                                    <div><span>Telefon</span><strong>@(string.IsNullOrWhiteSpace(s.Firma?.Telefon) ? "Tanımlı değil" : s.Firma.Telefon)</strong></div>
+                                    <div><span>Geçerlilik Başlangıcı</span><strong>@baslangic.ToString("dd.MM.yyyy")</strong></div>
+                                    <div><span>Bitiş Durumu</span><strong>@kalanYazi</strong></div>
                                     <div class="is-wide"><span>Firma Adresi</span><strong>@(string.IsNullOrWhiteSpace(firmaAdres) ? "Tanımlı değil" : firmaAdres)</strong></div>
                                     @if (s.OnayTarihi.HasValue)
                                     {

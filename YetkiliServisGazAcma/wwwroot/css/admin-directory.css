@@ -8,22 +8,24 @@
 }
 
 .df-person-directory .df-person-grid {
-    min-width: 850px;
-    grid-template-columns: minmax(180px, 1.2fr) minmax(220px, 1.35fr) minmax(200px, 1.2fr) 78px 126px;
+    min-width: 0;
+    grid-template-columns: minmax(135px, 1.1fr) minmax(170px, 1.25fr) minmax(125px, .85fr) minmax(160px, 1.1fr) 72px 116px;
 }
 
 .df-person-directory .df-user-row {
     min-height: 55px;
 }
 
-.df-person-contact,
+.df-person-email,
+.df-person-phone,
 .df-person-company {
     min-width: 0;
-    display: grid;
-    gap: 2px;
 }
 
-.df-person-contact span,
+.df-person-company { display: grid; gap: 2px; }
+
+.df-person-email,
+.df-person-phone,
 .df-person-company strong {
     overflow: hidden;
     color: #344b5e;
@@ -42,6 +44,10 @@
 
 .df-person-directory .df-user-identity strong {
     font-weight: 650;
+    overflow: visible;
+    line-height: 1.2;
+    text-overflow: clip;
+    white-space: normal;
 }
 
 .df-person-directory .df-user-actions {
@@ -73,8 +79,45 @@
 }
 
 .df-account-sheet .df-directory-sheet-body {
-    background: #f4f7fb;
+    background: #edf3f7;
     overflow-y: auto;
+}
+
+.df-account-sheet [hidden] { display: none !important; }
+
+.df-account-sheet {
+    width: min(620px, calc(100vw - 24px));
+    background: #edf3f7;
+}
+
+.df-account-sheet .df-directory-sheet-frame {
+    min-height: 0;
+    overflow: hidden;
+    background: #edf3f7;
+}
+
+.df-account-sheet .df-directory-sheet-head {
+    border-bottom-color: #21475c;
+    background: #12384b;
+}
+
+.df-account-sheet .df-directory-sheet-head h2 {
+    color: #fff;
+    font-size: 17px;
+}
+
+.df-account-sheet .df-directory-sheet-head h2::before { background: #41c49d; }
+
+.df-account-sheet .df-directory-sheet-close {
+    border-color: rgba(255, 255, 255, .22);
+    background: rgba(255, 255, 255, .08);
+    color: #fff;
+}
+
+.df-account-sheet .df-directory-sheet-close:hover {
+    border-color: rgba(255, 255, 255, .38);
+    background: rgba(255, 255, 255, .16);
+    color: #fff;
 }
 
 .df-account-sheet .df-directory-sheet-form {
@@ -124,6 +167,8 @@
     font-weight: 650;
     white-space: nowrap;
 }
+
+.df-person-phone { font-variant-numeric: tabular-nums; }
 
 .df-account-status i { font-size: 12px; }
 .df-account-status.is-active i { color: #168066; }

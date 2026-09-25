@@ -37,33 +37,39 @@
         var companyGroup = container.querySelector("#sirketGroup");
         var companyLabel = container.querySelector("#sirketLabel");
         var company = container.querySelector("#sirketIdSelect");
+        var firmGroup = container.querySelector("#firmaGroup");
+        var firm = container.querySelector("#firmaIdSelect");
         var help = container.querySelector("#roleHelp");
-        if (!role || !companyGroup || !companyLabel || !company || !help) return;
+        if (!role || !companyGroup || !companyLabel || !company || !firmGroup || !firm || !help) return;
 
         function updateRoleFields() {
             var value = (role.value || "").trim();
             var isSystemAdmin = value === "GenelSistemAdmin";
             var isCompanyAccount = value === "YetkiliServis" || value === "SertifikaliFirma";
             var requiresCompany = !isSystemAdmin;
+            var existingService = value === "YetkiliServis" && !!firm.value;
 
-            companyGroup.hidden = !requiresCompany;
+            firmGroup.hidden = value !== "YetkiliServis";
+            firm.disabled = value !== "YetkiliServis";
+            companyGroup.hidden = !requiresCompany || existingService;
             company.disabled = !requiresCompany;
             company.required = requiresCompany;
             if (!requiresCompany) company.value = "";
+            if (existingService) company.value = firm.selectedOptions[0].dataset.sirketId || "";
 
             companyLabel.textContent = isCompanyAccount ? "Bağlı Dağıtım Şirketi *" : "Şirket *";
             if (isCompanyAccount) {
-                help.textContent = "Firma hesabı oluşturulur ve seçilen dağıtım şirketine bağlanır.";
-            } else if (value === "Personel") {
-                help.textContent = "Personelin ek işlem yetkileri Yetkiler ekranından belirlenir.";
-            } else if (value === "SirketAdmin" || value === "SuperAdmin") {
-                help.textContent = "Şirket yöneticisi yalnızca bağlı şirketteki kayıtları yönetir.";
+                help.textContent = value === "YetkiliServis"
+                    ? "Mevcut servisi seçebilir veya yeni firma hesabı oluşturabilirsiniz."
+                    : "Firma hesabı oluşturulur ve seçilen dağıtım şirketine bağlanır.";
             } else {
-                help.textContent = "Sistem genelindeki yönetim hesabıdır.";
+                help.textContent = "";
             }
+            help.hidden = !help.textContent;
         }
 
         role.addEventListener("change", updateRoleFields);
+        firm.addEventListener("change", updateRoleFields);
         updateRoleFields();
     }
 
