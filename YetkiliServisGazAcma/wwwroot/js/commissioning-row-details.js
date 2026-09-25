@@ -1,6 +1,7 @@
 (() => {
     const records = Array.from(document.querySelectorAll("[data-commissioning-record]"));
     if (!records.length) return;
+    const interactive = "a, button, input, select, textarea, label, form, details, summary, [contenteditable], [role='button'], [role='link']";
 
     const setRecordState = (record, expanded) => {
         const toggle = record.querySelector("[data-commissioning-expand]");
@@ -29,8 +30,11 @@
     };
 
     records.forEach(record => {
-        const toggle = record.querySelector("[data-commissioning-expand]");
-        toggle?.addEventListener("click", () => {
+        record.addEventListener("click", event => {
+            const target = event.target;
+            if (!(target instanceof Element)) return;
+            if (target.closest(interactive) && !target.closest("[data-commissioning-expand]")) return;
+
             const willOpen = !record.classList.contains("is-expanded");
             records.forEach(other => setRecordState(other, false));
             setRecordState(record, willOpen);

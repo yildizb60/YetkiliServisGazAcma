@@ -634,11 +634,12 @@
     scrollbar-color: #cbd5e1 transparent;
 }
 .ykc-timeline {
+    --hour-height: 58px;
     min-width: 760px;
-    min-height: calc(58px + var(--timeline-height));
+    height: calc(58px + var(--timeline-hours) * var(--hour-height));
     display: grid;
     grid-template-columns: 58px repeat(7, minmax(100px, 1fr));
-    grid-template-rows: 58px var(--timeline-height);
+    grid-template-rows: 58px calc(var(--timeline-hours) * var(--hour-height));
     background: #fff;
 }
 .ykc-timeline-zone,
@@ -700,22 +701,24 @@
     z-index: 6;
     grid-column: 1;
     grid-row: 2;
-    height: var(--timeline-height);
+    height: calc(var(--timeline-hours) * var(--hour-height));
     border-right: 1px solid var(--calendar-line-strong);
     background: #fff;
 }
 .ykc-time-axis time {
     position: absolute;
+    top: calc(var(--hour-offset) * var(--hour-height));
     right: 9px;
     transform: translateY(-50%);
     color: #8b96a6;
     font-size: 8px;
     font-variant-numeric: tabular-nums;
 }
+.ykc-time-axis time:last-child { transform: translateY(-100%); }
 .ykc-timeline-lane {
     position: relative;
     grid-row: 2;
-    height: var(--timeline-height);
+    height: calc(var(--timeline-hours) * var(--hour-height));
     border-right: 1px solid var(--calendar-line);
     background:
         repeating-linear-gradient(to bottom,
@@ -733,16 +736,17 @@
     --event-bg: #f1fbfd;
     --event-accent: #267d96;
     position: absolute;
-    top: var(--event-top);
+    top: calc(var(--event-hour) * var(--hour-height));
     left: 6px;
     right: 6px;
     height: 52px;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 1px;
+    gap: 2px;
     overflow: hidden;
-    padding: 5px 7px;
+    padding: 3px 6px;
+    line-height: 1.1;
     border: 1px solid var(--event-border);
     border-radius: 7px;
     background: var(--event-bg);
@@ -770,9 +774,9 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-.ykc-timeline-event strong { order: 1; font-size: 9px; font-weight: 700; }
-.ykc-event-time { order: 2; color: var(--event-accent); font-size: 8px; font-weight: 750; font-variant-numeric: tabular-nums; }
-.ykc-timeline-event small { order: 3; color: #758196; font-size: 7px; }
+.ykc-timeline-event strong { order: 1; font-size: 11px; font-weight: 700; }
+.ykc-event-time { order: 2; color: var(--event-accent); font-size: 10px; font-weight: 750; font-variant-numeric: tabular-nums; }
+.ykc-timeline-event small { order: 3; color: #566b7d; font-size: 9.5px; }
 .ykc-timeline-empty {
     position: absolute;
     top: 14px;
@@ -818,9 +822,11 @@
     font-size: 9px;
     font-weight: 650;
 }
-.ykc-month-grid { min-height: 540px; flex: 1 0 540px; grid-template-rows: repeat(6, minmax(90px, 1fr)); }
+.ykc-month-grid { min-height: 0; flex: 1 1 auto; grid-template-rows: repeat(6, minmax(0, 1fr)); }
 .ykc-month-cell {
     min-width: 0;
+    min-height: 0;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
     gap: 6px;

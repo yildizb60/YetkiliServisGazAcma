@@ -491,6 +491,8 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.ChartAylikLabels = rapor.ChartAylikLabels;
             ViewBag.ChartAylikData = rapor.ChartAylikData;
             ViewBag.ChartDurumData = rapor.ChartDurumData;
+            ViewBag.ChartMarkaLabels = rapor.ChartMarkaLabels;
+            ViewBag.ChartMarkaData = rapor.ChartMarkaData;
             ViewBag.Firma = rapor.Firma;
             ViewBag.Kullanici = kullanici;
             await SetBildirimler(kullanici);

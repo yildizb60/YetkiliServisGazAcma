@@ -106,6 +106,7 @@
 </dialog>
 
 @section Scripts {
+<script src="~/js/service-record-details.js" asp-append-version="true"></script>
 <script>
     (function () {
         var records = Array.prototype.slice.call(document.querySelectorAll("[data-service-record]"));
@@ -115,40 +116,6 @@
         var closeButton = document.querySelector("[data-service-sheet-close]");
         var activeRequest = 0;
         var closeTimer = 0;
-
-        function closeRecord(record) {
-            var toggle = record.querySelector("[data-service-expand]");
-            var detail = record.querySelector(".df-service-record-detail");
-            record.classList.remove("is-expanded");
-            toggle.setAttribute("aria-expanded", "false");
-            toggle.setAttribute("title", "Satır ayrıntılarını aç");
-            toggle.querySelector(".visually-hidden").textContent = "Satır ayrıntılarını aç";
-            detail.setAttribute("aria-hidden", "true");
-            detail.hidden = true;
-        }
-
-        records.forEach(function (record) {
-            var toggle = record.querySelector("[data-service-expand]");
-            toggle.addEventListener("click", function () {
-                var willOpen = !record.classList.contains("is-expanded");
-                records.forEach(function (item) {
-                    if (item !== record) closeRecord(item);
-                });
-
-                if (!willOpen) {
-                    closeRecord(record);
-                    return;
-                }
-
-                record.classList.add("is-expanded");
-                toggle.setAttribute("aria-expanded", "true");
-                toggle.setAttribute("title", "Satır ayrıntılarını kapat");
-                toggle.querySelector(".visually-hidden").textContent = "Satır ayrıntılarını kapat";
-                var detail = record.querySelector(".df-service-record-detail");
-                detail.hidden = false;
-                detail.setAttribute("aria-hidden", "false");
-            });
-        });
 
         var query = new URLSearchParams(window.location.search);
         var selectedId = query.get("servis");

@@ -77,11 +77,16 @@
 .ys-commissioning-request .ykc-source-device { padding:16px 18px; }
 .ys-commissioning-request .ykc-new-device { padding:13px 18px 15px; }
 .ys-commissioning-request .ykc-device-entry-layout header { margin-bottom:12px; }
-.ys-commissioning-request .ykc-source-device header > div { flex-wrap:wrap; }
-.ys-commissioning-request #b-durum { margin-left:clamp(10px, 2.5vw, 38px); white-space:nowrap; }
+.ys-commissioning-request .ykc-source-device header { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.ys-commissioning-request .ykc-source-device header > div { min-width:0; flex-wrap:nowrap; }
+.ys-commissioning-request .ys-source-status { flex:none; display:inline-flex; align-items:center; min-height:25px; padding:3px 8px; border:1px solid #b8dfd1; border-radius:5px; background:#f3fbf7; color:#187f61; font-size:11px; font-weight:650; line-height:1.2; white-space:nowrap; }
 .ys-source-facts { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px 14px; }
 .ys-source-facts > div { margin:0; }
 .ys-source-facts .is-wide { grid-column:1/-1; }
+@media (max-width:480px) {
+    .ys-commissioning-request .ykc-source-device header { align-items:flex-start; }
+    .ys-commissioning-request .ys-source-status { white-space:normal; text-align:right; }
+}
 .ys-commissioning-device-picker { margin-top:13px; padding-top:12px; border-top:1px solid #d8e2ec; }
 .ys-commissioning-device-picker h3 { display:flex; align-items:center; gap:7px; margin:0 0 8px; color:#425a70; font-size:12px; font-weight:600; }
 .ys-commissioning-device-list { display:grid; gap:7px; }
@@ -91,6 +96,8 @@
 .ys-commissioning-device-option > i { position:absolute; top:50%; right:10px; transform:translateY(-50%); color:#8a9aa7; }
 .ys-commissioning-device-option:hover { border-color:#315ac3; background:#f0f4fd; }
 .ys-commissioning-device-option.is-selected { border-color:#187f61; background:#e8f5ed; box-shadow:inset 3px 0 #187f61; }
+.ys-commissioning-device-option.is-active { border-color:#315fca; box-shadow:inset 3px 0 #315fca; }
+.ys-commissioning-device-option.is-completed { border-color:#b8dfd1; background:#f3fbf7; }
 .ys-commissioning-device-option.is-unavailable { border-color:#d8a453; background:#fffaf1; box-shadow:inset 3px 0 #b9852e; }
 .ys-commissioning-device-option.is-unavailable > i { color:#a46c1d; }
 .ys-device-entry-pending { min-height:210px; display:flex; align-items:center; justify-content:center; gap:11px; color:#60798f; }
@@ -101,6 +108,17 @@
 .ys-device-entry-pending.is-warning > i { background:#fff2da; color:#a46c1d; }
 .ys-device-entry-pending.is-warning strong { color:#805522; }
 .ys-device-entry-pending.is-warning small { max-width:270px; line-height:1.5; }
+.ys-device-work-cards { display:grid; gap:0; }
+.ys-device-work-card { min-width:0; border-top:1px solid #dce6ef; }
+.ys-device-work-toggle { box-sizing:border-box; width:100%; min-height:36px; padding:5px 1px; display:flex; align-items:center; gap:8px; border:0; background:transparent; color:#213b53; text-align:left; cursor:pointer; }
+.ys-device-work-toggle strong { min-width:0; flex:1; font-size:12px; font-weight:650; overflow-wrap:anywhere; }
+.ys-device-work-toggle > i { color:#315fca; font-size:11px; transition:transform .16s ease; }
+.ys-device-work-toggle[aria-expanded="true"] > i { transform:rotate(180deg); }
+.ys-device-work-toggle:focus-visible { outline:2px solid #315fca; outline-offset:-2px; }
+.ys-device-work-state { color:#5f7486; font-size:10px; white-space:nowrap; }
+.ys-device-work-card.is-completed .ys-device-work-state { color:#187f61; font-weight:650; }
+.ys-device-work-body { display:none; }
+.ys-device-work-card.is-active > .ys-device-work-body { display:block; padding:6px 0 4px; }
 .ys-commissioning-form-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px 12px; }
 .ys-commissioning-form { min-width:0; margin:0; padding:0; border:0; }
 .ys-commissioning-form-grid .is-wide { grid-column:1/-1; }
@@ -132,9 +150,9 @@
     .ys-commissioning-request .ys-commissioning-device-picker h3 { margin-bottom:6px; }
     .ys-commissioning-request .ys-commissioning-device-option { padding-block:7px; }
     .ys-commissioning-request .ys-device-entry-pending { min-height:134px; }
-    .ys-commissioning-request .ys-commissioning-form:not([hidden]) { flex:1; display:flex; flex-direction:column; }
-    .ys-commissioning-request .ys-commissioning-form-grid { flex:1; grid-template-columns:repeat(2,minmax(0,1fr)); align-content:space-evenly; gap:12px 14px; }
-    .ys-commissioning-request .ys-commissioning-form-grid textarea { min-height:88px; height:88px; padding-block:7px; }
+    .ys-commissioning-request .ys-commissioning-form:not([hidden]) { display:flex; flex-direction:column; }
+    .ys-commissioning-request .ys-commissioning-form-grid { grid-template-columns:repeat(2,minmax(0,1fr)); align-content:start; gap:10px 14px; }
+    .ys-commissioning-request .ys-commissioning-form-grid textarea { min-height:52px; height:52px; padding-block:7px; }
     .ys-commissioning-request .ys-commissioning-actions { margin-top:0; padding-top:7px; }
     .ys-commissioning-request .ys-commissioning-actions .df-btn { min-height:38px; }
     .ys-commissioning-request .ykc-request-lookup { padding:18px 20px; }

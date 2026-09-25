@@ -14,10 +14,9 @@
         : adminPaneli
             ? Url.Action("DevreyeAlmaExcel", "AdminPanel", new { id = Model.Id })
             : Url.Action("DevreyeAlmaExcel", "PersonelPanel", new { id = Model.Id });
-    var detay = !servisPaneli && !adminPaneli
-        ? Url.Action("DevreyeAlmaDetay", "PersonelPanel", new { id = Model.Id })
-        : null;
     var adresVar = !string.IsNullOrWhiteSpace(Model.Adres);
+    var tcVar = !string.IsNullOrWhiteSpace(Model.MusteriTcNo)
+        && !string.Equals(Model.MusteriTcNo.Trim(), Model.AboneNo?.Trim(), StringComparison.Ordinal);
     var cihazDetayVar = !string.IsNullOrWhiteSpace(Model.SeriNo) || !string.IsNullOrWhiteSpace(Model.CihazKapasite);
     var belgeVar = !string.IsNullOrWhiteSpace(Model.UygunlukBelgeNo)
         || Model.UygunlukTarihi.HasValue
@@ -28,7 +27,7 @@
 <tr id="devreye-alma-detay-@Model.Id" class="df-commissioning-detail-row" hidden>
     <td colspan="@colspan">
         <div class="df-commissioning-detail-panel">
-            @if (adresVar || cihazDetayVar || belgeVar || notVar)
+            @if (adresVar || tcVar || cihazDetayVar || belgeVar || notVar)
             {
                 <div class="df-commissioning-detail-grid">
                     @if (adresVar)
@@ -36,6 +35,13 @@
                         <section>
                             <span><i class="bi bi-geo-alt" aria-hidden="true"></i> Abone Adresi</span>
                             <p>@Model.Adres</p>
+                        </section>
+                    }
+                    @if (tcVar)
+                    {
+                        <section>
+                            <span><i class="bi bi-person-vcard" aria-hidden="true"></i> Abone Bilgileri</span>
+                            <dl class="df-commissioning-extra-facts"><div><dt>TC Kimlik No</dt><dd>@Model.MusteriTcNo</dd></div></dl>
                         </section>
                     }
                     @if (cihazDetayVar)
@@ -88,10 +94,6 @@
                     <span>Kayıt #@Model.Id</span>
                 </div>
                 <div class="df-actions">
-                    @if (detay != null)
-                    {
-                        <a class="df-btn df-btn-sm df-btn-secondary" href="@detay"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> Kayıt Detayı</a>
-                    }
                     <a class="df-btn df-btn-sm df-commissioning-export is-pdf" href="@pdf" target="_blank" rel="noopener"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF</a>
                     <a class="df-btn df-btn-sm df-commissioning-export is-excel" href="@excel" target="_blank" rel="noopener"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel</a>
                 </div>

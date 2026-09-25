@@ -36,7 +36,11 @@
     <section class="df-admin-list-card">
         <div class="df-commissioning-history-toolbar">
             <span>@Model.Count kayıt</span>
-            <a class="df-btn df-btn-success df-btn-sm" href="@Url.Action("Index", "DevreyeAlma")"><i class="bi bi-plus-lg" aria-hidden="true"></i> Yeni Kayıt</a>
+            <div class="df-export-actions" aria-label="Dışa aktarma işlemleri">
+                <button type="button" class="df-btn df-btn-danger df-btn-sm" data-commissioning-bulk-export data-export-url="@Url.Action("RaporlarPdf", "YetkiliServisPanel")" disabled="@(!Model.Any())" title="Listedeki kayıtları PDF olarak indir"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF İndir</button>
+                <button type="button" class="df-btn df-btn-success df-btn-sm" data-commissioning-bulk-export data-export-url="@Url.Action("RaporlarExcel", "YetkiliServisPanel")" disabled="@(!Model.Any())" title="Listedeki kayıtları Excel olarak indir"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel İndir</button>
+                <a class="df-btn df-btn-primary df-btn-sm" href="@Url.Action("Index", "DevreyeAlma")"><i class="bi bi-plus-lg" aria-hidden="true"></i> Yeni Kayıt</a>
+            </div>
         </div>
 
         <details class="df-admin-filter" open="@(filtreAktif ? "open" : null)">
@@ -100,7 +104,7 @@
                                 ? null
                                 : d.CihazModeli;
                         var detaySatiriId = $"devreye-alma-detay-{d.Id}";
-                        <tr class="df-commissioning-record-row" data-commissioning-record>
+                        <tr class="df-commissioning-record-row" data-commissioning-record data-export-id="@d.Id">
                             <td><div class="df-cell-main">@(string.IsNullOrWhiteSpace(d.MusteriAdi) ? "Abone adı kayıtlı değil" : d.MusteriAdi)</div>@if (!string.IsNullOrWhiteSpace(d.MusteriTelefon)) { <div class="df-cell-sub"><i class="bi bi-telephone" aria-hidden="true"></i> @d.MusteriTelefon</div> }</td>
                             <td><dl class="df-operation-id-list"><div><dt>Tesisat No:</dt><dd>@(d.TesistatNo ?? "-")</dd></div><div><dt>Abone No:</dt><dd>@(d.AboneNo ?? "-")</dd></div></dl></td>
                             <td><span class="df-device-type-tag">@(string.IsNullOrWhiteSpace(d.CihazTipi) ? "-" : d.CihazTipi)</span></td>
@@ -125,4 +129,16 @@
 
 @section Scripts {
     <script src="~/js/commissioning-row-details.js" asp-append-version="true"></script>
+    <script>
+        document.querySelectorAll("[data-commissioning-bulk-export]").forEach(button => {
+            button.addEventListener("click", () => {
+                const ids = Array.from(document.querySelectorAll("[data-commissioning-record][data-export-id]"))
+                    .map(row => row.dataset.exportId).filter(Boolean);
+                if (!ids.length) return;
+                const url = new URL(button.dataset.exportUrl, window.location.origin);
+                ids.forEach(id => url.searchParams.append("ids", id));
+                window.location.assign(url.toString());
+            });
+        });
+    </script>
 }

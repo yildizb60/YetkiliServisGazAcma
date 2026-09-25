@@ -38,6 +38,7 @@
     var birincilIslemUrl = kurulumKilitli
         ? Url.Action("IlkKurulum", "YetkiliServisPanel")!
         : Url.Action("Index", "DevreyeAlma")!;
+    var gecmisUrl = Url.Action("Gecmis", "DevreyeAlma") ?? "/ys-devreyeal/gecmis";
 
     var actions = new List<DashboardTileViewModel>
     {
@@ -91,7 +92,7 @@
         quickActions.Add(new DashboardTileViewModel
         {
             Title = string.IsNullOrWhiteSpace(item.MusteriAdi) ? $"Tesisat {item.TesistatNo ?? "-"}" : item.MusteriAdi,
-            Url = Url.Action("Detay", "DevreyeAlma", new { id = item.Id })!,
+            Url = $"{gecmisUrl}#devreye-alma-detay-{item.Id}",
             Icon = "bi bi-tools",
             MetricValue = durum,
             MetricLabel = "",
@@ -153,7 +154,7 @@
                 StatusLabel = DevreyeAlmaDurumu(item.Durum),
                 StatusCssClass = DevreyeAlmaDurumSinifi(item.Durum),
                 IsComplete = item.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi,
-                DetailsUrl = Url.Action("Detay", "DevreyeAlma", new { id = item.Id })!
+                DetailsUrl = $"{gecmisUrl}#devreye-alma-detay-{item.Id}"
             }).ToList()
         }
     };

@@ -1087,11 +1087,15 @@
     height: auto;
     display: grid;
     grid-template-rows: auto auto minmax(0, 1fr) auto;
-    margin-top: 12px;
+    margin-top: 6px;
     padding: 0 10px 10px;
     overflow: hidden;
     background: #fff;
     box-sizing: border-box;
+}
+
+.personnel-calendar-surface .home-calendar.has-view-modes .home-visits:has(.home-visit-list > .home-visit:nth-child(4)) {
+    min-height: 338px;
 }
 
 .personnel-calendar-surface .home-calendar.is-firm-calendar .home-visits {
@@ -1139,7 +1143,7 @@
     max-height: none;
     padding-right: 3px;
     overflow-y: auto;
-    scrollbar-gutter: stable;
+    scrollbar-gutter: auto;
     box-sizing: border-box;
 }
 
@@ -1191,6 +1195,30 @@
     border-radius: 11px;
     background: #fff;
     box-shadow: 0 8px 18px rgba(35, 65, 85, .075);
+}
+
+.personnel-calendar-surface .home-visit:has(.is-personnel-visit) {
+    gap: 5px;
+    margin-bottom: 4px;
+    padding: 3px 8px 3px 13px;
+    border-radius: 7px;
+}
+
+.personnel-calendar-surface .is-personnel-visit {
+    gap: 1px;
+}
+
+.personnel-calendar-surface .is-personnel-visit .home-visit-primary {
+    min-height: 16px;
+}
+
+.personnel-calendar-surface .is-personnel-visit .home-visit-identity,
+.personnel-calendar-surface .is-personnel-visit > small {
+    line-height: 1.15;
+}
+
+.personnel-calendar-surface .home-visit-person.is-personnel-visit strong {
+    font-size: 12px;
 }
 
 .personnel-calendar-surface .home-visit:last-child {
@@ -1359,6 +1387,26 @@
     max-width: 38%;
     font-weight: 650;
 }
+
+.role-dashboard--certified-firm .personnel-calendar-surface .home-visit-list { scrollbar-gutter: auto; }
+.role-dashboard--certified-firm .personnel-calendar-surface .home-calendar.is-firm-calendar .home-visit {
+    gap: 5px;
+    margin-bottom: 4px;
+    padding: 5px 8px 5px 12px;
+}
+.role-dashboard--certified-firm .personnel-calendar-surface .home-visit-person {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 2px 6px;
+}
+.role-dashboard--certified-firm .personnel-calendar-surface .home-visit-person > strong { grid-column: 1; }
+.role-dashboard--certified-firm .personnel-calendar-surface .home-visit-meta { grid-column: 2; grid-row: 1; }
+.role-dashboard--certified-firm .personnel-calendar-surface .home-visit-meta > span:first-child { display: none; }
+.role-dashboard--certified-firm .personnel-calendar-surface .home-visit-meta > .home-visit-time { padding-left: 0; border-left: 0; }
+.role-dashboard--certified-firm .personnel-calendar-surface .home-visit-person > small,
+.role-dashboard--certified-firm .personnel-calendar-surface .home-visit-tags { grid-column: 1 / -1; }
+.role-dashboard--certified-firm .personnel-calendar-surface .home-visit-tags > span { min-height: 17px; padding-block: 2px; }
 
 .personnel-calendar-surface .home-visit-tags > .df-pill-primary {
     background: #e9f0ff;

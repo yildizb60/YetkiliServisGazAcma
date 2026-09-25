@@ -67,13 +67,13 @@ namespace YetkiliServisGazAcma.Business.Services
                     page.Content().Column(col =>
                     {
                         col.Spacing(12);
-                        col.Item().Element(x => OzetKartlari(x, devreyeSayisi, tamamlanan, bekleyen));
+                        col.Item().Element(x => OzetKartlari(x, devreyeSayisi, tamamlanan, bekleyen, detayliListe));
                         col.Item().Text(listeBasligi).FontSize(12).SemiBold();
 
                         if (detayliListe)
                             DetayliListe(col, liste);
                         else
-                            OzetListe(col, liste);
+                            ServisListe(col, liste);
                     });
 
                     page.Footer().AlignCenter().Text("Yetkili Servis Gaz A\u00e7ma Sistemi").FontSize(9).FontColor("#888888");
@@ -83,20 +83,22 @@ namespace YetkiliServisGazAcma.Business.Services
             return document.GeneratePdf();
         }
 
-        private static void OzetKartlari(IContainer container, int toplam, int tamamlanan, int bekleyen)
+        private static void OzetKartlari(IContainer container, int toplam, int tamamlanan, int bekleyen, bool detayliListe)
         {
             container.Table(table =>
             {
                 table.ColumnsDefinition(c =>
                 {
-                    c.RelativeColumn();
+                    if (detayliListe)
+                        c.RelativeColumn();
                     c.RelativeColumn();
                     c.RelativeColumn();
                 });
 
                 Cell("Toplam \u0130\u015flem", toplam.ToString());
                 Cell("Tamamlanan", tamamlanan.ToString());
-                Cell("Bekleyen", bekleyen.ToString());
+                if (detayliListe)
+                    Cell("Bekleyen", bekleyen.ToString());
 
                 void Cell(string title, string value)
                 {
@@ -164,34 +166,45 @@ namespace YetkiliServisGazAcma.Business.Services
             }
         }
 
-        private static void OzetListe(ColumnDescriptor col, List<Ys_DevreyeAlma> liste)
+        private static void ServisListe(ColumnDescriptor col, List<Ys_DevreyeAlma> liste)
         {
-            col.Item().Table(table =>
+            if (liste.Count == 0)
             {
-                table.ColumnsDefinition(c =>
-                {
-                    c.RelativeColumn(1.2f);
-                    c.RelativeColumn(1.2f);
-                    c.RelativeColumn(1f);
-                    c.RelativeColumn(1f);
-                });
+                col.Item().Text("Seçilen dönemde devreye alma kaydı bulunmuyor.").FontSize(10).FontColor("#607486");
+                return;
+            }
 
-                table.Header(header =>
+            foreach (var d in liste)
+            {
+                col.Item().ShowEntire().PaddingBottom(7).Border(1).BorderColor("#DCE5EC").Column(card =>
                 {
-                    header.Cell().Background("#F3F4F6").Padding(6).Text("Tesisat No").SemiBold().FontSize(10);
-                    header.Cell().Background("#F3F4F6").Padding(6).Text("M\u00fc\u015fteri").SemiBold().FontSize(10);
-                    header.Cell().Background("#F3F4F6").Padding(6).Text("Marka").SemiBold().FontSize(10);
-                    header.Cell().Background("#F3F4F6").Padding(6).Text("Tarih").SemiBold().FontSize(10);
+                    card.Item().Background("#F3F7FC").Padding(7).Row(row =>
+                    {
+                        row.RelativeItem().Text($"Tesisat {Deger(d.TesistatNo)} · {Deger(d.MusteriAdi)}").FontSize(10).SemiBold().FontColor("#213B53");
+                        row.ConstantItem(102).AlignRight().Text(d.DevreyeAlmaTarihi.ToString("dd.MM.yyyy")).FontSize(9).FontColor("#52677A");
+                    });
+                    card.Item().PaddingHorizontal(7).PaddingTop(6).Row(row =>
+                    {
+                        row.RelativeItem().Text($"Yakıcı cihaz tipi: {Deger(d.CihazTipi)}").FontSize(9);
+                        row.RelativeItem().Text($"Marka: {Deger(d.Marka?.MarkaAdi ?? d.CihazMarka)}").FontSize(9);
+                    });
+                    card.Item().PaddingHorizontal(7).PaddingTop(4).Row(row =>
+                    {
+                        row.RelativeItem().Text($"Model: {Deger(d.CihazModeli)}").FontSize(9);
+                        row.RelativeItem().Text($"Seri No: {Deger(d.SeriNo)}").FontSize(9);
+                    });
+                    card.Item().PaddingHorizontal(7).PaddingTop(4).PaddingBottom(7).Row(row =>
+                    {
+                        row.RelativeItem().Text($"Kapasite: {Deger(d.CihazKapasite)} kcal/h").FontSize(9);
+                        row.RelativeItem().Text($"Teknisyen: {Deger(d.TeknisyenAdi)}").FontSize(9);
+                    });
+                    card.Item().PaddingHorizontal(7).PaddingBottom(7).Text($"Teknisyen yetki belgesi no: {Deger(d.TeknisyenYetkiBelgesiNo)}").FontSize(9);
+                    if (!string.IsNullOrWhiteSpace(d.Adres))
+                        card.Item().PaddingHorizontal(7).PaddingBottom(7).Text($"Adres: {d.Adres}").FontSize(9);
+                    if (!string.IsNullOrWhiteSpace(d.Notlar))
+                        card.Item().PaddingHorizontal(7).PaddingBottom(7).Text($"Not: {d.Notlar}").FontSize(9);
                 });
-
-                foreach (var d in liste)
-                {
-                    table.Cell().Padding(6).Text(Deger(d.TesistatNo)).FontSize(10);
-                    table.Cell().Padding(6).Text(Deger(d.MusteriAdi)).FontSize(10);
-                    table.Cell().Padding(6).Text(Deger(d.Marka?.MarkaAdi ?? d.CihazMarka)).FontSize(10);
-                    table.Cell().Padding(6).Text(d.DevreyeAlmaTarihi.ToString("dd.MM.yyyy")).FontSize(10);
-                }
-            });
+            }
         }
 
         private static string DurumText(int durum)

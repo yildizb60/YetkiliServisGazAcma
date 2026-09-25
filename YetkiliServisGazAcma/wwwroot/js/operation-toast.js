@@ -59,10 +59,11 @@
     }
 
     const showInfo = message => show(message, { type: 'info', title: 'İndirme başlatıldı', icon: 'bi-download', timeout: 3500 });
+    const showSuccess = message => show(message, { type: 'success', title: 'İşlem Başarılı', icon: 'bi-check-circle-fill', timeout: 4000 });
     const showWarning = (message, timeout) => show(message, { type: 'warning', title: 'Cihaz Bilgisi Uyarısı', icon: 'bi-exclamation-triangle-fill', timeout: timeout || 3000 });
     const showError = (message, timeout) => show(message, { type: 'error', title: 'İşlem Tamamlanamadı', icon: 'bi-exclamation-circle-fill', timeout: timeout || 9000 });
 
-    window.operationToast = Object.freeze({ info: showInfo, warning: showWarning, error: showError });
+    window.operationToast = Object.freeze({ info: showInfo, success: showSuccess, warning: showWarning, error: showError });
 
     let activeConfirmation = null;
     let confirmationCount = 0;

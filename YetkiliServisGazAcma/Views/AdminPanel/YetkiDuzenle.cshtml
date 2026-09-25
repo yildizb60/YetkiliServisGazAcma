@@ -31,8 +31,8 @@
             Ton = "is-green",
             Yetkiler = new[]
             {
-                new { Kod = "YETKI_BELGESI_ONAY", Ad = "Yetki belgesi kararı", Ikon = "bi-patch-check" },
-                new { Kod = "RAPOR_GOR", Ad = "Operasyon raporları", Ikon = "bi-file-earmark-bar-graph" }
+                new { Kod = "YETKI_BELGESI_ONAY", Ad = "Yetki belgesi onay ve red", Ikon = "bi-patch-check" },
+                new { Kod = "RAPOR_GOR", Ad = "Devreye alma kayıtları", Ikon = "bi-file-earmark-bar-graph" }
             }
         },
         new
@@ -119,6 +119,7 @@
                                             <span class="permission-option-icon"><i class="bi @yetki.Ikon" aria-hidden="true"></i></span>
                                             <span class="permission-option-copy">
                                                 <span class="permission-option-label">@yetki.Ad</span>
+                                                @if (yetki.Kod == "RAPOR_GOR") { <small class="permission-option-description">Ayrıntı, PDF/Excel ve raporlar</small> }
                                             </span>
                                             <span class="permission-option-check" aria-hidden="true"><i class="bi bi-check2"></i></span>
                                         </label>

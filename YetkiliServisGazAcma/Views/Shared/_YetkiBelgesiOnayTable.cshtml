@@ -140,7 +140,7 @@
                                     <div><span>Yetkili Kişi</span><strong>@(string.IsNullOrWhiteSpace(s.Firma?.YetkiliKisi) ? "Tanımlı değil" : s.Firma.YetkiliKisi)</strong></div>
                                     <div><span>Telefon</span><strong>@(string.IsNullOrWhiteSpace(s.Firma?.Telefon) ? "Tanımlı değil" : s.Firma.Telefon)</strong></div>
                                     <div><span>Geçerlilik Başlangıcı</span><strong>@baslangic.ToString("dd.MM.yyyy")</strong></div>
-                                    <div><span>Bitiş Durumu</span><strong>@kalanYazi</strong></div>
+                                    <div class="@(suresiDolmus ? "is-expired" : "is-valid")"><span>Bitiş Durumu</span><strong>@kalanYazi</strong></div>
                                     <div class="is-wide"><span>Firma Adresi</span><strong>@(string.IsNullOrWhiteSpace(firmaAdres) ? "Tanımlı değil" : firmaAdres)</strong></div>
                                     @if (s.OnayTarihi.HasValue)
                                     {

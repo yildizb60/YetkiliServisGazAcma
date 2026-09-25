@@ -470,7 +470,7 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
             if (!YkcYetkileri().TalepleriGorebilir) return Redirect("/yetkisiz-erisim");
-            PanelViewBag(kullanici, "YkcTakvim", "Cihaz Değişim Randevuları", "");
+            PanelViewBag(kullanici, "YkcTakvim", "Yakıcı Cihaz Değişim Randevuları", "");
             filtre.GorunumKayitlariniGetir = YkcTakvimGorunumKurali.DoneminTumKayitlariGerekli(
                 filtre.Baslangic,
                 filtre.Bitis);

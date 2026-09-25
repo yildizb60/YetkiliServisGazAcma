@@ -47,42 +47,53 @@
 
 @section Styles {
     <link rel="stylesheet" href="~/css/form-pdf-viewer.css" asp-append-version="true" />
-    <style>
-        .fr265-toolbar { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-bottom:0; }
-        .fr265-toolbar-title { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-        .fr265-ready-badge { color:#147357; background:#edf8f3; padding:5px 8px; border-radius:4px; font-size:12px; }
-        .fr265-demo { font-size:13px; color:#795d16; margin:8px 0; }
-    </style>
 }
 @section PageStyles {
     <style>
-        .content.fr265-preview-content { height:calc(100dvh - 80px); min-height:0; box-sizing:border-box; padding:10px 16px; display:flex; flex-direction:column; gap:8px; overflow:hidden; }
-        .fr265-preview-content .fr265-toolbar { flex:none; min-height:34px; }
-        .fr265-preview-content .fr265-toolbar .df-actions { gap:6px; }
+        body:has(.fr265-preview-content), .layout:has(.fr265-preview-content) { height:100dvh; min-height:0; overflow:hidden; }
+        .main:has(.fr265-preview-content) { height:100dvh; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
+        .content.fr265-preview-content { flex:1; min-height:0; box-sizing:border-box; padding:6px 12px; display:flex; flex-direction:column; overflow:hidden; }
         .fr265-preview-content .form-pdf-viewer { min-height:0; flex:1; display:flex; flex-direction:column; }
-        .fr265-preview-content .form-pdf-controls { min-height:38px; padding:3px 10px; flex:none; }
+        .fr265-preview-content .form-pdf-controls { min-height:38px; padding:3px 8px; flex:none; justify-content:space-between; gap:7px; }
+        .fr265-control-context, .fr265-pdf-navigation, .fr265-control-actions { min-width:0; display:flex; align-items:center; gap:5px; }
+        .fr265-control-context { flex:1; color:#213b53; white-space:nowrap; }
+        .fr265-control-context strong { overflow:hidden; font-size:11px; font-weight:700; text-overflow:ellipsis; }
+        .fr265-pdf-navigation { flex:none; }
+        .fr265-control-actions { flex:1; justify-content:flex-end; }
+        .fr265-control-actions form { margin:0; }
+        .fr265-preview-content .form-pdf-controls .df-btn { box-sizing:border-box; width:auto; min-width:0; height:30px; min-height:30px; padding:4px 8px; flex:none; border-radius:5px; font-size:10px; white-space:nowrap; }
+        .fr265-preview-content .form-pdf-controls .fr265-return { width:30px; padding:4px; }
+        .fr265-preview-content .form-pdf-controls .fr265-signature-action { width:30px; padding:4px; }
         .fr265-preview-content .form-pdf-scroll { min-height:0; height:auto; flex:1; padding:9px; }
         @@media (max-width:760px) {
-            .content.fr265-preview-content { height:auto; min-height:calc(100dvh - 80px); overflow:visible; }
-            .fr265-preview-content .form-pdf-scroll { min-height:420px; height:calc(100dvh - 240px); }
+            .content.fr265-preview-content { padding:6px 8px; }
+            .fr265-preview-content .form-pdf-controls { flex-wrap:wrap; }
+            .fr265-control-context { flex:1 1 100px; }
+            .fr265-pdf-navigation { order:3; width:100%; justify-content:center; }
+            .fr265-control-actions { flex:0 1 auto; }
+        }
+        @@media (max-width:420px) {
+            .fr265-preview-content .form-pdf-controls { gap:4px; padding-inline:6px; }
+            .fr265-preview-content .form-pdf-controls output { min-width:42px; }
+            .fr265-preview-content .form-pdf-controls select { width:112px; }
+            .fr265-control-actions .df-btn span { display:none; }
         }
     </style>
 }
-<div class="fr265-toolbar">
-    <div>
-        <div class="fr265-toolbar-title">
-            <h2 class="df-panel-title" style="margin:0;">@(imzaliBelgeHazir ? "İmzalı Form" : $"Talep #{Model.Id}")</h2>
-            @if (imzaliBelgeHazir)
-            {
-                <span class="fr265-ready-badge"><i class="bi bi-patch-check-fill"></i> İmzalı nihai belge</span>
-            }
+<section class="form-pdf-viewer" data-pdf-viewer data-pdf-url="/ykc/fr265/pdf/@Model.Id" aria-label="Cihaz değişim formu PDF önizlemesi">
+    <div class="form-pdf-controls" role="group" aria-label="PDF araçları">
+        <div class="fr265-control-context"><a class="df-btn df-btn-secondary df-btn-sm fr265-return" href="/ykc/detay/@Model.Id" title="Detaya Dön" aria-label="Detaya Dön"><i class="bi bi-arrow-left" aria-hidden="true"></i></a><strong>@(imzaliBelgeHazir ? $"İmzalı Form #{Model.Id}" : $"Form #{Model.Id}")</strong></div>
+        <div class="fr265-pdf-navigation">
+            <button type="button" data-pdf-prev title="Önceki sayfa" aria-label="Önceki sayfa" disabled><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+            <output data-pdf-page aria-live="polite">- / -</output>
+            <button type="button" data-pdf-next title="Sonraki sayfa" aria-label="Sonraki sayfa" disabled><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+            <select data-pdf-zoom aria-label="PDF yakınlaştırma" disabled><option value="fit">Genişliğe sığdır</option><option value="75">%75</option><option value="100">%100</option><option value="125">%125</option><option value="150">%150</option><option value="200">%200</option></select>
+            <a class="form-pdf-download" href="/ykc/fr265/pdf/@Model.Id?indir=true" title="PDF indir" aria-label="PDF indir"><i class="bi bi-download" aria-hidden="true"></i></a>
         </div>
-    </div>
-    <div class="df-actions">
-        <a class="df-btn df-btn-secondary df-btn-sm" href="/ykc/detay/@Model.Id">Detaya Dön</a>
+        <div class="fr265-control-actions">
         @if (imzaliBelgeHazir && imzaliBelge != null)
         {
-            <a class="df-btn df-btn-primary df-btn-sm" href="/ykc/dosya/@imzaliBelge.Id" target="_blank"><i class="bi bi-download"></i> İmzalı Belgeyi İndir</a>
+            <a class="df-btn df-btn-primary df-btn-sm fr265-signature-action" href="/ykc/dosya/@imzaliBelge.Id" target="_blank" title="İmzalı Belgeyi İndir" aria-label="İmzalı Belgeyi İndir"><i class="bi bi-file-earmark-check" aria-hidden="true"></i></a>
             @if (demoImzaModu && imzaIslemYetkisi
                 && Model.ImzaSureci?.ProviderDocumentId?.StartsWith("DEMO-YKC-", StringComparison.Ordinal) == true
                 && imzaliBelge.DosyaAdi?.Contains(YkcFr265PdfService.TasarimSurumu, StringComparison.Ordinal) != true)
@@ -99,7 +110,7 @@
             <form method="post" action="/ykc/imzaya-gonder">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="talepId" value="@Model.Id" />
-                <button class="df-btn df-btn-primary df-btn-sm" type="submit">İmza Uygulamasına Gönder</button>
+                <button class="df-btn df-btn-primary df-btn-sm" type="submit" title="İmzaya Gönder" aria-label="İmzaya Gönder"><i class="bi bi-send" aria-hidden="true"></i><span>İmzaya Gönder</span></button>
             </form>
         }
         else if (imzaDurumuSorgulanabilir)
@@ -107,23 +118,14 @@
             <form method="post" action="/ykc/imza-durum-sorgula">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="talepId" value="@Model.Id" />
-                <button class="df-btn df-btn-primary df-btn-sm" type="submit">İmza Durumunu Güncelle</button>
+                <button class="df-btn df-btn-primary df-btn-sm" type="submit" title="İmza Durumunu Güncelle" aria-label="İmza Durumunu Güncelle"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i><span>Durumu Güncelle</span></button>
             </form>
         }
         else if (!imzaEntegrasyonu.KullanilabilirMi)
         {
             <span class="df-btn df-btn-secondary df-btn-sm" style="pointer-events:none;opacity:.65;">İmza Entegrasyonu Bekleniyor</span>
         }
-    </div>
-</div>
-
-<section class="form-pdf-viewer" data-pdf-viewer data-pdf-url="/ykc/fr265/pdf/@Model.Id" aria-label="Cihaz değişim formu PDF önizlemesi">
-    <div class="form-pdf-controls" role="group" aria-label="PDF araçları">
-        <button type="button" data-pdf-prev title="Önceki sayfa" aria-label="Önceki sayfa" disabled><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
-        <output data-pdf-page aria-live="polite">- / -</output>
-        <button type="button" data-pdf-next title="Sonraki sayfa" aria-label="Sonraki sayfa" disabled><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
-        <select data-pdf-zoom aria-label="PDF yakınlaştırma" disabled><option value="fit">Genişliğe sığdır</option><option value="75">%75</option><option value="100">%100</option><option value="125">%125</option><option value="150">%150</option><option value="200">%200</option></select>
-        <a class="form-pdf-download" href="/ykc/fr265/pdf/@Model.Id?indir=true" title="PDF indir" aria-label="PDF indir"><i class="bi bi-download" aria-hidden="true"></i></a>
+        </div>
     </div>
     <p class="form-pdf-message" data-pdf-message role="status">Form yükleniyor...</p>
     <div class="form-pdf-scroll" data-pdf-scroll tabindex="0" aria-label="PDF sayfası">

@@ -338,6 +338,17 @@
 
 .df-role-report .df-ops-filter { grid-template-columns: minmax(180px, 1fr) repeat(2, minmax(125px, .62fr)) auto; }
 .df-service-operations-report .df-ops-filter { grid-template-columns: repeat(2, minmax(150px, 190px)) auto; justify-content: end; }
+.df-service-operations-report .df-ops-kpis.is-service-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.df-personnel-operations-report.is-commissioning-report .df-ops-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.df-personnel-operations-report.is-commissioning-report .df-ops-kpi.is-brand-leader strong { font-size:18px; }
+.df-service-brand-chart { display:grid; align-content:center; gap:10px; min-height:195px; }
+.df-service-brand-row { display:grid; grid-template-columns:minmax(76px,1fr) minmax(54px,1.35fr) 24px; align-items:center; gap:8px; color:#4d6274; font-size:11px; }
+.df-service-brand-row > span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.df-service-brand-row > strong { color:#213b53; font-size:11px; text-align:right; font-variant-numeric:tabular-nums; }
+.df-service-brand-track { height:7px; overflow:hidden; border-radius:4px; background:#e6edf4; }
+.df-service-brand-track i { display:block; width:var(--bar); height:100%; border-radius:4px; background:#187f61; }
+@media (max-width:600px) { .df-service-operations-report .df-ops-kpis.is-service-kpis { grid-template-columns:1fr; } }
+@media (max-width:600px) { .df-personnel-operations-report.is-commissioning-report .df-ops-kpis { grid-template-columns:1fr; } }
 .df-role-report .df-ops-completion { gap: 10px; }
 .df-role-report .df-ops-completion dl { gap: 7px; }
 .df-role-report .df-ops-ring span { max-width: 90px; text-align: center; line-height: 1.2; }

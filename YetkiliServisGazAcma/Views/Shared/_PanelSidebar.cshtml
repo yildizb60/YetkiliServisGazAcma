@@ -86,7 +86,7 @@
     {
         Group("Cihaz Devreye Alma İşlemleri", "bi-bag-check",
             ("Yeni Cihaz Devreye Alma Kaydı", Link("Index", "DevreyeAlma"), "bi-plus-lg", ActiveExact("DevreyeAl", "/ys-devreyeal")),
-            ("İşlem Geçmişi", Link("Gecmis", "DevreyeAlma"), "bi-clock-history", Active("DevreyeGecmis", "/ys-devreyeal/gecmis", "/ys-devreyeal/detay")),
+            ("İşlem Geçmişi", Link("Gecmis", "DevreyeAlma"), "bi-clock-history", Active("DevreyeGecmis", "/ys-devreyeal/gecmis")),
             ("Cihaz Devreye Alma Raporları", Link("Raporlar", "YetkiliServisPanel"), "bi-bar-chart-line", Active("Raporlar", "/ys-panel/raporlar")));
         Group("Yetkili Servis İşlemleri", "bi-tools",
             ("Yetki Belgem", Link("Index", "YetkiBelgesi"), "bi-file-earmark-check", Active("YetkiBelgesi", "/ys-yetki-belgesi")),
@@ -134,7 +134,7 @@
         if (!isPersonelPanel || ykcYetkileri.TalepleriGorebilir)
         {
             ykc.Add(("Cihaz Değişim Talepleri", Link("Talepler", "Ykc"), "bi-journal-text", ActiveUnless("YkcTalepler", "YkcRaporlar", "/ykc/talepler", "/ykc/detay", "/ykc/yeni", "/ykc/fr265")));
-            ykc.Add(("Cihaz Değişim Randevuları", Link("Takvim", "Ykc"), "bi-calendar3", Active("YkcTakvim", "/ykc/takvim")));
+            ykc.Add(("Yakıcı Cihaz Değişim Randevuları", Link("Takvim", "Ykc"), "bi-calendar3", Active("YkcTakvim", "/ykc/takvim")));
         }
         if (!isPersonelPanel || ykcYetkileri.RaporlariGorebilir)
             ykc.Add(("Cihaz Değişim Raporları", Link("Raporlar", "Ykc"), "bi-bar-chart-line", Active("YkcRaporlar", "/ykc/raporlar")));

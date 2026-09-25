@@ -412,10 +412,8 @@ namespace YetkiliServisGazAcma.Controllers
 
             if (kayit == null) return RedirectToAction(nameof(DevreyeAlmalar));
 
-            ViewBag.Kullanici = kullanici;
-            await SetPersonelYetkiViewBags(kullanici);
-            await SetPersonelNotifViewBags(kullanici);
-            return View("~/Views/PersonelPanel/DevreyeAlmaDetay.cshtml", kayit);
+            var listeUrl = Url.Action(nameof(DevreyeAlmalar), "PersonelPanel", new { tesisat = kayit.TesistatNo });
+            return Redirect($"{listeUrl}#devreye-alma-detay-{id}");
         }
 
         [HttpGet("devreyealma-pdf/{id}")]

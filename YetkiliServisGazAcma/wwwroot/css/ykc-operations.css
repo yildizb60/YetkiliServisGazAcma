@@ -3692,7 +3692,7 @@
 .ykc-report-state.df-pill-primary .bi-circle-fill { color:#2d66c2; }
 .ykc-report-form-state { color:#718292; font-size:9.75px; font-weight:500; }
 .ykc-report-form-state i { font-size:11px; }
-.ykc-report-customer { margin-bottom:5px; }
+.ykc-report-customer { margin-bottom:2px; }
 .ykc-results .ykc-id-list dt { white-space:nowrap; }
 .ykc-results .ykc-report-table .ykc-detail-action {
     width:32px;
@@ -3771,8 +3771,8 @@
 .ykc-report-insight-icon { width:27px; height:27px; display:grid; place-items:center; border-radius:5px; background:#eaf1f6; color:#426c88; font-size:12px; }
 .ykc-report-insight.is-summary > div small { display:block; color:#6b7e8f; font-size:8.5px; font-weight:550; }
 .ykc-report-insight.is-summary > div strong { display:block; color:#263f54; font-size:20px; font-weight:700; line-height:1.05; }
-.ykc-report-insight.is-summary dl { margin:0; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:stretch; gap:5px; }
-.ykc-report-insight.is-summary dl > div { min-width:0; display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:6px; }
+.ykc-report-insight.is-summary dl { margin:0; display:flex; align-items:center; justify-content:flex-end; gap:12px; }
+.ykc-report-insight.is-summary dl > div { min-width:0; display:inline-flex; align-items:baseline; gap:4px; }
 .ykc-report-insight.is-summary dt { color:#6a7e8e; font-size:8.5px; font-weight:500; line-height:1.2; white-space:nowrap; }
 .ykc-report-insight.is-summary dd { margin:0; color:#2d4c61; font-size:13px; font-weight:700; line-height:1; text-align:right; font-variant-numeric:tabular-nums; }
 .ykc-report-insight-title { display:flex; align-items:center; gap:5px; margin-bottom:3px; color:#3a566a; font-size:9.5px; font-weight:650; }
@@ -3790,6 +3790,8 @@
 .ykc-results .ykc-report-table th { color:#556b7d; font-weight:650; }
 .ykc-results .ykc-report-table td { color:#43596c; font-weight:400; }
 .ykc-results .ykc-report-table .ykc-cell-main { color:#2b455a; font-weight:600; }
+.ykc-results .ykc-report-table .ykc-report-firm { font-weight:500; }
+.ykc-results .ykc-report-table .ykc-report-customer { font-size:11px; font-weight:550; line-height:1.3; overflow-wrap:normal; word-break:normal; }
 .ykc-results .ykc-report-table .ykc-report-appointment { font-weight:500; line-height:1.35; }
 
 @media (max-width: 900px) {
@@ -4117,7 +4119,8 @@
 .ykc-list-page .ykc-device-compact dt { color:#667c8e; font-size:10.25px; font-weight:450; line-height:1.35; white-space:nowrap; }
 .ykc-list-page .ykc-device-compact dd { margin:0; overflow:hidden; color:#213f55; font-size:12.25px; font-weight:500; line-height:1.35; text-overflow:ellipsis; white-space:nowrap; }
 .ykc-list-page .ykc-device-compact.is-single { max-width:260px; }
-.ykc-list-page .ykc-device-type { display:inline-flex; align-items:center; min-height:25px; padding:3px 7px; border:1px solid #d8e2ea; border-radius:4px; background:#f7fafc; color:#29465b; font-size:11.5px; font-weight:500; }
+:is(.ykc-list-page,.ykc-results) .ykc-device-type { display:inline-flex; align-items:center; min-height:25px; padding:3px 7px; border:1px solid #d8e2ea; border-radius:4px; background:#f7fafc; color:#29465b; font-size:11.5px; font-weight:500; }
+.ykc-list-page .ykc-device-type-heading { white-space:nowrap; overflow-wrap:normal; }
 .ykc-list-page .ykc-device-summary { min-width:0; display:grid; gap:3px; padding-left:7px; border-left:2px solid #8a9aaa; }
 .ykc-list-page .ykc-device-summary.is-new { border-left-color:#159174; }
 .ykc-list-page .ykc-device-summary strong { overflow:hidden; color:#29465b; font-size:11.5px; font-weight:500; line-height:1.25; text-overflow:ellipsis; white-space:nowrap; }
@@ -4314,7 +4317,7 @@
 .ykc-firm-history-panel[open] > summary > i { transform:rotate(180deg); }
 .ykc-firm-history-panel > summary:focus-visible { outline:2px solid #315ac3; outline-offset:4px; }
 .ykc-firm-demo-note { margin:8px 0 0; font-size:11px; color:#797248; }
-.ykc-staff-record-body { display:grid; grid-template-columns:minmax(0,1fr) minmax(400px,.82fr); grid-template-areas:"info actions"; border-top:1px solid #dce5ec; }
+.ykc-staff-record-body { display:grid; grid-template-columns:minmax(0,1fr) minmax(400px,.82fr); grid-template-areas:"info actions"; border-top:1px solid #dce6f2; }
 .ykc-detail-page:has(> .ykc-firm-record) { padding-bottom:0; }
 .content:has(> .ykc-detail-page > .ykc-staff-record) { padding-bottom:20px; }
 .ykc-staff-record .ykc-firm-record-head { padding:10px 16px; }
@@ -4325,7 +4328,7 @@
 .ykc-staff-identity-fields > p strong { color:#345269; font-weight:650; }
 .ykc-staff-data { grid-area:info; min-width:0; display:flex; flex-direction:column; }
 .ykc-staff-data > #staff-info { flex:1; display:grid; align-content:start; }
-.ykc-detail-page.is-streamlined .ykc-staff-record .ykc-focus-section { display:block; grid-area:actions; padding:10px 12px; border:0; border-left:1px solid #dce5ec; border-radius:0; background:#f7fafc; }
+.ykc-detail-page.is-streamlined .ykc-staff-record .ykc-focus-section { display:block; grid-area:actions; padding:10px 12px; border:0; border-left:2px solid #315fca; border-radius:0; background:#f7f9fc; }
 .ykc-detail-page.is-streamlined .ykc-staff-record .ykc-focus-header { align-items:center; margin:0 0 6px; }
 .ykc-detail-page.is-streamlined .ykc-staff-record .ykc-focus-header h2 { font-size:15px; font-weight:600; }
 .ykc-staff-record .ykc-firm-data-section { padding:12px 18px; }
@@ -4342,27 +4345,36 @@
 .ykc-staff-record .ykc-field-wide { grid-column:1/-1; }
 .ykc-staff-record .ykc-assignment-region { padding:7px; margin-bottom:10px; }
 .ykc-staff-record .ykc-assignment-fields:has(#ykcRoute) { grid-template-columns:1fr; }
-.ykc-staff-record .ykc-focus-section:has(.ykc-assignment-disclosure) .ykc-current-plan:not(.is-signature-ready) { display:none; }
+.ykc-staff-record .ykc-focus-section:has(.ykc-assignment-disclosure) .ykc-current-plan:not(.is-signature-ready):not(.is-appointment-transition) { display:none; }
 .ykc-detail-page.is-streamlined .ykc-staff-record .ykc-assignment-disclosure > summary { padding:8px 0; min-height:34px; }
 .ykc-detail-page.is-streamlined .ykc-staff-record .ykc-assignment-region { min-height:39px; box-sizing:border-box; padding:5px 8px; margin-bottom:6px; display:flex; align-items:center; }
 .ykc-detail-page.is-streamlined .ykc-staff-record .ykc-assignment-region > span { display:flex; align-items:baseline; gap:8px; min-width:0; }
 .ykc-detail-page.is-streamlined .ykc-staff-record .ykc-assignment-region small { display:inline; white-space:nowrap; }
 .ykc-detail-page.is-streamlined .ykc-staff-record .ykc-assignment-region strong { margin:0; }
-.ykc-detail-page .ykc-staff-record { border-top-color:#315ac3; box-shadow:0 8px 24px rgba(36,59,77,.07); }
-.ykc-detail-page .ykc-staff-record .ykc-firm-record-head { background:linear-gradient(110deg,#f9fbfd,#f3f8f6); }
-.ykc-detail-page .ykc-staff-record .ykc-firm-record-number { color:#315ac3; font-weight:700; }
+.ykc-detail-page .ykc-staff-record { border-color:#d6e2f1; border-top-color:#315fca; box-shadow:0 8px 24px rgba(36,59,77,.07); }
+.ykc-detail-page .ykc-staff-record .ykc-firm-record-head { background:#fcfdfe; box-shadow:inset 0 -1px #dce6e9; }
+.ykc-staff-record .ykc-firm-record-actions .ykc-detail-status.df-pill-primary { border-color:#e8d6b2; background:#fff5e5; color:#8a6024; }
+.ykc-staff-record .ykc-firm-record-actions .ykc-detail-back { border-color:#d5e0e4; background:#fff; color:#213b53; box-shadow:none; }
+.ykc-staff-record .ykc-firm-record-actions .ykc-detail-preview { border-color:#cbd9e5; background:#eef3f8; color:#213b53; box-shadow:none; }
+.ykc-staff-record .ykc-firm-record-actions :is(.ykc-detail-back,.ykc-detail-preview):hover { border-color:#a9bbd8; background:#e8eef7; }
+.ykc-detail-page .ykc-staff-record .ykc-firm-record-number { color:#315fca; font-weight:700; }
 .ykc-detail-page .ykc-staff-record .ykc-firm-record-head h1 { color:#183a54; }
-.ykc-detail-page.is-streamlined .ykc-staff-record .ykc-focus-section { background:#f5faf8; border-left-color:#cee4dc; }
-.ykc-detail-page .ykc-staff-record .ykc-focus-icon { color:#fff; background:#315ac3; border-color:#315ac3; }
-.ykc-detail-page .ykc-staff-record .ykc-firm-data-section h2 > i { color:#187f61; }
-.ykc-detail-page .ykc-staff-record .ykc-assignment-region { color:#254b5d; background:#ecf8f3; border-color:#c9e7d8; }
+.ykc-detail-page .ykc-staff-record .ykc-focus-icon { color:#fff; background:#315fca; border-color:#315fca; }
+.ykc-detail-page .ykc-staff-record .ykc-focus-section.is-resolved .ykc-focus-icon { color:#315fca; background:#eaf1ff; border-color:#ccdaf7; }
+.ykc-detail-page.is-streamlined .ykc-staff-record .ykc-focus-section.is-resolved { background:#f8fafc; border-left-color:#187f61; }
+.ykc-detail-page.is-streamlined .ykc-staff-record .ykc-focus-section:not(.is-resolved) { background:#f8fafc; border-left-color:#315fca; }
+.ykc-detail-page.is-streamlined .ykc-staff-record .ykc-focus-section.is-review { border-left-color:#b94740; }
+.ykc-detail-page.is-streamlined .ykc-staff-record .ykc-focus-header h2 { color:#213b53; }
+.ykc-detail-page .ykc-staff-record #fr265-controls > summary { border-left:3px solid #b94740; background:#fffaf9; }
+.ykc-detail-page .ykc-staff-record #fr265-signature > summary { border-left:3px solid #315fca; background:#f7faff; }
+.ykc-detail-page .ykc-staff-record .ykc-firm-data-section h2 > i { color:#315fca; }
+.ykc-detail-page .ykc-staff-record .ykc-assignment-region { color:#254b5d; background:#fff; border-color:#d1e6db; }
 .ykc-detail-page .ykc-staff-record .ykc-assignment-region > i { color:#187f61; }
-.ykc-staff-data #staff-company .ykc-firm-data-grid { grid-template-columns:repeat(3,minmax(0,1fr)); column-gap:16px; }
-.ykc-staff-data #staff-company .ykc-firm-data-grid > div { min-width:0; padding:6px 0; border-bottom:1px solid #e2eaf0; }
-.ykc-staff-data #staff-company .ykc-firm-data-grid dt { color:#607989; font-weight:600; }
-.ykc-staff-data #staff-company .ykc-firm-data-grid dd { color:#203e53; font-size:13px; font-weight:650; line-height:1.4; }
-.ykc-staff-data #staff-company .ykc-firm-data-grid > div:nth-child(-n+2) dd { font-size:13px; font-weight:650; }
-.ykc-staff-data #staff-company .ykc-firm-data-grid > div:nth-child(n) { grid-column:auto; }
+.ykc-staff-data #staff-company .ykc-company-facts { grid-template-columns:repeat(2,minmax(0,1fr)); column-gap:14px; row-gap:0; }
+.ykc-staff-data #staff-company .ykc-company-facts > div { min-width:0; padding:8px 2px; border-bottom:1px solid #e2eaf0; }
+.ykc-staff-data #staff-company .ykc-company-facts dt { color:#607989; font-size:10px; font-weight:600; }
+.ykc-staff-data #staff-company .ykc-company-facts dd { margin-top:2px; color:#203e53; font-size:12px; font-weight:600; line-height:1.35; }
+.ykc-staff-data #staff-company .ykc-company-facts .ykc-company-location { grid-column:1/-1; }
 .ykc-staff-record .ykc-assignment-form textarea { height:40px; min-height:40px; }
 .ykc-detail-page.is-streamlined .ykc-staff-record .ykc-focus-section:has(.ykc-assignment-disclosure) { padding-bottom:8px; }
 .ykc-staff-record .ykc-focus-section:has(.ykc-assignment-disclosure) .ykc-other-actions { margin-top:8px; padding-top:5px; }
@@ -4378,28 +4390,48 @@
 .ykc-staff-record .ykc-detail-section-body { padding:7px 9px; overflow:hidden; }
 .ykc-staff-record .ykc-current-plan { display:block; padding:10px 0; }
 .ykc-staff-record .ykc-current-plan > div { margin-bottom:10px; }
+.ykc-staff-record .ykc-current-plan.is-appointment-transition { display:grid; gap:8px; margin-top:8px; padding:9px 11px; border:1px solid #d8e4df; border-left:3px solid #187f61; border-radius:5px; background:#fff; }
+.ykc-staff-record .ykc-current-plan.is-appointment-transition > div { min-width:0; margin:0; padding:0; border:0; }
+.ykc-staff-record .ykc-current-plan.is-appointment-transition .ykc-appointment-confirmation form,
+.ykc-staff-record .ykc-current-plan.is-appointment-transition .df-btn { width:100%; margin:0; }
+.ykc-staff-record .ykc-focus-section:has(.ykc-assignment-disclosure.is-reschedule[open]) .ykc-current-plan.is-appointment-transition { display:none; }
+.ykc-staff-record .ykc-assignment-disclosure.is-initial > summary { display:none; }
+.ykc-staff-record .ykc-assignment-disclosure.is-reschedule { border-top-color:#d5e6dc; }
+.ykc-staff-record .ykc-assignment-disclosure.is-reschedule > summary { display:flex; align-items:center; justify-content:space-between; color:#187f61; font-size:12px; font-weight:650; }
+.ykc-staff-record .ykc-assignment-disclosure.is-reschedule[open] > summary i { transform:rotate(180deg); }
+.ykc-staff-record .ykc-assignment-disclosure.is-reschedule > summary:focus-visible { outline:2px solid #315fca; outline-offset:2px; }
+.ykc-detail-page.is-streamlined .ykc-staff-record .ykc-assignment-disclosure.is-edit-appointment { margin-top:5px; padding-top:2px; border-top:0; }
+.ykc-detail-page.is-streamlined .ykc-staff-record .ykc-assignment-disclosure.is-edit-appointment > summary { display:inline-flex; width:auto; min-height:28px; padding:4px 8px; justify-content:flex-start; gap:6px; border:1px solid #c9e3d8; border-radius:4px; background:#f3faf6; line-height:1.2; }
+.ykc-staff-record .ykc-assignment-disclosure.is-edit-appointment[open] .ykc-assignment-form { margin-top:8px; }
+.ykc-staff-record .ykc-task-title-reschedule { display:none; }
+.ykc-staff-record .ykc-focus-section:has(.ykc-assignment-disclosure.is-reschedule[open]) .ykc-task-title-default { display:none; }
+.ykc-staff-record .ykc-focus-section:has(.ykc-assignment-disclosure.is-reschedule[open]) .ykc-task-title-reschedule { display:inline; }
+.ykc-staff-record .ykc-focus-section:has(.ykc-assignment-disclosure.is-reschedule[open]) > .ykc-other-actions,
+.ykc-staff-record .ykc-focus-section:has(.ykc-assignment-disclosure.is-reschedule[open]) > .ykc-detail-section { display:none; }
 .ykc-staff-record .ykc-comparison-heading { position:relative; display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
 .ykc-staff-record .ykc-comparison-heading > h2 { margin:0; }
 .ykc-comparison-warning-menu { position:relative; flex:0 0 auto; }
-.ykc-comparison-warning-menu > summary { width:42px; height:30px; display:inline-flex; align-items:center; justify-content:center; gap:5px; padding:0; border:1px solid #e7c579; border-radius:5px; background:#fff7df; color:#9a6908; cursor:pointer; list-style:none; line-height:1; }
+.ykc-comparison-warning-menu > summary { width:42px; height:30px; display:inline-flex; align-items:center; justify-content:center; gap:5px; padding:0; border:1px solid #e9c4c0; border-radius:5px; background:#fff6f4; color:#b94740; cursor:pointer; list-style:none; line-height:1; }
 .ykc-comparison-warning-menu > summary::-webkit-details-marker { display:none; }
 .ykc-comparison-warning-menu > summary i { display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; font-size:13px; line-height:1; }
-.ykc-comparison-warning-menu > summary span { display:inline-flex; align-items:center; justify-content:center; min-width:15px; height:15px; padding:0 3px; border-radius:8px; background:#f2d895; color:#6f4b05; font-size:9px; font-weight:750; line-height:1; }
+.ykc-comparison-warning-menu > summary span { display:inline-flex; align-items:center; justify-content:center; min-width:15px; height:15px; padding:0 3px; border-radius:8px; background:#f6ddda; color:#8e3934; font-size:9px; font-weight:750; line-height:1; }
 .ykc-comparison-warning-list { position:absolute; top:34px; right:0; z-index:20; width:min(390px,70vw); padding:7px; border:1px solid #e7c579; border-radius:6px; background:#fff; box-shadow:0 12px 28px rgba(49,62,71,.16); }
 .ykc-staff-record .ykc-comparison-warning { margin:0; padding:7px 9px; border-left:3px solid #d3a33e; background:#fff9e9; color:#72551c; font-size:11px; line-height:1.45; }
 .ykc-staff-record .ykc-comparison-warning + .ykc-comparison-warning { margin-top:5px; }
 .ykc-staff-record .ykc-comparison-table { min-width:0; table-layout:fixed; font-size:12px; }
 .ykc-staff-record .ykc-comparison-table th,.ykc-staff-record .ykc-comparison-table td { padding:7px 8px; font-size:11px; font-weight:400; overflow-wrap:anywhere; white-space:normal; }
 .ykc-staff-record .ykc-comparison-table thead th { font-weight:600; }
-.ykc-staff-record .ykc-comparison-table thead th:nth-child(2) { color:#214589; background:#e1ebfb; font-weight:700; }
-.ykc-staff-record .ykc-comparison-table thead th:nth-child(3) { color:#155a42; background:#dbf0e5; font-weight:700; }
-.ykc-staff-record .ykc-comparison-table tbody td:nth-child(2) { background:#f0f5fd; color:#25465e; font-weight:550; }
-.ykc-staff-record .ykc-comparison-table tbody td:nth-child(3) { background:#eef8f2; color:#205743; font-weight:550; }
-.ykc-secondhand-status { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:9px; padding:8px 10px; border:1px solid #d8e4ec; border-radius:5px; background:#f7fafc; color:#4c6578; font-size:12px; }
-.ykc-secondhand-status strong { min-width:46px; padding:3px 8px; border-radius:4px; background:#e6f4ee; color:#16745a; text-align:center; font-size:13px; font-weight:650; }
+.ykc-staff-record .ykc-comparison-table thead th:nth-child(2) { color:#315fca !important; background:#eff3fb; font-weight:700; }
+.ykc-staff-record .ykc-comparison-table thead th:nth-child(3) { color:#187f61 !important; background:#f3f6f6; box-shadow:inset 2px 0 #87bfa8; font-weight:700; }
+.ykc-staff-record .ykc-comparison-table tbody td:nth-child(2) { background:#f7f9fc; color:#213b53 !important; font-weight:500; }
+.ykc-staff-record .ykc-comparison-table tbody td:nth-child(3) { background:#fff; color:#213b53 !important; font-weight:500; }
+.ykc-secondhand-status { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:9px; padding:8px 10px; border:1px solid #dce6e4; border-radius:5px; background:#fff; color:#4c6578; font-size:12px; }
+.ykc-secondhand-status strong { display:inline-flex; align-items:center; gap:7px; color:#187f61; white-space:nowrap; font-size:12px; font-weight:700; }
+.ykc-secondhand-status strong::before { content:""; width:7px; height:7px; flex:none; border-radius:50%; background:currentColor; }
+.ykc-secondhand-status strong.is-used { color:#b94740; }
 .ykc-staff-record .ykc-other-actions { margin-top:8px; border-top:1px solid #dce5ec; padding-top:6px; }
 .ykc-staff-appointment { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; margin:0 0 8px; font-size:12px; }
-.ykc-staff-appointment > div { padding:6px 8px; border:1px solid #d8e4ec; border-radius:5px; background:#fff; }
+.ykc-staff-appointment > div { padding:6px 8px; border:1px solid #d6e2f1; border-radius:5px; background:#fff; }
 .ykc-staff-appointment dt { color:#6a7e8f; font-size:10px; }
 .ykc-staff-appointment dd { margin:3px 0 0; color:#23475f; font-size:12px; font-weight:650; }
 .ykc-staff-record .ykc-control-active { min-width:0; grid-template-columns:1fr; gap:6px; padding:7px 8px; }
@@ -4415,13 +4447,10 @@
 @media(max-width:1100px) { .ykc-staff-record-body { grid-template-columns:minmax(0,1fr) 360px; } }
 @media(max-width:800px) { .ykc-staff-record-body { grid-template-columns:1fr; grid-template-areas:"actions" "info"; } .ykc-detail-page.is-streamlined .ykc-staff-record .ykc-focus-section { border-left:0; border-bottom:1px solid #dce5ec; } }
 @media(max-width:700px) {
-    .ykc-staff-data #staff-company .ykc-firm-data-grid { grid-template-columns:repeat(2,minmax(0,1fr)); column-gap:12px; }
-    .ykc-staff-data #staff-company .ykc-firm-data-grid > div:nth-child(n):nth-child(n) { grid-column:auto; }
-    .ykc-staff-data #staff-company .ykc-firm-data-grid > div:nth-child(-n+2):nth-child(n) { grid-column:1 / -1; }
+    .ykc-staff-data #staff-company .ykc-company-facts { column-gap:10px; }
 }
 @media(max-width:420px) {
-    .ykc-staff-data #staff-company .ykc-firm-data-grid { grid-template-columns:minmax(0,1fr); }
-    .ykc-staff-data #staff-company .ykc-firm-data-grid > div:nth-child(n):nth-child(n) { grid-column:1; }
+    .ykc-staff-data #staff-company .ykc-company-facts { grid-template-columns:minmax(0,1fr); }
 }
 .ykc-firm-control-result { display:flex; align-items:center; flex-wrap:wrap; gap:10px; font-size:12px; padding:8px 0; }
 .ykc-firm-control-result strong { font-weight:500; }

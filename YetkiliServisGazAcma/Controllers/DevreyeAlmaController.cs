@@ -178,6 +178,30 @@ namespace YetkiliServisGazAcma.Controllers
             }
         }
 
+        [HttpPost]
+        [Route("kaydet-json")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> KaydetJson([FromBody] Ys_DevreyeAlma model)
+        {
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
+            if (kullanici == null) return Unauthorized();
+
+            try
+            {
+                var sonuc = await _devreyeAlmaApiClient.KaydetAsync(kullanici, model);
+                return Json(new
+                {
+                    basarili = sonuc?.Basarili == true,
+                    mesaj = sonuc?.Mesaj ?? "Cihaz devreye alma işlemi tamamlanamadı.",
+                    id = sonuc?.Id
+                });
+            }
+            catch (ApiIntegrationException ex)
+            {
+                return Json(new { basarili = false, mesaj = ex.Message });
+            }
+        }
+
         [HttpGet]
         [Route("gecmis")]
         public async Task<IActionResult> Gecmis(string? marka, DateTime? bas, DateTime? bit, string? musteri, string? durum, string? tesisat)

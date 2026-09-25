@@ -43,7 +43,7 @@
 }
 <section class="ykc-firm-record" aria-labelledby="firm-customer">
     <header class="ykc-firm-record-head">
-        <div><span class="ykc-firm-record-number">Talep No: #@Model.Id</span><h1 id="firm-customer">@Deger(Model.MusteriAdi)</h1><p>Tesisat No: @Deger(Model.TesisatNo)</p></div>
+        <div><span class="ykc-firm-record-number">Talep No: #@Model.Id</span><h1 id="firm-customer">@Deger(Model.MusteriAdi)</h1></div>
         <div class="ykc-firm-record-actions">
             @if (Model.Durum != YkcDurumDegerleri.TalepAlindi)
             {
@@ -70,8 +70,8 @@
                 <h2 id="firm-installation-title"><i class="bi bi-house-check" aria-hidden="true"></i>Tesisat ve Abone</h2>
                 <dl class="ykc-firm-data-grid">
                     <div><dt>Sözleşme No:</dt><dd>@Deger(Model.SozlesmeNo)</dd></div>
+                    <div><dt>Tesisat No:</dt><dd>@Deger(Model.TesisatNo)</dd></div>
                     <div><dt>Abone No:</dt><dd>@Deger(Model.AboneNo)</dd></div>
-                    <div><dt>Sayaç No:</dt><dd>@Deger(Model.SayacNo)</dd></div>
                     @if (!string.IsNullOrWhiteSpace(Model.MusteriTelefon)) { <div><dt>Telefon:</dt><dd>@Model.MusteriTelefon</dd></div> }
                     <div class="wide"><dt>Adres:</dt><dd>@Deger(Model.Adres)</dd></div>
                 </dl>

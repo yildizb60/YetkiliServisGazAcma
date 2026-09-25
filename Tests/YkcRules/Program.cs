@@ -354,6 +354,17 @@ Check(servisExcelXml.Contains("Demo Yetkili Servis") && servisExcelXml.Contains(
     "Service record XLSX contains firm, responsible person and branch district");
 var servisPdf = YetkiliServisKayitDosyasi.PdfOlustur(servisDetayi);
 Check(System.Text.Encoding.ASCII.GetString(servisPdf, 0, 5) == "%PDF-", "Service record export is a PDF");
+var devreyeAlmaRaporu = DevreyeAlmaRaporPdfService.YetkiliServisRaporuOlustur(new[]
+{
+    new Ys_DevreyeAlma
+    {
+        TesistatNo = "1311884", MusteriAdi = "Serhat Battal", CihazTipi = "Ocak",
+        CihazMarka = "Arçelik", CihazModeli = "OCD K 651 DWYS", SeriNo = "200202020",
+        CihazKapasite = "7740", TeknisyenAdi = "Kenan Kılıç",
+        DevreyeAlmaTarihi = new DateTime(2026, 9, 25), Durum = DevreyeAlmaDurumDegerleri.Tamamlandi
+    }
+}, new DateTime(2026, 9, 1), new DateTime(2026, 9, 30));
+Check(System.Text.Encoding.ASCII.GetString(devreyeAlmaRaporu, 0, 5) == "%PDF-", "Service commissioning report renders device details as PDF");
 if (args.Length == 2 && args[0] == "--form-output")
 {
     Directory.CreateDirectory(args[1]);

@@ -1,7 +1,7 @@
 @{
     ViewData["Title"] = "Cihaz Devreye Alma Raporları";
     ViewData["PanelTitle"] = "Raporlar";
-    ViewData["PanelModule"] = "Yetkili Servis Paneli";
+    ViewData["PanelModule"] = "Raporlama";
     ViewData["ActiveMenu"] = "Raporlar";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
@@ -9,16 +9,16 @@
     DateTime bitTarih = ViewBag.BitTarih;
     var toplam = Convert.ToInt32(ViewBag.DevreyeSayisi);
     var tamamlanan = Convert.ToInt32(ViewBag.Tamamlanan);
-    var bekleyen = Convert.ToInt32(ViewBag.Bekleyen);
-    var durumlar = ViewBag.ChartDurumData as List<int> ?? new List<int>();
-    var iptal = durumlar.Count > 2 ? durumlar[2] : 0;
+    var markalar = ViewBag.ChartMarkaLabels as List<string> ?? new List<string>();
+    var markaSayilari = ViewBag.ChartMarkaData as List<int> ?? new List<int>();
+    var markaAdedi = Math.Min(markalar.Count, markaSayilari.Count);
+    var markaEnYuksek = Math.Max(1, markaSayilari.Take(markaAdedi).DefaultIfEmpty(0).Max());
     var aylar = ViewBag.ChartAylikLabels as List<string> ?? new List<string>();
     var aylik = ViewBag.ChartAylikData as List<int> ?? new List<int>();
     var chartLength = Math.Min(aylar.Count, aylik.Count);
     var chartStart = Math.Max(0, chartLength - 6);
     var chartCount = chartLength - chartStart;
     var chartMax = Math.Max(1, aylik.Skip(chartStart).Take(chartCount).DefaultIfEmpty(0).Max());
-    var tamamlanmaOrani = toplam == 0 ? 0 : Math.Round(tamamlanan * 100d / toplam, 1);
     string CssYuzde(double value) => Math.Clamp(value, 0, 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
     var pdfUrl = Url.Action("RaporlarPdf", "YetkiliServisPanel", new { bas = basTarih.ToString("yyyy-MM-dd"), bit = bitTarih.ToString("yyyy-MM-dd") });
     var excelUrl = Url.Action("RaporlarExcel", "YetkiliServisPanel", new { bas = basTarih.ToString("yyyy-MM-dd"), bit = bitTarih.ToString("yyyy-MM-dd") });
@@ -41,11 +41,9 @@
         </form>
     </section>
 
-    <section class="df-ops-kpis" aria-label="Devreye alma göstergeleri">
+    <section class="df-ops-kpis is-service-kpis" aria-label="Devreye alma göstergeleri">
         <article class="df-ops-kpi is-volume"><span class="df-ops-kpi-icon"><i class="bi bi-inboxes" aria-hidden="true"></i></span><div><span>Toplam kayıt</span><strong>@toplam</strong></div></article>
         <article class="df-ops-kpi is-duration"><span class="df-ops-kpi-icon"><i class="bi bi-check2-circle" aria-hidden="true"></i></span><div><span>Tamamlanan</span><strong>@tamamlanan</strong></div></article>
-        <article class="df-ops-kpi is-compliance"><span class="df-ops-kpi-icon"><i class="bi bi-hourglass-split" aria-hidden="true"></i></span><div><span>Bekleyen</span><strong>@bekleyen</strong></div></article>
-        <article class="df-ops-kpi is-repeat"><span class="df-ops-kpi-icon"><i class="bi bi-x-circle" aria-hidden="true"></i></span><div><span>İptal</span><strong>@iptal</strong></div></article>
     </section>
 
     <section class="df-ops-overview" aria-label="Devreye alma grafikleri">
@@ -70,20 +68,22 @@
             }
         </div>
         <aside class="df-ops-status" aria-labelledby="serviceReportStatusHeading">
-            <header class="df-ops-section-head"><div><h2 id="serviceReportStatusHeading">Durum dağılımı</h2></div></header>
+            <header class="df-ops-section-head"><div><h2 id="serviceReportStatusHeading">Markalara göre işlemler</h2></div></header>
             @if (toplam == 0)
             {
                 <div class="df-ops-empty">Seçili dönemde kayıt yok.</div>
             }
             else
             {
-                <div class="df-ops-completion">
-                    <div class="df-ops-ring" style="--value:@CssYuzde(tamamlanmaOrani)" aria-label="Tamamlanan yüzde @tamamlanmaOrani"><strong>%@tamamlanmaOrani.ToString("0.#")</strong><span>tamamlandı</span></div>
-                    <dl>
-                        <div><dt><i class="is-complete" aria-hidden="true"></i> Tamamlanan</dt><dd>@tamamlanan</dd></div>
-                        <div><dt><i class="is-active" aria-hidden="true"></i> Bekleyen</dt><dd>@bekleyen</dd></div>
-                        <div><dt><i class="is-cancelled" aria-hidden="true"></i> İptal</dt><dd>@iptal</dd></div>
-                    </dl>
+                <div class="df-service-brand-chart">
+                    @if (markaAdedi == 0)
+                    {
+                        <div class="df-ops-empty">Marka bilgisi bulunmuyor.</div>
+                    }
+                    @for (var index = 0; index < markaAdedi; index++)
+                    {
+                        <div class="df-service-brand-row"><span title="@markalar[index]">@markalar[index]</span><div class="df-service-brand-track"><i style="--bar:@CssYuzde(markaSayilari[index] * 100d / markaEnYuksek)%"></i></div><strong>@markaSayilari[index]</strong></div>
+                    }
                 </div>
             }
         </aside>

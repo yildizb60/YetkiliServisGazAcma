@@ -10,6 +10,7 @@
     var raporTipi = ViewBag.RaporTipi as string ?? "devreye";
     var belgeRaporu = listeTipi == "yetkiBelgesi";
     var ykcRaporu = listeTipi == "ykc";
+    var devreyeRaporu = !belgeRaporu && !ykcRaporu;
     var genelRaporYetkisi = ViewBag.YetkiRapor == true;
     var belgeYetkisi = ViewBag.YetkiBelgesi == true;
     var ykcRaporYetkisi = ViewBag.YetkiYkcRapor == true;
@@ -19,6 +20,10 @@
     var raporAylar = (ViewBag.RaporAylar as IEnumerable<string>)?.ToList() ?? new List<string>();
     var raporAylik = (ViewBag.RaporAylik as IEnumerable<int>)?.ToList() ?? new List<int>();
     var durumSayilari = (ViewBag.RaporDurum as IEnumerable<int>)?.ToList() ?? new List<int>();
+    var markaEtiketleri = (ViewBag.RaporMarka as IEnumerable<string>)?.ToList() ?? new List<string>();
+    var markaSayilari = (ViewBag.RaporMarkaSayi as IEnumerable<int>)?.ToList() ?? new List<int>();
+    var markaSayisi = Math.Min(5, Math.Min(markaEtiketleri.Count, markaSayilari.Count));
+    var markaMax = Math.Max(1, markaSayilari.Take(markaSayisi).DefaultIfEmpty(0).Max());
     var ozelDurumEtiketleri = ViewBag.RaporDurumEtiketleri as IEnumerable<string>;
     var durumEtiketleri = ozelDurumEtiketleri?.ToList()
         ?? (belgeRaporu
@@ -26,9 +31,15 @@
             : new List<string> { "Tamamlanan", "Bekleyen", "İptal" });
     var durumToplam = durumSayilari.Sum();
     var chartLength = Math.Min(raporAylar.Count, raporAylik.Count);
-    var chartStart = Math.Max(0, chartLength - 6);
-    var chartCount = chartLength - chartStart;
-    var chartMax = Math.Max(1, raporAylik.Skip(chartStart).Take(chartCount).DefaultIfEmpty(0).Max());
+    var chartIndices = Enumerable.Range(0, chartLength)
+        .Where(index => !devreyeRaporu
+            || !DateTime.TryParseExact(raporAylar[index], "MM.yyyy", System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None, out var ay)
+            || (ay <= bitTarih && ay.AddMonths(1) > basTarih))
+        .TakeLast(6)
+        .ToList();
+    var chartCount = chartIndices.Count;
+    var chartMax = Math.Max(1, chartIndices.Select(index => raporAylik[index]).DefaultIfEmpty(0).Max());
     var ilkDurumEtiketi = durumEtiketleri.FirstOrDefault() ?? "İşlem";
     var ilkDurumOrani = durumToplam == 0 ? 0 : Math.Round(durumSayilari.FirstOrDefault() * 100d / durumToplam, 1);
     string CssYuzde(double value) => Math.Clamp(value, 0, 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
@@ -66,7 +77,7 @@
     <link rel="stylesheet" href="~/css/admin-reports.css" asp-append-version="true" />
 }
 
-<main class="df-admin-report-workspace df-operations-report df-role-report df-personnel-operations-report">
+<main class="df-admin-report-workspace df-operations-report df-role-report df-personnel-operations-report @(devreyeRaporu ? "is-commissioning-report" : null)">
     <section class="df-ops-command" aria-labelledby="personnelReportHeading">
         <div class="df-ops-command-copy">
             <span class="df-ops-command-icon" aria-hidden="true"><i class="bi @raporIkonu"></i></span>
@@ -106,14 +117,22 @@
     </section>
 
     <section class="df-ops-kpis" aria-label="@raporTipiAdi göstergeleri">
-        <article class="df-ops-kpi is-volume"><span class="df-ops-kpi-icon"><i class="bi bi-inboxes" aria-hidden="true"></i></span><div><span>Toplam kayıt</span><strong>@raporToplam</strong></div></article>
-        @for (var index = 0; index < 3; index++)
+        @if (devreyeRaporu)
         {
-            var etiket = index < durumEtiketleri.Count ? durumEtiketleri[index] : "Diğer";
-            var sayi = index < durumSayilari.Count ? durumSayilari[index] : 0;
-            var ton = index == 0 ? "is-duration" : index == 1 ? "is-compliance" : "is-repeat";
-            var ikon = index == 0 ? "bi-check2-circle" : index == 1 ? "bi-hourglass-split" : "bi-list-check";
-            <article class="df-ops-kpi @ton"><span class="df-ops-kpi-icon"><i class="bi @ikon" aria-hidden="true"></i></span><div><span>@etiket</span><strong>@sayi</strong></div></article>
+            <article class="df-ops-kpi is-duration"><span class="df-ops-kpi-icon"><i class="bi bi-check2-circle" aria-hidden="true"></i></span><div><span>Devreye alınan cihaz</span><strong>@Convert.ToInt32(ViewBag.RaporTamam ?? 0)</strong></div></article>
+            <article class="df-ops-kpi is-volume is-brand-leader"><span class="df-ops-kpi-icon"><i class="bi bi-tags" aria-hidden="true"></i></span><div><span>En çok işlem yapılan marka</span><strong>@(markaEtiketleri.FirstOrDefault() ?? "-")</strong><small>@markaSayilari.FirstOrDefault() işlem</small></div></article>
+        }
+        else
+        {
+            <article class="df-ops-kpi is-volume"><span class="df-ops-kpi-icon"><i class="bi bi-inboxes" aria-hidden="true"></i></span><div><span>Toplam kayıt</span><strong>@raporToplam</strong></div></article>
+            @for (var index = 0; index < 3; index++)
+            {
+                var etiket = index < durumEtiketleri.Count ? durumEtiketleri[index] : "Diğer";
+                var sayi = index < durumSayilari.Count ? durumSayilari[index] : 0;
+                var ton = index == 0 ? "is-duration" : index == 1 ? "is-compliance" : "is-repeat";
+                var ikon = index == 0 ? "bi-check2-circle" : index == 1 ? "bi-hourglass-split" : "bi-list-check";
+                <article class="df-ops-kpi @ton"><span class="df-ops-kpi-icon"><i class="bi @ikon" aria-hidden="true"></i></span><div><span>@etiket</span><strong>@sayi</strong></div></article>
+            }
         }
     </section>
 
@@ -127,7 +146,7 @@
             else
             {
                 <div class="df-ops-monthly-chart" style="--chart-count:@chartCount" role="img" aria-label="@grafikBasligi">
-                    @for (var index = chartStart; index < chartLength; index++)
+                    @foreach (var index in chartIndices)
                     {
                         <div class="df-ops-month" title="@raporAylar[index]: @raporAylik[index] kayıt">
                             <strong>@raporAylik[index]</strong>
@@ -139,8 +158,24 @@
             }
         </div>
         <aside class="df-ops-status" aria-labelledby="personnelReportStatusHeading">
-            <header class="df-ops-section-head"><div><h2 id="personnelReportStatusHeading">Durum dağılımı</h2></div></header>
-            @if (durumToplam == 0)
+            <header class="df-ops-section-head"><div><h2 id="personnelReportStatusHeading">@(devreyeRaporu ? "Markalara göre işlemler" : "Durum dağılımı")</h2></div></header>
+            @if (devreyeRaporu)
+            {
+                @if (markaSayisi == 0)
+                {
+                    <div class="df-ops-empty">Seçili dönemde marka verisi yok.</div>
+                }
+                else
+                {
+                    <div class="df-service-brand-chart">
+                        @for (var index = 0; index < markaSayisi; index++)
+                        {
+                            <div class="df-service-brand-row"><span title="@markaEtiketleri[index]">@markaEtiketleri[index]</span><div class="df-service-brand-track"><i style="--bar:@CssYuzde(markaSayilari[index] * 100d / markaMax)%"></i></div><strong>@markaSayilari[index]</strong></div>
+                        }
+                    </div>
+                }
+            }
+            else if (durumToplam == 0)
             {
                 <div class="df-ops-empty">Seçili dönemde kayıt yok.</div>
             }

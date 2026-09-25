@@ -2,7 +2,7 @@
 @{
     var firmaGorunumu = User.IsInRole("SertifikaliFirma");
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
-    ViewData["Title"] = firmaGorunumu ? "Cihaz Değişim Randevularım" : "Cihaz Değişim Randevuları";
+    ViewData["Title"] = firmaGorunumu ? "Yakıcı Cihaz Değişim Randevularım" : "Yakıcı Cihaz Değişim Randevuları";
     ViewData["PanelTitle"] = ViewData["Title"];
     ViewData["PanelModule"] = "Cihaz Değişim İşlemleri";
     ViewData["ActiveMenu"] = "YkcTakvim";
@@ -81,7 +81,6 @@
 
     const int varsayilanBaslangicSaati = 8;
     const int varsayilanBitisSaati = 18;
-    const double saatYuksekligi = 58;
     var gorunumKayitlari = tamHafta || tamAy ? Model.GorunumKayitlari : Model.Kayitlar;
     var kayitSaatleri = new List<TimeSpan>();
     foreach (var kayit in gorunumKayitlari)
@@ -90,7 +89,7 @@
     }
     var takvimBaslangicSaati = kayitSaatleri.Count == 0 ? varsayilanBaslangicSaati : Math.Min(varsayilanBaslangicSaati, kayitSaatleri.Min(x => x.Hours));
     var takvimBitisSaati = kayitSaatleri.Count == 0 ? varsayilanBitisSaati : Math.Min(24, Math.Max(varsayilanBitisSaati, kayitSaatleri.Max(x => x.Hours) + 2));
-    var zamanCizelgesiYuksekligi = (takvimBitisSaati - takvimBaslangicSaati) * saatYuksekligi;
+    var zamanCizelgesiSaatSayisi = (double)(takvimBitisSaati - takvimBaslangicSaati);
     var haftalikKayitlar = new Dictionary<DateTime, List<YkcTakvimKayit>>();
     var etkinlikKonumlari = new Dictionary<int, double>();
     if (tamHafta)
@@ -105,15 +104,15 @@
             {
                 var dakika = takvimBaslangicSaati * 60;
                 if (TimeSpan.TryParse(kayit.Saat, out var saat)) dakika = (int)saat.TotalMinutes;
-                var istenenKonum = Math.Max(0, (dakika - takvimBaslangicSaati * 60) / 60d * saatYuksekligi);
+                var istenenKonum = Math.Max(0, (dakika - takvimBaslangicSaati * 60) / 60d);
                 var konum = Math.Max(istenenKonum, sonrakiBosKonum);
                 etkinlikKonumlari[kayit.Id] = konum;
-                sonrakiBosKonum = konum + 56;
+                sonrakiBosKonum = konum + 1.05;
             }
-            zamanCizelgesiYuksekligi = Math.Max(zamanCizelgesiYuksekligi, sonrakiBosKonum + 12);
+            zamanCizelgesiSaatSayisi = Math.Max(zamanCizelgesiSaatSayisi, sonrakiBosKonum + 0.2);
         }
     }
-    var zamanCizelgesiStili = $"--timeline-height:{zamanCizelgesiYuksekligi.ToString("0.#", invariant)}px;--hour-height:{saatYuksekligi.ToString("0.#", invariant)}px;";
+    var zamanCizelgesiStili = $"--timeline-hours:{zamanCizelgesiSaatSayisi.ToString("0.##", invariant)};";
 }
 @section PageStyles {
     <link rel="stylesheet" href="~/css/ykc-operations.css" asp-append-version="true" />
@@ -260,8 +259,8 @@
                         <div class="ykc-time-axis">
                             @for (var saatIndex = takvimBaslangicSaati; saatIndex <= takvimBitisSaati; saatIndex++)
                             {
-                                var saatKonumu = (saatIndex - takvimBaslangicSaati) * saatYuksekligi;
-                                <time style="top:@(saatKonumu.ToString("0.#", invariant))px">@saatIndex.ToString("00"):00</time>
+                                var saatKonumu = saatIndex - takvimBaslangicSaati;
+                                <time style="--hour-offset:@saatKonumu">@saatIndex.ToString("00"):00</time>
                             }
                         </div>
                         @for (var dayIndex = 0; dayIndex < 7; dayIndex++)
@@ -276,7 +275,7 @@
                                     var durum = YkcDurumSunumu.Etiket(item.Durum);
                                     var renk = item.Id % 4;
                                     var etkinlikKonumu = etkinlikKonumlari.GetValueOrDefault(item.Id);
-                                    var etkinlikStili = $"--event-top:{etkinlikKonumu.ToString("0.#", invariant)}px;";
+                                    var etkinlikStili = $"--event-hour:{etkinlikKonumu.ToString("0.##", invariant)};";
                                     <a class="ykc-timeline-event tone-@renk @(item.Durum == YkcDurumDegerleri.Tamamlandi ? "is-complete" : null)"
                                        style="@etkinlikStili"
                                        href="@Url.Action("Detay", "Ykc", new { id = item.Id, kaynak = "takvim" })"

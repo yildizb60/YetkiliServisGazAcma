@@ -1,4 +1,6 @@
 (() => {
+    const interactive = "a, button, input, select, textarea, label, form, details, summary, [contenteditable], [role='button'], [role='link']";
+
     function setExpanded(row, expanded) {
         const detail = row.nextElementSibling;
         const toggle = row.querySelector('[data-approval-expand]');
@@ -13,10 +15,12 @@
 
     document.querySelectorAll('.df-approval-table.is-compact-approval').forEach(table => {
         table.addEventListener('click', event => {
-            const toggle = event.target.closest('[data-approval-expand]');
-            if (!toggle) return;
+            const target = event.target;
+            if (!(target instanceof Element)) return;
+            const row = target.closest('tr[data-approval-row]');
+            if (!row || !table.contains(row)) return;
+            if (target.closest(interactive) && !target.closest('[data-approval-expand]')) return;
 
-            const row = toggle.closest('tr[data-approval-row]');
             const expanded = !row.classList.contains('is-expanded');
             table.querySelectorAll('tr[data-approval-row].is-expanded').forEach(other => {
                 if (other !== row) setExpanded(other, false);

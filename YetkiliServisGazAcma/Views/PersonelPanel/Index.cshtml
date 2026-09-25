@@ -125,6 +125,23 @@
         });
     }
 
+    if (actions.Count < 4 && belgeYetkisi)
+    {
+        actions.Add(new DashboardTileViewModel
+        {
+            Title = "Yetki Belgesi Geçmişi", Url = Url.Action("OnayGecmisi", "PersonelPanel")!,
+            Icon = "bi bi-clock-history", MetricLabel = "Karar geçmişi", Tone = "green"
+        });
+    }
+    if (actions.Count < 4 && ykcTalepYetkisi)
+    {
+        actions.Add(new DashboardTileViewModel
+        {
+            Title = "Kontrol Randevuları", Url = Url.Action("Takvim", "Ykc")!,
+            Icon = "bi bi-calendar2-week", MetricLabel = "Takvimi görüntüle", Tone = "cyan"
+        });
+    }
+
     var profilUrl = Url.Action("Profil", "PersonelPanel")!;
     if (actions.Count == 0)
     {

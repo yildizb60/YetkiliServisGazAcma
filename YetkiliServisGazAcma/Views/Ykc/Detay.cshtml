@@ -23,6 +23,10 @@
         || imzaSureci?.Durum == YkcImzaDurumDegerleri.Tamamlandi;
     var atamaYapilabilir = !imzaSureciBasladi
         && (Model.Durum == YkcDurumDegerleri.AtamaBekliyor || Model.Durum == YkcDurumDegerleri.Atandi || Model.Durum == YkcDurumDegerleri.SahaIsleminde);
+    var randevuZamaniGeldi = Model.RandevuTarihi.HasValue
+        && TimeSpan.TryParse(Model.RandevuSaati, out var planlananSaat)
+        && Model.RandevuTarihi.Value.Date.Add(planlananSaat) <= DateTime.Now;
+    var randevuYenidenPlanlanacak = atamaYapilabilir && randevuZamaniGeldi;
     var tesisatBolgesi = string.IsNullOrWhiteSpace(Model.Bolge) ? Model.Il : Model.Bolge;
     var sonAtamaTipi = Model.Atamalar.FirstOrDefault()?.AtananKullaniciTipi ?? string.Empty;
     var acilEkipSecili = string.Equals(Model.HedefUygulama, YkcHedefUygulamaDegerleri.Crm187, StringComparison.OrdinalIgnoreCase)
@@ -135,7 +139,7 @@
     {
         YkcDurumDegerleri.TalepAlindi => "Talebi incelemeye alın",
         YkcDurumDegerleri.AtamaBekliyor => "Randevu ve yönlendirmeyi planlayın",
-        YkcDurumDegerleri.Atandi => "Randevuyu yönetin",
+        YkcDurumDegerleri.Atandi => randevuZamaniGeldi ? "Randevu sonucunu kaydedin" : "Randevuyu yönetin",
         YkcDurumDegerleri.SahaIsleminde => "Form ve imza işlemlerini tamamlayın",
         YkcDurumDegerleri.Tamamlandi => "Talep tamamlandı",
         YkcDurumDegerleri.Reddedildi => "Talep reddedildi",
@@ -315,21 +319,30 @@
             <span class="ykc-firm-record-number">Cihaz Değişim Talebi #@Model.Id</span>
             <div class="ykc-staff-identity-fields">
                 <h1><span>Müşteri Adı:</span> @Deger(Model.MusteriAdi)</h1>
-                <p><i class="bi bi-house-check" aria-hidden="true"></i> Tesisat No: <strong>@Deger(Model.TesisatNo)</strong></p>
             </div>
         </div>
         <div class="ykc-firm-record-actions">
-            <span class="df-pill @DurumClass(Model.Durum)">@(Model.Durum == YkcDurumDegerleri.Atandi ? "Planlandı" : DurumYazi(Model.Durum))</span>
-            <a class="df-btn df-btn-secondary df-btn-sm" href="@geriUrl"><i class="bi bi-arrow-left"></i> @geriMetni</a>
-            <a class="df-btn df-btn-secondary df-btn-sm" href="@Url.Action("Fr265Onizle", "Ykc", new { id = Model.Id })" target="_blank"><i class="bi bi-file-earmark-pdf"></i> Formu Önizle</a>
+            <span class="df-pill @DurumClass(Model.Durum) ykc-detail-status">@(Model.Durum == YkcDurumDegerleri.Atandi ? "Planlandı" : DurumYazi(Model.Durum))</span>
+            <a class="df-btn df-btn-sm ykc-detail-back" href="@geriUrl"><i class="bi bi-arrow-left"></i> @geriMetni</a>
+            <a class="df-btn df-btn-sm ykc-detail-preview" href="@Url.Action("Fr265Onizle", "Ykc", new { id = Model.Id })" target="_blank"><i class="bi bi-file-earmark-pdf"></i> Formu Önizle</a>
         </div>
     </header>
     <div class="ykc-staff-record-body">
-    <section class="ykc-focus-section @(terminalDurum ? "is-resolved" : null)" aria-labelledby="current-task-title">
+    <section class="ykc-focus-section @(terminalDurum ? "is-resolved" : Model.Durum == YkcDurumDegerleri.TalepAlindi ? "is-review" : null)" aria-labelledby="current-task-title">
         <header class="ykc-focus-header">
             <span class="ykc-focus-icon" aria-hidden="true"><i class="bi @gorevIkonu"></i></span>
             <div>
-                <h2 id="current-task-title">@gorevBasligi</h2>
+                <h2 id="current-task-title">
+                    @if (Model.Durum == YkcDurumDegerleri.Atandi || Model.Durum == YkcDurumDegerleri.SahaIsleminde)
+                    {
+                        <span class="ykc-task-title-default">@gorevBasligi</span>
+                        <span class="ykc-task-title-reschedule">@(Model.Durum == YkcDurumDegerleri.SahaIsleminde ? "Randevuyu düzenleyin" : "Randevuyu yeniden planlayın")</span>
+                    }
+                    else
+                    {
+                        @gorevBasligi
+                    }
+                </h2>
                 @if (terminalDurum) { <p>@gorevAciklamasi</p> }
             </div>
         </header>
@@ -362,15 +375,14 @@
 
             @if (Model.Durum == YkcDurumDegerleri.Atandi && (atamaYetkisi || fr265ImzaYetkisi))
             {
-                <div class="ykc-current-plan">
+                <div class="ykc-current-plan is-appointment-transition">
                     <div><span>Planlanan randevu</span><strong>@RandevuYazi(Model.RandevuTarihi, Model.RandevuSaati)</strong></div>
-                    <div><span>Yönlendirilen birim / kişi</span><strong>@Deger(Model.AtananEkip)</strong></div>
                     <div class="ykc-appointment-confirmation">
                         <form method="post" action="@Url.Action("DurumGuncelle", "Ykc")">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="TalepId" value="@Model.Id" />
                             <input type="hidden" name="Durum" value="@YkcDurumDegerleri.SahaIsleminde" />
-                            <button class="df-btn df-btn-primary" type="submit"><i class="bi bi-check2-circle"></i> Randevu Gerçekleşti</button>
+                            <button class="df-btn df-btn-primary" type="submit" disabled="@(!randevuZamaniGeldi)" title="@(randevuZamaniGeldi ? null : "Randevu saatinde kullanılabilir")"><i class="bi bi-check2-circle"></i> Randevu Gerçekleşti, Kontrole Geç</button>
                         </form>
                     </div>
                 </div>
@@ -425,7 +437,8 @@
 
             @if (atamaYapilabilir && atamaYetkisi)
             {
-                <div class="ykc-assignment-disclosure is-inline">
+                <details class="ykc-assignment-disclosure is-inline @(Model.Durum == YkcDurumDegerleri.AtamaBekliyor ? "is-initial" : "is-reschedule") @(Model.Durum == YkcDurumDegerleri.SahaIsleminde ? "is-edit-appointment" : null)" name="ykc-workflow-action" open="@(Model.Durum == YkcDurumDegerleri.AtamaBekliyor)">
+                    <summary>@if (Model.Durum == YkcDurumDegerleri.SahaIsleminde) { <i class="bi bi-calendar3" aria-hidden="true"></i> } @(Model.Durum == YkcDurumDegerleri.SahaIsleminde ? "Randevuyu Düzenle" : "Randevuyu Yeniden Planla") <i class="bi bi-chevron-down" aria-hidden="true"></i></summary>
                     <form method="post" action="@Url.Action("AtamaYap", "Ykc")" class="ykc-assignment-form" data-appointment-form>
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="TalepId" value="@Model.Id" />
@@ -455,13 +468,13 @@
                             </div>
                         </div>
                         <div class="ykc-assignment-fields">
-                            <div class="ykc-field"><label>Randevu Tarihi</label><div class="ykc-picker"><input id="randevuTarihi" type="date" name="RandevuTarihi" value="@Model.RandevuTarihi?.ToString("yyyy-MM-dd")" min="@DateTime.Now.ToString("yyyy-MM-dd")" required /><button type="button" data-picker="#randevuTarihi" title="Takvimi aç"><i class="bi bi-calendar3"></i></button></div></div>
-                            <div class="ykc-field"><label>Randevu Saati</label><div class="ykc-picker"><input id="randevuSaati" type="time" name="RandevuSaati" value="@Model.RandevuSaati" min="08:00" max="17:30" step="1800" required /><button type="button" data-picker="#randevuSaati" title="Saati seç"><i class="bi bi-clock"></i></button></div></div>
+                            <div class="ykc-field"><label>Randevu Tarihi</label><div class="ykc-picker"><input id="randevuTarihi" type="date" name="RandevuTarihi" value="@(randevuYenidenPlanlanacak ? null : Model.RandevuTarihi?.ToString("yyyy-MM-dd"))" min="@DateTime.Now.ToString("yyyy-MM-dd")" required /><button type="button" data-picker="#randevuTarihi" title="Takvimi aç"><i class="bi bi-calendar3"></i></button></div></div>
+                            <div class="ykc-field"><label>Randevu Saati</label><div class="ykc-picker"><input id="randevuSaati" type="time" name="RandevuSaati" value="@(randevuYenidenPlanlanacak ? null : Model.RandevuSaati)" min="08:00" max="17:30" step="1800" required /><button type="button" data-picker="#randevuSaati" title="Saati seç"><i class="bi bi-clock"></i></button></div></div>
                             <div class="ykc-field ykc-field-wide"><label>Not</label><textarea name="Aciklama" placeholder="Atama ve yönlendirme notu"></textarea></div>
                         </div>
-                        <div class="ykc-form-actions"><button class="df-btn df-btn-primary" type="submit"><i class="bi bi-calendar2-check"></i> @(Model.Durum == YkcDurumDegerleri.AtamaBekliyor ? "Randevuyu Kaydet" : "Randevuyu Güncelle")</button></div>
+                        <div class="ykc-form-actions"><button class="df-btn df-btn-primary" type="submit"><i class="bi bi-calendar2-check"></i> @(Model.Durum == YkcDurumDegerleri.AtamaBekliyor ? "Randevuyu Kaydet" : "Randevuyu Yeniden Planla")</button></div>
                     </form>
-                </div>
+                </details>
             }
 
             @if (!terminalDurum && atamaYetkisi)
@@ -490,8 +503,8 @@
         }
     @if (icOperasyonGorsun && (Model.Durum == YkcDurumDegerleri.SahaIsleminde || sonucGirilenKontroller.Any()))
     {
-        <details class="ykc-detail-section @(kontrolBolumuAktif ? "is-current-task" : null)" id="fr265-controls" data-auto-focus="@(kontrolBolumuAktif ? "true" : "false")" tabindex="-1" open="@(kontrolBolumuAktif ? "open" : null)">
-            <summary><span><strong>@(tekrarRandevuBekleniyor ? "Kontrol Geçmişi" : "Kontrol Sonucu")</strong><small>@(tekrarRandevuBekleniyor ? "Yeni randevu bekleniyor" : aktifKontrolNo.HasValue ? $"{aktifKontrolNo}. kontrol" : "Kontrol geçmişi")</small></span><i class="bi bi-chevron-down"></i></summary>
+        <details class="ykc-detail-section @(kontrolBolumuAktif ? "is-current-task" : null)" id="fr265-controls" name="ykc-workflow-action" data-auto-focus="@(kontrolBolumuAktif ? "true" : "false")" tabindex="-1" open="@(kontrolBolumuAktif ? "open" : null)">
+            <summary><span><strong>@(tekrarRandevuBekleniyor ? "Kontrol Geçmişi" : "Kontrol Sonucu")</strong>@if (tekrarRandevuBekleniyor || aktifKontrolNo.HasValue) { <small>@(tekrarRandevuBekleniyor ? "Yeni randevu bekleniyor" : $"{aktifKontrolNo}. kontrol")</small> }</span><i class="bi bi-chevron-down"></i></summary>
             <div class="ykc-detail-section-body">
                 @if (sonucGirilenKontroller.Any())
                 {
@@ -545,7 +558,7 @@
 
     @if (imzaBolumuGorsun)
     {
-        <details class="ykc-detail-section @(imzaBolumuAktif ? "is-current-task" : null)" id="fr265-signature" open="@(imzaBolumuAktif ? "open" : null)">
+        <details class="ykc-detail-section @(imzaBolumuAktif ? "is-current-task" : null)" id="fr265-signature" name="ykc-workflow-action">
             <summary><span><strong>Form ve Ekler</strong></span><i class="bi bi-chevron-down"></i></summary>
             <div class="ykc-detail-section-body">
                 <div class="ykc-form-actions is-left">
@@ -610,8 +623,8 @@
             <h2><i class="bi bi-person-vcard" aria-hidden="true"></i>Abone Bilgileri</h2>
             <dl class="ykc-firm-data-grid">
                 <div><dt>Sözleşme No:</dt><dd>@Deger(Model.SozlesmeNo)</dd></div>
+                <div><dt>Tesisat No:</dt><dd>@Deger(Model.TesisatNo)</dd></div>
                 <div><dt>Abone No:</dt><dd>@Deger(Model.AboneNo)</dd></div>
-                <div><dt>Sayaç No:</dt><dd>@Deger(Model.SayacNo)</dd></div>
                 @if (!string.IsNullOrWhiteSpace(Model.MusteriTelefon)) { <div><dt>Telefon:</dt><dd>@Model.MusteriTelefon</dd></div> }
                 <div class="wide"><dt>Adres:</dt><dd>@Deger(Model.Adres)</dd></div>
             </dl>
@@ -643,18 +656,19 @@
                 </tbody>
             </table>
         </div>
-        <div class="ykc-secondhand-status"><span>Takılan cihaz ikinci el mi?</span><strong>@EvetHayir(Model.IkinciElCihazMi)</strong></div>
+        <div class="ykc-secondhand-status"><span>Takılan Yakıcı Cihaz İkinci El Cihaz Mı?</span><strong class="@(Model.IkinciElCihazMi == true ? "is-used" : null)">@EvetHayir(Model.IkinciElCihazMi)</strong></div>
     </section>
     </div>
     <section class="ykc-firm-data-section" id="staff-company" role="tabpanel" aria-labelledby="staff-company-tab" hidden>
         <h2><i class="bi bi-building" aria-hidden="true"></i>Firma Bilgileri</h2>
-        <dl class="ykc-firm-data-grid">
-            <div class="wide"><dt>Firma:</dt><dd>@Deger(Model.FirmaAdi)</dd></div>
-            <div class="wide"><dt>Dağıtım Şirketi:</dt><dd>@Deger(Model.SirketAdi)</dd></div>
-            <div><dt>VKN:</dt><dd>@Deger(Model.Vkn)</dd></div><div><dt>Firma Kodu:</dt><dd>@Deger(Model.FirmaKodu)</dd></div>
-            <div><dt>Talep Tarihi:</dt><dd>@Model.TalepTarihi.ToString("dd.MM.yyyy HH:mm")</dd></div>
-            <div><dt>İl / İlçe:</dt><dd>@Deger(Model.Il) / @Deger(Model.Ilce)</dd></div>
-            <div><dt>Bölge:</dt><dd>@Deger(Model.Bolge)</dd></div>
+        <dl class="ykc-firm-data-grid ykc-company-facts">
+            <div><dt>Firma</dt><dd>@Deger(Model.FirmaAdi)</dd></div>
+            <div><dt>Dağıtım Şirketi</dt><dd>@Deger(Model.SirketAdi)</dd></div>
+            <div><dt>VKN</dt><dd>@Deger(Model.Vkn)</dd></div>
+            <div><dt>Firma Kodu</dt><dd>@Deger(Model.FirmaKodu)</dd></div>
+            <div><dt>Talep Tarihi</dt><dd>@Model.TalepTarihi.ToString("dd.MM.yyyy HH:mm")</dd></div>
+            <div><dt>Bölge</dt><dd>@Deger(Model.Bolge)</dd></div>
+            <div class="ykc-company-location"><dt>İl / İlçe</dt><dd>@(string.IsNullOrWhiteSpace(Model.Ilce) ? Deger(Model.Il) : $"{Deger(Model.Il)} / {Model.Ilce}")</dd></div>
         </dl>
     </section>
     <section class="ykc-firm-data-section ykc-history-section" id="request-history" role="tabpanel" aria-labelledby="staff-history-tab" hidden>
