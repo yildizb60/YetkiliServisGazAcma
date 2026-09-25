@@ -26,7 +26,7 @@
 <link rel="stylesheet" href="~/css/home-calendar.css" asp-append-version="true" />
 <section class="home-calendar @(Model.FirmaGorunumu ? "is-firm-calendar" : "has-view-modes")" id="home-calendar" aria-labelledby="home-calendar-title">
     <header class="home-calendar-heading">
-        <h2 id="home-calendar-title"><i class="bi bi-calendar2-week" aria-hidden="true"></i>@(Model.FirmaGorunumu ? "Cihaz Değişim Randevularım" : "Cihaz Değişim Kontrol Takvimi")</h2>
+        <h2 id="home-calendar-title"><i class="bi bi-calendar2-week" aria-hidden="true"></i>@(Model.Baslik ?? (Model.FirmaGorunumu ? "Yakıcı Cihaz Değişim Randevularım" : "Yakıcı Cihaz Değişim Randevuları"))</h2>
         <a href="@takvimLink">Takvimi Aç <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
     </header>
     @if (!Model.FirmaGorunumu)
@@ -117,7 +117,11 @@
                             <a href="@GunLink(gun)" class="@(gun == DateTime.Today ? "is-today" : "")"
                                aria-current="@(gun == Model.Tarih ? "date" : null)"
                                aria-label="@($"{gun.ToString("dd MMMM yyyy", tr)}{(count > 0 ? $", {count} randevu" : "")}")">
-                                @gun.Day @if (count > 0) { <i class="home-month-dot" aria-hidden="true"></i> }
+                                @gun.Day
+                                @if (count > 0 || (!Model.FirmaGorunumu && gun == DateTime.Today))
+                                {
+                                    <i class="home-month-dot" aria-hidden="true"></i>
+                                }
                             </a>
                         }
                     }
@@ -127,7 +131,7 @@
         }
         <div class="home-visits">
             <header>
-                <h3>@(Model.FirmaGorunumu ? $"{(Model.Tarih == DateTime.Today ? "Bugün · " : "")}{Model.Tarih.ToString("dd MMMM dddd", tr)}" : "Randevular")</h3>
+                <h3>@(Model.FirmaGorunumu ? $"{(Model.Tarih == DateTime.Today ? "Bugün · " : "")}{Model.Tarih.ToString("dd MMMM dddd", tr)}" : "Yakıcı Cihaz Değişim Randevuları")</h3>
                 @if (Model.FirmaGorunumu && Model.Gun != null)
                 {
                     <span>@Model.Gun.Toplam randevu</span>
@@ -157,23 +161,49 @@
                 <div class="home-visit-list" tabindex="0" role="region" aria-label="Seçili günün kontrol randevuları">
                     @foreach (var item in Model.Gun.Kayitlar)
                     {
+                        var yonlendirilen = !string.IsNullOrWhiteSpace(item.Personel)
+                            ? item.Personel
+                            : !string.IsNullOrWhiteSpace(item.Ekip) ? item.Ekip : "Atanmadı";
                         <a class="home-visit @(item.Durum == YkcDurumDegerleri.Tamamlandi ? "is-complete" : "")" href="/ykc/detay/@item.Id?kaynak=takvim">
-                            <span class="home-visit-person">
-                                <strong>@(string.IsNullOrWhiteSpace(item.Musteri) ? "Abone adı kayıtlı değil" : item.Musteri)</strong>
-                                <span class="home-visit-meta">
-                                    <span><i class="bi bi-clock" aria-hidden="true"></i>@Model.Tarih.ToString("dd MMM yyyy", tr)</span>
-                                    <span class="home-visit-time">@(string.IsNullOrWhiteSpace(item.Saat) ? "Saat yok" : item.Saat)</span>
-                                </span>
-                                <small><i class="bi bi-geo-alt" aria-hidden="true"></i>@item.Adres</small>
-                                <span class="home-visit-tags">
-                                    <span><i class="bi bi-house-door" aria-hidden="true"></i>Tesisat @item.TesisatNo</span>
-                                    @if (!Model.FirmaGorunumu)
+                            @if (!Model.FirmaGorunumu)
+                            {
+                                <span class="home-visit-person is-personnel-visit">
+                                    <span class="home-visit-identity">
+                                        <strong>@(string.IsNullOrWhiteSpace(item.Musteri) ? "Abone adı kayıtlı değil" : item.Musteri)</strong>
+                                        @if (!string.IsNullOrWhiteSpace(item.TesisatNo))
+                                        {
+                                            <span class="home-visit-installation"><i class="bi bi-house-door" aria-hidden="true"></i>Tesisat @item.TesisatNo</span>
+                                        }
+                                    </span>
+                                    <span class="home-visit-primary">
+                                        <span class="home-visit-time"><i class="bi bi-clock" aria-hidden="true"></i>@(string.IsNullOrWhiteSpace(item.Saat) ? "Saat yok" : item.Saat)</span>
+                                        <span class="home-visit-assignee"><i class="bi bi-people" aria-hidden="true"></i>@yonlendirilen</span>
+                                        @if (item.Durum != YkcDurumDegerleri.Atandi)
+                                        {
+                                            <span class="df-pill home-visit-state @YkcDurumSunumu.CssSinifi(item.Durum)">@YkcDurumSunumu.Etiket(item.Durum)</span>
+                                        }
+                                    </span>
+                                    @if (!string.IsNullOrWhiteSpace(item.Adres))
                                     {
-                                        <span><i class="bi bi-people" aria-hidden="true"></i>@(item.Personel ?? item.Ekip ?? "Atanmadı")</span>
+                                        <small><i class="bi bi-geo-alt" aria-hidden="true"></i>@item.Adres</small>
                                     }
-                                    <span class="df-pill @YkcDurumSunumu.CssSinifi(item.Durum)">@YkcDurumSunumu.Etiket(item.Durum)</span>
                                 </span>
-                            </span>
+                            }
+                            else
+                            {
+                                <span class="home-visit-person">
+                                    <strong>@(string.IsNullOrWhiteSpace(item.Musteri) ? "Abone adı kayıtlı değil" : item.Musteri)</strong>
+                                    <span class="home-visit-meta">
+                                        <span><i class="bi bi-clock" aria-hidden="true"></i>@Model.Tarih.ToString("dd MMM yyyy", tr)</span>
+                                        <span class="home-visit-time">@(string.IsNullOrWhiteSpace(item.Saat) ? "Saat yok" : item.Saat)</span>
+                                    </span>
+                                    <small><i class="bi bi-geo-alt" aria-hidden="true"></i>@item.Adres</small>
+                                    <span class="home-visit-tags">
+                                        <span><i class="bi bi-house-door" aria-hidden="true"></i>Tesisat @item.TesisatNo</span>
+                                        <span class="df-pill @YkcDurumSunumu.CssSinifi(item.Durum)">@YkcDurumSunumu.Etiket(item.Durum)</span>
+                                    </span>
+                                </span>
+                            }
                             <i class="bi bi-three-dots-vertical home-visit-menu" aria-hidden="true"></i>
                         </a>
                     }

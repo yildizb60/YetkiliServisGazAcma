@@ -206,7 +206,7 @@
                                                 <i class="bi @(sube.AktifMi ? "bi-pause-circle" : "bi-play-circle")" aria-hidden="true"></i>
                                             </button>
                                         </form>
-                                        <form method="post" action="@Url.Action("SubeSil", "AdminPanel")" onsubmit="return confirm('Şube kaydı silinsin mi?');">
+                                        <form method="post" action="@Url.Action("SubeSil", "AdminPanel")" data-toast-confirm data-confirm-title="Şubeyi sil" data-confirm-message="@sube.SubeAdi şubesi silinecek. Bu işlem geri alınamaz." data-confirm-action="Şubeyi Sil">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="id" value="@sube.Id" />
                                             <button type="submit" class="df-icon-action is-danger" title="Şubeyi sil" aria-label="@sube.SubeAdi şubesini sil">

@@ -1,0 +1,103 @@
+@model YetkiliServisGazAcma.Entities.Ys_DevreyeAlma
+@{
+    var alan = ViewData["DevreyeAlmaAlan"] as string ?? "/personel-panel";
+    var colspan = ViewData["DevreyeAlmaColspan"] is int sutunSayisi ? sutunSayisi : 8;
+    var servisPaneli = alan == "/ys-devreyeal";
+    var adminPaneli = alan == "/AdminPanel";
+    var pdf = servisPaneli
+        ? Url.Action("PdfIndir", "DevreyeAlma", new { id = Model.Id })
+        : adminPaneli
+            ? Url.Action("DevreyeAlmaPdf", "AdminPanel", new { id = Model.Id })
+            : Url.Action("DevreyeAlmaPdf", "PersonelPanel", new { id = Model.Id });
+    var excel = servisPaneli
+        ? Url.Action("ExcelIndir", "DevreyeAlma", new { id = Model.Id })
+        : adminPaneli
+            ? Url.Action("DevreyeAlmaExcel", "AdminPanel", new { id = Model.Id })
+            : Url.Action("DevreyeAlmaExcel", "PersonelPanel", new { id = Model.Id });
+    var adresVar = !string.IsNullOrWhiteSpace(Model.Adres);
+    var tcVar = !string.IsNullOrWhiteSpace(Model.MusteriTcNo)
+        && !string.Equals(Model.MusteriTcNo.Trim(), Model.AboneNo?.Trim(), StringComparison.Ordinal);
+    var cihazDetayVar = !string.IsNullOrWhiteSpace(Model.SeriNo) || !string.IsNullOrWhiteSpace(Model.CihazKapasite);
+    var belgeVar = !string.IsNullOrWhiteSpace(Model.UygunlukBelgeNo)
+        || Model.UygunlukTarihi.HasValue
+        || !string.IsNullOrWhiteSpace(Model.TeknisyenYetkiBelgesiNo);
+    var notVar = !string.IsNullOrWhiteSpace(Model.Notlar);
+}
+
+<tr id="devreye-alma-detay-@Model.Id" class="df-commissioning-detail-row" hidden>
+    <td colspan="@colspan">
+        <div class="df-commissioning-detail-panel">
+            @if (adresVar || tcVar || cihazDetayVar || belgeVar || notVar)
+            {
+                <div class="df-commissioning-detail-grid">
+                    @if (adresVar)
+                    {
+                        <section>
+                            <span><i class="bi bi-geo-alt" aria-hidden="true"></i> Abone Adresi</span>
+                            <p>@Model.Adres</p>
+                        </section>
+                    }
+                    @if (tcVar)
+                    {
+                        <section>
+                            <span><i class="bi bi-person-vcard" aria-hidden="true"></i> Abone Bilgileri</span>
+                            <dl class="df-commissioning-extra-facts"><div><dt>TC Kimlik No</dt><dd>@Model.MusteriTcNo</dd></div></dl>
+                        </section>
+                    }
+                    @if (cihazDetayVar)
+                    {
+                        <section>
+                            <span><i class="bi bi-fire" aria-hidden="true"></i> Cihaz Ayrıntıları</span>
+                            <dl class="df-commissioning-extra-facts">
+                                @if (!string.IsNullOrWhiteSpace(Model.SeriNo))
+                                {
+                                    <div><dt>Seri No</dt><dd>@Model.SeriNo</dd></div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(Model.CihazKapasite))
+                                {
+                                    <div><dt>Kapasite</dt><dd>@Model.CihazKapasite</dd></div>
+                                }
+                            </dl>
+                        </section>
+                    }
+                    @if (belgeVar)
+                    {
+                        <section>
+                            <span><i class="bi bi-file-earmark-check" aria-hidden="true"></i> Belge Bilgileri</span>
+                            <dl class="df-commissioning-extra-facts">
+                                @if (!string.IsNullOrWhiteSpace(Model.UygunlukBelgeNo))
+                                {
+                                    <div><dt>Uygunluk Belge No</dt><dd>@Model.UygunlukBelgeNo</dd></div>
+                                }
+                                @if (Model.UygunlukTarihi.HasValue)
+                                {
+                                    <div><dt>Uygunluk Tarihi</dt><dd>@Model.UygunlukTarihi.Value.ToString("dd.MM.yyyy")</dd></div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(Model.TeknisyenYetkiBelgesiNo))
+                                {
+                                    <div><dt>Teknisyen Yetki Belgesi</dt><dd>@Model.TeknisyenYetkiBelgesiNo</dd></div>
+                                }
+                            </dl>
+                        </section>
+                    }
+                    @if (notVar)
+                    {
+                        <section>
+                            <span><i class="bi bi-chat-left-text" aria-hidden="true"></i> İşlem Notu</span>
+                            <p>@Model.Notlar</p>
+                        </section>
+                    }
+                </div>
+            }
+            <footer class="df-commissioning-detail-footer">
+                <div>
+                    <span>Kayıt #@Model.Id</span>
+                </div>
+                <div class="df-actions">
+                    <a class="df-btn df-btn-sm df-commissioning-export is-pdf" href="@pdf" target="_blank" rel="noopener"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF</a>
+                    <a class="df-btn df-btn-sm df-commissioning-export is-excel" href="@excel" target="_blank" rel="noopener"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel</a>
+                </div>
+            </footer>
+        </div>
+    </td>
+</tr>

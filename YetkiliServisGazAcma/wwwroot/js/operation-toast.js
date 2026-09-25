@@ -2,10 +2,13 @@
     const stack = document.querySelector('[data-operation-toast-stack]');
     if (!stack) return;
     const cleanup = new WeakMap();
+    const dismissCallbacks = new WeakMap();
 
     function dismiss(toast) {
         if (!toast || toast.classList.contains('is-leaving')) return;
         cleanup.get(toast)?.();
+        dismissCallbacks.get(toast)?.();
+        dismissCallbacks.delete(toast);
         toast.classList.add('is-leaving');
         setTimeout(() => toast.remove(), 220);
     }
@@ -56,12 +59,103 @@
     }
 
     const showInfo = message => show(message, { type: 'info', title: 'İndirme başlatıldı', icon: 'bi-download', timeout: 3500 });
+    const showSuccess = message => show(message, { type: 'success', title: 'İşlem Başarılı', icon: 'bi-check-circle-fill', timeout: 4000 });
     const showWarning = (message, timeout) => show(message, { type: 'warning', title: 'Cihaz Bilgisi Uyarısı', icon: 'bi-exclamation-triangle-fill', timeout: timeout || 3000 });
     const showError = (message, timeout) => show(message, { type: 'error', title: 'İşlem Tamamlanamadı', icon: 'bi-exclamation-circle-fill', timeout: timeout || 9000 });
 
-    window.operationToast = Object.freeze({ info: showInfo, warning: showWarning, error: showError });
+    window.operationToast = Object.freeze({ info: showInfo, success: showSuccess, warning: showWarning, error: showError });
+
+    let activeConfirmation = null;
+    let confirmationCount = 0;
+
+    function showConfirmation(form, submitter) {
+        if (activeConfirmation?.isConnected) {
+            activeConfirmation.querySelector('.is-cancel')?.focus();
+            return;
+        }
+
+        const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        const returnFocus = submitter instanceof HTMLElement
+            ? submitter
+            : form.querySelector('button[type="submit"], input[type="submit"]') || previouslyFocused;
+
+        const toast = show(form.dataset.confirmMessage || 'Bu işlemi onaylıyor musunuz?', {
+            type: 'warning',
+            title: form.dataset.confirmTitle || 'İşlemi onaylayın',
+            icon: 'bi-exclamation-triangle-fill',
+            timeout: 0
+        });
+        toast.classList.add('is-confirm');
+        toast.setAttribute('role', 'alertdialog');
+        const title = toast.querySelector('.df-operation-toast-copy strong');
+        title.id = 'df-toast-confirm-title-' + (++confirmationCount);
+        toast.setAttribute('aria-labelledby', title.id);
+
+        const actions = document.createElement('span');
+        actions.className = 'df-operation-toast-actions';
+        actions.innerHTML = '<button type="button" class="df-toast-action is-cancel">Vazgeç</button>'
+            + '<button type="button" class="df-toast-action is-confirm-action"></button>';
+        actions.querySelector('.is-confirm-action').textContent = form.dataset.confirmAction || 'Onayla';
+        toast.append(actions);
+        activeConfirmation = toast;
+
+        const cancelButton = actions.querySelector('.is-cancel');
+        const inertSiblings = [...document.body.children]
+            .filter(element => element !== stack)
+            .map(element => [element, element.inert]);
+        inertSiblings.forEach(([element]) => { element.inert = true; });
+
+        const onKeydown = event => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                event.stopPropagation();
+                dismiss(toast);
+                return;
+            }
+            if (event.key !== 'Tab') return;
+            const buttons = [...toast.querySelectorAll('button:not(:disabled)')];
+            const first = buttons[0];
+            const last = buttons[buttons.length - 1];
+            if (!first) {
+                event.preventDefault();
+            } else if (event.shiftKey && (document.activeElement === first || !toast.contains(document.activeElement))) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && (document.activeElement === last || !toast.contains(document.activeElement))) {
+                event.preventDefault();
+                first.focus();
+            }
+        };
+        toast.addEventListener('keydown', onKeydown);
+        dismissCallbacks.set(toast, () => {
+            activeConfirmation = null;
+            toast.removeEventListener('keydown', onKeydown);
+            inertSiblings.forEach(([element, wasInert]) => { element.inert = wasInert; });
+            const target = returnFocus?.isConnected ? returnFocus : previouslyFocused;
+            if (target?.isConnected) target.focus();
+        });
+        toast.setAttribute('aria-modal', 'true');
+
+        cancelButton.addEventListener('click', () => dismiss(toast));
+        actions.querySelector('.is-confirm-action').addEventListener('click', () => {
+            form.dataset.toastConfirmed = 'true';
+            dismiss(toast);
+            form.requestSubmit();
+        });
+        cancelButton.focus();
+    }
 
     stack.querySelectorAll('[data-operation-toast]').forEach(bind);
+    document.addEventListener('submit', event => {
+        const form = event.target.closest('form[data-toast-confirm]');
+        if (!form) return;
+        if (form.dataset.toastConfirmed === 'true') {
+            delete form.dataset.toastConfirmed;
+            return;
+        }
+        event.preventDefault();
+        showConfirmation(form, event.submitter);
+    });
     document.addEventListener('click', event => {
         const control = event.target.closest('a[href], button');
         if (!control || event.defaultPrevented || control.dataset.noDownloadToast !== undefined || control.disabled) return;

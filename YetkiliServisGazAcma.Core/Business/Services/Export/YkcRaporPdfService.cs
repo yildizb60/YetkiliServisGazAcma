@@ -126,13 +126,29 @@ namespace YetkiliServisGazAcma.Business.Services
 
         private static string Cihaz(YkcRaporKayitDto kayit, bool icOperasyon)
         {
-            var yeni = string.Join(" / ", new[] { kayit.YeniCihazTipi, kayit.YeniMarka, kayit.YeniModel, kayit.YeniKapasite }.Where(x => !string.IsNullOrWhiteSpace(x)));
+            var yeni = string.Join(" / ", new[]
+            {
+                kayit.YeniCihazTipi,
+                kayit.YeniMarka,
+                kayit.YeniModel,
+                Etiketli("Kapasite", kayit.YeniKapasite),
+                Etiketli("Baca tipi", kayit.YeniBacaTipi)
+            }.Where(x => !string.IsNullOrWhiteSpace(x)));
             if (!icOperasyon)
                 return Deger(yeni);
 
-            var eski = string.Join(" / ", new[] { kayit.EskiCihazTipi, kayit.EskiMarka, kayit.EskiKapasite }.Where(x => !string.IsNullOrWhiteSpace(x)));
+            var eski = string.Join(" / ", new[]
+            {
+                kayit.EskiCihazTipi,
+                kayit.EskiMarka,
+                Etiketli("Kapasite", kayit.EskiKapasite),
+                Etiketli("Baca tipi", kayit.EskiBacaTipi)
+            }.Where(x => !string.IsNullOrWhiteSpace(x)));
             return $"Projedeki Cihaz: {Deger(eski)}\nYeni Kullanılan Cihaz: {Deger(yeni)}";
         }
+
+        private static string? Etiketli(string etiket, string? deger)
+            => string.IsNullOrWhiteSpace(deger) ? null : $"{etiket}: {deger}";
 
         private static string Randevu(YkcRaporKayitDto kayit)
         {

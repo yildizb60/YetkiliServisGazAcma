@@ -14,53 +14,24 @@
     <link rel="stylesheet" href="~/css/ys-operations.css" asp-append-version="true" />
 }
 
-<div class="ys-workspace">
-    <details class="ys-collapsible" open="@(!subeler.Any())">
-        <summary>
-            <span class="ys-summary-heading">
-                <i class="bi bi-building-add" aria-hidden="true"></i>
-                <strong>Yeni Şube Ekle</strong>
-            </span>
-            <i class="bi bi-chevron-down" aria-hidden="true"></i>
-        </summary>
-        <div class="ys-collapsible-body">
-            <form method="post" action="@Url.Action("SubeEkle", "YetkiliServisPanel")">
-                @Html.AntiForgeryToken()
-                <div class="ys-form-grid is-three-column">
-                    <div class="ys-field"><label for="subeAdi">Şube Adı *</label><input type="text" id="subeAdi" name="subeAdi" placeholder="Örn. Merkez Şube" required /></div>
-                    <div class="ys-field"><label for="subeIl">İl</label><input type="text" id="subeIl" name="il" placeholder="Örn. Çorum" /></div>
-                    <div class="ys-field"><label for="subeIlce">İlçe</label><input type="text" id="subeIlce" name="ilce" placeholder="Örn. Merkez" /></div>
-                    <div class="ys-field"><label for="subeTelefon">Telefon</label><input type="tel" id="subeTelefon" name="telefon" placeholder="0XXX XXX XX XX" /></div>
-                    <div class="ys-field is-wide"><label for="subeAdres">Adres</label><textarea id="subeAdres" name="adres" placeholder="Şubenin açık adresi"></textarea></div>
-                    <div class="ys-field">
-                        <span class="ys-field-label">Kayıt Durumu</span>
-                        <label class="ys-check-row"><input type="checkbox" name="aktifMi" value="true" checked /> Aktif olarak oluştur</label>
-                    </div>
-                </div>
-                <div class="ys-actions" style="margin-top:12px">
-                    <button type="submit" class="df-btn df-btn-primary"><i class="bi bi-plus-lg" aria-hidden="true"></i> Şubeyi Kaydet</button>
-                </div>
-            </form>
-        </div>
-    </details>
-
+<div class="ys-workspace ys-branch-workspace">
     <section class="ys-panel is-blue">
         <div class="ys-panel-head">
             <div class="ys-panel-heading">
                 <span class="ys-section-icon"><i class="bi bi-buildings" aria-hidden="true"></i></span>
                 <div><h2 class="ys-panel-title">Kayıtlı Servis Noktaları</h2></div>
             </div>
-            <div class="ys-page-actions"><span class="df-pill df-pill-success">@aktifSube aktif</span><span class="df-pill df-pill-info">@subeler.Count toplam</span></div>
+            <div class="ys-page-actions"><span class="ys-branch-count"><i class="bi bi-check-circle" aria-hidden="true"></i>@aktifSube aktif</span><span class="ys-branch-count">@subeler.Count şube</span><button type="button" class="df-btn df-btn-primary df-btn-sm" data-branch-add><i class="bi bi-plus-lg" aria-hidden="true"></i> Yeni Şube Ekle</button></div>
         </div>
         <div class="ys-table-wrap">
-            <table class="ys-table">
+            <table class="ys-table ys-branch-table">
                 <thead>
                     <tr>
                         <th>Şube</th>
                         <th>Konum</th>
                         <th>Telefon</th>
                         <th>Durum</th>
-                        <th><span class="visually-hidden">İşlemler</span></th>
+                        <th>İşlemler</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -76,21 +47,21 @@
                                 <td><span class="ys-table-primary">@s.SubeAdi</span><span class="ys-table-secondary">@(string.IsNullOrWhiteSpace(s.Adres) ? "Adres girilmemiş" : s.Adres)</span></td>
                                 <td>@(string.Join(" / ", new[] { s.Il, s.Ilce }.Where(x => !string.IsNullOrWhiteSpace(x))))</td>
                                 <td>@(string.IsNullOrWhiteSpace(s.Telefon) ? "-" : s.Telefon)</td>
-                                <td><span class="df-pill @(s.AktifMi ? "df-pill-success" : "df-pill-danger")">@(s.AktifMi ? "Aktif" : "Pasif")</span></td>
+                                <td><span class="ys-branch-status @(s.AktifMi ? "is-active" : "is-passive")">@(s.AktifMi ? "Aktif" : "Pasif")</span></td>
                                 <td>
                                     <div class="ys-table-actions">
-                                        <a class="df-btn df-btn-secondary df-btn-sm" href="@Url.Action("SubeDuzenle", "YetkiliServisPanel", new { id = s.Id })" title="Şubeyi düzenle"><i class="bi bi-pencil" aria-hidden="true"></i> Düzenle</a>
+                                        <a class="ys-branch-action js-branch-sheet-trigger" href="@Url.Action("SubeDuzenle", "YetkiliServisPanel", new { id = s.Id })" data-branch-id="@s.Id" data-branch-name="@s.SubeAdi" title="Şubeyi düzenle" aria-label="@s.SubeAdi şubesini düzenle"><i class="bi bi-pencil" aria-hidden="true"></i></a>
                                         <form method="post" action="@Url.Action("SubeDurum", "YetkiliServisPanel")">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="id" value="@s.Id" />
-                                            <button type="submit" class="df-btn @(s.AktifMi ? "df-btn-warning" : "df-btn-success") df-btn-sm">
-                                                <i class="bi @(s.AktifMi ? "bi-pause-circle" : "bi-play-circle")" aria-hidden="true"></i> @(s.AktifMi ? "Pasife Al" : "Aktife Al")
+                                            <button type="submit" class="ys-branch-action" title="@(s.AktifMi ? "Pasife al" : "Aktife al")" aria-label="@s.SubeAdi şubesini @(s.AktifMi ? "pasife al" : "aktife al")">
+                                                <i class="bi @(s.AktifMi ? "bi-pause-circle" : "bi-play-circle")" aria-hidden="true"></i>
                                             </button>
                                         </form>
-                                        <form method="post" action="@Url.Action("SubeSil", "YetkiliServisPanel")" onsubmit="return confirm('Şubeyi silmek istiyor musunuz?');">
+                                        <form method="post" action="@Url.Action("SubeSil", "YetkiliServisPanel")" data-toast-confirm data-confirm-title="Şubeyi sil" data-confirm-message="@s.SubeAdi şubesi silinecek. Bu işlem geri alınamaz." data-confirm-action="Şubeyi Sil">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="id" value="@s.Id" />
-                                            <button type="submit" class="df-btn df-btn-danger df-btn-sm" title="Şubeyi sil"><i class="bi bi-trash" aria-hidden="true"></i></button>
+                                            <button type="submit" class="ys-branch-action is-danger" title="Şubeyi sil" aria-label="@s.SubeAdi şubesini sil"><i class="bi bi-trash" aria-hidden="true"></i></button>
                                         </form>
                                     </div>
                                 </td>
@@ -102,3 +73,101 @@
         </div>
     </section>
 </div>
+
+<dialog class="df-directory-sheet ys-branch-sheet" data-branch-sheet aria-labelledby="branchSheetTitle">
+    <div class="df-directory-sheet-frame">
+        <header class="df-directory-sheet-head">
+            <h2 id="branchSheetTitle" data-branch-sheet-title>Şubeyi Düzenle</h2>
+            <button type="button" class="df-directory-sheet-close" data-branch-sheet-close title="Paneli kapat" aria-label="Paneli kapat"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+        </header>
+        <div class="df-directory-sheet-body" data-branch-sheet-body></div>
+    </div>
+</dialog>
+<template data-branch-add-template>
+    <form class="ys-branch-editor" method="post" action="@Url.Action("SubeEkle", "YetkiliServisPanel")">
+        @Html.AntiForgeryToken()
+        <div class="ys-branch-editor-fields">
+            <div class="ys-field is-wide"><label for="subeAdi">Şube Adı *</label><input type="text" id="subeAdi" name="subeAdi" placeholder="Örn. Merkez Şube" required maxlength="200" /></div>
+            <div class="ys-field"><label for="subeIl">İl</label><input type="text" id="subeIl" name="il" placeholder="Örn. Çorum" /></div>
+            <div class="ys-field"><label for="subeIlce">İlçe</label><input type="text" id="subeIlce" name="ilce" placeholder="Örn. Merkez" /></div>
+            <div class="ys-field"><label for="subeTelefon">Telefon</label><input type="tel" id="subeTelefon" name="telefon" placeholder="0XXX XXX XX XX" /></div>
+            <div class="ys-field is-wide"><label for="subeAdres">Adres</label><textarea id="subeAdres" name="adres" rows="2" placeholder="Şubenin açık adresi"></textarea></div>
+            <label class="ys-branch-active"><input type="checkbox" name="aktifMi" value="true" checked /><span>Aktif şube</span></label>
+        </div>
+        <div class="ys-branch-editor-actions">
+            <button type="button" class="df-btn df-btn-secondary" data-branch-sheet-cancel><i class="bi bi-x-lg" aria-hidden="true"></i> Vazgeç</button>
+            <button type="submit" class="df-btn df-btn-primary"><i class="bi bi-check2" aria-hidden="true"></i> Şubeyi Kaydet</button>
+        </div>
+    </form>
+</template>
+
+@section Scripts {
+<script>
+    (() => {
+        const sheet = document.querySelector("[data-branch-sheet]");
+        const body = sheet?.querySelector("[data-branch-sheet-body]");
+        const title = sheet?.querySelector("[data-branch-sheet-title]");
+        const addTemplate = document.querySelector("[data-branch-add-template]");
+        if (!sheet || !body || !title || !addTemplate) return;
+        let requestId = 0;
+
+        function closeSheet() {
+            requestId++;
+            sheet.classList.remove("is-visible");
+            document.documentElement.classList.remove("df-sheet-open");
+            window.setTimeout(() => { if (sheet.open && !sheet.classList.contains("is-visible")) sheet.close(); }, 180);
+        }
+
+        function showSheet() {
+            if (!sheet.open) sheet.showModal();
+            document.documentElement.classList.add("df-sheet-open");
+            requestAnimationFrame(() => sheet.classList.add("is-visible"));
+        }
+
+        document.querySelector("[data-branch-add]")?.addEventListener("click", () => {
+            requestId++;
+            title.textContent = "Yeni Şube Ekle";
+            body.replaceChildren(addTemplate.content.cloneNode(true));
+            showSheet();
+            body.querySelector("input:not([type='hidden'])")?.focus();
+        });
+
+        async function openSheet(trigger) {
+            const currentRequest = ++requestId;
+            title.textContent = trigger.dataset.branchName ? `${trigger.dataset.branchName} · Şube Düzenle` : "Şubeyi Düzenle";
+            body.innerHTML = '<div class="df-directory-sheet-loading" role="status">Form hazırlanıyor</div>';
+            showSheet();
+            try {
+                const response = await fetch(trigger.href, { credentials: "same-origin", headers: { "X-Requested-With": "XMLHttpRequest" } });
+                if (response.redirected) { window.location.assign(response.url); return; }
+                if (!response.ok) throw new Error("Form alınamadı");
+                const parsed = new DOMParser().parseFromString(await response.text(), "text/html");
+                const form = parsed.querySelector(".ys-branch-editor");
+                if (!form) throw new Error("Form bulunamadı");
+                if (currentRequest !== requestId) return;
+                body.replaceChildren(document.importNode(form, true));
+                body.querySelector("input:not([type='hidden'])")?.focus();
+            } catch {
+                if (currentRequest === requestId) body.innerHTML = '<div class="df-directory-sheet-error">Şube formu açılamadı. Lütfen yeniden deneyin.</div>';
+            }
+        }
+
+        document.querySelectorAll(".js-branch-sheet-trigger").forEach(trigger => {
+            trigger.addEventListener("click", event => { event.preventDefault(); openSheet(trigger); });
+        });
+        sheet.querySelector("[data-branch-sheet-close]")?.addEventListener("click", closeSheet);
+        sheet.addEventListener("cancel", event => { event.preventDefault(); closeSheet(); });
+        body.addEventListener("click", event => { if (event.target.closest("[data-branch-sheet-cancel]")) closeSheet(); });
+
+        const params = new URLSearchParams(window.location.search);
+        const editId = params.get("duzenle");
+        if (editId && /^\d+$/.test(editId)) {
+            const trigger = Array.from(document.querySelectorAll(".js-branch-sheet-trigger"))
+                .find(item => item.dataset.branchId === editId);
+            params.delete("duzenle");
+            history.replaceState({}, document.title, window.location.pathname + (params.size ? `?${params}` : ""));
+            if (trigger) openSheet(trigger);
+        }
+    })();
+</script>
+}

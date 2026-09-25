@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using YetkiliServisGazAcma.Business.Services;
@@ -14,6 +15,7 @@ namespace YetkiliServisGazAcma.Controllers
         private readonly ApiKullaniciOturumu _kullaniciOturumu;
         private readonly YkcApiClient _ykcApiClient;
         private readonly ILogger<YkcController> _logger;
+        private readonly IWebHostEnvironment _hostEnvironment;
 
         private static string? GecerliKaynak(string? kaynak) => kaynak?.ToLowerInvariant() switch
         {
@@ -32,11 +34,13 @@ namespace YetkiliServisGazAcma.Controllers
         public YkcController(
             ApiKullaniciOturumu kullaniciOturumu,
             YkcApiClient ykcApiClient,
-            ILogger<YkcController> logger)
+            ILogger<YkcController> logger,
+            IWebHostEnvironment hostEnvironment)
         {
             _kullaniciOturumu = kullaniciOturumu;
             _ykcApiClient = ykcApiClient;
             _logger = logger;
+            _hostEnvironment = hostEnvironment;
         }
 
         [HttpGet("")]
@@ -231,10 +235,11 @@ namespace YetkiliServisGazAcma.Controllers
         public async Task<IActionResult> RaporPdf(
             string? tesisatNo, string? firma, string? il, string? ilce, string? bolge,
             string? ekip, string? marka, string? hedefUygulama, int? durum,
-            DateTime? bas, DateTime? bit)
+            DateTime? bas, DateTime? bit, [FromQuery(Name = "ids")] List<int>? ids)
         {
             return await RaporDosyasi(
-                RaporFiltresi(tesisatNo, firma, il, ilce, bolge, ekip, marka, hedefUygulama, durum, bas, bit),
+                RaporFiltresi(tesisatNo, firma, il, ilce, bolge, ekip, marka, hedefUygulama, durum, bas, bit,
+                    kayitIdleri: Request.Query.ContainsKey("ids") ? ids ?? new List<int>() : null),
                 excelMi: false);
         }
 
@@ -242,10 +247,11 @@ namespace YetkiliServisGazAcma.Controllers
         public async Task<IActionResult> RaporExcel(
             string? tesisatNo, string? firma, string? il, string? ilce, string? bolge,
             string? ekip, string? marka, string? hedefUygulama, int? durum,
-            DateTime? bas, DateTime? bit)
+            DateTime? bas, DateTime? bit, [FromQuery(Name = "ids")] List<int>? ids)
         {
             return await RaporDosyasi(
-                RaporFiltresi(tesisatNo, firma, il, ilce, bolge, ekip, marka, hedefUygulama, durum, bas, bit),
+                RaporFiltresi(tesisatNo, firma, il, ilce, bolge, ekip, marka, hedefUygulama, durum, bas, bit,
+                    kayitIdleri: Request.Query.ContainsKey("ids") ? ids ?? new List<int>() : null),
                 excelMi: true);
         }
 
@@ -464,7 +470,10 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
             if (!YkcYetkileri().TalepleriGorebilir) return Redirect("/yetkisiz-erisim");
-            PanelViewBag(kullanici, "YkcTakvim", "Cihaz Değişim Randevuları", "");
+            PanelViewBag(kullanici, "YkcTakvim", "Yakıcı Cihaz Değişim Randevuları", "");
+            filtre.GorunumKayitlariniGetir = YkcTakvimGorunumKurali.DoneminTumKayitlariGerekli(
+                filtre.Baslangic,
+                filtre.Bitis);
             try
             {
                 var sonuc = await _ykcApiClient.TakvimAsync(kullanici, filtre);
@@ -549,6 +558,8 @@ namespace YetkiliServisGazAcma.Controllers
 
             var sonuc = await _ykcApiClient.AtamaYapAsync(kullanici, model);
             TempData[sonuc?.Basarili == true ? "Basarili" : "Hata"] = sonuc?.Mesaj ?? "Cihaz değişim talebi ataması kaydedilemedi.";
+            if (sonuc?.Basarili == true && _hostEnvironment.IsDevelopment() && User.IsInRole(KullaniciRolAdlari.Personel))
+                TempData["DemoSms"] = "Randevu SMS'i yalnızca simüle edildi; müşteriye gerçek mesaj gönderilmedi.";
             return RedirectToAction(nameof(Detay), new { id = model.TalepId, kaynak = GecerliKaynak(kaynak) });
         }
 
@@ -638,7 +649,8 @@ namespace YetkiliServisGazAcma.Controllers
             DateTime? bas,
             DateTime? bit,
             int sayfa = 1,
-            int sayfaBoyutu = 10)
+            int sayfaBoyutu = 10,
+            IEnumerable<int>? kayitIdleri = null)
         {
             return new YkcTalepListeFiltre
             {
@@ -651,6 +663,7 @@ namespace YetkiliServisGazAcma.Controllers
                 Marka = marka,
                 HedefUygulama = hedefUygulama,
                 Durum = durum,
+                KayitIdleri = kayitIdleri?.Where(x => x > 0).Distinct().Take(5000).ToList(),
                 BaslangicTarihi = bas,
                 BitisTarihi = bit,
                 Sayfa = Math.Max(sayfa, 1),

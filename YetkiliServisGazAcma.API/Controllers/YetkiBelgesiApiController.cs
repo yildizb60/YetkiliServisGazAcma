@@ -92,7 +92,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (dto.Dosya == null || dto.Dosya.Length == 0)
                 return BadRequest(new { basarili = false, mesaj = "Lütfen bir dosya seçiniz." });
 
-            if (!await FirmaGoruntulemeYetkisiVarMi(dto.FirmaId))
+            if (!await FirmaBelgesiYonetebilirMi(dto.FirmaId))
                 return Forbid();
 
             var publicBaseUrl = $"{Request.Scheme}://{Request.Host}";
@@ -175,19 +175,30 @@ namespace YetkiliServisGazAcma.API.Controllers
         public async Task<IActionResult> Sil([FromBody] IdDto dto)
         {
             var yetkiBelgesi = await _context.Ys_YetkiBelgeleri
-                .Include(x => x.Firma)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Id == dto.Id && !x.SilindiMi);
 
             if (yetkiBelgesi == null)
                 return NotFound(new { basarili = false, mesaj = "Yetki belgesi bulunamadi" });
 
-            if (!await FirmaGoruntulemeYetkisiVarMi(yetkiBelgesi.FirmaId))
+            if (!await FirmaBelgesiYonetebilirMi(yetkiBelgesi.FirmaId))
                 return Forbid();
 
-            yetkiBelgesi.SilindiMi = true;
-            yetkiBelgesi.SilinmeTarihi = DateTime.Now;
-            yetkiBelgesi.SilenKullanici = User.Identity?.Name ?? "sistem";
-            await _context.SaveChangesAsync();
+            if (!YetkiBelgesiService.SilinebilirMi(yetkiBelgesi))
+                return Conflict(new { basarili = false, mesaj = "Onaylanan yetki belgesi silinemez." });
+
+            var simdi = DateTime.Now;
+            var silen = User.Identity?.Name ?? "sistem";
+            var silinen = await _context.Ys_YetkiBelgeleri
+                .Where(x => x.Id == dto.Id && !x.SilindiMi
+                    && x.Durum != YetkiBelgesiDurumDegerleri.Onaylandi)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(x => x.SilindiMi, true)
+                    .SetProperty(x => x.SilinmeTarihi, simdi)
+                    .SetProperty(x => x.SilenKullanici, silen));
+
+            if (silinen != 1)
+                return Conflict(new { basarili = false, mesaj = "Yetki belgesi artık silinemez. Listeyi yenileyin." });
 
             return Ok(new { basarili = true, mesaj = "Yetki belgesi silindi" });
         }
@@ -371,6 +382,18 @@ namespace YetkiliServisGazAcma.API.Controllers
                 x.SirketId == sirketId &&
                 !x.SilindiMi &&
                 (x.YetkiTipi == YetkiTipleri.TAM_YETKI || x.YetkiTipi == YetkiTipleri.YETKI_BELGESI_ONAY));
+        }
+
+        private async Task<bool> FirmaBelgesiYonetebilirMi(int firmaId)
+        {
+            if (!User.IsInRole("YetkiliServis"))
+                return false;
+
+            var kullaniciId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            return await _context.Users.AnyAsync(x => x.Id == kullaniciId
+                && x.AktifMi
+                && x.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis
+                && x.FirmaId == firmaId);
         }
 
         private async Task<bool> FirmaGoruntulemeYetkisiVarMi(int firmaId)

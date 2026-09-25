@@ -13,36 +13,6 @@
     var q = Model.Q;
     var kategoriler = Model.Kategoriler;
     var pageSize = Model.PageSize;
-    var tr = new System.Globalization.CultureInfo("tr-TR");
-
-    string NormalizeKey(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value)) return "";
-        var lower = value.Trim().ToLower(tr).Normalize(System.Text.NormalizationForm.FormD);
-        var chars = lower
-            .Where(ch => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(ch) != System.Globalization.UnicodeCategory.NonSpacingMark && char.IsLetterOrDigit(ch))
-            .ToArray();
-        return new string(chars)
-            .Replace("ı", "i")
-            .Replace("ş", "s")
-            .Replace("ğ", "g")
-            .Replace("ü", "u")
-            .Replace("ö", "o")
-            .Replace("ç", "c");
-    }
-
-    bool KullanilanKategoriMi(string? value)
-    {
-        var key = NormalizeKey(value);
-
-        return key == "kombi"
-            || key.Contains("merkezikazan")
-            || key.Contains("sofben")
-            || key.Contains("sohben")
-            || key == "ocak"
-            || key.Contains("gazkullanicicihaz");
-    }
-
     string TelLink(string? tel)
     {
         if (string.IsNullOrWhiteSpace(tel)) return "";
@@ -270,7 +240,6 @@
             <div class="search-title-row">
                 <div>
                     <div class="search-title">Servis Arama</div>
-                    <div class="search-desc">Resmi listede kullanılan hizmet türleri gösterilir: merkezi kazan, kombi, şofben, ocak ve gaz kullanıcı cihazlar.</div>
                 </div>
                 <div class="result-count">@Model.TotalCount kayıt listeleniyor</div>
             </div>
@@ -375,10 +344,12 @@
                             .ToList() ?? new List<string>();
 
                         var kategoriListesi = f.FirmaKategoriler?
-                            .Where(x => !x.SilindiMi && x.Kategori != null && KullanilanKategoriMi(x.Kategori.Ad))
+                            .Where(x => !x.SilindiMi && x.Kategori != null && !x.Kategori.SilindiMi && x.Kategori.AktifMi)
                             .Select(x => x.Kategori!)
                             .GroupBy(x => x.Id)
                             .Select(g => g.First())
+                            .OrderBy(x => x.SiraNo)
+                            .ThenBy(x => x.Ad)
                             .ToList() ?? new List<YetkiliServisGazAcma.Entities.UrunKategori>();
 
                         var ilce = f.Subeler?.FirstOrDefault(x => !x.SilindiMi && x.AktifMi && !string.IsNullOrWhiteSpace(x.Ilce))?.Ilce;

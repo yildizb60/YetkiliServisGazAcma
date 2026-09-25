@@ -8,10 +8,11 @@
     var adSoyad = string.IsNullOrWhiteSpace(kullanici?.AdSoyad) ? "Sistem Yöneticisi" : kullanici.AdSoyad;
     var basHarf = adSoyad[..1].ToUpper(System.Globalization.CultureInfo.GetCultureInfo("tr-TR"));
     var rolAdi = ViewBag.GenelSistemAdminMi == true ? "Genel Sistem Admini" : "Şirket Yöneticisi";
+    var profilTema = ViewBag.GenelSistemAdminMi == true ? "profile-theme--system-admin" : "profile-theme--company-admin";
     var sifreAcik = TempData.ContainsKey("SifreHata") || TempData.ContainsKey("SifreBasarili");
 }
 @section PageStyles { <link rel="stylesheet" href="~/css/personnel-profile.css" asp-append-version="true" /> }
-<div class="personnel-account">
+<div class="personnel-account @profilTema">
     <aside class="account-identity" aria-label="Hesap özeti">
         <div class="account-avatar" aria-hidden="true">@basHarf</div>
         <h1>@adSoyad</h1>

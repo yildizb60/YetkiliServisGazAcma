@@ -50,11 +50,10 @@
             <legend class="visually-hidden">Devreye alma kayıt bilgileri</legend>
             <div class="ykc-device-entry-layout">
                 <section class="ykc-source-device" aria-labelledby="ys-source-title">
-                    <header><div><span class="ykc-request-section-icon"><i class="bi bi-person-vcard" aria-hidden="true"></i></span><h2 id="ys-source-title">Müşteri ve Tesisat</h2></div><span class="df-pill df-pill-success" id="b-durum"></span></header>
+                    <header><div><span class="ykc-request-section-icon"><i class="bi bi-person-vcard" aria-hidden="true"></i></span><h2 id="ys-source-title">Müşteri ve Tesisat</h2></div><span class="ys-source-status" id="b-durum" role="status"></span></header>
                     <dl class="ykc-request-customer ys-source-facts">
                         <div><dt>Müşteri Adı</dt><dd id="b-musteriAdi">-</dd></div>
                         <div><dt>Telefon</dt><dd id="b-musteriTelefon">-</dd></div>
-                        <div><dt>Servis Cari Kod</dt><dd id="b-aboneNo">-</dd></div>
                         <div><dt>Sözleşme No</dt><dd id="b-sozlesmeNo">-</dd></div>
                         <div><dt>Sayaç No</dt><dd id="b-sayacNo">-</dd></div>
                         <div class="is-wide"><dt>Adres</dt><dd id="b-adres">-</dd></div>
@@ -67,7 +66,8 @@
 
                 <section class="ykc-new-device" aria-labelledby="ys-entry-title">
                     <header><div><span class="ykc-request-section-icon is-green"><i class="bi bi-clipboard2-check" aria-hidden="true"></i></span><h2 id="ys-entry-title">Devreye Alma Bilgileri</h2></div></header>
-                    <div id="ysDevicePending" class="ys-device-entry-pending"><i class="bi bi-hand-index-thumb" aria-hidden="true"></i><span><strong>Projedeki cihazı seçin</strong><small>Seçimin ardından kayıt alanları burada açılır.</small></span></div>
+                    <div id="ysDevicePending" class="ys-device-entry-pending" aria-live="polite" aria-atomic="true"><i class="bi bi-hand-index-thumb" aria-hidden="true"></i><span><strong>Projedeki cihazı seçin</strong><small>Seçimin ardından kayıt alanları burada açılır.</small></span></div>
+                    <div id="ysDeviceWorkCards" class="ys-device-work-cards" aria-live="polite"></div>
                     <fieldset id="formKart" class="ys-commissioning-form" hidden disabled>
                         <legend class="visually-hidden">Cihaz ve teknisyen bilgileri</legend>
                         <div class="ys-commissioning-form-grid">
@@ -93,10 +93,14 @@
 @section Scripts {
 <script>
     const antiForgeryToken = document.querySelector('#devreyeAlmaForm input[name="__RequestVerificationToken"]')?.value || "";
-    let seciliMarkaId = 0;
-    let seciliMarkaAdi = "";
     let servisCihazlari = [];
     let seciliServisCihazIndex = -1;
+    let markaKontrolSirasi = 0;
+    const cihazTaslaklari = new Map();
+    const cihazKontrolBekleyen = new Set();
+    const formKart = document.getElementById("formKart");
+    const cihazKartlari = document.getElementById("ysDeviceWorkCards");
+    const cihazAlanlari = ["CihazTipi", "CihazModeli", "SeriNo", "CihazKapasite", "TeknisyenAdi", "TeknisyenYetkiBelgesiNo", "Notlar"];
 
     const islemHatasi = (mesaj, alan) => {
         window.operationToast?.error(mesaj, 6000);
@@ -112,36 +116,149 @@
     }
 
     function temizleSonrakiAdimlar() {
+        markaKontrolSirasi++;
         const sonuc = document.getElementById("musteriBilgiKart");
         if (sonuc) { sonuc.hidden = true; sonuc.disabled = true; }
         document.getElementById("ysCommissioningPending").hidden = false;
         document.getElementById("ysDevicePending").hidden = false;
-        document.getElementById("formKart").hidden = true;
-        document.getElementById("formKart").disabled = true;
-        seciliMarkaId = 0;
-        seciliMarkaAdi = "";
-        servisCihazlari = [];
-        seciliServisCihazIndex = -1;
-    }
-
-    function cihazAlanlariniTemizle() {
-        document.getElementById("cihazTipi").value = "";
-        document.getElementById("cihazKapasite").value = "";
-        document.getElementById("cihazModeli").value = "";
-        document.getElementById("f-cihazMarka").value = "";
-    }
-
-    function secimleriTemizle() {
-        seciliMarkaId = 0;
-        seciliMarkaAdi = "";
-        seciliServisCihazIndex = -1;
+        cihazKartlari.after(formKart);
+        cihazKartlari.replaceChildren();
+        formKart.hidden = true;
+        formKart.disabled = true;
         document.getElementById("f-markaid").value = "";
         document.getElementById("f-cihazMarka").value = "";
-        document.querySelectorAll(".ys-commissioning-device-option").forEach(button => button.classList.remove("is-selected"));
-        cihazAlanlariniTemizle();
-        document.getElementById("ysDevicePending").hidden = false;
-        document.getElementById("formKart").hidden = true;
-        document.getElementById("formKart").disabled = true;
+        servisCihazlari = [];
+        seciliServisCihazIndex = -1;
+        cihazTaslaklari.clear();
+        cihazKontrolBekleyen.clear();
+        cihazUyarisiSifirla();
+    }
+
+    function cihazUyarisiSifirla() {
+        const pending = document.getElementById("ysDevicePending");
+        pending.classList.remove("is-warning");
+        pending.querySelector("i").className = "bi bi-hand-index-thumb";
+        pending.querySelector("strong").textContent = "Projedeki cihazı seçin";
+        pending.querySelector("small").textContent = "Seçimin ardından kayıt alanları burada açılır.";
+        document.querySelectorAll(".ys-commissioning-device-option.is-unavailable").forEach(button => button.classList.remove("is-unavailable"));
+    }
+
+    function cihazUyarisiGoster(index, mesaj) {
+        if (cihazTaslaklari.size === 0) {
+            const pending = document.getElementById("ysDevicePending");
+            pending.classList.add("is-warning");
+            pending.querySelector("i").className = "bi bi-exclamation-triangle";
+            pending.querySelector("strong").textContent = "Bu cihazla devam edilemiyor";
+            pending.querySelector("small").textContent = mesaj;
+        } else {
+            window.operationToast?.error(mesaj, 6000);
+        }
+        document.querySelectorAll(".ys-commissioning-device-option")[index]?.classList.add("is-unavailable");
+    }
+
+    function aktifTaslagiSakla() {
+        const taslak = cihazTaslaklari.get(seciliServisCihazIndex);
+        if (!taslak || taslak.kayitId || formKart.hidden) return;
+        cihazAlanlari.forEach(alan => {
+            taslak.alanlar[alan] = formKart.querySelector(`[name="${alan}"]`)?.value || "";
+        });
+    }
+
+    function cihazKartiniOlustur(index, taslak) {
+        const kart = document.createElement("section");
+        kart.className = "ys-device-work-card";
+        kart.dataset.index = String(index);
+        const dugme = document.createElement("button");
+        dugme.type = "button";
+        dugme.className = "ys-device-work-toggle";
+        dugme.setAttribute("aria-expanded", "false");
+        const baslik = document.createElement("strong");
+        baslik.textContent = `${index + 1}. ${servisCihazlari[index]?.cihazTipi || "Cihaz"} · ${taslak.markaAdi}`;
+        const durum = document.createElement("span");
+        durum.className = "ys-device-work-state";
+        durum.textContent = "Kayıt bilgileri";
+        const ok = document.createElement("i");
+        ok.className = "bi bi-chevron-down";
+        ok.setAttribute("aria-hidden", "true");
+        dugme.append(baslik, durum, ok);
+        const govde = document.createElement("div");
+        govde.className = "ys-device-work-body";
+        govde.id = `ys-device-work-${index}`;
+        dugme.setAttribute("aria-controls", govde.id);
+        dugme.addEventListener("click", () => cihazKartiniAc(index));
+        kart.append(dugme, govde);
+        const sonrakiKart = Array.from(cihazKartlari.children).find(item => Number(item.dataset.index) > index);
+        cihazKartlari.insertBefore(kart, sonrakiKart || null);
+        taslak.kart = kart;
+        taslak.govde = govde;
+        taslak.durum = durum;
+    }
+
+    function cihazKartiniAc(index) {
+        const taslak = cihazTaslaklari.get(index);
+        if (!taslak) return;
+        aktifTaslagiSakla();
+        seciliServisCihazIndex = index;
+        cihazKartlari.after(formKart);
+        document.querySelectorAll(".ys-device-work-card").forEach(kart => {
+            const acik = Number(kart.dataset.index) === index;
+            kart.classList.toggle("is-active", acik);
+            kart.querySelector(".ys-device-work-toggle")?.setAttribute("aria-expanded", String(acik));
+        });
+        document.querySelectorAll(".ys-commissioning-device-option").forEach((button, buttonIndex) => {
+            button.classList.toggle("is-selected", cihazTaslaklari.has(buttonIndex));
+            button.classList.toggle("is-active", buttonIndex === index);
+            button.setAttribute("aria-pressed", String(cihazTaslaklari.has(buttonIndex)));
+        });
+        document.getElementById("ysDevicePending").hidden = true;
+        if (taslak.kayitId) {
+            formKart.hidden = true;
+            formKart.disabled = true;
+            const link = document.createElement("a");
+            link.className = "df-btn df-btn-secondary df-btn-sm";
+            link.href = `/ys-devreyeal/gecmis#devreye-alma-detay-${taslak.kayitId}`;
+            link.textContent = "Kaydı Görüntüle";
+            taslak.govde.replaceChildren(link);
+            return;
+        }
+        taslak.govde.append(formKart);
+        formKart.hidden = false;
+        formKart.disabled = false;
+        cihazAlanlari.forEach(alan => {
+            const input = formKart.querySelector(`[name="${alan}"]`);
+            if (input) input.value = taslak.alanlar[alan] || "";
+        });
+        document.getElementById("f-markaid").value = String(taslak.markaId);
+        document.getElementById("f-cihazMarka").value = taslak.markaAdi;
+        document.getElementById("ysSelectedDevice").querySelector("span").textContent = `${servisCihazlari[index]?.cihazTipi || "Cihaz"} · ${taslak.markaAdi}`;
+    }
+
+    function cihazSeciminiKaldir(index) {
+        const taslak = cihazTaslaklari.get(index);
+        if (!taslak) return;
+        if (taslak.kayitId) {
+            window.operationToast?.error("Tamamlanan devreye alma kaydı buradan kaldırılamaz.");
+            return;
+        }
+        if (seciliServisCihazIndex === index) {
+            cihazKartlari.after(formKart);
+            formKart.hidden = true;
+            formKart.disabled = true;
+            seciliServisCihazIndex = -1;
+        }
+        taslak.kart.remove();
+        cihazTaslaklari.delete(index);
+        const secenek = document.querySelectorAll(".ys-commissioning-device-option")[index];
+        secenek?.classList.remove("is-selected", "is-active");
+        secenek?.setAttribute("aria-pressed", "false");
+        const siradaki = Array.from(cihazTaslaklari.keys()).sort((a, b) => a - b)
+            .find(cihazIndex => !cihazTaslaklari.get(cihazIndex).kayitId);
+        if (siradaki !== undefined) cihazKartiniAc(siradaki);
+        else if (cihazTaslaklari.size > 0) cihazKartiniAc(Math.min(...cihazTaslaklari.keys()));
+        else {
+            document.getElementById("ysDevicePending").hidden = false;
+            cihazUyarisiSifirla();
+        }
     }
 
     async function tesistatSorgula() {
@@ -169,7 +286,6 @@
 
             document.getElementById("b-musteriAdi").textContent = data.musteriAdi || "-";
             document.getElementById("b-musteriTelefon").textContent = data.musteriTelefon || "-";
-            document.getElementById("b-aboneNo").textContent = data.aboneNo || "-";
             document.getElementById("b-sozlesmeNo").textContent = data.sozlesmeNo || sozlesmeNo || "-";
             document.getElementById("b-sayacNo").textContent = data.sayacNo || "-";
             document.getElementById("b-adres").textContent = data.adres || "-";
@@ -188,6 +304,7 @@
                     const button = document.createElement("button");
                     button.type = "button";
                     button.className = "ys-commissioning-device-option";
+                    button.setAttribute("aria-pressed", "false");
                     const title = document.createElement("strong");
                     title.textContent = cihaz.cihazTipi || "Cihaz tipi belirtilmemiş";
                     const detail = document.createElement("span");
@@ -225,22 +342,24 @@
     async function cihazSec(index) {
         const cihaz = servisCihazlari[index];
         if (!cihaz) return;
-        if (seciliServisCihazIndex === index) { secimleriTemizle(); return; }
-
-        seciliServisCihazIndex = index;
-        document.querySelectorAll(".ys-commissioning-device-option").forEach((button, buttonIndex) => button.classList.toggle("is-selected", buttonIndex === index));
-        const tipSelect = document.getElementById("cihazTipi");
-        if (cihaz.cihazTipi) {
-            const secenek = Array.from(tipSelect.options).find(option => option.value.toLocaleLowerCase("tr-TR") === cihaz.cihazTipi.toLocaleLowerCase("tr-TR"));
-            if (secenek) tipSelect.value = secenek.value;
+        if (cihazTaslaklari.has(index)) {
+            cihazSeciminiKaldir(index);
+            return;
         }
-        document.getElementById("cihazKapasite").value = cihaz.cihazKapasite || "";
-        document.getElementById("cihazModeli").value = cihaz.cihazModeli || "";
-        document.getElementById("f-cihazMarka").value = cihaz.cihazMarka || "";
-        await markaKontrolEt(cihaz);
+        if (cihazKontrolBekleyen.has(index)) return;
+
+        cihazUyarisiSifirla();
+        const kontrolSirasi = markaKontrolSirasi;
+        if (!cihaz.cihazMarka?.trim()) {
+            cihazUyarisiGoster(index, `${cihaz.cihazTipi || "Cihaz"} marka bilgisi bulunmadığından devreye alma yapamazsınız.`);
+            return;
+        }
+        cihazKontrolBekleyen.add(index);
+        try { await markaKontrolEt(cihaz, index, kontrolSirasi); }
+        finally { cihazKontrolBekleyen.delete(index); }
     }
 
-    async function markaKontrolEt(cihaz) {
+    async function markaKontrolEt(cihaz, index, kontrolSirasi) {
         const tesistatNo = (document.getElementById("f-tesistatNo")?.value || "").trim();
         if (!tesistatNo) { islemHatasi("Önce tesisat sorgulaması yapılmalıdır.", document.getElementById("tesistatNo")); return; }
         try {
@@ -249,28 +368,79 @@
                 headers: { "Content-Type": "application/json", "RequestVerificationToken": antiForgeryToken },
                 body: JSON.stringify({ cihazMarka: cihaz?.cihazMarka || "" })
             });
+            if (kontrolSirasi !== markaKontrolSirasi) return;
             if (!response.ok) { islemHatasi("Marka yetkisi kontrol edilemedi."); return; }
             const data = await response.json();
-            if (!data.yetkili) { secimleriTemizle(); islemHatasi(data.mesaj || "Bu marka için yetkiniz bulunmuyor."); return; }
+            if (kontrolSirasi !== markaKontrolSirasi) return;
+            if (!data.yetkili) { cihazUyarisiGoster(index, data.mesaj || "Bu marka için firmanızın yetkisi bulunmuyor."); return; }
 
-            seciliMarkaId = data.markaId || 0;
-            seciliMarkaAdi = data.markaAdi || cihaz?.cihazMarka || "";
-            document.getElementById("f-markaid").value = String(seciliMarkaId);
-            document.getElementById("f-cihazMarka").value = seciliMarkaAdi;
-            document.getElementById("ysSelectedDevice").querySelector("span").textContent = [cihaz?.cihazTipi, seciliMarkaAdi].filter(Boolean).join(" · ") + " seçildi";
-            document.getElementById("ysDevicePending").hidden = true;
-            document.getElementById("formKart").hidden = false;
-            document.getElementById("formKart").disabled = false;
-            document.getElementById("cihazModeli")?.focus({ preventScroll: true });
+            const secenek = Array.from(document.getElementById("cihazTipi").options)
+                .find(option => option.value.toLocaleLowerCase("tr-TR") === (cihaz.cihazTipi || "").toLocaleLowerCase("tr-TR"));
+            const taslak = {
+                markaId: data.markaId || 0,
+                markaAdi: data.markaAdi || cihaz.cihazMarka || "",
+                kayitId: null,
+                alanlar: {
+                    CihazTipi: secenek?.value || "",
+                    CihazModeli: cihaz.cihazModeli || "",
+                    SeriNo: "",
+                    CihazKapasite: cihaz.cihazKapasite || "",
+                    TeknisyenAdi: "",
+                    TeknisyenYetkiBelgesiNo: "",
+                    Notlar: ""
+                }
+            };
+            cihazTaslaklari.set(index, taslak);
+            cihazKartiniOlustur(index, taslak);
+            const siradaki = Array.from(cihazTaslaklari.keys()).sort((a, b) => a - b)
+                .find(cihazIndex => !cihazTaslaklari.get(cihazIndex).kayitId);
+            const acikIndex = seciliServisCihazIndex >= 0 && seciliServisCihazIndex < index
+                && !cihazTaslaklari.get(seciliServisCihazIndex)?.kayitId
+                    ? seciliServisCihazIndex : siradaki;
+            cihazKartiniAc(acikIndex ?? index);
+            if (acikIndex === index) document.getElementById("cihazModeli")?.focus({ preventScroll: true });
         } catch {
-            islemHatasi("Bağlantı kurulamadı. Lütfen yeniden deneyin.");
+            if (kontrolSirasi === markaKontrolSirasi) islemHatasi("Bağlantı kurulamadı. Lütfen yeniden deneyin.");
         }
     }
 
     document.getElementById("ysInstallationQueryButton")?.addEventListener("click", tesistatSorgula);
-    document.getElementById("devreyeAlmaForm")?.addEventListener("submit", function (event) {
-        if (!document.getElementById("f-tesistatNo").value) { event.preventDefault(); islemHatasi("Önce tesisat sorgulaması yapılmalıdır.", document.getElementById("tesistatNo")); return; }
-        if (!document.getElementById("f-markaid").value || !document.getElementById("f-cihazMarka").value) { event.preventDefault(); islemHatasi("Projeden gelen cihazlardan biri seçilmelidir."); }
+    document.getElementById("devreyeAlmaForm")?.addEventListener("submit", async function (event) {
+        event.preventDefault();
+        const taslak = cihazTaslaklari.get(seciliServisCihazIndex);
+        if (!taslak || taslak.kayitId) { islemHatasi("Önce devreye alınacak cihazı seçin."); return; }
+        const gecersiz = Array.from(formKart.querySelectorAll("input, select, textarea")).find(alan => !alan.checkValidity());
+        if (gecersiz) { gecersiz.reportValidity(); return; }
+        aktifTaslagiSakla();
+        const payload = {};
+        new FormData(event.currentTarget).forEach((value, key) => {
+            if (key !== "__RequestVerificationToken" && (key !== "UygunlukTarihi" || value)) payload[key] = value;
+        });
+        payload.MarkaId = Number(payload.MarkaId);
+        const kaydet = document.getElementById("btnKKaydet");
+        kaydet.disabled = true;
+        try {
+            const response = await fetch("/ys-devreyeal/kaydet-json", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "RequestVerificationToken": antiForgeryToken },
+                body: JSON.stringify(payload)
+            });
+            if (!response.ok) { islemHatasi("Kayıt tamamlanamadı. Lütfen yeniden deneyin."); return; }
+            const data = await response.json();
+            if (!data.basarili) { islemHatasi(data.mesaj || "Kayıt tamamlanamadı."); return; }
+            taslak.kayitId = data.id;
+            taslak.durum.textContent = "Tamamlandı";
+            taslak.kart.classList.add("is-completed");
+            document.querySelectorAll(".ys-commissioning-device-option")[seciliServisCihazIndex]?.classList.add("is-completed");
+            window.operationToast?.success(data.mesaj || "Cihaz devreye alındı.");
+            const siradaki = Array.from(cihazTaslaklari.keys()).sort((a, b) => a - b)
+                .find(index => !cihazTaslaklari.get(index).kayitId);
+            cihazKartiniAc(siradaki ?? seciliServisCihazIndex);
+        } catch {
+            islemHatasi("Bağlantı kurulamadı. Lütfen yeniden deneyin.");
+        } finally {
+            kaydet.disabled = false;
+        }
     });
 </script>
 }

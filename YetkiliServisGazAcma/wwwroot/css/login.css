@@ -5,41 +5,186 @@
     --login-blue: #1f6fa7;
     --login-blue-soft: #edf6fc;
     --login-green: #4aa62f;
+    --login-topbar-height: 60px;
 }
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; min-height: 100%; }
 body { background: #eef3f6; color: var(--login-ink); font: 14px/1.5 "Segoe UI", Arial, sans-serif; letter-spacing: 0; }
-.login-topbar { min-height:76px; padding:12px 24px; display:flex; align-items:center; justify-content:space-between; gap:18px; background:#f3f5f6; border-bottom:1px solid var(--login-line); }
-.login-topbar-brand img { display:block; width:auto; max-width:260px; height:50px; object-fit:contain; mix-blend-mode:multiply; }
-.login-topbar nav { display:flex; gap:24px; align-items:center; }
-.login-topbar nav a { display:flex; align-items:center; gap:7px; color:var(--login-blue); text-decoration:none; font-size:13px; }
+.login-topbar { min-height:var(--login-topbar-height); padding:8px 20px; display:flex; align-items:center; justify-content:space-between; gap:16px; background:#f3f5f6; border-bottom:1px solid var(--login-line); }
+.login-topbar-brand img { display:block; width:auto; max-width:230px; height:42px; object-fit:contain; mix-blend-mode:multiply; }
+.login-topbar nav { display:flex; gap:20px; align-items:center; }
+.login-topbar nav a { display:flex; align-items:center; gap:6px; color:var(--login-blue); text-decoration:none; font-size:12px; }
 .login-topbar nav a:hover { text-decoration:underline; }
-.login-topbar nav i { font-size:20px; }
+.login-topbar nav i { font-size:18px; }
 .login-shell {
-    min-height: calc(100dvh - 76px);
+    height: calc(100dvh - var(--login-topbar-height));
+    min-height: 540px;
     display: grid;
-    grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-template-columns: minmax(560px, 1.12fr) minmax(480px, .88fr);
+    overflow: hidden;
     background: #fff;
 }
+.login-shell.login-shell--panel {
+    width: min(1060px, calc(100% - 48px));
+    height: min(586px, calc(100dvh - 96px));
+    min-height: 0;
+    margin: 18px auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    border: 1px solid #e0e6ee;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 20px 50px rgba(35, 65, 85, .12);
+}
+.login-shell--panel .login-visual {
+    min-height: 0;
+}
+.login-shell--panel .login-side {
+    padding-inline: clamp(40px, 4.5vw, 62px);
+    padding-block: 26px;
+    min-height: 0;
+}
+.login-shell--panel:has(.login-message) .login-side {
+    padding-block: 12px;
+}
+.login-shell--panel .login-card {
+    max-width: 420px;
+}
 .login-visual {
-    grid-column: 1 / span 3;
-    align-self: start;
-    height: calc(100dvh - 76px);
+    min-width: 0;
+    height: 100%;
     min-height: 540px;
-    background: #dbe8ef url("/images/login-office-field-selected.png") center center / cover no-repeat;
-    border-right: 1px solid #cfdce5;
+    position: relative;
+    overflow: hidden;
+    border-right: 1px solid #d8e1e9;
+    background: #eef1f8;
+}
+.login-showcase__stage,
+.login-showcase__slide {
+    position: absolute;
+    inset: 0;
+}
+.login-showcase__slide {
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(105%);
+    transition: opacity .42s ease, transform .58s cubic-bezier(.22, .72, .18, 1), visibility 0s linear .62s;
+}
+.login-showcase__slide.is-active {
+    opacity: 1;
+    visibility: visible;
+    z-index: 2;
+    transform: translateY(0);
+    transition-delay: 0s;
+}
+.login-showcase__slide.is-entering {
+    opacity: 0;
+    visibility: visible;
+    z-index: 2;
+    transform: translateY(105%);
+    transition: none;
+}
+.login-showcase__slide.is-leaving {
+    opacity: 0;
+    visibility: visible;
+    z-index: 3;
+    transform: translateY(-105%);
+    transition-delay: 0s;
+}
+.login-showcase__device {
+    position: absolute;
+    z-index: 1;
+    display: block;
+    object-fit: contain;
+    object-position: center;
+    opacity: 0;
+    will-change: opacity, transform;
+}
+.login-showcase__device--monitor {
+    inset: 14%;
+    width: 72%;
+    height: 72%;
+}
+.login-showcase__device--laptop {
+    inset: 11%;
+    width: 78%;
+    height: 78%;
+}
+.showcase-step-1 { --showcase-delay: .26s; --showcase-exit-delay: 0s; }
+.showcase-step-2 { --showcase-delay: .39s; --showcase-exit-delay: .05s; }
+.showcase-step-3 { --showcase-delay: .52s; --showcase-exit-delay: .1s; }
+.showcase-step-4 { --showcase-delay: .65s; --showcase-exit-delay: .15s; }
+.showcase-step-5 { --showcase-delay: .78s; --showcase-exit-delay: .2s; }
+.login-showcase__slide.is-active .login-showcase__device {
+    animation: login-showcase-device-in .56s cubic-bezier(.2, .72, .2, 1) both;
+}
+@keyframes login-showcase-device-in {
+    from { opacity: 0; transform: translateY(14%) scale(.91); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.login-showcase__overlay {
+    position: absolute;
+    inset: 3%;
+    z-index: 3;
+    display: block;
+    width: 94%;
+    height: 94%;
+    object-fit: contain;
+    object-position: center;
+    opacity: 0;
+    transform: translate(var(--showcase-arc-x, -8px), var(--showcase-arc-y, 10px)) rotate(var(--showcase-arc-rotate, -3deg)) scale(.95);
+    filter: drop-shadow(0 8px 12px rgba(39, 62, 92, .1));
+    will-change: opacity, transform;
+    pointer-events: none;
+}
+.overlay-region--monitor-certificate { --showcase-arc-x: -10px; --showcase-arc-y: 8px; --showcase-arc-rotate: -4deg; clip-path: inset(0 60% 55% 0); transform-origin: 18% 23%; }
+.overlay-region--monitor-appointment { --showcase-arc-x: 10px; --showcase-arc-y: 8px; --showcase-arc-rotate: 4deg; clip-path: inset(0 0 55% 58%); transform-origin: 80% 22%; }
+.overlay-region--monitor-service { --showcase-arc-x: 11px; --showcase-arc-y: -7px; --showcase-arc-rotate: -3deg; clip-path: inset(38% 0 0 58%); transform-origin: 80% 70%; }
+.overlay-region--monitor-complete { --showcase-arc-x: -10px; --showcase-arc-y: -7px; --showcase-arc-rotate: 3deg; clip-path: inset(55% 58% 0 0); transform-origin: 18% 78%; }
+.overlay-region--laptop-device { --showcase-arc-x: -11px; --showcase-arc-y: 9px; --showcase-arc-rotate: -4deg; clip-path: inset(0 62% 54% 0); transform-origin: 18% 23%; }
+.overlay-region--laptop-arrow { --showcase-arc-x: -5px; --showcase-arc-y: 11px; --showcase-arc-rotate: 4deg; clip-path: inset(0 38% 68% 38%); transform-origin: 50% 17%; }
+.overlay-region--laptop-hand-ring { --showcase-arc-x: 12px; --showcase-arc-y: 8px; --showcase-arc-rotate: 5deg; clip-path: inset(0 0 50% 60%); transform-origin: 80% 27%; }
+.overlay-region--laptop-service { --showcase-arc-x: -10px; --showcase-arc-y: -5px; --showcase-arc-rotate: 4deg; clip-path: inset(55% 72% 25% 0); transform-origin: 14% 65%; }
+.overlay-region--laptop-complete { --showcase-arc-x: -9px; --showcase-arc-y: -10px; --showcase-arc-rotate: -4deg; clip-path: inset(72% 52% 0 8%); transform-origin: 27% 84%; }
+.overlay-region--laptop-appointment { --showcase-arc-x: 10px; --showcase-arc-y: -8px; --showcase-arc-rotate: 4deg; clip-path: inset(68% 0 0 62%); transform-origin: 82% 82%; }
+.showcase-step-6 { --showcase-delay: .91s; --showcase-exit-delay: .25s; }
+.login-showcase__slide.is-active .login-showcase__overlay {
+    animation: login-showcase-overlay-in .48s var(--showcase-delay) cubic-bezier(.18, .74, .2, 1) both;
+}
+@keyframes login-showcase-overlay-in {
+    from { opacity: 0; transform: translate(var(--showcase-arc-x, -8px), var(--showcase-arc-y, 10px)) rotate(var(--showcase-arc-rotate, -3deg)) scale(.95); }
+    72% { opacity: 1; transform: translate(2px, -2px) rotate(1.2deg) scale(1.01); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.login-showcase__slide.is-device-leaving .login-showcase__device {
+    animation: login-showcase-device-out .3s cubic-bezier(.4, 0, 1, 1) both;
+}
+
+.login-showcase__slide.is-overlays-leaving .login-showcase__overlay {
+    animation: login-showcase-overlay-out .26s var(--showcase-exit-delay, 0s) cubic-bezier(.4, 0, 1, 1) both;
+}
+
+@keyframes login-showcase-device-out {
+    from { opacity: 1; transform: translateY(0) scale(1); }
+    to { opacity: 0; transform: translateY(-13%) scale(.92); }
+}
+
+@keyframes login-showcase-overlay-out {
+    from { opacity: 1; transform: translateY(0) rotate(0) scale(1); }
+    to { opacity: 0; transform: translate(6px, -6px) rotate(3deg) scale(.96); }
 }
 .login-side {
-    grid-column: 6 / span 5;
     min-width: 0;
-    min-height: calc(100dvh - 76px);
-    padding: 40px 0;
+    min-height: 100%;
+    padding: 30px clamp(34px, 5vw, 78px);
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow-y: auto;
     background: #fff;
 }
-.login-card { width: 100%; max-width: 640px; margin-block: auto; }
+.login-card { width: 100%; max-width: 520px; margin-block: auto; }
 .login-brand { width: fit-content; display: block; margin-bottom: 22px; }
 .login-brand img { display: block; width: min(300px, 100%); height: 52px; object-fit: contain; object-position: left center; }
 .login-card-head { margin-bottom: 18px; }
@@ -110,10 +255,13 @@ body { background: #eef3f6; color: var(--login-ink); font: 14px/1.5 "Segoe UI", 
 .login-link:hover { text-decoration: underline; }
 .login-message { padding: 10px 12px; margin-bottom: 14px; border-left: 3px solid var(--login-blue); background: #f2f8fc; }
 .login-message.is-error { color: #9d3038; border-color: #b74343; background: #fff4f4; }
-.demo-logins { margin-top: 13px; padding-top: 10px; border-top: 1px solid var(--login-line); font-size: 11px; }
-.demo-logins summary { color: var(--login-muted); cursor: pointer; }
-.demo-logins-body { margin-top: 6px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 12px; }
-.demo-login-btn { min-width: 0; padding: 7px 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; border: 0; border-bottom: 1px solid #edf1f5; background: #fff; color: var(--login-ink); text-align: left; font: inherit; cursor: pointer; }
+.demo-logins { position: relative; z-index: 12; margin-top: 13px; padding-top: 10px; border-top: 1px solid var(--login-line); font-size: 11px; }
+.demo-logins summary { width: fit-content; color: var(--login-muted); cursor: pointer; user-select: none; }
+.demo-logins summary:focus-visible { outline: 2px solid #8fc5e5; outline-offset: 3px; border-radius: 2px; }
+.demo-logins-body { position: absolute; right: 0; bottom: calc(100% + 8px); left: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 8px; max-height: min(330px, calc(100dvh - 120px)); padding: 8px; overflow-y: auto; border: 1px solid #cfdae4; border-radius: 6px; background: #fff; box-shadow: 0 16px 34px rgba(21, 50, 74, .18); }
+.demo-login-btn { min-width: 0; min-height: 48px; padding: 7px 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px; border: 1px solid #edf1f5; border-radius: 5px; background: #fff; color: var(--login-ink); text-align: left; font: inherit; cursor: pointer; }
+.demo-login-btn:hover { border-color: #b7d2e3; background: #f4f9fc; }
+.demo-login-btn:focus-visible { outline: 2px solid #8fc5e5; outline-offset: 1px; }
 .demo-login-role, .demo-login-mail { display: block; }
 .demo-login-role { font-weight: 650; }
 .demo-login-mail { color: var(--login-muted); overflow-wrap: anywhere; }
@@ -139,7 +287,7 @@ body { background: #eef3f6; color: var(--login-ink); font: 14px/1.5 "Segoe UI", 
 .company-select-shell .company-select-head {
     min-height: 115px;
     margin-bottom: 18px;
-    padding: 10px 108px 18px 0;
+    padding: 10px 0 18px;
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     align-items: center;
@@ -149,26 +297,18 @@ body { background: #eef3f6; color: var(--login-ink); font: 14px/1.5 "Segoe UI", 
     border-radius: 0;
     background: transparent;
 }
-.company-select-shell .company-select-head h1 { font-size: 21px; }
+.company-select-shell .company-select-head h1 { font-size: 21px; white-space: nowrap; }
 .company-select-shell #company-select-title:focus { outline: none !important; box-shadow: none !important; }
-.company-select-shell .company-select-head .company-select-illustration { display: none; }
 .company-select-card > form {
     background: url("/images/company/company-selection-building.png") right top / auto 100% no-repeat;
 }
 .company-select-card .company-select-option { background-color: rgb(255 255 255 / 78%); }
 .company-select-card .company-select-option.is-selected { background-color: rgb(240 247 252 / 86%); }
 .company-select-card .company-select-actions { background: #fff; }
-.company-select-illustration {
-    display: block;
-    width: 112px;
-    height: 92px;
-    object-fit: contain;
-    object-position: center;
-}
-.company-select-shell .company-select-list { grid-template-columns: 1fr; gap: 10px; max-height:320px; overflow-y:auto; padding:2px; }
+.company-select-shell .company-select-list { grid-template-columns: 1fr; gap: 8px; max-height: 292px; overflow-y: auto; padding: 2px; }
 .company-select-shell .company-select-option {
-    min-height: 68px;
-    padding: 14px;
+    min-height: 60px;
+    padding: 10px 12px;
     grid-template-columns: minmax(0, 1fr) 18px;
     align-content: center;
 }
@@ -177,21 +317,40 @@ body { background: #eef3f6; color: var(--login-ink); font: 14px/1.5 "Segoe UI", 
 .company-select-shell .company-select-option strong { font-size: 13px; }
 .company-select-shell .company-select-option small { margin-top: 3px; font-size: 11px; }
 
+@media (min-width: 981px) {
+    body:has(.login-shell--panel) {
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+    }
+    .login-shell.login-shell--panel {
+        flex: 0 0 auto;
+        margin-block: auto;
+    }
+}
+
+@media (max-width: 1100px) {
+    .login-shell { grid-template-columns: minmax(470px, 1fr) minmax(430px, .92fr); }
+    .login-side { padding-inline: 30px; }
+}
 @media (max-width: 980px) {
-    .login-shell { grid-template-columns: 1fr; background: #eef3f6; }
+    .login-shell { height: auto; min-height: calc(100dvh - var(--login-topbar-height)); grid-template-columns: 1fr; overflow: visible; background: #eef3f6; }
+    .login-shell.login-shell--panel { width: min(620px, calc(100% - 24px)); height: auto; min-height: calc(100dvh - 84px); margin: 12px auto; grid-template-columns: 1fr; box-shadow: none; }
+    .login-shell--panel .login-side { min-height: 0; padding-inline: 20px; }
     .login-visual { display: none; }
-    .login-side { grid-column: 1; padding: 28px 20px; background: #eef3f6; }
+    .login-side { min-height: calc(100dvh - var(--login-topbar-height)); padding: 28px 20px; overflow: visible; background: #eef3f6; }
     .login-card { padding: 25px 28px 22px; border: 1px solid var(--login-line); border-top: 3px solid var(--login-blue); border-radius: 7px; background: #fff; box-shadow: 0 14px 38px rgba(21, 50, 74, .12); }
     .company-select-shell .login-side { background: #eef3f6; }
     .company-select-shell .company-select-list { grid-template-columns: 1fr; }
 }
 @media (max-width: 520px) {
-    .login-topbar { padding:10px 14px; min-height:66px; gap:12px; }
-    .login-topbar-brand img { height:40px; }
+    .login-topbar { padding:8px 14px; min-height:58px; gap:12px; }
+    .login-topbar-brand img { height:38px; }
     .login-topbar nav { gap:14px; }
     .login-topbar nav a { font-size:11px; gap:5px; }
     .login-topbar nav i { font-size:16px; }
     .login-side { padding: 10px; align-items: flex-start; }
+    .login-shell--panel .login-side { padding-inline: 10px; align-items: center; }
     .login-card { padding: 20px 17px; margin-block:0; }
     .login-brand { margin-bottom: 17px; }
     .login-brand img { width: 235px; height: 45px; }
@@ -201,11 +360,23 @@ body { background: #eef3f6; color: var(--login-ink); font: 14px/1.5 "Segoe UI", 
     .company-select-actions { flex-direction: column-reverse; }
     .company-select-actions .login-submit, .company-select-actions .login-secondary { width: 100%; }
     .company-select-shell .login-card { padding: 20px 17px; }
-    .company-select-shell .company-select-head { min-height: 100px; grid-template-columns: minmax(0, 1fr); padding: 10px 80px 10px 0; background-size: 76px auto; gap: 10px; }
+    .company-select-shell .company-select-head { min-height: 100px; grid-template-columns: minmax(0, 1fr); padding: 10px 0; background-size: 76px auto; gap: 10px; }
+    .company-select-shell .company-select-head h1 { font-size: 16px; }
     .company-select-illustration { width: 76px; height: 68px; }
     .company-select-shell .company-select-list { grid-template-columns: 1fr; }
     .company-select-shell .company-select-option { min-height: 72px; padding: 10px; }
 }
 .login-programmatic-focus:focus {
     outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .login-showcase__slide,
+    .login-showcase__device,
+    .login-showcase__overlay {
+        transition: none;
+        animation: none !important;
+    }
+    .login-showcase__slide.is-active .login-showcase__device,
+    .login-showcase__slide.is-active .login-showcase__overlay { opacity: 1; transform: none; }
 }

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using YetkiliServisGazAcma.API.Services;
 using YetkiliServisGazAcma.Business.Services;
@@ -17,7 +18,7 @@ namespace YetkiliServisGazAcma.API.Controllers;
 public sealed class AuthController(UserManager<AppKullanici> users, SignInManager<AppKullanici> signIn,
     SmsDogrulamaService sms, ISertifikaliFirmaKimlikProvider external,
     IOptions<SertifikaliFirmaKimlikOptions> externalOptions, IOptions<SmsOptions> smsOptions,
-    IDataProtectionProvider protection, OturumTokenService tokens) : ControllerBase
+    IDataProtectionProvider protection, OturumTokenService tokens, AppDbContext context) : ControllerBase
 {
     private const string LoginError = "Kullanıcı adı veya şifre hatalı.";
     private readonly ITimeLimitedDataProtector _challengeProtector = protection.CreateProtector("API.Auth.Challenge.v1").ToTimeLimitedDataProtector();
@@ -51,7 +52,18 @@ public sealed class AuthController(UserManager<AppKullanici> users, SignInManage
             if (!sms.SmsGirisAktifMi) return Error("Telefon doğrulaması için SMS servisi yapılandırılmalıdır.", 503);
             if (identity != null && string.IsNullOrWhiteSpace(identity.DogrulamaReferansi))
                 return Error("Kimlik servisi doğrulama işlem referansı döndürmedi.", 503);
-            return await ChallengeAsync(user, "GIRIS", identity?.DogrulamaReferansi, identity?.Telefon);
+            var phone = identity?.Telefon;
+            if (identity == null && user.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis
+                && string.IsNullOrWhiteSpace(user.PhoneNumber) && user.FirmaId.HasValue)
+            {
+                var firmPhone = await context.Ys_Firmalar.AsNoTracking()
+                    .Where(f => f.Id == user.FirmaId.Value && !f.SilindiMi)
+                    .Select(f => f.Telefon)
+                    .FirstOrDefaultAsync();
+                if (CepTelefonuKurali.GecerliMi(firmPhone))
+                    phone = firmPhone;
+            }
+            return await ChallengeAsync(user, "GIRIS", identity?.DogrulamaReferansi, phone);
         }
         if (!string.IsNullOrWhiteSpace(identity?.DogrulamaReferansi))
         {
@@ -116,6 +128,8 @@ public sealed class AuthController(UserManager<AppKullanici> users, SignInManage
     {
         var user = await users.GetUserAsync(User);
         if (user?.AktifMi != true) return Unauthorized();
+        if (!CepTelefonuKurali.GecerliMi(dto.PhoneNumber))
+            return Error("Telefon numarası 05XXXXXXXXX veya 90XXXXXXXXXX formatında olmalıdır.");
         user.AdSoyad = dto.AdSoyad.Trim();
         var emailChanged = !string.Equals(user.Email, dto.Email.Trim(), StringComparison.OrdinalIgnoreCase);
         var phoneChanged = user.PhoneNumber != dto.PhoneNumber?.Trim();
@@ -161,7 +175,27 @@ public sealed class AuthController(UserManager<AppKullanici> users, SignInManage
         return (challenge, user);
     }
 
-    private async Task<AppKullanici?> FindAsync(string login) => await users.FindByEmailAsync(login.Trim()) ?? await users.FindByNameAsync(login.Trim());
+    private async Task<AppKullanici?> FindAsync(string login)
+    {
+        var value = login.Trim();
+        var user = await users.FindByEmailAsync(value) ?? await users.FindByNameAsync(value);
+        if (user != null || value.Length != 11 || !value.All(char.IsDigit))
+            return user;
+
+        var firmIds = await context.Ys_Firmalar.AsNoTracking()
+            .Where(f => !f.SilindiMi && f.TcKimlikNo == value)
+            .Select(f => f.Id)
+            .Take(2)
+            .ToListAsync();
+        if (firmIds.Count != 1)
+            return null;
+
+        var serviceUsers = await users.Users
+            .Where(u => u.FirmaId == firmIds[0] && u.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis && u.AktifMi)
+            .Take(2)
+            .ToListAsync();
+        return serviceUsers.Count == 1 ? serviceUsers[0] : null;
+    }
     private IActionResult Error(string message, int status = 400) => StatusCode(status, new OturumSonucu { Mesaj = message });
     private IActionResult IdentityError(IdentityResult result) => Error(string.Join(" ", result.Errors.Select(x => x.Description)));
 

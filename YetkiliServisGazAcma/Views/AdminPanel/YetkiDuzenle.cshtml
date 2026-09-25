@@ -14,95 +14,75 @@
         new
         {
             Baslik = "Yakıcı Cihaz Değişimi",
-            Aciklama = "Talep inceleme, randevu, FR265 ve rapor işlemleri.",
+            Ikon = "bi-fire",
+            Ton = "is-blue",
             Yetkiler = new[]
             {
-                new { Kod = "YKC_TALEP_GOR", Ad = "Talepleri görüntüle", Aciklama = "Bağlı şirketteki cihaz değişim taleplerini ve durumlarını görür." },
-                new { Kod = "YKC_ATAMA_YAP", Ad = "Randevu ve yönlendirme yap", Aciklama = "İncelenen talep için birim, bölge ve randevu bilgilerini kaydeder." },
-                new { Kod = "YKC_FR265_IMZA_ISLEM", Ad = "FR265 ve imza işlemleri", Aciklama = "Kontrol sonuçlarını, FR265 önizlemesini ve imza akışını yönetir." },
-                new { Kod = "YKC_RAPOR_GOR", Ad = "YKC raporlarını görüntüle", Aciklama = "Cihaz değişim raporlarını görüntüler ve dışa aktarır." }
+                new { Kod = "YKC_TALEP_GOR", Ad = "Talepleri görüntüle", Ikon = "bi-inboxes" },
+                new { Kod = "YKC_ATAMA_YAP", Ad = "Randevu ve yönlendirme", Ikon = "bi-calendar2-check" },
+                new { Kod = "YKC_FR265_IMZA_ISLEM", Ad = "FR265 ve imza işlemleri", Ikon = "bi-pen" },
+                new { Kod = "YKC_RAPOR_GOR", Ad = "YKC raporlarını görüntüle", Ikon = "bi-bar-chart" }
             }
         },
         new
         {
             Baslik = "Devreye Alma ve Belgeler",
-            Aciklama = "Yetki belgesi onayı ve devreye alma raporları.",
+            Ikon = "bi-file-earmark-check",
+            Ton = "is-green",
             Yetkiler = new[]
             {
-                new { Kod = "YETKI_BELGESI_ONAY", Ad = "Yetki belgesi onayla", Aciklama = "Yetkili servis belge başvurularını inceleyip onaylar veya reddeder." },
-                new { Kod = "RAPOR_GOR", Ad = "Operasyon raporlarını görüntüle", Aciklama = "Cihaz devreye alma kayıtları ve raporlarına erişir." }
+                new { Kod = "YETKI_BELGESI_ONAY", Ad = "Yetki belgesi onay ve red", Ikon = "bi-patch-check" },
+                new { Kod = "RAPOR_GOR", Ad = "Devreye alma kayıtları", Ikon = "bi-file-earmark-bar-graph" }
             }
         },
         new
         {
             Baslik = "Yönetim",
-            Aciklama = "Bağlı şirketteki tanım ve servis yönetimi işlemleri.",
+            Ikon = "bi-sliders",
+            Ton = "is-cyan",
             Yetkiler = new[]
             {
-                new { Kod = "KULLANICI_YONET", Ad = "Yetkili servisleri yönet", Aciklama = "Bağlı şirketteki yetkili servis kayıtlarını görüntüler ve yönetir." },
-                new { Kod = "MARKA_YONET", Ad = "Marka tanımlarını yönet", Aciklama = "Marka tanımlarını görüntüler ve yetkili olduğu işlemleri yürütür." }
+                new { Kod = "KULLANICI_YONET", Ad = "Yetkili servisleri yönet", Ikon = "bi-tools" },
+                new { Kod = "MARKA_YONET", Ad = "Markaları yönet", Ikon = "bi-tags" }
             }
         },
         new
         {
             Baslik = "Gelişmiş",
-            Aciklama = "Bu seçenek diğer tüm yetkilerin yerine geçer.",
+            Ikon = "bi-stars",
+            Ton = "is-full",
             Yetkiler = new[]
             {
-                new { Kod = "TAM_YETKI", Ad = "Tam yetki", Aciklama = "Bu şirket için tanımlı tüm personel yetkilerini verir. Diğer seçeneklerle birlikte kullanılmaz." }
+                new { Kod = "TAM_YETKI", Ad = "Tam yetki", Ikon = "bi-shield-check" }
             }
         }
     };
 }
 
-@section Styles {
-    <style>
-        .permission-editor { background: var(--df-surface, #fff); border: 1px solid var(--df-border, #e3e7f0); border-radius: 8px; }
-        .permission-editor-head { padding: 18px 20px; border-bottom: 1px solid var(--df-border, #e3e7f0); }
-        .permission-editor-head h2 { margin: 0; font-size: 18px; color: var(--df-text, #1e2d4a); }
-        .permission-editor-meta { margin: 5px 0 0; color: var(--df-muted, #566280); font-size: 13px; }
-        .permission-editor-body { padding: 20px; }
-        .permission-editor-note { margin: 0 0 16px; padding: 10px 12px; border-left: 3px solid var(--df-primary, #2e4ec8); background: var(--df-primary-soft, #eef1fb); color: var(--df-text-soft, #3d4f6e); font-size: 13px; line-height: 1.5; }
-        .company-permission { border-top: 1px solid var(--df-border, #e3e7f0); }
-        .company-permission:first-of-type { border-top: 0; }
-        .company-permission > summary { display: flex; align-items: center; gap: 10px; padding: 15px 0; cursor: pointer; list-style: none; color: var(--df-text, #1e2d4a); font-weight: 700; }
-        .company-permission > summary::before { content: "+"; display: grid; place-items: center; width: 18px; height: 18px; color: var(--df-primary, #2e4ec8); font-size: 17px; line-height: 1; }
-        .company-permission[open] > summary::before { content: "-"; }
-        .company-enable { width: 16px; height: 16px; accent-color: var(--df-primary, #2e4ec8); }
-        .company-permission-name { flex: 1; }
-        .company-permission-state { color: var(--df-muted, #566280); font-size: 12px; font-weight: 500; }
-        .permission-groups { padding: 0 0 18px 28px; }
-        .permission-group + .permission-group { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--df-border, #e3e7f0); }
-        .permission-group-title { margin: 0; color: var(--df-text, #1e2d4a); font-size: 14px; font-weight: 700; }
-        .permission-group-description { margin: 3px 0 10px; color: var(--df-muted, #566280); font-size: 12px; }
-        .permission-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 20px; }
-        .permission-option-wrap { display: grid; grid-template-columns: auto 1fr; column-gap: 9px; align-items: start; min-width: 0; padding: 8px 0; }
-        .permission-option { width: 16px; height: 16px; margin: 2px 0 0; accent-color: var(--df-primary, #2e4ec8); }
-        .permission-option-label { color: var(--df-text, #1e2d4a); font-size: 13px; font-weight: 650; }
-        .permission-option-description { display: block; margin-top: 2px; color: var(--df-muted, #566280); font-size: 12px; line-height: 1.4; }
-        .permission-option-wrap:has(input:disabled) { opacity: .5; }
-        .permission-editor-actions { display: flex; gap: 10px; padding-top: 20px; border-top: 1px solid var(--df-border, #e3e7f0); }
-        @@media (max-width: 780px) {
-            .permission-editor-body { padding: 16px; }
-            .permission-groups { padding-left: 0; }
-            .permission-list { grid-template-columns: 1fr; }
-            .company-permission-state { display: none; }
-        }
-    </style>
-}
-
 <section class="permission-editor">
     <header class="permission-editor-head">
-        <h2>@(personel?.AdSoyad ?? "Personel")</h2>
-        <p class="permission-editor-meta">@(personel?.Email ?? "E-posta bilgisi bulunmuyor")</p>
+        <span class="permission-editor-icon"><i class="bi bi-person-lock" aria-hidden="true"></i></span>
+        <div>
+            <h2>@(personel?.AdSoyad ?? "Personel")</h2>
+            <p class="permission-editor-meta">@(personel?.Email ?? "E-posta bilgisi bulunmuyor")</p>
+        </div>
     </header>
     <div class="permission-editor-body">
-        <p class="permission-editor-note">
-            Yakıcı Cihaz Değişimi bölümünde randevu, FR265/imza veya rapor yetkisi seçildiğinde
-            <strong>Talepleri görüntüle</strong> yetkisi otomatik eklenir.
-        </p>
-        <form method="post">
+        <form method="post" class="df-permission-editor-form">
             @Html.AntiForgeryToken()
+            @if (sirketler.Count > 1)
+            {
+                <label class="permission-company-picker">
+                    <span>Yetki kapsamı</span>
+                    <select data-permission-company-select aria-label="Yetkileri düzenlenecek şirket">
+                        @for (var index = 0; index < sirketler.Count; index++)
+                        {
+                            <option value="@sirketler[index].Id" selected="@(index == 0 ? "selected" : null)">@sirketler[index].SirketAdi</option>
+                        }
+                    </select>
+                </label>
+            }
+            <div class="permission-companies" role="region" aria-label="Şirket ve işlem yetkileri" tabindex="0">
             @for (var index = 0; index < sirketler.Count; index++)
             {
                 var sirket = sirketler[index];
@@ -110,28 +90,38 @@
                     ? tanimliYetkiler
                     : new List<string>();
                 var sirketSecili = seciliSirketIds.Contains(sirket.Id) || sirketYetkileri.Count > 0;
-                <details class="company-permission" @(index == 0 ? "open" : null)>
+                <details class="company-permission @(index == 0 ? "is-current" : null)" data-permission-company="@sirket.Id" @(index == 0 ? "open" : null)>
                     <summary>
-                        <input type="checkbox" class="company-enable" name="sirketIds" value="@sirket.Id" @(sirketSecili ? "checked" : null) />
+                        <span class="company-permission-mark"><i class="bi bi-buildings" aria-hidden="true"></i></span>
                         <span class="company-permission-name">@sirket.SirketAdi</span>
                         <span class="company-permission-state">@(sirketSecili ? "Yetki veriliyor" : "Yetki kapalı")</span>
+                        <input type="checkbox" class="company-enable" name="sirketIds" value="@sirket.Id" role="switch" aria-label="@sirket.SirketAdi için yetkiyi etkinleştir" @(sirketSecili ? "checked" : null) />
+                        <i class="bi bi-chevron-down company-permission-chevron" aria-hidden="true"></i>
                     </summary>
                     <div class="permission-groups">
-                        @foreach (var grup in yetkiGruplari)
+                        @foreach (var grup in yetkiGruplari.OrderByDescending(x => x.Yetkiler.Any(y => y.Kod == "TAM_YETKI")))
                         {
-                            <section class="permission-group">
-                                <h3 class="permission-group-title">@grup.Baslik</h3>
-                                <p class="permission-group-description">@grup.Aciklama</p>
+                            var tamYetkiGrubu = grup.Yetkiler.Any(y => y.Kod == "TAM_YETKI");
+                            <section class="permission-group @grup.Ton @(tamYetkiGrubu ? "permission-group--full" : "")">
+                                @if (!tamYetkiGrubu)
+                                {
+                                    <header class="permission-group-head">
+                                        <span><i class="bi @grup.Ikon" aria-hidden="true"></i></span>
+                                        <div><h3 class="permission-group-title">@grup.Baslik</h3></div>
+                                    </header>
+                                }
                                 <div class="permission-list">
                                     @foreach (var yetki in grup.Yetkiler)
                                     {
                                         var yetkiSecili = sirketYetkileri.Contains(yetki.Kod, StringComparer.OrdinalIgnoreCase);
                                         <label class="permission-option-wrap">
                                             <input type="checkbox" class="permission-option" data-permission="@yetki.Kod" name="yetkiler_@sirket.Id" value="@yetki.Kod" @(yetkiSecili ? "checked" : null) />
-                                            <span>
+                                            <span class="permission-option-icon"><i class="bi @yetki.Ikon" aria-hidden="true"></i></span>
+                                            <span class="permission-option-copy">
                                                 <span class="permission-option-label">@yetki.Ad</span>
-                                                <span class="permission-option-description">@yetki.Aciklama</span>
+                                                @if (yetki.Kod == "RAPOR_GOR") { <small class="permission-option-description">Ayrıntı, PDF/Excel ve raporlar</small> }
                                             </span>
+                                            <span class="permission-option-check" aria-hidden="true"><i class="bi bi-check2"></i></span>
                                         </label>
                                     }
                                 </div>
@@ -140,9 +130,10 @@
                     </div>
                 </details>
             }
+            </div>
             <div class="permission-editor-actions">
-                <button type="submit" class="df-btn df-btn-primary">Kaydet</button>
-                <a class="df-btn df-btn-secondary" href="/AdminPanel/yetkiler">Vazgeç</a>
+                <a class="df-btn df-btn-secondary" href="/AdminPanel/yetkiler"><i class="bi bi-x-lg" aria-hidden="true"></i> Vazgeç</a>
+                <button type="submit" class="df-btn df-btn-primary"><i class="bi bi-check2" aria-hidden="true"></i> Kaydet</button>
             </div>
         </form>
     </div>
@@ -151,6 +142,19 @@
 @section Scripts {
 <script>
     (function () {
+        var companySelect = document.querySelector("[data-permission-company-select]");
+        var companies = Array.from(document.querySelectorAll("[data-permission-company]"));
+        function showSelectedCompany() {
+            if (!companySelect) return;
+            companies.forEach(function (company) {
+                var current = company.dataset.permissionCompany === companySelect.value;
+                company.classList.toggle("is-current", current);
+                if (current) company.open = true;
+            });
+        }
+        if (companySelect) companySelect.addEventListener("change", showSelectedCompany);
+        showSelectedCompany();
+
         document.querySelectorAll(".company-permission").forEach(function (company) {
             var companyToggle = company.querySelector(".company-enable");
             var options = Array.from(company.querySelectorAll(".permission-option"));
@@ -158,9 +162,16 @@
             var requestView = company.querySelector('[data-permission="YKC_TALEP_GOR"]');
             var ykcDependent = company.querySelectorAll('[data-permission="YKC_ATAMA_YAP"], [data-permission="YKC_FR265_IMZA_ISLEM"], [data-permission="YKC_RAPOR_GOR"]');
 
+            function refreshSummary() {
+                var selectedCount = options.filter(function (option) { return option.checked; }).length;
+                company.querySelector(".company-permission-state").textContent = !companyToggle.checked
+                    ? "Yetki kapalı"
+                    : fullAccess && fullAccess.checked ? "Tam yetki" : selectedCount + " yetki seçili";
+            }
+
             function refreshCompanyState() {
                 options.forEach(function (option) { option.disabled = !companyToggle.checked; });
-                company.querySelector(".company-permission-state").textContent = companyToggle.checked ? "Yetki veriliyor" : "Yetki kapalı";
+                refreshSummary();
             }
 
             function syncYkcPermissions(changed) {
@@ -185,11 +196,13 @@
                 option.addEventListener("change", function () {
                     syncFullAccess(option);
                     syncYkcPermissions(option);
+                    refreshSummary();
                 });
             });
             refreshCompanyState();
             syncFullAccess(fullAccess);
             syncYkcPermissions();
+            refreshSummary();
         });
     })();
 </script>

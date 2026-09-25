@@ -4,350 +4,222 @@
     ViewData["PanelTitle"] = ViewData["Title"];
     ViewData["PanelSubtitle"] = "Personel Paneli";
     ViewData["ActiveMenu"] = "YetkiliServisler";
+    ViewData["PanelArea"] = "Personel";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
-    var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
+
     var q = ViewBag.Query as string ?? "";
     var secilenIl = ViewBag.Il as string ?? "";
     var secilenDurum = ViewBag.Durum as string ?? "";
     var secilenSiralama = ViewBag.Siralama as string ?? "";
-    var devreyeSayilari = ViewBag.DevreyeSayilari as Dictionary<int, int> ?? new Dictionary<int, int>();
-    bool yYetkiBelgesi = ViewBag.YetkiBelgesi != false;
-    bool yRapor = ViewBag.YetkiRapor != false;
-    bool yServis = ViewBag.YetkiServis != false;
+    var sehirler = ViewBag.Sehirler as List<string> ?? new List<string>();
+    var servisYonetebilir = ViewBag.YetkiServis != false;
     var filtreAktif = !string.IsNullOrWhiteSpace(q)
         || !string.IsNullOrWhiteSpace(secilenIl)
         || !string.IsNullOrWhiteSpace(secilenDurum)
         || !string.IsNullOrWhiteSpace(secilenSiralama);
-
-    string Deger(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
-    string ListeDeger(IEnumerable<string?> values)
-    {
-        var temiz = values
-            .Where(x => !string.IsNullOrWhiteSpace(x) && x!.Trim() != "-")
-            .Select(x => x!.Trim())
-            .Distinct()
-            .Take(4)
-            .ToList();
-        return temiz.Count == 0 ? "-" : string.Join(", ", temiz);
-    }
+    ViewData["ServiceDirectoryAdmin"] = false;
+    ViewData["ServiceDirectoryCanManage"] = servisYonetebilir;
 }
 
 @section PageStyles {
-    <link rel="stylesheet" href="~/css/ykc-operations.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/service-editor.css" asp-append-version="true" />
 }
 
-<div class="df-service-directory df-personnel-service-directory">
-    <section class="df-service-list">
-        <div class="df-service-list-head">
-            <h3><i class="bi bi-list-check" aria-hidden="true"></i> Servis Listesi</h3>
-            <div class="df-actions">
-                <span class="df-pill df-pill-info">@Model.Count kayıt</span>
-                @if (yServis)
-                {
-                    <a class="df-btn df-btn-primary df-btn-sm" href="/personel-panel/yetkiliservisler/ekle"><i class="bi bi-plus-lg" aria-hidden="true"></i> Yeni Servis</a>
-                }
-            </div>
-        </div>
+<div class="df-service-directory df-service-directory--detailed">
     <details class="df-service-filter" open="@(filtreAktif ? "open" : null)">
         <summary>
-            <span><i class="bi bi-funnel" aria-hidden="true"></i><strong>Kayıtları Filtrele</strong></span>
-            <span class="df-service-filter-state">@(filtreAktif ? "Filtre uygulandı" : "Aç") <i class="bi bi-chevron-down" aria-hidden="true"></i></span>
+            <span><i class="bi bi-funnel" aria-hidden="true"></i><strong>Filtreler</strong></span>
+            <span>@(filtreAktif ? "Filtre uygulandı" : "Aç") <i class="bi bi-chevron-down" aria-hidden="true"></i></span>
         </summary>
         <form method="get" action="/personel-panel/yetkiliservisler">
             <div class="df-service-filter-grid">
-            <div class="filtre-alan">
-                <label>Firma / Yetkili</label>
-                <input type="text" name="q" placeholder="Firma, VKN veya yetkili..." value="@q" />
-            </div>
-            <div class="filtre-alan">
-                <label>İl</label>
-                <input type="text" name="il" placeholder="Faaliyet ili..." value="@secilenIl" />
-            </div>
-            <div class="filtre-alan">
-                <label>Durum</label>
-                <select name="durum">
-                    <option value="">Tüm</option>
-                    <option value="1" selected="@(secilenDurum == "1" ? "selected" : null)">Aktif</option>
-                    <option value="0" selected="@(secilenDurum == "0" ? "selected" : null)">Pasif</option>
-                </select>
-            </div>
-            <div class="filtre-alan">
-                <label>İşlem Sayısı</label>
-                <select name="siralama">
-                    <option value="">Varsayılan</option>
-                    <option value="azalan" selected="@(secilenSiralama == "azalan" ? "selected" : null)">Çoktan aza</option>
-                    <option value="artan" selected="@(secilenSiralama == "artan" ? "selected" : null)">Azdan çoğa</option>
-                </select>
-            </div>
+                <div class="filtre-alan">
+                    <label for="personel-servis-q">Firma / Yetkili</label>
+                    <input id="personel-servis-q" type="text" name="q" value="@q" placeholder="Firma, yetkili, VKN veya telefon..." />
+                </div>
+                <div class="filtre-alan">
+                    <label for="personel-servis-il">İl</label>
+                    <select id="personel-servis-il" name="il">
+                        <option value="">Tümü</option>
+                        @foreach (var sehir in sehirler)
+                        {
+                            <option value="@sehir" selected="@(secilenIl == sehir ? "selected" : null)">@sehir</option>
+                        }
+                    </select>
+                </div>
+                <div class="filtre-alan">
+                    <label for="personel-servis-siralama">Devreye Alma Kayıt Sayısı</label>
+                    <select id="personel-servis-siralama" name="siralama">
+                        <option value="">Varsayılan</option>
+                        <option value="azalan" selected="@(secilenSiralama == "azalan" ? "selected" : null)">En çoktan aza</option>
+                        <option value="artan" selected="@(secilenSiralama == "artan" ? "selected" : null)">En azdan çoğa</option>
+                    </select>
+                </div>
+                <div class="filtre-alan">
+                    <label for="personel-servis-durum">Durum</label>
+                    <select id="personel-servis-durum" name="durum">
+                        <option value="" selected="@(string.IsNullOrWhiteSpace(secilenDurum) ? "selected" : null)">Tümü</option>
+                        <option value="1" selected="@(secilenDurum == "1" ? "selected" : null)">Aktif</option>
+                        <option value="0" selected="@(secilenDurum == "0" ? "selected" : null)">Pasif</option>
+                    </select>
+                </div>
             </div>
             <div class="df-service-filter-actions">
-                <button type="submit" class="df-btn df-btn-primary df-btn-sm"><i class="bi bi-funnel-fill" aria-hidden="true"></i> Filtrele</button>
                 <a class="df-btn df-btn-secondary df-btn-sm" href="/personel-panel/yetkiliservisler"><i class="bi bi-x-lg" aria-hidden="true"></i> Temizle</a>
+                <button class="df-btn df-btn-primary df-btn-sm" type="submit"><i class="bi bi-funnel-fill" aria-hidden="true"></i> Filtrele</button>
             </div>
         </form>
     </details>
 
-        <div class="df-service-table-scroll">
-            <div class="df-service-grid df-service-grid-head">
-                <div>Firma</div><div>Şirket</div><div>Vergi No</div><div>İşlem</div><div>Durum</div><div>İşlemler</div>
-            </div>
-            @if (Model == null || Model.Count == 0)
-            {
-                <div class="df-empty"><div class="df-empty-title">Kayıt bulunamadı.</div><p class="df-empty-text">Filtreleri temizleyip yeniden deneyin.</p></div>
-            }
-            else
-            {
-                foreach (var f in Model)
+    <section class="df-service-list df-service-list-modern">
+        <div class="df-service-list-head">
+            <div><h3><i class="bi bi-buildings" aria-hidden="true"></i> Servis Kayıtları</h3></div>
+            <div class="df-actions">
+                <span class="df-pill df-pill-info">@Model.Count kayıt</span>
+                <a class="df-btn df-btn-secondary df-btn-sm" href="/yetkili-servisler" target="_blank"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> Genel Liste</a>
+                @if (servisYonetebilir)
                 {
-                    var devreyeSayisi = devreyeSayilari.TryGetValue(f.Id, out var sayi) ? sayi : 0;
-                    var firmaMarkalari = f.FirmaMarkalar?
-                        .Where(x => !x.SilindiMi && x.Marka != null)
-                        .Select(x => x.Marka!.MarkaAdi)
-                        .ToList() ?? new List<string?>();
-                    var firmaKategorileri = f.FirmaKategoriler?
-                        .Where(x => !x.SilindiMi && x.Kategori != null)
-                        .Select(x => x.Kategori!.Ad)
-                        .ToList() ?? new List<string?>();
-                    var subeSayisi = f.Subeler?.Count(x => !x.SilindiMi) ?? 0;
-                    <div class="df-service-grid df-service-row @(f.AktifMi ? "is-active" : "is-passive")">
-                        <div><span class="df-service-name">@f.FirmaAdi</span><small>@(string.IsNullOrWhiteSpace(f.YetkiliKisi) ? "Yetkili kişi tanımlı değil" : f.YetkiliKisi)</small></div>
-                        <div>@f.Sirket?.SirketAdi</div>
-                        <div>@(f.VergiNo ?? "-")</div>
-                        <div><span class="df-service-count">@devreyeSayisi</span></div>
-                        <div><span class="df-pill @(f.AktifMi ? "df-pill-success" : "df-pill-danger")">@(f.AktifMi ? "Aktif" : "Pasif")</span></div>
-                        <div class="df-service-actions">
-                            <button class="df-icon-action ys-service-row-view"
-                                    type="button"
-                                    title="Servis detayını görüntüle"
-                                    data-id="@f.Id"
-                                    data-detail-url="/personel-panel/yetkiliservisler/detay/@f.Id"
-                                    data-firma="@Deger(f.FirmaAdi)"
-                                    data-sirket="@Deger(f.Sirket?.SirketAdi)"
-                                    data-yetkili="@Deger(f.YetkiliKisi)"
-                                    data-telefon="@Deger(f.Telefon)"
-                                    data-email="@Deger(f.Email)"
-                                    data-il="@Deger(f.FaaliyetIli)"
-                                    data-vergi-no="@Deger(f.VergiNo)"
-                                    data-vergi-dairesi="@Deger(f.VergiDairesi)"
-                                    data-adres="@Deger(f.Adres)"
-                                    data-marka="@ListeDeger(firmaMarkalari)"
-                                    data-kategori="@ListeDeger(firmaKategorileri)"
-                                    data-sube="@subeSayisi"
-                                    data-islem="@devreyeSayisi"
-                                    data-durum="@(f.AktifMi ? "Aktif" : "Pasif")"
-                                    data-durum-class="@(f.AktifMi ? "df-pill-success" : "df-pill-danger")">
-                                <i class="bi bi-eye" aria-hidden="true"></i><span>Detay</span>
-                            </button>
-                            @if (yServis)
-                            {
-                                <a class="df-icon-action" href="/personel-panel/yetkiliservisler/duzenle/@f.Id" title="Servisi düzenle"><i class="bi bi-pencil" aria-hidden="true"></i><span>Düzenle</span></a>
-                                if (devreyeSayisi > 0)
-                                {
-                                    <button type="button" class="df-icon-action is-disabled" title="Bu servisin devreye alma işlemi olduğu için silinemez."><i class="bi bi-lock" aria-hidden="true"></i><span>Silinemez</span></button>
-                                }
-                                else
-                                {
-                                    <form method="post" action="/personel-panel/yetkiliservisler/sil/@f.Id" onsubmit="return confirm('Bu yetkili servisi silmek istiyor musunuz?');">
-                                        @Html.AntiForgeryToken()
-                                        <button type="submit" class="df-icon-action is-danger" title="Servisi sil"><i class="bi bi-trash3" aria-hidden="true"></i><span>Sil</span></button>
-                                    </form>
-                                }
-                            }
-                        </div>
-                    </div>
+                    <a class="df-btn df-btn-primary df-btn-sm js-service-sheet-trigger" href="/personel-panel/yetkiliservisler/ekle" data-sheet-url="/personel-panel/yetkiliservisler/ekle" data-sheet-title="Yeni Yetkili Servis">
+                        <i class="bi bi-plus-lg" aria-hidden="true"></i> Yeni Servis
+                    </a>
                 }
-            }
+            </div>
         </div>
+        <partial name="_YetkiliServisKayitlari" model="Model" />
     </section>
 </div>
 
-<div class="ykc-report-modal" id="ysServiceDetailModal" aria-hidden="true">
-    <div class="ykc-report-modal-backdrop" data-ys-service-modal-close></div>
-    <div class="ykc-report-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="ysServiceModalTitle" tabindex="-1">
-        <div class="ykc-report-modal-header">
-            <div class="ykc-modal-title-wrap">
-                <div class="ykc-modal-icon"><i class="bi bi-building-check"></i></div>
-                <div>
-                    <h3 class="ykc-modal-title" id="ysServiceModalTitle">Yetkili Servis Detayı</h3>
-                    <div class="ykc-modal-subtitle" id="ysServiceModalSubtitle">-</div>
-                </div>
-            </div>
-            <button class="ykc-modal-close" type="button" data-ys-service-modal-close aria-label="Kapat"><i class="bi bi-x-circle"></i></button>
+@if (servisYonetebilir)
+{
+    <dialog class="df-directory-sheet df-personnel-service-sheet" data-service-sheet aria-labelledby="serviceSheetTitle">
+        <div class="df-directory-sheet-frame">
+            <header class="df-directory-sheet-head">
+                <div><h2 id="serviceSheetTitle" data-service-sheet-title>Yetkili Servis</h2></div>
+                <button type="button" class="df-directory-sheet-close" data-service-sheet-close title="Paneli kapat" aria-label="Paneli kapat"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+            </header>
+            <div class="df-directory-sheet-body" data-service-sheet-body></div>
         </div>
-        <div class="ykc-report-modal-body">
-            <div class="ykc-modal-stats">
-                <div class="ykc-modal-stat ykc-modal-stat-primary"><i class="bi bi-activity"></i><div><small>Durum</small><strong><span class="df-pill" id="ysServiceModalDurum">-</span></strong></div></div>
-                <div class="ykc-modal-stat ykc-modal-stat-route"><i class="bi bi-geo-alt"></i><div><small>Faaliyet İli</small><strong id="ysServiceModalIl">-</strong></div></div>
-                <div class="ykc-modal-stat ykc-modal-stat-date"><i class="bi bi-tools"></i><div><small>Devreye Alma</small><strong id="ysServiceModalIslem">-</strong></div></div>
-                <div class="ykc-modal-stat ykc-modal-stat-created"><i class="bi bi-diagram-3"></i><div><small>Şube</small><strong id="ysServiceModalSube">-</strong></div></div>
-            </div>
-
-            <div class="ykc-modal-grid">
-                <section class="ykc-modal-section ykc-modal-section-company">
-                    <div class="ykc-modal-section-title"><i class="bi bi-building"></i> Firma Bilgileri</div>
-                    <div class="ykc-modal-info">
-                        <div class="ykc-modal-item"><div class="ykc-modal-label">Firma</div><div class="ykc-modal-value" id="ysServiceModalFirma">-</div></div>
-                        <div class="ykc-modal-item"><div class="ykc-modal-label">Şirket</div><div class="ykc-modal-value" id="ysServiceModalSirket">-</div></div>
-                        <div class="ykc-modal-item"><div class="ykc-modal-label">Vergi No</div><div class="ykc-modal-value" id="ysServiceModalVergiNo">-</div></div>
-                        <div class="ykc-modal-item"><div class="ykc-modal-label">Vergi Dairesi</div><div class="ykc-modal-value" id="ysServiceModalVergiDairesi">-</div></div>
-                    </div>
-                </section>
-
-                <section class="ykc-modal-section ykc-modal-section-customer">
-                    <div class="ykc-modal-section-title"><i class="bi bi-person-lines-fill"></i> İletişim</div>
-                    <div class="ykc-modal-info">
-                        <div class="ykc-modal-item"><div class="ykc-modal-label">Yetkili Kişi</div><div class="ykc-modal-value" id="ysServiceModalYetkili">-</div></div>
-                        <div class="ykc-modal-item"><div class="ykc-modal-label">Telefon</div><div class="ykc-modal-value" id="ysServiceModalTelefon">-</div></div>
-                        <div class="ykc-modal-item"><div class="ykc-modal-label">E-posta</div><div class="ykc-modal-value" id="ysServiceModalEmail">-</div></div>
-                        <div class="ykc-modal-item"><div class="ykc-modal-label">Adres</div><div class="ykc-modal-value" id="ysServiceModalAdres">-</div></div>
-                    </div>
-                </section>
-
-                <section class="ykc-modal-section ykc-modal-section-device">
-                    <div class="ykc-modal-section-title"><i class="bi bi-patch-check"></i> Yetki Bilgileri</div>
-                    <div class="ykc-modal-info">
-                        <div class="ykc-modal-item"><div class="ykc-modal-label">Markalar</div><div class="ykc-modal-value" id="ysServiceModalMarka">-</div></div>
-                        <div class="ykc-modal-item"><div class="ykc-modal-label">Cihaz Kategorileri</div><div class="ykc-modal-value" id="ysServiceModalKategori">-</div></div>
-                    </div>
-                </section>
-
-                <section class="ykc-modal-section ykc-modal-section-signature">
-                    <div class="ykc-modal-section-title"><i class="bi bi-bar-chart-line"></i> Operasyon Özeti</div>
-                    <div class="ykc-modal-info">
-                        <div class="ykc-modal-item"><div class="ykc-modal-label">Devreye Alma İşlemi</div><div class="ykc-modal-value" id="ysServiceModalIslemAlt">-</div></div>
-                        <div class="ykc-modal-item"><div class="ykc-modal-label">Şube Sayısı</div><div class="ykc-modal-value" id="ysServiceModalSubeAlt">-</div></div>
-                    </div>
-                </section>
-            </div>
-        </div>
-        <div class="ykc-report-modal-footer">
-            <button class="df-btn df-btn-secondary" type="button" data-ys-service-modal-close>Kapat</button>
-            <a class="df-btn df-btn-primary" id="ysServiceModalDetailLink" href="#"><i class="bi bi-arrow-right-circle"></i> Tam Detaya Git</a>
-        </div>
-    </div>
-</div>
+    </dialog>
+}
 
 @section Scripts {
+<script src="~/js/service-record-details.js" asp-append-version="true"></script>
 <script>
-(function () {
-    var btns = document.querySelectorAll('.notif');
-    btns.forEach(function(btn){
-        var panel = btn.parentElement.querySelector('.notif-panel');
-        if (!panel) return;
-        btn.addEventListener('click', function(e){
-            e.stopPropagation();
-            panel.style.display = (panel.style.display === "block" ? "none" : "block");
-        });
-        panel.addEventListener('click', function(e){ e.stopPropagation(); });
-    });
-    document.addEventListener('click', function(){
-        document.querySelectorAll('.notif-panel').forEach(function(p){ p.style.display = "none"; });
-    });
-})();
-</script>
-<script>
-(function () {
-    var modal = document.getElementById('ysServiceDetailModal');
-    var detailLink = document.getElementById('ysServiceModalDetailLink');
-    var durum = document.getElementById('ysServiceModalDurum');
-    var sonTetikleyici = null;
+    (function () {
+        var records = Array.prototype.slice.call(document.querySelectorAll("[data-service-record]"));
+        var sheet = document.querySelector("[data-service-sheet]");
+        var sheetTitle = document.querySelector("[data-service-sheet-title]");
+        var sheetBody = document.querySelector("[data-service-sheet-body]");
+        var closeButton = document.querySelector("[data-service-sheet-close]");
+        var activeRequest = 0;
+        var closeTimer = 0;
 
-    function text(id, value) {
-        var element = document.getElementById(id);
-        if (!element) return;
-        element.textContent = value && value.trim ? value.trim() || '-' : value || '-';
-    }
-
-    function sayili(value, suffix) {
-        var temiz = (value || '').trim();
-        if (!temiz || temiz === '-') return '-';
-        return temiz + ' ' + suffix;
-    }
-
-    function ac(button) {
-        var data = button.dataset;
-        sonTetikleyici = button;
-
-        text('ysServiceModalTitle', data.firma);
-        text('ysServiceModalSubtitle', data.sirket);
-        text('ysServiceModalIl', data.il);
-        text('ysServiceModalIslem', sayili(data.islem, 'işlem'));
-        text('ysServiceModalSube', sayili(data.sube, 'şube'));
-        text('ysServiceModalFirma', data.firma);
-        text('ysServiceModalSirket', data.sirket);
-        text('ysServiceModalVergiNo', data.vergiNo);
-        text('ysServiceModalVergiDairesi', data.vergiDairesi);
-        text('ysServiceModalYetkili', data.yetkili);
-        text('ysServiceModalTelefon', data.telefon);
-        text('ysServiceModalEmail', data.email);
-        text('ysServiceModalAdres', data.adres);
-        text('ysServiceModalMarka', data.marka);
-        text('ysServiceModalKategori', data.kategori);
-        text('ysServiceModalIslemAlt', sayili(data.islem, 'kayıt'));
-        text('ysServiceModalSubeAlt', sayili(data.sube, 'şube'));
-
-        if (durum) {
-            durum.textContent = data.durum || '-';
-            durum.className = 'df-pill ' + (data.durumClass || 'df-pill-secondary');
+        var initialParams = new URLSearchParams(window.location.search);
+        var selectedId = initialParams.get("servis");
+        if (selectedId && /^\d+$/.test(selectedId)) {
+            var selectedRecord = records.find(function (record) { return record.dataset.serviceId === selectedId; });
+            if (selectedRecord) {
+                selectedRecord.querySelector("[data-service-expand]").click();
+                selectedRecord.scrollIntoView({ block: "nearest" });
+            }
+            initialParams.delete("servis");
+            window.history.replaceState({}, document.title, window.location.pathname + (initialParams.toString() ? "?" + initialParams.toString() : "") + window.location.hash);
         }
 
-        if (detailLink) {
-            detailLink.href = data.detailUrl || '#';
+        if (!sheet || !sheetBody || !closeButton) return;
+
+        function closeSheet() {
+            if (!sheet.open) return;
+            activeRequest += 1;
+            sheet.classList.remove("is-visible");
+            document.documentElement.classList.remove("df-sheet-open");
+            window.clearTimeout(closeTimer);
+            closeTimer = window.setTimeout(function () {
+                closeTimer = 0;
+                if (sheet.open) sheet.close();
+                sheetBody.replaceChildren();
+            }, 180);
         }
 
-        modal.classList.add('is-open');
-        modal.setAttribute('aria-hidden', 'false');
-        document.body.style.overflow = 'hidden';
-        modal.querySelector('button[data-ys-service-modal-close]')?.focus();
-    }
-
-    function kapat() {
-        modal.classList.remove('is-open');
-        modal.setAttribute('aria-hidden', 'true');
-        document.body.style.overflow = '';
-        sonTetikleyici?.focus();
-    }
-
-    document.addEventListener('click', function (event) {
-        var button = event.target.closest('.ys-service-row-view');
-        if (button) {
-            ac(button);
-            return;
+        function initializeServiceForm(root) {
+            var search = root.querySelector("#service-brand-search");
+            var selectAll = root.querySelector("#service-all-brands");
+            var items = Array.prototype.slice.call(root.querySelectorAll("[data-brand-name]"));
+            var boxes = items.map(function (item) { return item.querySelector("input"); }).filter(Boolean);
+            var count = root.querySelector("#service-brand-count");
+            var empty = root.querySelector("#service-brand-empty");
+            function update() {
+                var selected = boxes.filter(function (box) { return box.checked; }).length;
+                if (selectAll) { selectAll.checked = selected > 0 && selected === boxes.length; selectAll.indeterminate = selected > 0 && selected < boxes.length; selectAll.disabled = boxes.length === 0; }
+                if (count) count.textContent = selected + " seçili";
+            }
+            if (search) search.addEventListener("input", function () {
+                var query = search.value.trim().toLocaleLowerCase("tr-TR");
+                items.forEach(function (item) { item.hidden = !(item.dataset.brandName || "").toLocaleLowerCase("tr-TR").includes(query); });
+                if (empty) empty.hidden = items.length === 0 || items.some(function (item) { return !item.hidden; });
+            });
+            if (selectAll) selectAll.addEventListener("change", function () { boxes.forEach(function (box) { box.checked = selectAll.checked; }); update(); });
+            boxes.forEach(function (box) { box.addEventListener("change", update); });
+            update();
+            root.querySelector("input:not([type='hidden']), select")?.focus();
         }
 
-        if (event.target.closest('[data-ys-service-modal-close]')) {
-            kapat();
+        async function openSheet(trigger) {
+            window.clearTimeout(closeTimer);
+            closeTimer = 0;
+            var requestId = ++activeRequest;
+            var url = trigger.getAttribute("data-sheet-url") || trigger.getAttribute("href");
+            sheetTitle.textContent = trigger.getAttribute("data-sheet-title") || "Yetkili Servis";
+            sheetBody.innerHTML = '<div class="df-directory-sheet-loading" role="status"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span>Form hazırlanıyor</span></div>';
+            if (!sheet.open) sheet.showModal();
+            document.documentElement.classList.add("df-sheet-open");
+            window.requestAnimationFrame(function () { sheet.classList.add("is-visible"); });
+            try {
+                var response = await fetch(url, { credentials: "same-origin", headers: { "X-Requested-With": "XMLHttpRequest" } });
+                if (response.redirected) {
+                    window.location.assign(response.url);
+                    return;
+                }
+                if (!response.ok) throw new Error("Form alınamadı");
+                var parsed = new DOMParser().parseFromString(await response.text(), "text/html");
+                var sourceForm = parsed.querySelector(".service-editor form");
+                if (!sourceForm) throw new Error("Form bulunamadı");
+                if (requestId !== activeRequest) return;
+                var editor = document.createElement("div");
+                editor.className = "service-editor df-directory-sheet-editor";
+                editor.appendChild(document.importNode(sourceForm, true));
+                sheetBody.replaceChildren(editor);
+                initializeServiceForm(editor);
+            } catch (error) {
+                if (requestId !== activeRequest) return;
+                sheetBody.innerHTML = '<div class="df-directory-sheet-error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i><strong>Form açılamadı.</strong><p>Lütfen kısa bir süre sonra yeniden deneyin.</p></div>';
+            }
         }
-    });
 
-    document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape' && modal.classList.contains('is-open')) {
-            kapat();
+        document.querySelectorAll(".js-service-sheet-trigger").forEach(function (trigger) { trigger.addEventListener("click", function (event) { event.preventDefault(); openSheet(trigger); }); });
+        sheetBody.addEventListener("click", function (event) { var cancelLink = event.target.closest('a[href="/personel-panel/yetkiliservisler"]'); if (!cancelLink) return; event.preventDefault(); closeSheet(); });
+        closeButton.addEventListener("click", closeSheet);
+        sheet.addEventListener("cancel", function (event) { event.preventDefault(); closeSheet(); });
+
+        var initialTrigger = null;
+        var editId = initialParams.get("duzenle");
+        if (editId && /^\d+$/.test(editId)) {
+            initialTrigger = Array.prototype.find.call(
+                document.querySelectorAll(".js-service-sheet-trigger[data-sheet-url]"),
+                function (trigger) {
+                    return trigger.getAttribute("data-sheet-url") === "/personel-panel/yetkiliservisler/duzenle/" + editId;
+                });
+        } else if (initialParams.get("panel") === "ekle") {
+            initialTrigger = document.querySelector('.js-service-sheet-trigger[data-sheet-url="/personel-panel/yetkiliservisler/ekle"]');
         }
-    });
-})();
-</script>
-<script>
-(function () {
-    var yetki = {
-        yetkiBelgesi: @((ViewBag.YetkiBelgesi == true).ToString().ToLower()),
-        rapor: @((ViewBag.YetkiRapor == true).ToString().ToLower())
-    };
 
-    function hide(selector, allowed) {
-        if (allowed) return;
-        var list = document.querySelectorAll(selector);
-        list.forEach(function (el) { el.style.display = 'none'; });
-    }
-
-    hide('a[href="/personel-panel/onay-bekleyenler"]', yetki.yetkiBelgesi);
-    hide('a[href="/personel-panel/onay-gecmisi"]', yetki.yetkiBelgesi);
-    hide('a[href="/personel-panel/raporlar"]', yetki.rapor);
-
-    var raporSection = Array.from(document.querySelectorAll('.nav-section')).find(function (x) {
-        return (x.textContent || '').toLowerCase().indexOf('rapor') >= 0;
-    });
-    if (!yetki.rapor && raporSection) raporSection.style.display = 'none';
-})();
+        if (initialTrigger) {
+            initialParams.delete("duzenle");
+            initialParams.delete("panel");
+            var cleanUrl = window.location.pathname + (initialParams.toString() ? "?" + initialParams.toString() : "");
+            window.history.replaceState({}, document.title, cleanUrl);
+            openSheet(initialTrigger);
+        }
+    })();
 </script>
 }

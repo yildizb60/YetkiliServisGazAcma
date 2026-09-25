@@ -1,16 +1,19 @@
 @model List<YetkiliServisGazAcma.Entities.Ys_YetkiBelgesi>
 @using YetkiliServisGazAcma.Entities
 @{
-    ViewData["Title"] = "Onay Bekleyen Belgeler";
+    ViewData["Title"] = "Yetki Belgesi Onay ve Takip";
     ViewData["PanelTitle"] = ViewData["Title"];
     ViewData["PanelSubtitle"] = "Personel Paneli";
     ViewData["ActiveMenu"] = "OnayBekleyenler";
+    ViewData["PanelArea"] = "Personel";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
     var bekleyenler = Model ?? new List<Ys_YetkiBelgesi>();
     var onaylananlar = ViewBag.Onaylananlar as List<Ys_YetkiBelgesi> ?? new List<Ys_YetkiBelgesi>();
     var reddedilenler = ViewBag.Reddedilenler as List<Ys_YetkiBelgesi> ?? new List<Ys_YetkiBelgesi>();
     var suresiDolanlar = ViewBag.SuresiDolanlar as List<Ys_YetkiBelgesi> ?? new List<Ys_YetkiBelgesi>();
+    var listelenenBelgeSayisi = bekleyenler.Concat(onaylananlar).Concat(reddedilenler).Concat(suresiDolanlar)
+        .Select(x => x.Id).Distinct().Count();
 }
 
 @section PageStyles {
@@ -19,6 +22,7 @@
 
 <div class="approval-board df-approval-workspace">
     <section class="df-page-panel approval-panels is-admin-approval">
+        <div class="df-approval-list-total"><span>Listelenen yetki belgesi</span><strong>@listelenenBelgeSayisi</strong></div>
         <div class="df-approval-status-bar" role="tablist" data-approval-tabs aria-label="Yetki belgesi durumu">
             <button type="button" role="tab" id="personnel-approval-waiting-tab" aria-controls="personnel-approval-waiting" aria-selected="true" class="approval-tab approval-metric is-waiting active" data-target="bekleyen"><i class="bi bi-hourglass-split" aria-hidden="true"></i><span>Onay Bekleyen</span><strong>@bekleyenler.Count</strong></button>
             <button type="button" role="tab" id="personnel-approval-approved-tab" aria-controls="personnel-approval-approved" aria-selected="false" class="approval-tab approval-metric is-approved" data-target="onaylanan"><i class="bi bi-check-circle" aria-hidden="true"></i><span>Onaylanan</span><strong>@onaylananlar.Count</strong></button>
@@ -30,10 +34,10 @@
         <div class="df-approval-filter-body">
             <div class="df-approval-filter-grid">
                 <div class="filtre-alan"><label>Firma</label><input type="text" id="filterFirma" placeholder="Firma adı" autocomplete="off" /></div>
-                <div class="filtre-alan"><label>Şirket</label><input type="text" id="filterSirket" placeholder="Şirket adı" autocomplete="off" /></div>
-                <div class="filtre-alan"><label>Yükleme</label><input type="date" id="filterYukleme" /></div>
-                <div class="filtre-alan"><label>Başlangıç</label><input type="date" id="filterBaslangic" /></div>
-                <div class="filtre-alan"><label>Bitiş</label><input type="date" id="filterBitis" /></div>
+                <div class="filtre-alan"><label>Adres / İl</label><input type="text" id="filterAdres" placeholder="Adres veya il bilgisi" autocomplete="off" /></div>
+                <div class="filtre-alan"><label for="filterYukleme">Belge Yükleme Tarihi</label><input type="date" id="filterYukleme" /></div>
+                <div class="filtre-alan"><label for="filterBaslangic">Geçerlilik Başlangıcı</label><input type="date" id="filterBaslangic" /></div>
+                <div class="filtre-alan"><label for="filterBitis">Yetki Belgesi Bitiş Tarihi</label><input type="date" id="filterBitis" /></div>
             </div>
             <div class="df-approval-filter-actions">
                 <button type="button" class="df-btn df-btn-primary df-btn-sm" id="approvalFilterApply"><i class="bi bi-funnel-fill" aria-hidden="true"></i> Filtrele</button>
@@ -58,12 +62,14 @@
 </div>
 
 @section Scripts {
+<script src="~/js/approval-row-details.js" asp-append-version="true"></script>
 <script>
 (() => {
     const tabs = document.querySelector('[data-approval-tabs]');
+    const query = new URLSearchParams(window.location.search);
     const fields = {
         firma: document.getElementById('filterFirma'),
-        sirket: document.getElementById('filterSirket'),
+        adres: document.getElementById('filterAdres'),
         yukleme: document.getElementById('filterYukleme'),
         baslangic: document.getElementById('filterBaslangic'),
         bitis: document.getElementById('filterBitis')
@@ -76,7 +82,7 @@
         if (!panel) return;
         const values = {
             firma: normalize(fields.firma?.value),
-            sirket: normalize(fields.sirket?.value),
+            adres: normalize(fields.adres?.value),
             yukleme: fields.yukleme?.value || '',
             baslangic: fields.baslangic?.value || '',
             bitis: fields.bitis?.value || ''
@@ -87,11 +93,13 @@
         rows.forEach(row => {
             let visible = true;
             if (values.firma) visible = normalize(row.dataset.firma).includes(values.firma) || normalize(row.dataset.vergi).includes(values.firma);
-            if (values.sirket) visible = visible && normalize(row.dataset.sirket).includes(values.sirket);
+            if (values.adres) visible = visible && normalize(row.dataset.adres).includes(values.adres);
             if (values.yukleme) visible = visible && row.dataset.yukleme === values.yukleme;
             if (values.baslangic) visible = visible && row.dataset.baslangic >= values.baslangic;
             if (values.bitis) visible = visible && row.dataset.bitis <= values.bitis;
             row.hidden = !visible;
+            const detail = row.nextElementSibling;
+            if (detail?.matches('[data-approval-detail]')) detail.hidden = !visible || !row.classList.contains('is-expanded');
             if (visible) visibleCount++;
         });
         const empty = panel.querySelector('.df-approval-filter-empty');
@@ -113,6 +121,10 @@
         const tab = event.target.closest('[data-target]');
         if (tab) activatePanel(tab.dataset.target);
     });
+    const requestedTab = query.get('tab');
+    const initialTab = ['bekleyen', 'onaylanan', 'reddedilen', 'suresi-dolan'].includes(requestedTab) ? requestedTab : 'bekleyen';
+    if (fields.firma && query.get('firma')) fields.firma.value = query.get('firma');
+    activatePanel(initialTab);
     document.getElementById('approvalFilterApply')?.addEventListener('click', applyFilters);
     document.getElementById('approvalFilterClear')?.addEventListener('click', () => {
         Object.values(fields).forEach(field => { if (field) field.value = ''; });

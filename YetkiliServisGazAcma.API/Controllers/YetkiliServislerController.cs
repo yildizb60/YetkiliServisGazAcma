@@ -85,7 +85,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 query = query.Where(x => x.FirmaMarkalar!.Any(m => !m.SilindiMi && m.MarkaId == markaId.Value));
 
             if (kategoriId.HasValue)
-                query = query.Where(x => x.FirmaKategoriler!.Any(k => !k.SilindiMi && k.KategoriId == kategoriId.Value));
+                query = query.Where(x => x.FirmaKategoriler!.Any(k => !k.SilindiMi && k.KategoriId == kategoriId.Value && k.Kategori != null && !k.Kategori.SilindiMi && k.Kategori.AktifMi));
 
             if (sirketId.HasValue)
                 query = query.Where(x => x.SirketId == sirketId.Value);
@@ -118,7 +118,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                         .Distinct()
                         .ToList(),
                     Kategoriler = x.FirmaKategoriler!
-                        .Where(k => !k.SilindiMi && k.Kategori != null)
+                        .Where(k => !k.SilindiMi && k.Kategori != null && !k.Kategori.SilindiMi && k.Kategori.AktifMi)
                         .Select(k => new KategoriDto
                         {
                             Id = k.Kategori!.Id,
@@ -156,7 +156,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 .ToListAsync();
 
             var kategoriler = await _context.UrunKategoriler
-                .Where(x => !x.SilindiMi)
+                .Where(x => !x.SilindiMi && x.AktifMi)
                 .OrderBy(x => x.SiraNo)
                 .ThenBy(x => x.Ad)
                 .Select(x => new KategoriDto
@@ -253,14 +253,17 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (string.IsNullOrWhiteSpace(dto.FaaliyetIli))
                 return BadRequest(new { basarili = false, mesaj = "Il bilgisi zorunludur" });
 
+            if (dto.Ilce?.Length > 100)
+                return BadRequest(new { basarili = false, mesaj = "Ilce en fazla 100 karakter olabilir" });
+
             if (!string.IsNullOrWhiteSpace(dto.Email) && !new EmailAddressAttribute().IsValid(dto.Email))
                 return BadRequest(new { basarili = false, mesaj = "E-posta formati gecersiz" });
 
-            if (!string.IsNullOrWhiteSpace(dto.Telefon) && !TelefonFormatiGecerliMi(dto.Telefon))
+            if (!CepTelefonuKurali.GecerliMi(dto.Telefon))
                 return BadRequest(new { basarili = false, mesaj = "Telefon numarasi 05XXXXXXXXX veya 90XXXXXXXXXX formatinda olmalidir" });
 
-            if (!string.IsNullOrWhiteSpace(dto.TcKimlikNo)
-                && (dto.TcKimlikNo.Length != 11 || dto.TcKimlikNo.Any(ch => !char.IsDigit(ch))))
+            if (dto.TcKimlikNo == null || dto.TcKimlikNo.Length != 11
+                || dto.TcKimlikNo.Any(ch => ch < '0' || ch > '9'))
             {
                 return BadRequest(new { basarili = false, mesaj = "TC kimlik no 11 haneli ve sayisal olmalidir" });
             }
@@ -285,20 +288,13 @@ namespace YetkiliServisGazAcma.API.Controllers
                 firma,
                 dto.Sifre,
                 dto.MarkaIdleri ?? new List<int>(),
-                dto.KategoriIdleri ?? new List<int>());
+                dto.KategoriIdleri ?? new List<int>(),
+                dto.Ilce);
 
             if (!sonuc.basarili)
                 return BadRequest(new { basarili = false, mesaj = sonuc.mesaj });
 
             return Ok(new { basarili = true, mesaj = sonuc.mesaj, firmaId = firma.Id });
-        }
-
-        private static bool TelefonFormatiGecerliMi(string telefon)
-        {
-            var digits = new string(telefon.Where(char.IsDigit).ToArray());
-            return digits.Length == 10 && digits.StartsWith("5", StringComparison.Ordinal)
-                || digits.Length == 11 && digits.StartsWith("05", StringComparison.Ordinal)
-                || digits.Length == 12 && digits.StartsWith("90", StringComparison.Ordinal);
         }
 
         [HttpPost("getir")]
@@ -332,7 +328,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                         .Distinct()
                         .ToList(),
                     KategoriIds = x.FirmaKategoriler!
-                        .Where(k => !k.SilindiMi)
+                        .Where(k => !k.SilindiMi && k.Kategori != null && !k.Kategori.SilindiMi && k.Kategori.AktifMi)
                         .Select(k => k.KategoriId)
                         .Distinct()
                         .ToList()
@@ -354,6 +350,15 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             if (servis == null)
                 return NotFound(new { basarili = false, mesaj = "Yetkili servis bulunamadi" });
+
+            if (dto.KategoriIds != null)
+            {
+                var secilenKategoriIds = dto.KategoriIds.Distinct().ToList();
+                var gecerliKategoriSayisi = await _context.UrunKategoriler
+                    .CountAsync(x => secilenKategoriIds.Contains(x.Id) && !x.SilindiMi && x.AktifMi);
+                if (gecerliKategoriSayisi != secilenKategoriIds.Count)
+                    return BadRequest(new { basarili = false, mesaj = "Geçersiz hizmet türü seçildi." });
+            }
 
             servis.FirmaAdi = dto.FirmaAdi;
             servis.YetkiliKisi = dto.YetkiliKisi;
@@ -572,6 +577,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         public string? Email { get; set; }
         public string? Adres { get; set; }
         public string? FaaliyetIli { get; set; }
+        public string? Ilce { get; set; }
         public string? VergiNo { get; set; }
         public string? VergiDairesi { get; set; }
         public string? TcKimlikNo { get; set; }

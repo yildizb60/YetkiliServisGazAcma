@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
 
@@ -32,6 +33,17 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             var roller = await _userManager.GetRolesAsync(kullanici);
             var genelYetkili = roller.Contains("GenelSistemAdmin") || roller.Contains("SuperAdmin");
+            var personelMi = !genelYetkili && !roller.Contains("SirketAdmin") && roller.Contains("Personel");
+            var kapsamSirketId = personelMi ? dto.SirketId ?? kullanici.SirketId : kullanici.SirketId;
+
+            if (personelMi)
+            {
+                if (!kapsamSirketId.HasValue || !await _context.Dag_PersonelYetkiler.AnyAsync(x =>
+                    x.KullaniciId == kullanici.Id && !x.SilindiMi
+                    && x.SirketId == kapsamSirketId.Value
+                    && (x.YetkiTipi == YetkiTipleri.TAM_YETKI || x.YetkiTipi == YetkiTipleri.RAPOR_GOR)))
+                    return Forbid();
+            }
 
             var query = _context.Ys_DevreyeAlmalar
                 .Include(x => x.Firma)
@@ -42,10 +54,10 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             if (!genelYetkili)
             {
-                if (!kullanici.SirketId.HasValue)
+                if (!kapsamSirketId.HasValue)
                     return Forbid();
 
-                query = query.Where(x => x.Firma != null && x.Firma.SirketId == kullanici.SirketId.Value);
+                query = query.Where(x => x.Firma != null && x.Firma.SirketId == kapsamSirketId.Value);
             }
             else if (dto.SirketId.HasValue)
             {

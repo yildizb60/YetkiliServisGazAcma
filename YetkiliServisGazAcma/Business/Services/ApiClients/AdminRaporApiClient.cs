@@ -465,6 +465,27 @@ namespace YetkiliServisGazAcma.Business.Services
             public int YetkiBelgesiOnayli { get; set; }
             public int YetkiBelgesiBekleyen { get; set; }
             public int YetkiBelgesiReddedilen { get; set; }
+            public int OperasyonTalepSayisi { get; set; }
+            public int OperasyonTamamlanan { get; set; }
+            public int OperasyonAktif { get; set; }
+            public int OperasyonReddedilen { get; set; }
+            public int OperasyonIptal { get; set; }
+            public double OrtalamaTamamlanmaSaati { get; set; }
+            public int TamamlanmaSuresiKayitSayisi { get; set; }
+            public double IlkKontrolUygunlukOrani { get; set; }
+            public int IlkKontrolKayitSayisi { get; set; }
+            public double TekrarRandevuOrani { get; set; }
+            public int KontrolEdilenTalepSayisi { get; set; }
+            public List<string> OperasyonAylikLabels { get; set; } = new();
+            public List<int> OperasyonAylikData { get; set; } = new();
+            public List<string> OperasyonFirmaLabels { get; set; } = new();
+            public List<int> OperasyonFirmaData { get; set; } = new();
+            public List<string> OperasyonLokasyonLabels { get; set; } = new();
+            public List<int> OperasyonLokasyonData { get; set; } = new();
+            public List<string> OperasyonEkipLabels { get; set; } = new();
+            public List<int> OperasyonEkipData { get; set; } = new();
+            public List<string> OperasyonRedNedeniLabels { get; set; } = new();
+            public List<int> OperasyonRedNedeniData { get; set; } = new();
             public List<string> ChartSirketLabels { get; set; } = new();
             public List<int> ChartSirketData { get; set; } = new();
             public List<string> ChartAylikLabels { get; set; } = new();
@@ -491,6 +512,27 @@ namespace YetkiliServisGazAcma.Business.Services
                     YetkiBelgesiOnayli = YetkiBelgesiOnayli,
                     YetkiBelgesiBekleyen = YetkiBelgesiBekleyen,
                     YetkiBelgesiReddedilen = YetkiBelgesiReddedilen,
+                    OperasyonTalepSayisi = OperasyonTalepSayisi,
+                    OperasyonTamamlanan = OperasyonTamamlanan,
+                    OperasyonAktif = OperasyonAktif,
+                    OperasyonReddedilen = OperasyonReddedilen,
+                    OperasyonIptal = OperasyonIptal,
+                    OrtalamaTamamlanmaSaati = OrtalamaTamamlanmaSaati,
+                    TamamlanmaSuresiKayitSayisi = TamamlanmaSuresiKayitSayisi,
+                    IlkKontrolUygunlukOrani = IlkKontrolUygunlukOrani,
+                    IlkKontrolKayitSayisi = IlkKontrolKayitSayisi,
+                    TekrarRandevuOrani = TekrarRandevuOrani,
+                    KontrolEdilenTalepSayisi = KontrolEdilenTalepSayisi,
+                    OperasyonAylikLabels = OperasyonAylikLabels,
+                    OperasyonAylikData = OperasyonAylikData,
+                    OperasyonFirmaLabels = OperasyonFirmaLabels,
+                    OperasyonFirmaData = OperasyonFirmaData,
+                    OperasyonLokasyonLabels = OperasyonLokasyonLabels,
+                    OperasyonLokasyonData = OperasyonLokasyonData,
+                    OperasyonEkipLabels = OperasyonEkipLabels,
+                    OperasyonEkipData = OperasyonEkipData,
+                    OperasyonRedNedeniLabels = OperasyonRedNedeniLabels,
+                    OperasyonRedNedeniData = OperasyonRedNedeniData,
                     ChartSirketLabels = ChartSirketLabels,
                     ChartSirketData = ChartSirketData,
                     ChartAylikLabels = ChartAylikLabels,
@@ -684,6 +726,27 @@ namespace YetkiliServisGazAcma.Business.Services
         public int YetkiBelgesiOnayli { get; set; }
         public int YetkiBelgesiBekleyen { get; set; }
         public int YetkiBelgesiReddedilen { get; set; }
+        public int OperasyonTalepSayisi { get; set; }
+        public int OperasyonTamamlanan { get; set; }
+        public int OperasyonAktif { get; set; }
+        public int OperasyonReddedilen { get; set; }
+        public int OperasyonIptal { get; set; }
+        public double OrtalamaTamamlanmaSaati { get; set; }
+        public int TamamlanmaSuresiKayitSayisi { get; set; }
+        public double IlkKontrolUygunlukOrani { get; set; }
+        public int IlkKontrolKayitSayisi { get; set; }
+        public double TekrarRandevuOrani { get; set; }
+        public int KontrolEdilenTalepSayisi { get; set; }
+        public List<string> OperasyonAylikLabels { get; set; } = new();
+        public List<int> OperasyonAylikData { get; set; } = new();
+        public List<string> OperasyonFirmaLabels { get; set; } = new();
+        public List<int> OperasyonFirmaData { get; set; } = new();
+        public List<string> OperasyonLokasyonLabels { get; set; } = new();
+        public List<int> OperasyonLokasyonData { get; set; } = new();
+        public List<string> OperasyonEkipLabels { get; set; } = new();
+        public List<int> OperasyonEkipData { get; set; } = new();
+        public List<string> OperasyonRedNedeniLabels { get; set; } = new();
+        public List<int> OperasyonRedNedeniData { get; set; } = new();
         public List<string> ChartSirketLabels { get; set; } = new();
         public List<int> ChartSirketData { get; set; } = new();
         public List<string> ChartAylikLabels { get; set; } = new();

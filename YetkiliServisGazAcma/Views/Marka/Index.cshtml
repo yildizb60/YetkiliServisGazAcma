@@ -123,7 +123,7 @@
                                                 Düzenle
                                             </button>
                                             <form method="post" action="@Url.Action("Sil", "Marka", new { id = m.Id })" class="df-inline-form"
-                                                  onsubmit="return confirm('Silmek istediğinize emin misiniz?')">
+                                                  data-toast-confirm data-confirm-title="Markayı sil" data-confirm-message="@m.MarkaAdi markası silinecek. Bu işlem geri alınamaz." data-confirm-action="Markayı Sil">
                                                 @Html.AntiForgeryToken()
                                                 <button class="df-icon-action is-danger" type="submit">
                                                     <i class="bi bi-trash"></i>

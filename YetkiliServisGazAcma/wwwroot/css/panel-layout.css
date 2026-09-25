@@ -796,8 +796,8 @@ textarea {
 
 .df-nb-account-list {
     padding: 6px;
-    overflow: auto;
-    max-height: 230px;
+    overflow: visible;
+    max-height: none;
 }
 
 .df-company-form {

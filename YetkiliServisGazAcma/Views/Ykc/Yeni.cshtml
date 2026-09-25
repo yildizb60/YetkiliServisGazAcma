@@ -1,7 +1,7 @@
 @model YkcTalepKaydetDto
 @{
     ViewData["Title"] = "Yeni Cihaz Değişim Talebi";
-    ViewData["PanelTitle"] = "Talep Oluştur";
+    ViewData["PanelTitle"] = ViewData["Title"];
     ViewData["PanelModule"] = "Cihaz Değişim İşlemleri";
     ViewData["PanelSubtitle"] = string.Empty;
     ViewData["ActiveMenu"] = "YkcYeni";
@@ -86,7 +86,7 @@
             <div class="ykc-request-completion">
                 <div>
                     <fieldset class="ykc-request-secondhand">
-                        <legend>Takılan yakıcı cihaz ikinci el mi?</legend>
+                        <legend>Takılan Yakıcı Cihaz İkinci El Cihaz Mı?</legend>
                         <label><input type="radio" name="IkinciElCihazMi" value="false" checked="@(Model.IkinciElCihazMi != true)" /> Hayır</label>
                         <label><input type="radio" name="IkinciElCihazMi" value="true" checked="@(Model.IkinciElCihazMi == true)" /> Evet</label>
                     </fieldset>

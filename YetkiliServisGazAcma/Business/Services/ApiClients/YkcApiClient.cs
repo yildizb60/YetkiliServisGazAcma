@@ -28,39 +28,45 @@ namespace YetkiliServisGazAcma.Business.Services
             _aktifSirket = aktifSirket;
         }
 
-        public Task<YkcTalepListeSonuc?> TaleplerAsync(AppKullanici kullanici, YkcTalepListeFiltre filtre)
+        private async Task<YkcTalepListeFiltre> SirketKapsamiEkleAsync(AppKullanici kullanici, YkcTalepListeFiltre filtre)
         {
-            return PostAsync<YkcTalepListeFiltre, YkcTalepListeSonuc>(
+            filtre.SirketId ??= await _aktifSirket.AktifSirketIdAsync(kullanici);
+            return filtre;
+        }
+
+        public async Task<YkcTalepListeSonuc?> TaleplerAsync(AppKullanici kullanici, YkcTalepListeFiltre filtre)
+        {
+            return await PostAsync<YkcTalepListeFiltre, YkcTalepListeSonuc>(
                 kullanici,
                 "api/ykc/talepler/liste",
-                filtre,
+                await SirketKapsamiEkleAsync(kullanici, filtre),
                 "Cihaz değişim talep listesi",
                 retryTransient: true);
         }
 
-        public Task<YkcRaporSonuc?> RaporAsync(AppKullanici kullanici, YkcTalepListeFiltre filtre)
+        public async Task<YkcRaporSonuc?> RaporAsync(AppKullanici kullanici, YkcTalepListeFiltre filtre)
         {
-            return PostAsync<YkcTalepListeFiltre, YkcRaporSonuc>(
+            return await PostAsync<YkcTalepListeFiltre, YkcRaporSonuc>(
                 kullanici,
                 "api/ykc/talepler/rapor",
-                filtre,
+                await SirketKapsamiEkleAsync(kullanici, filtre),
                 "Cihaz değişim raporu",
                 retryTransient: true);
         }
 
-        public Task<ApiDosyaSonuc?> RaporPdfAsync(AppKullanici kullanici, YkcTalepListeFiltre filtre)
-            => PostFileAsync(
+        public async Task<ApiDosyaSonuc?> RaporPdfAsync(AppKullanici kullanici, YkcTalepListeFiltre filtre)
+            => await PostFileAsync(
                 kullanici,
                 "api/ykc/talepler/rapor/pdf",
-                filtre,
+                await SirketKapsamiEkleAsync(kullanici, filtre),
                 "Cihaz_Degisim_Raporu.pdf",
                 "Cihaz değişim raporu PDF");
 
-        public Task<ApiDosyaSonuc?> RaporExcelAsync(AppKullanici kullanici, YkcTalepListeFiltre filtre)
-            => PostFileAsync(
+        public async Task<ApiDosyaSonuc?> RaporExcelAsync(AppKullanici kullanici, YkcTalepListeFiltre filtre)
+            => await PostFileAsync(
                 kullanici,
                 "api/ykc/talepler/rapor/excel",
-                filtre,
+                await SirketKapsamiEkleAsync(kullanici, filtre),
                 "Cihaz_Degisim_Raporu.xlsx",
                 "Cihaz değişim raporu Excel");
 
@@ -84,22 +90,22 @@ namespace YetkiliServisGazAcma.Business.Services
                 retryTransient: true);
         }
 
-        public Task<YkcTalepListeSonuc?> DogalgazMobileTaleplerAsync(AppKullanici kullanici, YkcTalepListeFiltre filtre)
+        public async Task<YkcTalepListeSonuc?> DogalgazMobileTaleplerAsync(AppKullanici kullanici, YkcTalepListeFiltre filtre)
         {
-            return PostAsync<YkcTalepListeFiltre, YkcTalepListeSonuc>(
+            return await PostAsync<YkcTalepListeFiltre, YkcTalepListeSonuc>(
                 kullanici,
                 "api/ykc/dogalgaz-mobile/talepler/liste",
-                filtre,
+                await SirketKapsamiEkleAsync(kullanici, filtre),
                 "Cihaz değişim doğalgaz mobile talep listesi",
                 retryTransient: true);
         }
 
-        public Task<YkcTalepListeSonuc?> Crm187TaleplerAsync(AppKullanici kullanici, YkcTalepListeFiltre filtre)
+        public async Task<YkcTalepListeSonuc?> Crm187TaleplerAsync(AppKullanici kullanici, YkcTalepListeFiltre filtre)
         {
-            return PostAsync<YkcTalepListeFiltre, YkcTalepListeSonuc>(
+            return await PostAsync<YkcTalepListeFiltre, YkcTalepListeSonuc>(
                 kullanici,
                 "api/ykc/crm187/talepler/liste",
-                filtre,
+                await SirketKapsamiEkleAsync(kullanici, filtre),
                 "Cihaz değişim CRM187 talep listesi",
                 retryTransient: true);
         }

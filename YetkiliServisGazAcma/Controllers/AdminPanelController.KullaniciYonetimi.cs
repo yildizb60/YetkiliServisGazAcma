@@ -60,6 +60,12 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
 
+            var adminRoluVar = User.IsInRole(KullaniciRolAdlari.GenelSistemAdmin)
+                || User.IsInRole(KullaniciRolAdlari.EskiSuperAdmin)
+                || User.IsInRole(KullaniciRolAdlari.SirketAdmin);
+            if (!adminRoluVar && User.IsInRole(KullaniciRolAdlari.Personel))
+                return Redirect("/personel-panel");
+
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
             var dashboard = await GetAdminDashboardOzetAsync(kullanici, sirketId);
             ViewBag.AdminDashboardVeriKaynagi = "API";
@@ -81,6 +87,7 @@ namespace YetkiliServisGazAcma.Controllers
 
             ViewBag.Kullanici = kullanici;
             var genelSistemAdminMi = await _aktifSirketService.GenelSistemAdminMi(kullanici);
+            ViewBag.GenelSistemAdminMi = genelSistemAdminMi;
             var sirketler = await _aktifSirketService.KullaniciSirketleriAsync(kullanici);
             var aktifSirketAdi = sirketId.HasValue
                 ? sirketler.FirstOrDefault(x => x.Id == sirketId.Value)?.SirketAdi
@@ -302,7 +309,7 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpGet("kullanicilar/ekle")]
-        public async Task<IActionResult> KullaniciEkle()
+        public async Task<IActionResult> KullaniciEkle(int? firmaId)
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
@@ -311,6 +318,13 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.Kullanici = kullanici;
             ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
             await KullaniciFormSecenekleriHazirla(kullanici);
+            var seciliFirma = (ViewBag.Firmalar as List<Ys_Firma>)?.FirstOrDefault(x => x.Id == firmaId);
+            if (seciliFirma != null)
+            {
+                ViewBag.FormRol = "YetkiliServis";
+                ViewBag.FormFirmaId = seciliFirma.Id;
+                ViewBag.FormSirketId = seciliFirma.SirketId;
+            }
             return View("~/Views/AdminPanel/KullaniciEkle.cshtml");
         }
 

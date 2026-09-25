@@ -52,7 +52,12 @@ namespace YetkiliServisGazAcma.API.Controllers
                 .Where(x => x.FirmaId == firmaId);
 
             if (!string.IsNullOrWhiteSpace(dto?.Marka))
-                query = query.Where(x => x.Marka != null && x.Marka.MarkaAdi == dto.Marka);
+            {
+                var marka = dto.Marka.Trim();
+                query = query.Where(x =>
+                    (x.Marka != null && x.Marka.MarkaAdi == marka) ||
+                    (x.CihazMarka != null && x.CihazMarka == marka));
+            }
 
             if (dto?.BaslangicTarihi.HasValue == true)
             {
@@ -66,18 +71,38 @@ namespace YetkiliServisGazAcma.API.Controllers
                 query = query.Where(x => x.DevreyeAlmaTarihi < bitis);
             }
 
+            if (!string.IsNullOrWhiteSpace(dto?.TesisatNo))
+            {
+                var tesisat = dto.TesisatNo.Trim();
+                query = query.Where(x => x.TesistatNo != null && x.TesistatNo.Contains(tesisat));
+            }
+
             if (!string.IsNullOrWhiteSpace(dto?.Musteri))
             {
                 var aranacak = dto.Musteri.Trim();
-                query = query.Where(x => x.MusteriAdi != null && x.MusteriAdi.Contains(aranacak));
+                query = query.Where(x =>
+                    (x.MusteriAdi != null && x.MusteriAdi.Contains(aranacak)) ||
+                    (x.AboneNo != null && x.AboneNo.Contains(aranacak)) ||
+                    (x.MusteriTelefon != null && x.MusteriTelefon.Contains(aranacak)));
             }
+
+            var durumOzet = await query
+                .GroupBy(x => x.Durum)
+                .Select(g => new { Durum = g.Key, Sayi = g.Count() })
+                .ToListAsync();
+            var tamamlanan = durumOzet.FirstOrDefault(x => x.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi)?.Sayi ?? 0;
+            var bekleyen = durumOzet.FirstOrDefault(x => x.Durum == DevreyeAlmaDurumDegerleri.Bekliyor)?.Sayi ?? 0;
+            var iptal = durumOzet.FirstOrDefault(x => x.Durum == DevreyeAlmaDurumDegerleri.Iptal)?.Sayi ?? 0;
 
             if (!string.IsNullOrWhiteSpace(dto?.Durum))
             {
-                if (string.Equals(dto.Durum, "tamamlandi", StringComparison.OrdinalIgnoreCase))
+                var durum = dto.Durum.Trim();
+                if (string.Equals(durum, "tamamlandi", StringComparison.OrdinalIgnoreCase) || durum == "1")
                     query = query.Where(x => x.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi);
-                else if (string.Equals(dto.Durum, "bekliyor", StringComparison.OrdinalIgnoreCase))
+                else if (string.Equals(durum, "bekliyor", StringComparison.OrdinalIgnoreCase) || durum == "0")
                     query = query.Where(x => x.Durum == DevreyeAlmaDurumDegerleri.Bekliyor);
+                else if (string.Equals(durum, "iptal", StringComparison.OrdinalIgnoreCase) || durum == "2")
+                    query = query.Where(x => x.Durum == DevreyeAlmaDurumDegerleri.Iptal);
             }
 
             var islemler = await query
@@ -86,9 +111,9 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             var firma = await FirmaQuery().FirstOrDefaultAsync(x => x.Id == firmaId);
             var markaList = await _context.Ys_DevreyeAlmalar
-                .Include(x => x.Marka)
-                .Where(x => x.FirmaId == firmaId && !x.SilindiMi && x.Marka != null && x.Marka.MarkaAdi != null)
-                .Select(x => x.Marka!.MarkaAdi!)
+                .Where(x => x.FirmaId == firmaId && !x.SilindiMi)
+                .Select(x => x.Marka != null && x.Marka.MarkaAdi != null ? x.Marka.MarkaAdi : x.CihazMarka)
+                .Where(x => x != null && x != "")
                 .Distinct()
                 .OrderBy(x => x)
                 .ToListAsync();
@@ -97,7 +122,11 @@ namespace YetkiliServisGazAcma.API.Controllers
             {
                 Islemler = islemler.Select(YsDevreyeAlmaDto.FromEntity).ToList(),
                 Firma = firma == null ? null : YsFirmaDto.FromEntity(firma),
-                MarkaList = markaList
+                MarkaList = markaList!,
+                Toplam = durumOzet.Sum(x => x.Sayi),
+                Tamamlanan = tamamlanan,
+                Bekleyen = bekleyen,
+                Iptal = iptal
             });
         }
 
@@ -347,7 +376,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return Ok(new YsMarkaKontrolSonucDto { Yetkili = false, Mesaj = "Ilk kurulum tamamlanmadan islem yapilamaz." });
 
             if (string.IsNullOrWhiteSpace(dto?.CihazMarka))
-                return Ok(new YsMarkaKontrolSonucDto { Yetkili = false, Mesaj = "Servisten gelen cihaz marka bilgisi bulunamadi." });
+                return Ok(new YsMarkaKontrolSonucDto { Yetkili = false, Mesaj = "Cihaz marka bilgisi bulunmadığından devreye alma yapılamaz." });
 
             var marka = await MarkaBulAsync(dto.CihazMarka);
             if (marka == null)
@@ -355,13 +384,13 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return Ok(new YsMarkaKontrolSonucDto
                 {
                     Yetkili = false,
-                    Mesaj = $"Servisten gelen '{dto.CihazMarka}' markasi sistem markalari ile eslesmedi."
+                    Mesaj = $"{dto.CihazMarka} markasında işlem yetkiniz yok."
                 });
             }
 
             var yetkiVar = await FirmaMarkaYetkisiVarAsync(kullanici.FirmaId.Value, marka.Id);
             if (!yetkiVar)
-                return Ok(new YsMarkaKontrolSonucDto { Yetkili = false, Mesaj = "Bu marka icin yetkiniz bulunmamaktadir!" });
+                return Ok(new YsMarkaKontrolSonucDto { Yetkili = false, Mesaj = $"{marka.MarkaAdi} markasında işlem yetkiniz yok." });
 
             return Ok(new YsMarkaKontrolSonucDto
             {
@@ -426,7 +455,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return Ok(new YsDevreyeAlmaIslemSonucDto
                 {
                     Basarili = false,
-                    Mesaj = "Servisten gelen cihaz markasi sistem markalari ile eslesmedi.",
+                    Mesaj = $"{dto.CihazMarka} markasında işlem yetkiniz yok.",
                     RedirectUrl = "/ys-devreyeal"
                 });
             }
@@ -437,7 +466,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return Ok(new YsDevreyeAlmaIslemSonucDto
                 {
                     Basarili = false,
-                    Mesaj = "Bu marka icin yetkiniz bulunmamaktadir!",
+                    Mesaj = $"{marka.MarkaAdi} markasında işlem yetkiniz yok.",
                     RedirectUrl = "/ys-devreyeal"
                 });
             }
@@ -646,6 +675,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         public DateTime? BaslangicTarihi { get; set; }
         public DateTime? BitisTarihi { get; set; }
         public string? Musteri { get; set; }
+        public string? TesisatNo { get; set; }
         public string? Durum { get; set; }
     }
 
@@ -747,6 +777,10 @@ namespace YetkiliServisGazAcma.API.Controllers
         public List<YsDevreyeAlmaDto> Islemler { get; set; } = new();
         public YsFirmaDto? Firma { get; set; }
         public List<string> MarkaList { get; set; } = new();
+        public int Toplam { get; set; }
+        public int Tamamlanan { get; set; }
+        public int Bekleyen { get; set; }
+        public int Iptal { get; set; }
     }
 
     public class YsFirmaDto

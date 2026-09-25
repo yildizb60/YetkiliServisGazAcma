@@ -9,7 +9,6 @@ using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using System.Globalization;
 using System.Linq;
-using System.Text;
 
 namespace YetkiliServisGazAcma.Controllers
 {
@@ -27,6 +26,7 @@ namespace YetkiliServisGazAcma.Controllers
         private readonly AdminYetkiBelgesiOnayApiClient _adminYetkiBelgesiOnayApiClient;
         private readonly AdminSubeApiClient _adminSubeApiClient;
         private readonly AdminRaporApiClient _adminRaporApiClient;
+        private readonly YkcApiClient _ykcApiClient;
         private readonly MarkaApiClient _markaApiClient;
         private readonly UrunKategoriApiClient _urunKategoriApiClient;
 
@@ -40,6 +40,7 @@ namespace YetkiliServisGazAcma.Controllers
             AdminYetkiBelgesiOnayApiClient adminYetkiBelgesiOnayApiClient,
             AdminSubeApiClient adminSubeApiClient,
             AdminRaporApiClient adminRaporApiClient,
+            YkcApiClient ykcApiClient,
             MarkaApiClient markaApiClient,
             UrunKategoriApiClient urunKategoriApiClient)
         {
@@ -52,50 +53,14 @@ namespace YetkiliServisGazAcma.Controllers
             _adminYetkiBelgesiOnayApiClient = adminYetkiBelgesiOnayApiClient;
             _adminSubeApiClient = adminSubeApiClient;
             _adminRaporApiClient = adminRaporApiClient;
+            _ykcApiClient = ykcApiClient;
             _markaApiClient = markaApiClient;
             _urunKategoriApiClient = urunKategoriApiClient;
-        }
-
-        private static bool KullanilanKategoriMi(string? ad)
-        {
-            var key = NormalizeKategori(ad);
-
-            return key == "kombi"
-                || key.Contains("merkezikazan")
-                || key.Contains("sofben")
-                || key.Contains("sohben");
-        }
-
-        private static string NormalizeKategori(string? ad)
-        {
-            if (string.IsNullOrWhiteSpace(ad))
-                return string.Empty;
-
-            var normalized = ad.Trim().ToLower(new CultureInfo("tr-TR")).Normalize(NormalizationForm.FormD);
-            var chars = normalized
-                .Where(ch => CharUnicodeInfo.GetUnicodeCategory(ch) != UnicodeCategory.NonSpacingMark && char.IsLetterOrDigit(ch))
-                .ToArray();
-
-            return new string(chars)
-                .Replace("ı", "i")
-                .Replace("ş", "s")
-                .Replace("ğ", "g")
-                .Replace("ü", "u")
-                .Replace("ö", "o")
-                .Replace("ç", "c");
         }
 
         private async Task<List<UrunKategori>> KullanilanKategorileriGetir()
         {
             return (await _urunKategoriApiClient.ListeAsync() ?? new List<UrunKategori>())
-                .Where(x => KullanilanKategoriMi(x.Ad))
-                .GroupBy(x => NormalizeKategori(x.Ad))
-                .Select(g => g
-                    .OrderByDescending(x => x.AktifMi)
-                    .ThenBy(x => string.IsNullOrWhiteSpace(x.IconUrl) ? 1 : 0)
-                    .ThenBy(x => x.SiraNo)
-                    .ThenBy(x => x.Ad)
-                    .First())
                 .OrderBy(x => x.SiraNo)
                 .ThenBy(x => x.Ad)
                 .ToList();

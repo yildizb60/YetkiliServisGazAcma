@@ -1,4 +1,10 @@
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.FileProviders;
 using YetkiliServisGazAcma.Business.Services;
+using YetkiliServisGazAcma.Business.Services.Online;
 using YetkiliServisGazAcma.Entities;
 
 var passed = 0;
@@ -18,6 +24,49 @@ string ExcelParcasi(byte[] bytes, string path)
 }
 
 // No database or external providers: checks cannot alter application records.
+var listDevice = YkcTalepDto.FromEntity(new Ykc_Talep
+{
+    EskiCihazTipi = "Kombi",
+    EskiMarka = "Buderus",
+    EskiBacaTipi = null,
+    EskiKapasite = "20000",
+    YeniCihazTipi = "Kombi",
+    YeniMarka = "Bosch",
+    YeniBacaTipi = "Hermetik",
+    YeniKapasite = "2460"
+});
+Check(listDevice.ProjedekiCihazBilgisi?.BacaTipi == null
+      && listDevice.ProjedekiCihazBilgisi?.Marka == "Buderus"
+      && listDevice.YeniCihazBilgisi?.BacaTipi == "Hermetik",
+    "Request list preserves missing source chimney and entered new-device chimney");
+var firmFileUser = new AppKullanici { KullaniciTipi = KullaniciTipiDegerleri.SertifikaliFirma, FirmaId = 7, SirketId = 3 };
+Check(YkcYetkiService.FirmaDosyasinaErisimVarMi(firmFileUser, new Ykc_Talep { FirmaId = 7, SirketId = 3 }),
+    "Certified firm can access its own request file");
+Check(!YkcYetkiService.FirmaDosyasinaErisimVarMi(firmFileUser, new Ykc_Talep { FirmaId = 8, SirketId = 3 }),
+    "Certified firm cannot access another firm's file in the same company");
+firmFileUser.FirmaId = null;
+Check(!YkcYetkiService.FirmaDosyasinaErisimVarMi(firmFileUser, new Ykc_Talep { FirmaId = 8, SirketId = 3 }),
+    "Certified firm without a firm assignment cannot use company scope for files");
+
+var onlineHandler = new RecordingOnlineHandler();
+using var onlineHttp = new HttpClient(onlineHandler);
+var disabledOnline = new OnlineCihazBilgileriClient(onlineHttp,
+    Options.Create(new OnlineServiceOptions()), NullLogger<OnlineCihazBilgileriClient>.Instance);
+var disabledResult = await disabledOnline.YSCihazBilgileriGetirAsync("CORUMGAZ", 1000132, 432237);
+Check(!disabledResult.Basarili && onlineHandler.Calls == 0,
+    "Unconfigured online service cannot call a default test endpoint");
+var missingEndpoint = new OnlineCihazBilgileriClient(onlineHttp,
+    Options.Create(new OnlineServiceOptions { Enabled = true }), NullLogger<OnlineCihazBilgileriClient>.Instance);
+var missingEndpointResult = await missingEndpoint.YSCihazBilgileriGetirAsync("CORUMGAZ", 1000132, 432237);
+Check(!missingEndpointResult.Basarili && onlineHandler.Calls == 0,
+    "Enabled online service requires an explicit endpoint");
+var configuredOnline = new OnlineCihazBilgileriClient(onlineHttp,
+    Options.Create(new OnlineServiceOptions { Enabled = true, Endpoint = "https://example.invalid/Online.svc" }),
+    NullLogger<OnlineCihazBilgileriClient>.Instance);
+await configuredOnline.YSCihazBilgileriGetirAsync("CORUMGAZ", 1000132, 432237);
+Check(onlineHandler.Calls == 1 && onlineHandler.LastUri?.AbsoluteUri == "https://example.invalid/Online.svc",
+    "Configured online service uses its explicit endpoint");
+
 var adminSetup = YetkiliServisIlkKurulumService.Degerlendir(
     YetkiliServisOlusturmaTipleri.Admin, true, true, true, true);
 Check(adminSetup.zorunluMu && adminSetup.tamamlandiMi && adminSetup.eksikler.Count == 0,
@@ -46,6 +95,17 @@ Check(!YetkiBelgesiService.OnaylanabilirMi(approvalDocument, approvalDay), "Alre
 approvalDocument.Durum = YetkiBelgesiDurumDegerleri.OnaydaBekliyor;
 approvalDocument.SilindiMi = true;
 Check(!YetkiBelgesiService.OnaylanabilirMi(approvalDocument, approvalDay), "Deleted certificate cannot be approved");
+
+var deletableDocument = new Ys_YetkiBelgesi { Durum = YetkiBelgesiDurumDegerleri.OnaydaBekliyor };
+Check(YetkiBelgesiService.SilinebilirMi(deletableDocument), "Pending certificate can be deleted");
+deletableDocument.Durum = YetkiBelgesiDurumDegerleri.Reddedildi;
+Check(YetkiBelgesiService.SilinebilirMi(deletableDocument), "Rejected certificate can be deleted");
+deletableDocument.Durum = YetkiBelgesiDurumDegerleri.Onaylandi;
+Check(!YetkiBelgesiService.SilinebilirMi(deletableDocument), "Approved certificate cannot be deleted");
+deletableDocument.Durum = YetkiBelgesiDurumDegerleri.OnaydaBekliyor;
+deletableDocument.SilindiMi = true;
+Check(!YetkiBelgesiService.SilinebilirMi(deletableDocument), "Deleted certificate cannot be deleted again");
+Check(!YetkiBelgesiService.SilinebilirMi(null), "Missing certificate cannot be deleted");
 
 using var snapshots = new YkcSorguKaydiService();
 var reference = snapshots.Ekle("firm-a", new YkcTalepKaydetDto {
@@ -87,6 +147,50 @@ Check(snapshots.Uygula("firm-a", padded) && padded.TesisatNo == "100" && padded.
 var invalidNumber = Request(); invalidNumber.TesisatNo = "+100";
 Check(!snapshots.Uygula("firm-a", invalidNumber), "Non-digit identifier rejected");
 
+var storageFixture = Path.Combine(Path.GetTempPath(), "ykc-storage-test-" + Guid.NewGuid().ToString("N"));
+try
+{
+    var environment = new StorageTestEnvironment { ContentRootPath = Path.Combine(storageFixture, "app") };
+    var persistentRoot = Path.Combine(storageFixture, "persistent");
+    var storageConfig = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+    {
+        ["DocumentStorage:RootPath"] = persistentRoot
+    }).Build();
+    var legacy = PrivateDocumentStorage.LegacyRoot(environment, "ykc-belgeler");
+    Check(PrivateDocumentStorage.Root(environment, null, "ykc-belgeler") == legacy,
+        "Unconfigured private storage keeps the existing path");
+    Check(PrivateDocumentStorage.Root(environment, storageConfig, "ykc-belgeler") == Path.Combine(persistentRoot, "ykc-belgeler"),
+        "Configured private storage is outside the application folder");
+    Directory.CreateDirectory(legacy);
+    File.WriteAllText(Path.Combine(legacy, "existing.pdf"), "fixture");
+    Check(PrivateDocumentStorage.ExistingFile(environment, storageConfig, "ykc-belgeler", "existing.pdf") == Path.Combine(legacy, "existing.pdf"),
+        "Previously stored private documents remain readable");
+    Check(PrivateDocumentStorage.ExistingFile(environment, storageConfig, "ykc-belgeler", "../secret.txt") == null,
+        "Private storage rejects path traversal");
+    var invalidStorageConfig = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+    {
+        ["DocumentStorage:RootPath"] = Path.Combine(environment.ContentRootPath, "App_Data")
+    }).Build();
+    var invalidRootRejected = false;
+    try
+    {
+        PrivateDocumentStorage.Root(environment, invalidStorageConfig, "ykc-belgeler");
+    }
+    catch (InvalidOperationException)
+    {
+        invalidRootRejected = true;
+    }
+    Check(invalidRootRejected, "Private storage cannot be configured inside the publish folder");
+}
+finally
+{
+    var full = Path.GetFullPath(storageFixture);
+    if (Path.GetFileName(full).StartsWith("ykc-storage-test-", StringComparison.Ordinal)
+        && PrivateDocumentStorage.IsInRoot(full, Path.GetTempPath())
+        && Directory.Exists(full))
+        Directory.Delete(full, recursive: true);
+}
+
 var appointment = new DateTime(2030, 1, 2, 15, 0, 0);
 Check(YkcRandevuKurali.Cakisiyor(appointment, appointment, 0), "Same minute conflicts without invented visit duration");
 Check(!YkcRandevuKurali.Cakisiyor(appointment, appointment.AddMinutes(1), 0), "Different minute allowed with default interval");
@@ -94,6 +198,23 @@ Check(YkcRandevuKurali.Cakisiyor(appointment, appointment.AddMinutes(9), 10), "C
 Check(!YkcRandevuKurali.Cakisiyor(appointment, appointment.AddMinutes(10), 10), "Exact interval boundary allowed");
 Check(YkcRandevuKurali.Cakisiyor(appointment, appointment.AddMinutes(-9), 10), "Interval is symmetric");
 Check(YkcRandevuKurali.Cakisiyor(appointment.Date, appointment.Date.AddMinutes(-5), 10), "Interval crosses midnight");
+Check(YkcRandevuKurali.Cakisiyor(appointment, appointment.AddMinutes(29), 30), "Appointments inside the 30-minute team window conflict");
+Check(!YkcRandevuKurali.Cakisiyor(appointment, appointment.AddMinutes(30), 30), "Exactly 30 minutes apart is allowed");
+Check(YkcRandevuKurali.GecerliSaatDilimi(new TimeSpan(14, 0, 0), 30)
+      && YkcRandevuKurali.GecerliSaatDilimi(new TimeSpan(14, 30, 0), 30),
+    "Whole and half hours are valid 30-minute appointment slots");
+Check(!YkcRandevuKurali.GecerliSaatDilimi(new TimeSpan(14, 15, 0), 30),
+    "Quarter-hour values are rejected for 30-minute appointment slots");
+Check(!YkcRandevuKurali.MesaiSaatindeMi(new TimeSpan(5, 30, 0)), "05:30 is outside working hours");
+Check(YkcRandevuKurali.MesaiSaatindeMi(new TimeSpan(8, 0, 0)), "08:00 is the first appointment slot");
+Check(YkcRandevuKurali.MesaiSaatindeMi(new TimeSpan(17, 30, 0)), "17:30 is the last 30-minute appointment slot");
+Check(!YkcRandevuKurali.MesaiSaatindeMi(new TimeSpan(18, 0, 0)), "18:00 is closing time");
+Check(YkcTakvimGorunumKurali.DoneminTumKayitlariGerekli(new DateTime(2026, 9, 7), new DateTime(2026, 9, 13)),
+    "Exact Monday-Sunday range requests complete week records");
+Check(YkcTakvimGorunumKurali.DoneminTumKayitlariGerekli(new DateTime(2026, 9, 1), new DateTime(2026, 9, 30)),
+    "Exact calendar month requests complete month records");
+Check(!YkcTakvimGorunumKurali.DoneminTumKayitlariGerekli(new DateTime(2026, 9, 2), new DateTime(2026, 9, 8)),
+    "Arbitrary seven-day range remains paged");
 Check(YkcKontrolAkisKurali.YeniRandevuGerekli(YkcFr265KontrolSonucDegerleri.UygunDegil),
     "Unsuccessful control requires a new appointment");
 Check(!YkcKontrolAkisKurali.YeniRandevuGerekli(YkcFr265KontrolSonucDegerleri.Uygun),
@@ -166,10 +287,12 @@ var raporKaydi = new YkcRaporKayitDto
     EskiCihazTipi = "Kombi",
     EskiMarka = "Kaynak Marka",
     EskiKapasite = "20000 kcal/h",
+    EskiBacaTipi = "Hermetik Kaynak",
     YeniCihazTipi = "Kombi",
     YeniMarka = "Yeni Marka",
     YeniModel = "=HYPERLINK(\"https://example.invalid\")",
     YeniKapasite = "24000 kcal/h",
+    YeniBacaTipi = "Yoğuşmalı Yeni",
     Il = "Çorum",
     Ilce = "Merkez",
     Durum = YkcDurumDegerleri.Tamamlandi,
@@ -178,13 +301,14 @@ var raporKaydi = new YkcRaporKayitDto
 var icOperasyonExcel = YkcRaporExcelService.Olustur(new[] { raporKaydi }, icOperasyon: true);
 var icOperasyonExcelXml = ExcelParcasi(icOperasyonExcel, "xl/worksheets/sheet1.xml");
 Check(icOperasyonExcel[0] == (byte)'P' && icOperasyonExcel[1] == (byte)'K', "YKC export is a real XLSX package");
-Check(icOperasyonExcelXml.Contains("Projedeki Marka") && icOperasyonExcelXml.Contains("Berrin Yıldız"),
-    "Internal XLSX contains Turkish headings and report data");
+Check(icOperasyonExcelXml.Contains("Projedeki Baca Tipi") && icOperasyonExcelXml.Contains("Hermetik Kaynak") && icOperasyonExcelXml.Contains("Berrin Yıldız"),
+    "Internal XLSX contains source-device chimney data and report fields");
 Check(icOperasyonExcelXml.Contains("=HYPERLINK") && !icOperasyonExcelXml.Contains("<f>"),
     "Formula-looking values remain plain Excel text");
 var firmaExcelXml = ExcelParcasi(YkcRaporExcelService.Olustur(new[] { raporKaydi }, icOperasyon: false), "xl/worksheets/sheet1.xml");
-Check(!firmaExcelXml.Contains("Projedeki Marka") && !firmaExcelXml.Contains("Kaynak Marka"),
-    "Firm XLSX does not expose source-device columns");
+Check(!firmaExcelXml.Contains("Projedeki Marka") && !firmaExcelXml.Contains("Kaynak Marka") && !firmaExcelXml.Contains("Hermetik Kaynak")
+      && firmaExcelXml.Contains("Yeni Kullanılan Baca Tipi") && firmaExcelXml.Contains("Yoğuşmalı Yeni"),
+    "Firm XLSX exposes the new chimney field without source-device data");
 var raporPdf = YkcRaporPdfService.Olustur(new[] { raporKaydi }, icOperasyon: true);
 Check(System.Text.Encoding.ASCII.GetString(raporPdf, 0, 5) == "%PDF-", "YKC report export is a PDF");
 
@@ -210,6 +334,37 @@ Check(belgeExcelXml.Contains("Demo Yetkili Servis") && belgeExcelXml.Contains("O
     "Certificate XLSX contains scoped report data");
 var belgePdf = YetkiBelgesiRaporPdfService.Olustur(new[] { yetkiBelgesi }, "Onaylanan Yetki Belgeleri");
 Check(System.Text.Encoding.ASCII.GetString(belgePdf, 0, 5) == "%PDF-", "Certificate report export is a PDF");
+var servisDetayi = new AdminYetkiliServisDetaySonuc
+{
+    Servis = new Ys_Firma
+    {
+        FirmaAdi = "Demo Yetkili Servis",
+        YetkiliKisi = "Ayşe Yılmaz",
+        FaaliyetIli = "Çorum",
+        Telefon = "05550000000",
+        Sirket = new Dag_Sirket { SirketAdi = "Çorumgaz Doğalgaz A.Ş." },
+        AktifMi = true
+    },
+    Subeler = new List<Ys_Sube> { new() { Ilce = "Merkez" } }
+};
+var servisExcel = YetkiliServisKayitDosyasi.ExcelOlustur(servisDetayi);
+var servisExcelXml = ExcelParcasi(servisExcel, "xl/worksheets/sheet1.xml");
+Check(servisExcelXml.Contains("Demo Yetkili Servis") && servisExcelXml.Contains("Merkez")
+      && servisExcelXml.Contains("Ayşe Yılmaz"),
+    "Service record XLSX contains firm, responsible person and branch district");
+var servisPdf = YetkiliServisKayitDosyasi.PdfOlustur(servisDetayi);
+Check(System.Text.Encoding.ASCII.GetString(servisPdf, 0, 5) == "%PDF-", "Service record export is a PDF");
+var devreyeAlmaRaporu = DevreyeAlmaRaporPdfService.YetkiliServisRaporuOlustur(new[]
+{
+    new Ys_DevreyeAlma
+    {
+        TesistatNo = "1311884", MusteriAdi = "Serhat Battal", CihazTipi = "Ocak",
+        CihazMarka = "Arçelik", CihazModeli = "OCD K 651 DWYS", SeriNo = "200202020",
+        CihazKapasite = "7740", TeknisyenAdi = "Kenan Kılıç",
+        DevreyeAlmaTarihi = new DateTime(2026, 9, 25), Durum = DevreyeAlmaDurumDegerleri.Tamamlandi
+    }
+}, new DateTime(2026, 9, 1), new DateTime(2026, 9, 30));
+Check(System.Text.Encoding.ASCII.GetString(devreyeAlmaRaporu, 0, 5) == "%PDF-", "Service commissioning report renders device details as PDF");
 if (args.Length == 2 && args[0] == "--form-output")
 {
     Directory.CreateDirectory(args[1]);
@@ -220,3 +375,29 @@ if (args.Length == 2 && args[0] == "--form-output")
     File.WriteAllBytes(Path.Combine(args[1], "ykc-report.xlsx"), icOperasyonExcel);
 }
 Console.WriteLine($"{passed} checks passed. No application data changed.");
+
+sealed class RecordingOnlineHandler : HttpMessageHandler
+{
+    public int Calls { get; private set; }
+    public Uri? LastUri { get; private set; }
+
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        Calls++;
+        LastUri = request.RequestUri;
+        return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.ServiceUnavailable)
+        {
+            Content = new StringContent("")
+        });
+    }
+}
+
+sealed class StorageTestEnvironment : IWebHostEnvironment
+{
+    public string EnvironmentName { get; set; } = "Development";
+    public string ApplicationName { get; set; } = "YkcRules";
+    public string ContentRootPath { get; set; } = string.Empty;
+    public string WebRootPath { get; set; } = string.Empty;
+    public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
+    public IFileProvider WebRootFileProvider { get; set; } = new NullFileProvider();
+}

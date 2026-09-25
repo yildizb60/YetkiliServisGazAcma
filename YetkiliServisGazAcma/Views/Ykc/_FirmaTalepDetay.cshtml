@@ -43,7 +43,7 @@
 }
 <section class="ykc-firm-record" aria-labelledby="firm-customer">
     <header class="ykc-firm-record-head">
-        <div><span class="ykc-firm-record-number">Talep No: #@Model.Id</span><h1 id="firm-customer">@Deger(Model.MusteriAdi)</h1><p>Tesisat No: @Deger(Model.TesisatNo)</p></div>
+        <div><span class="ykc-firm-record-number">Talep No: #@Model.Id</span><h1 id="firm-customer">@Deger(Model.MusteriAdi)</h1></div>
         <div class="ykc-firm-record-actions">
             @if (Model.Durum != YkcDurumDegerleri.TalepAlindi)
             {
@@ -70,8 +70,8 @@
                 <h2 id="firm-installation-title"><i class="bi bi-house-check" aria-hidden="true"></i>Tesisat ve Abone</h2>
                 <dl class="ykc-firm-data-grid">
                     <div><dt>Sözleşme No:</dt><dd>@Deger(Model.SozlesmeNo)</dd></div>
+                    <div><dt>Tesisat No:</dt><dd>@Deger(Model.TesisatNo)</dd></div>
                     <div><dt>Abone No:</dt><dd>@Deger(Model.AboneNo)</dd></div>
-                    <div><dt>Sayaç No:</dt><dd>@Deger(Model.SayacNo)</dd></div>
                     @if (!string.IsNullOrWhiteSpace(Model.MusteriTelefon)) { <div><dt>Telefon:</dt><dd>@Model.MusteriTelefon</dd></div> }
                     <div class="wide"><dt>Adres:</dt><dd>@Deger(Model.Adres)</dd></div>
                 </dl>
@@ -79,7 +79,7 @@
             <section class="ykc-firm-data-section" aria-labelledby="firm-device-title">
                 <h2 id="firm-device-title"><i class="bi bi-fire" aria-hidden="true"></i>Yeni Kullanılan Cihaz</h2>
                 <dl class="ykc-firm-data-grid">
-                    <div><dt>Cihaz Türü:</dt><dd>@Deger(Model.YeniCihazTipi)</dd></div>
+                    <div><dt>Yakıcı Cihaz Tipi:</dt><dd>@Deger(Model.YeniCihazTipi)</dd></div>
                     <div><dt>Marka:</dt><dd>@Deger(Model.YeniMarka)</dd></div>
                     <div><dt>Kapasite:</dt><dd>@Deger(Model.YeniKapasite) kcal/h</dd></div>
                     @if (!string.IsNullOrWhiteSpace(Model.YeniBacaTipi)) { <div><dt>Baca Tipi:</dt><dd>@Model.YeniBacaTipi</dd></div> }
@@ -106,19 +106,15 @@
             {
                 <section class="ykc-firm-data-section"><h2><i class="bi bi-file-earmark-check" aria-hidden="true"></i>Sonuç Belgesi</h2><a class="df-btn df-btn-secondary df-btn-sm" href="@Url.Action("DosyaAc", "Ykc", new { id = nihai.Id })"><i class="bi bi-download" aria-hidden="true"></i>İmzalı PDF'yi İndir</a></section>
             }
-            <section class="ykc-firm-data-section" aria-labelledby="firm-history-title">
-                <h2 id="firm-history-title"><i class="bi bi-clock-history" aria-hidden="true"></i>İşlem Geçmişi <small>@Model.Gecmis.Count kayıt</small></h2>
+            <details class="ykc-firm-data-section ykc-firm-history-panel" aria-labelledby="firm-history-title">
+                <summary><h2 id="firm-history-title"><i class="bi bi-clock-history" aria-hidden="true"></i>İşlem Geçmişi <small>@Model.Gecmis.Count kayıt</small></h2><i class="bi bi-chevron-down" aria-hidden="true"></i></summary>
                 <ol class="ykc-firm-history">
-                    @foreach (var kayit in Model.Gecmis.Take(3))
+                    @foreach (var kayit in Model.Gecmis)
                     {
                         <li><time>@kayit.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</time><strong>@IslemAdi(kayit.IslemTipi)</strong>@if (kayit.YeniDurum.HasValue) { <span>@YkcDurumSunumu.Etiket(kayit.YeniDurum.Value)</span> }</li>
                     }
                 </ol>
-                @if (Model.Gecmis.Count > 3)
-                {
-                    <details class="ykc-firm-history-more"><summary>Önceki işlemler (@(Model.Gecmis.Count - 3))</summary><ol class="ykc-firm-history">@foreach (var kayit in Model.Gecmis.Skip(3)) { <li><time>@kayit.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</time><strong>@IslemAdi(kayit.IslemTipi)</strong></li> }</ol></details>
-                }
-            </section>
+            </details>
         </aside>
     </div>
 </section>

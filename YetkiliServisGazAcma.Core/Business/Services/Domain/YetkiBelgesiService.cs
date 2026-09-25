@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
 
@@ -12,11 +13,13 @@ namespace YetkiliServisGazAcma.Business.Services
         private const string PrivateStoragePrefix = "private:yetki-belgeleri/";
         private readonly AppDbContext _context;
         private readonly IWebHostEnvironment _env;
+        private readonly IConfiguration? _configuration;
 
-        public YetkiBelgesiService(AppDbContext context, IWebHostEnvironment env)
+        public YetkiBelgesiService(AppDbContext context, IWebHostEnvironment env, IConfiguration? configuration = null)
         {
             _context = context;
             _env = env;
+            _configuration = configuration;
         }
 
         public async Task<List<Ys_YetkiBelgesi>> FirmaninYetkiBelgeleri(int firmaId)
@@ -151,7 +154,8 @@ namespace YetkiliServisGazAcma.Business.Services
                 var relative = temiz[PrivateStoragePrefix.Length..]
                     .Replace('/', Path.DirectorySeparatorChar)
                     .Replace('\\', Path.DirectorySeparatorChar);
-                return SafeCombine(PrivateYetkiBelgesiRoot(), relative);
+                return PrivateDocumentStorage.ExistingFile(_env, _configuration, "yetki-belgeleri", relative)
+                    ?? SafeCombine(PrivateYetkiBelgesiRoot(), relative);
             }
 
             if (Uri.TryCreate(temiz, UriKind.Absolute, out var uri)
@@ -173,15 +177,17 @@ namespace YetkiliServisGazAcma.Business.Services
                 var relative = temiz
                     .Replace('/', Path.DirectorySeparatorChar)
                     .Replace('\\', Path.DirectorySeparatorChar);
-                var privatePath = SafeCombine(PrivateYetkiBelgesiRoot(), relative);
-                if (!string.IsNullOrWhiteSpace(privatePath) && File.Exists(privatePath))
+                var privatePath = PrivateDocumentStorage.ExistingFile(_env, _configuration, "yetki-belgeleri", relative);
+                if (privatePath != null)
                     return privatePath;
 
                 return SafeCombine(WebRootPath(), relative);
             }
 
             var fullPath = Path.GetFullPath(temiz);
-            if (PathInRoot(fullPath, PrivateYetkiBelgesiRoot()) || PathInRoot(fullPath, WebRootPath()))
+            if (PrivateDocumentStorage.IsInRoot(fullPath, PrivateYetkiBelgesiRoot())
+                || PrivateDocumentStorage.IsInRoot(fullPath, PrivateDocumentStorage.LegacyRoot(_env, "yetki-belgeleri"))
+                || PrivateDocumentStorage.IsInRoot(fullPath, WebRootPath()))
                 return fullPath;
 
             return null;
@@ -189,7 +195,7 @@ namespace YetkiliServisGazAcma.Business.Services
 
         private string PrivateYetkiBelgesiRoot()
         {
-            return Path.Combine(_env.ContentRootPath, "App_Data", "yetki-belgeleri");
+            return PrivateDocumentStorage.Root(_env, _configuration, "yetki-belgeleri");
         }
 
         private string WebRootPath()
@@ -203,14 +209,7 @@ namespace YetkiliServisGazAcma.Business.Services
         {
             var fullRoot = Path.GetFullPath(root);
             var fullPath = Path.GetFullPath(Path.Combine(fullRoot, relativePath));
-            return PathInRoot(fullPath, fullRoot) ? fullPath : null;
-        }
-
-        private static bool PathInRoot(string path, string root)
-        {
-            var fullRoot = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
-            var fullPath = Path.GetFullPath(path);
-            return fullPath.StartsWith(fullRoot, StringComparison.OrdinalIgnoreCase);
+            return PrivateDocumentStorage.IsInRoot(fullPath, fullRoot) ? fullPath : null;
         }
 
         private static async Task<bool> DosyaIcerigiGecerliMi(IFormFile dosya, string uzanti)
@@ -248,6 +247,12 @@ namespace YetkiliServisGazAcma.Business.Services
             return belge != null && !belge.SilindiMi
                 && belge.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
                 && belge.YetkiBelgesiBitisTarihi.Date >= tarih.Date;
+        }
+
+        public static bool SilinebilirMi(Ys_YetkiBelgesi? belge)
+        {
+            return belge != null && !belge.SilindiMi
+                && belge.Durum != YetkiBelgesiDurumDegerleri.Onaylandi;
         }
 
         public static bool GecerliMi(Ys_YetkiBelgesi? belge, DateTime tarih)

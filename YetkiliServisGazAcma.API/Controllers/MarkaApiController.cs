@@ -25,6 +25,14 @@ namespace YetkiliServisGazAcma.API.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> Liste([FromBody] MarkaListeFiltreDto? dto)
         {
+            if (dto?.TumunuGetir == true)
+            {
+                if (User.Identity?.IsAuthenticated != true)
+                    return Unauthorized();
+                if (!await MarkaListesiniGorebilirMi())
+                    return Forbid();
+            }
+
             var query = _context.Ys_Markalar
                 .Where(x => !x.SilindiMi)
                 .AsQueryable();
@@ -53,6 +61,9 @@ namespace YetkiliServisGazAcma.API.Controllers
         [Authorize]
         public async Task<IActionResult> Getir([FromBody] IdDto dto)
         {
+            if (!await MarkaYonetebilirMi())
+                return Forbid();
+
             var marka = await _context.Ys_Markalar
                 .Where(x => x.Id == dto.Id && !x.SilindiMi)
                 .Select(x => new
@@ -155,6 +166,16 @@ namespace YetkiliServisGazAcma.API.Controllers
                 x.KullaniciId == kullanici.Id &&
                 !x.SilindiMi &&
                 (x.YetkiTipi == YetkiTipleri.TAM_YETKI || x.YetkiTipi == YetkiTipleri.MARKA_YONET));
+        }
+
+        private async Task<bool> MarkaListesiniGorebilirMi()
+        {
+            if (User.IsInRole("GenelSistemAdmin")
+                || User.IsInRole("SuperAdmin")
+                || User.IsInRole("SirketAdmin"))
+                return true;
+
+            return await MarkaYonetebilirMi();
         }
     }
 

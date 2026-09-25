@@ -35,6 +35,9 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (string.IsNullOrWhiteSpace(dto.Email))
                 return Ok(AdminIslemSonucDto.Basarisiz("E-posta zorunludur."));
 
+            if (!CepTelefonuKurali.GecerliMi(dto.Telefon))
+                return Ok(AdminIslemSonucDto.Basarisiz("Telefon numarasi 05XXXXXXXXX veya 90XXXXXXXXXX formatinda olmalidir."));
+
             var sifreHatalari = ValidatePassword(dto.Sifre);
             if (sifreHatalari.Count > 0)
                 return Ok(AdminIslemSonucDto.Basarisiz(string.Join(" ", sifreHatalari)));
@@ -48,7 +51,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             {
                 UserName = email,
                 Email = email,
-                PhoneNumber = dto.Telefon,
+                PhoneNumber = dto.Telefon?.Trim(),
                 AdSoyad = dto.AdSoyad.Trim(),
                 KullaniciTipi = KullaniciTipiDegerleri.Personel,
                 SirketId = dto.SirketId,

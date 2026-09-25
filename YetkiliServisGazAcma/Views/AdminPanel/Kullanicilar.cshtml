@@ -20,6 +20,10 @@
     var pasifSayisi = kullanicilar.Count - aktifSayisi;
 }
 
+@section PageStyles {
+    <link rel="stylesheet" href="~/css/admin-directory.css" asp-append-version="true" />
+}
+
 <div class="df-user-directory">
     <div class="df-user-directory-bar">
         <div class="df-user-summary" aria-label="Kullanıcı durum özeti">
@@ -27,7 +31,12 @@
             <div><span>Aktif Kullanıcı</span><strong>@aktifSayisi</strong></div>
             <div><span>Pasif Kullanıcı</span><strong>@pasifSayisi</strong></div>
         </div>
-        <a class="df-btn df-btn-primary df-btn-sm" href="@Url.Action("KullaniciEkle", "AdminPanel")"><i class="bi bi-person-plus" aria-hidden="true"></i> Yeni Kullanıcı</a>
+        <a class="df-btn df-btn-primary df-btn-sm js-admin-form-sheet-trigger"
+           href="@Url.Action("KullaniciEkle", "AdminPanel")"
+           data-sheet-url="@Url.Action("KullaniciEkle", "AdminPanel")"
+           data-sheet-title="Yeni Kullanıcı">
+            <i class="bi bi-person-plus" aria-hidden="true"></i> Yeni Kullanıcı
+        </a>
     </div>
 
     <details class="df-user-filter" open="@(filtreAktif ? "open" : null)">
@@ -115,17 +124,29 @@
                             : kullanici.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma
                                 ? "is-certified"
                                 : "is-admin";
+                    var tipIcon = kullanici.KullaniciTipi == KullaniciTipiDegerleri.Personel
+                        ? "bi-person-badge"
+                        : kullanici.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis
+                            ? "bi-tools"
+                            : kullanici.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma
+                                ? "bi-building-check"
+                                : "bi-shield-check";
 
                     <div class="df-user-grid df-user-row">
                         <div class="df-user-identity"><span class="df-user-avatar">@basHarfler</span><strong>@(kullanici.AdSoyad ?? "-")</strong></div>
                         <div class="df-user-email">@(kullanici.Email ?? "-")</div>
-                        <div><span class="df-user-type @tipClass">@tip</span></div>
+                        <div><span class="df-user-role @tipClass"><i class="bi @tipIcon" aria-hidden="true"></i><span>@tip</span></span></div>
                         <div>@(bagli ?? "-")</div>
-                        <div><span class="df-pill @(kullanici.AktifMi ? "df-pill-success" : "df-pill-danger")">@(kullanici.AktifMi ? "Aktif" : "Pasif")</span></div>
+                        <div><span class="df-account-status @(kullanici.AktifMi ? "is-active" : "is-passive")"><i class="bi @(kullanici.AktifMi ? "bi-check-circle-fill" : "bi-pause-circle-fill")" aria-hidden="true"></i>@(kullanici.AktifMi ? "Aktif" : "Pasif")</span></div>
                         <div class="df-user-actions">
                             @if (kullaniciIslemYapilabilir)
                             {
-                                <a class="df-icon-action" href="@Url.Action("KullaniciDuzenle", "AdminPanel", new { id = kullanici.Id })" title="Kullanıcıyı düzenle" aria-label="@kullanici.AdSoyad kullanıcısını düzenle"><i class="bi bi-pencil" aria-hidden="true"></i></a>
+                                <a class="df-icon-action js-admin-form-sheet-trigger"
+                                   href="@Url.Action("KullaniciDuzenle", "AdminPanel", new { id = kullanici.Id })"
+                                   data-sheet-url="@Url.Action("KullaniciDuzenle", "AdminPanel", new { id = kullanici.Id })"
+                                   data-sheet-title="Kullanıcıyı Düzenle"
+                                   title="Kullanıcıyı düzenle"
+                                   aria-label="@kullanici.AdSoyad kullanıcısını düzenle"><i class="bi bi-pencil" aria-hidden="true"></i></a>
                                 @if (!kendiHesabiMi)
                                 {
                                 <form method="post" action="@Url.Action("KullaniciDurum", "AdminPanel", new { id = kullanici.Id })">
@@ -133,7 +154,7 @@
                                     <input type="hidden" name="aktif" value='@(kullanici.AktifMi ? "false" : "true")' />
                                     <button type="submit" class="df-icon-action @(kullanici.AktifMi ? "is-warning" : "is-success")" title="@(kullanici.AktifMi ? "Kullanıcıyı pasifleştir" : "Kullanıcıyı aktifleştir")" aria-label="@kullanici.AdSoyad kullanıcısını @(kullanici.AktifMi ? "pasifleştir" : "aktifleştir")"><i class="bi @(kullanici.AktifMi ? "bi-pause-circle" : "bi-play-circle")" aria-hidden="true"></i></button>
                                 </form>
-                                <form method="post" action="@Url.Action("KullaniciSil", "AdminPanel", new { id = kullanici.Id })" onsubmit="return confirm('Kullanıcıyı silmek istediğinize emin misiniz?');">
+                                <form method="post" action="@Url.Action("KullaniciSil", "AdminPanel", new { id = kullanici.Id })" data-toast-confirm data-confirm-title="Kullanıcıyı sil" data-confirm-message="@kullanici.AdSoyad adlı kullanıcı silinecek. Bu işlem geri alınamaz." data-confirm-action="Kullanıcıyı Sil">
                                     @Html.AntiForgeryToken()
                                     <button type="submit" class="df-icon-action is-danger" title="Kullanıcıyı sil" aria-label="@kullanici.AdSoyad kullanıcısını sil"><i class="bi bi-trash3" aria-hidden="true"></i></button>
                                 </form>
@@ -150,3 +171,9 @@
         </div>
     </section>
 </div>
+
+@await Html.PartialAsync("_AdminFormDrawer")
+
+@section Scripts {
+    <script src="~/js/admin-form-drawer.js" asp-append-version="true"></script>
+}

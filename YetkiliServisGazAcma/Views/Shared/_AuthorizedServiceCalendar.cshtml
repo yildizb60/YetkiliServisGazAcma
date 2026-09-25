@@ -1,0 +1,141 @@
+@model YetkiliServisGazAcma.Models.ViewModels.AuthorizedServiceCalendarViewModel
+@{
+    var tr = System.Globalization.CultureInfo.GetCultureInfo("tr-TR");
+    var seciliTarih = Model.SelectedDate.Date;
+    var ayBasi = new DateTime(seciliTarih.Year, seciliTarih.Month, 1);
+    var ilkGun = ayBasi.AddDays(-(((int)ayBasi.DayOfWeek + 6) % 7));
+    var gununIslemleri = Model.Items
+        .Where(x => x.Date.Date == seciliTarih)
+        .OrderBy(x => x.Date)
+        .ToList();
+    string TakvimLink(DateTime tarih, string? gorunum = null) =>
+        Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString("/ys-panel", new Dictionary<string, string?>
+        {
+            ["takvimTarih"] = tarih.ToString("yyyy-MM-dd"),
+            ["takvimGorunum"] = gorunum ?? Model.ViewMode
+        }) + "#service-calendar";
+}
+<link rel="stylesheet" href="~/css/home-calendar.css" asp-append-version="true" />
+<section class="home-calendar has-view-modes is-authorized-service-calendar" id="service-calendar" aria-labelledby="service-calendar-title">
+    <header class="home-calendar-heading">
+        <h2 id="service-calendar-title"><i class="bi bi-calendar2-week" aria-hidden="true"></i>Takvim</h2>
+        <a href="@Model.HistoryUrl">Geçmişi Aç <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+    </header>
+    <nav class="home-calendar-view-modes" aria-label="Takvim görünümü">
+        <a href="@TakvimLink(seciliTarih, "gun")" aria-current="@(Model.ViewMode == "gun" ? "page" : null)">Günlük</a>
+        <a href="@TakvimLink(seciliTarih, "ay")" aria-current="@(Model.ViewMode == "ay" ? "page" : null)">Aylık</a>
+        <a href="@TakvimLink(seciliTarih, "yil")" aria-current="@(Model.ViewMode == "yil" ? "page" : null)">Yıllık</a>
+    </nav>
+    <div class="home-calendar-body is-@Model.ViewMode-view">
+        @if (Model.ViewMode == "gun")
+        {
+            <nav class="home-day-picker" aria-label="Devreye alma günü seçimi">
+                <div class="home-period-nav">
+                    <a class="home-calendar-icon" href="@TakvimLink(seciliTarih.AddDays(-1), "gun")" title="Önceki gün" aria-label="Önceki gün"><i class="bi bi-chevron-left" aria-hidden="true"></i></a>
+                    <strong>@seciliTarih.ToString("dd MMMM yyyy", tr)</strong>
+                    <a class="home-calendar-icon" href="@TakvimLink(seciliTarih.AddDays(1), "gun")" title="Sonraki gün" aria-label="Sonraki gün"><i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+                </div>
+                <div class="home-day-picker__summary"><span>@seciliTarih.ToString("dddd", tr)</span><strong>@gununIslemleri.Count</strong><small>devreye alma</small></div>
+                <a class="home-calendar-today" href="@TakvimLink(DateTime.Today, "gun")">Bugüne Dön</a>
+            </nav>
+        }
+        else if (Model.ViewMode == "yil")
+        {
+            <nav class="home-year-picker" aria-label="Devreye alma ayı seçimi">
+                <div class="home-period-nav">
+                    <a class="home-calendar-icon" href="@TakvimLink(seciliTarih.AddYears(-1), "yil")" title="Önceki yıl" aria-label="Önceki yıl"><i class="bi bi-chevron-left" aria-hidden="true"></i></a>
+                    <strong>@seciliTarih.Year</strong>
+                    <a class="home-calendar-icon" href="@TakvimLink(seciliTarih.AddYears(1), "yil")" title="Sonraki yıl" aria-label="Sonraki yıl"><i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+                </div>
+                <div class="home-year-months">
+                    @for (var ay = 1; ay <= 12; ay++)
+                    {
+                        var ayTarihi = new DateTime(seciliTarih.Year, ay, Math.Min(seciliTarih.Day, DateTime.DaysInMonth(seciliTarih.Year, ay)));
+                        <a href="@TakvimLink(ayTarihi, "ay")" aria-current="@(ay == seciliTarih.Month ? "date" : null)">@ayTarihi.ToString("MMM", tr)</a>
+                    }
+                </div>
+                <a class="home-calendar-today" href="@TakvimLink(DateTime.Today, "yil")">Bu Yıla Dön</a>
+            </nav>
+        }
+        else
+        {
+            <nav class="home-month" aria-label="Devreye alma günü seçimi">
+                <div class="home-month-nav">
+                    <a class="home-calendar-icon" href="@TakvimLink(ayBasi.AddMonths(-1), "ay")" title="Önceki ay" aria-label="Önceki ay"><i class="bi bi-chevron-left" aria-hidden="true"></i></a>
+                    <strong>@seciliTarih.ToString("MMMM yyyy", tr)</strong>
+                    <a class="home-calendar-icon" href="@TakvimLink(ayBasi.AddMonths(1), "ay")" title="Sonraki ay" aria-label="Sonraki ay"><i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+                </div>
+                <div class="home-month-days">
+                    @foreach (var gunAdi in new[] { "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz" })
+                    {
+                        <span>@gunAdi</span>
+                    }
+                    @for (var i = 0; i < 42; i++)
+                    {
+                        var gun = ilkGun.AddDays(i);
+                        if (gun.Month != seciliTarih.Month)
+                        {
+                            <span class="home-month-empty" aria-hidden="true"></span>
+                        }
+                        else
+                        {
+                            var kayitSayisi = Model.Items.Count(x => x.Date.Date == gun.Date);
+                            <a href="@TakvimLink(gun, "ay")" class="@(gun == DateTime.Today ? "is-today" : null)"
+                               aria-current="@(gun == seciliTarih ? "date" : null)"
+                               aria-label="@gun.ToString("dd MMMM yyyy", tr)@(kayitSayisi > 0 ? $", {kayitSayisi} devreye alma" : null)">
+                                @gun.Day
+                                @if (kayitSayisi > 0)
+                                {
+                                    <i class="home-month-dot" aria-hidden="true"></i>
+                                }
+                            </a>
+                        }
+                    }
+                </div>
+                <a class="home-calendar-today" href="@TakvimLink(DateTime.Today, "ay")">Bugüne Dön</a>
+            </nav>
+        }
+
+        <div class="home-visits">
+            <header>
+                    <h3>Devreye Alınan Cihazlar</h3>
+                <a href="@Model.HistoryUrl">Tümünü Gör <i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+            </header>
+            <div class="home-visits-date">
+                <span>@(seciliTarih == DateTime.Today ? "Bugün · " : null)@seciliTarih.ToString("dd MMMM dddd", tr)</span>
+                <small>@gununIslemleri.Count işlem</small>
+            </div>
+            @if (!Model.IsDataComplete)
+            {
+                <div class="home-visits-empty" role="status"><i class="bi bi-cloud-slash" aria-hidden="true"></i><p>Takvim verilerinin tamamı şu anda alınamıyor. Geçmiş ekranından yeniden deneyin.</p></div>
+            }
+            else if (gununIslemleri.Count == 0)
+            {
+                <div class="home-visits-empty"><i class="bi bi-calendar2-check" aria-hidden="true"></i><p>Seçili günde devreye alma işlemi yok.</p></div>
+            }
+            else
+            {
+                <div class="home-visit-list" tabindex="0" role="region" aria-label="Seçili günün devreye alma işlemleri">
+                    @foreach (var item in gununIslemleri)
+                    {
+                        <a class="home-visit @(item.IsComplete ? "is-complete" : null)" href="@item.DetailsUrl">
+                            <span class="home-visit-person">
+                                <strong>@item.Title</strong>
+                                <span class="home-visit-meta">
+                                    <span><i class="bi bi-clock" aria-hidden="true"></i>@item.Date.ToString("HH:mm")</span>
+                                    <span class="home-visit-time">Tesisat @(string.IsNullOrWhiteSpace(item.InstallationNo) ? "-" : item.InstallationNo)</span>
+                                </span>
+                                @if (!string.IsNullOrWhiteSpace(item.Address))
+                                {
+                                    <small><i class="bi bi-geo-alt" aria-hidden="true"></i>@item.Address</small>
+                                }
+                                <span class="home-visit-tags"><span class="df-pill @item.StatusCssClass">@item.StatusLabel</span></span>
+                            </span>
+                            <i class="bi bi-chevron-right home-visit-menu" aria-hidden="true"></i>
+                        </a>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</section>

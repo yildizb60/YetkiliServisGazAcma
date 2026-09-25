@@ -13,11 +13,11 @@
     var seciliKategoriler = ViewBag.SeciliKategoriler as List<int> ?? new();
 }
 
-<div class="df-admin-workspace df-admin-editor df-service-create-workspace">
+<div class="df-admin-workspace df-admin-editor df-service-create-workspace df-management-form">
 
     <section class="df-admin-form-card">
         <div class="df-admin-form-body">
-            <form method="post" action="/AdminPanel/yetkiliservisler/duzenle/@servis?.Id">
+            <form class="df-admin-service-editor-form is-edit" method="post" action="/AdminPanel/yetkiliservisler/duzenle/@servis?.Id">
                 @Html.AntiForgeryToken()
                 <section class="df-admin-form-section">
                     <div class="df-admin-form-section-head">
@@ -27,13 +27,13 @@
                         </div>
                     </div>
                     <div class="df-admin-form-grid">
-                    <div class="df-admin-field"><label>Firma Adı *</label><input type="text" name="firmaAdi" value="@servis?.FirmaAdi" required /></div>
-                    <div class="df-admin-field"><label>Yetkili Kişi</label><input type="text" name="yetkiliKisi" value="@servis?.YetkiliKisi" /></div>
-                    <div class="df-admin-field"><label>Telefon</label><input type="text" name="telefon" value="@servis?.Telefon" /></div>
-                    <div class="df-admin-field"><label>E-Posta</label><input type="email" name="email" value="@servis?.Email" /></div>
+                    <div class="df-admin-field"><label for="admin-service-edit-name">Firma Adı *</label><input id="admin-service-edit-name" type="text" name="firmaAdi" value="@servis?.FirmaAdi" placeholder="Yetkili servis firma adı" required /></div>
+                    <div class="df-admin-field"><label for="admin-service-edit-contact">Yetkili Kişi</label><input id="admin-service-edit-contact" type="text" name="yetkiliKisi" value="@servis?.YetkiliKisi" placeholder="Ad soyad" /></div>
+                    <div class="df-admin-field"><label for="admin-service-edit-phone">Telefon</label><input id="admin-service-edit-phone" type="text" name="telefon" value="@servis?.Telefon" placeholder="0(---) --- -- --" /></div>
+                    <div class="df-admin-field"><label for="admin-service-edit-email">E-Posta</label><input id="admin-service-edit-email" type="email" name="email" value="@servis?.Email" placeholder="firma@ornek.com" /></div>
                     <div class="df-admin-field">
-                        <label>Şehir *</label>
-                        <select name="faaliyetIli" data-firma-kodu-select required>
+                        <label for="admin-service-edit-city">Şehir *</label>
+                        <select id="admin-service-edit-city" name="faaliyetIli" data-firma-kodu-select required>
                             <option value="">Seçiniz</option>
                             @foreach (var sehir in sehirler)
                             {
@@ -43,20 +43,20 @@
                         </select>
                         <div class="firma-kodu-hint" data-firma-kodu-target></div>
                     </div>
-                    <div class="df-admin-field"><label>Vergi No</label><input type="text" name="vergiNo" value="@servis?.VergiNo" /></div>
-                    <div class="df-admin-field"><label>Vergi Dairesi</label><input type="text" name="vergiDairesi" value="@servis?.VergiDairesi" /></div>
-                    <div class="df-admin-field is-wide"><label>Adres</label><input type="text" name="adres" value="@servis?.Adres" /></div>
+                    <div class="df-admin-field"><label for="admin-service-edit-tax-no">Vergi No</label><input id="admin-service-edit-tax-no" type="text" name="vergiNo" value="@servis?.VergiNo" placeholder="Vergi kimlik numarası" /></div>
+                    <div class="df-admin-field"><label for="admin-service-edit-tax-office">Vergi Dairesi</label><input id="admin-service-edit-tax-office" type="text" name="vergiDairesi" value="@servis?.VergiDairesi" placeholder="Vergi dairesi" /></div>
+                    <div class="df-admin-field is-wide"><label for="admin-service-edit-address">Adres</label><input id="admin-service-edit-address" type="text" name="adres" value="@servis?.Adres" placeholder="Firma adresi" /></div>
                     </div>
                 </section>
 
                 <section class="df-admin-form-section">
                     <div class="df-admin-form-section-head">
                         <span><i class="bi bi-patch-check"></i></span>
-                        <div>
-                            <h3>Hizmet Bilgileri</h3>
-                        </div>
+                        <div><h3>Hizmet ve Kayıt Bilgileri</h3></div>
                     </div>
+                    <div class="df-admin-choice-layout df-admin-service-settings">
                     <div class="df-admin-choice-box df-admin-scope-box">
+                        <h3 class="df-admin-section-title is-scope"><i class="bi bi-ui-checks"></i> Hizmet Türleri</h3>
                         <div class="df-admin-choice-list">
                             @foreach (var kategori in kategoriler)
                             {
@@ -77,16 +77,8 @@
                             }
                         </div>
                     </div>
-                </section>
-
-                <section class="df-admin-form-section">
-                    <div class="df-admin-form-section-head">
-                        <span><i class="bi bi-toggle-on"></i></span>
-                        <div>
-                            <h3>Kayıt Durumu</h3>
-                        </div>
-                    </div>
                     <div class="df-admin-choice-box df-admin-status-box">
+                        <h3 class="df-admin-section-title is-scope"><i class="bi bi-toggle-on"></i> Kayıt Durumu</h3>
                         <div class="df-admin-choice-list">
                         <label class="df-admin-choice">
                             <input type="radio" name="aktifMi" value="true" checked="@(servis?.AktifMi == true)" />
@@ -99,6 +91,7 @@
                             <span>Pasif</span>
                         </label>
                         </div>
+                    </div>
                     </div>
                 </section>
 

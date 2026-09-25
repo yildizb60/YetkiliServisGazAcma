@@ -29,6 +29,7 @@ namespace YetkiliServisGazAcma.Models
         public DbSet<Ykc_Fr265Kontrol> Ykc_Fr265Kontroller { get; set; }
         public DbSet<Ykc_ImzaSureci> Ykc_ImzaSurecleri { get; set; }
         public DbSet<Ykc_Imzaci> Ykc_Imzacilar { get; set; }
+        public DbSet<Ykc_SorguKaydi> Ykc_SorguKayitlari { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -62,6 +63,16 @@ namespace YetkiliServisGazAcma.Models
             modelBuilder.Entity<Ykc_Fr265Kontrol>().ToTable("Ykc_Fr265Kontroller");
             modelBuilder.Entity<Ykc_ImzaSureci>().ToTable("Ykc_ImzaSurecleri");
             modelBuilder.Entity<Ykc_Imzaci>().ToTable("Ykc_Imzacilar");
+            modelBuilder.Entity<Ykc_SorguKaydi>(entity =>
+            {
+                entity.ToTable("Ykc_SorguKayitlari");
+                entity.HasKey(x => x.Referans);
+                entity.Property(x => x.Referans).HasMaxLength(64).IsUnicode(false);
+                entity.Property(x => x.KullaniciId).HasMaxLength(450);
+                entity.Property(x => x.KaynakJson).HasColumnType("nvarchar(max)");
+                entity.Property(x => x.GecerlilikTarihi).HasColumnType("datetime2");
+                entity.HasIndex(x => x.GecerlilikTarihi);
+            });
 
             modelBuilder.Entity<AppKullanici>()
                 .HasIndex(x => new { x.KullaniciTipi, x.AktifMi, x.FirmaId });

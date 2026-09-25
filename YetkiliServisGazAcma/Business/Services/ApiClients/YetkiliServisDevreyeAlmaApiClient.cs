@@ -30,7 +30,8 @@ namespace YetkiliServisGazAcma.Business.Services
             DateTime? bas,
             DateTime? bit,
             string? musteri,
-            string? durum)
+            string? durum,
+            string? tesisat = null)
         {
             var cevap = await PostAsync<YsDevreyeAlmaGecmisIstek, YsDevreyeAlmaGecmisCevap>(
                 kullanici,
@@ -41,6 +42,7 @@ namespace YetkiliServisGazAcma.Business.Services
                     BaslangicTarihi = bas,
                     BitisTarihi = bit,
                     Musteri = musteri,
+                    TesisatNo = tesisat,
                     Durum = durum
                 },
                 "Yetkili servis devreye alma gecmis");
@@ -223,6 +225,7 @@ namespace YetkiliServisGazAcma.Business.Services
             public DateTime? BaslangicTarihi { get; set; }
             public DateTime? BitisTarihi { get; set; }
             public string? Musteri { get; set; }
+            public string? TesisatNo { get; set; }
             public string? Durum { get; set; }
         }
 
@@ -294,6 +297,10 @@ namespace YetkiliServisGazAcma.Business.Services
             public List<YsDevreyeAlmaCevap> Islemler { get; set; } = new();
             public YsFirmaCevap? Firma { get; set; }
             public List<string> MarkaList { get; set; } = new();
+            public int Toplam { get; set; }
+            public int Tamamlanan { get; set; }
+            public int Bekleyen { get; set; }
+            public int Iptal { get; set; }
 
             public YsDevreyeAlmaGecmisSonuc ToSonuc()
             {
@@ -301,7 +308,11 @@ namespace YetkiliServisGazAcma.Business.Services
                 {
                     Islemler = Islemler.Select(x => x.ToEntity()).ToList(),
                     Firma = Firma?.ToEntity(),
-                    MarkaList = MarkaList
+                    MarkaList = MarkaList,
+                    Toplam = Toplam,
+                    Tamamlanan = Tamamlanan,
+                    Bekleyen = Bekleyen,
+                    Iptal = Iptal
                 };
             }
         }
@@ -474,6 +485,10 @@ namespace YetkiliServisGazAcma.Business.Services
         public List<Ys_DevreyeAlma> Islemler { get; set; } = new();
         public Ys_Firma? Firma { get; set; }
         public List<string> MarkaList { get; set; } = new();
+        public int Toplam { get; set; }
+        public int Tamamlanan { get; set; }
+        public int Bekleyen { get; set; }
+        public int Iptal { get; set; }
     }
 
     public class YsDevreyeAlmaEkranSonuc

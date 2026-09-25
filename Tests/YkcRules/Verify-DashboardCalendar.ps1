@@ -37,7 +37,7 @@ Check ((Post '/api/ykc/takvim' @{} $service).StatusCode -eq 403) 'Service role c
 Check ((Post '/api/ykc/takvim' @{aktifSirketId=[int]::MaxValue} $staff).StatusCode -eq 403) 'Calendar rejects an unauthorized company'
 Check ((Post '/api/ykc/dashboard/ozet' @{aktifSirketId=[int]::MaxValue} $staff).StatusCode -eq 403) 'Dashboard rejects an unauthorized company'
 Check ((Post '/api/ykc/takvim' @{aktifSirketId=[int]::MaxValue} $admin).StatusCode -eq 403) 'Admin cannot select a nonexistent company'
-$body = @{baslangic='2026-09-01';bitis='2026-09-30'}
+$body = @{baslangic='2026-09-01';bitis='2026-09-30';gorunumKayitlariniGetir=$true}
 $calendar = Calendar $body $staff
 $firmCalendar = Calendar $body $firm
 Check ($firmCalendar.toplam -gt 0) 'Certified firm appointment calendar contains its scoped records'
@@ -46,6 +46,7 @@ $firmIgnoredInternalFilters = Calendar ($body + @{il='__other_city__';bolge='__o
 Check ($firmIgnoredInternalFilters.toplam -eq $firmCalendar.toplam) 'Certified firm cannot narrow records by internal routing fields'
 Check ($calendar.toplam -gt 0) 'Existing appointment data is available for semantic checks'
 Check ($calendar.sayfaBoyutu -eq 25 -and $calendar.kayitlar.Count -le 25) 'Calendar page has a bounded record count'
+Check ($calendar.gorunumKayitlari.Count -eq $calendar.toplam) 'Month view receives every filtered appointment beyond the paged list'
 Check (($calendar.gunler | Measure-Object toplam -Sum).Sum -eq $calendar.toplam) 'Month counts cover all filtered records'
 $emptyFilters = Calendar ($body + @{il=' ';bolge=' ';personel=' ';musteri=' '}) $staff
 Check ($emptyFilters.toplam -eq $calendar.toplam) 'Empty filters preserve every authorized appointment'

@@ -1,59 +1,19 @@
 @{
-    ViewData["Title"] = "Şube Düzenle";
-    ViewData["PanelTitle"] = "Şube Düzenle";
-    ViewData["PanelModule"] = "Yetkili Servis İşlemleri";
-    ViewData["PanelSubtitle"] = "Yetkili Servis";
-    ViewData["ActiveMenu"] = "Subeler";
-    Layout = "~/Views/Shared/_PanelLayout.cshtml";
+    Layout = null;
     var sube = ViewBag.Sube as YetkiliServisGazAcma.Entities.Ys_Sube;
 }
-
-@section PageStyles {
-    <link rel="stylesheet" href="~/css/ys-operations.css" asp-append-version="true" />
-}
-
-<div class="ys-workspace">
-    <header class="ys-page-header">
-        <div class="ys-page-heading">
-            <span class="ys-page-icon"><i class="bi bi-building-gear" aria-hidden="true"></i></span>
-            <div class="ys-page-copy">
-                <h1>@(sube?.SubeAdi ?? "Şube")</h1>
-            </div>
-        </div>
-        <div class="ys-page-actions">
-            <a class="df-btn df-btn-secondary df-btn-sm" href="/ys-panel/subeler"><i class="bi bi-arrow-left" aria-hidden="true"></i> Şubelere Dön</a>
-        </div>
-    </header>
-
-    <section class="ys-panel is-blue">
-        <div class="ys-panel-head">
-            <div class="ys-panel-heading">
-                <span class="ys-section-icon"><i class="bi bi-geo-alt" aria-hidden="true"></i></span>
-                <div>
-                    <h2 class="ys-panel-title">Şube Bilgileri</h2>
-                    <p class="ys-panel-subtitle">Değişiklikler yalnızca bu servis noktasına uygulanır.</p>
-                </div>
-            </div>
-        </div>
-        <div class="ys-panel-body">
-            <form method="post" action="/ys-panel/subeler/duzenle/@sube?.Id">
-                @Html.AntiForgeryToken()
-                <div class="ys-form-grid is-three-column">
-                    <div class="ys-field"><label for="duzenleSubeAdi">Şube Adı *</label><input type="text" id="duzenleSubeAdi" name="subeAdi" value="@sube?.SubeAdi" required /></div>
-                    <div class="ys-field"><label for="duzenleIl">İl</label><input type="text" id="duzenleIl" name="il" value="@sube?.Il" /></div>
-                    <div class="ys-field"><label for="duzenleIlce">İlçe</label><input type="text" id="duzenleIlce" name="ilce" value="@sube?.Ilce" /></div>
-                    <div class="ys-field"><label for="duzenleTelefon">Telefon</label><input type="tel" id="duzenleTelefon" name="telefon" value="@sube?.Telefon" /></div>
-                    <div class="ys-field is-wide"><label for="duzenleAdres">Adres</label><textarea id="duzenleAdres" name="adres">@sube?.Adres</textarea></div>
-                    <div class="ys-field">
-                        <span class="ys-field-label">Kayıt Durumu</span>
-                        <label class="ys-check-row"><input type="checkbox" name="aktifMi" value="true" checked="@(sube?.AktifMi == true)" /> Aktif şube</label>
-                    </div>
-                </div>
-                <div class="ys-actions" style="margin-top:12px">
-                    <a class="df-btn df-btn-secondary" href="/ys-panel/subeler"><i class="bi bi-x-lg" aria-hidden="true"></i> Vazgeç</a>
-                    <button type="submit" class="df-btn df-btn-primary"><i class="bi bi-check2" aria-hidden="true"></i> Değişiklikleri Kaydet</button>
-                </div>
-            </form>
-        </div>
-    </section>
-</div>
+<form class="ys-branch-editor" method="post" action="/ys-panel/subeler/duzenle/@sube?.Id">
+    @Html.AntiForgeryToken()
+    <div class="ys-branch-editor-fields">
+        <div class="ys-field is-wide"><label for="duzenleSubeAdi">Şube Adı *</label><input type="text" id="duzenleSubeAdi" name="subeAdi" value="@sube?.SubeAdi" required maxlength="200" /></div>
+        <div class="ys-field"><label for="duzenleIl">İl</label><input type="text" id="duzenleIl" name="il" value="@sube?.Il" /></div>
+        <div class="ys-field"><label for="duzenleIlce">İlçe</label><input type="text" id="duzenleIlce" name="ilce" value="@sube?.Ilce" /></div>
+        <div class="ys-field"><label for="duzenleTelefon">Telefon</label><input type="tel" id="duzenleTelefon" name="telefon" value="@sube?.Telefon" /></div>
+        <div class="ys-field is-wide"><label for="duzenleAdres">Adres</label><textarea id="duzenleAdres" name="adres" rows="2">@sube?.Adres</textarea></div>
+        <label class="ys-branch-active"><input type="checkbox" name="aktifMi" value="true" checked="@(sube?.AktifMi == true)" /><span>Aktif şube</span></label>
+    </div>
+    <div class="ys-branch-editor-actions">
+        <button type="button" class="df-btn df-btn-secondary" data-branch-sheet-cancel><i class="bi bi-x-lg" aria-hidden="true"></i> Vazgeç</button>
+        <button type="submit" class="df-btn df-btn-primary"><i class="bi bi-check2" aria-hidden="true"></i> Değişiklikleri Kaydet</button>
+    </div>
+</form>

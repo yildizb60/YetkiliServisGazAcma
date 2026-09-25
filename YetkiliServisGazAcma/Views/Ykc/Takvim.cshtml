@@ -2,19 +2,27 @@
 @{
     var firmaGorunumu = User.IsInRole("SertifikaliFirma");
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
-    ViewData["Title"] = firmaGorunumu ? "Cihaz Değişim Randevularım" : "Cihaz Değişim Randevuları";
+    ViewData["Title"] = firmaGorunumu ? "Yakıcı Cihaz Değişim Randevularım" : "Yakıcı Cihaz Değişim Randevuları";
     ViewData["PanelTitle"] = ViewData["Title"];
     ViewData["PanelModule"] = "Cihaz Değişim İşlemleri";
     ViewData["ActiveMenu"] = "YkcTakvim";
+
     var filtre = Model.Filtre;
     var tr = System.Globalization.CultureInfo.GetCultureInfo("tr-TR");
+    var invariant = System.Globalization.CultureInfo.InvariantCulture;
     var tekGun = filtre.Baslangic.Date == filtre.Bitis.Date;
     var haftaBasi = filtre.Baslangic.Date.AddDays(-(((int)filtre.Baslangic.DayOfWeek + 6) % 7));
     var gunSayisi = (filtre.Bitis.Date - filtre.Baslangic.Date).Days + 1;
-    var bugunAralikta = filtre.Baslangic.Date <= DateTime.Today && filtre.Bitis.Date >= DateTime.Today;
     var tamHafta = gunSayisi == 7 && filtre.Baslangic.Date == haftaBasi;
+    var takvimOdakTarihi = tamHafta ? haftaBasi.AddDays(3) : filtre.Baslangic.Date;
+    var ayBasi = new DateTime(takvimOdakTarihi.Year, takvimOdakTarihi.Month, 1);
+    var aySonu = ayBasi.AddMonths(1).AddDays(-1);
+    var tamAy = filtre.Baslangic.Date == ayBasi && filtre.Bitis.Date == aySonu;
     var filtreAktif = (!firmaGorunumu && (!string.IsNullOrWhiteSpace(filtre.Il) || !string.IsNullOrWhiteSpace(filtre.Bolge) || !string.IsNullOrWhiteSpace(filtre.Personel)))
         || !string.IsNullOrWhiteSpace(filtre.Musteri) || !string.IsNullOrWhiteSpace(filtre.TesisatNo);
+    var aktifFiltreSayisi = new[] { filtre.Il, filtre.Bolge, filtre.Personel, filtre.Musteri, filtre.TesisatNo }
+        .Count(x => !string.IsNullOrWhiteSpace(x));
+
     string Link(DateTime bas, DateTime bit, int sayfa = 1) => Url.Action("Takvim", "Ykc", new
     {
         Baslangic = bas.ToString("yyyy-MM-dd"),
@@ -26,137 +34,358 @@
         filtre.TesisatNo,
         Sayfa = sayfa
     }) ?? "#";
+
+    string TemizLink(DateTime bas, DateTime bit) => Url.Action("Takvim", "Ykc", new
+    {
+        Baslangic = bas.ToString("yyyy-MM-dd"),
+        Bitis = bit.ToString("yyyy-MM-dd"),
+        Sayfa = 1
+    }) ?? "#";
+
+    var oncekiBaslangic = tamAy ? filtre.Baslangic.AddMonths(-1) : filtre.Baslangic.AddDays(-gunSayisi);
+    var oncekiBitis = tamAy ? oncekiBaslangic.AddMonths(1).AddDays(-1) : filtre.Bitis.AddDays(-gunSayisi);
+    var sonrakiBaslangic = tamAy ? filtre.Baslangic.AddMonths(1) : filtre.Baslangic.AddDays(gunSayisi);
+    var sonrakiBitis = tamAy ? sonrakiBaslangic.AddMonths(1).AddDays(-1) : filtre.Bitis.AddDays(gunSayisi);
+
+    var miniOncekiHam = filtre.Baslangic.AddMonths(-1);
+    var miniSonrakiHam = filtre.Baslangic.AddMonths(1);
+    var miniOncekiBaslangic = tamHafta
+        ? miniOncekiHam.AddDays(-(((int)miniOncekiHam.DayOfWeek + 6) % 7))
+        : tamAy ? new DateTime(miniOncekiHam.Year, miniOncekiHam.Month, 1) : miniOncekiHam;
+    var miniSonrakiBaslangic = tamHafta
+        ? miniSonrakiHam.AddDays(-(((int)miniSonrakiHam.DayOfWeek + 6) % 7))
+        : tamAy ? new DateTime(miniSonrakiHam.Year, miniSonrakiHam.Month, 1) : miniSonrakiHam;
+    var miniOncekiBitis = tamHafta ? miniOncekiBaslangic.AddDays(6) : tamAy ? miniOncekiBaslangic.AddMonths(1).AddDays(-1) : filtre.Bitis.AddMonths(-1);
+    var miniSonrakiBitis = tamHafta ? miniSonrakiBaslangic.AddDays(6) : tamAy ? miniSonrakiBaslangic.AddMonths(1).AddDays(-1) : filtre.Bitis.AddMonths(1);
+
+    var miniTakvimBaslangic = ayBasi.AddDays(-(((int)ayBasi.DayOfWeek + 6) % 7));
+    var miniTakvimGunSayisi = ((miniTakvimBaslangic - ayBasi).Days * -1 + DateTime.DaysInMonth(ayBasi.Year, ayBasi.Month)) > 35 ? 42 : 35;
+    var ayBasligi = tr.TextInfo.ToTitleCase(ayBasi.ToString("MMMM yyyy", tr));
+    var donemBasligi = tekGun
+        ? filtre.Baslangic.ToString("dd MMMM yyyy", tr)
+        : tamAy
+            ? ayBasligi
+            : filtre.Baslangic.Month == filtre.Bitis.Month && filtre.Baslangic.Year == filtre.Bitis.Year
+                ? $"{filtre.Baslangic:dd} - {filtre.Bitis.ToString("dd MMMM yyyy", tr)}"
+                : $"{filtre.Baslangic.ToString("dd MMMM", tr)} - {filtre.Bitis.ToString("dd MMMM yyyy", tr)}";
+
+    var ekipSecenekleri = Model.PersonelEkipSecenekleri.ToList();
+    if (!string.IsNullOrWhiteSpace(filtre.Personel) && !ekipSecenekleri.Contains(filtre.Personel, StringComparer.OrdinalIgnoreCase))
+        ekipSecenekleri.Insert(0, filtre.Personel);
+    var ilSecenekleri = Model.IlSecenekleri.ToList();
+    if (!string.IsNullOrWhiteSpace(filtre.Il) && !ilSecenekleri.Contains(filtre.Il, StringComparer.OrdinalIgnoreCase))
+        ilSecenekleri.Insert(0, filtre.Il);
+    var bolgeSecenekleri = Model.BolgeSecenekleri.ToList();
+    if (!string.IsNullOrWhiteSpace(filtre.Bolge) && !bolgeSecenekleri.Contains(filtre.Bolge, StringComparer.OrdinalIgnoreCase))
+        bolgeSecenekleri.Insert(0, filtre.Bolge);
+
+    const int varsayilanBaslangicSaati = 8;
+    const int varsayilanBitisSaati = 18;
+    var gorunumKayitlari = tamHafta || tamAy ? Model.GorunumKayitlari : Model.Kayitlar;
+    var kayitSaatleri = new List<TimeSpan>();
+    foreach (var kayit in gorunumKayitlari)
+    {
+        if (TimeSpan.TryParse(kayit.Saat, out var kayitSaati)) kayitSaatleri.Add(kayitSaati);
+    }
+    var takvimBaslangicSaati = kayitSaatleri.Count == 0 ? varsayilanBaslangicSaati : Math.Min(varsayilanBaslangicSaati, kayitSaatleri.Min(x => x.Hours));
+    var takvimBitisSaati = kayitSaatleri.Count == 0 ? varsayilanBitisSaati : Math.Min(24, Math.Max(varsayilanBitisSaati, kayitSaatleri.Max(x => x.Hours) + 2));
+    var zamanCizelgesiSaatSayisi = (double)(takvimBitisSaati - takvimBaslangicSaati);
+    var haftalikKayitlar = new Dictionary<DateTime, List<YkcTakvimKayit>>();
+    var etkinlikKonumlari = new Dictionary<int, double>();
+    if (tamHafta)
+    {
+        for (var gunIndex = 0; gunIndex < 7; gunIndex++)
+        {
+            var gun = haftaBasi.AddDays(gunIndex);
+            var gunKayitlari = gorunumKayitlari.Where(x => x.Tarih.Date == gun).OrderBy(x => x.Saat).ThenBy(x => x.Id).Take(5).ToList();
+            haftalikKayitlar[gun] = gunKayitlari;
+            var sonrakiBosKonum = 0d;
+            foreach (var kayit in gunKayitlari)
+            {
+                var dakika = takvimBaslangicSaati * 60;
+                if (TimeSpan.TryParse(kayit.Saat, out var saat)) dakika = (int)saat.TotalMinutes;
+                var istenenKonum = Math.Max(0, (dakika - takvimBaslangicSaati * 60) / 60d);
+                var konum = Math.Max(istenenKonum, sonrakiBosKonum);
+                etkinlikKonumlari[kayit.Id] = konum;
+                sonrakiBosKonum = konum + 1.05;
+            }
+            zamanCizelgesiSaatSayisi = Math.Max(zamanCizelgesiSaatSayisi, sonrakiBosKonum + 0.2);
+        }
+    }
+    var zamanCizelgesiStili = $"--timeline-hours:{zamanCizelgesiSaatSayisi.ToString("0.##", invariant)};";
 }
 @section PageStyles {
     <link rel="stylesheet" href="~/css/ykc-operations.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/ykc-calendar.css" asp-append-version="true" />
 }
-<div class="ykc-workspace ykc-calendar is-page @(tamHafta ? "is-week-view" : "is-day-view") @(firmaGorunumu ? "is-firm-view" : null)">
-    <div class="ykc-calendar-toolbar">
-        <div class="ykc-calendar-navigation">
-            <a class="ykc-calendar-icon" href="@Link(filtre.Baslangic.AddDays(-gunSayisi), filtre.Bitis.AddDays(-gunSayisi))" title="Önceki dönem" aria-label="Önceki dönem"><i class="bi bi-chevron-left"></i></a>
-            <a class="ykc-calendar-today" href="@Link(DateTime.Today, DateTime.Today)">Bugün</a>
-            <a class="ykc-calendar-icon" href="@Link(filtre.Baslangic.AddDays(gunSayisi), filtre.Bitis.AddDays(gunSayisi))" title="Sonraki dönem" aria-label="Sonraki dönem"><i class="bi bi-chevron-right"></i></a>
-            <h2>@filtre.Baslangic.ToString("dd MMMM", tr)@(tekGun ? "" : " - " + filtre.Bitis.ToString("dd MMMM", tr)) @filtre.Bitis.Year</h2>
-        </div>
-        <div class="ykc-header-actions">
-        <nav class="ykc-calendar-modes" aria-label="Takvim aralığı">
-            <a href="@Link(filtre.Baslangic, filtre.Baslangic)" aria-current="@(tekGun ? "true" : null)">Gün</a>
-            <a href="@Link(haftaBasi, haftaBasi.AddDays(6))" aria-current="@(tamHafta ? "true" : null)">Hafta</a>
-            @if (!tekGun && !tamHafta) { <span aria-current="true">Tarih Aralığı</span> }
-        </nav>
-        <a class="df-btn df-btn-secondary df-btn-sm" href="@Url.Action("Talepler", "Ykc")"><i class="bi bi-journal-text"></i> Talepler</a>
-        </div>
-    </div>
-    <details class="ykc-calendar-filter" open>
-        <summary><i class="bi bi-funnel"></i><span>Filtreler</span>@if (filtreAktif) { <small>Uygulandı</small> }<i class="bi bi-chevron-down"></i></summary>
-        <form method="get" action="@Url.Action("Takvim", "Ykc")" class="ykc-calendar-filters">
-            <div><label for="calDate">Başlangıç</label><input id="calDate" type="date" name="Baslangic" value="@filtre.Baslangic.ToString("yyyy-MM-dd")" required /></div>
-            <div><label for="calEnd">Bitiş</label><input id="calEnd" type="date" name="Bitis" value="@filtre.Bitis.ToString("yyyy-MM-dd")" required /></div>
-            @if (!firmaGorunumu)
-            {
-                <div><label for="calCity">İl</label><input id="calCity" name="Il" value="@filtre.Il" /></div>
-                <div><label for="calRegion">Bölge</label><input id="calRegion" name="Bolge" value="@filtre.Bolge" /></div>
-                <div><label for="calPerson">Personel / Ekip</label><input id="calPerson" name="Personel" value="@filtre.Personel" /></div>
-            }
-            <div><label for="calCustomer">Abone Adı Soyadı</label><input id="calCustomer" name="Musteri" value="@filtre.Musteri" /></div>
-            <div><label for="calInstallation">Tesisat No</label><input id="calInstallation" name="TesisatNo" value="@filtre.TesisatNo" inputmode="numeric" /></div>
-            <div class="ykc-calendar-filter-actions"><button class="df-btn df-btn-primary df-btn-sm" type="submit">Uygula</button><a href="@Url.Action("Takvim", "Ykc")" class="df-btn df-btn-secondary df-btn-sm">Temizle</a></div>
-        </form>
-    </details>
 
-    <div class="ykc-calendar-body">
-    @if (tamHafta)
-    {
-        <div class="ykc-week-scroll" role="region" aria-label="Haftalık randevular" tabindex="0">
-            <div class="ykc-week-board">
-                @for (var dayIndex = 0; dayIndex < 7; dayIndex++)
-                {
-                    var day = haftaBasi.AddDays(dayIndex);
-                    var count = Model.Gunler.FirstOrDefault(x => x.Tarih == day)?.Toplam ?? 0;
-                    var appointments = Model.Kayitlar.Where(x => x.Tarih.Date == day).Take(5).ToList();
-                    <section class="ykc-week-column @(day == DateTime.Today ? "is-today" : null)">
-                        <a class="ykc-week-date" href="@Link(day, day)">
-                            <span>@day.ToString("dddd", tr)</span><strong>@day.Day</strong><small>@count randevu</small>
+<div class="ykc-workspace ykc-calendar is-page @(tamHafta ? "is-week-view" : tamAy ? "is-month-view" : "is-day-view") @(firmaGorunumu ? "is-firm-view" : null)">
+    <header class="ykc-scheduler-toolbar">
+        <div class="ykc-scheduler-period">
+            <div>
+                <span class="ykc-scheduler-eyebrow"><i class="bi bi-calendar3" aria-hidden="true"></i> Randevu Takvimi</span>
+                <h1>@donemBasligi</h1>
+            </div>
+            <a class="ykc-calendar-today" href="@Link(DateTime.Today, DateTime.Today)">Bugün</a>
+            <div class="ykc-scheduler-arrows" aria-label="Takvim dönemini değiştir">
+                <a class="ykc-calendar-icon" href="@Link(oncekiBaslangic, oncekiBitis)" title="Önceki dönem" aria-label="Önceki dönem"><i class="bi bi-chevron-left" aria-hidden="true"></i></a>
+                <a class="ykc-calendar-icon" href="@Link(sonrakiBaslangic, sonrakiBitis)" title="Sonraki dönem" aria-label="Sonraki dönem"><i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+            </div>
+        </div>
+        <div class="ykc-scheduler-actions">
+            <nav class="ykc-calendar-modes" aria-label="Takvim görünümü">
+                <a href="@Link(filtre.Baslangic, filtre.Baslangic)" aria-current="@(tekGun ? "page" : null)">Günlük</a>
+                <a href="@Link(haftaBasi, haftaBasi.AddDays(6))" aria-current="@(tamHafta ? "page" : null)">Haftalık</a>
+                <a href="@Link(ayBasi, aySonu)" aria-current="@(tamAy ? "page" : null)">Aylık</a>
+            </nav>
+            <a class="ykc-scheduler-requests" href="@Url.Action("Talepler", "Ykc")"><i class="bi bi-journal-text" aria-hidden="true"></i><span>Talepler</span></a>
+        </div>
+    </header>
+
+    <div class="ykc-scheduler-layout">
+        <aside class="ykc-calendar-sidebar" aria-label="Takvim filtreleri">
+            <section class="ykc-mini-calendar">
+                <header>
+                    <a href="@Link(miniOncekiBaslangic, miniOncekiBitis)" title="Önceki ay" aria-label="Önceki ay"><i class="bi bi-chevron-left" aria-hidden="true"></i></a>
+                    <strong>@ayBasligi</strong>
+                    <a href="@Link(miniSonrakiBaslangic, miniSonrakiBitis)" title="Sonraki ay" aria-label="Sonraki ay"><i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+                </header>
+                <div class="ykc-mini-weekdays" aria-hidden="true">
+                    <span>Pzt</span><span>Sal</span><span>Çar</span><span>Per</span><span>Cum</span><span>Cmt</span><span>Paz</span>
+                </div>
+                <div class="ykc-mini-days">
+                    @for (var miniIndex = 0; miniIndex < miniTakvimGunSayisi; miniIndex++)
+                    {
+                        var miniGun = miniTakvimBaslangic.AddDays(miniIndex);
+                        var miniToplam = Model.Gunler.FirstOrDefault(x => x.Tarih.Date == miniGun)?.Toplam ?? 0;
+                        var secili = miniGun >= filtre.Baslangic.Date && miniGun <= filtre.Bitis.Date;
+                        <a href="@Link(miniGun, miniGun)"
+                           class="@(miniGun.Month != ayBasi.Month ? "is-outside" : null) @(secili ? "is-selected" : null) @(miniGun == DateTime.Today ? "is-today" : null)"
+                           aria-current="@(miniGun == DateTime.Today ? "date" : null)"
+                           title="@miniGun.ToString("dd MMMM dddd", tr)@(miniToplam > 0 ? $" · {miniToplam} randevu" : "")">
+                            <span>@miniGun.Day</span>
+                            @if (miniToplam > 0) { <i aria-hidden="true"></i> }
                         </a>
-                        <div class="ykc-week-events">
-                            @foreach (var item in appointments)
+                    }
+                </div>
+            </section>
+
+            <form method="get" action="@Url.Action("Takvim", "Ykc")" class="ykc-scheduler-filters" id="ykcCalendarFilters">
+                @if (!firmaGorunumu)
+                {
+                    <section class="ykc-filter-group">
+                        <div class="ykc-filter-heading"><h2>Ekipler</h2><span>@ekipSecenekleri.Count</span></div>
+                        <div class="ykc-team-options">
+                            <label>
+                                <input type="radio" name="Personel" value="" checked="@(string.IsNullOrWhiteSpace(filtre.Personel))" data-calendar-auto-submit />
+                                <span class="ykc-team-check"><i class="bi bi-check" aria-hidden="true"></i></span>
+                                <span><strong>Tüm ekipler</strong></span>
+                            </label>
+                            @foreach (var ekip in ekipSecenekleri)
                             {
-                                var atanan = item.Personel ?? item.Ekip ?? "Atanmadı";
-                                var durum = YkcDurumSunumu.Etiket(item.Durum);
-                                <a class="ykc-week-event @(item.Durum == YkcDurumDegerleri.Tamamlandi ? "is-complete" : null)" href="@Url.Action("Detay", "Ykc", new { id = item.Id, kaynak = "takvim" })" title="@(firmaGorunumu ? $"{item.Saat} · {item.Musteri} · Tesisat No: {item.TesisatNo} · {durum}" : $"{item.Saat} · {item.Musteri} · Tesisat No: {item.TesisatNo} · {atanan} · {durum}")">
-                                    <time>@item.Saat <i class="bi bi-arrow-up-right" aria-hidden="true"></i></time>
-                                    <strong>@item.Musteri</strong>
-                                    <span>Tesisat No: @item.TesisatNo</span>
-                                    @if (!firmaGorunumu) { <small><i class="bi bi-people" aria-hidden="true"></i> @atanan</small> }
-                                    <span class="df-pill @YkcDurumSunumu.CssSinifi(item.Durum)">@durum</span>
-                                </a>
+                                <label>
+                                    <input type="radio" name="Personel" value="@ekip" checked="@(string.Equals(filtre.Personel, ekip, StringComparison.OrdinalIgnoreCase))" data-calendar-auto-submit />
+                                    <span class="ykc-team-check"><i class="bi bi-check" aria-hidden="true"></i></span>
+                                    <span><strong>@ekip</strong></span>
+                                </label>
                             }
-                            @if (count == 0) { <span class="ykc-week-free"><i class="bi bi-calendar2" aria-hidden="true"></i> Randevu yok</span> }
-                            @if (count > appointments.Count) { <a class="ykc-week-more" href="@Link(day, day)">Günün @count randevusunu gör <i class="bi bi-arrow-right"></i></a> }
+                            @if (ekipSecenekleri.Count == 0)
+                            {
+                                <p class="ykc-filter-empty">Bu dönemde atanmış ekip bulunmuyor.</p>
+                            }
                         </div>
                     </section>
-                }
-            </div>
-        </div>
-    }
-    else
-    {
-        <nav class="ykc-calendar-week" aria-label="Haftanın günleri">
-            @for (var i = 0; i < 7; i++)
-            {
-                var day = haftaBasi.AddDays(i);
-                <a href="@Link(day, day)" class="@(day == DateTime.Today ? "is-today" : null)" aria-current="@(tekGun && day == filtre.Baslangic.Date ? "date" : null)">
-                    <span>@day.ToString("ddd", tr)</span><strong>@day.Day</strong>
-                </a>
-            }
-        </nav>
-        <div class="ykc-day-heading">
-            <div><i class="bi bi-calendar-check" aria-hidden="true"></i><h2>@(tekGun ? filtre.Baslangic.ToString("dd MMMM dddd", tr) : "Seçili Tarih Aralığı")</h2></div>
-            <span>@Model.Toplam randevu</span>
-        </div>
-        @if (Model.Kayitlar.Count == 0)
-        {
-            <div class="ykc-calendar-empty">
-                <i class="bi bi-calendar2-check"></i>
-                <h3>@(tekGun && filtre.Baslangic.Date == DateTime.Today ? "Bugün planlı randevu yok" : "Bu aralıkta randevu yok")</h3>
-                <a class="df-btn df-btn-secondary df-btn-sm" href="@Link(haftaBasi, haftaBasi.AddDays(6))"><i class="bi bi-calendar-week"></i> Haftayı Gör</a>
-            </div>
-        }
-        @foreach (var gun in Model.Kayitlar.GroupBy(x => x.Tarih.Date))
-        {
-            @if (!tekGun) { <h3 class="ykc-date-divider">@gun.Key.ToString("dd MMMM dddd", tr)</h3> }
-            <div class="ykc-day-agenda">
-                @foreach (var item in gun)
-                {
-                    <a class="ykc-day-visit" href="@Url.Action("Detay", "Ykc", new { id = item.Id, kaynak = "takvim" })">
-                        <time datetime="@($"{item.Tarih:yyyy-MM-dd}T{item.Saat}")"><i class="bi bi-clock" aria-hidden="true"></i>@item.Saat</time>
-                        <div class="ykc-day-customer">
-                            <strong>@(string.IsNullOrWhiteSpace(item.Musteri) ? "Abone adı kayıtlı değil" : item.Musteri)</strong>
-                            <span>Tesisat No: @item.TesisatNo</span>
-                            <small><i class="bi bi-geo-alt" aria-hidden="true"></i> @item.Adres</small>
+
+                    <details class="ykc-filter-group ykc-filter-details" open="@((!string.IsNullOrWhiteSpace(filtre.Il) || !string.IsNullOrWhiteSpace(filtre.Bolge)) ? "open" : null)">
+                        <summary class="ykc-filter-heading"><h2>Bölge</h2><i class="bi bi-chevron-down" aria-hidden="true"></i></summary>
+                        <div class="ykc-filter-fields is-paired">
+                            <label for="calCity">İl
+                                <select id="calCity" name="Il" data-calendar-auto-submit>
+                                    <option value="">Tüm iller</option>
+                                    @foreach (var il in ilSecenekleri) { <option value="@il" selected="@(string.Equals(filtre.Il, il, StringComparison.OrdinalIgnoreCase))">@il</option> }
+                                </select>
+                            </label>
+                            <label for="calRegion">İlçe / Bölge
+                                <select id="calRegion" name="Bolge" data-calendar-auto-submit>
+                                    <option value="">Tüm bölgeler</option>
+                                    @foreach (var bolge in bolgeSecenekleri) { <option value="@bolge" selected="@(string.Equals(filtre.Bolge, bolge, StringComparison.OrdinalIgnoreCase))">@bolge</option> }
+                                </select>
+                            </label>
                         </div>
-                        @if (!firmaGorunumu)
-                        {
-                            <div class="ykc-day-owner">
-                                <span><i class="bi bi-people" aria-hidden="true"></i> @(item.Personel ?? item.Ekip ?? "Henüz atanmadı")</span>
-                                <small>@item.Il / @item.Bolge</small>
-                            </div>
-                        }
-                        <span class="df-pill @YkcDurumSunumu.CssSinifi(item.Durum)">@YkcDurumSunumu.Etiket(item.Durum)</span>
-                        <i class="bi bi-chevron-right" aria-hidden="true"></i>
-                    </a>
+                    </details>
                 }
-            </div>
-        }
-    }
+
+                <details class="ykc-filter-group ykc-filter-details" open="@((!string.IsNullOrWhiteSpace(filtre.Musteri) || !string.IsNullOrWhiteSpace(filtre.TesisatNo)) ? "open" : null)">
+                    <summary class="ykc-filter-heading"><h2>Randevu Ara</h2>@if (filtreAktif) { <span>@aktifFiltreSayisi aktif</span> }<i class="bi bi-chevron-down" aria-hidden="true"></i></summary>
+                    <div class="ykc-filter-fields">
+                        <label for="calCustomer">Abone
+                            <span class="ykc-input-wrap"><i class="bi bi-person" aria-hidden="true"></i><input id="calCustomer" name="Musteri" value="@filtre.Musteri" placeholder="Ad soyad" /></span>
+                        </label>
+                        <label for="calInstallation">Tesisat No
+                            <span class="ykc-input-wrap"><i class="bi bi-house" aria-hidden="true"></i><input id="calInstallation" name="TesisatNo" value="@filtre.TesisatNo" inputmode="numeric" placeholder="Tesisat numarası" /></span>
+                        </label>
+                    </div>
+                </details>
+
+                <details class="ykc-filter-group ykc-filter-details is-date-range" open="@((!tekGun && !tamHafta && !tamAy) ? "open" : null)">
+                    <summary class="ykc-filter-heading"><h2>Tarih Aralığı</h2><i class="bi bi-chevron-down" aria-hidden="true"></i></summary>
+                    <div class="ykc-filter-fields is-paired">
+                        <label for="calDate">Başlangıç<input id="calDate" type="date" name="Baslangic" value="@filtre.Baslangic.ToString("yyyy-MM-dd")" required /></label>
+                        <label for="calEnd">Bitiş<input id="calEnd" type="date" name="Bitis" value="@filtre.Bitis.ToString("yyyy-MM-dd")" required /></label>
+                    </div>
+                </details>
+
+                <div class="ykc-calendar-filter-actions">
+                    <button class="df-btn df-btn-primary df-btn-sm" type="submit"><i class="bi bi-funnel" aria-hidden="true"></i> Filtreleri Uygula</button>
+                    <a href="@TemizLink(filtre.Baslangic, filtre.Bitis)" title="Filtreleri temizle" aria-label="Filtreleri temizle"><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i></a>
+                </div>
+            </form>
+        </aside>
+
+        <main class="ykc-scheduler-stage">
+            @if (tamHafta)
+            {
+                <div class="ykc-timeline-scroll" role="region" aria-label="Haftalık randevu çizelgesi" tabindex="0">
+                    <div class="ykc-timeline" style="@zamanCizelgesiStili">
+                        <div class="ykc-timeline-zone"><span>GMT+3</span></div>
+                        @for (var dayIndex = 0; dayIndex < 7; dayIndex++)
+                        {
+                            var day = haftaBasi.AddDays(dayIndex);
+                            var count = Model.Gunler.FirstOrDefault(x => x.Tarih.Date == day)?.Toplam ?? 0;
+                            <a class="ykc-timeline-day @(day == DateTime.Today ? "is-today" : null)" href="@Link(day, day)" style="grid-column:@(dayIndex + 2)">
+                                <span>@day.ToString("ddd", tr)</span><strong>@day.Day</strong>@if (count > 0) { <small>@count</small> }
+                            </a>
+                        }
+                        <div class="ykc-time-axis">
+                            @for (var saatIndex = takvimBaslangicSaati; saatIndex <= takvimBitisSaati; saatIndex++)
+                            {
+                                var saatKonumu = saatIndex - takvimBaslangicSaati;
+                                <time style="--hour-offset:@saatKonumu">@saatIndex.ToString("00"):00</time>
+                            }
+                        </div>
+                        @for (var dayIndex = 0; dayIndex < 7; dayIndex++)
+                        {
+                            var day = haftaBasi.AddDays(dayIndex);
+                            var appointments = haftalikKayitlar.GetValueOrDefault(day) ?? new();
+                            var count = Model.Gunler.FirstOrDefault(x => x.Tarih.Date == day)?.Toplam ?? 0;
+                            <section class="ykc-timeline-lane @(day == DateTime.Today ? "is-today" : null)" style="grid-column:@(dayIndex + 2)" aria-label="@day.ToString("dd MMMM dddd", tr)">
+                                @foreach (var item in appointments)
+                                {
+                                    var atanan = item.Personel ?? item.Ekip ?? "Atanmadı";
+                                    var durum = YkcDurumSunumu.Etiket(item.Durum);
+                                    var renk = item.Id % 4;
+                                    var etkinlikKonumu = etkinlikKonumlari.GetValueOrDefault(item.Id);
+                                    var etkinlikStili = $"--event-hour:{etkinlikKonumu.ToString("0.##", invariant)};";
+                                    <a class="ykc-timeline-event tone-@renk @(item.Durum == YkcDurumDegerleri.Tamamlandi ? "is-complete" : null)"
+                                       style="@etkinlikStili"
+                                       href="@Url.Action("Detay", "Ykc", new { id = item.Id, kaynak = "takvim" })"
+                                       title="@item.Saat · @item.Musteri · Tesisat No: @item.TesisatNo · @atanan · @durum">
+                                        <span class="ykc-event-time">@item.Saat</span>
+                                        <strong>@(string.IsNullOrWhiteSpace(item.Musteri) ? "Abone adı kayıtlı değil" : item.Musteri)</strong>
+                                        <small>@(firmaGorunumu ? $"Tesisat {item.TesisatNo}" : atanan)</small>
+                                    </a>
+                                }
+                                @if (count > appointments.Count)
+                                {
+                                    <a class="ykc-timeline-more" href="@Link(day, day)">+@(count - appointments.Count) randevu</a>
+                                }
+                            </section>
+                        }
+                    </div>
+                </div>
+            }
+            else if (tamAy)
+            {
+                <div class="ykc-month-view">
+                    <div class="ykc-month-weekdays" aria-hidden="true">
+                        <span>Pazartesi</span><span>Salı</span><span>Çarşamba</span><span>Perşembe</span><span>Cuma</span><span>Cumartesi</span><span>Pazar</span>
+                    </div>
+                    <div class="ykc-month-grid">
+                        @for (var monthIndex = 0; monthIndex < 42; monthIndex++)
+                        {
+                            var monthDay = miniTakvimBaslangic.AddDays(monthIndex);
+                            var count = Model.Gunler.FirstOrDefault(x => x.Tarih.Date == monthDay)?.Toplam ?? 0;
+                            <a href="@Link(monthDay, monthDay)" class="ykc-month-cell @(monthDay.Month != ayBasi.Month ? "is-outside" : null) @(monthDay == DateTime.Today ? "is-today" : null)">
+                                <time>@monthDay.Day</time>
+                                @if (count > 0)
+                                {
+                                    <span><i aria-hidden="true"></i>@count randevu</span>
+                                    var ilkKayit = gorunumKayitlari.FirstOrDefault(x => x.Tarih.Date == monthDay);
+                                    @if (ilkKayit != null) { <small>@ilkKayit.Saat · @ilkKayit.Musteri</small> }
+                                }
+                            </a>
+                        }
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="ykc-day-heading">
+                    <div><i class="bi bi-calendar-check" aria-hidden="true"></i><h2>@(tekGun ? filtre.Baslangic.ToString("dd MMMM dddd", tr) : "Seçili Tarih Aralığı")</h2></div>
+                    <span>@Model.Toplam randevu</span>
+                </div>
+                @if (Model.Kayitlar.Count == 0)
+                {
+                    <div class="ykc-calendar-empty">
+                        <i class="bi bi-calendar2-check" aria-hidden="true"></i>
+                        <h3>@(tekGun && filtre.Baslangic.Date == DateTime.Today ? "Bugün planlı randevu yok" : "Bu aralıkta randevu yok")</h3>
+                        <a class="df-btn df-btn-secondary df-btn-sm" href="@Link(haftaBasi, haftaBasi.AddDays(6))"><i class="bi bi-calendar-week" aria-hidden="true"></i> Haftayı Gör</a>
+                    </div>
+                }
+                @foreach (var gun in Model.Kayitlar.GroupBy(x => x.Tarih.Date))
+                {
+                    @if (!tekGun) { <h3 class="ykc-date-divider">@gun.Key.ToString("dd MMMM dddd", tr)</h3> }
+                    <div class="ykc-day-agenda">
+                        @foreach (var item in gun)
+                        {
+                            <a class="ykc-day-visit" href="@Url.Action("Detay", "Ykc", new { id = item.Id, kaynak = "takvim" })">
+                                <time datetime="@($"{item.Tarih:yyyy-MM-dd}T{item.Saat}")"><i class="bi bi-clock" aria-hidden="true"></i>@item.Saat</time>
+                                <div class="ykc-day-customer">
+                                    <strong>@(string.IsNullOrWhiteSpace(item.Musteri) ? "Abone adı kayıtlı değil" : item.Musteri)</strong>
+                                    <span>Tesisat No: @item.TesisatNo</span>
+                                    <small><i class="bi bi-geo-alt" aria-hidden="true"></i> @item.Adres</small>
+                                </div>
+                                @if (!firmaGorunumu)
+                                {
+                                    <div class="ykc-day-owner">
+                                        <span><i class="bi bi-people" aria-hidden="true"></i> @(item.Personel ?? item.Ekip ?? "Henüz atanmadı")</span>
+                                        <small>@item.Il / @item.Bolge</small>
+                                    </div>
+                                }
+                                <span class="df-pill @YkcDurumSunumu.CssSinifi(item.Durum)">@YkcDurumSunumu.Etiket(item.Durum)</span>
+                                <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                            </a>
+                        }
+                    </div>
+                }
+            }
+
+            @if (!tamHafta && !tamAy && Model.Toplam > Model.SayfaBoyutu)
+            {
+                <nav class="ykc-calendar-pagination" aria-label="Randevu sayfaları">
+                    @if (filtre.Sayfa > 1) { <a href="@Link(filtre.Baslangic, filtre.Bitis, filtre.Sayfa - 1)"><i class="bi bi-chevron-left" aria-hidden="true"></i> Önceki</a> }
+                    <span>@filtre.Sayfa / @Math.Ceiling(Model.Toplam / (double)Model.SayfaBoyutu)</span>
+                    @if (filtre.Sayfa * Model.SayfaBoyutu < Model.Toplam) { <a href="@Link(filtre.Baslangic, filtre.Bitis, filtre.Sayfa + 1)">Sonraki <i class="bi bi-chevron-right" aria-hidden="true"></i></a> }
+                </nav>
+            }
+        </main>
     </div>
-    @if (!tamHafta && Model.Toplam > Model.SayfaBoyutu)
-    {
-        <nav class="ykc-calendar-pagination" aria-label="Randevu sayfaları">
-            @if (filtre.Sayfa > 1) { <a href="@Link(filtre.Baslangic, filtre.Bitis, filtre.Sayfa - 1)"><i class="bi bi-chevron-left"></i> Önceki</a> }
-            <span>@filtre.Sayfa / @Math.Ceiling(Model.Toplam / (double)Model.SayfaBoyutu)</span>
-            @if (filtre.Sayfa * Model.SayfaBoyutu < Model.Toplam) { <a href="@Link(filtre.Baslangic, filtre.Bitis, filtre.Sayfa + 1)">Sonraki <i class="bi bi-chevron-right"></i></a> }
-        </nav>
-    }
 </div>
+
+@section Scripts {
+    <script>
+        (() => {
+            const form = document.getElementById('ykcCalendarFilters');
+            if (!form) return;
+            form.querySelectorAll('[data-calendar-auto-submit]').forEach(control => {
+                control.addEventListener('change', () => {
+                    if (control.id === 'calCity') {
+                        const region = document.getElementById('calRegion');
+                        if (region) region.value = '';
+                    }
+                    form.requestSubmit();
+                });
+            });
+        })();
+    </script>
+}

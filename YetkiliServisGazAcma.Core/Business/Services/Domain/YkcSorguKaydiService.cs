@@ -4,8 +4,19 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace YetkiliServisGazAcma.Business.Services;
 
+public interface IYkcSorguKaydiService
+{
+    Task<string> EkleAsync(string kullaniciId, YkcTalepKaydetDto kaynak);
+    Task<bool> UygulaAsync(string kullaniciId, YkcTalepKaydetDto hedef);
+}
+
+internal static class YkcSorguKaydiAyarlari
+{
+    public static readonly TimeSpan GecerlilikSuresi = TimeSpan.FromMinutes(20);
+}
+
 // The client selects a short-lived reference, never supplies authoritative installation data.
-public sealed class YkcSorguKaydiService : IDisposable
+public sealed class YkcSorguKaydiService : IYkcSorguKaydiService, IDisposable
 {
     private readonly MemoryCache _cache = new(new MemoryCacheOptions { SizeLimit = 4096 });
 
@@ -13,49 +24,64 @@ public sealed class YkcSorguKaydiService : IDisposable
     {
         var referans = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
         _cache.Set(referans, (kullaniciId, kaynak),
-            new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(20), Size = 1 });
+            new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = YkcSorguKaydiAyarlari.GecerlilikSuresi, Size = 1 });
         return referans;
     }
 
+    public Task<string> EkleAsync(string kullaniciId, YkcTalepKaydetDto kaynak)
+        => Task.FromResult(Ekle(kullaniciId, kaynak));
+
     public bool Uygula(string kullaniciId, YkcTalepKaydetDto hedef)
     {
-        if (string.IsNullOrWhiteSpace(hedef.SorguReferansi)
-            || !_cache.TryGetValue(hedef.SorguReferansi, out (string KullaniciId, YkcTalepKaydetDto Kaynak) kayit)
-            || kayit.KullaniciId != kullaniciId
-            || !NumaraEslesiyor(kayit.Kaynak.TesisatNo, hedef.TesisatNo)
-            || !NumaraEslesiyor(kayit.Kaynak.SozlesmeNo, hedef.SozlesmeNo)
+        return !string.IsNullOrWhiteSpace(hedef.SorguReferansi)
+            && _cache.TryGetValue(hedef.SorguReferansi, out (string KullaniciId, YkcTalepKaydetDto Kaynak) kayit)
+            && kayit.KullaniciId == kullaniciId
+            && YkcSorguKaydiDogrulama.Uygula(kayit.Kaynak, hedef);
+    }
+
+    public Task<bool> UygulaAsync(string kullaniciId, YkcTalepKaydetDto hedef)
+        => Task.FromResult(Uygula(kullaniciId, hedef));
+
+    public void Dispose() => _cache.Dispose();
+}
+
+internal static class YkcSorguKaydiDogrulama
+{
+    public static bool Uygula(YkcTalepKaydetDto kaynak, YkcTalepKaydetDto hedef)
+    {
+        if (!NumaraEslesiyor(kaynak.TesisatNo, hedef.TesisatNo)
+            || !NumaraEslesiyor(kaynak.SozlesmeNo, hedef.SozlesmeNo)
             || string.IsNullOrWhiteSpace(hedef.YeniCihazTipi)
-            || !kayit.Kaynak.IzinliYeniCihazTipleri.TryGetValue(hedef.YeniCihazTipi.Trim(), out var yeniCihazTipiKodu))
+            || !kaynak.IzinliYeniCihazTipleri.TryGetValue(hedef.YeniCihazTipi.Trim(), out var yeniCihazTipiKodu))
             return false;
 
-        var k = kayit.Kaynak;
-        hedef.TesisatNo = k.TesisatNo;
-        hedef.SozlesmeNo = k.SozlesmeNo;
-        hedef.FirmaId = k.FirmaId;
-        hedef.SirketId = k.SirketId;
-        hedef.Vkn = k.Vkn;
-        hedef.FirmaKodu = k.FirmaKodu;
+        hedef.TesisatNo = kaynak.TesisatNo;
+        hedef.SozlesmeNo = kaynak.SozlesmeNo;
+        hedef.FirmaId = kaynak.FirmaId;
+        hedef.SirketId = kaynak.SirketId;
+        hedef.Vkn = kaynak.Vkn;
+        hedef.FirmaKodu = kaynak.FirmaKodu;
         hedef.KaynakTipi = "OnlineServis";
-        hedef.AboneNo = k.AboneNo;
-        hedef.ProjeNo = k.ProjeNo;
-        hedef.SayacNo = k.SayacNo;
-        hedef.MusteriAdi = k.MusteriAdi;
-        hedef.MusteriTelefon = k.MusteriTelefon;
-        hedef.Il = k.Il;
-        hedef.Ilce = k.Ilce;
-        hedef.Bolge = k.Bolge;
-        hedef.Adres = k.Adres;
-        hedef.EskiCihazTipiKodu = k.EskiCihazTipiKodu;
-        hedef.EskiCihazTipi = k.EskiCihazTipi;
-        hedef.EskiMarkaKodu = k.EskiMarkaKodu;
-        hedef.EskiMarka = k.EskiMarka;
-        hedef.EskiBacaTipiKodu = k.EskiBacaTipiKodu;
-        hedef.EskiBacaTipi = k.EskiBacaTipi;
-        hedef.EskiKapasite = k.EskiKapasite;
-        hedef.YeniCihazTipi = k.IzinliYeniCihazTipleri.Keys.First(x =>
+        hedef.AboneNo = kaynak.AboneNo;
+        hedef.ProjeNo = kaynak.ProjeNo;
+        hedef.SayacNo = kaynak.SayacNo;
+        hedef.MusteriAdi = kaynak.MusteriAdi;
+        hedef.MusteriTelefon = kaynak.MusteriTelefon;
+        hedef.Il = kaynak.Il;
+        hedef.Ilce = kaynak.Ilce;
+        hedef.Bolge = kaynak.Bolge;
+        hedef.Adres = kaynak.Adres;
+        hedef.EskiCihazTipiKodu = kaynak.EskiCihazTipiKodu;
+        hedef.EskiCihazTipi = kaynak.EskiCihazTipi;
+        hedef.EskiMarkaKodu = kaynak.EskiMarkaKodu;
+        hedef.EskiMarka = kaynak.EskiMarka;
+        hedef.EskiBacaTipiKodu = kaynak.EskiBacaTipiKodu;
+        hedef.EskiBacaTipi = kaynak.EskiBacaTipi;
+        hedef.EskiKapasite = kaynak.EskiKapasite;
+        hedef.YeniCihazTipi = kaynak.IzinliYeniCihazTipleri.Keys.First(x =>
             string.Equals(x, hedef.YeniCihazTipi.Trim(), StringComparison.OrdinalIgnoreCase));
         hedef.YeniCihazTipiKodu = yeniCihazTipiKodu;
-        hedef.Aufnr = k.Aufnr;
+        hedef.Aufnr = kaynak.Aufnr;
         return true;
     }
 
@@ -64,6 +90,4 @@ public sealed class YkcSorguKaydiService : IDisposable
             && beklenen > 0
             && long.TryParse(girilen?.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var deger)
             && beklenen == deger;
-
-    public void Dispose() => _cache.Dispose();
 }

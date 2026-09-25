@@ -40,6 +40,7 @@ namespace YetkiliServisGazAcma.API.Infrastructure
                 null,
                 new[] { KullaniciRolAdlari.SirketAdmin });
 
+            var yeniDemoPersonel = await userManager.FindByEmailAsync("test.personel@demo.com") == null;
             var personel = await KullaniciOlusturVeyaGuncelle(
                 userManager,
                 "test.personel@demo.com",
@@ -74,33 +75,31 @@ namespace YetkiliServisGazAcma.API.Infrastructure
                 sertifikaliFirma.Id,
                 new[] { KullaniciRolAdlari.SertifikaliFirma });
 
-            var eskiYetkiler = await context.Dag_PersonelYetkiler
-                .Where(x => x.KullaniciId == personel.Id)
-                .ToListAsync();
-            context.Dag_PersonelYetkiler.RemoveRange(eskiYetkiler);
-
-            context.Dag_PersonelYetkiler.AddRange(
-                new Dag_PersonelYetki
-                {
-                    KullaniciId = personel.Id,
-                    SirketId = corumgaz.Id,
-                    YetkiTipi = YetkiTipleri.TAM_YETKI,
-                    OlusturanKullanici = "demo-seed"
-                },
-                new Dag_PersonelYetki
-                {
-                    KullaniciId = personel.Id,
-                    SirketId = kargaz.Id,
-                    YetkiTipi = YetkiTipleri.RAPOR_GOR,
-                    OlusturanKullanici = "demo-seed"
-                },
-                new Dag_PersonelYetki
-                {
-                    KullaniciId = personel.Id,
-                    SirketId = surmeligaz.Id,
-                    YetkiTipi = YetkiTipleri.YETKI_BELGESI_ONAY,
-                    OlusturanKullanici = "demo-seed"
-                });
+            if (yeniDemoPersonel)
+            {
+                context.Dag_PersonelYetkiler.AddRange(
+                    new Dag_PersonelYetki
+                    {
+                        KullaniciId = personel.Id,
+                        SirketId = corumgaz.Id,
+                        YetkiTipi = YetkiTipleri.TAM_YETKI,
+                        OlusturanKullanici = "demo-seed"
+                    },
+                    new Dag_PersonelYetki
+                    {
+                        KullaniciId = personel.Id,
+                        SirketId = kargaz.Id,
+                        YetkiTipi = YetkiTipleri.RAPOR_GOR,
+                        OlusturanKullanici = "demo-seed"
+                    },
+                    new Dag_PersonelYetki
+                    {
+                        KullaniciId = personel.Id,
+                        SirketId = surmeligaz.Id,
+                        YetkiTipi = YetkiTipleri.YETKI_BELGESI_ONAY,
+                        OlusturanKullanici = "demo-seed"
+                    });
+            }
 
             await context.SaveChangesAsync();
         }
@@ -250,8 +249,9 @@ namespace YetkiliServisGazAcma.API.Infrastructure
             }
 
             var kategori = await KategoriBulVeyaOlustur(context, "Kombi", 1);
-            await KategoriBulVeyaOlustur(context, "Ocak", 9, "/images/icons/category-ocak.svg");
-            await KategoriBulVeyaOlustur(context, "Gaz Kullanıcı Cihazlar", 10, "/images/icons/category-gaz-kullanici-cihazlar.svg");
+            await KategoriBulVeyaOlustur(context, "Ocak", 2, "/images/icons/category-ocak.svg");
+            await KategoriBulVeyaOlustur(context, "Şofben", 3);
+            await KategoriBulVeyaOlustur(context, "Gaz Kullanıcı Cihazlar", 4, "/images/icons/category-gaz-kullanici-cihazlar.svg");
             var kategoriBagVar = await context.Ys_FirmaKategoriler.AnyAsync(x =>
                 x.FirmaId == firma.Id &&
                 x.KategoriId == kategori.Id &&
