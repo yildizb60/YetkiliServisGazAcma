@@ -151,7 +151,7 @@ namespace YetkiliServisGazAcma.API.Services
                 {
                     TalepId = talep.Id,
                     BelgeVersiyonu = surec.BelgeVersiyonu,
-                    KontrolNo = detay.Kontroller.Where(x => x.Sonuc is YkcFr265KontrolSonucDegerleri.Uygun or YkcFr265KontrolSonucDegerleri.UygunDegil).Max(x => x.KontrolNo),
+                    KontrolNo = detay.AktifKontroller.Where(x => x.Sonuc is YkcFr265KontrolSonucDegerleri.Uygun or YkcFr265KontrolSonucDegerleri.UygunDegil).Max(x => x.FormKontrolNo),
                     BelgeAdi = taslak.DosyaAdi ?? $"Cihaz_Degisim_Formu_{talep.Id}.pdf",
                     IcerikTipi = taslak.IcerikTipi ?? "application/pdf",
                     BelgeBytes = belgeBytes,
@@ -738,8 +738,7 @@ namespace YetkiliServisGazAcma.API.Services
                 return false;
             }
 
-            var sonKontrol = detay.Kontroller
-                .Where(x => x.KontrolNo is >= 1 and <= 5)
+            var sonKontrol = detay.AktifKontroller
                 .Where(x => x.Sonuc == YkcFr265KontrolSonucDegerleri.Uygun
                     || x.Sonuc == YkcFr265KontrolSonucDegerleri.UygunDegil)
                 .OrderByDescending(x => x.KontrolNo)

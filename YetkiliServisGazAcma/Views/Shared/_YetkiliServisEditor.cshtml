@@ -93,7 +93,7 @@
                         <label class="service-choice service-choice--all"><input id="service-all-brands" type="checkbox" /><span>Tüm markalar</span></label>
                         @foreach (var marka in markalar)
                         {
-                            <label class="service-choice" data-brand-name="@marka.MarkaAdi"><input type="checkbox" name="markaIds" value="@marka.Id" checked="@seciliMarkalar.Contains(marka.Id)" /><span>@marka.MarkaAdi</span></label>
+                            <label class="service-choice" data-brand-name="@marka.MarkaAdi"><input type="checkbox" name="markaIds" value="@marka.Id" checked="@seciliMarkalar.Contains(marka.Id)" /><span>@marka.MarkaAdi@(marka.AktifMi ? "" : " (Pasif)")</span></label>
                         }
                         @if (markalar.Count == 0)
                         {

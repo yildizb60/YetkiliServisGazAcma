@@ -37,6 +37,21 @@
 .df-export-actions { display:flex; align-items:center; justify-content:flex-end; gap:7px; }
 .df-export-actions .df-btn { min-height:32px; padding-inline:10px; font-size:11px; white-space:nowrap; }
 .df-export-actions .df-btn:disabled { opacity:.48; cursor:not-allowed; }
+.df-operations-directory .df-commissioning-filter .df-admin-filter-body { padding:10px 12px; }
+.df-operations-directory .df-commissioning-filter .df-admin-filter-grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px 12px; }
+.df-operations-directory .df-commissioning-filter .df-admin-field { grid-column:auto; min-width:0; gap:4px; }
+.df-operations-directory .df-commissioning-filter .df-admin-field :is(input,select) { min-width:0; min-height:36px; height:36px; font-size:12px; }
+.df-operations-directory .df-commissioning-filter .df-admin-filter-actions { margin-top:8px; }
+.df-operations-directory .df-commissioning-filter .df-admin-filter-actions .df-btn { min-height:32px; padding:6px 10px; font-size:11px; }
+@media(min-width:1401px) {
+    .df-operations-directory .df-commissioning-filter .df-admin-filter-grid:has(> .df-admin-field:nth-child(9)) { grid-template-columns:repeat(5,minmax(0,1fr)); }
+}
+@media(max-width:760px) {
+    .df-operations-directory .df-commissioning-filter .df-admin-filter-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media(max-width:480px) {
+    .df-operations-directory .df-commissioning-filter .df-admin-filter-grid { grid-template-columns:minmax(0,1fr); }
+}
 .df-commissioning-table { min-width:1130px; table-layout:fixed; }
 .df-commissioning-table th:nth-child(2) { width:145px; }
 .df-commissioning-table th:nth-child(3) { width:140px; }

@@ -224,6 +224,20 @@ var fiveUnsuccessfulControls = Enumerable.Range(1, 5)
     .ToList();
 Check(YkcKontrolAkisKurali.KontrolAlaniDolduMu(fiveUnsuccessfulControls),
     "Five unsuccessful controls mark the form control area as exhausted");
+Check(YkcKontrolAkisKurali.SiradakiKontrolNo(fiveUnsuccessfulControls) == 1,
+    "After five unsuccessful controls the next appointment starts at control one");
+var subsequentControls = fiveUnsuccessfulControls.Concat(Enumerable.Range(6, 5)
+    .Select(no => new Ykc_Fr265Kontrol { KontrolNo = no })).ToList();
+Check(!YkcKontrolAkisKurali.KontrolAlaniDolduMu(subsequentControls)
+    && YkcKontrolAkisKurali.SiradakiKontrolNo(subsequentControls) == 1,
+    "A new cycle has five free slots without erasing the previous cycle");
+foreach (var kontrol in subsequentControls) kontrol.Sonuc = YkcFr265KontrolSonucDegerleri.UygunDegil;
+Check(YkcKontrolAkisKurali.KontrolAlaniDolduMu(subsequentControls)
+    && YkcKontrolAkisKurali.SiradakiKontrolNo(subsequentControls) == 1,
+    "A second unsuccessful five-control cycle can be followed by another cycle");
+Check(YkcKontrolAkisKurali.DonemNo(11) == 3 && YkcKontrolAkisKurali.FormKontrolNo(11) == 1
+    && YkcKontrolAkisKurali.FormKontrolNo(15) == 5,
+    "Third cycle maps to the official form slots one through five");
 fiveUnsuccessfulControls[^1].Sonuc = YkcFr265KontrolSonucDegerleri.Uygun;
 Check(!YkcKontrolAkisKurali.KontrolAlaniDolduMu(fiveUnsuccessfulControls),
     "A successful control does not mark the control area as exhausted");
@@ -235,6 +249,21 @@ Check(YkcCihazUyumKurali.Uyarilar("Kombi", "Kombi", "A", "B", "X", "Y", "20000",
     "Mismatches produce warnings without mutating values");
 Check(YkcCihazUyumKurali.Uyarilar("Kombi", "Kombi", "A", "A", null, null, "20000", "20000.0").Count == 0,
     "Equal device values do not warn");
+Check(YkcCihazUyumKurali.Uyarilar("Kombi", "Kombi", "A", "A", null, null, "20000", "15000").Count == 0,
+    "Lower capacity does not require an alteration project");
+Check(YkcCihazUyumKurali.Uyarilar("Kombi", "Kombi", "A", "A", null, null, "20000", "25000")
+        .SequenceEqual(["Yeni cihazın kapasitesi projedeki kapasiteden yüksek. Tadilat projesi gereklidir."]),
+    "Higher capacity explicitly requires an alteration project");
+Check(YkcCihazUyumKurali.Uyarilar("Kombi", "Kombi", "A", "A", null, null, "20000,5", "20000.50").Count == 0,
+    "Equivalent decimal capacities do not warn");
+Check(YkcCihazUyumKurali.Uyarilar("Kombi", "Kombi", "A", "A", null, null, "20000,5", "20000,51").Count == 1,
+    "Even a fractional capacity increase requires an alteration project");
+Check(YkcCihazUyumKurali.Uyarilar("Kombi", "Kombi", "A", "B", "X", "Y", "20000", "15000").Count == 2,
+    "Lower capacity does not suppress independent brand and flue warnings");
+Check(YkcCihazUyumKurali.Uyarilar("Kombi", "Kombi", "A", "A", null, null, null, "25000").Count == 0,
+    "Missing source capacity cannot establish a capacity increase");
+Check(YkcCihazUyumKurali.Uyarilar("Kombi", "Kombi", "A", "A", null, null, "invalid", "25000").Count == 0,
+    "Unparseable source capacity cannot establish a capacity increase");
 YkcTalepDetayDto Detail() => new() {
     EskiMarka = "Source brand", EskiKapasite = "20000", YeniMarka = "New brand", MusteriAdi = "Customer",
     AtananEkip = "Internal team", HedefUygulama = "Internal target",
@@ -269,6 +298,19 @@ using (var reader = new StreamReader(zip.GetEntry("word/document.xml")!.Open()))
     Check(xml.Contains("Daire 4") && xml.Contains("Bina 12"), "Official form retains supplied unit and building fields");
 }
 var formPdf = YkcFr265PdfService.Olustur(form);
+form.Kontroller[0].Aciklama = "PREVIOUS_CYCLE_ONLY";
+form.Kontroller.AddRange(Enumerable.Range(6, 5).Select(no => new YkcFr265KontrolDto { KontrolNo = no }));
+form.Kontroller.Single(x => x.KontrolNo == 6).Sonuc = YkcFr265KontrolSonucDegerleri.UygunDegil;
+form.Kontroller.Single(x => x.KontrolNo == 6).Aciklama = "CURRENT_CYCLE_ONLY";
+using (var cycleZip = new System.IO.Compression.ZipArchive(new MemoryStream(new YkcFr265FormService().WordOlustur(form).Bytes)))
+using (var cycleReader = new StreamReader(cycleZip.GetEntry("word/document.xml")!.Open()))
+{
+    var xml = cycleReader.ReadToEnd();
+    Check(xml.Contains("CURRENT_CYCLE_ONLY") && !xml.Contains("PREVIOUS_CYCLE_ONLY"),
+        "Official form contains only the active cycle, retaining old results in the model");
+    Check(form.KontrolDonemi == 2 && form.AktifKontroller.Count == 5 && form.Kontroller.Count == 6,
+        "DTO keeps historical controls and exposes five active form slots");
+}
 var demoPdf = YkcFr265PdfService.ImzaliNihaiOlustur(form, new() { ImzaliNihaiMi = true, ImzaTarihi = form.TalepTarihi });
 Check(System.Text.Encoding.ASCII.GetString(formPdf.Bytes, 0, 5) == "%PDF-", "Draft renders as PDF");
 Check(demoPdf.ContentType == "application/pdf" && demoPdf.DosyaAdi.Contains(YkcFr265PdfService.TasarimSurumu),
@@ -365,6 +407,16 @@ var devreyeAlmaRaporu = DevreyeAlmaRaporPdfService.YetkiliServisRaporuOlustur(ne
     }
 }, new DateTime(2026, 9, 1), new DateTime(2026, 9, 30));
 Check(System.Text.Encoding.ASCII.GetString(devreyeAlmaRaporu, 0, 5) == "%PDF-", "Service commissioning report renders device details as PDF");
+var uzunNotluRapor = DevreyeAlmaRaporPdfService.YetkiliServisRaporuOlustur(new[]
+{
+    new Ys_DevreyeAlma
+    {
+        TesistatNo = "1311884", MusteriAdi = "Serhat Battal", CihazTipi = "Ocak",
+        DevreyeAlmaTarihi = new DateTime(2026, 9, 25), Durum = DevreyeAlmaDurumDegerleri.Tamamlandi,
+        Notlar = string.Join(" ", Enumerable.Repeat("Uzun servis işlem notu", 500))
+    }
+}, new DateTime(2026, 9, 1), new DateTime(2026, 9, 30));
+Check(System.Text.Encoding.ASCII.GetString(uzunNotluRapor, 0, 5) == "%PDF-", "Long service notes continue across PDF pages");
 if (args.Length == 2 && args[0] == "--form-output")
 {
     Directory.CreateDirectory(args[1]);

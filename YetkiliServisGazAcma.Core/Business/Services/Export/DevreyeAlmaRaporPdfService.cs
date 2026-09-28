@@ -176,7 +176,7 @@ namespace YetkiliServisGazAcma.Business.Services
 
             foreach (var d in liste)
             {
-                col.Item().ShowEntire().PaddingBottom(7).Border(1).BorderColor("#DCE5EC").Column(card =>
+                col.Item().PreventPageBreak().PaddingBottom(7).Border(1).BorderColor("#DCE5EC").Column(card =>
                 {
                     card.Item().Background("#F3F7FC").Padding(7).Row(row =>
                     {

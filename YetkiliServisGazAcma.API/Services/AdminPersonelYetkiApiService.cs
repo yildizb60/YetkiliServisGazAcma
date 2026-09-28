@@ -111,7 +111,7 @@ namespace YetkiliServisGazAcma.API.Services
             var sirketler = await YonetilebilirSirketlerAsync(kullanici, sirketId, genelSistemAdminMi);
             var sirketIds = sirketler.Select(x => x.Id).ToHashSet();
             var mevcutKayitlar = await _context.Dag_PersonelYetkiler
-                .Where(x => x.KullaniciId == personel.Id)
+                .Where(x => x.KullaniciId == personel.Id && !x.SilindiMi)
                 .Where(x => sirketIds.Contains(x.SirketId))
                 .ToListAsync();
 
@@ -141,11 +141,17 @@ namespace YetkiliServisGazAcma.API.Services
         }
 
         public async Task<AdminIslemSonucDto> GuncelleAsync(AdminYetkiGuncelleDto? dto, AppKullanici kullanici, int? sirketId, bool genelSistemAdminMi)
+            => await _context.Database.CreateExecutionStrategy().ExecuteAsync(() => YetkileriKaydetAsync(dto, kullanici, sirketId, genelSistemAdminMi));
+
+        private async Task<AdminIslemSonucDto> YetkileriKaydetAsync(AdminYetkiGuncelleDto? dto, AppKullanici kullanici, int? sirketId, bool genelSistemAdminMi)
         {
             if (dto == null || string.IsNullOrWhiteSpace(dto.Id))
                 return AdminIslemSonucDto.Basarisiz("Personel id zorunludur.");
 
-            var personel = await _context.Users.FirstOrDefaultAsync(x => x.Id == dto.Id && x.KullaniciTipi == KullaniciTipiDegerleri.Personel);
+            await using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+            var personel = await _context.Users
+                .FromSqlInterpolated($"SELECT * FROM dbo.Ys_AspNetUsers WITH (UPDLOCK, HOLDLOCK) WHERE Id = {dto.Id}")
+                .FirstOrDefaultAsync(x => x.KullaniciTipi == KullaniciTipiDegerleri.Personel);
             if (personel == null)
                 return AdminIslemSonucDto.Basarisiz("Personel bulunamadi.");
 
@@ -165,32 +171,49 @@ namespace YetkiliServisGazAcma.API.Services
                 secilenSirketIds.Add(personel.SirketId.Value);
 
             var mevcut = await _context.Dag_PersonelYetkiler
-                .Where(x => x.KullaniciId == personel.Id)
+                .Where(x => x.KullaniciId == personel.Id && !x.SilindiMi)
                 .Where(x => yonetilebilirSirketIds.Contains(x.SirketId))
                 .ToListAsync();
 
-            _context.Dag_PersonelYetkiler.RemoveRange(mevcut);
-
+            var istenen = new HashSet<(int SirketId, string YetkiTipi)>();
             foreach (var hedefSirketId in secilenSirketIds)
             {
                 dto.Yetkiler.TryGetValue(hedefSirketId, out var secilenYetkiler);
                 secilenYetkiler = NormalizeYetkiListesi(secilenYetkiler ?? new List<string>());
 
                 foreach (var yetki in secilenYetkiler)
+                    istenen.Add((hedefSirketId, yetki));
+            }
+
+            var zaman = DateTime.Now;
+            var yapan = kullanici.UserName ?? kullanici.Id;
+            foreach (var kayit in mevcut.OrderBy(x => x.Id))
+            {
+                if (istenen.Remove((kayit.SirketId, kayit.YetkiTipi.Trim().ToUpperInvariant())))
+                    continue;
+
+                kayit.SilindiMi = true;
+                kayit.SilinmeTarihi = zaman;
+                kayit.SilenKullanici = yapan;
+                kayit.GuncellemeTarihi = zaman;
+                kayit.GuncelleyenKullanici = yapan;
+            }
+
+            foreach (var (hedefSirketId, yetki) in istenen)
+            {
+                _context.Dag_PersonelYetkiler.Add(new Dag_PersonelYetki
                 {
-                    _context.Dag_PersonelYetkiler.Add(new Dag_PersonelYetki
-                    {
-                        KullaniciId = personel.Id,
-                        SirketId = hedefSirketId,
-                        YetkiTipi = yetki,
-                        OlusturmaTarihi = DateTime.Now,
-                        OlusturanKullanici = kullanici.UserName ?? "api",
-                        SilindiMi = false
-                    });
-                }
+                    KullaniciId = personel.Id,
+                    SirketId = hedefSirketId,
+                    YetkiTipi = yetki,
+                    OlusturmaTarihi = zaman,
+                    OlusturanKullanici = yapan,
+                    SilindiMi = false
+                });
             }
 
             await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
             return AdminIslemSonucDto.BasariliSonuc("Yetkiler guncellendi.");
         }
 

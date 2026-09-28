@@ -55,7 +55,6 @@
                         <div><dt>Müşteri Adı</dt><dd id="b-musteriAdi">-</dd></div>
                         <div><dt>Telefon</dt><dd id="b-musteriTelefon">-</dd></div>
                         <div><dt>Sözleşme No</dt><dd id="b-sozlesmeNo">-</dd></div>
-                        <div><dt>Sayaç No</dt><dd id="b-sayacNo">-</dd></div>
                         <div class="is-wide"><dt>Adres</dt><dd id="b-adres">-</dd></div>
                     </dl>
                     <div class="ys-commissioning-device-picker">
@@ -236,6 +235,10 @@
     function cihazSeciminiKaldir(index) {
         const taslak = cihazTaslaklari.get(index);
         if (!taslak) return;
+        if (taslak.kaydediliyor) {
+            window.operationToast?.warning("Kayıt sürüyor, lütfen bekleyin.");
+            return;
+        }
         if (taslak.kayitId) {
             window.operationToast?.error("Tamamlanan devreye alma kaydı buradan kaldırılamaz.");
             return;
@@ -287,7 +290,6 @@
             document.getElementById("b-musteriAdi").textContent = data.musteriAdi || "-";
             document.getElementById("b-musteriTelefon").textContent = data.musteriTelefon || "-";
             document.getElementById("b-sozlesmeNo").textContent = data.sozlesmeNo || sozlesmeNo || "-";
-            document.getElementById("b-sayacNo").textContent = data.sayacNo || "-";
             document.getElementById("b-adres").textContent = data.adres || "-";
             document.getElementById("b-durum").textContent = data.durum || "Tesisat bulundu";
 
@@ -407,8 +409,9 @@
     document.getElementById("ysInstallationQueryButton")?.addEventListener("click", tesistatSorgula);
     document.getElementById("devreyeAlmaForm")?.addEventListener("submit", async function (event) {
         event.preventDefault();
-        const taslak = cihazTaslaklari.get(seciliServisCihazIndex);
-        if (!taslak || taslak.kayitId) { islemHatasi("Önce devreye alınacak cihazı seçin."); return; }
+        const kaydedilenCihazIndex = seciliServisCihazIndex;
+        const taslak = cihazTaslaklari.get(kaydedilenCihazIndex);
+        if (!taslak || taslak.kayitId || taslak.kaydediliyor) { islemHatasi("Önce devreye alınacak cihazı seçin."); return; }
         const gecersiz = Array.from(formKart.querySelectorAll("input, select, textarea")).find(alan => !alan.checkValidity());
         if (gecersiz) { gecersiz.reportValidity(); return; }
         aktifTaslagiSakla();
@@ -419,6 +422,7 @@
         payload.MarkaId = Number(payload.MarkaId);
         const kaydet = document.getElementById("btnKKaydet");
         kaydet.disabled = true;
+        taslak.kaydediliyor = true;
         try {
             const response = await fetch("/ys-devreyeal/kaydet-json", {
                 method: "POST",
@@ -428,17 +432,22 @@
             if (!response.ok) { islemHatasi("Kayıt tamamlanamadı. Lütfen yeniden deneyin."); return; }
             const data = await response.json();
             if (!data.basarili) { islemHatasi(data.mesaj || "Kayıt tamamlanamadı."); return; }
+            if (cihazTaslaklari.get(kaydedilenCihazIndex) !== taslak) {
+                window.operationToast?.success(data.mesaj || "Cihaz devreye alındı.");
+                return;
+            }
             taslak.kayitId = data.id;
             taslak.durum.textContent = "Tamamlandı";
             taslak.kart.classList.add("is-completed");
-            document.querySelectorAll(".ys-commissioning-device-option")[seciliServisCihazIndex]?.classList.add("is-completed");
+            document.querySelectorAll(".ys-commissioning-device-option")[kaydedilenCihazIndex]?.classList.add("is-completed");
             window.operationToast?.success(data.mesaj || "Cihaz devreye alındı.");
             const siradaki = Array.from(cihazTaslaklari.keys()).sort((a, b) => a - b)
                 .find(index => !cihazTaslaklari.get(index).kayitId);
-            cihazKartiniAc(siradaki ?? seciliServisCihazIndex);
+            cihazKartiniAc(siradaki ?? kaydedilenCihazIndex);
         } catch {
             islemHatasi("Bağlantı kurulamadı. Lütfen yeniden deneyin.");
         } finally {
+            taslak.kaydediliyor = false;
             kaydet.disabled = false;
         }
     });

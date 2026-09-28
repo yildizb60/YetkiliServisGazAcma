@@ -2,7 +2,7 @@
 @{
     string Deger(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
     var kontroller = Model.Kontroller.Where(x => x.Sonuc is YkcFr265KontrolSonucDegerleri.Uygun or YkcFr265KontrolSonucDegerleri.UygunDegil).OrderBy(x => x.KontrolNo).ToList();
-    var sonKontrol = kontroller.LastOrDefault();
+    var sonKontrol = Model.AktifKontroller.LastOrDefault(x => x.Sonuc is YkcFr265KontrolSonucDegerleri.Uygun or YkcFr265KontrolSonucDegerleri.UygunDegil);
     var nihai = Model.ImzaSureci?.Durum == YkcImzaDurumDegerleri.Tamamlandi
         ? Model.Dosyalar.FirstOrDefault(x => x.Id == Model.ImzaSureci.NihaiDosyaId && x.DosyaTuru == YkcFormDosyaTuruDegerleri.Fr265ImzaliNihai) : null;
     var demoBelge = nihai != null && Model.ImzaSureci?.ProviderDocumentId?.StartsWith("DEMO-YKC-", StringComparison.Ordinal) == true;
@@ -33,6 +33,7 @@
         "DurumGuncellendi" => "Durum güncellendi",
         "AtamaYapildi" => "Kontrol randevusu planlandı",
         "FR265KontrolleriGuncellendi" => "Kontrol sonucu kaydedildi",
+        "KontrolDonemiAcildi" => "Yeni kontrol dönemi açıldı",
         "FR265TaslakOlusturuldu" => "Form hazırlandı",
         "FR265ImzayaGonderildi" => "Form imzaya gönderildi",
         "FR265ImzaliNihaiBelgeAlindi" => "İmzalı form alındı",
@@ -49,8 +50,8 @@
             {
                 <span class="df-pill @YkcDurumSunumu.CssSinifi(Model.Durum)">@durum</span>
             }
-            <a class="df-btn df-btn-secondary df-btn-sm" href="@Url.Action("Talepler", "Ykc")"><i class="bi bi-arrow-left" aria-hidden="true"></i>Taleplere Dön</a>
-            <a class="df-btn df-btn-primary df-btn-sm" href="@Url.Action("Fr265Onizle", "Ykc", new { id = Model.Id })" target="_blank"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i>Formu Önizle</a>
+            <a class="df-btn df-btn-sm ykc-detail-back" href="@Url.Action("Talepler", "Ykc")"><i class="bi bi-arrow-left" aria-hidden="true"></i>Taleplere Dön</a>
+            <a class="df-btn df-btn-sm ykc-detail-preview" href="@Url.Action("Fr265Onizle", "Ykc", new { id = Model.Id })" target="_blank"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i>Formu Önizle</a>
         </div>
     </header>
     @if (kontrolBaslik != null || Model.RandevuTarihi.HasValue)
@@ -92,7 +93,7 @@
                     <h2 id="firm-controls-title"><i class="bi bi-clipboard2-check" aria-hidden="true"></i>Kontrol Sonuçları</h2>
                     @foreach (var kontrol in kontroller)
                     {
-                        <div class="ykc-firm-control-result"><strong>@kontrol.KontrolNo. Kontrol</strong><time>@kontrol.KontrolTarihi?.ToString("dd.MM.yyyy")</time><span class="df-pill @(kontrol.Sonuc == YkcFr265KontrolSonucDegerleri.Uygun ? "df-pill-success" : "df-pill-danger")">@(kontrol.Sonuc == YkcFr265KontrolSonucDegerleri.Uygun ? "Uygun" : "Uygun Değil")</span>@if (!string.IsNullOrWhiteSpace(kontrol.Aciklama)) { <p>@kontrol.Aciklama</p> }</div>
+                        <div class="ykc-firm-control-result"><strong>@if (Model.KontrolDonemi > 1) { <span>@kontrol.DonemNo. Dönem · </span> }@kontrol.FormKontrolNo. Kontrol</strong><time>@kontrol.KontrolTarihi?.ToString("dd.MM.yyyy")</time><span class="df-pill @(kontrol.Sonuc == YkcFr265KontrolSonucDegerleri.Uygun ? "df-pill-success" : "df-pill-danger")">@(kontrol.Sonuc == YkcFr265KontrolSonucDegerleri.Uygun ? "Uygun" : "Uygun Değil")</span>@if (!string.IsNullOrWhiteSpace(kontrol.Aciklama)) { <p>@kontrol.Aciklama</p> }</div>
                     }
                 </section>
             }

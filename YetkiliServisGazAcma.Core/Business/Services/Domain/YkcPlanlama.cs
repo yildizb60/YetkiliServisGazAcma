@@ -100,6 +100,24 @@ public static class YkcTakvimGorunumKurali
 
 public static class YkcKontrolAkisKurali
 {
+    public const int DonemKontrolSayisi = 5;
+
+    // KontrolNo talep boyunca tekildir; resmi formda her donem yeniden 1-5 kullanilir.
+    public static int DonemNo(int kontrolNo) => (Math.Max(1, kontrolNo) - 1) / DonemKontrolSayisi + 1;
+    public static int FormKontrolNo(int kontrolNo) => (Math.Max(1, kontrolNo) - 1) % DonemKontrolSayisi + 1;
+    public static int DonemBaslangici(IEnumerable<int> kontrolNumaralari)
+        => (DonemNo(kontrolNumaralari.DefaultIfEmpty(1).Max()) - 1) * DonemKontrolSayisi + 1;
+
+    public static List<Ykc_Fr265Kontrol> AktifKontroller(IEnumerable<Ykc_Fr265Kontrol> kontroller)
+    {
+        var kayitlar = kontroller.Where(x => !x.SilindiMi && x.KontrolNo > 0).ToList();
+        var baslangic = DonemBaslangici(kayitlar.Select(x => x.KontrolNo));
+        return kayitlar.Where(x => x.KontrolNo >= baslangic)
+            .GroupBy(x => x.KontrolNo)
+            .Select(x => x.OrderByDescending(k => k.KontrolTarihi ?? DateTime.MinValue).ThenByDescending(k => k.Id).First())
+            .OrderBy(x => x.KontrolNo).ToList();
+    }
+
     public static bool YeniRandevuGerekli(string? kontrolSonucu)
         => string.Equals(
             kontrolSonucu?.Trim(),
@@ -108,28 +126,24 @@ public static class YkcKontrolAkisKurali
 
     public static int? SiradakiKontrolNo(IEnumerable<Ykc_Fr265Kontrol> kontroller)
     {
-        var sonKontrol = kontroller
-            .Where(x => !x.SilindiMi
-                && x.KontrolNo is >= 1 and <= 5
-                && (x.Sonuc == YkcFr265KontrolSonucDegerleri.Uygun
+        var aktifKontroller = AktifKontroller(kontroller);
+        var sonKontrol = aktifKontroller
+            .Where(x => (x.Sonuc == YkcFr265KontrolSonucDegerleri.Uygun
                     || x.Sonuc == YkcFr265KontrolSonucDegerleri.UygunDegil))
             .OrderBy(x => x.KontrolNo)
             .LastOrDefault();
 
-        if (sonKontrol?.Sonuc != YkcFr265KontrolSonucDegerleri.UygunDegil)
-            return null;
+        if (sonKontrol == null)
+            return aktifKontroller.Any(x => x.KontrolNo > DonemKontrolSayisi) ? 1 : null;
+        if (sonKontrol.Sonuc != YkcFr265KontrolSonucDegerleri.UygunDegil) return null;
 
         var siradaki = sonKontrol.KontrolNo + 1;
-        return siradaki <= 5 ? siradaki : null;
+        return FormKontrolNo(siradaki);
     }
 
     public static bool KontrolAlaniDolduMu(IEnumerable<Ykc_Fr265Kontrol> kontroller)
     {
-        var sonuclar = kontroller
-            .Where(x => !x.SilindiMi && x.KontrolNo is >= 1 and <= 5)
-            .GroupBy(x => x.KontrolNo)
-            .Select(x => x.OrderByDescending(k => k.KontrolTarihi ?? DateTime.MinValue).ThenByDescending(k => k.Id).First())
-            .ToList();
+        var sonuclar = AktifKontroller(kontroller);
 
         return sonuclar.Count == 5
             && sonuclar.All(x => x.Sonuc == YkcFr265KontrolSonucDegerleri.UygunDegil);

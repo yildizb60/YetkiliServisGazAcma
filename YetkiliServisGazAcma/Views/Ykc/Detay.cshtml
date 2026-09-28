@@ -23,9 +23,10 @@
         || imzaSureci?.Durum == YkcImzaDurumDegerleri.Tamamlandi;
     var atamaYapilabilir = !imzaSureciBasladi
         && (Model.Durum == YkcDurumDegerleri.AtamaBekliyor || Model.Durum == YkcDurumDegerleri.Atandi || Model.Durum == YkcDurumDegerleri.SahaIsleminde);
-    var randevuZamaniGeldi = Model.RandevuTarihi.HasValue
-        && TimeSpan.TryParse(Model.RandevuSaati, out var planlananSaat)
-        && Model.RandevuTarihi.Value.Date.Add(planlananSaat) <= DateTime.Now;
+    var randevuZamani = Model.RandevuTarihi.HasValue && TimeSpan.TryParse(Model.RandevuSaati, out var planlananSaat)
+        ? Model.RandevuTarihi.Value.Date.Add(planlananSaat)
+        : (DateTime?)null;
+    var randevuZamaniGeldi = randevuZamani.HasValue && randevuZamani.Value <= DateTime.Now;
     var randevuYenidenPlanlanacak = atamaYapilabilir && randevuZamaniGeldi;
     var tesisatBolgesi = string.IsNullOrWhiteSpace(Model.Bolge) ? Model.Il : Model.Bolge;
     var sonAtamaTipi = Model.Atamalar.FirstOrDefault()?.AtananKullaniciTipi ?? string.Empty;
@@ -50,13 +51,9 @@
     var gonderimTakildi = imzaSureci?.Durum == YkcImzaDurumDegerleri.ImzayaGonderildi
         && string.IsNullOrWhiteSpace(imzaSureci.ProviderDocumentId)
         && (!imzaSureci.GonderimTarihi.HasValue || imzaSureci.GonderimTarihi <= DateTime.Now.AddMinutes(-5));
-    var sonKontrolKayitlari = Model.Kontroller
-        .Where(x => x.KontrolNo is >= 1 and <= 5)
-        .GroupBy(x => x.KontrolNo)
-        .Select(x => x.OrderByDescending(k => k.KontrolTarihi ?? DateTime.MinValue).First())
-        .OrderBy(x => x.KontrolNo)
-        .ToList();
-    var kontrolSatirlari = Enumerable.Range(1, 5)
+    var sonKontrolKayitlari = Model.AktifKontroller;
+    var donemBaslangici = (Model.KontrolDonemi - 1) * 5 + 1;
+    var kontrolSatirlari = Enumerable.Range(donemBaslangici, 5)
         .Select(no => sonKontrolKayitlari.FirstOrDefault(x => x.KontrolNo == no) ?? new YkcFr265KontrolDto { KontrolNo = no })
         .ToList();
     var sonucGirilenKontroller = kontrolSatirlari
@@ -73,10 +70,10 @@
         .ThenByDescending(x => x.Id)
         .Select(x => (int?)x.Id)
         .FirstOrDefault();
-    var siradakiKontrolNo = (sonKontrol?.KontrolNo ?? 0) + 1;
+    var siradakiKontrolNo = (sonKontrol?.FormKontrolNo ?? 0) + 1;
     var aktifKontrolNo = kontrollerImzayaHazir || siradakiKontrolNo > 5 ? (int?)null : siradakiKontrolNo;
     var aktifKontrol = aktifKontrolNo.HasValue
-        ? kontrolSatirlari.FirstOrDefault(x => x.KontrolNo == aktifKontrolNo.Value)
+        ? kontrolSatirlari.FirstOrDefault(x => x.FormKontrolNo == aktifKontrolNo.Value)
         : null;
     var tekrarKontrolBekleniyor = sonKontrol?.Sonuc == YkcFr265KontrolSonucDegerleri.UygunDegil && aktifKontrolNo.HasValue;
     var tekrarRandevuBekleniyor = tekrarKontrolBekleniyor
@@ -239,6 +236,7 @@
         "FR265ImzaliNihaiBelgeAlindi" => "İmzalı form alındı",
         "FR265DemoNihaiBelgeYenilendi" => "İmzalı form yenilendi",
         "FR265KontrolleriGuncellendi" => "Kontrol sonucu kaydedildi",
+        "KontrolDonemiAcildi" => "Yeni kontrol dönemi açıldı",
         "DosyaEklendi" => "Belge eklendi",
         _ => Deger(islemTipi)
     };
@@ -382,7 +380,7 @@
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="TalepId" value="@Model.Id" />
                             <input type="hidden" name="Durum" value="@YkcDurumDegerleri.SahaIsleminde" />
-                            <button class="df-btn df-btn-primary" type="submit" disabled="@(!randevuZamaniGeldi)" title="@(randevuZamaniGeldi ? null : "Randevu saatinde kullanılabilir")"><i class="bi bi-check2-circle"></i> Randevu Gerçekleşti, Kontrole Geç</button>
+                            <button class="df-btn df-btn-primary" type="submit" data-appointment-transition data-available-at="@(randevuZamani.HasValue ? new DateTimeOffset(randevuZamani.Value).ToUnixTimeMilliseconds() : null)" disabled="@(!randevuZamaniGeldi)" title="@(randevuZamaniGeldi ? null : "Randevu saatinde kullanılabilir")"><i class="bi bi-check2-circle"></i> Randevu Gerçekleşti, Kontrole Geç</button>
                         </form>
                     </div>
                 </div>
@@ -512,7 +510,7 @@
                         @foreach (var kontrol in sonucGirilenKontroller)
                         {
                             <div>
-                                <span>@(kontrol.KontrolNo). kontrol</span>
+                                <span>@(kontrol.FormKontrolNo). kontrol</span>
                                 <strong class="@KontrolSonucClass(kontrol.Sonuc)">@KontrolSonucYazi(kontrol.Sonuc)</strong>
                                 @if (!string.IsNullOrWhiteSpace(kontrol.Aciklama))
                                 {
@@ -530,7 +528,7 @@
                         <input type="hidden" name="TalepId" value="@Model.Id" />
                         <input type="hidden" name="Kontroller[0].KontrolNo" value="@aktifKontrol.KontrolNo" />
                         <div>
-                            <h3>@(aktifKontrol.KontrolNo). Kontrol</h3>
+                            <h3>@if (Model.KontrolDonemi > 1) { <span>@Model.KontrolDonemi. Dönem · </span> }@(aktifKontrol.FormKontrolNo). Kontrol</h3>
                         </div>
                         <fieldset class="ykc-control-choice-group">
                             <legend>Kontrol sonucu</legend>
@@ -673,6 +671,18 @@
     </section>
     <section class="ykc-firm-data-section ykc-history-section" id="request-history" role="tabpanel" aria-labelledby="staff-history-tab" hidden>
         <h2><i class="bi bi-clock-history" aria-hidden="true"></i>İşlem Geçmişi</h2>
+        @foreach (var donem in Model.Kontroller.Where(x => x.DonemNo < Model.KontrolDonemi).GroupBy(x => x.DonemNo).OrderByDescending(x => x.Key))
+        {
+            <details class="ykc-detail-section">
+                <summary><span><strong>@donem.Key. Dönem Kontrolleri</strong></span><i class="bi bi-chevron-down"></i></summary>
+                <div class="ykc-detail-section-body ykc-control-history">
+                    @foreach (var kontrol in donem.OrderBy(x => x.KontrolNo))
+                    {
+                        <div><span>@kontrol.FormKontrolNo. Kontrol · @kontrol.KontrolTarihi?.ToString("dd.MM.yyyy HH:mm")</span><strong class="@KontrolSonucClass(kontrol.Sonuc)">@KontrolSonucYazi(kontrol.Sonuc)</strong><small>@kontrol.Aciklama</small></div>
+                    }
+                </div>
+            </details>
+        }
         @if (!Model.Gecmis.Any())
         {
             <div class="ykc-empty-state">Henüz işlem geçmişi yok.</div>
@@ -730,6 +740,29 @@
             if (!input) return;
             if (typeof input.showPicker === 'function') input.showPicker(); else input.focus();
         });
+
+        (() => {
+            const button = document.querySelector('[data-appointment-transition]');
+            if (!button?.disabled || !button.dataset.availableAt) return;
+            const availableAt = Number(button.dataset.availableAt);
+            if (!Number.isFinite(availableAt)) return;
+
+            let timer;
+            const update = () => {
+                window.clearTimeout(timer);
+                if (Date.now() >= availableAt) {
+                    button.disabled = false;
+                    button.removeAttribute('title');
+                    const title = document.querySelector('.ykc-task-title-default');
+                    if (title) title.textContent = 'Randevu sonucunu kaydedin';
+                    return;
+                }
+                timer = window.setTimeout(update, Math.min(availableAt - Date.now(), 60_000));
+            };
+            document.addEventListener('visibilitychange', update);
+            window.addEventListener('focus', update);
+            update();
+        })();
 
         (() => {
             const date = document.getElementById('randevuTarihi');

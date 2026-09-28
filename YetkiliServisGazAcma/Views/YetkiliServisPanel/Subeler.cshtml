@@ -139,6 +139,15 @@
             showSheet();
             try {
                 const response = await fetch(trigger.href, { credentials: "same-origin", headers: { "X-Requested-With": "XMLHttpRequest" } });
+                if (response.redirected) {
+                    const redirect = new URL(response.url, window.location.href);
+                    if (redirect.origin === window.location.origin
+                        && (redirect.pathname === "/giris" || redirect.pathname === "/yetkisiz-erisim")) {
+                        window.location.assign(redirect.href);
+                        return;
+                    }
+                }
+                if (currentRequest !== requestId) return;
                 if (response.redirected) { window.location.assign(response.url); return; }
                 if (!response.ok) throw new Error("Form alınamadı");
                 const parsed = new DOMParser().parseFromString(await response.text(), "text/html");

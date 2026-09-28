@@ -943,7 +943,14 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.Servis = servis;
             ViewBag.Sehirler = _sehirFirmaKoduService.Sehirler();
             ViewBag.Kategoriler = await KullanilanKategorileriGetir();
-            ViewBag.Markalar = await _markaApiClient.AktifleriGetirAsync() ?? new List<Ys_Marka>();
+            var aktifMarkalar = await _markaApiClient.AktifleriGetirAsync() ?? new List<Ys_Marka>();
+            var bagliMarkalar = servis.FirmaMarkalar?
+                .Where(x => !x.SilindiMi && x.Marka is { SilindiMi: false })
+                .Select(x => x.Marka!) ?? Enumerable.Empty<Ys_Marka>();
+            ViewBag.Markalar = aktifMarkalar.Concat(bagliMarkalar)
+                .DistinctBy(x => x.Id)
+                .OrderBy(x => x.MarkaAdi)
+                .ToList();
             ViewBag.SeciliKategoriler = servis.FirmaKategoriler?.Where(x => !x.SilindiMi).Select(x => x.KategoriId).ToList() ?? new List<int>();
             ViewBag.SeciliMarkalar = servis.FirmaMarkalar?.Where(x => !x.SilindiMi).Select(x => x.MarkaId).ToList() ?? new List<int>();
 

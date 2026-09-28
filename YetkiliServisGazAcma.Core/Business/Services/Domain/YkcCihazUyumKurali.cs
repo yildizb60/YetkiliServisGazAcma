@@ -17,8 +17,8 @@ public static class YkcCihazUyumKurali
         Karsilastir("Cihaz tipi", eskiTip, yeniTip);
         Karsilastir("Marka", eskiMarka, yeniMarka);
         Karsilastir("Baca tipi", eskiBaca, yeniBaca);
-        if (Kapasite(eskiKapasite, out var eski) && Kapasite(yeniKapasite, out var yeni) && eski != yeni)
-            sonuc.Add("Kapasite proje kaydıyla farklı. İncelemede kontrol edin.");
+        if (Kapasite(eskiKapasite, out var eski) && Kapasite(yeniKapasite, out var yeni) && yeni > eski)
+            sonuc.Add("Yeni cihazın kapasitesi projedeki kapasiteden yüksek. Tadilat projesi gereklidir.");
         return sonuc;
     }
 
