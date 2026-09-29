@@ -1349,6 +1349,14 @@
     font-weight: 700;
 }
 
+.personnel-calendar-surface .is-authorized-service-calendar .home-visit-meta > .home-visit-device {
+    flex: 0 0 auto;
+    padding-left: 7px;
+    border-left: 1px solid #cbd5de;
+    color: #315fca;
+    font-weight: 700;
+}
+
 .personnel-calendar-surface .home-visit-person > small {
     display: block;
     overflow: hidden;

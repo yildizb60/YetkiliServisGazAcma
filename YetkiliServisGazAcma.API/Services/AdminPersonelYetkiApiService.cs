@@ -30,9 +30,11 @@ namespace YetkiliServisGazAcma.API.Services
 
         public async Task<AdminYetkiListeDto> ListeleAsync(AppKullanici kullanici, int? sirketId, bool genelSistemAdminMi)
         {
+            if (!PersonelYetkiYonetimKurali.YonetebilirMi(kullanici, sirketId))
+                return new AdminYetkiListeDto();
             var personelQuery = _context.Users
                 .Include(x => x.Sirket)
-                .Where(x => x.KullaniciTipi == KullaniciTipiDegerleri.Personel)
+                .Where(x => x.KullaniciTipi == KullaniciTipiDegerleri.Personel && x.ArsivlemeTarihi == null)
                 .AsQueryable();
 
             if (!(genelSistemAdminMi && !sirketId.HasValue))
@@ -98,12 +100,14 @@ namespace YetkiliServisGazAcma.API.Services
 
         public async Task<AdminYetkiDuzenleDto> GetirAsync(AdminYetkiGetirDto? dto, AppKullanici kullanici, int? sirketId, bool genelSistemAdminMi)
         {
+            if (!PersonelYetkiYonetimKurali.YonetebilirMi(kullanici, sirketId))
+                return new AdminYetkiDuzenleDto();
             if (dto == null || string.IsNullOrWhiteSpace(dto.Id))
                 return new AdminYetkiDuzenleDto();
 
             var personel = await _context.Users
                 .Include(x => x.Sirket)
-                .FirstOrDefaultAsync(x => x.Id == dto.Id && x.KullaniciTipi == KullaniciTipiDegerleri.Personel);
+                .FirstOrDefaultAsync(x => x.Id == dto.Id && x.KullaniciTipi == KullaniciTipiDegerleri.Personel && x.ArsivlemeTarihi == null);
 
             if (personel == null || !await KullaniciKapsamindaMi(kullanici, personel, sirketId, genelSistemAdminMi))
                 return new AdminYetkiDuzenleDto();
@@ -145,13 +149,15 @@ namespace YetkiliServisGazAcma.API.Services
 
         private async Task<AdminIslemSonucDto> YetkileriKaydetAsync(AdminYetkiGuncelleDto? dto, AppKullanici kullanici, int? sirketId, bool genelSistemAdminMi)
         {
+            if (!PersonelYetkiYonetimKurali.YonetebilirMi(kullanici, sirketId))
+                return AdminIslemSonucDto.Basarisiz("Personel yetkilerini yalnızca yöneticiler düzenleyebilir.");
             if (dto == null || string.IsNullOrWhiteSpace(dto.Id))
                 return AdminIslemSonucDto.Basarisiz("Personel id zorunludur.");
 
             await using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
             var personel = await _context.Users
                 .FromSqlInterpolated($"SELECT * FROM dbo.Ys_AspNetUsers WITH (UPDLOCK, HOLDLOCK) WHERE Id = {dto.Id}")
-                .FirstOrDefaultAsync(x => x.KullaniciTipi == KullaniciTipiDegerleri.Personel);
+                .FirstOrDefaultAsync(x => x.KullaniciTipi == KullaniciTipiDegerleri.Personel && x.ArsivlemeTarihi == null);
             if (personel == null)
                 return AdminIslemSonucDto.Basarisiz("Personel bulunamadi.");
 

@@ -123,12 +123,12 @@ namespace YetkiliServisGazAcma.Business.Services
                 "Yetkili servis marka kontrol");
         }
 
-        public Task<YsDevreyeAlmaIslemSonuc?> KaydetAsync(AppKullanici kullanici, Ys_DevreyeAlma model)
+        public Task<YsDevreyeAlmaIslemSonuc?> KaydetAsync(AppKullanici kullanici, YsDevreyeAlmaKaydetIstek model)
         {
             return PostAsync<YsDevreyeAlmaKaydetIstek, YsDevreyeAlmaIslemSonuc>(
                 kullanici,
                 "api/ys-devreyeal/kaydet",
-                YsDevreyeAlmaKaydetIstek.FromEntity(model),
+                model,
                 "Yetkili servis devreye alma kaydet");
         }
 
@@ -247,49 +247,6 @@ namespace YetkiliServisGazAcma.Business.Services
         {
             public string? TesistatNo { get; set; }
             public string? SozlesmeNo { get; set; }
-        }
-
-        private class YsDevreyeAlmaKaydetIstek
-        {
-            public string? TesistatNo { get; set; }
-            public string? AboneNo { get; set; }
-            public string? UygunlukBelgeNo { get; set; }
-            public DateTime? UygunlukTarihi { get; set; }
-            public string? MusteriAdi { get; set; }
-            public string? MusteriTcNo { get; set; }
-            public string? MusteriTelefon { get; set; }
-            public string? Adres { get; set; }
-            public string? CihazTipi { get; set; }
-            public string? CihazMarka { get; set; }
-            public string? CihazModeli { get; set; }
-            public string? CihazKapasite { get; set; }
-            public string? SeriNo { get; set; }
-            public string? TeknisyenAdi { get; set; }
-            public string? TeknisyenYetkiBelgesiNo { get; set; }
-            public string? Notlar { get; set; }
-
-            public static YsDevreyeAlmaKaydetIstek FromEntity(Ys_DevreyeAlma model)
-            {
-                return new YsDevreyeAlmaKaydetIstek
-                {
-                    TesistatNo = model.TesistatNo,
-                    AboneNo = model.AboneNo,
-                    UygunlukBelgeNo = model.UygunlukBelgeNo,
-                    UygunlukTarihi = model.UygunlukTarihi,
-                    MusteriAdi = model.MusteriAdi,
-                    MusteriTcNo = model.MusteriTcNo,
-                    MusteriTelefon = model.MusteriTelefon,
-                    Adres = model.Adres,
-                    CihazTipi = model.CihazTipi,
-                    CihazMarka = model.CihazMarka,
-                    CihazModeli = model.CihazModeli,
-                    CihazKapasite = model.CihazKapasite,
-                    SeriNo = model.SeriNo,
-                    TeknisyenAdi = model.TeknisyenAdi,
-                    TeknisyenYetkiBelgesiNo = model.TeknisyenYetkiBelgesiNo,
-                    Notlar = model.Notlar
-                };
-            }
         }
 
         private class YsDevreyeAlmaGecmisCevap
@@ -534,9 +491,21 @@ namespace YetkiliServisGazAcma.Business.Services
 
     public class YsTesisatCihazSonuc
     {
+        public string? SorguReferansi { get; set; }
+        public bool KaydedildiMi { get; set; }
         public string? CihazMarka { get; set; }
         public string? CihazTipi { get; set; }
         public string? CihazKapasite { get; set; }
+    }
+
+    public class YsDevreyeAlmaKaydetIstek
+    {
+        public string? SorguReferansi { get; set; }
+        public string? CihazModeli { get; set; }
+        public string? SeriNo { get; set; }
+        public string? TeknisyenAdi { get; set; }
+        public string? TeknisyenYetkiBelgesiNo { get; set; }
+        public string? Notlar { get; set; }
     }
 
     public class YsDevreyeAlmaIslemSonuc

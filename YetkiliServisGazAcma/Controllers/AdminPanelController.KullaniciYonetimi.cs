@@ -466,7 +466,7 @@ namespace YetkiliServisGazAcma.Controllers
 
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
             var sonuc = await _adminKullaniciApiClient.SilAsync(kullanici, id, aktifSirketId, sadecePersonel: true);
-            SetKullaniciIslemMesaji(sonuc, "Personel silindi.");
+            SetKullaniciIslemMesaji(sonuc, "Personel arşivlendi.");
             return Redirect("/AdminPanel/personeller");
         }
 
@@ -494,7 +494,7 @@ namespace YetkiliServisGazAcma.Controllers
 
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
             var sonuc = await _adminKullaniciApiClient.SilAsync(kullanici, id, aktifSirketId, sadecePersonel: false);
-            SetKullaniciIslemMesaji(sonuc, "Kullanici silindi.");
+            SetKullaniciIslemMesaji(sonuc, "Kullanıcı arşivlendi.");
             return Redirect("/AdminPanel/kullanicilar");
         }
 
@@ -514,6 +514,7 @@ namespace YetkiliServisGazAcma.Controllers
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
+            if (!PersonelYetkiYonetimKurali.YonetebilirMi(kullanici, kullanici.SirketId)) return Forbid();
 
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
             AdminYetkiListeSonuc? sonuc;
@@ -558,6 +559,7 @@ namespace YetkiliServisGazAcma.Controllers
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
+            if (!PersonelYetkiYonetimKurali.YonetebilirMi(kullanici, kullanici.SirketId)) return Forbid();
 
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
             AdminYetkiDuzenleSonuc? sonuc;
@@ -599,6 +601,7 @@ namespace YetkiliServisGazAcma.Controllers
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
+            if (!PersonelYetkiYonetimKurali.YonetebilirMi(kullanici, kullanici.SirketId)) return Forbid();
 
             var secilenSirketIds = (sirketIds ?? new List<int>())
                 .Distinct()

@@ -2,8 +2,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.SqlClient;
+using System.Data;
 using System.Globalization;
+using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using YetkiliServisGazAcma.API.Services;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Business.Services.Online;
@@ -265,6 +269,10 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             var firma = await FirmaQuery()
                 .FirstOrDefaultAsync(x => x.Id == kullanici.FirmaId.Value);
+            if (firma == null)
+                return Ok(new YsTesisatSorguSonucDto { Basarili = false, Mesaj = "Yetkili servis firma kaydı bulunamadı." });
+            if (!firma.AktifMi)
+                return Ok(new YsTesisatSorguSonucDto { Basarili = false, Mesaj = "Firma kaydınız pasif olduğu için cihaz sorgulanamaz." });
 
             var firmaKodu = OnlineFirmaKodu(firma);
             var servisSonuc = await _onlineCihazBilgileriClient.YSCihazBilgileriGetirAsync(
@@ -282,12 +290,79 @@ namespace YetkiliServisGazAcma.API.Controllers
                 });
             }
 
+            if ((servisSonuc.TesisatNo.HasValue && servisSonuc.TesisatNo.Value != tesisatNo)
+                || (servisSonuc.SozlesmeNo.HasValue && servisSonuc.SozlesmeNo.Value != sozlesmeNo))
+            {
+                return Ok(new YsTesisatSorguSonucDto
+                {
+                    Basarili = false,
+                    Mesaj = "Servis yanıtındaki tesisat veya sözleşme numarası sorguyla eşleşmedi. Kayıt oluşturulmadı."
+                });
+            }
+
             var cariKod = servisSonuc.CariKod?.ToString(CultureInfo.InvariantCulture) ?? "";
+            var kaynakTesisatNo = (servisSonuc.TesisatNo ?? tesisatNo).ToString(CultureInfo.InvariantCulture);
+            var kaynakSozlesmeNo = (servisSonuc.SozlesmeNo ?? sozlesmeNo).ToString(CultureInfo.InvariantCulture);
+            var cihazlar = new List<YsTesisatCihazDto>();
+            var kaynakAnahtarlari = new List<string>();
+            var ayniCihazSayilari = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (var cihaz in servisSonuc.Cihazlar)
+            {
+                var kaynak = new YsDevreyeAlmaKaynak
+                {
+                    TesisatNo = kaynakTesisatNo,
+                    SozlesmeNo = kaynakSozlesmeNo,
+                    AboneNo = cariKod,
+                    MusteriAdi = servisSonuc.CariAd ?? "",
+                    Adres = servisSonuc.Adres ?? "",
+                    CihazTipi = cihaz.CihazTipi ?? "",
+                    CihazMarka = cihaz.CihazMarka ?? "",
+                    CihazKapasite = cihaz.CihazKapasite?.ToString(CultureInfo.InvariantCulture) ?? ""
+                };
+                var imza = YsDevreyeAlmaKaynak.CihazImzasi(kaynak, cihaz.ProjeNo, cihaz.CihazTipKodu);
+                ayniCihazSayilari.TryGetValue(imza, out var ayniCihazSirasi);
+                ayniCihazSayilari[imza] = ayniCihazSirasi + 1;
+                var referans = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+                var kaynakAnahtari = YsDevreyeAlmaKaynak.CihazAnahtari(
+                    firma.SirketId, kaynak, cihaz.ProjeNo, cihaz.CihazTipKodu, ayniCihazSirasi);
+                kaynakAnahtarlari.Add(kaynakAnahtari);
+                _context.Ys_DevreyeAlmaSorguKayitlari.Add(new Ys_DevreyeAlmaSorguKaydi
+                {
+                    Referans = referans,
+                    KullaniciId = kullanici.Id,
+                    FirmaId = kullanici.FirmaId.Value,
+                    DagitimSirketiId = firma.SirketId,
+                    KaynakJson = JsonSerializer.Serialize(kaynak),
+                    KaynakCihazAnahtari = kaynakAnahtari,
+                    GecerlilikTarihi = DateTime.UtcNow.AddMinutes(20)
+                });
+                cihazlar.Add(new YsTesisatCihazDto
+                {
+                    SorguReferansi = referans,
+                    CihazMarka = kaynak.CihazMarka,
+                    CihazTipi = kaynak.CihazTipi,
+                    CihazKapasite = kaynak.CihazKapasite
+                });
+            }
+
+            await _context.Database.ExecuteSqlRawAsync(
+                "DELETE TOP (200) FROM dbo.Ys_DevreyeAlmaSorguKayitlari WHERE GecerlilikTarihi <= SYSUTCDATETIME() AND DevreyeAlmaId IS NULL");
+
+            var tamamlananAnahtarlar = await _context.Ys_DevreyeAlmalar
+                .Where(x => !x.SilindiMi
+                    && x.TesistatNo == kaynakTesisatNo && x.KaynakCihazAnahtari != null)
+                .Select(x => x.KaynakCihazAnahtari!)
+                .ToListAsync();
+            var tamamlananlar = tamamlananAnahtarlar.ToHashSet(StringComparer.Ordinal);
+            for (var index = 0; index < cihazlar.Count; index++)
+                cihazlar[index].KaydedildiMi = tamamlananlar.Contains(kaynakAnahtarlari[index]);
+
+            await _context.SaveChangesAsync();
             return Ok(new YsTesisatSorguSonucDto
             {
                 Basarili = true,
-                TesistatNo = (servisSonuc.TesisatNo ?? tesisatNo).ToString(CultureInfo.InvariantCulture),
-                SozlesmeNo = (servisSonuc.SozlesmeNo ?? sozlesmeNo).ToString(CultureInfo.InvariantCulture),
+                TesistatNo = kaynakTesisatNo,
+                SozlesmeNo = kaynakSozlesmeNo,
                 AboneNo = cariKod,
                 SayacNo = servisSonuc.SayacNo?.ToString(CultureInfo.InvariantCulture) ?? "",
                 MusteriAdi = servisSonuc.CariAd ?? "",
@@ -299,12 +374,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 UygunlukBelgeNo = "",
                 UygunlukTarihi = "",
                 Durum = servisSonuc.Cihazlar.Count > 0 ? "Cihaz bilgisi bulundu" : "Tesisat bulundu",
-                Cihazlar = servisSonuc.Cihazlar.Select(c => new YsTesisatCihazDto
-                {
-                    CihazMarka = c.CihazMarka ?? "",
-                    CihazTipi = c.CihazTipi ?? "",
-                    CihazKapasite = c.CihazKapasite?.ToString(CultureInfo.InvariantCulture) ?? ""
-                }).ToList()
+                Cihazlar = cihazlar
             });
         }
 
@@ -418,80 +488,105 @@ namespace YetkiliServisGazAcma.API.Controllers
                 });
             }
 
+            if (string.IsNullOrWhiteSpace(dto?.SorguReferansi) || dto.SorguReferansi.Length != 64)
+            {
+                return Ok(new YsDevreyeAlmaIslemSonucDto
+                {
+                    Basarili = false,
+                    Mesaj = "Önce tesisatı sorgulayıp servisten gelen cihazı seçin.",
+                    RedirectUrl = "/ys-devreyeal"
+                });
+            }
+
+            await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            if (!await _context.Ys_Firmalar.AnyAsync(x => x.Id == kullanici.FirmaId.Value && !x.SilindiMi && x.AktifMi))
+                return Ok(KayitHatasi("Firma kaydınız aktif olmadığı için cihaz devreye alınamaz."));
             if (!await GecerliYetkiBelgesiVarAsync(kullanici.FirmaId.Value))
-            {
-                return Ok(new YsDevreyeAlmaIslemSonucDto
-                {
-                    Basarili = false,
-                    Mesaj = "Cihaz devreye alma islemi icin gecerli onayli yetki belgeniz bulunmalidir.",
-                    RedirectUrl = "/ys-yetki-belgesi"
-                });
-            }
+                return Ok(KayitHatasi("Cihaz devreye alma işlemi için geçerli, onaylı yetki belgeniz bulunmalıdır."));
 
-            if (string.IsNullOrWhiteSpace(dto?.CihazMarka))
-            {
-                return Ok(new YsDevreyeAlmaIslemSonucDto
-                {
-                    Basarili = false,
-                    Mesaj = "Servisten gelen cihazlardan biri secilmeden devreye alma tamamlanamaz.",
-                    RedirectUrl = "/ys-devreyeal"
-                });
-            }
+            var sorguKaydi = await _context.Ys_DevreyeAlmaSorguKayitlari
+                .FirstOrDefaultAsync(x => x.Referans == dto.SorguReferansi
+                    && x.KullaniciId == kullanici.Id
+                    && x.FirmaId == kullanici.FirmaId.Value
+                    && x.GecerlilikTarihi > DateTime.UtcNow
+                    && x.DevreyeAlmaId == null);
+            if (sorguKaydi == null)
+                return Ok(KayitHatasi("Cihaz sorgusu geçersiz, süresi dolmuş veya bu cihaz zaten kaydedilmiş. Tesisatı yeniden sorgulayın."));
 
-            var zorunluAlanHatasi = ZorunluAlanlariKontrolEt(dto);
+            var dagitimSirketiId = await _context.Ys_Firmalar
+                .Where(x => x.Id == kullanici.FirmaId.Value && !x.SilindiMi)
+                .Select(x => x.SirketId)
+                .FirstOrDefaultAsync();
+            if (dagitimSirketiId == 0 || dagitimSirketiId != sorguKaydi.DagitimSirketiId)
+                return Ok(KayitHatasi("Firma kapsamı sorgu kaydıyla eşleşmiyor. Tesisatı yeniden sorgulayın."));
+
+            YsDevreyeAlmaKaynak? kaynak;
+            try { kaynak = JsonSerializer.Deserialize<YsDevreyeAlmaKaynak>(sorguKaydi.KaynakJson); }
+            catch (JsonException) { kaynak = null; }
+            if (kaynak == null)
+                return Ok(KayitHatasi("Kaynak cihaz bilgisi doğrulanamadı. Tesisatı yeniden sorgulayın."));
+
+            var zorunluAlanHatasi = ZorunluAlanlariKontrolEt(dto, kaynak);
             if (!string.IsNullOrWhiteSpace(zorunluAlanHatasi))
-            {
-                return Ok(new YsDevreyeAlmaIslemSonucDto
-                {
-                    Basarili = false,
-                    Mesaj = zorunluAlanHatasi,
-                    RedirectUrl = "/ys-devreyeal"
-                });
-            }
+                return Ok(KayitHatasi(zorunluAlanHatasi));
 
-            var marka = await MarkaBulAsync(dto.CihazMarka);
+            var marka = await MarkaBulAsync(kaynak.CihazMarka);
             if (marka == null)
             {
-                return Ok(new YsDevreyeAlmaIslemSonucDto
-                {
-                    Basarili = false,
-                    Mesaj = $"{dto.CihazMarka} markasında işlem yetkiniz yok.",
-                    RedirectUrl = "/ys-devreyeal"
-                });
+                return Ok(KayitHatasi($"{kaynak.CihazMarka} markasında işlem yetkiniz yok."));
             }
 
             var yetkiVar = await FirmaMarkaYetkisiVarAsync(kullanici.FirmaId.Value, marka.Id);
             if (!yetkiVar)
             {
-                return Ok(new YsDevreyeAlmaIslemSonucDto
-                {
-                    Basarili = false,
-                    Mesaj = $"{marka.MarkaAdi} markasında işlem yetkiniz yok.",
-                    RedirectUrl = "/ys-devreyeal"
-                });
+                return Ok(KayitHatasi($"{marka.MarkaAdi} markasında işlem yetkiniz yok."));
             }
+
+            var seriAnahtari = YsDevreyeAlmaKaynak.SeriAnahtari(dagitimSirketiId, kaynak.TesisatNo, dto.SeriNo);
+            if (!await FirmaKategoriYetkisiVarAsync(kullanici.FirmaId.Value, kaynak.CihazTipi))
+                return Ok(KayitHatasi($"{kaynak.CihazTipi} cihaz tipinde işlem yetkiniz yok."));
+
+            var seriNo = dto.SeriNo!.Trim();
+            var mukerrer = await _context.Ys_DevreyeAlmalar.AnyAsync(x => !x.SilindiMi
+                && (x.KaynakCihazAnahtari == sorguKaydi.KaynakCihazAnahtari
+                    || x.SeriAnahtari == seriAnahtari));
+            if (!mukerrer)
+            {
+                var oncekiSeriler = await _context.Ys_DevreyeAlmalar
+                    .Where(x => !x.SilindiMi && x.SeriAnahtari == null
+                        && x.TesistatNo == kaynak.TesisatNo && x.SeriNo != null
+                        && x.Firma != null && x.Firma.SirketId == dagitimSirketiId)
+                    .Select(x => x.SeriNo)
+                    .ToListAsync();
+                mukerrer = oncekiSeriler.Any(x => YsDevreyeAlmaKaynak.SeriAnahtari(
+                    dagitimSirketiId, kaynak.TesisatNo, x) == seriAnahtari);
+            }
+            if (mukerrer)
+                return Ok(KayitHatasi("Bu kaynak cihaz veya seri numarası için devreye alma kaydı zaten var."));
 
             var islem = new Ys_DevreyeAlma
             {
                 FirmaId = kullanici.FirmaId.Value,
                 MarkaId = marka.Id,
-                TesistatNo = dto.TesistatNo,
-                AboneNo = dto.AboneNo,
-                UygunlukBelgeNo = dto.UygunlukBelgeNo,
-                UygunlukTarihi = dto.UygunlukTarihi,
-                MusteriAdi = dto.MusteriAdi,
+                TesistatNo = kaynak.TesisatNo,
+                AboneNo = kaynak.AboneNo,
+                UygunlukBelgeNo = null,
+                UygunlukTarihi = null,
+                MusteriAdi = kaynak.MusteriAdi,
                 // TC bilgisi mevcut online servis sozlesmesinde bulunmuyor.
                 // Istemciden gelen gizli alan guvenilir kaynak kabul edilmez.
                 MusteriTcNo = null,
-                MusteriTelefon = dto.MusteriTelefon,
-                Adres = dto.Adres,
-                CihazTipi = dto.CihazTipi,
-                CihazMarka = marka.MarkaAdi ?? dto.CihazMarka,
-                CihazModeli = dto.CihazModeli,
-                CihazKapasite = dto.CihazKapasite,
-                SeriNo = dto.SeriNo,
-                TeknisyenAdi = dto.TeknisyenAdi,
-                TeknisyenYetkiBelgesiNo = dto.TeknisyenYetkiBelgesiNo,
+                MusteriTelefon = kaynak.MusteriTelefon,
+                Adres = kaynak.Adres,
+                CihazTipi = kaynak.CihazTipi,
+                CihazMarka = marka.MarkaAdi ?? kaynak.CihazMarka,
+                CihazModeli = dto.CihazModeli?.Trim(),
+                CihazKapasite = kaynak.CihazKapasite,
+                SeriNo = seriNo,
+                KaynakCihazAnahtari = sorguKaydi.KaynakCihazAnahtari,
+                SeriAnahtari = seriAnahtari,
+                TeknisyenAdi = dto.TeknisyenAdi?.Trim(),
+                TeknisyenYetkiBelgesiNo = dto.TeknisyenYetkiBelgesiNo?.Trim(),
                 DevreyeAlmaTarihi = DateTime.Now,
                 Notlar = dto.Notlar,
                 Durum = DevreyeAlmaDurumDegerleri.Tamamlandi,
@@ -500,8 +595,23 @@ namespace YetkiliServisGazAcma.API.Controllers
                 SilindiMi = false
             };
 
-            _context.Ys_DevreyeAlmalar.Add(islem);
-            await _context.SaveChangesAsync();
+            try
+            {
+                _context.Ys_DevreyeAlmalar.Add(islem);
+                await _context.SaveChangesAsync();
+                sorguKaydi.DevreyeAlmaId = islem.Id;
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is SqlException sql
+                && sql.Number is 2601 or 2627)
+            {
+                return Ok(KayitHatasi("Bu kaynak cihaz veya seri numarası için devreye alma kaydı zaten var."));
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is SqlException sql && sql.Number == 1205)
+            {
+                return Ok(KayitHatasi("Cihaz kaydı eşzamanlı bir işlem nedeniyle tamamlanamadı. Lütfen yeniden deneyin."));
+            }
 
             return Ok(new YsDevreyeAlmaIslemSonucDto
             {
@@ -607,26 +717,37 @@ namespace YetkiliServisGazAcma.API.Controllers
                     && !x.Marka.SilindiMi);
         }
 
-        private static string? ZorunluAlanlariKontrolEt(YsDevreyeAlmaKaydetDto dto)
+        private static YsDevreyeAlmaIslemSonucDto KayitHatasi(string mesaj) => new()
+        {
+            Basarili = false,
+            Mesaj = mesaj,
+            RedirectUrl = "/ys-devreyeal"
+        };
+
+        private static string? ZorunluAlanlariKontrolEt(YsDevreyeAlmaKaydetDto dto, YsDevreyeAlmaKaynak kaynak)
         {
             var eksikler = new List<string>();
 
-            if (string.IsNullOrWhiteSpace(dto.TesistatNo))
+            if (string.IsNullOrWhiteSpace(kaynak.TesisatNo))
                 eksikler.Add("tesisat no");
-            if (string.IsNullOrWhiteSpace(dto.AboneNo) && string.IsNullOrWhiteSpace(dto.SozlesmeNo))
+            if (string.IsNullOrWhiteSpace(kaynak.AboneNo) && string.IsNullOrWhiteSpace(kaynak.SozlesmeNo))
                 eksikler.Add("abone veya sozlesme no");
-            if (string.IsNullOrWhiteSpace(dto.MusteriAdi))
+            if (string.IsNullOrWhiteSpace(kaynak.MusteriAdi))
                 eksikler.Add("musteri adi");
-            if (string.IsNullOrWhiteSpace(dto.Adres))
+            if (string.IsNullOrWhiteSpace(kaynak.Adres))
                 eksikler.Add("adres");
-            if (string.IsNullOrWhiteSpace(dto.CihazTipi))
+            if (string.IsNullOrWhiteSpace(kaynak.CihazTipi))
                 eksikler.Add("cihaz tipi");
-            if (string.IsNullOrWhiteSpace(dto.CihazMarka))
+            if (string.IsNullOrWhiteSpace(kaynak.CihazMarka))
                 eksikler.Add("cihaz markasi");
+            if (string.IsNullOrWhiteSpace(dto.CihazModeli))
+                eksikler.Add("cihaz modeli");
             if (string.IsNullOrWhiteSpace(dto.SeriNo))
                 eksikler.Add("seri no");
             if (string.IsNullOrWhiteSpace(dto.TeknisyenAdi))
                 eksikler.Add("teknisyen adi");
+            if (string.IsNullOrWhiteSpace(dto.TeknisyenYetkiBelgesiNo))
+                eksikler.Add("teknisyen yetki belgesi no");
 
             return eksikler.Count == 0
                 ? null
@@ -640,10 +761,21 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return null;
 
             var markalar = await _context.Ys_Markalar
-                .Where(x => !x.SilindiMi)
+                .Where(x => !x.SilindiMi && x.AktifMi)
                 .ToListAsync();
 
             return markalar.FirstOrDefault(x => NormalizeMarka(x.MarkaAdi) == aranan);
+        }
+
+        private async Task<bool> FirmaKategoriYetkisiVarAsync(int firmaId, string cihazTipi)
+        {
+            var bugun = DateTime.Today;
+            var kategoriler = await _context.Ys_FirmaKategoriler
+                .Where(x => x.FirmaId == firmaId && !x.SilindiMi && x.YetkiBitisTarihi >= bugun
+                    && x.Kategori != null && !x.Kategori.SilindiMi && x.Kategori.AktifMi)
+                .Select(x => x.Kategori!.Ad).ToListAsync();
+            var aranan = NormalizeMarka(cihazTipi);
+            return aranan.Length > 0 && kategoriler.Any(x => NormalizeMarka(x) == aranan);
         }
 
         private static string NormalizeMarka(string? value)
@@ -652,7 +784,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return "";
 
             var normalized = value.Trim()
-                .ToLower(new CultureInfo("tr-TR"))
+                .ToUpper(new CultureInfo("tr-TR"))
                 .Normalize(NormalizationForm.FormD);
 
             var builder = new StringBuilder(normalized.Length);
@@ -730,6 +862,8 @@ namespace YetkiliServisGazAcma.API.Controllers
 
     public class YsTesisatCihazDto
     {
+        public string? SorguReferansi { get; set; }
+        public bool KaydedildiMi { get; set; }
         public string? CihazMarka { get; set; }
         public string? CihazTipi { get; set; }
         public string? CihazKapasite { get; set; }
@@ -745,19 +879,8 @@ namespace YetkiliServisGazAcma.API.Controllers
 
     public class YsDevreyeAlmaKaydetDto
     {
-        public string? TesistatNo { get; set; }
-        public string? SozlesmeNo { get; set; }
-        public string? AboneNo { get; set; }
-        public string? UygunlukBelgeNo { get; set; }
-        public DateTime? UygunlukTarihi { get; set; }
-        public string? MusteriAdi { get; set; }
-        public string? MusteriTcNo { get; set; }
-        public string? MusteriTelefon { get; set; }
-        public string? Adres { get; set; }
-        public string? CihazTipi { get; set; }
-        public string? CihazMarka { get; set; }
+        public string? SorguReferansi { get; set; }
         public string? CihazModeli { get; set; }
-        public string? CihazKapasite { get; set; }
         public string? SeriNo { get; set; }
         public string? TeknisyenAdi { get; set; }
         public string? TeknisyenYetkiBelgesiNo { get; set; }

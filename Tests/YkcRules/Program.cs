@@ -24,6 +24,34 @@ string ExcelParcasi(byte[] bytes, string path)
 }
 
 // No database or external providers: checks cannot alter application records.
+var commissioningSource = new YsDevreyeAlmaKaynak
+{
+    TesisatNo = "1000149",
+    SozlesmeNo = "241584",
+    MusteriAdi = "HÜSEYİN SOYLU",
+    Adres = "Çorum",
+    CihazTipi = "Kombi",
+    CihazMarka = "BAYMAK",
+    CihazKapasite = "20000"
+};
+var firstDeviceKey = YsDevreyeAlmaKaynak.CihazAnahtari(7, commissioningSource, "42", "K", 0);
+Check(firstDeviceKey == YsDevreyeAlmaKaynak.CihazAnahtari(7, commissioningSource, "42", "K", 0),
+    "Commissioning source device keeps its key across repeated queries");
+commissioningSource.CihazMarka = "baymak";
+Check(firstDeviceKey == YsDevreyeAlmaKaynak.CihazAnahtari(7, commissioningSource, "42", "K", 0),
+    "Source device key ignores brand casing");
+commissioningSource.CihazMarka = "BAYMAK";
+Check(firstDeviceKey != YsDevreyeAlmaKaynak.CihazAnahtari(7, commissioningSource, "42", "K", 1),
+    "Two identical source devices have separate commissioning slots");
+Check(firstDeviceKey != YsDevreyeAlmaKaynak.CihazAnahtari(8, commissioningSource, "42", "K", 0),
+    "Commissioning source identity is scoped to the distribution company");
+Check(YsDevreyeAlmaKaynak.SeriAnahtari(7, "1000149", " ab-123 ")
+    == YsDevreyeAlmaKaynak.SeriAnahtari(7, "1000149", "AB-123"),
+    "Serial duplicate key ignores surrounding spaces and casing");
+Check(YsDevreyeAlmaKaynak.SeriAnahtari(7, "1000149", "AB-123")
+    != YsDevreyeAlmaKaynak.SeriAnahtari(7, "1000150", "AB-123"),
+    "Serial duplicate key is scoped to the installation");
+
 var listDevice = YkcTalepDto.FromEntity(new Ykc_Talep
 {
     EskiCihazTipi = "Kombi",

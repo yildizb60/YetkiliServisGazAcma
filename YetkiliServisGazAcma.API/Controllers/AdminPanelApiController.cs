@@ -168,7 +168,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (string.IsNullOrWhiteSpace(kullaniciId))
                 return null;
 
-            return await _context.Users.FirstOrDefaultAsync(x => x.Id == kullaniciId);
+            return await _context.Users.FirstOrDefaultAsync(x => x.Id == kullaniciId && x.AktifMi && x.ArsivlemeTarihi == null);
         }
 
         private bool GenelSistemAdminMi(AppKullanici kullanici)

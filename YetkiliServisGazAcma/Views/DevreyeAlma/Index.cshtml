@@ -16,16 +16,17 @@
 <div class="ykc-request ys-commissioning-request">
     <form method="post" action="@Url.Action("Kaydet", "DevreyeAlma")" id="devreyeAlmaForm" class="ykc-request-workspace">
         @Html.AntiForgeryToken()
-        <input type="hidden" name="TesistatNo" id="f-tesistatNo" />
-        <input type="hidden" name="AboneNo" id="f-aboneNo" />
-        <input type="hidden" name="UygunlukBelgeNo" id="f-uygunlukBelgeNo" />
-        <input type="hidden" name="UygunlukTarihi" id="f-uygunlukTarihi" />
-        <input type="hidden" name="MusteriAdi" id="f-musteriAdi" />
-        <input type="hidden" name="MusteriTcNo" id="f-musteriTcNo" />
-        <input type="hidden" name="MusteriTelefon" id="f-musteriTelefon" />
-        <input type="hidden" name="Adres" id="f-adres" />
-        <input type="hidden" name="MarkaId" id="f-markaid" />
-        <input type="hidden" name="CihazMarka" id="f-cihazMarka" />
+        <input type="hidden" id="f-tesistatNo" />
+        <input type="hidden" id="f-aboneNo" />
+        <input type="hidden" id="f-uygunlukBelgeNo" />
+        <input type="hidden" id="f-uygunlukTarihi" />
+        <input type="hidden" id="f-musteriAdi" />
+        <input type="hidden" id="f-musteriTcNo" />
+        <input type="hidden" id="f-musteriTelefon" />
+        <input type="hidden" id="f-adres" />
+        <input type="hidden" id="f-markaid" />
+        <input type="hidden" id="f-cihazMarka" />
+        <input type="hidden" name="SorguReferansi" id="f-sorguReferansi" />
 
         <section class="ykc-request-section ykc-request-lookup" aria-labelledby="ys-query-title">
             <header class="ykc-request-section-head">
@@ -70,10 +71,10 @@
                     <fieldset id="formKart" class="ys-commissioning-form" hidden disabled>
                         <legend class="visually-hidden">Cihaz ve teknisyen bilgileri</legend>
                         <div class="ys-commissioning-form-grid">
-                            <div class="ykc-field"><label for="cihazTipi">Cihaz Tipi *</label><select name="CihazTipi" id="cihazTipi" required><option value="">Seçiniz</option><option value="Kombi">Kombi</option><option value="Şofben">Şofben</option><option value="Ocak">Ocak</option><option value="Firin">Fırın</option><option value="Kazan">Kazan</option><option value="Diger">Diğer</option></select></div>
+                            <div class="ykc-field"><label for="cihazTipi">Cihaz Tipi *</label><input type="text" name="CihazTipi" id="cihazTipi" readonly /></div>
                             <div class="ykc-field"><label for="cihazModeli">Cihaz Modeli *</label><input type="text" name="CihazModeli" id="cihazModeli" placeholder="Cihaz modeli" required /></div>
                             <div class="ykc-field"><label for="seriNo">Seri No *</label><input type="text" name="SeriNo" id="seriNo" placeholder="Seri numarası" required /></div>
-                            <div class="ykc-field"><label for="cihazKapasite">Kapasite (kcal/h)</label><input type="text" name="CihazKapasite" id="cihazKapasite" placeholder="Örn. 24000" /></div>
+                            <div class="ykc-field"><label for="cihazKapasite">Kapasite (kcal/h)</label><input type="text" name="CihazKapasite" id="cihazKapasite" readonly /></div>
                             <div class="ykc-field"><label for="teknisyenAdi">Teknisyen Adı Soyadı *</label><input type="text" name="TeknisyenAdi" id="teknisyenAdi" placeholder="Ad soyad" required /></div>
                             <div class="ykc-field"><label for="teknisyenBelgeNo">Teknisyen Yetki Belgesi No *</label><input type="text" name="TeknisyenYetkiBelgesiNo" id="teknisyenBelgeNo" placeholder="Belge numarası" required /></div>
                             <div class="ykc-field is-wide"><label for="notlar">Notlar</label><textarea name="Notlar" id="notlar" placeholder="İşleme ilişkin gerekli not"></textarea></div>
@@ -126,6 +127,7 @@
         formKart.disabled = true;
         document.getElementById("f-markaid").value = "";
         document.getElementById("f-cihazMarka").value = "";
+        document.getElementById("f-sorguReferansi").value = "";
         servisCihazlari = [];
         seciliServisCihazIndex = -1;
         cihazTaslaklari.clear();
@@ -229,6 +231,7 @@
         });
         document.getElementById("f-markaid").value = String(taslak.markaId);
         document.getElementById("f-cihazMarka").value = taslak.markaAdi;
+        document.getElementById("f-sorguReferansi").value = taslak.sorguReferansi;
         document.getElementById("ysSelectedDevice").querySelector("span").textContent = `${servisCihazlari[index]?.cihazTipi || "Cihaz"} · ${taslak.markaAdi}`;
     }
 
@@ -305,12 +308,13 @@
                 servisCihazlari.forEach(function (cihaz, index) {
                     const button = document.createElement("button");
                     button.type = "button";
-                    button.className = "ys-commissioning-device-option";
+                    button.className = "ys-commissioning-device-option" + (cihaz.kaydedildiMi ? " is-completed" : "");
+                    button.disabled = !!cihaz.kaydedildiMi;
                     button.setAttribute("aria-pressed", "false");
                     const title = document.createElement("strong");
                     title.textContent = cihaz.cihazTipi || "Cihaz tipi belirtilmemiş";
                     const detail = document.createElement("span");
-                    detail.textContent = [cihaz.cihazMarka, cihaz.cihazModeli, cihaz.cihazKapasite ? cihaz.cihazKapasite + " kcal/h" : null].filter(Boolean).join(" · ") || "Cihaz detayı bulunmuyor";
+                    detail.textContent = [cihaz.cihazMarka, cihaz.cihazModeli, cihaz.cihazKapasite ? cihaz.cihazKapasite + " kcal/h" : null, cihaz.kaydedildiMi ? "Devreye alındı" : null].filter(Boolean).join(" · ") || "Cihaz detayı bulunmuyor";
                     const icon = document.createElement("i");
                     icon.className = "bi bi-chevron-right";
                     icon.setAttribute("aria-hidden", "true");
@@ -318,6 +322,12 @@
                     button.addEventListener("click", function () { cihazSec(index); });
                     cihazListesi.append(button);
                 });
+            }
+            if (servisCihazlari.length > 0 && servisCihazlari.every(cihaz => cihaz.kaydedildiMi)) {
+                const pending = document.getElementById("ysDevicePending");
+                pending.querySelector("i").className = "bi bi-check2-circle";
+                pending.querySelector("strong").textContent = "Tüm cihazlar devreye alındı";
+                pending.querySelector("small").textContent = "Bu tesisattaki cihazların kayıtları tamamlandı.";
             }
 
             document.getElementById("f-tesistatNo").value = data.tesistatNo || "";
@@ -344,6 +354,7 @@
     async function cihazSec(index) {
         const cihaz = servisCihazlari[index];
         if (!cihaz) return;
+        if (!cihaz.sorguReferansi) { islemHatasi("Kaynak cihaz referansı bulunamadı. Tesisatı yeniden sorgulayın."); return; }
         if (cihazTaslaklari.has(index)) {
             cihazSeciminiKaldir(index);
             return;
@@ -352,6 +363,10 @@
 
         cihazUyarisiSifirla();
         const kontrolSirasi = markaKontrolSirasi;
+        if (!cihaz.cihazTipi?.trim()) {
+            cihazUyarisiGoster(index, "Servisten gelen cihaz tipi bulunmadığından devreye alma yapamazsınız.");
+            return;
+        }
         if (!cihaz.cihazMarka?.trim()) {
             cihazUyarisiGoster(index, `${cihaz.cihazTipi || "Cihaz"} marka bilgisi bulunmadığından devreye alma yapamazsınız.`);
             return;
@@ -376,14 +391,13 @@
             if (kontrolSirasi !== markaKontrolSirasi) return;
             if (!data.yetkili) { cihazUyarisiGoster(index, data.mesaj || "Bu marka için firmanızın yetkisi bulunmuyor."); return; }
 
-            const secenek = Array.from(document.getElementById("cihazTipi").options)
-                .find(option => option.value.toLocaleLowerCase("tr-TR") === (cihaz.cihazTipi || "").toLocaleLowerCase("tr-TR"));
             const taslak = {
                 markaId: data.markaId || 0,
                 markaAdi: data.markaAdi || cihaz.cihazMarka || "",
+                sorguReferansi: cihaz.sorguReferansi,
                 kayitId: null,
                 alanlar: {
-                    CihazTipi: secenek?.value || "",
+                    CihazTipi: cihaz.cihazTipi || "",
                     CihazModeli: cihaz.cihazModeli || "",
                     SeriNo: "",
                     CihazKapasite: cihaz.cihazKapasite || "",
@@ -416,10 +430,10 @@
         if (gecersiz) { gecersiz.reportValidity(); return; }
         aktifTaslagiSakla();
         const payload = {};
+        const kayitAlanlari = new Set(["SorguReferansi", "CihazModeli", "SeriNo", "TeknisyenAdi", "TeknisyenYetkiBelgesiNo", "Notlar"]);
         new FormData(event.currentTarget).forEach((value, key) => {
-            if (key !== "__RequestVerificationToken" && (key !== "UygunlukTarihi" || value)) payload[key] = value;
+            if (kayitAlanlari.has(key)) payload[key] = value;
         });
-        payload.MarkaId = Number(payload.MarkaId);
         const kaydet = document.getElementById("btnKKaydet");
         kaydet.disabled = true;
         taslak.kaydediliyor = true;
@@ -439,7 +453,9 @@
             taslak.kayitId = data.id;
             taslak.durum.textContent = "Tamamlandı";
             taslak.kart.classList.add("is-completed");
-            document.querySelectorAll(".ys-commissioning-device-option")[kaydedilenCihazIndex]?.classList.add("is-completed");
+            const tamamlananSecenek = document.querySelectorAll(".ys-commissioning-device-option")[kaydedilenCihazIndex];
+            tamamlananSecenek?.classList.add("is-completed");
+            if (tamamlananSecenek) tamamlananSecenek.disabled = true;
             window.operationToast?.success(data.mesaj || "Cihaz devreye alındı.");
             const siradaki = Array.from(cihazTaslaklari.keys()).sort((a, b) => a - b)
                 .find(index => !cihazTaslaklari.get(index).kayitId);

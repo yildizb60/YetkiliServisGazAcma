@@ -19,11 +19,12 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (kapsam.gecersiz)
                 return Forbid();
 
-            if (!await KullaniciYonetebilirMi(yapan, kapsam.sirketId))
+            if (!PersonelYetkiYonetimKurali.YonetebilirMi(yapan, kapsam.sirketId))
                 return Forbid();
 
             var genelSistemAdmin = GenelSistemAdminMi(yapan);
             var kullaniciQuery = _context.Users
+                .Where(x => x.ArsivlemeTarihi == null)
                 .Include(x => x.Sirket)
                 .Include(x => x.Firma)
                 .AsQueryable();
@@ -119,7 +120,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (kapsam.gecersiz)
                 return Forbid();
 
-            if (!await KullaniciYonetebilirMi(kullanici, kapsam.sirketId))
+            if (!PersonelYetkiYonetimKurali.YonetebilirMi(kullanici, kapsam.sirketId))
                 return Forbid();
 
             return Ok(await SirketSecenekleriAsync(kapsam.sirketId));
@@ -136,7 +137,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (kapsam.gecersiz)
                 return Forbid();
 
-            if (!await KullaniciYonetebilirMi(kullanici, kapsam.sirketId))
+            if (!PersonelYetkiYonetimKurali.YonetebilirMi(kullanici, kapsam.sirketId))
                 return Forbid();
 
             return Ok(await FirmaSecenekleriAsync(kapsam.sirketId));
@@ -155,7 +156,7 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             return Ok(new AdminKullaniciYonetimYetkiSonucDto
             {
-                YetkiliMi = await KullaniciYonetebilirMi(kullanici, kapsam.sirketId)
+                YetkiliMi = PersonelYetkiYonetimKurali.YonetebilirMi(kullanici, kapsam.sirketId)
             });
         }
 
@@ -170,7 +171,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (kapsam.gecersiz)
                 return Forbid();
 
-            if (!await KullaniciYonetebilirMi(kullanici, kapsam.sirketId))
+            if (!PersonelYetkiYonetimKurali.YonetebilirMi(kullanici, kapsam.sirketId))
                 return Forbid();
 
             if (dto == null || string.IsNullOrWhiteSpace(dto.Id))
@@ -179,7 +180,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             var hedef = await _context.Users
                 .Include(x => x.Sirket)
                 .Include(x => x.Firma)
-                .FirstOrDefaultAsync(x => x.Id == dto.Id);
+                .FirstOrDefaultAsync(x => x.Id == dto.Id && x.ArsivlemeTarihi == null);
 
             if (hedef == null)
                 return NotFound();
@@ -201,13 +202,13 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (kapsam.gecersiz)
                 return Forbid();
 
-            if (!await KullaniciYonetebilirMi(kullanici, kapsam.sirketId))
+            if (!PersonelYetkiYonetimKurali.YonetebilirMi(kullanici, kapsam.sirketId))
                 return Forbid();
 
             if (dto == null || string.IsNullOrWhiteSpace(dto.Id))
                 return Ok(AdminIslemSonucDto.Basarisiz("Kullanici id zorunludur."));
 
-            var hedef = await _context.Users.FirstOrDefaultAsync(x => x.Id == dto.Id);
+            var hedef = await _context.Users.FirstOrDefaultAsync(x => x.Id == dto.Id && x.ArsivlemeTarihi == null);
             if (hedef == null)
                 return Ok(AdminIslemSonucDto.Basarisiz("Kullanici bulunamadi."));
 
@@ -314,7 +315,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (kapsam.gecersiz)
                 return Forbid();
 
-            if (!await KullaniciYonetebilirMi(kullanici, kapsam.sirketId))
+            if (!PersonelYetkiYonetimKurali.YonetebilirMi(kullanici, kapsam.sirketId))
                 return Forbid();
 
             if (dto == null)
@@ -525,13 +526,13 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (kapsam.gecersiz)
                 return Forbid();
 
-            if (!await KullaniciYonetebilirMi(kullanici, kapsam.sirketId))
+            if (!PersonelYetkiYonetimKurali.YonetebilirMi(kullanici, kapsam.sirketId))
                 return Forbid();
 
             if (dto == null || string.IsNullOrWhiteSpace(dto.Id))
                 return Ok(AdminIslemSonucDto.Basarisiz("Kullanici id zorunludur."));
 
-            var hedef = await _context.Users.FirstOrDefaultAsync(x => x.Id == dto.Id);
+            var hedef = await _context.Users.FirstOrDefaultAsync(x => x.Id == dto.Id && x.ArsivlemeTarihi == null);
             if (hedef == null || (dto.SadecePersonel && hedef.KullaniciTipi != KullaniciTipiDegerleri.Personel))
                 return Ok(AdminIslemSonucDto.Basarisiz(dto.SadecePersonel ? "Personel bulunamadi." : "Kullanici bulunamadi."));
 
@@ -565,13 +566,13 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (kapsam.gecersiz)
                 return Forbid();
 
-            if (!await KullaniciYonetebilirMi(kullanici, kapsam.sirketId))
+            if (!PersonelYetkiYonetimKurali.YonetebilirMi(kullanici, kapsam.sirketId))
                 return Forbid();
 
             if (dto == null || string.IsNullOrWhiteSpace(dto.Id))
                 return Ok(AdminIslemSonucDto.Basarisiz("Kullanici id zorunludur."));
 
-            var hedef = await _context.Users.FirstOrDefaultAsync(x => x.Id == dto.Id);
+            var hedef = await _context.Users.FirstOrDefaultAsync(x => x.Id == dto.Id && x.ArsivlemeTarihi == null);
             if (hedef == null || (dto.SadecePersonel && hedef.KullaniciTipi != KullaniciTipiDegerleri.Personel))
                 return Ok(AdminIslemSonucDto.Basarisiz(dto.SadecePersonel ? "Personel bulunamadi." : "Kullanici bulunamadi."));
 
@@ -580,17 +581,22 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             if (!GenelSistemAdminMi(kullanici) &&
                 (hedef.KullaniciTipi == KullaniciTipiDegerleri.GenelSistemAdmin || hedef.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin))
-                return Ok(AdminIslemSonucDto.Basarisiz("Sirket admini genel sistem admini veya sirket admini hesabini silemez."));
+                return Ok(AdminIslemSonucDto.Basarisiz("Şirket yöneticisi, genel sistem veya şirket yöneticisi hesabını arşivleyemez."));
 
             if (kullanici.Id == hedef.Id)
-                return Ok(AdminIslemSonucDto.Basarisiz("Kendi hesabinizi silemezsiniz."));
+                return Ok(AdminIslemSonucDto.Basarisiz("Kendi hesabınızı arşivleyemezsiniz."));
 
-            var sonuc = await _userManager.DeleteAsync(hedef);
+            hedef.AktifMi = false;
+            hedef.ArsivlemeTarihi = DateTime.UtcNow;
+            hedef.ArsivleyenKullaniciId = kullanici.Id;
+            // Gecmisteki islemler ve yetki kayitlari korunur; mevcut oturumlar gecersizlesir.
+            hedef.SecurityStamp = Guid.NewGuid().ToString();
+            var sonuc = await _userManager.UpdateAsync(hedef);
             if (!sonuc.Succeeded)
                 return Ok(AdminIslemSonucDto.Basarisiz(string.Join(", ", sonuc.Errors.Select(x => x.Description))));
 
-            _logger.LogInformation("Admin kullanici sildi. YapanId: {YapanId}, HedefId: {HedefId}, SadecePersonel: {SadecePersonel}", kullanici.Id, hedef.Id, dto.SadecePersonel);
-            return Ok(AdminIslemSonucDto.BasariliSonuc(dto.SadecePersonel ? "Personel silindi." : "Kullanici silindi."));
+            _logger.LogInformation("Admin kullanici arsivledi. YapanId: {YapanId}, HedefId: {HedefId}, SadecePersonel: {SadecePersonel}", kullanici.Id, hedef.Id, dto.SadecePersonel);
+            return Ok(AdminIslemSonucDto.BasariliSonuc(dto.SadecePersonel ? "Personel arşivlendi. İşlem ve yetki geçmişi korundu." : "Kullanıcı arşivlendi. İşlem ve yetki geçmişi korundu."));
         }
 
     }

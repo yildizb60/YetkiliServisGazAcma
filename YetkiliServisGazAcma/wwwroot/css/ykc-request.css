@@ -99,6 +99,8 @@
 .ys-commissioning-device-option.is-selected { border-color:#187f61; background:#e8f5ed; box-shadow:inset 3px 0 #187f61; }
 .ys-commissioning-device-option.is-active { border-color:#315fca; box-shadow:inset 3px 0 #315fca; }
 .ys-commissioning-device-option.is-completed { border-color:#b8dfd1; background:#f3fbf7; }
+.ys-commissioning-device-option.is-completed:disabled { cursor:default; }
+.ys-commissioning-device-option.is-completed:disabled:hover { border-color:#b8dfd1; background:#f3fbf7; }
 .ys-commissioning-device-option.is-unavailable { border-color:#d8a453; background:#fffaf1; box-shadow:inset 3px 0 #b9852e; }
 .ys-commissioning-device-option.is-unavailable > i { color:#a46c1d; }
 .ys-device-entry-pending { min-height:210px; display:flex; align-items:center; justify-content:center; gap:11px; color:#60798f; }

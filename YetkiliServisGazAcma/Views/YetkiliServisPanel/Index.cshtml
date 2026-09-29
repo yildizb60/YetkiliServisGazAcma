@@ -96,7 +96,7 @@
             Icon = "bi bi-tools",
             MetricValue = durum,
             MetricLabel = "",
-            Subtitle = $"Tesisat {item.TesistatNo ?? "-"} · {item.DevreyeAlmaTarihi:dd.MM.yyyy}",
+            Subtitle = $"{DevreyeAlmaCihazTipiSunumu.Etiket(item.CihazTipi)} · Tesisat {item.TesistatNo ?? "-"} · {item.DevreyeAlmaTarihi:dd.MM.yyyy}",
             Tone = item.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? "green" : "blue",
             Featured = quickActions.Count == 0 && item.Durum == DevreyeAlmaDurumDegerleri.Bekliyor
         });
@@ -150,6 +150,7 @@
                 Date = item.DevreyeAlmaTarihi,
                 Title = string.IsNullOrWhiteSpace(item.MusteriAdi) ? "Müşteri bilgisi yok" : item.MusteriAdi,
                 InstallationNo = item.TesistatNo ?? "",
+                DeviceType = DevreyeAlmaCihazTipiSunumu.Etiket(item.CihazTipi),
                 Address = item.Adres ?? "",
                 StatusLabel = DevreyeAlmaDurumu(item.Durum),
                 StatusCssClass = DevreyeAlmaDurumSinifi(item.Durum),

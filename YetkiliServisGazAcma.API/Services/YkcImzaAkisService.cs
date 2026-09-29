@@ -56,6 +56,12 @@ namespace YetkiliServisGazAcma.API.Services
             if (!_imzaProvider.KullanilabilirMi)
                 return YkcIslemSonuc.HataliSonuc("Dijital imza sağlayıcısı henüz yapılandırılmadı; belge gönderilmedi.");
 
+            // Randevu degisikligi ile imzaya gonderim ayni talep kilidini kullanir.
+            await using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, cancellationToken);
+            await _context.Ykc_Talepler
+                .FromSqlInterpolated($"SELECT * FROM dbo.Ykc_Talepler WITH (UPDLOCK, HOLDLOCK) WHERE Id = {talepId}")
+                .AsNoTracking().Select(x => x.Id).FirstOrDefaultAsync(cancellationToken);
+
             var detay = await _talepService.GetirAsync(talepId, kullanici, genelYetkili, dogrulanmisSirketId);
             if (detay == null)
                 return YkcIslemSonuc.HataliSonuc("Cihaz değişim talebi bulunamadı.");
@@ -143,6 +149,8 @@ namespace YetkiliServisGazAcma.API.Services
             await _context.SaveChangesAsync(cancellationToken);
             if (!await GonderimiSahiplenAsync(surec, kullanici.UserName, cancellationToken))
                 return YkcIslemSonuc.HataliSonuc("Form için başka bir gönderim işlemi devam ediyor.");
+
+            await transaction.CommitAsync(cancellationToken);
 
             YkcImzaGonderSonuc providerSonucu;
             try
@@ -748,6 +756,14 @@ namespace YetkiliServisGazAcma.API.Services
             if (sonKontrol == null)
             {
                 mesaj = "Form imzaya gönderilmeden önce randevu sonrası en az bir kontrol sonucu girilmelidir.";
+                return false;
+            }
+
+            if (!TimeSpan.TryParse(detay.RandevuSaati, out var saat)
+                || detay.RandevuTarihi.Value.Date.Add(saat) > DateTime.Now
+                || detay.AktifAtamaId == null || sonKontrol.AtamaId != detay.AktifAtamaId)
+            {
+                mesaj = "Form için güncel randevunun gerçekleşmesi ve bu randevuya ait kontrol sonucunun kaydedilmesi gerekir.";
                 return false;
             }
 

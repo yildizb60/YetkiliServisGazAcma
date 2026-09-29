@@ -47,6 +47,8 @@ namespace YetkiliServisGazAcma.Business.Services
             int? sirketId = null,
             CancellationToken cancellationToken = default)
         {
+            if (!kullanici.AktifMi || kullanici.ArsivlemeTarihi != null)
+                return new YkcYetkiOzeti();
             var roller = await _userManager.GetRolesAsync(kullanici);
             var sertifikaliFirma = roller.Contains(KullaniciRolAdlari.SertifikaliFirma)
                 || kullanici.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma;

@@ -138,9 +138,15 @@
 
         cancelButton.addEventListener('click', () => dismiss(toast));
         actions.querySelector('.is-confirm-action').addEventListener('click', () => {
-            form.dataset.toastConfirmed = 'true';
             dismiss(toast);
-            form.requestSubmit();
+            if (!form.isConnected || (submitter && (!submitter.isConnected || submitter.form !== form || submitter.disabled))) return;
+            form.dataset.toastConfirmed = 'true';
+            try {
+                if (submitter) form.requestSubmit(submitter);
+                else form.requestSubmit();
+            } finally {
+                delete form.dataset.toastConfirmed;
+            }
         });
         cancelButton.focus();
     }

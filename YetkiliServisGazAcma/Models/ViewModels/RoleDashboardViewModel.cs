@@ -63,6 +63,7 @@ namespace YetkiliServisGazAcma.Models.ViewModels
         public DateTime Date { get; set; }
         public string Title { get; set; } = string.Empty;
         public string InstallationNo { get; set; } = string.Empty;
+        public string DeviceType { get; set; } = string.Empty;
         public string Address { get; set; } = string.Empty;
         public string StatusLabel { get; set; } = string.Empty;
         public string StatusCssClass { get; set; } = "df-pill-warning";

@@ -124,6 +124,10 @@
                                 <span class="home-visit-meta">
                                     <span><i class="bi bi-clock" aria-hidden="true"></i>@item.Date.ToString("HH:mm")</span>
                                     <span class="home-visit-time">Tesisat @(string.IsNullOrWhiteSpace(item.InstallationNo) ? "-" : item.InstallationNo)</span>
+                                    @if (item.DeviceType != "-")
+                                    {
+                                        <span class="home-visit-device">@item.DeviceType</span>
+                                    }
                                 </span>
                                 @if (!string.IsNullOrWhiteSpace(item.Address))
                                 {

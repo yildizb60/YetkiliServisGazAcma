@@ -415,17 +415,16 @@ namespace YetkiliServisGazAcma.Business.Services
                 return YkcIslemSonuc.HataliSonuc("Bu personel/ekip için seçilen saatte başka randevu var. Farklı bir saat seçin.");
             dto.RandevuTarihi = randevu.Date;
 
-            if (YkcKontrolAkisKurali.KontrolAlaniDolduMu(talep.Kontroller))
+            var oncekiKontrolUygun = YkcKontrolAkisKurali.AktifKontroller(talep.Kontroller)
+                .Any(x => x.Sonuc == YkcFr265KontrolSonucDegerleri.Uygun);
+            if (YkcKontrolAkisKurali.KontrolAlaniDolduMu(talep.Kontroller) || oncekiKontrolUygun)
             {
                 var baslangic = YkcKontrolAkisKurali.DonemBaslangici(talep.Kontroller.Where(x => !x.SilindiMi).Select(x => x.KontrolNo)) + 5;
                 VarsayilanKontrollerEkle(talep, kullanici, baslangic);
-                talep.Fr265BelgeVersiyonNo = Math.Max(1, talep.Fr265BelgeVersiyonNo) + 1;
-                talep.Fr265BelgeHash = null;
-                talep.Fr265BelgeOlusturmaTarihi = null;
                 _context.Ykc_IslemGecmisi.Add(new Ykc_IslemGecmisi
                 {
                     TalepId = talep.Id, IslemTipi = "KontrolDonemiAcildi",
-                    Aciklama = $"{YkcKontrolAkisKurali.DonemNo(baslangic)}. kontrol dönemi açıldı. Önceki beş kontrol korundu.",
+                    Aciklama = $"{YkcKontrolAkisKurali.DonemNo(baslangic)}. kontrol dönemi açıldı. Önceki kontrol kayıtları korundu.",
                     KullaniciId = kullanici.Id, KullaniciAdi = kullanici.UserName,
                     OlusturanKullanici = kullanici.UserName
                 });
@@ -439,9 +438,10 @@ namespace YetkiliServisGazAcma.Business.Services
             talep.RandevuTarihi = dto.RandevuTarihi;
             talep.RandevuSaati = dto.RandevuSaati?.Trim();
             talep.CallCenterTetiklenecekMi = dto.CallCenterTetiklenecekMi || hedef == YkcHedefUygulamaDegerleri.Crm187;
-            talep.Durum = talep.Durum == YkcDurumDegerleri.SahaIsleminde
-                ? YkcDurumDegerleri.SahaIsleminde
-                : YkcDurumDegerleri.Atandi;
+            talep.Durum = YkcDurumDegerleri.Atandi;
+            talep.Fr265BelgeVersiyonNo = Math.Max(1, talep.Fr265BelgeVersiyonNo) + 1;
+            talep.Fr265BelgeHash = null;
+            talep.Fr265BelgeOlusturmaTarihi = null;
             talep.GuncellemeTarihi = DateTime.Now;
             talep.GuncelleyenKullanici = kullanici.UserName;
 
@@ -483,8 +483,14 @@ namespace YetkiliServisGazAcma.Business.Services
             AppKullanici kullanici,
             bool genelYetkili,
             int? dogrulanmisSirketId = null)
+            => await _context.Database.CreateExecutionStrategy().ExecuteAsync(() => DurumuKaydetAsync(dto, kullanici, genelYetkili, dogrulanmisSirketId));
+
+        private async Task<YkcIslemSonuc> DurumuKaydetAsync(YkcDurumGuncelleDto dto, AppKullanici kullanici, bool genelYetkili, int? dogrulanmisSirketId)
         {
-            var talep = await YetkiKapsamiUygula(_context.Ykc_Talepler.Where(x => !x.SilindiMi), kullanici, genelYetkili, dogrulanmisSirketId)
+            await using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+            var talep = await YetkiKapsamiUygula(_context.Ykc_Talepler
+                .FromSqlInterpolated($"SELECT * FROM dbo.Ykc_Talepler WITH (UPDLOCK, HOLDLOCK) WHERE Id = {dto.TalepId}")
+                .Where(x => !x.SilindiMi), kullanici, genelYetkili, dogrulanmisSirketId)
                 .FirstOrDefaultAsync(x => x.Id == dto.TalepId);
 
             if (talep == null)
@@ -539,6 +545,7 @@ namespace YetkiliServisGazAcma.Business.Services
             });
 
             await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
             return YkcIslemSonuc.BasariliSonuc("Cihaz değişim talebi durumu güncellendi.", talep.Id);
         }
 
@@ -566,6 +573,14 @@ namespace YetkiliServisGazAcma.Business.Services
 
             if (talep.Durum != YkcDurumDegerleri.SahaIsleminde)
                 return YkcIslemSonuc.HataliSonuc("Kontrol sonucu yalnızca randevu gerçekleşip kontrol aşamasına geçildikten sonra girilebilir.");
+
+            if (!RandevuZamaniGeldiMi(talep.RandevuTarihi, talep.RandevuSaati))
+                return YkcIslemSonuc.HataliSonuc("Randevu zamanı gelmeden kontrol sonucu kaydedilemez.");
+            var aktifAtama = await _context.Ykc_Atamalar.Where(x => x.TalepId == talep.Id && !x.SilindiMi)
+                .OrderByDescending(x => x.Id).FirstOrDefaultAsync();
+            if (aktifAtama == null || aktifAtama.RandevuTarihi?.Date != talep.RandevuTarihi?.Date
+                || aktifAtama.RandevuSaati != talep.RandevuSaati)
+                return YkcIslemSonuc.HataliSonuc("Kontrol için geçerli randevu kaydı bulunamadı. Randevuyu yeniden planlayın.");
 
             var imzaSureci = talep.ImzaSurecleri
                 .Where(x => !x.SilindiMi)
@@ -650,6 +665,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 }
 
                 kontrol.Sonuc = sonuc;
+                kontrol.AtamaId = aktifAtama.Id;
                 kontrol.Aciklama = aciklama;
                 kontrol.KontrolEdenKullaniciId = kullanici.Id;
                 kontrol.KontrolTarihi = DateTime.Now;
@@ -1732,6 +1748,10 @@ namespace YetkiliServisGazAcma.Business.Services
         public bool CallCenterTetiklendiMi { get; set; }
         public List<YkcDosyaDto> Dosyalar { get; set; } = new();
         public List<YkcAtamaDto> Atamalar { get; set; } = new();
+        [JsonIgnore]
+        public int? AktifAtamaId => Atamalar.OrderByDescending(x => x.Id).FirstOrDefault() is { } atama
+            && atama.RandevuTarihi?.Date == RandevuTarihi?.Date && atama.RandevuSaati == RandevuSaati
+                ? atama.Id : null;
         public List<YkcGecmisDto> Gecmis { get; set; } = new();
         public List<YkcFr265KontrolDto> Kontroller { get; set; } = new();
         public int KontrolDonemi => YkcKontrolAkisKurali.DonemNo(YkcKontrolAkisKurali.DonemBaslangici(Kontroller.Select(x => x.KontrolNo)));
@@ -1812,7 +1832,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 CallCenterTetiklenecekMi = talep.CallCenterTetiklenecekMi,
                 CallCenterTetiklendiMi = talep.CallCenterTetiklendiMi,
                 Dosyalar = talep.FormDosyalari.OrderByDescending(x => x.OlusturmaTarihi).Select(YkcDosyaDto.FromEntity).ToList(),
-                Atamalar = talep.Atamalar.OrderByDescending(x => x.OlusturmaTarihi).Select(YkcAtamaDto.FromEntity).ToList(),
+                Atamalar = talep.Atamalar.Where(x => !x.SilindiMi).OrderByDescending(x => x.Id).Select(YkcAtamaDto.FromEntity).ToList(),
                 Kontroller = talep.Kontroller.Where(x => !x.SilindiMi).OrderBy(x => x.KontrolNo).Select(YkcFr265KontrolDto.FromEntity).ToList(),
                 ImzaSureci = talep.ImzaSurecleri
                     .Where(x => !x.SilindiMi)
@@ -1890,6 +1910,7 @@ namespace YetkiliServisGazAcma.Business.Services
     public class YkcFr265KontrolDto
     {
         public int Id { get; set; }
+        public int? AtamaId { get; set; }
         public int KontrolNo { get; set; }
         public int DonemNo => YkcKontrolAkisKurali.DonemNo(KontrolNo);
         public int FormKontrolNo => YkcKontrolAkisKurali.FormKontrolNo(KontrolNo);
@@ -1904,6 +1925,7 @@ namespace YetkiliServisGazAcma.Business.Services
             return new YkcFr265KontrolDto
             {
                 Id = kontrol.Id,
+                AtamaId = kontrol.AtamaId,
                 KontrolNo = kontrol.KontrolNo,
                 Sonuc = kontrol.Sonuc,
                 Aciklama = kontrol.Aciklama,

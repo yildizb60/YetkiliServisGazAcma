@@ -26,6 +26,8 @@ namespace YetkiliServisGazAcma.Entities
         public string? CihazModeli { get; set; }
         public string? CihazKapasite { get; set; }
         public string? SeriNo { get; set; }
+        public string? KaynakCihazAnahtari { get; set; }
+        public string? SeriAnahtari { get; set; }
 
         // Teknisyen Bilgileri
         public string? TeknisyenAdi { get; set; }

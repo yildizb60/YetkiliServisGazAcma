@@ -37,7 +37,7 @@ public sealed class AuthController(UserManager<AppKullanici> users, SignInManage
             user = await FindAsync(string.IsNullOrWhiteSpace(identity.YerelKullaniciAdi) ? dto.Email : identity.YerelKullaniciAdi);
             if (user?.KullaniciTipi != KullaniciTipiDegerleri.SertifikaliFirma) return Error(LoginError, 401);
         }
-        if (user == null || !user.AktifMi || await users.IsLockedOutAsync(user)) return Error(LoginError, 401);
+        if (user == null || !user.AktifMi || user.ArsivlemeTarihi != null || await users.IsLockedOutAsync(user)) return Error(LoginError, 401);
         if (identity == null)
         {
             var result = await signIn.CheckPasswordSignInAsync(user, dto.Sifre, lockoutOnFailure: true);
@@ -94,7 +94,7 @@ public sealed class AuthController(UserManager<AppKullanici> users, SignInManage
     {
         var user = await FindAsync(dto.KullaniciAdi);
         // Unknown accounts never receive a usable verification challenge.
-        if (user == null || !user.AktifMi)
+        if (user == null || !user.AktifMi || user.ArsivlemeTarihi != null)
             return Ok(new OturumSonucu { Basarili = true, Dogrulama = Convert.ToHexString(RandomNumberGenerator.GetBytes(64)),
                 Mesaj = "Bilgileriniz kayıtlıysa telefonunuza doğrulama kodu gönderildi." });
         return await ChallengeAsync(user, "SIFRE_SIFIRLA", null, null);
@@ -120,14 +120,14 @@ public sealed class AuthController(UserManager<AppKullanici> users, SignInManage
     public async Task<IActionResult> Me()
     {
         var user = await users.GetUserAsync(User);
-        return user?.AktifMi == true ? Ok(new OturumSonucu { Basarili = true, Kullanici = await tokens.KullaniciAsync(user) }) : Unauthorized();
+        return (user?.AktifMi == true && user.ArsivlemeTarihi == null) ? Ok(new OturumSonucu { Basarili = true, Kullanici = await tokens.KullaniciAsync(user) }) : Unauthorized();
     }
 
     [Authorize, HttpPut("profil")]
     public async Task<IActionResult> Profile(ProfilGuncelleIstegi dto)
     {
         var user = await users.GetUserAsync(User);
-        if (user?.AktifMi != true) return Unauthorized();
+        if (user?.AktifMi != true || user.ArsivlemeTarihi != null) return Unauthorized();
         if (!CepTelefonuKurali.GecerliMi(dto.PhoneNumber))
             return Error("Telefon numarası 05XXXXXXXXX veya 90XXXXXXXXXX formatında olmalıdır.");
         user.AdSoyad = dto.AdSoyad.Trim();
@@ -146,7 +146,7 @@ public sealed class AuthController(UserManager<AppKullanici> users, SignInManage
     public async Task<IActionResult> Password(SifreDegistirIstegi dto)
     {
         var user = await users.GetUserAsync(User);
-        if (user?.AktifMi != true) return Unauthorized();
+        if (user?.AktifMi != true || user.ArsivlemeTarihi != null) return Unauthorized();
         var result = await users.ChangePasswordAsync(user, dto.MevcutSifre, dto.YeniSifre);
         return result.Succeeded ? Ok(await tokens.OlusturAsync(user)) : IdentityError(result);
     }
@@ -170,7 +170,7 @@ public sealed class AuthController(UserManager<AppKullanici> users, SignInManage
         catch (Exception ex) when (ex is CryptographicException or JsonException) { return (null, null); }
         if (challenge?.Purpose != purpose) return (null, null);
         var user = await users.FindByIdAsync(challenge.UserId);
-        if (user?.AktifMi != true || await users.IsLockedOutAsync(user) || await users.GetSecurityStampAsync(user) != challenge.Stamp)
+        if (user?.AktifMi != true || user.ArsivlemeTarihi != null || await users.IsLockedOutAsync(user) || await users.GetSecurityStampAsync(user) != challenge.Stamp)
             return (null, null);
         return (challenge, user);
     }
@@ -191,7 +191,7 @@ public sealed class AuthController(UserManager<AppKullanici> users, SignInManage
             return null;
 
         var serviceUsers = await users.Users
-            .Where(u => u.FirmaId == firmIds[0] && u.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis && u.AktifMi)
+            .Where(u => u.FirmaId == firmIds[0] && u.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis && u.AktifMi && u.ArsivlemeTarihi == null)
             .Take(2)
             .ToListAsync();
         return serviceUsers.Count == 1 ? serviceUsers[0] : null;

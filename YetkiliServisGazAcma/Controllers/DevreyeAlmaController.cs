@@ -154,7 +154,7 @@ namespace YetkiliServisGazAcma.Controllers
         [HttpPost]
         [Route("kaydet")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Kaydet(Ys_DevreyeAlma model)
+        public async Task<IActionResult> Kaydet(YsDevreyeAlmaKaydetIstek model)
         {
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
@@ -181,7 +181,7 @@ namespace YetkiliServisGazAcma.Controllers
         [HttpPost]
         [Route("kaydet-json")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> KaydetJson([FromBody] Ys_DevreyeAlma model)
+        public async Task<IActionResult> KaydetJson([FromBody] YsDevreyeAlmaKaydetIstek model)
         {
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Unauthorized();
@@ -204,12 +204,12 @@ namespace YetkiliServisGazAcma.Controllers
 
         [HttpGet]
         [Route("gecmis")]
-        public async Task<IActionResult> Gecmis(string? marka, DateTime? bas, DateTime? bit, string? musteri, string? durum, string? tesisat)
+        public async Task<IActionResult> Gecmis(string? marka, DateTime? bas, DateTime? bit, string? musteri, string? tesisat)
         {
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
-            var sonuc = await _devreyeAlmaApiClient.GecmisAsync(kullanici, marka, bas, bit, musteri, durum, tesisat)
+            var sonuc = await _devreyeAlmaApiClient.GecmisAsync(kullanici, marka, bas, bit, musteri, null, tesisat)
                 ?? new YsDevreyeAlmaGecmisSonuc();
 
             var islemler = sonuc.Islemler;
@@ -225,7 +225,6 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.SeciliBit = bit?.ToString("yyyy-MM-dd");
             ViewBag.SeciliMusteri = musteri;
             ViewBag.SeciliTesisat = tesisat;
-            ViewBag.SeciliDurum = durum;
             ViewBag.Kullanici = kullanici;
             await SetBildirimler(kullanici);
             return View("~/Views/DevreyeAlma/Gecmis.cshtml", islemler);

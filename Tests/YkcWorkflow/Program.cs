@@ -26,6 +26,33 @@ void Check(bool ok, string name)
     Console.WriteLine("PASS: " + name);
     passed++;
 }
+var normalizeMarka = typeof(YetkiliServisDevreyeAlmaApiController).GetMethod(
+    "NormalizeMarka", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+string NormalizeMarka(string? value) => (string)normalizeMarka.Invoke(null, [value])!;
+Check(NormalizeMarka("Vaillant") == NormalizeMarka("VAILLANT"), "Service brand matches uppercase source spelling");
+Check(NormalizeMarka("Arçelik") == NormalizeMarka("ARÇELİK"), "Service brand matches Turkish uppercase spelling");
+Check(NormalizeMarka(" baymak ") == NormalizeMarka("BAYMAK"), "Service brand ignores case and surrounding whitespace");
+var commissioningSaveFields = typeof(YsDevreyeAlmaKaydetDto).GetProperties().Select(x => x.Name).ToHashSet();
+Check(commissioningSaveFields.Contains("SorguReferansi")
+    && !commissioningSaveFields.Overlaps(["TesistatNo", "AboneNo", "MusteriAdi", "Adres",
+        "CihazTipi", "CihazMarka", "CihazKapasite"]),
+    "Commissioning save API accepts a source reference, not client-supplied source fields");
+var commissioningIndexes = db.Model.FindEntityType(typeof(Ys_DevreyeAlma))!.GetIndexes().ToList();
+Check(commissioningIndexes.Any(x => x.IsUnique && x.Properties.Any(p => p.Name == "KaynakCihazAnahtari"))
+    && commissioningIndexes.Any(x => x.IsUnique && x.Properties.Any(p => p.Name == "SeriAnahtari")),
+    "Commissioning duplicate keys have database uniqueness constraints");
+if (args.Contains("--brand-only", StringComparer.Ordinal))
+    return;
+if (args.Contains("--commissioning-only", StringComparer.Ordinal))
+{
+    await CommissioningSqlScenario.RunAsync();
+    return;
+}
+if (args.Contains("--schema-only", StringComparer.Ordinal))
+{
+    await SchemaMigrationSqlScenario.RunAsync();
+    return;
+}
 try
 {
     databaseCreated = await db.Database.EnsureCreatedAsync();
@@ -56,6 +83,15 @@ try
     {
         TalepId = id, AtananKullaniciTipi = "Mühendis", RandevuTarihi = DateTime.Today.AddDays(1), RandevuSaati = "09:00"
     };
+    async Task AdvanceAppointment()
+    {
+        await db.Ykc_Talepler.Where(x => x.Id == id).ExecuteUpdateAsync(s => s
+            .SetProperty(x => x.RandevuTarihi, DateTime.Today.AddDays(-1)).SetProperty(x => x.RandevuSaati, "09:00"));
+        var assignmentId = await db.Ykc_Atamalar.Where(x => x.TalepId == id).MaxAsync(x => x.Id);
+        await db.Ykc_Atamalar.Where(x => x.Id == assignmentId).ExecuteUpdateAsync(s => s
+            .SetProperty(x => x.RandevuTarihi, DateTime.Today.AddDays(-1)).SetProperty(x => x.RandevuSaati, "09:00"));
+        db.ChangeTracker.Clear();
+    }
     for (var no = 1; no <= 11; no++)
     {
         db.ChangeTracker.Clear();
@@ -77,9 +113,7 @@ try
         }
 
         // Advance only this fixture's clock; production transition still enforces appointment time.
-        await db.Ykc_Talepler.Where(x => x.Id == id).ExecuteUpdateAsync(s => s
-            .SetProperty(x => x.RandevuTarihi, DateTime.Today.AddDays(-1)).SetProperty(x => x.RandevuSaati, "09:00"));
-        db.ChangeTracker.Clear();
+        await AdvanceAppointment();
         var started = await service.DurumGuncelleAsync(new() { TalepId = id, Durum = YkcDurumDegerleri.SahaIsleminde }, admin, true);
         Check(started.Basarili, $"Appointment {no} transitions to control");
         db.ChangeTracker.Clear();
@@ -136,9 +170,52 @@ try
     var signing = new RecordingSignatureProvider();
     var signatureFlow = new YkcImzaAkisService(db, service, new YkcFr265FormService(), signing,
         new TestEnvironment { ContentRootPath = documentRoot }, NullLogger<YkcImzaAkisService>.Instance);
-    var sent = await signatureFlow.ImzayaGonderAsync(id, admin, true);
+    var oldAssignment = (await service.GetirAsync(id, admin, true))!.AktifAtamaId;
+    Check((await service.AtamaYapAsync(Appointment(), admin, true)).Basarili, "Successful control may be followed by a new appointment before signature");
+    db.ChangeTracker.Clear();
+    var rescheduled = (await service.GetirAsync(id, admin, true))!;
+    Check(rescheduled.Durum == YkcDurumDegerleri.Atandi && rescheduled.KontrolDonemi == 4
+        && rescheduled.Kontroller.Single(x => x.KontrolNo == 11).AtamaId == oldAssignment,
+        "Rescheduling returns to planned state and preserves the previous successful control with its appointment");
+    Check(!(await service.DurumGuncelleAsync(new() { TalepId = id, Durum = YkcDurumDegerleri.SahaIsleminde }, admin, true)).Basarili,
+        "Future rescheduled appointment cannot enter control stage");
+    Check(!(await signatureFlow.ImzayaGonderAsync(id, admin, true)).Basarili && signing.Request == null,
+        "Old successful result cannot send the rescheduled form to the provider");
+    await db.Ykc_Talepler.Where(x => x.Id == id).ExecuteUpdateAsync(s => s.SetProperty(x => x.Durum, YkcDurumDegerleri.SahaIsleminde));
+    db.ChangeTracker.Clear();
+    Check(!(await service.KontrolleriKaydetAsync(Control(16, YkcFr265KontrolSonucDegerleri.Uygun), admin, true)).Basarili,
+        "Even a stale control-stage state cannot save results before appointment time");
+    await AdvanceAppointment();
+    Check((await service.KontrolleriKaydetAsync(Control(16, YkcFr265KontrolSonucDegerleri.Uygun), admin, true)).Basarili,
+        "New appointment accepts its own control result");
+    db.ChangeTracker.Clear();
+    var current = (await service.GetirAsync(id, admin, true))!;
+    Check(current.AktifKontroller[0].AtamaId == current.AktifAtamaId && current.AktifAtamaId != oldAssignment,
+        "Control result is bound to the current assignment");
+    current.AktifKontroller[0].AtamaId = oldAssignment;
+    Check(!(bool)gate.Invoke(null, [current, null])!, "Signature gate rejects another appointment's successful result");
+    var providerEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    var providerRelease = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    signing.BeforeSend = async () =>
+    {
+        providerEntered.SetResult();
+        await providerRelease.Task.WaitAsync(TimeSpan.FromSeconds(30));
+    };
+    var sending = signatureFlow.ImzayaGonderAsync(id, admin, true);
+    try
+    {
+        await providerEntered.Task.WaitAsync(TimeSpan.FromSeconds(30));
+        await using var appointmentDb = new AppDbContext(options);
+        Check(!(await new YkcTalepService(appointmentDb).AtamaYapAsync(Appointment(), admin, true)).Basarili,
+            "Appointment cannot change while the signature provider is processing the form");
+    }
+    finally
+    {
+        providerRelease.TrySetResult();
+    }
+    var sent = await sending;
     Check(sent.Basarili && signing.Request?.KontrolNo == 1 && signing.Request.BelgeBytes.Length > 0,
-        "Third-cycle PDF reaches the signature provider with the correct form slot");
+        "Rescheduled and rechecked PDF reaches the signature provider with the correct form slot");
     db.ChangeTracker.Clear();
     Check(!(await service.AtamaYapAsync(Appointment(), admin, true)).Basarili,
         "Signature in progress prevents appointment or cycle changes");
@@ -185,6 +262,8 @@ try
     Check(parallelGrants.All(x => x.Basarili)
         && await db.Dag_PersonelYetkiler.CountAsync(x => x.SirketId == company.Id && !x.SilindiMi) == 1,
         "Concurrent grants do not duplicate active permissions or overwrite history");
+
+    await AdminSecuritySqlScenario.RunAsync(db, manager, admin, staff, company.Id, otherCompany.Id, Check);
     Console.WriteLine($"{passed} workflow checks passed.");
 }
 finally
@@ -203,10 +282,12 @@ sealed class RecordingSignatureProvider : IYkcImzaProvider
     public bool KullanilabilirMi => true;
     public bool DemoModuMu => true;
     public YkcImzaGonderIstek? Request { get; private set; }
-    public Task<YkcImzaGonderSonuc> GonderAsync(YkcImzaGonderIstek istek, CancellationToken cancellationToken = default)
+    public Func<Task>? BeforeSend { get; set; }
+    public async Task<YkcImzaGonderSonuc> GonderAsync(YkcImzaGonderIstek istek, CancellationToken cancellationToken = default)
     {
+        if (BeforeSend != null) await BeforeSend();
         Request = istek;
-        return Task.FromResult(new YkcImzaGonderSonuc { Basarili = true, ProviderDocumentId = "TEST-ONLY-" + Guid.NewGuid() });
+        return new YkcImzaGonderSonuc { Basarili = true, ProviderDocumentId = "TEST-ONLY-" + Guid.NewGuid() };
     }
     public Task<YkcImzaDurumSonuc> DurumSorgulaAsync(string providerDocumentId, CancellationToken cancellationToken = default)
         => throw new NotSupportedException();

@@ -483,7 +483,6 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.BasTarih = rapor.BasTarih;
             ViewBag.BitTarih = rapor.BitTarih;
             ViewBag.DevreyeSayisi = rapor.DevreyeSayisi;
-            ViewBag.Tamamlanan = rapor.Tamamlanan;
             ViewBag.Bekleyen = rapor.Bekleyen;
             ViewBag.YetkiBelgesiOnayli = rapor.YetkiBelgesiOnayli;
             ViewBag.YetkiBelgesiBekleyen = rapor.YetkiBelgesiBekleyen;

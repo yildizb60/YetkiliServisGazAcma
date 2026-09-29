@@ -87,9 +87,9 @@
                                 <input type="hidden" name="aktif" value="@(personel.AktifMi ? "false" : "true")" />
                                 <button type="submit" class="df-icon-action @(personel.AktifMi ? "is-warning" : "is-success")" title="@(personel.AktifMi ? "Personeli pasifleştir" : "Personeli aktifleştir")" aria-label="@personel.AdSoyad personelini @(personel.AktifMi ? "pasifleştir" : "aktifleştir")"><i class="bi @(personel.AktifMi ? "bi-pause-circle" : "bi-play-circle")" aria-hidden="true"></i></button>
                             </form>
-                            <form method="post" action="@Url.Action("PersonelSil", "AdminPanel", new { id = personel.Id })" data-toast-confirm data-confirm-title="Personeli sil" data-confirm-message="@personel.AdSoyad adlı personel silinecek. Bu işlem geri alınamaz." data-confirm-action="Personeli Sil">
+                            <form method="post" action="@Url.Action("PersonelSil", "AdminPanel", new { id = personel.Id })" data-toast-confirm data-confirm-title="Personeli arşivle" data-confirm-message="@personel.AdSoyad adlı personelin erişimi kapatılacak. İşlem ve yetki geçmişi korunacak." data-confirm-action="Arşivle">
                                 @Html.AntiForgeryToken()
-                                <button type="submit" class="df-icon-action is-danger" title="Personeli sil" aria-label="@personel.AdSoyad personelini sil"><i class="bi bi-trash3" aria-hidden="true"></i></button>
+                                <button type="submit" class="df-icon-action is-danger" title="Personeli arşivle" aria-label="@personel.AdSoyad personelini arşivle"><i class="bi bi-archive" aria-hidden="true"></i></button>
                             </form>
                         </div>
                     </div>

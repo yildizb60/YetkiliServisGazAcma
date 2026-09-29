@@ -8,7 +8,6 @@
     DateTime basTarih = ViewBag.BasTarih;
     DateTime bitTarih = ViewBag.BitTarih;
     var toplam = Convert.ToInt32(ViewBag.DevreyeSayisi);
-    var tamamlanan = Convert.ToInt32(ViewBag.Tamamlanan);
     var markalar = ViewBag.ChartMarkaLabels as List<string> ?? new List<string>();
     var markaSayilari = ViewBag.ChartMarkaData as List<int> ?? new List<int>();
     var markaAdedi = Math.Min(markalar.Count, markaSayilari.Count);
@@ -39,11 +38,6 @@
             <div class="df-admin-field"><label for="raporBit">Bitiş</label><input id="raporBit" type="date" name="bit" value="@bitTarih.ToString("yyyy-MM-dd")" /></div>
             <button class="df-btn df-btn-primary df-btn-sm" type="submit"><i class="bi bi-funnel" aria-hidden="true"></i> Uygula</button>
         </form>
-    </section>
-
-    <section class="df-ops-kpis is-service-kpis" aria-label="Devreye alma göstergeleri">
-        <article class="df-ops-kpi is-volume"><span class="df-ops-kpi-icon"><i class="bi bi-inboxes" aria-hidden="true"></i></span><div><span>Toplam kayıt</span><strong>@toplam</strong></div></article>
-        <article class="df-ops-kpi is-duration"><span class="df-ops-kpi-icon"><i class="bi bi-check2-circle" aria-hidden="true"></i></span><div><span>Tamamlanan</span><strong>@tamamlanan</strong></div></article>
     </section>
 
     <section class="df-ops-overview" aria-label="Devreye alma grafikleri">

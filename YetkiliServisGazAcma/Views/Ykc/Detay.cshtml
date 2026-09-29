@@ -770,6 +770,20 @@
             const route = document.getElementById('ykcRoute');
             const team = document.getElementById('ykcTeam');
             const pastAppointmentMessage = 'Geçmiş tarih veya saat için randevu kaydedilemez.';
+            function validateAppointmentTime() {
+                if (!time) return true;
+                time.setCustomValidity('');
+                if (time.validity.rangeUnderflow || time.validity.rangeOverflow) {
+                    time.setCustomValidity(`Randevu saati ${time.min.replace(':', '.')} ile ${time.max.replace(':', '.')} arasında olmalıdır.`);
+                } else if (time.validity.stepMismatch) {
+                    time.setCustomValidity('Randevu saati 00 veya 30 dakikalık dilimlerden seçilmelidir.');
+                }
+                return time.validity.valid;
+            }
+            time?.addEventListener('input', validateAppointmentTime);
+            time?.addEventListener('change', validateAppointmentTime);
+            time?.addEventListener('invalid', validateAppointmentTime);
+            validateAppointmentTime();
             date?.addEventListener('invalid', event => {
                 if (!date.validity.rangeUnderflow) return;
                 event.preventDefault();
@@ -785,13 +799,11 @@
             document.querySelectorAll('[data-appointment-form]').forEach(form => {
                 form.addEventListener('submit', event => {
                     if (!date?.value || !time?.value) return;
-                    if (time.value < '08:00' || time.value >= '18:00') {
+                    if (!validateAppointmentTime()) {
                         event.preventDefault();
-                        time.setCustomValidity('Randevu saati 08.00-18.00 çalışma saatleri içinde olmalıdır.');
                         time.reportValidity();
                         return;
                     }
-                    time.setCustomValidity('');
                     const selected = new Date(date.value + 'T' + time.value);
                     if (!Number.isNaN(selected.valueOf()) && selected < new Date()) {
                         event.preventDefault();
@@ -799,7 +811,6 @@
                     }
                 });
             });
-            time?.addEventListener('input', () => time.setCustomValidity(''));
         })();
 
         (() => {
@@ -807,6 +818,13 @@
             if (!controls) return;
 
             controls.open = true;
+            const appointment = document.querySelector('.ykc-assignment-disclosure.is-reschedule');
+            appointment?.addEventListener('toggle', () => {
+                const workflow = appointment.closest('.ykc-focus-section');
+                if (!appointment.open && !workflow.querySelector('details[name="ykc-workflow-action"][open]')) {
+                    controls.open = true;
+                }
+            });
         })();
 
         (() => {

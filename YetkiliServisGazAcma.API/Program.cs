@@ -193,7 +193,7 @@ builder.Services.AddAuthentication(options =>
                 var users = context.HttpContext.RequestServices.GetRequiredService<UserManager<AppKullanici>>();
                 var user = await users.GetUserAsync(context.Principal!);
                 var stamp = context.Principal!.FindFirstValue("stamp");
-                if (user?.AktifMi != true || string.IsNullOrEmpty(stamp)
+                if (user?.AktifMi != true || user.ArsivlemeTarihi != null || string.IsNullOrEmpty(stamp)
                     || stamp != await users.GetSecurityStampAsync(user)
                     || context.Principal!.FindFirstValue("KullaniciTipi") != user.KullaniciTipi.ToString())
                 {

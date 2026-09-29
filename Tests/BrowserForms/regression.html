@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Browser Form Regression Tests</title>
+<h1>Browser Form Regression Tests</h1>
+<output id="summary">Running</output>
+<ol id="results"></ol>
+<script type="module">
+    const assert = (condition, message) => { if (!condition) throw new Error(message); };
+    const scripts = Object.fromEntries(await Promise.all(['toast', 'drawer', 'permission', 'appointment'].map(async name =>
+        [name, await (await fetch(`/${name}.js`)).text()])));
+    const limits = await (await fetch('/appointment-limits.json')).json();
+    let passed = 0, failed = 0;
+
+    async function test(name, run) {
+        const frame = document.createElement('iframe');
+        frame.title = name;
+        document.body.append(frame);
+        const win = frame.contentWindow, doc = win.document;
+        const errors = [];
+        win.addEventListener('error', event => errors.push(event.message));
+        win.addEventListener('unhandledrejection', event => errors.push(String(event.reason)));
+        const load = name => {
+            const script = doc.createElement('script');
+            script.textContent = scripts[name];
+            doc.body.append(script);
+        };
+        try {
+            await run(doc, win, load);
+            assert(!errors.length, errors.join('; '));
+            passed++;
+            document.querySelector('#results').insertAdjacentHTML('beforeend', `<li>PASS: ${name}</li>`);
+        } catch (error) {
+            failed++;
+            const item = document.createElement('li');
+            item.textContent = `FAIL: ${name}: ${error.message}`;
+            document.querySelector('#results').append(item);
+        } finally {
+            frame.remove();
+        }
+    }
+
+    function confirmationFixture(doc, win, load) {
+        doc.body.innerHTML = `<main><form data-toast-confirm action="/default" method="post">
+            <input name="note" required value="ready">
+            <button type="submit" name="islem" value="onayla">Approve</button>
+            <button type="submit" name="islem" value="reddet" formaction="/reject" formmethod="get">Reject</button>
+            </form></main><div data-operation-toast-stack></div>`;
+        load('toast');
+        const form = doc.querySelector('form'), submissions = [];
+        doc.addEventListener('submit', event => {
+            if (event.defaultPrevented) return;
+            event.preventDefault();
+            submissions.push({
+                button: event.submitter,
+                operation: new win.FormData(form, event.submitter).get('islem'),
+                action: event.submitter?.getAttribute('formaction') || form.getAttribute('action'),
+                method: event.submitter?.getAttribute('formmethod') || form.method
+            });
+        });
+        const confirm = () => doc.querySelector('.is-confirm:not(.is-leaving) .is-confirm-action').click();
+        return { form, submissions, confirm };
+    }
+
+    for (const operation of ['onayla', 'reddet']) {
+        await test(`Confirmation preserves ${operation} submitter and overrides`, (doc, win, load) => {
+            const { form, submissions, confirm } = confirmationFixture(doc, win, load);
+            const button = form.querySelector(`[value="${operation}"]`);
+            button.click();
+            assert(!submissions.length, 'Submitted before confirmation');
+            confirm();
+            assert(submissions.length === 1 && submissions[0].button === button, 'Submitter lost');
+            assert(submissions[0].operation === operation, 'Button name/value lost');
+            assert(submissions[0].action === (operation === 'reddet' ? '/reject' : '/default'), 'Action lost');
+            assert(submissions[0].method === (operation === 'reddet' ? 'get' : 'post'), 'Method lost');
+            assert(!form.dataset.toastConfirmed, 'Confirmation token left behind');
+        });
+    }
+    await test('Confirmation without a submit button still submits once', (doc, win, load) => {
+        const { form, submissions, confirm } = confirmationFixture(doc, win, load);
+        form.requestSubmit();
+        confirm();
+        assert(submissions.length === 1 && submissions[0].button === null, 'Unexpected submitter');
+    });
+    await test('Cancel does not submit and restores focus', (doc, win, load) => {
+        const { form, submissions } = confirmationFixture(doc, win, load);
+        const button = form.querySelector('button');
+        button.click();
+        doc.querySelector('.is-cancel').click();
+        assert(!submissions.length && !form.dataset.toastConfirmed, 'Cancelled form submitted');
+        assert(doc.activeElement === button && !doc.querySelector('main').inert, 'Focus not restored');
+    });
+    await test('Failed native validation requires a fresh confirmation', (doc, win, load) => {
+        const { form, submissions, confirm } = confirmationFixture(doc, win, load);
+        const button = form.querySelector('button'), input = form.querySelector('input');
+        button.click();
+        input.value = '';
+        confirm();
+        assert(!submissions.length && !form.dataset.toastConfirmed, 'Invalid form retained confirmation');
+        input.value = 'corrected';
+        button.click();
+        assert(!submissions.length && doc.querySelector('.is-confirm:not(.is-leaving)'), 'Confirmation bypassed');
+        confirm();
+        assert(submissions.length === 1, 'Corrected form did not submit');
+    });
+    await test('Removed submitter cannot send a different operation', (doc, win, load) => {
+        const { form, submissions, confirm } = confirmationFixture(doc, win, load);
+        const button = form.querySelector('button');
+        button.click();
+        button.remove();
+        confirm();
+        assert(!submissions.length && !form.dataset.toastConfirmed, 'Detached button submitted');
+    });
+
+    const permissions = `<section class="permission-editor"><div class="permission-editor-body"><form>
+        <select data-permission-company-select><option value="1">One</option><option value="2">Two</option></select>
+        ${[1, 2].map(id => `<details class="company-permission" data-permission-company="${id}" open>
+            <summary>Company ${id}<span class="company-permission-state"></span>
+            <input type="checkbox" class="company-enable" name="sirketIds" value="${id}" checked></summary>
+            <input type="checkbox" class="permission-option" name="yetkiler_${id}" value="RAPOR_GOR" checked>
+            </details>`).join('')}</form></div></section>`;
+
+    for (const surface of ['page', 'drawer']) {
+        await test(`Company switching preserves selections in ${surface}`, async (doc, win, load) => {
+            if (surface === 'page') {
+                doc.body.innerHTML = permissions;
+                load('permission');
+            } else {
+                doc.body.innerHTML = `<button class="js-admin-form-sheet-trigger" data-sheet-url="/fixture" data-sheet-variant="permission">Open</button>
+                    <dialog data-admin-form-sheet><h2 data-admin-form-sheet-title></h2>
+                    <button data-admin-form-sheet-close>Close</button><div data-admin-form-sheet-body></div></dialog>`;
+                // The drawer loads only this synthetic form, never application records.
+                win.fetch = async () => ({ ok: true, text: async () => permissions });
+                load('drawer');
+                doc.querySelector('.js-admin-form-sheet-trigger').click();
+                await new Promise(resolve => win.setTimeout(resolve, 0));
+            }
+            const companies = [...doc.querySelectorAll('[data-permission-company]')];
+            const select = doc.querySelector('select');
+            for (const selected of ['1', '2', '1']) {
+                select.value = selected;
+                select.dispatchEvent(new win.Event('change'));
+                for (const company of companies) {
+                    const current = company.dataset.permissionCompany === selected;
+                    assert(company.open === current && company.hidden === !current, 'Wrong panel state');
+                    assert(company.classList.contains('is-current') === current, 'Wrong current class');
+                }
+                const data = new win.FormData(select.form);
+                assert(data.get('yetkiler_1') === 'RAPOR_GOR' && data.get('yetkiler_2') === 'RAPOR_GOR', 'Hidden company lost permissions');
+            }
+        });
+    }
+
+    for (const [value, allowed, message] of [
+        ['08:00', true, ''], ['17:30', true, ''],
+        ['07:30', false, '08.00 ile 17.30'], ['17:45', false, '08.00 ile 17.30'],
+        ['18:00', false, '08.00 ile 17.30'], ['08:15', false, '00 veya 30']
+    ]) {
+        await test(`Appointment ${value}: ${allowed ? 'accepted' : 'rejected'}`, (doc, win, load) => {
+            doc.body.innerHTML = `<form data-appointment-form><input id="randevuTarihi" type="date" value="2099-01-01">
+                <input id="randevuSaati" type="time" min="${limits.min}" max="${limits.max}" step="${limits.step}" required></form>`;
+            load('appointment');
+            const form = doc.querySelector('form'), time = doc.querySelector('#randevuSaati');
+            let submitted = false;
+            form.addEventListener('submit', event => { submitted = !event.defaultPrevented; event.preventDefault(); });
+            time.value = value;
+            // requestSubmit also tests native invalid-event handling without an input event.
+            form.requestSubmit();
+            assert(submitted === allowed, 'Wrong submission result');
+            assert(time.validationMessage.includes(message), 'Wrong validation message: ' + time.validationMessage);
+            time.value = '17:30';
+            time.dispatchEvent(new win.Event('input'));
+            assert(time.validity.valid && !time.validationMessage, 'Error persisted after correction');
+        });
+    }
+    document.querySelector('#summary').textContent = `${passed} passed, ${failed} failed`;
+</script>
+</html>

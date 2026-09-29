@@ -82,7 +82,8 @@
             companies.forEach(function (company) {
                 var current = company.dataset.permissionCompany === companySelect.value;
                 company.classList.toggle("is-current", current);
-                if (current) company.open = true;
+                company.hidden = !current;
+                company.open = current;
             });
         }
 

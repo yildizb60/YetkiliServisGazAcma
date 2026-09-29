@@ -17,7 +17,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (kapsam.gecersiz)
                 return Forbid();
 
-            if (!await KullaniciYonetebilirMi(kullanici, kapsam.sirketId))
+            if (!PersonelYetkiYonetimKurali.YonetebilirMi(kullanici, kapsam.sirketId))
                 return Forbid();
 
             if (dto == null)
