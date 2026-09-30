@@ -51,6 +51,10 @@
                 <span class="df-pill @YkcDurumSunumu.CssSinifi(Model.Durum)">@durum</span>
             }
             <a class="df-btn df-btn-sm ykc-detail-back" href="@Url.Action("Talepler", "Ykc")"><i class="bi bi-arrow-left" aria-hidden="true"></i>Taleplere Dön</a>
+            @if (Model.Durum == YkcDurumDegerleri.Tamamlandi && (ViewBag.YkcYetkileri as YkcYetkiOzeti)?.RaporlariGorebilir == true)
+            {
+                <a class="df-btn df-btn-sm df-btn-secondary" href="@Url.Action("Raporlar", "Ykc", new { talepId = Model.Id, detayAc = true })"><i class="bi bi-bar-chart-line" aria-hidden="true"></i>Raporlarda Gör</a>
+            }
             <a class="df-btn df-btn-sm ykc-detail-preview" href="@Url.Action("Fr265Onizle", "Ykc", new { id = Model.Id })" target="_blank"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i>Formu Önizle</a>
         </div>
     </header>
@@ -61,7 +65,7 @@
         <div><h2>@kontrolBaslik</h2>@if (!string.IsNullOrWhiteSpace(aciklama)) { <p>@aciklama</p> }</div>
         @if (Model.RandevuTarihi.HasValue)
         {
-            <time datetime="@Model.RandevuTarihi.Value.ToString("yyyy-MM-dd")"><span>Kontrol Tarihi</span><strong>@Model.RandevuTarihi.Value.ToString("dd.MM.yyyy") <b>@Model.RandevuSaati</b></strong></time>
+            <time datetime="@Model.RandevuTarihi.Value.ToString("yyyy-MM-dd")"><span>Kontrol Randevusu</span><strong>@Model.RandevuTarihi.Value.ToString("dd.MM.yyyy") <b>@Model.RandevuSaati</b></strong></time>
         }
     </section>
     }

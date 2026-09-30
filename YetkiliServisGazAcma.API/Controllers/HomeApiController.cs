@@ -25,14 +25,14 @@ namespace YetkiliServisGazAcma.API.Controllers
             var devreyeCount = await _context.Ys_DevreyeAlmalar.CountAsync(x => !x.SilindiMi && x.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi);
             var yetkiBelgesiCount = await _context.Ys_YetkiBelgeleri.CountAsync(x => !x.SilindiMi && x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi);
             var toplamIslem = await _context.Ys_DevreyeAlmalar.CountAsync(x => !x.SilindiMi);
-            var zamaninda = toplamIslem == 0 ? 100.0 : Math.Round(100.0 * devreyeCount / toplamIslem, 1);
+            var tamamlanmaOrani = toplamIslem == 0 ? 0.0 : Math.Round(100.0 * devreyeCount / toplamIslem, 1);
 
             return Ok(new HomeOzetDto
             {
                 ServisCount = servisCount,
                 DevreyeCount = devreyeCount,
                 YetkiBelgesiCount = yetkiBelgesiCount,
-                ZamanindaOran = zamaninda
+                TamamlanmaOrani = tamamlanmaOrani
             });
         }
     }
@@ -42,6 +42,6 @@ namespace YetkiliServisGazAcma.API.Controllers
         public int ServisCount { get; set; }
         public int DevreyeCount { get; set; }
         public int YetkiBelgesiCount { get; set; }
-        public double ZamanindaOran { get; set; }
+        public double TamamlanmaOrani { get; set; }
     }
 }

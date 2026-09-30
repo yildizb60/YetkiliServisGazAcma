@@ -39,6 +39,11 @@
         ? Url.Action("IlkKurulum", "YetkiliServisPanel")!
         : Url.Action("Index", "DevreyeAlma")!;
     var gecmisUrl = Url.Action("Gecmis", "DevreyeAlma") ?? "/ys-devreyeal/gecmis";
+    var ayBasi = new DateTime(bugun.Year, bugun.Month, 1);
+    var buAyGecmisUrl = Url.Action("Gecmis", "DevreyeAlma", new
+    {
+        bas = ayBasi.ToString("yyyy-MM-dd"), bit = ayBasi.AddMonths(1).AddDays(-1).ToString("yyyy-MM-dd")
+    })!;
 
     var actions = new List<DashboardTileViewModel>
     {
@@ -133,7 +138,7 @@
         QuickActionsMeta = "Güncel durum",
         Facts = new List<RoleDashboardFactViewModel>
         {
-            new() { Icon = kurulumKilitli ? "bi bi-exclamation-circle" : "bi bi-tools", Value = kurulumKilitli ? ilkKurulumEksikler.Count.ToString() : buAy.ToString(), Label = kurulumKilitli ? "tamamlanacak kurulum adımı" : "bu ay kaydedilen cihaz", Url = birincilIslemUrl },
+            new() { Icon = kurulumKilitli ? "bi bi-exclamation-circle" : "bi bi-tools", Value = kurulumKilitli ? ilkKurulumEksikler.Count.ToString() : buAy.ToString(), Label = kurulumKilitli ? "tamamlanacak kurulum adımı" : "bu ay kaydedilen cihaz", Url = kurulumKilitli ? birincilIslemUrl : buAyGecmisUrl },
             new() { Icon = "bi bi-file-earmark-check", Value = gecerliBelgeler.ToString(), Label = "geçerli yetki belgesi", Url = Url.Action("Index", "YetkiBelgesi") }
         },
         Actions = actions,

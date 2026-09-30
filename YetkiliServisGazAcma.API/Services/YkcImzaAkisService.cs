@@ -226,6 +226,12 @@ namespace YetkiliServisGazAcma.API.Services
             if (detay == null)
                 return YkcIslemSonuc.HataliSonuc("Cihaz değişim talebi bulunamadı.");
 
+            if (detay.ImzaSureci?.Id is not int surecId)
+                return YkcIslemSonuc.HataliSonuc("İmza uygulamasına gönderilmiş bir form bulunamadı.");
+
+            await using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, cancellationToken);
+            await _context.Database.SqlQuery<int>($"SELECT [Id] AS [Value] FROM [dbo].[Ykc_ImzaSurecleri] WITH (UPDLOCK, HOLDLOCK) WHERE [Id] = {surecId}").ToListAsync(cancellationToken);
+
             var talep = await _context.Ykc_Talepler
                 .Include(x => x.FormDosyalari)
                 .Include(x => x.ImzaSurecleri)
@@ -234,7 +240,7 @@ namespace YetkiliServisGazAcma.API.Services
                     && (!dogrulanmisSirketId.HasValue || x.SirketId == dogrulanmisSirketId.Value), cancellationToken);
 
             var surec = talep == null ? null : AktifSurec(talep);
-            if (talep == null || surec == null || string.IsNullOrWhiteSpace(surec.ProviderDocumentId))
+            if (talep == null || surec?.Id != surecId || string.IsNullOrWhiteSpace(surec.ProviderDocumentId))
                 return YkcIslemSonuc.HataliSonuc("İmza uygulamasına gönderilmiş bir form bulunamadı.");
 
             if (ImzaliNihaiBelgeHazirMi(surec, talep.FormDosyalari))
@@ -250,12 +256,16 @@ namespace YetkiliServisGazAcma.API.Services
                         && await DemoNihaiBelgeyiYenileGerekiyorsaAsync(detay, talep, surec, mevcutNihaiDosya, kullanici, cancellationToken))
                     {
                         await _context.SaveChangesAsync(cancellationToken);
+                        await transaction.CommitAsync(cancellationToken);
                         return YkcIslemSonuc.BasariliSonuc("Demo PDF güncel form düzeniyle yenilendi.", talep.Id);
                     }
                 }
 
                 return YkcIslemSonuc.BasariliSonuc("İmzalı nihai belge zaten hazır.", talep.Id);
             }
+
+            if (TerminalDurumMu(talep.Durum))
+                return YkcIslemSonuc.HataliSonuc("Kapanmış talep için imza sonucu güncellenemez.");
 
             YkcImzaDurumSonuc providerSonucu;
             try
@@ -277,6 +287,7 @@ namespace YetkiliServisGazAcma.API.Services
                 surec.HataKodu = providerSonucu.HataKodu;
                 surec.HataMesaji = providerSonucu.HataMesaji;
                 await _context.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
                 return YkcIslemSonuc.HataliSonuc(providerSonucu.HataMesaji ?? "İmza durumu alınamadı.");
             }
 
@@ -303,6 +314,7 @@ namespace YetkiliServisGazAcma.API.Services
                     surec.HataKodu = "NIHAI_BELGE_YOK";
                     surec.HataMesaji = "Sağlayıcı süreci tamamlandı bildirdi ancak imzalı nihai belgeyi döndürmedi.";
                     await _context.SaveChangesAsync(cancellationToken);
+                    await transaction.CommitAsync(cancellationToken);
                     return YkcIslemSonuc.HataliSonuc(surec.HataMesaji);
                 }
 
@@ -316,6 +328,7 @@ namespace YetkiliServisGazAcma.API.Services
                     surec.HataKodu = "NIHAI_BELGE_PDF_DEGIL";
                     surec.HataMesaji = "İmza sağlayıcısının nihai belgesi PDF olmalıdır. Belge kaydedilmedi.";
                     await _context.SaveChangesAsync(cancellationToken);
+                    await transaction.CommitAsync(cancellationToken);
                     return YkcIslemSonuc.HataliSonuc(surec.HataMesaji);
                 }
                 var nihaiHash = HashOlustur(nihaiBelgeBytes);
@@ -356,6 +369,7 @@ namespace YetkiliServisGazAcma.API.Services
             }
 
             await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
             return YkcIslemSonuc.BasariliSonuc("Dijital imza durumu güncellendi.", talep.Id);
         }
 

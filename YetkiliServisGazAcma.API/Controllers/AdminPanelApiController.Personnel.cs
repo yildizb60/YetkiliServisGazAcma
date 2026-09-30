@@ -45,7 +45,9 @@ namespace YetkiliServisGazAcma.API.Controllers
             var email = dto.Email.Trim();
             var mevcut = await _userManager.FindByEmailAsync(email);
             if (mevcut != null)
-                return Ok(AdminIslemSonucDto.Basarisiz("Bu e-posta ile kayitli bir kullanici zaten var."));
+                return Ok(AdminIslemSonucDto.Basarisiz(mevcut.ArsivlemeTarihi.HasValue
+                    ? "Bu e-posta arşivlenmiş bir hesaba aittir. İşlem geçmişini korumak için yeni hesapta farklı bir e-posta adresi kullanın."
+                    : "Bu e-posta ile kayitli bir kullanici zaten var."));
 
             var yeni = new AppKullanici
             {

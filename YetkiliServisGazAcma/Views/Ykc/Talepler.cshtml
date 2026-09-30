@@ -261,7 +261,7 @@
                 </colgroup>
                 <thead>
                     <tr>
-                        <th>Talep</th>
+                        <th>Talep No</th>
                         <th>Abone Adı Soyadı</th>
                         @if (icOperasyonGorsun) { <th>Firma</th> }
                         <th>Tesisat ve Abone Bilgileri</th>
@@ -292,9 +292,8 @@
                             var gerekenIslem = GerekenIslemYazi(talep.Durum, icOperasyonGorsun, talep.SiradakiKontrolNo);
                             var randevuPlanli = talep.RandevuTarihi.HasValue || !string.IsNullOrWhiteSpace(talep.RandevuSaati);
                             <tr>
-                                <td data-label="Talep">
+                                <td data-label="Talep No">
                                     <div class="ykc-primary-cell"><span class="ykc-code">#@talep.Id</span></div>
-                                    <time class="ykc-cell-meta ykc-request-time" datetime="@talep.TalepTarihi.ToString("yyyy-MM-ddTHH:mm:ss")"><span>@talep.TalepTarihi.ToString("dd.MM.yyyy")</span><span>@talep.TalepTarihi.ToString("HH:mm")</span></time>
                                 </td>
                                 <td data-label="Abone Adı Soyadı">
                                     <div class="ykc-primary-cell">@Deger(talep.MusteriAdi)</div>

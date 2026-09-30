@@ -2,6 +2,7 @@ using System.IO.Compression;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -56,6 +57,8 @@ if (args.Contains("--schema-only", StringComparer.Ordinal))
 try
 {
     databaseCreated = await db.Database.EnsureCreatedAsync();
+    var emptyHome = (HomeOzetDto)((OkObjectResult)await new HomeApiController(db).Ozet()).Value!;
+    Check(emptyHome.TamamlanmaOrani == 0, "An empty system does not report one hundred percent completion");
     var company = new Dag_Sirket { SirketAdi = "Workflow fixture" };
     var otherCompany = new Dag_Sirket { SirketAdi = "Other scope" };
     db.AddRange(company, otherCompany);
@@ -74,6 +77,11 @@ try
     var id = request.Id;
     db.ChangeTracker.Clear();
     var service = new YkcTalepService(db);
+    var directPlan = await service.DurumGuncelleAsync(new() { TalepId = id, Durum = YkcDurumDegerleri.Atandi }, admin, true);
+    Check(!directPlan.Basarili && await db.Ykc_Atamalar.CountAsync(x => x.TalepId == id) == 0
+        && (await db.Ykc_Talepler.FindAsync(id))!.Durum == YkcDurumDegerleri.AtamaBekliyor,
+        "A status update cannot mark a request planned without an appointment");
+    db.ChangeTracker.Clear();
     YkcKontrolKaydetDto Control(int no, string result = YkcFr265KontrolSonucDegerleri.UygunDegil) => new()
     {
         TalepId = id,
@@ -220,6 +228,53 @@ try
     Check(!(await service.AtamaYapAsync(Appointment(), admin, true)).Basarili,
         "Signature in progress prevents appointment or cycle changes");
 
+    signing.PollResult = new YkcImzaDurumSonuc
+    {
+        Basarili = true,
+        Durum = YkcImzaDurumDegerleri.Tamamlandi,
+        NihaiBelgeAdi = $"FR265_Imzali_{id}.pdf",
+        NihaiBelgeIcerikTipi = "application/pdf",
+        NihaiBelgeBytes = YkcFr265PdfService.Olustur((await service.GetirAsync(id, admin, true))!).Bytes,
+        Imzacilar = signing.Request!.Imzacilar.Select(x => new YkcImzaProviderImzaciDurumu
+        {
+            SiraNo = x.SiraNo, Durum = YkcImzaciDurumDegerleri.Imzaladi, ImzaTarihi = DateTime.Now
+        }).ToList()
+    };
+    var pollEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    var pollRelease = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    signing.BeforePoll = async () =>
+    {
+        pollEntered.TrySetResult();
+        await pollRelease.Task.WaitAsync(TimeSpan.FromSeconds(30));
+    };
+    var firstPoll = signatureFlow.ImzaDurumunuSorgulaAsync(id, admin, true);
+    await using var pollDb = new AppDbContext(options);
+    var secondFlow = new YkcImzaAkisService(pollDb, new YkcTalepService(pollDb), new YkcFr265FormService(), signing,
+        new TestEnvironment { ContentRootPath = documentRoot }, NullLogger<YkcImzaAkisService>.Instance);
+    Task<YkcIslemSonuc>? secondPoll = null;
+    try
+    {
+        await pollEntered.Task.WaitAsync(TimeSpan.FromSeconds(30));
+        secondPoll = secondFlow.ImzaDurumunuSorgulaAsync(id, admin, true);
+        await Task.Delay(100);
+        Check(!secondPoll.IsCompleted, "A second signature poll waits for the first document transaction");
+    }
+    finally
+    {
+        pollRelease.TrySetResult();
+    }
+    var pollResults = await Task.WhenAll(firstPoll, secondPoll!);
+    Check(pollResults.All(x => x.Basarili), "Concurrent signature polls return a consistent result");
+    db.ChangeTracker.Clear();
+    var finalFiles = await db.Ykc_FormDosyalari.AsNoTracking().Where(x => x.TalepId == id
+        && x.DosyaTuru == YkcFormDosyaTuruDegerleri.Fr265ImzaliNihai && !x.SilindiMi).ToListAsync();
+    Check(finalFiles.Count == 1 && await db.Ykc_IslemGecmisi.CountAsync(x => x.TalepId == id
+        && x.IslemTipi == "FR265ImzaliNihaiBelgeAlindi") == 1,
+        "Concurrent signature polls persist one final PDF and one history event");
+    var reportRecord = (await service.RaporAsync(new() { KayitIdleri = [id] }, admin, true)).Kayitlar.Single();
+    Check(reportRecord.ImzaliNihaiBelgeVar && reportRecord.ImzaliNihaiDosyaId == finalFiles[0].Id,
+        "Report record exposes the authorized final PDF reference");
+
     var permissions = new AdminPersonelYetkiApiService(db);
     AdminYetkiGuncelleDto Rights(params string[] rights) => new()
     {
@@ -263,7 +318,52 @@ try
         && await db.Dag_PersonelYetkiler.CountAsync(x => x.SirketId == company.Id && !x.SilindiMi) == 1,
         "Concurrent grants do not duplicate active permissions or overwrite history");
 
+    Check((await permissions.GuncelleAsync(Rights(YetkiTipleri.TAM_YETKI), admin, company.Id, true)).Basarili,
+        "Full rights are granted only in the selected company");
+    var allRights = (await permissions.ListeleAsync(admin, null, true)).SirketYetkileri[staff.Id];
+    Check(allRights.Count == 2
+        && allRights.Single(x => x.SirketId == company.Id).Yetkiler.SequenceEqual([YetkiTipleri.TAM_YETKI])
+        && allRights.Single(x => x.SirketId == otherCompany.Id).Yetkiler.SequenceEqual([YetkiTipleri.MARKA_YONET]),
+        "Permission summary keeps full and limited company rights separate");
+    var scopedRights = (await permissions.ListeleAsync(admin, otherCompany.Id, true)).SirketYetkileri[staff.Id];
+    Check(scopedRights.Count == 1 && scopedRights[0].SirketId == otherCompany.Id
+        && !scopedRights[0].Yetkiler.Contains(YetkiTipleri.TAM_YETKI),
+        "Scoped permission summary does not expose another company's full rights");
+    Check((await permissions.GuncelleAsync(Rights(), admin, company.Id, true)).Basarili,
+        "Summary fixture can revoke company rights");
+    var noRights = (await permissions.ListeleAsync(admin, company.Id, true)).SirketYetkileri[staff.Id];
+    Check(noRights.Count == 1 && noRights[0].Yetkiler.Count == 0,
+        "An assigned company with revoked rights is not displayed as fully authorized");
+
     await AdminSecuritySqlScenario.RunAsync(db, manager, admin, staff, company.Id, otherCompany.Id, Check);
+
+    var approvalFirm = new Ys_Firma
+    {
+        FirmaAdi = "Approval contact fixture", SirketId = company.Id,
+        YetkiliKisi = "Test Contact", Telefon = "05551234567", VergiNo = "9000000042"
+    };
+    var certificate = new Ys_YetkiBelgesi
+    {
+        Firma = approvalFirm, Durum = YetkiBelgesiDurumDegerleri.OnaydaBekliyor,
+        YetkiBelgesiBitisTarihi = DateTime.Today.AddDays(30)
+    };
+    db.Ys_YetkiBelgeleri.Add(certificate);
+    await db.SaveChangesAsync();
+    db.ChangeTracker.Clear();
+    var approvalList = await new AdminYetkiBelgesiOnayApiService(db).ListeleAsync(company.Id);
+    var approval = approvalList.Bekleyenler.Single(x => x.Id == certificate.Id);
+    Check(approval.FirmaYetkiliKisi == "Test Contact" && approval.FirmaTelefon == "05551234567",
+        "Approval list preserves the firm's existing contact person and phone");
+    Check(!(await new AdminYetkiBelgesiOnayApiService(db).ListeleAsync(otherCompany.Id))
+        .Bekleyenler.Any(x => x.Id == certificate.Id), "Approval contacts remain company scoped");
+    db.Ys_DevreyeAlmalar.AddRange(
+        new() { FirmaId = approvalFirm.Id, Durum = DevreyeAlmaDurumDegerleri.Tamamlandi, DevreyeAlmaTarihi = DateTime.Today },
+        new() { FirmaId = approvalFirm.Id, Durum = DevreyeAlmaDurumDegerleri.Bekliyor, DevreyeAlmaTarihi = DateTime.Today },
+        new() { FirmaId = approvalFirm.Id, Durum = DevreyeAlmaDurumDegerleri.Tamamlandi, DevreyeAlmaTarihi = DateTime.Today, SilindiMi = true });
+    await db.SaveChangesAsync();
+    var home = (HomeOzetDto)((OkObjectResult)await new HomeApiController(db).Ozet()).Value!;
+    Check(home.DevreyeCount == 1 && home.TamamlanmaOrani == 50,
+        "Completion percentage counts completed records and excludes archived records");
     Console.WriteLine($"{passed} workflow checks passed.");
 }
 finally
@@ -280,17 +380,22 @@ sealed class RecordingSignatureProvider : IYkcImzaProvider
 {
     public string ProviderAdi => "Test only";
     public bool KullanilabilirMi => true;
-    public bool DemoModuMu => true;
+    public bool DemoModuMu => false;
     public YkcImzaGonderIstek? Request { get; private set; }
     public Func<Task>? BeforeSend { get; set; }
+    public Func<Task>? BeforePoll { get; set; }
+    public YkcImzaDurumSonuc? PollResult { get; set; }
     public async Task<YkcImzaGonderSonuc> GonderAsync(YkcImzaGonderIstek istek, CancellationToken cancellationToken = default)
     {
         if (BeforeSend != null) await BeforeSend();
         Request = istek;
         return new YkcImzaGonderSonuc { Basarili = true, ProviderDocumentId = "TEST-ONLY-" + Guid.NewGuid() };
     }
-    public Task<YkcImzaDurumSonuc> DurumSorgulaAsync(string providerDocumentId, CancellationToken cancellationToken = default)
-        => throw new NotSupportedException();
+    public async Task<YkcImzaDurumSonuc> DurumSorgulaAsync(string providerDocumentId, CancellationToken cancellationToken = default)
+    {
+        if (BeforePoll != null) await BeforePoll();
+        return PollResult ?? throw new NotSupportedException();
+    }
 }
 
 sealed class TestEnvironment : IWebHostEnvironment

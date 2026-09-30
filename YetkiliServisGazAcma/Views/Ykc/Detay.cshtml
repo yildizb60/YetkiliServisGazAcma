@@ -7,8 +7,13 @@
     var yonetebilir = atamaYetkisi || fr265ImzaYetkisi;
     var icOperasyonGorsun = !User.IsInRole("SertifikaliFirma");
     var kaynak = Context.Request.Query["kaynak"].ToString() switch { "rapor" => "rapor", "takvim" => "takvim", _ => "" };
+    var raporDonusYolu = Url.Action("Raporlar", "Ykc") ?? "/ykc/raporlar";
+    var raporDonus = Context.Request.Query["geri"].ToString();
+    var raporDonusGecerli = Url.IsLocalUrl(raporDonus)
+        && raporDonus.StartsWith(raporDonusYolu, StringComparison.OrdinalIgnoreCase)
+        && (raporDonus.Length == raporDonusYolu.Length || raporDonus[raporDonusYolu.Length] == '?');
     var geriUrl = kaynak == "rapor" && icOperasyonGorsun
-        ? Url.Action("Raporlar", "Ykc")
+        ? (raporDonusGecerli ? raporDonus : raporDonusYolu)
         : kaynak == "takvim" && icOperasyonGorsun
             ? Url.Action("Takvim", "Ykc")
             : Url.Action("Talepler", "Ykc");
@@ -30,6 +35,15 @@
     var randevuYenidenPlanlanacak = atamaYapilabilir && randevuZamaniGeldi;
     var tesisatBolgesi = string.IsNullOrWhiteSpace(Model.Bolge) ? Model.Il : Model.Bolge;
     var sonAtamaTipi = Model.Atamalar.FirstOrDefault()?.AtananKullaniciTipi ?? string.Empty;
+    var farkliRandevular = Model.Atamalar.DistinctBy(atama => new
+    {
+        Tarih = atama.RandevuTarihi?.Date,
+        Saat = atama.RandevuSaati?.Trim(),
+        atama.AtananKullaniciTipi,
+        atama.AtananEkip,
+        atama.Bolge,
+        atama.HedefUygulama
+    }).ToList();
     var acilEkipSecili = string.Equals(Model.HedefUygulama, YkcHedefUygulamaDegerleri.Crm187, StringComparison.OrdinalIgnoreCase)
         || sonAtamaTipi.Contains("187", StringComparison.OrdinalIgnoreCase)
         || (Model.AtananEkip?.Contains("187", StringComparison.OrdinalIgnoreCase) ?? false);
@@ -495,9 +509,18 @@
         {
             <div class="ykc-terminal-message">Bu talebi görüntüleyebilirsiniz. Atama veya form işlemi için ayrıca YKC operasyon yetkisi gerekir.</div>
         }
-        @if (icOperasyonGorsun && terminalDurum && imzaliBelge != null)
+        @if (icOperasyonGorsun && terminalDurum && (imzaliBelge != null || (Model.Durum == YkcDurumDegerleri.Tamamlandi && ykcYetkileri.RaporlariGorebilir)))
         {
-            <a class="df-btn df-btn-secondary df-btn-sm" href="@Url.Action("DosyaAc", "Ykc", new { id = imzaliBelge.Id })" target="_blank"><i class="bi bi-download"></i> İmzalı Belgeyi İndir</a>
+            <div class="ykc-final-toolbar">
+                @if (imzaliBelge != null)
+                {
+                    <a class="df-btn df-btn-secondary df-btn-sm" href="@Url.Action("DosyaAc", "Ykc", new { id = imzaliBelge.Id })" target="_blank"><i class="bi bi-download"></i> İmzalı Belgeyi İndir</a>
+                }
+                @if (Model.Durum == YkcDurumDegerleri.Tamamlandi && ykcYetkileri.RaporlariGorebilir)
+                {
+                    <a class="df-btn df-btn-primary df-btn-sm" href="@Url.Action("Raporlar", "Ykc", new { talepId = Model.Id, detayAc = true })"><i class="bi bi-bar-chart-line" aria-hidden="true"></i> Raporlarda Gör</a>
+                }
+            </div>
         }
     @if (icOperasyonGorsun && (Model.Durum == YkcDurumDegerleri.SahaIsleminde || sonucGirilenKontroller.Any()))
     {
@@ -544,7 +567,7 @@
                 }
                 else if (kontrollerImzayaHazir)
                 {
-                    <div class="ykc-inline-status is-success"><i class="bi bi-check2-circle"></i> Kontrol uygun. Form imzaya gönderilebilir.</div>
+                    <div class="ykc-inline-status is-success"><i class="bi bi-check2-circle"></i> @(terminalDurum ? "Kontrol uygun sonuçlandı." : imzaSureciBasladi ? "Kontrol uygun. Form imza sürecinde." : "Kontrol uygun. Form imzaya gönderilebilir.")</div>
                 }
                 else if (!fr265ImzaYetkisi)
                 {
@@ -671,6 +694,18 @@
     </section>
     <section class="ykc-firm-data-section ykc-history-section" id="request-history" role="tabpanel" aria-labelledby="staff-history-tab" hidden>
         <h2><i class="bi bi-clock-history" aria-hidden="true"></i>İşlem Geçmişi</h2>
+        @if (farkliRandevular.Count > 1)
+        {
+            <details class="ykc-detail-section ykc-appointment-history">
+                <summary><span><strong>Randevu geçmişi</strong><small>@farkliRandevular.Count farklı randevu</small></span><i class="bi bi-chevron-down"></i></summary>
+                <ol class="ykc-appointment-history-list">
+                    @foreach (var atama in farkliRandevular)
+                    {
+                        <li><span>@(atama.Id == farkliRandevular[0].Id ? "Güncel randevu" : "Önceki randevu")</span><strong>@RandevuYazi(atama.RandevuTarihi, atama.RandevuSaati)</strong><small>@Deger(atama.AtananEkip ?? atama.AtananKullaniciTipi)</small></li>
+                    }
+                </ol>
+            </details>
+        }
         @foreach (var donem in Model.Kontroller.Where(x => x.DonemNo < Model.KontrolDonemi).GroupBy(x => x.DonemNo).OrderByDescending(x => x.Key))
         {
             <details class="ykc-detail-section">

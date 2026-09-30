@@ -383,7 +383,9 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             var mevcut = await _userManager.FindByEmailAsync(email);
             if (mevcut != null)
-                return Ok(AdminIslemSonucDto.Basarisiz("Bu e-posta ile kayitli bir kullanici zaten var."));
+                return Ok(AdminIslemSonucDto.Basarisiz(mevcut.ArsivlemeTarihi.HasValue
+                    ? "Bu e-posta arşivlenmiş bir hesaba aittir. İşlem geçmişini korumak için yeni hesapta farklı bir e-posta adresi kullanın."
+                    : "Bu e-posta ile kayitli bir kullanici zaten var."));
 
             Ys_Firma? secilenFirma = null;
             if (dto.FirmaId.HasValue)
@@ -397,14 +399,20 @@ namespace YetkiliServisGazAcma.API.Controllers
                     return Ok(AdminIslemSonucDto.Basarisiz("Secilen yetkili servis bulunamadi veya farkli bir sirkete bagli."));
 
                 if (await _context.Users.AnyAsync(x => x.FirmaId == secilenFirma.Id
+                    && x.ArsivlemeTarihi == null
                     && (x.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis
                         || x.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma)))
                     return Ok(AdminIslemSonucDto.Basarisiz("Bu firmaya ait bir giris hesabi zaten var. Kullanicilar ekranindan duzenleyin."));
             }
 
+            var kullaniciAdi = !string.IsNullOrWhiteSpace(secilenFirma?.VergiNo) ? secilenFirma.VergiNo.Trim() : email;
+            var oncekiHesap = await _userManager.FindByNameAsync(kullaniciAdi);
+            if (secilenFirma != null && oncekiHesap?.ArsivlemeTarihi != null && oncekiHesap.FirmaId == secilenFirma.Id)
+                kullaniciAdi = email;
+
             var yeni = new AppKullanici
             {
-                UserName = !string.IsNullOrWhiteSpace(secilenFirma?.VergiNo) ? secilenFirma.VergiNo.Trim() : email,
+                UserName = kullaniciAdi,
                 Email = email,
                 PhoneNumber = dto.Telefon?.Trim(),
                 AdSoyad = dto.AdSoyad,

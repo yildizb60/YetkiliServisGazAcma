@@ -652,6 +652,7 @@ namespace YetkiliServisGazAcma.Business.Services
             public List<AdminKullaniciListeCevap> Personeller { get; set; } = new();
             public Dictionary<string, List<string>> YetkiMap { get; set; } = new();
             public Dictionary<string, List<string>> YetkiSirketAdlariMap { get; set; } = new();
+            public Dictionary<string, List<AdminSirketYetkiOzeti>> SirketYetkileri { get; set; } = new();
 
             public AdminYetkiListeSonuc ToSonuc()
             {
@@ -659,7 +660,8 @@ namespace YetkiliServisGazAcma.Business.Services
                 {
                     Personeller = Personeller.Select(x => x.ToEntity()).ToList(),
                     YetkiMap = YetkiMap,
-                    YetkiSirketAdlariMap = YetkiSirketAdlariMap
+                    YetkiSirketAdlariMap = YetkiSirketAdlariMap,
+                    SirketYetkileri = SirketYetkileri
                 };
             }
         }
@@ -701,6 +703,14 @@ namespace YetkiliServisGazAcma.Business.Services
         public List<AppKullanici> Personeller { get; set; } = new();
         public Dictionary<string, List<string>> YetkiMap { get; set; } = new();
         public Dictionary<string, List<string>> YetkiSirketAdlariMap { get; set; } = new();
+        public Dictionary<string, List<AdminSirketYetkiOzeti>> SirketYetkileri { get; set; } = new();
+    }
+
+    public class AdminSirketYetkiOzeti
+    {
+        public int SirketId { get; set; }
+        public string? SirketAdi { get; set; }
+        public List<string> Yetkiler { get; set; } = new();
     }
 
     public class AdminYetkiDuzenleSonuc

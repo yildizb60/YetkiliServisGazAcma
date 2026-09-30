@@ -337,7 +337,7 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpGet("devreyealmalar")]
-        public async Task<IActionResult> DevreyeAlmalar(string? tesisat, string? musteri, string? marka, string? servis, string? il, string? ilce, string? durum, DateTime? bas, DateTime? bit)
+        public async Task<IActionResult> DevreyeAlmalar(string? tesisat, string? musteri, string? marka, string? servis, string? il, string? ilce, DateTime? bas, DateTime? bit)
         {
             var yetkiResult = await YetkiKontrol(YetkiTipleri.RAPOR_GOR);
             if (yetkiResult != null) return yetkiResult;
@@ -355,7 +355,7 @@ namespace YetkiliServisGazAcma.Controllers
                         marka,
                         servis,
                         il,
-                        durum,
+                        null,
                         bas,
                         bit,
                         tesisatNo: tesisat,

@@ -12,6 +12,11 @@
     var suresiBitecek = Sayi(ViewBag.SuresiBitecek);
     var toplamFirma = Sayi(ViewBag.ToplamFirma);
     var buAyDevreyeAlma = Sayi(ViewBag.BuAyDevreyeAlma);
+    var ayBasi = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+    var buAyDevreyeUrl = Url.Action("DevreyeAlmalar", "AdminPanel", new
+    {
+        bas = ayBasi.ToString("yyyy-MM-dd"), bit = ayBasi.AddMonths(1).AddDays(-1).ToString("yyyy-MM-dd")
+    })!;
     var genelSistemAdminMi = ViewBag.GenelSistemAdminMi as bool? ?? false;
     var sirketAdminMi = User.IsInRole(KullaniciRolAdlari.SirketAdmin);
     var adminRoluVar = genelSistemAdminMi || sirketAdminMi;
@@ -70,7 +75,7 @@
         },
         new()
         {
-            Title = "Bu ay kaydedilen cihaz işlemleri", Url = Url.Action("DevreyeAlmalar", "AdminPanel")!, Icon = "bi bi-tools",
+            Title = "Bu ay kaydedilen cihaz işlemleri", Url = buAyDevreyeUrl, Icon = "bi bi-tools",
             MetricValue = buAyDevreyeAlma.ToString(), MetricLabel = "kayıt", Subtitle = "Cihaz devreye alma", Tone = "green"
         }
     };

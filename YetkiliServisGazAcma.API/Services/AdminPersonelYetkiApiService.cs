@@ -64,6 +64,17 @@ namespace YetkiliServisGazAcma.API.Services
                 yetkiQuery = yetkiQuery.Where(x => x.SirketId == sirketId.Value);
 
             var yetkiKayitlari = await yetkiQuery.ToListAsync();
+            var sirketYetkileri = yetkiKayitlari
+                .GroupBy(x => x.KullaniciId)
+                .ToDictionary(g => g.Key, g => g.GroupBy(x => x.SirketId)
+                    .Select(sirket => new AdminSirketYetkiOzetDto
+                    {
+                        SirketId = sirket.Key,
+                        SirketAdi = sirket.First().Sirket?.SirketAdi,
+                        Yetkiler = NormalizeYetkiListesi(sirket.Select(x => x.YetkiTipi))
+                    })
+                    .OrderBy(x => x.SirketAdi)
+                    .ToList());
             var yetkiMap = yetkiKayitlari
                 .GroupBy(x => x.KullaniciId)
                 .ToDictionary(
@@ -82,6 +93,14 @@ namespace YetkiliServisGazAcma.API.Services
 
             foreach (var personel in personeller)
             {
+                if (!sirketYetkileri.ContainsKey(personel.Id) && personel.SirketId.HasValue
+                    && (!sirketId.HasValue || personel.SirketId == sirketId))
+                {
+                    sirketYetkileri[personel.Id] = new List<AdminSirketYetkiOzetDto>
+                    {
+                        new() { SirketId = personel.SirketId.Value, SirketAdi = personel.Sirket?.SirketAdi }
+                    };
+                }
                 if (!yetkiSirketAdlariMap.ContainsKey(personel.Id)
                     && personel.Sirket != null
                     && !string.IsNullOrWhiteSpace(personel.Sirket.SirketAdi))
@@ -94,7 +113,8 @@ namespace YetkiliServisGazAcma.API.Services
             {
                 Personeller = personeller.Select(MapKullanici).ToList(),
                 YetkiMap = yetkiMap,
-                YetkiSirketAdlariMap = yetkiSirketAdlariMap
+                YetkiSirketAdlariMap = yetkiSirketAdlariMap,
+                SirketYetkileri = sirketYetkileri
             };
         }
 

@@ -19,6 +19,8 @@ namespace YetkiliServisGazAcma.Business.Services
             var yetkiBelgesiQuery = YetkiBelgesiTemelQuery(sirketId);
             var firmaQuery = FirmaTemelQuery(sirketId);
             var now = DateTime.Now;
+            var ayBasi = new DateTime(now.Year, now.Month, 1);
+            var sonrakiAy = ayBasi.AddMonths(1);
 
             return new AdminDashboardOzet
             {
@@ -35,8 +37,7 @@ namespace YetkiliServisGazAcma.Business.Services
                     ? 1
                     : await _context.Dag_Sirketler.Where(x => !x.SilindiMi && x.AktifMi).CountAsync(),
                 BuAyDevreyeAlma = await devreyeQuery
-                    .Where(x => x.OlusturmaTarihi.Month == now.Month
-                        && x.OlusturmaTarihi.Year == now.Year)
+                    .Where(x => x.DevreyeAlmaTarihi >= ayBasi && x.DevreyeAlmaTarihi < sonrakiAy)
                     .CountAsync(),
                 SonYetkiBelgeleri = await yetkiBelgesiQuery
                     .Include(x => x.Firma)

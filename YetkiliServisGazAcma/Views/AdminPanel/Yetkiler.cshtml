@@ -1,3 +1,5 @@
+@using YetkiliServisGazAcma.Business.Services
+@using YetkiliServisGazAcma.Entities
 @{
     ViewData["Title"] = "Yetkiler";
     ViewData["PanelTitle"] = ViewData["Title"];
@@ -7,16 +9,12 @@
 
     var personeller = ViewBag.Personeller as List<YetkiliServisGazAcma.Entities.AppKullanici>;
     var yetkiIsimler = ViewBag.YetkiIsimler as Dictionary<string, string> ?? new();
-    var yetkiMap = ViewBag.YetkiMap as Dictionary<string, List<string>> ?? new();
-    var yetkiSirketAdlariMap = ViewBag.YetkiSirketAdlariMap as Dictionary<string, List<string>> ?? new();
+    var sirketYetkileri = ViewBag.SirketYetkileri as Dictionary<string, List<AdminSirketYetkiOzeti>> ?? new();
     var toplamPersonel = personeller?.Count ?? 0;
-    var yetkiTanimliPersonel = yetkiMap.Values.Count(yetkiler => yetkiler.Count > 0);
-    var tamYetkiliPersonel = yetkiMap.Values.Count(yetkiler => yetkiler.Any(yetki => string.Equals(yetki, "TAM_YETKI", StringComparison.OrdinalIgnoreCase)));
-    var sirketKapsami = yetkiSirketAdlariMap.Values
-        .SelectMany(sirketler => sirketler)
-        .Where(sirket => !string.IsNullOrWhiteSpace(sirket))
-        .Distinct(StringComparer.OrdinalIgnoreCase)
-        .Count();
+    var yetkiTanimliPersonel = sirketYetkileri.Values.Count(sirketler => sirketler.Any(x => x.Yetkiler.Count > 0));
+    var kapsamlar = sirketYetkileri.Values.SelectMany(x => x).ToList();
+    var tamYetkiliKapsam = kapsamlar.Count(x => x.Yetkiler.Contains(YetkiTipleri.TAM_YETKI));
+    var sirketKapsami = kapsamlar.Select(x => x.SirketId).Distinct().Count();
 }
 
 <div class="df-admin-workspace df-permission-workspace">
@@ -31,7 +29,7 @@
     </div>
     <div class="df-permission-stat is-amber">
         <span class="df-permission-stat-icon"><i class="bi bi-shield-check" aria-hidden="true"></i></span>
-        <span><small>Tam yetkili</small><strong>@tamYetkiliPersonel</strong></span>
+        <span><small>Tam yetkili kapsam</small><strong>@tamYetkiliKapsam</strong></span>
     </div>
     <div class="df-permission-stat is-cyan">
         <span class="df-permission-stat-icon"><i class="bi bi-buildings" aria-hidden="true"></i></span>
@@ -98,7 +96,7 @@
         <strong>@toplamPersonel personel</strong>
     </div>
     <div class="tablo-head">
-        <div>Personel</div><div>E-posta</div><div>Yetki Kapsamı</div><div>İşlem Yetkileri</div><div>İşlem</div>
+        <div>Personel</div><div>E-posta</div><div>Şirket ve İşlem Yetkileri</div><div>İşlem</div>
     </div>
     @if (personeller == null || personeller.Count == 0)
     {
@@ -108,11 +106,8 @@
     {
         foreach (var p in personeller)
         {
-            var yetkiler = yetkiMap.ContainsKey(p.Id) ? yetkiMap[p.Id] : new List<string>();
-            var sirketAdlari = yetkiSirketAdlariMap.ContainsKey(p.Id) ? yetkiSirketAdlariMap[p.Id] : new List<string>();
-            var gorunenYetkiler = yetkiler.Take(2).ToList();
-            var kalanYetkiAdlari = yetkiler.Skip(gorunenYetkiler.Count)
-                .Select(y => yetkiIsimler.TryGetValue(y, out var ad) ? ad : y);
+            var personelKapsamlari = sirketYetkileri.TryGetValue(p.Id, out var sirketler)
+                ? sirketler : new List<AdminSirketYetkiOzeti>();
 
             <div class="tablo-row">
                 <div class="df-permission-person" data-label="Personel">
@@ -120,38 +115,32 @@
                     <span><strong>@(p.AdSoyad ?? "-")</strong></span>
                 </div>
                 <div class="df-permission-email" data-label="E-posta" title="@p.Email">@(p.Email ?? "E-posta bilgisi yok")</div>
-                <div data-label="Yetki kapsamı">
-                    @if (sirketAdlari.Count == 0)
+                <div class="df-permission-company-list" data-label="Şirket ve işlem yetkileri">
+                    @if (personelKapsamlari.Count == 0)
                     {
                         <span class="df-empty-value">Şirket atanmamış</span>
                     }
                     else
                     {
-                        <div class="yetki-list">
-                            @foreach (var sirketAdi in sirketAdlari)
-                            {
-                                <span class="df-permission-token is-company">@sirketAdi</span>
-                            }
-                        </div>
-                    }
-                </div>
-                <div data-label="İşlem yetkileri">
-                    @if (yetkiler.Count == 0)
-                    {
-                        <span class="df-empty-value">Yetki tanımlanmamış</span>
-                    }
-                    else
-                    {
-                        <div class="yetki-list">
-                            @foreach (var y in gorunenYetkiler)
-                            {
-                                <span class="df-permission-token" data-permission-code="@y">@(yetkiIsimler.ContainsKey(y) ? yetkiIsimler[y] : y)</span>
-                            }
-                            @if (yetkiler.Count > gorunenYetkiler.Count)
-                            {
-                                <span class="df-permission-token-more" title="@string.Join(", ", kalanYetkiAdlari)">+@(yetkiler.Count - gorunenYetkiler.Count) yetki</span>
-                            }
-                        </div>
+                        foreach (var kapsam in personelKapsamlari)
+                        {
+                            <div class="df-permission-company-row">
+                                <span class="df-permission-company-name">@(kapsam.SirketAdi ?? "Şirket bilgisi yok")</span>
+                                @if (kapsam.Yetkiler.Count == 0)
+                                {
+                                    <span class="df-empty-value">Yetki tanımlanmamış</span>
+                                }
+                                else
+                                {
+                                    <div class="yetki-list">
+                                        @foreach (var yetki in kapsam.Yetkiler)
+                                        {
+                                            <span class="df-permission-token" data-permission-code="@yetki">@(yetkiIsimler.TryGetValue(yetki, out var ad) ? ad : yetki)</span>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
                     }
                 </div>
                 <div class="df-permission-row-action" data-label="İşlem">

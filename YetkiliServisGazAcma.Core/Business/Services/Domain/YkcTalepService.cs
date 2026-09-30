@@ -506,6 +506,9 @@ namespace YetkiliServisGazAcma.Business.Services
             if (eskiDurum == dto.Durum)
                 return YkcIslemSonuc.BasariliSonuc("Talep zaten seçilen durumda.", talep.Id);
 
+            if (dto.Durum == YkcDurumDegerleri.Atandi)
+                return YkcIslemSonuc.HataliSonuc("Randevu yalnızca tarih, saat ve yönlendirme bilgileriyle planlanabilir.");
+
             if (dto.Durum == YkcDurumDegerleri.SahaIsleminde && !RandevuZamaniGeldiMi(talep.RandevuTarihi, talep.RandevuSaati))
                 return YkcIslemSonuc.HataliSonuc("Randevu zamanı gelmeden saha kontrolü başlatılamaz.");
 
@@ -1633,10 +1636,12 @@ namespace YetkiliServisGazAcma.Business.Services
         public int? SiradakiKontrolNo { get; set; }
         public int Durum { get; set; }
         public bool ImzaliNihaiBelgeVar { get; set; }
+        public int? ImzaliNihaiDosyaId { get; set; }
         public string? ImzaDurumu { get; set; }
 
         public static YkcRaporKayitDto FromEntity(Ykc_Talep talep)
         {
+            var imzaliNihaiDosyaId = ImzaliNihaiDosyaIdBul(talep);
             return new YkcRaporKayitDto
             {
                 Id = talep.Id,
@@ -1672,7 +1677,8 @@ namespace YetkiliServisGazAcma.Business.Services
                 SiradakiKontrolNo = YkcKontrolAkisKurali.SiradakiKontrolNo(talep.Kontroller),
                 Durum = talep.Durum,
                 ImzaDurumu = AktifImzaSureci(talep)?.Durum ?? YkcImzaDurumDegerleri.Hazir,
-                ImzaliNihaiBelgeVar = ImzaliNihaiBelgeVarMi(talep)
+                ImzaliNihaiBelgeVar = imzaliNihaiDosyaId.HasValue,
+                ImzaliNihaiDosyaId = imzaliNihaiDosyaId
             };
         }
 
@@ -1685,7 +1691,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 .FirstOrDefault();
         }
 
-        private static bool ImzaliNihaiBelgeVarMi(Ykc_Talep talep)
+        private static int? ImzaliNihaiDosyaIdBul(Ykc_Talep talep)
         {
             var tamamlananSurec = talep.ImzaSurecleri
                 .Where(x => !x.SilindiMi)
@@ -1700,7 +1706,8 @@ namespace YetkiliServisGazAcma.Business.Services
                 && talep.FormDosyalari.Any(x =>
                     x.Id == nihaiDosyaId
                     && !x.SilindiMi
-                    && x.DosyaTuru == YkcFormDosyaTuruDegerleri.Fr265ImzaliNihai);
+                    && x.DosyaTuru == YkcFormDosyaTuruDegerleri.Fr265ImzaliNihai)
+                ? nihaiDosyaId : null;
         }
     }
 

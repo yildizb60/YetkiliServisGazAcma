@@ -292,6 +292,24 @@ Check(YkcCihazUyumKurali.Uyarilar("Kombi", "Kombi", "A", "A", null, null, null, 
     "Missing source capacity cannot establish a capacity increase");
 Check(YkcCihazUyumKurali.Uyarilar("Kombi", "Kombi", "A", "A", null, null, "invalid", "25000").Count == 0,
     "Unparseable source capacity cannot establish a capacity increase");
+foreach (var marka in new[] { "E.C.A", "E.C.A.", " e.c.a ", "E C A", "E. C. A.", "E\tC\u00a0A" })
+    Check(YkcCihazUyumKurali.Uyarilar("Kombi", "Kombi", "ECA", marka, null, "Hermetik", "21070", "2600").Count == 0,
+        "Brand abbreviation formatting and lower capacity do not warn: " + marka);
+Check(YkcCihazUyumKurali.Uyarilar("Kombi", "Kombi", "E.C.A", "eca", null, null, "21070", "21070").Count == 0,
+    "Brand formatting is ignored in either source or replacement device");
+Check(YkcCihazUyumKurali.Uyarilar("Kombi", "Kombi", "ECA", "E.C.A", null, "Hermetik", "21070", "22000")
+        .SequenceEqual(["Yeni cihazın kapasitesi projedeki kapasiteden yüksek. Tadilat projesi gereklidir."]),
+    "Equivalent brand does not suppress a genuine capacity increase");
+Check(YkcCihazUyumKurali.Uyarilar("Kombi", "Kombi", "ECA", "E.C.A Plus", null, null, "21070", "2600")
+        .SequenceEqual(["Marka proje kaydıyla farklı. İncelemede kontrol edin."]),
+    "Brand matching does not use prefix or fuzzy comparisons");
+Check(YkcCihazUyumKurali.Uyarilar("Kombi", "Kombi", "A+B", "AB", null, null, "21070", "2600").Count == 1,
+    "Meaningful brand symbols are not removed");
+Check(YkcCihazUyumKurali.Uyarilar("Kombi", "Kombi", "ARÇELİK", "Arçelik", null, null, "21070", "2600").Count == 0
+    && YkcCihazUyumKurali.Uyarilar("Kombi", "Kombi", "VAILLANT", "Vaillant", null, null, "21070", "2600").Count == 0,
+    "Brand case matching handles Turkish and international spellings");
+Check(YkcCihazUyumKurali.Uyarilar("Kombi", "Kombi", null, "E.C.A", null, null, "21070", "2600").Count == 0,
+    "Missing source brand does not invent a mismatch");
 YkcTalepDetayDto Detail() => new() {
     EskiMarka = "Source brand", EskiKapasite = "20000", YeniMarka = "New brand", MusteriAdi = "Customer",
     AtananEkip = "Internal team", HedefUygulama = "Internal target",

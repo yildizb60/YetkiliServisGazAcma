@@ -656,6 +656,14 @@ namespace YetkiliServisGazAcma.API.Controllers
         public List<AdminKullaniciListeDto> Personeller { get; set; } = new();
         public Dictionary<string, List<string>> YetkiMap { get; set; } = new();
         public Dictionary<string, List<string>> YetkiSirketAdlariMap { get; set; } = new();
+        public Dictionary<string, List<AdminSirketYetkiOzetDto>> SirketYetkileri { get; set; } = new();
+    }
+
+    public class AdminSirketYetkiOzetDto
+    {
+        public int SirketId { get; set; }
+        public string? SirketAdi { get; set; }
+        public List<string> Yetkiler { get; set; } = new();
     }
 
     public class AdminYetkiDuzenleDto
@@ -914,6 +922,8 @@ namespace YetkiliServisGazAcma.API.Controllers
         public int FirmaId { get; set; }
         public string? FirmaAdi { get; set; }
         public string? VergiNo { get; set; }
+        public string? FirmaYetkiliKisi { get; set; }
+        public string? FirmaTelefon { get; set; }
         public string? FirmaAdres { get; set; }
         public string? FirmaFaaliyetIli { get; set; }
         public string? SirketAdi { get; set; }
@@ -934,6 +944,8 @@ namespace YetkiliServisGazAcma.API.Controllers
                 FirmaId = yetkiBelgesi.FirmaId,
                 FirmaAdi = yetkiBelgesi.Firma?.FirmaAdi,
                 VergiNo = yetkiBelgesi.Firma?.VergiNo,
+                FirmaYetkiliKisi = yetkiBelgesi.Firma?.YetkiliKisi,
+                FirmaTelefon = yetkiBelgesi.Firma?.Telefon,
                 FirmaAdres = yetkiBelgesi.Firma?.Adres,
                 FirmaFaaliyetIli = yetkiBelgesi.Firma?.FaaliyetIli,
                 SirketAdi = yetkiBelgesi.Firma?.Sirket?.SirketAdi,

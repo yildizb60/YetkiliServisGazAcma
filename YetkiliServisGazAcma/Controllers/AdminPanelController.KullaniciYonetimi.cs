@@ -530,10 +530,10 @@ namespace YetkiliServisGazAcma.Controllers
 
             var yetkiIsimler = new Dictionary<string, string>
             {
-                [YetkiTipleri.YETKI_BELGESI_ONAY] = "Yetki Belgesi Onay",
-                [YetkiTipleri.RAPOR_GOR] = "Rapor Gor",
-                [YetkiTipleri.KULLANICI_YONET] = "Kullanici Yonet",
-                [YetkiTipleri.MARKA_YONET] = "Marka Yonet",
+                [YetkiTipleri.YETKI_BELGESI_ONAY] = "Yetki Belgesi Onay ve Red",
+                [YetkiTipleri.RAPOR_GOR] = "Devreye Alma Kayıtları ve Raporları",
+                [YetkiTipleri.KULLANICI_YONET] = "Yetkili Servis Yönetimi",
+                [YetkiTipleri.MARKA_YONET] = "Marka Yönetimi",
                 [YetkiTipleri.YKC_TALEP_GOR] = "YKC Taleplerini Gör",
                 [YetkiTipleri.YKC_ATAMA_YAP] = "YKC Atama ve Randevu",
                 [YetkiTipleri.YKC_FR265_IMZA_ISLEM] = "YKC FR265 ve İmza İşlemleri",
@@ -549,6 +549,7 @@ namespace YetkiliServisGazAcma.Controllers
                     x => x.Key,
                     x => x.Value.Where(y => y != YetkiTipleri.DAGITIM_SIRKET_YONET).ToList());
             ViewBag.YetkiSirketAdlariMap = sonuc?.YetkiSirketAdlariMap ?? new Dictionary<string, List<string>>();
+            ViewBag.SirketYetkileri = sonuc?.SirketYetkileri ?? new Dictionary<string, List<AdminSirketYetkiOzeti>>();
             ViewBag.YetkiIsimler = yetkiIsimler;
             return View("~/Views/AdminPanel/Yetkiler.cshtml");
         }

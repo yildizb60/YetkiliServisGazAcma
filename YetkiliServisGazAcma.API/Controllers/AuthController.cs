@@ -178,20 +178,36 @@ public sealed class AuthController(UserManager<AppKullanici> users, SignInManage
     private async Task<AppKullanici?> FindAsync(string login)
     {
         var value = login.Trim();
-        var user = await users.FindByEmailAsync(value) ?? await users.FindByNameAsync(value);
-        if (user != null || value.Length != 11 || !value.All(char.IsDigit))
+        var user = await users.FindByEmailAsync(value);
+        if (user != null)
             return user;
 
-        var firmIds = await context.Ys_Firmalar.AsNoTracking()
-            .Where(f => !f.SilindiMi && f.TcKimlikNo == value)
-            .Select(f => f.Id)
-            .Take(2)
-            .ToListAsync();
-        if (firmIds.Count != 1)
-            return null;
+        user = await users.FindByNameAsync(value);
+        int firmId;
+        // Arsivde kalan VKN kullanici adi, ayni firmanin yeni hesabini engellememeli.
+        if (user?.ArsivlemeTarihi != null && user.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis
+            && user.FirmaId.HasValue && await context.Ys_Firmalar.AnyAsync(f =>
+                f.Id == user.FirmaId.Value && !f.SilindiMi && f.AktifMi && f.VergiNo == value))
+        {
+            firmId = user.FirmaId.Value;
+        }
+        else
+        {
+            if (user != null || value.Length != 11 || !value.All(char.IsDigit))
+                return user;
+
+            var firmIds = await context.Ys_Firmalar.AsNoTracking()
+                .Where(f => !f.SilindiMi && f.TcKimlikNo == value)
+                .Select(f => f.Id)
+                .Take(2)
+                .ToListAsync();
+            if (firmIds.Count != 1)
+                return null;
+            firmId = firmIds[0];
+        }
 
         var serviceUsers = await users.Users
-            .Where(u => u.FirmaId == firmIds[0] && u.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis && u.AktifMi && u.ArsivlemeTarihi == null)
+            .Where(u => u.FirmaId == firmId && u.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis && u.AktifMi && u.ArsivlemeTarihi == null)
             .Take(2)
             .ToListAsync();
         return serviceUsers.Count == 1 ? serviceUsers[0] : null;

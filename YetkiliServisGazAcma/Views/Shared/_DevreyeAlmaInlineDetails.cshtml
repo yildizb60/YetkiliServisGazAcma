@@ -15,6 +15,13 @@
             ? Url.Action("DevreyeAlmaExcel", "AdminPanel", new { id = Model.Id })
             : Url.Action("DevreyeAlmaExcel", "PersonelPanel", new { id = Model.Id });
     var adresVar = !string.IsNullOrWhiteSpace(Model.Adres);
+    var firmaIlceleri = ViewData["FirmaIlceleri"] as IReadOnlyDictionary<int, string>;
+    var ilce = firmaIlceleri != null && firmaIlceleri.TryGetValue(Model.FirmaId, out var firmaIlce) ? firmaIlce : null;
+    var servisKonumu = string.Join(" / ", new[] { Model.Firma?.FaaliyetIli, ilce }
+        .Where(x => !string.IsNullOrWhiteSpace(x) && x.Trim() != "-")
+        .Select(x => x!.Trim()));
+    var konumVar = !string.IsNullOrWhiteSpace(servisKonumu);
+    var teknisyenVar = !string.IsNullOrWhiteSpace(Model.TeknisyenAdi);
     var tcVar = !string.IsNullOrWhiteSpace(Model.MusteriTcNo)
         && !string.Equals(Model.MusteriTcNo.Trim(), Model.AboneNo?.Trim(), StringComparison.Ordinal);
     var cihazDetayVar = !string.IsNullOrWhiteSpace(Model.SeriNo) || !string.IsNullOrWhiteSpace(Model.CihazKapasite);
@@ -27,7 +34,7 @@
 <tr id="devreye-alma-detay-@Model.Id" class="df-commissioning-detail-row" hidden>
     <td colspan="@colspan">
         <div class="df-commissioning-detail-panel">
-            @if (adresVar || tcVar || cihazDetayVar || belgeVar || notVar)
+            @if (adresVar || konumVar || teknisyenVar || tcVar || cihazDetayVar || belgeVar || notVar)
             {
                 <div class="df-commissioning-detail-grid">
                     @if (adresVar)
@@ -35,6 +42,22 @@
                         <section>
                             <span><i class="bi bi-geo-alt" aria-hidden="true"></i> Abone Adresi</span>
                             <p>@Model.Adres</p>
+                        </section>
+                    }
+                    @if (konumVar || teknisyenVar)
+                    {
+                        <section>
+                            <span><i class="bi bi-person-badge" aria-hidden="true"></i> İşlem Bilgileri</span>
+                            <dl class="df-commissioning-extra-facts">
+                                @if (konumVar)
+                                {
+                                    <div><dt>Servis İl / İlçe</dt><dd>@servisKonumu</dd></div>
+                                }
+                                @if (teknisyenVar)
+                                {
+                                    <div><dt>Teknisyen</dt><dd>@Model.TeknisyenAdi</dd></div>
+                                }
+                            </dl>
                         </section>
                     }
                     @if (tcVar)

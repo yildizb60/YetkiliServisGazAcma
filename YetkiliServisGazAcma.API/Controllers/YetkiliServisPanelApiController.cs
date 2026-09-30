@@ -47,10 +47,11 @@ namespace YetkiliServisGazAcma.API.Controllers
             var firma = await FirmaDashboardQuery()
                 .FirstOrDefaultAsync(x => x.Id == firmaId);
 
+            var ayBasi = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+            var sonrakiAy = ayBasi.AddMonths(1);
             var buAy = await _context.Ys_DevreyeAlmalar
                 .Where(x => x.FirmaId == firmaId
-                    && x.OlusturmaTarihi.Month == DateTime.Now.Month
-                    && x.OlusturmaTarihi.Year == DateTime.Now.Year
+                    && x.DevreyeAlmaTarihi >= ayBasi && x.DevreyeAlmaTarihi < sonrakiAy
                     && !x.SilindiMi)
                 .CountAsync();
 

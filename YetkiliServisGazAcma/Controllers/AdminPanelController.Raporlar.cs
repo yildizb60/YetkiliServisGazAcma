@@ -7,13 +7,13 @@ namespace YetkiliServisGazAcma.Controllers
     public partial class AdminPanelController
     {
         [HttpGet("devreyealmalar")]
-        public async Task<IActionResult> DevreyeAlmalar(string? marka, string? servis, string? il, string? durum, DateTime? bas, DateTime? bit)
+        public async Task<IActionResult> DevreyeAlmalar(string? marka, string? servis, string? il, DateTime? bas, DateTime? bit)
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
 
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            var sonuc = await _adminRaporApiClient.DevreyeAlmalarAsync(kullanici, aktifSirketId, marka, servis, il, durum, bas, bit);
+            var sonuc = await _adminRaporApiClient.DevreyeAlmalarAsync(kullanici, aktifSirketId, marka, servis, il, null, bas, bit);
             if (sonuc == null)
             {
                 TempData["Hata"] = "Devreye alma listesi API uzerinden alinamadi.";

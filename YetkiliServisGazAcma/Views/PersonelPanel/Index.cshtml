@@ -64,6 +64,11 @@
     if (raporYetkisi)
     {
         var url = Url.Action("DevreyeAlmalar", "PersonelPanel")!;
+        var ayBasi = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+        var buAyUrl = Url.Action("DevreyeAlmalar", "PersonelPanel", new
+        {
+            bas = ayBasi.ToString("yyyy-MM-dd"), bit = ayBasi.AddMonths(1).AddDays(-1).ToString("yyyy-MM-dd")
+        })!;
         actions.Add(new DashboardTileViewModel
         {
             Title = "Cihaz Devreye Alma Kayıtları", Url = url, Icon = "bi bi-tools",
@@ -74,7 +79,7 @@
             Title = "Cihaz devreye alma arşivi", Url = url, Icon = "bi bi-archive",
             MetricValue = toplamDevreyeAlma.ToString(), MetricLabel = "kayıt", Subtitle = "Kayıt arşivi", Tone = "green"
         });
-        facts.Add(new RoleDashboardFactViewModel { Icon = "bi bi-tools", Value = buAyDevreyeAlma.ToString(), Label = "bu ay kaydedilen cihaz", Url = url });
+        facts.Add(new RoleDashboardFactViewModel { Icon = "bi bi-tools", Value = buAyDevreyeAlma.ToString(), Label = "bu ay kaydedilen cihaz", Url = buAyUrl });
         summaryMetrics.Add(new RoleDashboardMetricViewModel { Label = "Devreye alma", Value = toplamDevreyeAlma.ToString(), Icon = "bi bi-tools", Tone = "green", Url = url });
     }
 

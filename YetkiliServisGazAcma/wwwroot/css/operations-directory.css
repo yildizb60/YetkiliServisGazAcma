@@ -353,20 +353,19 @@
 .ys-commissioning-modal .commissioning-modal-info .ykc-modal-label { margin-bottom:3px; font-size:10px; font-weight:600; }
 .ys-commissioning-modal .commissioning-modal-info .ykc-modal-value { color:#2e465b; font-size:12px; font-weight:500; line-height:1.4; }
 
-.df-commissioning-table.is-firm-history { min-width: 990px; }
+.df-commissioning-table.is-firm-history { min-width: 900px; }
 .df-commissioning-table.is-firm-history th:first-child,
-.df-commissioning-table.is-firm-history td:first-child { width: 15%; text-align: left; }
-.df-commissioning-table.is-firm-history th:nth-child(2) { width: 15%; }
-.df-commissioning-table.is-firm-history th:nth-child(3) { width: 11%; }
+.df-commissioning-table.is-firm-history td:first-child { width: 17%; text-align: left; }
+.df-commissioning-table.is-firm-history th:nth-child(2) { width: 16%; }
+.df-commissioning-table.is-firm-history th:nth-child(3) { width: 12%; }
 .df-commissioning-table.is-firm-history th:nth-child(4),
-.df-commissioning-table.is-firm-history td:nth-child(4) { width: 18%; padding-left: 12px; border-left: 1px solid #edf1f4; }
-.df-commissioning-table.is-firm-history th:nth-child(5) { width: 14%; }
-.df-commissioning-table.is-firm-history th:nth-child(6) { width: 12%; border-left: 0; }
+.df-commissioning-table.is-firm-history td:nth-child(4) { width: 21%; padding-left: 12px; border-left: 1px solid #edf1f4; }
+.df-commissioning-table.is-firm-history th:nth-child(5) { width: 16%; }
+.df-commissioning-table.is-firm-history th:nth-child(6) { width: 10%; border-left: 0; }
 .df-commissioning-table.is-firm-history td:nth-child(6) { border-left: 0; padding-left: 10px; }
-.df-commissioning-table.is-firm-history th:nth-child(7) { width: 9%; }
-.df-commissioning-table.is-firm-history th:nth-child(8) { width: 6%; }
-.df-commissioning-table.is-firm-history th:nth-child(8),
-.df-commissioning-table.is-firm-history td:nth-child(8) { padding-inline:6px; text-align:center; }
+.df-commissioning-table.is-firm-history th:nth-child(7) { width: 8%; }
+.df-commissioning-table.is-firm-history th:nth-child(7),
+.df-commissioning-table.is-firm-history td:nth-child(7) { padding-inline:6px; text-align:center; }
 
 .df-commissioning-history-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 12px; border-bottom:1px solid var(--df-border); background:#f8fafc; }
 .df-commissioning-history-toolbar > span { color:#60788b; font-size:11px; font-weight:600; }

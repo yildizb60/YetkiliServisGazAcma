@@ -7,8 +7,9 @@
 <ol id="results"></ol>
 <script type="module">
     const assert = (condition, message) => { if (!condition) throw new Error(message); };
-    const scripts = Object.fromEntries(await Promise.all(['toast', 'drawer', 'permission', 'appointment'].map(async name =>
+    const scripts = Object.fromEntries(await Promise.all(['toast', 'drawer', 'permission', 'appointment', 'report'].map(async name =>
         [name, await (await fetch(`/${name}.js`)).text()])));
+    const reportCss = await (await fetch('/report.css')).text();
     const limits = await (await fetch('/appointment-limits.json')).json();
     let passed = 0, failed = 0;
 
@@ -173,6 +174,48 @@
             assert(time.validity.valid && !time.validationMessage, 'Error persisted after correction');
         });
     }
+    await test('Report device fields stay aligned with wrapping and model text after resizing', async (doc, win, load) => {
+        const style = doc.createElement('style');
+        style.textContent = reportCss;
+        doc.head.append(style);
+        win.frameElement.style.width = '1536px';
+        const headings = ['Select', 'ID', 'Customer', 'Installation', 'Company', 'Type', 'Project', 'New', 'Team', 'Status', 'Detail'];
+        const devices = `<td class="ykc-report-project-cell" data-label="Project"><div class="ykc-device-column is-project">
+            <strong data-device-field="brand">Long project device brand with multiple words</strong>
+            <small data-device-field="capacity">Capacity: 21070</small><small data-device-field="flue">Flue: -</small></div></td>
+            <td class="ykc-report-new-cell" data-label="New"><div class="ykc-device-column is-new">
+            <strong data-device-field="brand">Brand</strong>
+            <small data-device-field="capacity">Capacity: 2600 with a longer source unit description</small>
+            <small data-device-field="flue">Flue: A long description that must remain fully visible</small>
+            <small>Model: Additional model information remains below the shared fields</small></div></td>`;
+        doc.body.innerHTML = `<main class="ykc-report-page ykc-results"><div class="ykc-table-scroll" style="width:1400px">
+            <table class="ykc-report-table is-internal"><thead><tr>${headings.map(text => `<th>${text}</th>`).join('')}</tr></thead>
+            <tbody><tr>${'<td></td>'.repeat(6)}${devices}${'<td></td>'.repeat(3)}</tr></tbody></table></div></main>`;
+        load('report');
+        const container = doc.querySelector('.ykc-table-scroll');
+        const fields = [...doc.querySelectorAll('[data-device-field]')];
+        const originalTexts = fields.map(field => field.textContent);
+        let initialHeights;
+        for (const width of [1400, 960, 330, 1400]) {
+            container.style.width = `${width}px`;
+            await new Promise(resolve => win.setTimeout(resolve, 150));
+            for (const name of ['brand', 'capacity', 'flue']) {
+                const pair = [...doc.querySelectorAll(`[data-device-field="${name}"]`)];
+                assert(Math.abs(pair[0].getBoundingClientRect().top - pair[1].getBoundingClientRect().top) < 1,
+                    `${name} is misaligned at ${width}px`);
+            }
+            assert(fields.every((field, index) => field.textContent === originalTexts[index]), 'Device information changed');
+            assert(fields.every(field => field.scrollWidth <= field.clientWidth + 1), 'Device text overflows');
+            const model = doc.querySelector('.is-new small:last-child');
+            assert(model.getBoundingClientRect().top >= doc.querySelector('.is-new [data-device-field="flue"]').getBoundingClientRect().bottom,
+                'Model displaced a shared field');
+            if (width === 1400) {
+                const heights = fields.map(field => field.getBoundingClientRect().height);
+                if (initialHeights) assert(heights.every((height, index) => Math.abs(height - initialHeights[index]) < 1), 'Resizing accumulated empty space');
+                initialHeights = heights;
+            }
+        }
+    });
     document.querySelector('#summary').textContent = `${passed} passed, ${failed} failed`;
 </script>
 </html>

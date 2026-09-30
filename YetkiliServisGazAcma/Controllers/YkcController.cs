@@ -201,7 +201,9 @@ namespace YetkiliServisGazAcma.Controllers
             DateTime? bas,
             DateTime? bit,
             int sayfa = 1,
-            int sayfaBoyutu = 10)
+            int sayfaBoyutu = 10,
+            int? talepId = null,
+            bool detayAc = false)
         {
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null)
@@ -214,7 +216,7 @@ namespace YetkiliServisGazAcma.Controllers
 
             var filtre = RaporFiltresi(
                 tesisatNo, firma, il, ilce, bolge, ekip, marka, hedefUygulama,
-                durum, bas, bit, sayfa, sayfaBoyutu);
+                durum, bas, bit, sayfa, sayfaBoyutu, talepId: talepId);
 
             YkcRaporSonuc sonuc;
             try
@@ -228,6 +230,9 @@ namespace YetkiliServisGazAcma.Controllers
                 sonuc = new YkcRaporSonuc();
             }
             ViewBag.Filtre = filtre;
+            ViewBag.TalepId = talepId;
+            ViewBag.OtomatikDetayTalepId = detayAc && talepId is > 0 && sonuc.Kayitlar.Any(x => x.Id == talepId.Value)
+                ? talepId : null;
             return View("~/Views/Ykc/Raporlar.cshtml", sonuc);
         }
 
@@ -235,11 +240,11 @@ namespace YetkiliServisGazAcma.Controllers
         public async Task<IActionResult> RaporPdf(
             string? tesisatNo, string? firma, string? il, string? ilce, string? bolge,
             string? ekip, string? marka, string? hedefUygulama, int? durum,
-            DateTime? bas, DateTime? bit, [FromQuery(Name = "ids")] List<int>? ids)
+            DateTime? bas, DateTime? bit, [FromQuery(Name = "ids")] List<int>? ids, int? talepId = null)
         {
             return await RaporDosyasi(
                 RaporFiltresi(tesisatNo, firma, il, ilce, bolge, ekip, marka, hedefUygulama, durum, bas, bit,
-                    kayitIdleri: Request.Query.ContainsKey("ids") ? ids ?? new List<int>() : null),
+                    kayitIdleri: Request.Query.ContainsKey("ids") ? ids ?? new List<int>() : null, talepId: talepId),
                 excelMi: false);
         }
 
@@ -247,11 +252,11 @@ namespace YetkiliServisGazAcma.Controllers
         public async Task<IActionResult> RaporExcel(
             string? tesisatNo, string? firma, string? il, string? ilce, string? bolge,
             string? ekip, string? marka, string? hedefUygulama, int? durum,
-            DateTime? bas, DateTime? bit, [FromQuery(Name = "ids")] List<int>? ids)
+            DateTime? bas, DateTime? bit, [FromQuery(Name = "ids")] List<int>? ids, int? talepId = null)
         {
             return await RaporDosyasi(
                 RaporFiltresi(tesisatNo, firma, il, ilce, bolge, ekip, marka, hedefUygulama, durum, bas, bit,
-                    kayitIdleri: Request.Query.ContainsKey("ids") ? ids ?? new List<int>() : null),
+                    kayitIdleri: Request.Query.ContainsKey("ids") ? ids ?? new List<int>() : null, talepId: talepId),
                 excelMi: true);
         }
 
@@ -583,6 +588,9 @@ namespace YetkiliServisGazAcma.Controllers
 
             var sonuc = await _ykcApiClient.DurumGuncelleAsync(kullanici, model);
             TempData[sonuc?.Basarili == true ? "Basarili" : "Hata"] = sonuc?.Mesaj ?? "Cihaz değişim talebi durumu güncellenemedi.";
+            if (sonuc?.Basarili == true && model.Durum == YkcDurumDegerleri.Tamamlandi && ykcYetkileri.RaporlariGorebilir)
+                return RedirectToAction(nameof(Raporlar), new { talepId = model.TalepId, detayAc = true });
+
             return RedirectToAction(nameof(Detay), new { id = model.TalepId, kaynak = GecerliKaynak(kaynak) });
         }
 
@@ -650,7 +658,8 @@ namespace YetkiliServisGazAcma.Controllers
             DateTime? bit,
             int sayfa = 1,
             int sayfaBoyutu = 10,
-            IEnumerable<int>? kayitIdleri = null)
+            IEnumerable<int>? kayitIdleri = null,
+            int? talepId = null)
         {
             return new YkcTalepListeFiltre
             {
@@ -663,7 +672,9 @@ namespace YetkiliServisGazAcma.Controllers
                 Marka = marka,
                 HedefUygulama = hedefUygulama,
                 Durum = durum,
-                KayitIdleri = kayitIdleri?.Where(x => x > 0).Distinct().Take(5000).ToList(),
+                KayitIdleri = talepId.HasValue
+                    ? new[] { talepId.Value }.Where(x => x > 0 && (kayitIdleri == null || kayitIdleri.Contains(x))).ToList()
+                    : kayitIdleri?.Where(x => x > 0).Distinct().Take(5000).ToList(),
                 BaslangicTarihi = bas,
                 BitisTarihi = bit,
                 Sayfa = Math.Max(sayfa, 1),

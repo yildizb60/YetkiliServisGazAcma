@@ -8,7 +8,9 @@ const files = new Map([
     ['/toast.js', 'wwwroot/js/operation-toast.js'],
     ['/drawer.js', 'wwwroot/js/admin-form-drawer.js'],
     ['/permission.js', 'Views/AdminPanel/YetkiDuzenle.cshtml'],
-    ['/appointment.js', 'Views/Ykc/Detay.cshtml']
+    ['/appointment.js', 'Views/Ykc/Detay.cshtml'],
+    ['/report.js', 'Views/Ykc/Raporlar.cshtml'],
+    ['/report.css', 'wwwroot/css/ykc-operations.css']
 ]);
 
 createServer(async (request, response) => {
@@ -32,11 +34,12 @@ createServer(async (request, response) => {
             response.end(JSON.stringify(limits));
         } else if (files.has(path)) {
             let source = await readFile(new URL(files.get(path), app), 'utf8');
-            if (path === '/permission.js' || path === '/appointment.js') {
+            if (path === '/permission.js' || path === '/appointment.js' || path === '/report.js') {
                 source = source.match(/<script>\s*([\s\S]*?)<\/script>/)?.[1];
                 if (!source) throw new Error(`Inline script missing: ${path}`);
             }
-            response.setHeader('Content-Type', 'text/javascript; charset=utf-8');
+            if (path === '/report.js') source = source.replace('@icOperasyonGorsun.ToString().ToLowerInvariant()', 'true');
+            response.setHeader('Content-Type', path.endsWith('.css') ? 'text/css; charset=utf-8' : 'text/javascript; charset=utf-8');
             response.end(source);
         } else {
             response.writeHead(404).end();
