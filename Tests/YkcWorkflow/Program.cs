@@ -1,5 +1,7 @@
 using System.IO.Compression;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
@@ -364,6 +366,97 @@ try
     var home = (HomeOzetDto)((OkObjectResult)await new HomeApiController(db).Ozet()).Value!;
     Check(home.DevreyeCount == 1 && home.TamamlanmaOrani == 50,
         "Completion percentage counts completed records and excludes archived records");
+
+    var reportDate = DateTime.Today.AddYears(1);
+    var reportRequests = Enumerable.Range(1, 24).Select(index => new Ykc_Talep
+    {
+        SirketId = company.Id, FirmaId = approvalFirm.Id, TesisatNo = "REPORT-FOCUS-" + index,
+        TalepTarihi = reportDate, Durum = YkcDurumDegerleri.Tamamlandi
+    }).ToList();
+    var otherReportRequest = new Ykc_Talep
+    {
+        SirketId = otherCompany.Id, TesisatNo = "REPORT-OTHER", TalepTarihi = reportDate.AddDays(1)
+    };
+    db.Ykc_Talepler.AddRange(reportRequests);
+    db.Ykc_Talepler.Add(otherReportRequest);
+    await db.SaveChangesAsync();
+    var targetId = reportRequests[8].Id;
+    var scopedReport = await service.RaporAsync(new() { DetayTalepId = targetId, SayfaBoyutu = 10 }, staff, false, company.Id);
+    Check(scopedReport.Sayfa == 2 && scopedReport.Kayitlar.Count == 10
+        && scopedReport.Kayitlar.Any(x => x.Id == targetId) && scopedReport.Toplam > 24,
+        "Report focus finds the correct page without filtering out neighbouring records");
+    var ordinaryReport = await service.RaporAsync(new() { Sayfa = 2, SayfaBoyutu = 10 }, staff, false, company.Id);
+    Check(scopedReport.Kayitlar.Select(x => x.Id).SequenceEqual(ordinaryReport.Kayitlar.Select(x => x.Id))
+        && scopedReport.Toplam == ordinaryReport.Toplam,
+        "Report focus preserves date/ID sorting and the ordinary report totals");
+    var otherScopedReport = await service.RaporAsync(new() { DetayTalepId = otherReportRequest.Id }, staff, false, company.Id);
+    Check(otherScopedReport.Sayfa == 1 && otherScopedReport.Kayitlar.All(x => x.Id != otherReportRequest.Id),
+        "A detail target outside the active company cannot affect the report page or expose its record");
+    var missingReport = await service.RaporAsync(new() { DetayTalepId = int.MaxValue, Sayfa = 2 }, staff, false, company.Id);
+    Check(missingReport.Sayfa == 2 && missingReport.Toplam == scopedReport.Toplam,
+        "A missing target preserves the requested page and report scope");
+    var firmUser = new AppKullanici { KullaniciTipi = KullaniciTipiDegerleri.SertifikaliFirma, FirmaId = approvalFirm.Id, SirketId = company.Id };
+    var firmReport = await service.RaporAsync(new() { DetayTalepId = targetId }, firmUser, false, company.Id);
+    Check(firmReport.Sayfa == 2 && firmReport.Toplam == 24 && firmReport.Kayitlar.Any(x => x.Id == targetId),
+        "Certified-company detail navigation retains the full authorized report list");
+
+    var documentEnvironment = new TestEnvironment
+    {
+        ContentRootPath = documentRoot,
+        WebRootPath = Path.Combine(documentRoot, "wwwroot")
+    };
+    YetkiBelgesiApiController DocumentApi(string role, string userId) => new(
+        db, new YetkiBelgesiService(db, documentEnvironment), NullLogger<YetkiBelgesiApiController>.Instance, documentEnvironment)
+    {
+        ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(new ClaimsIdentity([
+                    new(ClaimTypes.NameIdentifier, userId),
+                    new(ClaimTypes.Role, role)], "Fixture"))
+            }
+        }
+    };
+    certificate = await db.Ys_YetkiBelgeleri.SingleAsync(x => x.Id == certificate.Id);
+    certificate.DosyaYolu = YetkiliServisGazAcma.API.Infrastructure.TestDataSeed.DemoYetkiBelgesiDosyaYolu;
+    await db.SaveChangesAsync();
+    var documentApi = DocumentApi("GenelSistemAdmin", admin.Id);
+    var demoFile = (FileContentResult)await documentApi.DosyaIndir(new() { Id = certificate.Id });
+    Check(System.Text.Encoding.UTF8.GetString(demoFile.FileContents).Contains("Demo Yetki Belgesi")
+        && documentApi.Response.Headers.CacheControl == "private, no-store",
+        "An authorized development download reads the packaged demo document without a web-root file");
+    Check(await DocumentApi("YetkiliServis", staff.Id).DosyaIndir(new() { Id = certificate.Id }) is ForbidResult,
+        "The demo resource does not bypass certificate access control");
+    var outsideAdmin = new AppKullanici { UserName = "document-other-admin", SirketId = otherCompany.Id,
+        KullaniciTipi = KullaniciTipiDegerleri.SirketAdmin };
+    db.Users.Add(outsideAdmin);
+    await db.SaveChangesAsync();
+    Check(await DocumentApi("SirketAdmin", outsideAdmin.Id).DosyaIndir(new() { Id = certificate.Id }) is ForbidResult,
+        "A different company cannot download the demo certificate");
+    documentEnvironment.EnvironmentName = "Production";
+    Check(await documentApi.DosyaIndir(new() { Id = certificate.Id }) is NotFoundObjectResult,
+        "Production does not substitute a demo document for a missing certificate");
+    documentEnvironment.EnvironmentName = "Development";
+    certificate.DosyaYolu = "/uploads/missing-real-certificate.pdf";
+    await db.SaveChangesAsync();
+    Check(await documentApi.DosyaIndir(new() { Id = certificate.Id }) is NotFoundObjectResult,
+        "A missing non-demo document is not replaced with demo content");
+    certificate.DosyaYolu = "private:yetki-belgeleri/fixture.pdf";
+    certificate.Durum = YetkiBelgesiDurumDegerleri.Onaylandi;
+    certificate.YetkiBelgesiBitisTarihi = DateTime.Today.AddDays(30);
+    await db.SaveChangesAsync();
+    var realFile = Path.Combine(documentRoot, "App_Data", "yetki-belgeleri", "fixture.pdf");
+    Directory.CreateDirectory(Path.GetDirectoryName(realFile)!);
+    await File.WriteAllBytesAsync(realFile, [37, 80, 68, 70]);
+    var actualFile = (PhysicalFileResult)await documentApi.DosyaIndir(new() { Id = certificate.Id });
+    Check(actualFile.FileName == realFile && actualFile.ContentType == "application/pdf",
+        "Uploaded private documents retain their existing storage and download path");
+    var initializeDemo = typeof(YetkiliServisGazAcma.API.Infrastructure.TestDataSeed).GetMethod(
+        "DemoServisIlkKurulumuHazirla", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+    await (Task)initializeDemo.Invoke(null, [db, approvalFirm])!;
+    Check((await db.Ys_YetkiBelgeleri.AsNoTracking().SingleAsync(x => x.Id == certificate.Id)).DosyaYolu
+        == "private:yetki-belgeleri/fixture.pdf", "Demo initialization never overwrites an uploaded certificate path");
     Console.WriteLine($"{passed} workflow checks passed.");
 }
 finally

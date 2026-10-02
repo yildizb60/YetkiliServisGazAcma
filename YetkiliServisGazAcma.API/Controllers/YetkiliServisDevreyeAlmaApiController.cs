@@ -112,6 +112,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             var islemler = await query
                 .OrderByDescending(x => x.OlusturmaTarihi)
                 .ToListAsync();
+            await DevreyeAlmaKaynakBilgisi.TamamlaAsync(_context, islemler);
 
             var firma = await FirmaQuery().FirstOrDefaultAsync(x => x.Id == firmaId);
             var markaList = await _context.Ys_DevreyeAlmalar
@@ -150,6 +151,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (islem == null)
                 return NotFound();
 
+            await DevreyeAlmaKaynakBilgisi.TamamlaAsync(_context, new[] { islem });
             return Ok(YsDevreyeAlmaDto.FromEntity(islem));
         }
 
@@ -944,6 +946,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         public int? MarkaId { get; set; }
         public string? TesistatNo { get; set; }
         public string? AboneNo { get; set; }
+        public string? SozlesmeNo { get; set; }
         public string? UygunlukBelgeNo { get; set; }
         public DateTime? UygunlukTarihi { get; set; }
         public string? MusteriAdi { get; set; }
@@ -982,6 +985,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 MarkaId = islem.MarkaId,
                 TesistatNo = islem.TesistatNo,
                 AboneNo = islem.AboneNo,
+                SozlesmeNo = islem.SozlesmeNo,
                 UygunlukBelgeNo = islem.UygunlukBelgeNo,
                 UygunlukTarihi = islem.UygunlukTarihi,
                 MusteriAdi = islem.MusteriAdi,

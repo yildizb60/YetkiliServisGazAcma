@@ -252,7 +252,7 @@
                 <colgroup>
                     @if (icOperasyonGorsun)
                     {
-                        <col style="width:7%" /><col style="width:9%" /><col style="width:8%" /><col style="width:13.5%" /><col style="width:10.5%" /><col style="width:14%" /><col style="width:2%" /><col style="width:14%" /><col style="width:10.5%" /><col style="width:11.5%" />
+                        <col style="width:7%" /><col style="width:9%" /><col style="width:9%" /><col style="width:14.5%" /><col style="width:12%" /><col style="width:12.25%" /><col style="width:2%" /><col style="width:12.25%" /><col style="width:10.5%" /><col style="width:11.5%" />
                     }
                     else
                     {
@@ -263,8 +263,8 @@
                     <tr>
                         <th>Talep No</th>
                         <th>Abone Adı Soyadı</th>
-                        @if (icOperasyonGorsun) { <th>Firma</th> }
-                        <th>Tesisat ve Abone Bilgileri</th>
+                        @if (icOperasyonGorsun) { <th class="ykc-list-company-cell">Firma</th> }
+                        <th class="ykc-list-installation-cell">Tesisat ve Sözleşme Bilgileri</th>
                         <th class="ykc-device-type-heading">Yakıcı Cihaz Tipi</th>
                         @if (icOperasyonGorsun)
                         {
@@ -300,9 +300,9 @@
                                 </td>
                                 @if (icOperasyonGorsun)
                                 {
-                                    <td data-label="Firma"><div class="ykc-primary-cell is-regular">@Deger(talep.FirmaAdi)</div></td>
+                                    <td class="ykc-list-company-cell" data-label="Firma"><div class="ykc-primary-cell is-regular">@Deger(talep.FirmaAdi)</div></td>
                                 }
-                                <td data-label="Tesisat ve Abone Bilgileri">
+                                <td class="ykc-list-installation-cell" data-label="Tesisat ve Sözleşme Bilgileri">
                                     <dl class="ykc-id-list">
                                         <div><dt>Tesisat No:</dt><dd>@Deger(talep.TesisatNo)</dd></div>
                                         <div><dt>Sözleşme No:</dt><dd>@Deger(talep.SozlesmeNo)</dd></div>

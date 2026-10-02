@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using YetkiliServisGazAcma.API.Infrastructure;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
@@ -16,15 +17,18 @@ namespace YetkiliServisGazAcma.API.Controllers
         private readonly AppDbContext _context;
         private readonly YetkiBelgesiService _service;
         private readonly ILogger<YetkiBelgesiApiController> _logger;
+        private readonly IWebHostEnvironment _environment;
 
         public YetkiBelgesiApiController(
             AppDbContext context,
             YetkiBelgesiService service,
-            ILogger<YetkiBelgesiApiController> logger)
+            ILogger<YetkiBelgesiApiController> logger,
+            IWebHostEnvironment environment)
         {
             _context = context;
             _service = service;
             _logger = logger;
+            _environment = environment;
         }
 
         [HttpPost("firma-liste")]
@@ -215,6 +219,20 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             if (!await FirmaGoruntulemeYetkisiVarMi(yetkiBelgesi.FirmaId))
                 return Forbid();
+
+            // Demo content is development-only and follows the same authorization as uploaded documents.
+            if (_environment.IsDevelopment()
+                && string.Equals(yetkiBelgesi.DosyaYolu, TestDataSeed.DemoYetkiBelgesiDosyaYolu, StringComparison.Ordinal))
+            {
+                using var resource = typeof(TestDataSeed).Assembly.GetManifestResourceStream("YetkiliServisGazAcma.API.DemoYetkiBelgesi.html");
+                if (resource != null)
+                {
+                    using var content = new MemoryStream();
+                    await resource.CopyToAsync(content);
+                    Response.Headers.CacheControl = "private, no-store";
+                    return File(content.ToArray(), "text/html; charset=utf-8", "Demo_Yetki_Belgesi.html");
+                }
+            }
 
             var dosya = _service.DosyaGetir(yetkiBelgesi);
             if (dosya == null)

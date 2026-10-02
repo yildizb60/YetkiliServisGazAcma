@@ -76,10 +76,6 @@
                         </td>
                         <td>
                             <span class="df-approval-company-name">@(string.IsNullOrWhiteSpace(sirketAdi) ? "-" : sirketAdi)</span>
-                            @if (!string.IsNullOrWhiteSpace(s.Firma?.FaaliyetIli))
-                            {
-                                <small class="df-approval-company-city"><i class="bi bi-geo-alt" aria-hidden="true"></i>@s.Firma.FaaliyetIli</small>
-                            }
                         </td>
                         <td><time datetime="@bitisFiltre">@s.YetkiBelgesiBitisTarihi.ToString("dd.MM.yyyy")</time></td>
                         <td><time datetime="@yukleme">@s.OlusturmaTarihi.ToString("dd.MM.yyyy")</time></td>
@@ -139,7 +135,7 @@
                                     <div><span>Vergi No</span><strong>@(string.IsNullOrWhiteSpace(vergiNo) ? "Tanımlı değil" : vergiNo)</strong></div>
                                     <div><span>Yetkili Kişi</span><strong>@(string.IsNullOrWhiteSpace(s.Firma?.YetkiliKisi) ? "Tanımlı değil" : s.Firma.YetkiliKisi)</strong></div>
                                     <div><span>Telefon</span><strong>@(string.IsNullOrWhiteSpace(s.Firma?.Telefon) ? "Tanımlı değil" : s.Firma.Telefon)</strong></div>
-                                    <div><span>Geçerlilik Başlangıcı</span><strong>@baslangic.ToString("dd.MM.yyyy")</strong></div>
+                                    <div><span>İl</span><strong>@(string.IsNullOrWhiteSpace(s.Firma?.FaaliyetIli) ? "Tanımlı değil" : s.Firma.FaaliyetIli)</strong></div>
                                     <div class="@(suresiDolmus ? "is-expired" : "is-valid")"><span>Bitiş Durumu</span><strong>@kalanYazi</strong></div>
                                     <div class="is-wide"><span>Firma Adresi</span><strong>@(string.IsNullOrWhiteSpace(firmaAdres) ? "Tanımlı değil" : firmaAdres)</strong></div>
                                     @if (s.OnayTarihi.HasValue)

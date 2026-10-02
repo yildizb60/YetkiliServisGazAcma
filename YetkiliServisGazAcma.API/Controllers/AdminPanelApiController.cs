@@ -753,6 +753,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         public int? MarkaId { get; set; }
         public string? TesistatNo { get; set; }
         public string? AboneNo { get; set; }
+        public string? SozlesmeNo { get; set; }
         public string? UygunlukBelgeNo { get; set; }
         public DateTime? UygunlukTarihi { get; set; }
         public string? MusteriAdi { get; set; }
@@ -787,6 +788,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 MarkaId = devreyeAlma.MarkaId,
                 TesistatNo = devreyeAlma.TesistatNo,
                 AboneNo = devreyeAlma.AboneNo,
+                SozlesmeNo = devreyeAlma.SozlesmeNo,
                 UygunlukBelgeNo = devreyeAlma.UygunlukBelgeNo,
                 UygunlukTarihi = devreyeAlma.UygunlukTarihi,
                 MusteriAdi = devreyeAlma.MusteriAdi,

@@ -31,8 +31,8 @@
         <div class="df-service-list-head is-operation-toolbar">
             <div class="df-operation-list-count" aria-label="@Model.Count kayıt görüntüleniyor"><i class="bi bi-list-check" aria-hidden="true"></i><strong>@Model.Count</strong><span>kayıt</span></div>
             <div class="df-export-actions" aria-label="Dışa aktarma işlemleri">
-                <button type="button" class="df-btn df-btn-danger df-btn-sm" data-admin-list-export data-export-url="@Url.Action("RaporlarPdf", "AdminPanel")" disabled="@(!Model.Any())" title="Seçili kayıtları; seçim yoksa listedeki kayıtları PDF olarak indir"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF İndir</button>
-                <button type="button" class="df-btn df-btn-success df-btn-sm" data-admin-list-export data-export-url="@Url.Action("RaporlarExcel", "AdminPanel")" disabled="@(!Model.Any())" title="Seçili kayıtları; seçim yoksa listedeki kayıtları Excel olarak indir"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel İndir</button>
+                <button type="button" class="df-btn df-btn-sm df-commissioning-export is-pdf" data-admin-list-export data-export-url="@Url.Action("RaporlarPdf", "AdminPanel")" disabled="@(!Model.Any())" title="Seçili kayıtları; seçim yoksa listedeki kayıtları PDF olarak indir"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF</button>
+                <button type="button" class="df-btn df-btn-sm df-commissioning-export is-excel" data-admin-list-export data-export-url="@Url.Action("RaporlarExcel", "AdminPanel")" disabled="@(!Model.Any())" title="Seçili kayıtları; seçim yoksa listedeki kayıtları Excel olarak indir"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel</button>
             </div>
         </div>
     <details class="df-admin-filter df-commissioning-filter" open="@(filtreAktif ? "open" : null)">
@@ -81,7 +81,7 @@
                         <tr class="df-commissioning-record-row" data-commissioning-record>
                             <td><input class="admin-row-check" type="checkbox" value="@d.Id" aria-label="@d.TesistatNo kaydını seç" /></td>
                             <td><div class="df-cell-main">@(string.IsNullOrWhiteSpace(d.MusteriAdi) ? "Abone adı kayıtlı değil" : d.MusteriAdi)</div>@if (!string.IsNullOrWhiteSpace(d.MusteriTelefon)) { <div class="df-cell-sub"><i class="bi bi-telephone" aria-hidden="true"></i> @d.MusteriTelefon</div> }</td>
-                            <td><dl class="df-operation-id-list"><div><dt>Tesisat No:</dt><dd>@(d.TesistatNo ?? "-")</dd></div><div><dt>Abone No:</dt><dd>@(d.AboneNo ?? "-")</dd></div></dl></td>
+                            <td><dl class="df-operation-id-list"><div><dt>Tesisat No:</dt><dd>@(d.TesistatNo ?? "-")</dd></div><div><dt>Sözleşme No:</dt><dd>@(d.SozlesmeNo ?? "-")</dd></div></dl></td>
                             <td><div class="df-cell-value">@(d.Firma?.FirmaAdi ?? "-")</div></td>
                             <td><span class="df-device-type-tag">@DevreyeAlmaCihazTipiSunumu.Etiket(d.CihazTipi)</span></td>
                             <td><dl class="df-device-facts"><div><dt>Marka</dt><dd>@(string.IsNullOrWhiteSpace(cihazMarka) ? "-" : cihazMarka)</dd></div>@if (!string.IsNullOrWhiteSpace(cihazModeli)) { <div class="df-device-model"><dt>Model</dt><dd title="@cihazModeli">@cihazModeli</dd></div> }</dl></td>

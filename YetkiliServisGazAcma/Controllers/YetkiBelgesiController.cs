@@ -133,14 +133,14 @@ namespace YetkiliServisGazAcma.Controllers
             {
                 var dosya = await _yetkiBelgesiApiClient.DosyaIndirAsync(kullanici, id);
                 if (dosya == null)
-                    return NotFound("Yetki belgesi dosyasi bulunamadi veya bu belge icin yetkiniz yok.");
+                    return NotFound("Yetki belgesi dosyası bulunamadı. Dosya silinmiş veya kaydı eksik olabilir.");
 
                 Response.Headers.CacheControl = "private, no-store";
                 return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
             }
             catch (ApiIntegrationException ex)
             {
-                return NotFound(ex.Message);
+                return StatusCode(ex.StatusCode, ex.Message);
             }
         }
 

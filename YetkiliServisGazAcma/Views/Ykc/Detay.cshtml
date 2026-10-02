@@ -163,7 +163,7 @@
         YkcDurumDegerleri.AtamaBekliyor => "Tesisattan belirlenen bölge için ekibi ve randevu bilgisini kaydedin.",
         YkcDurumDegerleri.Atandi => "Randevu gerçekleştiyse saha kontrolünü başlatın; gidilemediyse randevuyu güncelleyin.",
         YkcDurumDegerleri.SahaIsleminde => "Kontrol sonucunu kaydedin, formu inceleyin ve imza durumunu takip edin.",
-        YkcDurumDegerleri.Tamamlandi => "İmzalı belgeyi ve işlem geçmişini görüntüleyebilirsiniz.",
+        YkcDurumDegerleri.Tamamlandi => "",
         YkcDurumDegerleri.Reddedildi => "Red gerekçesi işlem geçmişinde yer alır.",
         YkcDurumDegerleri.Iptal => "İptal bilgisi işlem geçmişinde yer alır.",
         _ => "Talebin güncel bilgilerini kontrol edin."
@@ -355,7 +355,7 @@
                         @gorevBasligi
                     }
                 </h2>
-                @if (terminalDurum) { <p>@gorevAciklamasi</p> }
+                @if (terminalDurum && !string.IsNullOrWhiteSpace(gorevAciklamasi)) { <p>@gorevAciklamasi</p> }
             </div>
         </header>
         @if (Model.RandevuTarihi.HasValue && Model.Durum != YkcDurumDegerleri.Atandi)
@@ -518,7 +518,7 @@
                 }
                 @if (Model.Durum == YkcDurumDegerleri.Tamamlandi && ykcYetkileri.RaporlariGorebilir)
                 {
-                    <a class="df-btn df-btn-primary df-btn-sm" href="@Url.Action("Raporlar", "Ykc", new { talepId = Model.Id, detayAc = true })"><i class="bi bi-bar-chart-line" aria-hidden="true"></i> Raporlarda Gör</a>
+                    <a class="df-btn df-btn-primary df-btn-sm" href="@Url.Action("Raporlar", "Ykc", new { detayTalepId = Model.Id })"><i class="bi bi-bar-chart-line" aria-hidden="true"></i> Raporlarda Gör</a>
                 }
             </div>
         }

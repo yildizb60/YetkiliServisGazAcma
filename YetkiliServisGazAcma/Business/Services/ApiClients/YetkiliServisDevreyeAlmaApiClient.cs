@@ -356,6 +356,7 @@ namespace YetkiliServisGazAcma.Business.Services
             public int? MarkaId { get; set; }
             public string? TesistatNo { get; set; }
             public string? AboneNo { get; set; }
+            public string? SozlesmeNo { get; set; }
             public string? UygunlukBelgeNo { get; set; }
             public DateTime? UygunlukTarihi { get; set; }
             public string? MusteriAdi { get; set; }
@@ -394,6 +395,7 @@ namespace YetkiliServisGazAcma.Business.Services
                     MarkaId = MarkaId,
                     TesistatNo = TesistatNo,
                     AboneNo = AboneNo,
+                    SozlesmeNo = SozlesmeNo,
                     UygunlukBelgeNo = UygunlukBelgeNo,
                     UygunlukTarihi = UygunlukTarihi,
                     MusteriAdi = MusteriAdi,

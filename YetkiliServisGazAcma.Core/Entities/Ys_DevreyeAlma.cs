@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations.Schema;
 using YetkiliServisGazAcma.Business.Services;
 
 namespace YetkiliServisGazAcma.Entities
@@ -11,6 +12,8 @@ namespace YetkiliServisGazAcma.Entities
         // Tesisat Bilgileri
         public string? TesistatNo { get; set; }
         public string? AboneNo { get; set; }
+        [NotMapped]
+        public string? SozlesmeNo { get; set; }
         public string? UygunlukBelgeNo { get; set; }
         public DateTime? UygunlukTarihi { get; set; }
 

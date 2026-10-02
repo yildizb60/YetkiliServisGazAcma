@@ -203,7 +203,8 @@ namespace YetkiliServisGazAcma.Controllers
             int sayfa = 1,
             int sayfaBoyutu = 10,
             int? talepId = null,
-            bool detayAc = false)
+            bool detayAc = false,
+            int? detayTalepId = null)
         {
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null)
@@ -214,9 +215,13 @@ namespace YetkiliServisGazAcma.Controllers
 
             PanelViewBag(kullanici, "YkcRaporlar", "Cihaz Değişim Raporları", "Firma, ekip, tesisat ve tarih aralığına göre cihaz değişim süreci");
 
+            var eskiDetayBaglantisi = detayAc && talepId is > 0;
+            var raporTalepId = eskiDetayBaglantisi ? null : talepId;
+            var acilacakTalepId = detayTalepId ?? (eskiDetayBaglantisi ? talepId : null);
             var filtre = RaporFiltresi(
                 tesisatNo, firma, il, ilce, bolge, ekip, marka, hedefUygulama,
-                durum, bas, bit, sayfa, sayfaBoyutu, talepId: talepId);
+                durum, bas, bit, sayfa, sayfaBoyutu, talepId: raporTalepId);
+            filtre.DetayTalepId = acilacakTalepId is > 0 ? acilacakTalepId : null;
 
             YkcRaporSonuc sonuc;
             try
@@ -230,9 +235,9 @@ namespace YetkiliServisGazAcma.Controllers
                 sonuc = new YkcRaporSonuc();
             }
             ViewBag.Filtre = filtre;
-            ViewBag.TalepId = talepId;
-            ViewBag.OtomatikDetayTalepId = detayAc && talepId is > 0 && sonuc.Kayitlar.Any(x => x.Id == talepId.Value)
-                ? talepId : null;
+            ViewBag.TalepId = raporTalepId;
+            ViewBag.OtomatikDetayTalepId = acilacakTalepId is > 0 && sonuc.Kayitlar.Any(x => x.Id == acilacakTalepId.Value)
+                ? acilacakTalepId : null;
             return View("~/Views/Ykc/Raporlar.cshtml", sonuc);
         }
 
@@ -589,7 +594,7 @@ namespace YetkiliServisGazAcma.Controllers
             var sonuc = await _ykcApiClient.DurumGuncelleAsync(kullanici, model);
             TempData[sonuc?.Basarili == true ? "Basarili" : "Hata"] = sonuc?.Mesaj ?? "Cihaz değişim talebi durumu güncellenemedi.";
             if (sonuc?.Basarili == true && model.Durum == YkcDurumDegerleri.Tamamlandi && ykcYetkileri.RaporlariGorebilir)
-                return RedirectToAction(nameof(Raporlar), new { talepId = model.TalepId, detayAc = true });
+                return RedirectToAction(nameof(Raporlar), new { detayTalepId = model.TalepId });
 
             return RedirectToAction(nameof(Detay), new { id = model.TalepId, kaynak = GecerliKaynak(kaynak) });
         }

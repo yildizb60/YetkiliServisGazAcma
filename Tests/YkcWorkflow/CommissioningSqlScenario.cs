@@ -185,6 +185,52 @@ internal static class CommissioningSqlScenario
                 && firstRecord.CihazModeli == "Technician model",
                 "Save ignores forged client source fields and retains technician-entered fields");
 
+            await DevreyeAlmaKaynakBilgisi.TamamlaAsync(db, new[] { firstRecord });
+            Check(firstRecord.SozlesmeNo == "241584" && firstRecord.SozlesmeNo != firstRecord.AboneNo,
+                "Commissioning contract number comes from the consumed source query, not the subscriber number");
+            Check(AdminDevreyeAlmaDto.FromEntity(firstRecord).SozlesmeNo == "241584"
+                && YsDevreyeAlmaDto.FromEntity(firstRecord).SozlesmeNo == "241584",
+                "Admin and service API contracts expose the source contract number consistently");
+            var adminList = await new AdminRaporApiService(db).DevreyeAlmalarAsync(null, company.Id);
+            var serviceList = Body<YsDevreyeAlmaGecmisDto>(await firstController.Gecmis(null));
+            Check(adminList.Islemler.Single().SozlesmeNo == "241584"
+                && serviceList.Islemler.Single().SozlesmeNo == "241584",
+                "Both commissioning list endpoints populate the contract number");
+            var legacyRecord = new Ys_DevreyeAlma { Id = -1, FirmaId = firstFirm.Id, AboneNo = "subscriber-only" };
+            await DevreyeAlmaKaynakBilgisi.TamamlaAsync(db, new[] { legacyRecord });
+            Check(legacyRecord.SozlesmeNo == null, "Legacy records do not relabel a subscriber number as a contract number");
+            var validSource = await db.Ys_DevreyeAlmaSorguKayitlari.AsNoTracking()
+                .SingleAsync(x => x.DevreyeAlmaId == firstRecord.Id);
+            var source = JsonSerializer.Deserialize<YsDevreyeAlmaKaynak>(validSource.KaynakJson)!;
+            source.SozlesmeNo = "other-contract";
+            var invalidSources = new[]
+            {
+                new Ys_DevreyeAlmaSorguKaydi { Referans = Guid.NewGuid().ToString("N"), DevreyeAlmaId = firstRecord.Id,
+                    FirmaId = secondFirm.Id, DagitimSirketiId = validSource.DagitimSirketiId,
+                    KullaniciId = validSource.KullaniciId, KaynakJson = JsonSerializer.Serialize(source) },
+                new Ys_DevreyeAlmaSorguKaydi { Referans = Guid.NewGuid().ToString("N"), DevreyeAlmaId = firstRecord.Id,
+                    FirmaId = firstFirm.Id, DagitimSirketiId = validSource.DagitimSirketiId + 1000,
+                    KullaniciId = validSource.KullaniciId, KaynakJson = JsonSerializer.Serialize(source) },
+                new Ys_DevreyeAlmaSorguKaydi { Referans = Guid.NewGuid().ToString("N"), DevreyeAlmaId = firstRecord.Id,
+                    FirmaId = firstFirm.Id, DagitimSirketiId = validSource.DagitimSirketiId,
+                    KullaniciId = validSource.KullaniciId, KaynakJson = "not-json" }
+            };
+            db.Ys_DevreyeAlmaSorguKayitlari.AddRange(invalidSources);
+            await db.SaveChangesAsync();
+            await DevreyeAlmaKaynakBilgisi.TamamlaAsync(db, new[] { firstRecord });
+            Check(firstRecord.SozlesmeNo == "241584", "Wrong firm, wrong distributor and malformed sources cannot replace the contract number");
+            invalidSources[0].FirmaId = firstFirm.Id;
+            await db.SaveChangesAsync();
+            await DevreyeAlmaKaynakBilgisi.TamamlaAsync(db, new[] { firstRecord });
+            Check(firstRecord.SozlesmeNo == null, "Conflicting contract numbers are not silently resolved to an arbitrary source");
+            source.TesisatNo = "different-installation";
+            invalidSources[0].KaynakJson = JsonSerializer.Serialize(source);
+            await db.SaveChangesAsync();
+            await DevreyeAlmaKaynakBilgisi.TamamlaAsync(db, new[] { firstRecord });
+            Check(firstRecord.SozlesmeNo == "241584", "A source with different installation information cannot replace the contract number");
+            db.Ys_DevreyeAlmaSorguKayitlari.RemoveRange(invalidSources);
+            await db.SaveChangesAsync();
+
             var replay = Body<YsDevreyeAlmaIslemSonucDto>(await firstController.Kaydet(
                 SaveRequest(firstQuery.Cihazlar[0].SorguReferansi, "SERIAL-REPLAY")));
             Check(!replay.Basarili && await db.Ys_DevreyeAlmalar.CountAsync() == 1,

@@ -122,6 +122,7 @@
 .service-field {
     min-width:0;
     display:grid;
+    align-content:start;
     gap:4px;
 }
 .service-field--span-2 { grid-column:span 2; }

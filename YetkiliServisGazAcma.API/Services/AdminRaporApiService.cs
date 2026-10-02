@@ -39,6 +39,7 @@ namespace YetkiliServisGazAcma.API.Services
                 query = query.Where(x => x.OlusturmaTarihi < dto.BitisTarihi.Value.Date.AddDays(1));
 
             var islemler = await query.OrderByDescending(x => x.OlusturmaTarihi).ToListAsync();
+            await DevreyeAlmaKaynakBilgisi.TamamlaAsync(_context, islemler);
             var firmaIds = islemler.Select(x => x.FirmaId).Distinct().ToList();
             var subeler = await _context.Ys_Subeler
                 .Where(x => !x.SilindiMi && firmaIds.Contains(x.FirmaId))
@@ -72,7 +73,9 @@ namespace YetkiliServisGazAcma.API.Services
             var kayit = await DevreyeAlmaTemelQuery(sirketId)
                 .FirstOrDefaultAsync(x => x.Id == id);
 
-            return kayit == null ? null : AdminDevreyeAlmaDto.FromEntity(kayit);
+            if (kayit == null) return null;
+            await DevreyeAlmaKaynakBilgisi.TamamlaAsync(_context, new[] { kayit });
+            return AdminDevreyeAlmaDto.FromEntity(kayit);
         }
 
         public async Task<AdminYetkiBelgesiUyariListeDto> YetkiBelgesiUyarilariAsync(int? sirketId)

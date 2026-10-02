@@ -1238,23 +1238,29 @@ table tbody tr:hover,
     color: var(--df-text-soft) !important;
 }
 
-.df-nb-account-item.active .df-nb-account-avatar.df-avatar-primary,
 .df-nb-profile-btn:hover .df-avatar-primary {
     background: var(--df-primary-soft) !important;
     color: var(--df-primary) !important;
 }
 
+.df-nb-account-item.active .df-nb-account-avatar.df-avatar-primary {
+    background: #fff !important;
+    border-color: #d0ddf1 !important;
+    color: #315fca !important;
+}
+
 .df-nb-account-item.active {
-    background: var(--df-primary-soft) !important;
-    border-color: #d5dbf5 !important;
+    background: #f2f6fd !important;
+    border-color: #d7e1f0 !important;
+    box-shadow: inset 3px 0 0 #315fca;
 }
 
 .df-nb-account-name {
-    color: var(--df-text-soft) !important;
+    color: #213b53 !important;
 }
 
 .df-nb-account-sub {
-    color: var(--df-muted-2) !important;
+    color: #6b7e8f !important;
 }
 
 .df-dashboard .df-approval-grid {
@@ -4512,6 +4518,7 @@ html.df-sheet-open {
 .df-admin-field {
     grid-column: span 4;
     display: grid;
+    align-content: start;
     gap: 5px;
 }
 

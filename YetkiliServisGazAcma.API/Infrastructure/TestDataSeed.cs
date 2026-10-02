@@ -11,6 +11,7 @@ namespace YetkiliServisGazAcma.API.Infrastructure
     public static class TestDataSeed
     {
         public const string DemoSifre = "Demo123!";
+        public const string DemoYetkiBelgesiDosyaYolu = "/uploads/demo-yetki-belgesi.html";
 
         public static async Task Initialize(
             AppDbContext context,
@@ -294,16 +295,19 @@ namespace YetkiliServisGazAcma.API.Infrastructure
 
             if (gecerliYetkiBelgesi != null)
             {
-                gecerliYetkiBelgesi.DosyaYolu = "/uploads/demo-yetki-belgesi.html";
-                gecerliYetkiBelgesi.GuncellemeTarihi = DateTime.Now;
-                gecerliYetkiBelgesi.GuncelleyenKullanici = "demo-seed";
+                if (string.IsNullOrWhiteSpace(gecerliYetkiBelgesi.DosyaYolu))
+                {
+                    gecerliYetkiBelgesi.DosyaYolu = DemoYetkiBelgesiDosyaYolu;
+                    gecerliYetkiBelgesi.GuncellemeTarihi = DateTime.Now;
+                    gecerliYetkiBelgesi.GuncelleyenKullanici = "demo-seed";
+                }
             }
             else
             {
                 context.Ys_YetkiBelgeleri.Add(new Ys_YetkiBelgesi
                 {
                     FirmaId = firma.Id,
-                    DosyaYolu = "/uploads/demo-yetki-belgesi.html",
+                    DosyaYolu = DemoYetkiBelgesiDosyaYolu,
                     YetkiBelgesiBaslangicTarihi = bugun.AddDays(-7),
                     YetkiBelgesiBitisTarihi = bugun.AddYears(1),
                     Durum = YetkiBelgesiDurumDegerleri.Onaylandi,

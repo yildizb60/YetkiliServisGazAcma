@@ -91,6 +91,19 @@ namespace YetkiliServisGazAcma.Business.Services
             var toplamSayfa = Math.Max(1, (int)Math.Ceiling(toplam / (double)sayfaBoyutu));
             sayfa = Math.Min(sayfa, toplamSayfa);
 
+            if (filtre.DetayTalepId is > 0)
+            {
+                // Locate the record within the already-authorized result without filtering out its neighbours.
+                var detayKaydi = await query.Where(x => x.Id == filtre.DetayTalepId.Value)
+                    .Select(x => new { x.Id, x.TalepTarihi }).SingleOrDefaultAsync();
+                if (detayKaydi != null)
+                {
+                    var oncekiKayitlar = await query.CountAsync(x => x.TalepTarihi > detayKaydi.TalepTarihi
+                        || (x.TalepTarihi == detayKaydi.TalepTarihi && x.Id > detayKaydi.Id));
+                    sayfa = (oncekiKayitlar / sayfaBoyutu) + 1;
+                }
+            }
+
             var kayitlar = await query
                 .OrderByDescending(x => x.TalepTarihi)
                 .ThenByDescending(x => x.Id)
@@ -1314,6 +1327,7 @@ namespace YetkiliServisGazAcma.Business.Services
         public int? Durum { get; set; }
         public int? KontrolNo { get; set; }
         public List<int>? KayitIdleri { get; set; }
+        public int? DetayTalepId { get; set; }
         public DateTime? BaslangicTarihi { get; set; }
         public DateTime? BitisTarihi { get; set; }
         public int Sayfa { get; set; } = 1;

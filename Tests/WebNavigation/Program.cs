@@ -26,8 +26,8 @@ foreach (var role in new[] { "GenelSistemAdmin", "SirketAdmin", "Personel" })
     var result = (RedirectToActionResult)await fixture.Controller.DurumGuncelle(
         new() { TalepId = 54, Durum = YkcDurumDegerleri.Tamamlandi }, "takvim");
     Check(result.ActionName == nameof(YkcController.Raporlar)
-        && (int)result.RouteValues!["talepId"]! == 54
-        && result.RouteValues["detayAc"] is true
+        && (int)result.RouteValues!["detayTalepId"]! == 54
+        && !result.RouteValues.ContainsKey("talepId")
         && fixture.Controller.TempData.ContainsKey("Basarili"),
         role + ": successful completion requests the exact report modal and keeps the success message");
 }
@@ -95,10 +95,20 @@ using (var fixture = new NavigationFixture("Personel"))
     var report = (ViewResult)await fixture.Report(54, openDetail: true);
     Check(report.ViewData["OtomatikDetayTalepId"] is 54,
         "The automatic modal targets a returned, scoped report record");
+    Check(fixture.Handler.LastReportFilter!.KayitIdleri == null
+        && fixture.Handler.LastReportFilter.DetayTalepId == 54
+        && fixture.Handler.LastReportFilter.SirketId == 7 && report.ViewData["TalepId"] == null,
+        "Legacy detail links locate the record without hiding other company records");
+    fixture.Handler.ReportResult.Kayitlar.Add(new() { Id = 55 });
+    report = (ViewResult)await fixture.Report(null, detailId: 54);
+    Check(report.ViewData["OtomatikDetayTalepId"] is 54 && report.ViewData["TalepId"] == null
+        && fixture.Handler.LastReportFilter!.KayitIdleri == null && fixture.Handler.LastReportFilter.DetayTalepId == 54
+        && ((YkcRaporSonuc)report.Model!).Kayitlar.Count == 2,
+        "Report detail navigation opens the target and retains neighbouring records");
     report = (ViewResult)await fixture.Report(54);
     Check(report.ViewData["OtomatikDetayTalepId"] == null,
         "Normal report navigation does not reopen the modal");
-    report = (ViewResult)await fixture.Report(55, openDetail: true);
+    report = (ViewResult)await fixture.Report(56, openDetail: true);
     Check(report.ViewData["OtomatikDetayTalepId"] == null,
         "A record absent from the scoped result cannot open automatically");
     report = (ViewResult)await fixture.Report(null, openDetail: true);
@@ -107,6 +117,40 @@ using (var fixture = new NavigationFixture("Personel"))
     report = (ViewResult)await fixture.Report(-1, openDetail: true);
     Check(report.ViewData["OtomatikDetayTalepId"] == null,
         "An invalid request ID cannot trigger an automatic modal");
+    report = (ViewResult)await fixture.Report(null, detailId: -1);
+    Check(report.ViewData["OtomatikDetayTalepId"] == null && fixture.Handler.LastReportFilter!.DetayTalepId == null,
+        "An invalid detail target does not trigger automatic navigation");
+    report = (ViewResult)await fixture.Report(54, detailId: 54);
+    Check(fixture.Handler.LastReportFilter!.KayitIdleri!.SequenceEqual([54]),
+        "An explicit report filter remains separate from the detail target");
+}
+foreach (var status in new[] { HttpStatusCode.NotFound, HttpStatusCode.Forbidden, HttpStatusCode.Unauthorized,
+    HttpStatusCode.InternalServerError, HttpStatusCode.ServiceUnavailable })
+{
+    using var fixture = new NavigationFixture("Personel");
+    fixture.Handler.CertificateStatus = status;
+    var result = (ObjectResult)await fixture.CertificateController.Dosya(26);
+    var expected = status is HttpStatusCode.InternalServerError ? 503 : (int)status;
+    var message = result.Value as string ?? "";
+    Check(result.StatusCode == expected, "Certificate download preserves the correct status for " + status);
+    Check(status switch
+    {
+        HttpStatusCode.NotFound => message.Contains("dosya") && !message.Contains("Veri servisine"),
+        HttpStatusCode.Forbidden => message.Contains("yetkiniz"),
+        HttpStatusCode.Unauthorized => message.Contains("Oturumunuzun"),
+        _ => message.Contains("Veri servisine")
+    }, "Certificate download distinguishes the reason for " + status);
+}
+using (var fixture = new NavigationFixture("Personel"))
+{
+    var result = (FileContentResult)await fixture.CertificateController.Dosya(26);
+    Check(result.FileContents.SequenceEqual(new byte[] { 37, 80, 68, 70 }) && result.ContentType == "application/pdf"
+        && fixture.Http.Response.Headers.CacheControl == "private, no-store",
+        "A successful certificate download retains the original bytes and private caching");
+    fixture.Handler.CertificateUnavailable = true;
+    var unavailable = (ObjectResult)await fixture.CertificateController.Dosya(26);
+    Check(unavailable.StatusCode == 503 && ((string)unavailable.Value!).Contains("Veri servisine"),
+        "A network failure remains a service-unavailable response, not a missing file");
 }
 Console.WriteLine($"{passed} navigation checks passed. No application data changed.");
 
@@ -116,6 +160,7 @@ sealed class NavigationFixture : IDisposable
     public FixtureHandler Handler { get; }
     public DefaultHttpContext Http { get; }
     public YkcController Controller { get; }
+    public YetkiBelgesiController CertificateController { get; }
 
     public NavigationFixture(string role, bool reportPermission = true, bool signaturePermission = true)
     {
@@ -134,6 +179,11 @@ sealed class NavigationFixture : IDisposable
         var session = new ApiKullaniciOturumu(new AuthApiClient(client), accessor);
         var options = Options.Create(new ApiIntegrationOptions { Enabled = true });
         var tokens = new ApiJwtTokenService(accessor);
+        CertificateController = new YetkiBelgesiController(
+            new YetkiBelgesiApiClient(client, options, tokens, NullLogger<YetkiBelgesiApiClient>.Instance), session, null!)
+        {
+            ControllerContext = new ControllerContext { HttpContext = Http }
+        };
         var companies = new PanelKapsamApiClient(client, options, tokens, NullLogger<PanelKapsamApiClient>.Instance);
         var api = new YkcApiClient(client, options, tokens, NullLogger<YkcApiClient>.Instance,
             new AktifSirketService(accessor, session, companies));
@@ -149,8 +199,8 @@ sealed class NavigationFixture : IDisposable
         };
     }
 
-    public Task<IActionResult> Report(int? id, bool openDetail = false) => Controller.Raporlar(
-        null, null, null, null, null, null, null, null, null, null, null, talepId: id, detayAc: openDetail);
+    public Task<IActionResult> Report(int? id, bool openDetail = false, int? detailId = null) => Controller.Raporlar(
+        null, null, null, null, null, null, null, null, null, null, null, talepId: id, detayAc: openDetail, detayTalepId: detailId);
 
     public Task<IActionResult> Export(bool excel, int id, List<int>? ids = null) => excel
         ? Controller.RaporExcel(null, null, null, null, null, null, null, null, null, null, null, ids, id)
@@ -162,6 +212,8 @@ sealed class NavigationFixture : IDisposable
 sealed class FixtureHandler(string role) : HttpMessageHandler
 {
     public bool Success { get; set; } = true;
+    public HttpStatusCode CertificateStatus { get; set; } = HttpStatusCode.OK;
+    public bool CertificateUnavailable { get; set; }
     public int OperationCalls { get; private set; }
     public YkcRaporSonuc ReportResult { get; } = new();
     public YkcTalepListeFiltre? LastReportFilter { get; private set; }
@@ -170,6 +222,15 @@ sealed class FixtureHandler(string role) : HttpMessageHandler
     {
         var path = request.RequestUri!.AbsolutePath;
         object result;
+        if (path == "/api/yetki-belgesi/dosya-indir")
+        {
+            if (CertificateUnavailable) throw new HttpRequestException("Fixture network failure");
+            if (request.Headers.Authorization?.Parameter != "fixture-token")
+                throw new InvalidOperationException("Certificate download must forward the authenticated token");
+            var response = new HttpResponseMessage(CertificateStatus) { Content = new ByteArrayContent([37, 80, 68, 70]) };
+            response.Content.Headers.ContentType = new("application/pdf");
+            return response;
+        }
         if (path == "/api/auth/me")
             result = new OturumSonucu { Basarili = true, Kullanici = new OturumKullaniciDto(
                 "fixture-user", "fixture", null, "Fixture", null, KullaniciTipiDegerleri.Personel, null, 7, [role]) };

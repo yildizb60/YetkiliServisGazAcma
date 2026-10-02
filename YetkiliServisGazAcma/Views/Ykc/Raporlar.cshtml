@@ -201,7 +201,7 @@
     <link rel="stylesheet" href="~/css/ykc-operations.css" asp-append-version="true" />
 }
 
-<div class="ykc-workspace ykc-report-workspace ykc-report-page" data-open-request-id="@ViewBag.OtomatikDetayTalepId">
+<div class="ykc-workspace ykc-report-workspace ykc-report-page" data-open-request-id="@ViewBag.OtomatikDetayTalepId" data-current-page="@aktifSayfa" data-filter-request-id="@talepId">
     <section class="ykc-report-insights" aria-label="Rapor analizi">
         <div class="ykc-report-insight is-summary">
             <span class="ykc-report-insight-icon"><i class="bi bi-collection" aria-hidden="true"></i></span>
@@ -333,15 +333,16 @@
                 </div>
             </div>
             <div class="ykc-header-actions">
-                <label class="ykc-report-select-all"><input id="ykcReportSelectAll" type="checkbox" aria-label="Bu sayfadaki tüm rapor kayıtlarını seç" /> Sayfadakileri seç</label>
+                <label class="ykc-report-mobile-select"><input type="checkbox" data-ykc-select-all aria-label="Bu sayfadaki tüm rapor kayıtlarını seç" disabled="@(Model.Kayitlar.Count == 0)" /> Sayfadakileri seç</label>
                 @if (talepId.HasValue)
                 {
                     <a class="df-btn df-btn-secondary df-btn-sm" href="@Url.Action("Raporlar", "Ykc")"><i class="bi bi-list-ul" aria-hidden="true"></i> Tüm Raporlar</a>
                 }
-                <span class="ykc-record-count"><i class="bi bi-database"></i> @ilkKayit-@sonKayit / @Model.Toplam kayıt</span>
-                <span class="ykc-selected-count" data-ykc-selected-count>0 seçili</span>
-                <button class="df-btn df-btn-sm ykc-export-action is-pdf" type="button" data-ykc-selected-export data-export-url="@pdfUrl" disabled title="Seçilen kayıtları PDF olarak indir"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> Seçilen PDF</button>
-                <button class="df-btn df-btn-sm ykc-export-action is-excel" type="button" data-ykc-selected-export data-export-url="@excelUrl" disabled title="Seçilen kayıtları Excel olarak indir"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Seçilen Excel</button>
+                <div class="ykc-selection-actions" data-ykc-selection-actions hidden>
+                    <span class="ykc-selected-count" data-ykc-selected-count aria-live="polite" aria-atomic="true"></span>
+                    <button class="df-btn df-btn-sm ykc-export-action is-pdf" type="button" data-ykc-selected-export data-export-url="@pdfUrl" disabled title="Seçilen kayıtları PDF olarak indir"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> Seçilen PDF</button>
+                    <button class="df-btn df-btn-sm ykc-export-action is-excel" type="button" data-ykc-selected-export data-export-url="@excelUrl" disabled title="Seçilen kayıtları Excel olarak indir"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Seçilen Excel</button>
+                </div>
                 <a class="df-btn df-btn-sm ykc-export-action is-pdf @(Model.Toplam == 0 ? "is-disabled" : null)" href="@(Model.Toplam == 0 ? "#" : pdfUrl)" aria-disabled="@(Model.Toplam == 0 ? "true" : "false")" title="Filtrelenen kayıtları PDF olarak indir"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF</a>
                 <a class="df-btn df-btn-sm ykc-export-action is-excel @(Model.Toplam == 0 ? "is-disabled" : null)" href="@(Model.Toplam == 0 ? "#" : excelUrl)" aria-disabled="@(Model.Toplam == 0 ? "true" : "false")" title="Filtrelenen kayıtları Excel olarak indir"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel</a>
             </div>
@@ -350,15 +351,15 @@
             <table class="ykc-report-table @(icOperasyonGorsun ? "is-internal" : "is-firm")">
                 <thead>
                     <tr>
-                        <th class="ykc-report-select-cell"><span class="visually-hidden">Seç</span></th>
+                        <th class="ykc-report-select-cell"><input id="ykcReportSelectAll" type="checkbox" data-ykc-select-all aria-label="Bu sayfadaki tüm rapor kayıtlarını seç" title="Sayfadakileri seç" disabled="@(Model.Kayitlar.Count == 0)" /></th>
                         <th>Talep No</th>
                         <th>Abone İsmi</th>
-                        <th class="ykc-report-installation-cell">Tesisat Bilgileri</th>
+                        <th class="ykc-report-installation-cell">Tesisat ve Sözleşme Bilgileri</th>
                         @if (icOperasyonGorsun)
                         {
                             <th class="ykc-report-company-cell">Firma</th>
                         }
-                        <th>Yakıcı Cihaz Tipi</th>
+                        <th class="ykc-device-type-heading">Yakıcı Cihaz Tipi</th>
                         @if (icOperasyonGorsun)
                         {
                             <th>Projedeki Cihaz</th>
@@ -388,7 +389,7 @@
                                 <td class="ykc-report-select-cell" data-label="Seç"><input class="ykc-report-row-check" type="checkbox" value="@kayit.Id" aria-label="#@kayit.Id numaralı rapor kaydını seç" /></td>
                                 <td class="ykc-report-record-cell" data-label="Talep No"><div class="ykc-cell-main"><span class="ykc-code">#@kayit.Id</span></div></td>
                                 <td class="ykc-report-customer-cell" data-label="Abone İsmi"><div class="ykc-cell-main ykc-report-customer">@Deger(kayit.MusteriAdi)</div></td>
-                                <td class="ykc-report-installation-cell" data-label="Tesisat Bilgileri"><dl class="ykc-id-list"><div><dt>Tesisat No:</dt><dd>@Deger(kayit.TesisatNo)</dd></div><div><dt>Abone No:</dt><dd>@Deger(kayit.AboneNo)</dd></div></dl></td>
+                                <td class="ykc-report-installation-cell" data-label="Tesisat ve Sözleşme Bilgileri"><dl class="ykc-id-list"><div><dt>Tesisat No:</dt><dd>@Deger(kayit.TesisatNo)</dd></div><div><dt>Sözleşme No:</dt><dd>@Deger(kayit.SozlesmeNo)</dd></div></dl></td>
                                 @if (icOperasyonGorsun)
                                 {
                                     <td class="ykc-report-company-cell" data-label="Firma"><div class="ykc-cell-main ykc-report-firm">@Deger(kayit.FirmaAdi)</div></td>
@@ -448,7 +449,7 @@
         @if (Model.Toplam > 0)
         {
             <nav class="ykc-pager" aria-label="Rapor sayfaları">
-                <span>@ilkKayit-@sonKayit arası gösteriliyor</span>
+                <span class="ykc-record-count">@ilkKayit-@sonKayit / @Model.Toplam kayıt</span>
                 <div class="ykc-pager-actions">
                     <a class="df-btn df-btn-secondary df-btn-sm @(aktifSayfa == 1 ? "is-disabled" : "")" href="@(aktifSayfa == 1 ? "#" : SayfaUrl(aktifSayfa - 1))" aria-disabled="@(aktifSayfa == 1 ? "true" : "false")" title="Önceki sayfa"><i class="bi bi-chevron-left"></i></a>
                     @for (var sayfaNo = Math.Max(1, aktifSayfa - 2); sayfaNo <= Math.Min(toplamSayfa, aktifSayfa + 2); sayfaNo++)
@@ -554,9 +555,10 @@
 @section Scripts {
     <script>
 (function () {
-            const selectAll = document.getElementById('ykcReportSelectAll');
+            const selectAllInputs = Array.from(document.querySelectorAll('[data-ykc-select-all]'));
             const rowChecks = Array.from(document.querySelectorAll('.ykc-report-row-check'));
             const selectedCount = document.querySelector('[data-ykc-selected-count]');
+            const selectionActions = document.querySelector('[data-ykc-selection-actions]');
             const selectedExportButtons = Array.from(document.querySelectorAll('[data-ykc-selected-export]'));
 
             function selectedIds() {
@@ -565,18 +567,19 @@
 
             function updateSelection() {
                 const ids = selectedIds();
-                if (selectedCount) selectedCount.textContent = ids.length + ' seçili';
+                if (selectedCount) selectedCount.textContent = ids.length > 0 ? ids.length + ' seçili' : '';
+                if (selectionActions) selectionActions.hidden = ids.length === 0;
                 selectedExportButtons.forEach(button => { button.disabled = ids.length === 0; });
-                if (selectAll) {
+                selectAllInputs.forEach(selectAll => {
                     selectAll.checked = rowChecks.length > 0 && ids.length === rowChecks.length;
                     selectAll.indeterminate = ids.length > 0 && ids.length < rowChecks.length;
-                }
+                });
             }
 
-            selectAll?.addEventListener('change', function () {
+            selectAllInputs.forEach(selectAll => selectAll.addEventListener('change', function () {
                 rowChecks.forEach(input => { input.checked = selectAll.checked; });
                 updateSelection();
-            });
+            }));
             rowChecks.forEach(input => input.addEventListener('change', updateSelection));
             selectedExportButtons.forEach(button => button.addEventListener('click', function () {
                 const ids = selectedIds();
@@ -728,7 +731,8 @@
 
             // Wait for the shared modal tabs to initialize before opening a completed request.
             document.addEventListener('DOMContentLoaded', function () {
-                const requestId = document.querySelector('.ykc-report-page')?.dataset.openRequestId;
+                const reportPage = document.querySelector('.ykc-report-page');
+                const requestId = reportPage?.dataset.openRequestId;
                 if (!requestId) return;
 
                 const button = Array.from(document.querySelectorAll('.ykc-row-view-details'))
@@ -738,6 +742,9 @@
                 ac(button);
                 const url = new URL(window.location.href);
                 url.searchParams.delete('detayAc');
+                url.searchParams.delete('detayTalepId');
+                if (!reportPage.dataset.filterRequestId) url.searchParams.delete('talepId');
+                url.searchParams.set('sayfa', reportPage.dataset.currentPage);
                 window.history.replaceState(window.history.state, '', url);
             }, { once: true });
         })();

@@ -10,7 +10,13 @@ const files = new Map([
     ['/permission.js', 'Views/AdminPanel/YetkiDuzenle.cshtml'],
     ['/appointment.js', 'Views/Ykc/Detay.cshtml'],
     ['/report.js', 'Views/Ykc/Raporlar.cshtml'],
-    ['/report.css', 'wwwroot/css/ykc-operations.css']
+    ['/report.css', 'wwwroot/css/ykc-operations.css'],
+    ['/dropdown.js', 'wwwroot/js/notification-panel.js'],
+    ['/commissioning.js', 'wwwroot/js/commissioning-row-details.js'],
+    ['/panel-layout.css', 'wwwroot/css/panel-layout.css'],
+    ['/panel-unify.css', 'wwwroot/css/panel-unify.css'],
+    ['/service-editor.css', 'wwwroot/css/service-editor.css'],
+    ['/operations-directory.css', 'wwwroot/css/operations-directory.css']
 ]);
 
 createServer(async (request, response) => {
