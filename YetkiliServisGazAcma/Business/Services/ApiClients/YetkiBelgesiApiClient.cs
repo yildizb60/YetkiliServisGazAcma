@@ -293,6 +293,12 @@ namespace YetkiliServisGazAcma.Business.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     _logger.LogWarning("{Operasyon} API cagrisinda basarisiz yanit dondu. Url: {Url}, StatusCode: {StatusCode}", operasyon, url, response.StatusCode);
+                    if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                        return default;
+                    if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                        throw new ApiIntegrationException(operasyon, "Bu yetki belgesini görüntüleme yetkiniz yok.", StatusCodes.Status403Forbidden);
+                    if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                        throw new ApiIntegrationException(operasyon, "Oturumunuzun süresi doldu. Lütfen yeniden giriş yapın.", StatusCodes.Status401Unauthorized);
                     ApiClientFallback.EnsureAllowed(_options, operasyon);
                     return default;
                 }

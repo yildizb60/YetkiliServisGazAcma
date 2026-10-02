@@ -86,7 +86,7 @@ namespace YetkiliServisGazAcma.Business.Services
             SetCellText(ikinciElTablosu, 1, 2, talep.IkinciElCihazMi == false ? "☒" : "☐");
 
             FirmaImzaTablosunuDoldur(firmaImzaTablosu, talep, secenekler, formTarihi);
-            KontrolleriDoldur(document, talep.Kontroller);
+            KontrolleriDoldur(document, talep.AktifKontroller);
             GorulduImzaTablosunuDoldur(gorulduImzaTablosu, talep, secenekler, formTarihi);
             if (secenekler.ImzaliNihaiMi)
             {
@@ -127,7 +127,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 if (baslikIndex < 0)
                     continue;
 
-                var kontrol = kontroller.FirstOrDefault(x => x.KontrolNo == kontrolNo);
+                var kontrol = kontroller.FirstOrDefault(x => x.FormKontrolNo == kontrolNo);
                 var sonucParagrafi = SonrakiParagraf(bodyElements, baslikIndex + 1);
                 var aciklamaEtiketiIndex = sonucParagrafi == null ? -1 : bodyElements.IndexOf(sonucParagrafi);
                 var aciklamaParagrafi = aciklamaEtiketiIndex < 0
@@ -274,7 +274,7 @@ namespace YetkiliServisGazAcma.Business.Services
 
             for (var index = 0; index < imzaTablolari.Count && index < 5; index++)
             {
-                var kontrol = talep.Kontroller.FirstOrDefault(x => x.KontrolNo == index + 1);
+                var kontrol = talep.AktifKontroller.FirstOrDefault(x => x.FormKontrolNo == index + 1);
                 if (kontrol?.Sonuc is not (YkcFr265KontrolSonucDegerleri.Uygun or YkcFr265KontrolSonucDegerleri.UygunDegil))
                     continue;
 

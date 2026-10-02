@@ -30,7 +30,8 @@ namespace YetkiliServisGazAcma.Business.Services
             DateTime? bas,
             DateTime? bit,
             string? musteri,
-            string? durum)
+            string? durum,
+            string? tesisat = null)
         {
             var cevap = await PostAsync<YsDevreyeAlmaGecmisIstek, YsDevreyeAlmaGecmisCevap>(
                 kullanici,
@@ -41,6 +42,7 @@ namespace YetkiliServisGazAcma.Business.Services
                     BaslangicTarihi = bas,
                     BitisTarihi = bit,
                     Musteri = musteri,
+                    TesisatNo = tesisat,
                     Durum = durum
                 },
                 "Yetkili servis devreye alma gecmis");
@@ -121,12 +123,12 @@ namespace YetkiliServisGazAcma.Business.Services
                 "Yetkili servis marka kontrol");
         }
 
-        public Task<YsDevreyeAlmaIslemSonuc?> KaydetAsync(AppKullanici kullanici, Ys_DevreyeAlma model)
+        public Task<YsDevreyeAlmaIslemSonuc?> KaydetAsync(AppKullanici kullanici, YsDevreyeAlmaKaydetIstek model)
         {
             return PostAsync<YsDevreyeAlmaKaydetIstek, YsDevreyeAlmaIslemSonuc>(
                 kullanici,
                 "api/ys-devreyeal/kaydet",
-                YsDevreyeAlmaKaydetIstek.FromEntity(model),
+                model,
                 "Yetkili servis devreye alma kaydet");
         }
 
@@ -223,6 +225,7 @@ namespace YetkiliServisGazAcma.Business.Services
             public DateTime? BaslangicTarihi { get; set; }
             public DateTime? BitisTarihi { get; set; }
             public string? Musteri { get; set; }
+            public string? TesisatNo { get; set; }
             public string? Durum { get; set; }
         }
 
@@ -246,54 +249,15 @@ namespace YetkiliServisGazAcma.Business.Services
             public string? SozlesmeNo { get; set; }
         }
 
-        private class YsDevreyeAlmaKaydetIstek
-        {
-            public string? TesistatNo { get; set; }
-            public string? AboneNo { get; set; }
-            public string? UygunlukBelgeNo { get; set; }
-            public DateTime? UygunlukTarihi { get; set; }
-            public string? MusteriAdi { get; set; }
-            public string? MusteriTcNo { get; set; }
-            public string? MusteriTelefon { get; set; }
-            public string? Adres { get; set; }
-            public string? CihazTipi { get; set; }
-            public string? CihazMarka { get; set; }
-            public string? CihazModeli { get; set; }
-            public string? CihazKapasite { get; set; }
-            public string? SeriNo { get; set; }
-            public string? TeknisyenAdi { get; set; }
-            public string? TeknisyenYetkiBelgesiNo { get; set; }
-            public string? Notlar { get; set; }
-
-            public static YsDevreyeAlmaKaydetIstek FromEntity(Ys_DevreyeAlma model)
-            {
-                return new YsDevreyeAlmaKaydetIstek
-                {
-                    TesistatNo = model.TesistatNo,
-                    AboneNo = model.AboneNo,
-                    UygunlukBelgeNo = model.UygunlukBelgeNo,
-                    UygunlukTarihi = model.UygunlukTarihi,
-                    MusteriAdi = model.MusteriAdi,
-                    MusteriTcNo = model.MusteriTcNo,
-                    MusteriTelefon = model.MusteriTelefon,
-                    Adres = model.Adres,
-                    CihazTipi = model.CihazTipi,
-                    CihazMarka = model.CihazMarka,
-                    CihazModeli = model.CihazModeli,
-                    CihazKapasite = model.CihazKapasite,
-                    SeriNo = model.SeriNo,
-                    TeknisyenAdi = model.TeknisyenAdi,
-                    TeknisyenYetkiBelgesiNo = model.TeknisyenYetkiBelgesiNo,
-                    Notlar = model.Notlar
-                };
-            }
-        }
-
         private class YsDevreyeAlmaGecmisCevap
         {
             public List<YsDevreyeAlmaCevap> Islemler { get; set; } = new();
             public YsFirmaCevap? Firma { get; set; }
             public List<string> MarkaList { get; set; } = new();
+            public int Toplam { get; set; }
+            public int Tamamlanan { get; set; }
+            public int Bekleyen { get; set; }
+            public int Iptal { get; set; }
 
             public YsDevreyeAlmaGecmisSonuc ToSonuc()
             {
@@ -301,7 +265,11 @@ namespace YetkiliServisGazAcma.Business.Services
                 {
                     Islemler = Islemler.Select(x => x.ToEntity()).ToList(),
                     Firma = Firma?.ToEntity(),
-                    MarkaList = MarkaList
+                    MarkaList = MarkaList,
+                    Toplam = Toplam,
+                    Tamamlanan = Tamamlanan,
+                    Bekleyen = Bekleyen,
+                    Iptal = Iptal
                 };
             }
         }
@@ -388,6 +356,7 @@ namespace YetkiliServisGazAcma.Business.Services
             public int? MarkaId { get; set; }
             public string? TesistatNo { get; set; }
             public string? AboneNo { get; set; }
+            public string? SozlesmeNo { get; set; }
             public string? UygunlukBelgeNo { get; set; }
             public DateTime? UygunlukTarihi { get; set; }
             public string? MusteriAdi { get; set; }
@@ -426,6 +395,7 @@ namespace YetkiliServisGazAcma.Business.Services
                     MarkaId = MarkaId,
                     TesistatNo = TesistatNo,
                     AboneNo = AboneNo,
+                    SozlesmeNo = SozlesmeNo,
                     UygunlukBelgeNo = UygunlukBelgeNo,
                     UygunlukTarihi = UygunlukTarihi,
                     MusteriAdi = MusteriAdi,
@@ -474,6 +444,10 @@ namespace YetkiliServisGazAcma.Business.Services
         public List<Ys_DevreyeAlma> Islemler { get; set; } = new();
         public Ys_Firma? Firma { get; set; }
         public List<string> MarkaList { get; set; } = new();
+        public int Toplam { get; set; }
+        public int Tamamlanan { get; set; }
+        public int Bekleyen { get; set; }
+        public int Iptal { get; set; }
     }
 
     public class YsDevreyeAlmaEkranSonuc
@@ -519,9 +493,21 @@ namespace YetkiliServisGazAcma.Business.Services
 
     public class YsTesisatCihazSonuc
     {
+        public string? SorguReferansi { get; set; }
+        public bool KaydedildiMi { get; set; }
         public string? CihazMarka { get; set; }
         public string? CihazTipi { get; set; }
         public string? CihazKapasite { get; set; }
+    }
+
+    public class YsDevreyeAlmaKaydetIstek
+    {
+        public string? SorguReferansi { get; set; }
+        public string? CihazModeli { get; set; }
+        public string? SeriNo { get; set; }
+        public string? TeknisyenAdi { get; set; }
+        public string? TeknisyenYetkiBelgesiNo { get; set; }
+        public string? Notlar { get; set; }
     }
 
     public class YsDevreyeAlmaIslemSonuc

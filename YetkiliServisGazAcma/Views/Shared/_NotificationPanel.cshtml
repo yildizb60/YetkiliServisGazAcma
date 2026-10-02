@@ -52,12 +52,15 @@
 @if (sirketSeciciGoster)
 {
     <div class="df-dropdown">
-        <button class="df-nb-btn" id="companyBtn" type="button" data-dropdown-toggle="" title="Şirket değiştir" aria-controls="companyMenu" aria-expanded="false">
+        <button class="df-nb-btn" id="companyBtn" type="button" data-dropdown-toggle="" title="Şirket değiştir" aria-label="Şirket değiştir" aria-controls="companyMenu" aria-expanded="false">
             <i class="bi bi-building-gear"></i>
         </button>
 
-        <div class="df-dropdown-menu df-nb-dropdown-wide" id="companyMenu">
-            <div class="df-dropdown-header">Şirket Seç</div>
+        <div class="df-dropdown-menu df-nb-dropdown-wide df-company-menu" id="companyMenu">
+            <div class="df-dropdown-header">
+                <span><i class="bi bi-building-gear" aria-hidden="true"></i> Şirket Seç</span>
+                <small>@aktifSirketler.Count şirket</small>
+            </div>
             <div class="df-nb-account-list">
                 @if (genelSistemAdminMi)
                 {
@@ -66,15 +69,15 @@
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="sirketId" value="0" />
                         <input type="hidden" name="returnUrl" value="@returnUrl" />
-                        <button type="submit" class="df-nb-account-item @(tumAktif ? "active" : "")">
-                            <div class="df-nb-account-avatar df-avatar-primary"><span>TŞ</span></div>
-                            <div class="df-nb-account-info">
-                                <div class="df-nb-account-name">Tüm Şirketler</div>
-                                <div class="df-nb-account-sub">Genel yönetim görünümü</div>
-                            </div>
+                        <button type="submit" class="df-nb-account-item @(tumAktif ? "active" : "")" aria-current="@(tumAktif ? "true" : null)">
+                            <span class="df-nb-account-avatar df-avatar-primary"><i class="bi bi-buildings" aria-hidden="true"></i></span>
+                            <span class="df-nb-account-info">
+                                <span class="df-nb-account-name">Tüm Şirketler</span>
+                                <span class="df-nb-account-sub">Genel yönetim</span>
+                            </span>
                             @if (tumAktif)
                             {
-                                <i class="bi bi-check-circle-fill df-nb-account-check"></i>
+                                <i class="bi bi-check-circle-fill df-nb-account-check" aria-hidden="true"></i>
                             }
                         </button>
                     </form>
@@ -84,23 +87,22 @@
                 {
                     var aktif = aktifSirketId == sirket.Id;
                     var ad = sirket.SirketAdi ?? "Şirket";
-                    var parcalar = ad.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                    var harfler = string.Concat(parcalar.Take(2).Select(x => x.Substring(0, 1))).ToUpper(new System.Globalization.CultureInfo("tr-TR"));
-                    if (string.IsNullOrWhiteSpace(harfler)) harfler = "Ş";
-
                     <form method="post" action="@sirketSecimPath" class="df-company-form">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="sirketId" value="@sirket.Id" />
                         <input type="hidden" name="returnUrl" value="@returnUrl" />
-                        <button type="submit" class="df-nb-account-item @(aktif ? "active" : "")">
-                            <div class="df-nb-account-avatar df-avatar-primary"><span>@harfler</span></div>
-                            <div class="df-nb-account-info">
-                                <div class="df-nb-account-name">@ad</div>
-                                <div class="df-nb-account-sub">@(aktif ? "Aktif şirket" : "")</div>
-                            </div>
+                        <button type="submit" class="df-nb-account-item @(aktif ? "active" : "")" aria-current="@(aktif ? "true" : null)">
+                            <span class="df-nb-account-avatar df-avatar-primary"><i class="bi bi-building" aria-hidden="true"></i></span>
+                            <span class="df-nb-account-info">
+                                <span class="df-nb-account-name">@ad</span>
+                                @if (aktif)
+                                {
+                                    <span class="df-nb-account-sub">Aktif şirket</span>
+                                }
+                            </span>
                             @if (aktif)
                             {
-                                <i class="bi bi-check-circle-fill df-nb-account-check"></i>
+                                <i class="bi bi-check-circle-fill df-nb-account-check" aria-hidden="true"></i>
                             }
                         </button>
                     </form>

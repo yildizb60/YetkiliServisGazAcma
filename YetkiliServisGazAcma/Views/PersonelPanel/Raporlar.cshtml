@@ -1,28 +1,49 @@
 @{
-    ViewData["Title"] = "Operasyon Raporları";
+    ViewData["Title"] = "Raporlar";
     ViewData["PanelTitle"] = ViewData["Title"];
     ViewData["PanelSubtitle"] = "Personel Paneli";
     ViewData["ActiveMenu"] = "Raporlar";
     ViewData["PanelArea"] = "Personel";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
+
     var listeTipi = ViewBag.ListeTipi as string ?? "devreye";
     var raporTipi = ViewBag.RaporTipi as string ?? "devreye";
     var belgeRaporu = listeTipi == "yetkiBelgesi";
     var ykcRaporu = listeTipi == "ykc";
+    var devreyeRaporu = !belgeRaporu && !ykcRaporu;
+    var genelRaporYetkisi = ViewBag.YetkiRapor == true;
     var belgeYetkisi = ViewBag.YetkiBelgesi == true;
     var ykcRaporYetkisi = ViewBag.YetkiYkcRapor == true;
     DateTime basTarih = ViewBag.BasTarih ?? DateTime.Now.Date.AddDays(-30);
     DateTime bitTarih = ViewBag.BitTarih ?? DateTime.Now.Date;
-    var raporAylarJson = System.Text.Json.JsonSerializer.Serialize(ViewBag.RaporAylar ?? new List<string>());
-    var raporAylikJson = System.Text.Json.JsonSerializer.Serialize(ViewBag.RaporAylik ?? new List<int>());
-    var raporMarkaJson = System.Text.Json.JsonSerializer.Serialize(ViewBag.RaporMarka ?? new List<string>());
-    var raporMarkaSayiJson = System.Text.Json.JsonSerializer.Serialize(ViewBag.RaporMarkaSayi ?? new List<int>());
-    var raporDurumJson = System.Text.Json.JsonSerializer.Serialize(ViewBag.RaporDurum ?? new List<int>());
+
+    var raporAylar = (ViewBag.RaporAylar as IEnumerable<string>)?.ToList() ?? new List<string>();
+    var raporAylik = (ViewBag.RaporAylik as IEnumerable<int>)?.ToList() ?? new List<int>();
+    var durumSayilari = (ViewBag.RaporDurum as IEnumerable<int>)?.ToList() ?? new List<int>();
+    var markaEtiketleri = (ViewBag.RaporMarka as IEnumerable<string>)?.ToList() ?? new List<string>();
+    var markaSayilari = (ViewBag.RaporMarkaSayi as IEnumerable<int>)?.ToList() ?? new List<int>();
+    var markaSayisi = Math.Min(5, Math.Min(markaEtiketleri.Count, markaSayilari.Count));
+    var markaMax = Math.Max(1, markaSayilari.Take(markaSayisi).DefaultIfEmpty(0).Max());
     var ozelDurumEtiketleri = ViewBag.RaporDurumEtiketleri as IEnumerable<string>;
-    var raporDurumEtiketleriJson = System.Text.Json.JsonSerializer.Serialize(ozelDurumEtiketleri?.ToArray()
+    var durumEtiketleri = ozelDurumEtiketleri?.ToList()
         ?? (belgeRaporu
-            ? new[] { "Onaylanan", "Onay Bekleyen", "Reddedilen" }
-            : new[] { "Tamamlanan", "Bekleyen", "İptal" }));
+            ? new List<string> { "Onaylanan", "Onay Bekleyen", "Reddedilen" }
+            : new List<string> { "Tamamlanan", "Bekleyen", "İptal" });
+    var durumToplam = durumSayilari.Sum();
+    var chartLength = Math.Min(raporAylar.Count, raporAylik.Count);
+    var chartIndices = Enumerable.Range(0, chartLength)
+        .Where(index => !devreyeRaporu
+            || !DateTime.TryParseExact(raporAylar[index], "MM.yyyy", System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None, out var ay)
+            || (ay <= bitTarih && ay.AddMonths(1) > basTarih))
+        .TakeLast(6)
+        .ToList();
+    var chartCount = chartIndices.Count;
+    var chartMax = Math.Max(1, chartIndices.Select(index => raporAylik[index]).DefaultIfEmpty(0).Max());
+    var ilkDurumEtiketi = durumEtiketleri.FirstOrDefault() ?? "İşlem";
+    var ilkDurumOrani = durumToplam == 0 ? 0 : Math.Round(durumSayilari.FirstOrDefault() * 100d / durumToplam, 1);
+    string CssYuzde(double value) => Math.Clamp(value, 0, 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+
     var seciliBelgeToplam = raporTipi == "onayli" ? Convert.ToInt32(ViewBag.YetkiBelgesiOnayli)
         : raporTipi == "bekleyen" ? Convert.ToInt32(ViewBag.YetkiBelgesiBekleyen)
         : raporTipi == "reddedilen" ? Convert.ToInt32(ViewBag.YetkiBelgesiReddedilen)
@@ -37,6 +58,8 @@
         "ykc" => "Cihaz Değişim İşlemleri",
         _ => "Cihaz Devreye Alma İşlemleri"
     };
+    var raporIkonu = ykcRaporu ? "bi-arrow-repeat" : belgeRaporu ? "bi-file-earmark-check" : "bi-bag-check";
+    var grafikBasligi = ykcRaporu ? "Firmalara göre işlemler" : belgeRaporu ? "Aylık belge işlemleri" : "Aylık devreye alma işlemleri";
     var pdfUrl = ykcRaporu
         ? Url.Action("RaporPdf", "Ykc", new { bas = basTarih.ToString("yyyy-MM-dd"), bit = bitTarih.ToString("yyyy-MM-dd") })
         : Url.Action("RaporlarPdf", "PersonelPanel", new { bas = basTarih.ToString("yyyy-MM-dd"), bit = bitTarih.ToString("yyyy-MM-dd"), tip = belgeRaporu ? raporTipi : null });
@@ -44,110 +67,140 @@
         ? Url.Action("RaporExcel", "Ykc", new { bas = basTarih.ToString("yyyy-MM-dd"), bit = bitTarih.ToString("yyyy-MM-dd") })
         : Url.Action("RaporlarExcel", "PersonelPanel", new { bas = basTarih.ToString("yyyy-MM-dd"), bit = bitTarih.ToString("yyyy-MM-dd"), tip = belgeRaporu ? raporTipi : null });
     var kayitlarUrl = ykcRaporu
-        ? Url.Action("Talepler", "Ykc")
+        ? Url.Action("Raporlar", "Ykc", new { bas = basTarih.ToString("yyyy-MM-dd"), bit = bitTarih.ToString("yyyy-MM-dd") })
         : belgeRaporu
-            ? raporTipi == "bekleyen"
-                ? Url.Action("OnayBekleyenler", "PersonelPanel")
-                : Url.Action("OnayGecmisi", "PersonelPanel", new { durum = raporTipi })
-            : Url.Action("DevreyeAlmalar", "PersonelPanel");
+            ? Url.Action("OnayBekleyenler", "PersonelPanel", new { tab = raporTipi == "onayli" ? "onaylanan" : raporTipi == "reddedilen" ? "reddedilen" : "bekleyen" })
+            : Url.Action("DevreyeAlmalar", "PersonelPanel", new { bas = basTarih.ToString("yyyy-MM-dd"), bit = bitTarih.ToString("yyyy-MM-dd") });
 }
 
 @section PageStyles {
     <link rel="stylesheet" href="~/css/admin-reports.css" asp-append-version="true" />
 }
 
-<div class="df-admin-report-workspace">
-    <section class="df-page-panel df-admin-report-filter">
-        <form method="get" action="@Url.Action("Raporlar", "PersonelPanel")" class="df-admin-report-form">
-            <div class="df-admin-report-fields is-two">
-                <div class="df-admin-field"><label for="bas">Başlangıç</label><input id="bas" type="date" name="bas" value="@basTarih.ToString("yyyy-MM-dd")" /></div>
-                <div class="df-admin-field"><label for="bit">Bitiş</label><input id="bit" type="date" name="bit" value="@bitTarih.ToString("yyyy-MM-dd")" /></div>
+<main class="df-admin-report-workspace df-operations-report df-role-report df-personnel-operations-report @(devreyeRaporu ? "is-commissioning-report" : null)">
+    <section class="df-ops-command" aria-labelledby="personnelReportHeading">
+        <div class="df-ops-command-copy">
+            <span class="df-ops-command-icon" aria-hidden="true"><i class="bi @raporIkonu"></i></span>
+            <div><h1 id="personnelReportHeading">Raporlar</h1><p>@basTarih.ToString("dd.MM.yyyy") - @bitTarih.ToString("dd.MM.yyyy")</p></div>
+        </div>
+        <form method="get" action="@Url.Action("Raporlar", "PersonelPanel")" class="df-ops-filter">
+            <div class="df-admin-field is-report-type">
+                <label for="tip">Rapor türü</label>
+                <select id="tip" name="tip">
+                    @if (genelRaporYetkisi || ykcRaporYetkisi)
+                    {
+                        <optgroup label="Cihaz İşlemleri">
+                            @if (genelRaporYetkisi)
+                            {
+                                <option value="devreye" selected="@(raporTipi == "devreye" ? "selected" : null)">Cihaz Devreye Alma İşlemleri</option>
+                            }
+                            @if (ykcRaporYetkisi)
+                            {
+                                <option value="ykc" selected="@(raporTipi == "ykc" ? "selected" : null)">Cihaz Değişim İşlemleri</option>
+                            }
+                        </optgroup>
+                    }
+                    @if (genelRaporYetkisi && belgeYetkisi)
+                    {
+                        <optgroup label="Yetki Belgeleri">
+                            <option value="onayli" selected="@(raporTipi == "onayli" ? "selected" : null)">Onaylanan Yetki Belgeleri</option>
+                            <option value="bekleyen" selected="@(raporTipi == "bekleyen" ? "selected" : null)">Onay Bekleyen Yetki Belgeleri</option>
+                            <option value="reddedilen" selected="@(raporTipi == "reddedilen" ? "selected" : null)">Reddedilen Yetki Belgeleri</option>
+                        </optgroup>
+                    }
+                </select>
             </div>
-            <fieldset class="df-report-type-control">
-                <legend>Rapor Türü</legend>
-                <div class="df-report-type-options">
-                    @if (ykcRaporYetkisi)
-                    {
-                        <label class="@(raporTipi == "ykc" ? "active" : "")"><input type="radio" name="tip" value="ykc" checked="@(raporTipi == "ykc" ? "checked" : null)" /><i class="bi bi-fire" aria-hidden="true"></i><span>Cihaz Değişim İşlemleri</span></label>
-                    }
-                    <label class="@(raporTipi == "devreye" ? "active" : "")"><input type="radio" name="tip" value="devreye" checked="@(raporTipi == "devreye" ? "checked" : null)" /><i class="bi bi-bag-check" aria-hidden="true"></i><span>Cihaz Devreye Alma İşlemleri</span></label>
-                    @if (belgeYetkisi)
-                    {
-                        <label class="@(raporTipi == "onayli" ? "active" : "")"><input type="radio" name="tip" value="onayli" checked="@(raporTipi == "onayli" ? "checked" : null)" /><i class="bi bi-patch-check" aria-hidden="true"></i><span>Onaylanan Yetki Belgeleri</span></label>
-                        <label class="@(raporTipi == "bekleyen" ? "active" : "")"><input type="radio" name="tip" value="bekleyen" checked="@(raporTipi == "bekleyen" ? "checked" : null)" /><i class="bi bi-hourglass-split" aria-hidden="true"></i><span>Onay Bekleyen Yetki Belgeleri</span></label>
-                        <label class="@(raporTipi == "reddedilen" ? "active" : "")"><input type="radio" name="tip" value="reddedilen" checked="@(raporTipi == "reddedilen" ? "checked" : null)" /><i class="bi bi-x-circle" aria-hidden="true"></i><span>Reddedilen Yetki Belgeleri</span></label>
-                    }
-                </div>
-            </fieldset>
-            <div class="df-admin-report-submit"><button class="df-btn df-btn-primary" type="submit"><i class="bi bi-funnel-fill" aria-hidden="true"></i> Raporla</button></div>
+            <div class="df-admin-field"><label for="bas">Başlangıç</label><input id="bas" type="date" name="bas" value="@basTarih.ToString("yyyy-MM-dd")" /></div>
+            <div class="df-admin-field"><label for="bit">Bitiş</label><input id="bit" type="date" name="bit" value="@bitTarih.ToString("yyyy-MM-dd")" /></div>
+            <button class="df-btn df-btn-primary df-btn-sm" type="submit"><i class="bi bi-funnel" aria-hidden="true"></i> Uygula</button>
         </form>
     </section>
 
-    <section class="df-report-charts" aria-label="Rapor grafikleri">
-        <div class="df-report-chart"><h3>@(ykcRaporu ? "Firmalara Göre Cihaz Değişimi" : belgeRaporu ? "Aylık Yetki Belgesi Trendi" : "Aylık Cihaz Devreye Alma Trendi")</h3><div class="chart-wrap" id="wrapAylik"><div class="chart-empty">Veri bulunamadı</div><canvas id="aylikChart"></canvas></div></div>
-        <div class="df-report-chart"><h3>@(ykcRaporu ? "Cihaz Değişim Durumları" : belgeRaporu ? "Yetki Belgesi Durumları" : "Devreye Alma Durumları")</h3><div class="chart-wrap" id="wrapDurum"><div class="chart-empty">Veri bulunamadı</div><canvas id="durumChart"></canvas></div></div>
-        <div class="df-report-chart"><h3>@(ykcRaporu ? "Kontrol Ekibi Dağılımı" : belgeRaporu ? "Firmalara Göre Yetki Belgeleri" : "Cihaz Markası Dağılımı")</h3><div class="chart-wrap" id="wrapMarka"><div class="chart-empty">Veri bulunamadı</div><canvas id="markaChart"></canvas></div></div>
+    <section class="df-ops-kpis" aria-label="@raporTipiAdi göstergeleri">
+        @if (devreyeRaporu)
+        {
+            <article class="df-ops-kpi is-duration"><span class="df-ops-kpi-icon"><i class="bi bi-check2-circle" aria-hidden="true"></i></span><div><span>Devreye alınan cihaz</span><strong>@Convert.ToInt32(ViewBag.RaporTamam ?? 0)</strong></div></article>
+            <article class="df-ops-kpi is-volume is-brand-leader"><span class="df-ops-kpi-icon"><i class="bi bi-tags" aria-hidden="true"></i></span><div><span>En çok işlem yapılan marka</span><strong>@(markaEtiketleri.FirstOrDefault() ?? "-")</strong><small>@markaSayilari.FirstOrDefault() işlem</small></div></article>
+        }
+        else
+        {
+            <article class="df-ops-kpi is-volume"><span class="df-ops-kpi-icon"><i class="bi bi-inboxes" aria-hidden="true"></i></span><div><span>Toplam kayıt</span><strong>@raporToplam</strong></div></article>
+            @for (var index = 0; index < 3; index++)
+            {
+                var etiket = index < durumEtiketleri.Count ? durumEtiketleri[index] : "Diğer";
+                var sayi = index < durumSayilari.Count ? durumSayilari[index] : 0;
+                var ton = index == 0 ? "is-duration" : index == 1 ? "is-compliance" : "is-repeat";
+                var ikon = index == 0 ? "bi-check2-circle" : index == 1 ? "bi-hourglass-split" : "bi-list-check";
+                <article class="df-ops-kpi @ton"><span class="df-ops-kpi-icon"><i class="bi @ikon" aria-hidden="true"></i></span><div><span>@etiket</span><strong>@sayi</strong></div></article>
+            }
+        }
     </section>
 
-    <section class="df-report-output-bar" aria-label="Rapor özeti">
-        <div class="df-report-output-icon" aria-hidden="true"><i class="bi @(ykcRaporu ? "bi-fire" : belgeRaporu ? "bi-file-earmark-check" : "bi-bag-check")"></i></div>
-        <div class="df-report-output-copy">
-            <strong>@raporTipiAdi</strong>
-            <small>@basTarih.ToString("dd.MM.yyyy") - @bitTarih.ToString("dd.MM.yyyy") · @raporToplam kayıt</small>
+    <section class="df-ops-overview" aria-label="@raporTipiAdi grafikleri">
+        <div class="df-ops-monthly">
+            <header class="df-ops-section-head"><div><h2>@grafikBasligi</h2></div><span>@raporToplam kayıt</span></header>
+            @if (chartCount == 0)
+            {
+                <div class="df-ops-empty">Seçili dönemde grafik verisi yok.</div>
+            }
+            else
+            {
+                <div class="df-ops-monthly-chart" style="--chart-count:@chartCount" role="img" aria-label="@grafikBasligi">
+                    @foreach (var index in chartIndices)
+                    {
+                        <div class="df-ops-month" title="@raporAylar[index]: @raporAylik[index] kayıt">
+                            <strong>@raporAylik[index]</strong>
+                            <span class="df-ops-month-track"><i style="--bar:@CssYuzde(raporAylik[index] * 100d / chartMax)%"></i></span>
+                            <small>@raporAylar[index]</small>
+                        </div>
+                    }
+                </div>
+            }
         </div>
-        <div class="df-report-output-actions">
-            <a class="df-btn df-btn-sm df-btn-pdf @(!disAktarilabilir ? "is-disabled" : "")" href="@(disAktarilabilir ? pdfUrl : "#")" aria-disabled="@(!disAktarilabilir ? "true" : "false")" title="Filtrelenen kayıtları PDF olarak indir"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF</a>
-            <a class="df-btn df-btn-sm df-btn-excel @(!disAktarilabilir ? "is-disabled" : "")" href="@(disAktarilabilir ? excelUrl : "#")" aria-disabled="@(!disAktarilabilir ? "true" : "false")" title="Filtrelenen kayıtları Excel olarak indir"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel</a>
-            <a class="df-btn df-btn-sm df-btn-secondary" href="@kayitlarUrl"><i class="bi bi-list-ul" aria-hidden="true"></i> Kayıtları Gör</a>
+        <aside class="df-ops-status" aria-labelledby="personnelReportStatusHeading">
+            <header class="df-ops-section-head"><div><h2 id="personnelReportStatusHeading">@(devreyeRaporu ? "Markalara göre işlemler" : "Durum dağılımı")</h2></div></header>
+            @if (devreyeRaporu)
+            {
+                @if (markaSayisi == 0)
+                {
+                    <div class="df-ops-empty">Seçili dönemde marka verisi yok.</div>
+                }
+                else
+                {
+                    <div class="df-service-brand-chart">
+                        @for (var index = 0; index < markaSayisi; index++)
+                        {
+                            <div class="df-service-brand-row"><span title="@markaEtiketleri[index]">@markaEtiketleri[index]</span><div class="df-service-brand-track"><i style="--bar:@CssYuzde(markaSayilari[index] * 100d / markaMax)%"></i></div><strong>@markaSayilari[index]</strong></div>
+                        }
+                    </div>
+                }
+            }
+            else if (durumToplam == 0)
+            {
+                <div class="df-ops-empty">Seçili dönemde kayıt yok.</div>
+            }
+            else
+            {
+                <div class="df-ops-completion">
+                    <div class="df-ops-ring" style="--value:@CssYuzde(ilkDurumOrani)" aria-label="@ilkDurumEtiketi yüzde @ilkDurumOrani"><strong>%@ilkDurumOrani.ToString("0.#")</strong><span>@ilkDurumEtiketi</span></div>
+                    <dl>
+                        @for (var index = 0; index < durumSayilari.Count; index++)
+                        {
+                            var etiket = index < durumEtiketleri.Count ? durumEtiketleri[index] : $"Durum {index + 1}";
+                            <div><dt><i class="is-status-@(index % 4)" aria-hidden="true"></i> @etiket</dt><dd>@durumSayilari[index]</dd></div>
+                        }
+                    </dl>
+                </div>
+            }
+        </aside>
+    </section>
+
+    <section class="df-ops-download-strip" aria-label="@raporTipiAdi indirme seçenekleri">
+        <div><h2>@raporTipiAdi</h2><span>@basTarih.ToString("dd.MM.yyyy") - @bitTarih.ToString("dd.MM.yyyy")</span></div>
+        <div class="df-ops-export-actions">
+            <a class="df-btn df-btn-sm df-btn-pdf @(!disAktarilabilir ? "is-disabled" : "")" href="@(disAktarilabilir ? pdfUrl : null)" aria-disabled="@(!disAktarilabilir ? "true" : "false")" tabindex="@(!disAktarilabilir ? "-1" : null)"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF</a>
+            <a class="df-btn df-btn-sm df-btn-excel @(!disAktarilabilir ? "is-disabled" : "")" href="@(disAktarilabilir ? excelUrl : null)" aria-disabled="@(!disAktarilabilir ? "true" : "false")" tabindex="@(!disAktarilabilir ? "-1" : null)"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel</a>
+            <a class="df-btn df-btn-sm df-btn-secondary" href="@kayitlarUrl"><i class="bi bi-list-ul" aria-hidden="true"></i> Kayıtlar</a>
         </div>
     </section>
-</div>
-
-<div id="raporData"
-     data-aylar='@Html.Raw(raporAylarJson)'
-     data-aylik='@Html.Raw(raporAylikJson)'
-     data-marka='@Html.Raw(raporMarkaJson)'
-     data-marka-sayi='@Html.Raw(raporMarkaSayiJson)'
-     data-durum='@Html.Raw(raporDurumJson)'
-     data-durum-etiketleri='@Html.Raw(raporDurumEtiketleriJson)'
-     data-first-chart-type="@(ykcRaporu ? "bar" : "line")"
-     hidden></div>
-
-@section Scripts {
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script>
-(function () {
-    document.querySelectorAll('.df-report-type-options input[type="radio"]').forEach(function (input) {
-        input.addEventListener('change', function () {
-            document.querySelectorAll('.df-report-type-options label').forEach(function (label) { label.classList.toggle('active', label.contains(input)); });
-        });
-    });
-
-    const dataEl = document.getElementById('raporData');
-    if (!dataEl || typeof Chart === 'undefined') return;
-    const parse = function (value) { try { const result = JSON.parse(value || '[]'); return Array.isArray(result) ? result : []; } catch { return []; } };
-    const aylikLabels = parse(dataEl.dataset.aylar);
-    const aylikData = parse(dataEl.dataset.aylik).map(Number);
-    const markaLabels = parse(dataEl.dataset.marka);
-    const markaData = parse(dataEl.dataset.markaSayi).map(Number);
-    const durumData = parse(dataEl.dataset.durum).map(Number);
-    const durumLabels = parse(dataEl.dataset.durumEtiketleri);
-    const firstChartType = dataEl.dataset.firstChartType === 'bar' ? 'bar' : 'line';
-    const hasData = function (arr) { return arr.some(function (value) { return Number(value) > 0; }); };
-    const showChart = function (id) { const wrap = document.getElementById(id); if (wrap) wrap.classList.add('has-data'); };
-
-    if (aylikLabels.length && hasData(aylikData)) {
-        showChart('wrapAylik');
-        new Chart(document.getElementById('aylikChart'), { type: firstChartType, data: { labels: aylikLabels, datasets: [{ data: aylikData, borderColor: '#1f5fbf', backgroundColor: firstChartType === 'bar' ? '#2f78c5' : 'rgba(31,95,191,.12)', fill: firstChartType === 'line', borderWidth: firstChartType === 'line' ? 2 : 0, tension: .3, pointRadius: 2, borderRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } } });
-    }
-    if (hasData(durumData)) {
-        showChart('wrapDurum');
-        new Chart(document.getElementById('durumChart'), { type: 'doughnut', data: { labels: durumLabels, datasets: [{ data: durumData, backgroundColor: ['#167a55', '#d08a00', '#b13a48'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } } });
-    }
-    if (markaLabels.length && hasData(markaData)) {
-        showChart('wrapMarka');
-        new Chart(document.getElementById('markaChart'), { type: 'bar', data: { labels: markaLabels, datasets: [{ data: markaData, backgroundColor: '#167a55', borderRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } } });
-    }
-})();
-</script>
-}
+</main>

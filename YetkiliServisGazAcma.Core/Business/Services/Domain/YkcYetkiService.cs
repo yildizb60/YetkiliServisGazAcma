@@ -28,6 +28,11 @@ namespace YetkiliServisGazAcma.Business.Services
 
     public sealed class YkcYetkiService
     {
+        public static bool FirmaDosyasinaErisimVarMi(AppKullanici kullanici, Ykc_Talep talep)
+        {
+            return kullanici.FirmaId.HasValue && talep.FirmaId == kullanici.FirmaId.Value;
+        }
+
         private readonly AppDbContext _context;
         private readonly UserManager<AppKullanici> _userManager;
 
@@ -42,7 +47,18 @@ namespace YetkiliServisGazAcma.Business.Services
             int? sirketId = null,
             CancellationToken cancellationToken = default)
         {
+            if (!kullanici.AktifMi || kullanici.ArsivlemeTarihi != null)
+                return new YkcYetkiOzeti();
             var roller = await _userManager.GetRolesAsync(kullanici);
+            var sertifikaliFirma = roller.Contains(KullaniciRolAdlari.SertifikaliFirma)
+                || kullanici.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma;
+            if (sertifikaliFirma)
+            {
+                return kullanici.FirmaId.HasValue
+                    ? new YkcYetkiOzeti { TalepleriGorebilir = true, TalepOlusturabilir = true }
+                    : new YkcYetkiOzeti();
+            }
+
             var icYonetici = roller.Any(x => x is KullaniciRolAdlari.GenelSistemAdmin
                 or KullaniciRolAdlari.EskiSuperAdmin
                 or KullaniciRolAdlari.SirketAdmin)
@@ -50,17 +66,6 @@ namespace YetkiliServisGazAcma.Business.Services
 
             if (icYonetici)
                 return TumYonetimYetkileri();
-
-            var sertifikaliFirma = roller.Contains(KullaniciRolAdlari.SertifikaliFirma)
-                || kullanici.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma;
-            if (sertifikaliFirma)
-            {
-                return new YkcYetkiOzeti
-                {
-                    TalepleriGorebilir = true,
-                    TalepOlusturabilir = true
-                };
-            }
 
             var personel = roller.Contains(KullaniciRolAdlari.Personel)
                 || kullanici.KullaniciTipi == KullaniciTipiDegerleri.Personel;

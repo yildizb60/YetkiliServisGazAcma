@@ -30,9 +30,10 @@ namespace YetkiliServisGazAcma.Business.Services
 
         public async Task<(bool Basarili, string Mesaj)> KodGonderAsync(AppKullanici kullanici, string amac = "GIRIS", string? dogrulanacakTelefon = null)
         {
-            var telefon = TelefonNormalize(dogrulanacakTelefon ?? kullanici.PhoneNumber);
-            if (string.IsNullOrWhiteSpace(telefon))
-                return (false, "SMS doğrulama için kullanıcı telefon numarası tanımlı olmalıdır.");
+            var kaynakTelefon = dogrulanacakTelefon ?? kullanici.PhoneNumber;
+            if (!CepTelefonuKurali.GecerliMi(kaynakTelefon))
+                return (false, "SMS doğrulama için geçerli bir cep telefonu numarası tanımlı olmalıdır.");
+            var telefon = TelefonNormalize(kaynakTelefon);
 
             if (!_options.TestMode && string.Equals(_options.Provider, "Development", StringComparison.OrdinalIgnoreCase))
                 return (false, "Canlı SMS için Provider AhlatciSms ve API bilgileri yapılandırılmalıdır.");

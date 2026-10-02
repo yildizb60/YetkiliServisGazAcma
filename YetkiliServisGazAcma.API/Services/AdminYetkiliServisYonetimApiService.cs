@@ -27,6 +27,9 @@ namespace YetkiliServisGazAcma.API.Services
             if (dto == null || string.IsNullOrWhiteSpace(dto.FirmaAdi))
                 return AdminIslemSonucDto.Basarisiz("Firma adi zorunludur.");
 
+            if (!await KategoriIdsGecerliMi(dto.KategoriIds))
+                return AdminIslemSonucDto.Basarisiz("Geçersiz hizmet türü seçildi.");
+
             if (!string.IsNullOrWhiteSpace(dto.VergiNo))
             {
                 var vknVar = await _context.Ys_Firmalar.AnyAsync(x =>
@@ -73,7 +76,7 @@ namespace YetkiliServisGazAcma.API.Services
                 markaSil: false);
 
             await _context.SaveChangesAsync();
-            return AdminIslemSonucDto.BasariliSonuc("Yetkili servis eklendi.");
+            return AdminIslemSonucDto.BasariliSonuc("Servis kaydedildi. Giris hesabi Kullanicilar bolumunden olusturulur.");
         }
 
         public async Task<AdminIslemSonucDto> GuncelleAsync(
@@ -83,6 +86,9 @@ namespace YetkiliServisGazAcma.API.Services
         {
             if (dto == null || dto.Id <= 0 || string.IsNullOrWhiteSpace(dto.FirmaAdi))
                 return AdminIslemSonucDto.Basarisiz("Yetkili servis ve firma adi zorunludur.");
+
+            if (!await KategoriIdsGecerliMi(dto.KategoriIds))
+                return AdminIslemSonucDto.Basarisiz("Geçersiz hizmet türü seçildi.");
 
             var servis = await _context.Ys_Firmalar
                 .FirstOrDefaultAsync(x => x.Id == dto.Id && !x.SilindiMi
@@ -162,6 +168,17 @@ namespace YetkiliServisGazAcma.API.Services
             return AdminIslemSonucDto.BasariliSonuc("Yetkili servis silindi.");
         }
 
+        private async Task<bool> KategoriIdsGecerliMi(List<int>? kategoriIds)
+        {
+            if (kategoriIds == null)
+                return true;
+
+            var secilenIds = kategoriIds.Distinct().ToList();
+            var gecerliSayi = await _context.UrunKategoriler
+                .CountAsync(x => secilenIds.Contains(x.Id) && !x.SilindiMi && x.AktifMi);
+            return gecerliSayi == secilenIds.Count;
+        }
+
         private async Task YetkiliServisIliskileriniYenileAsync(
             int firmaId,
             List<int>? kategoriIds,
@@ -179,7 +196,7 @@ namespace YetkiliServisGazAcma.API.Services
                 _context.Ys_FirmaKategoriler.RemoveRange(mevcutKategoriler);
 
                 var gecerliKategoriIds = await _context.UrunKategoriler
-                    .Where(x => !x.SilindiMi && kategoriIds != null && kategoriIds.Contains(x.Id))
+                    .Where(x => !x.SilindiMi && x.AktifMi && kategoriIds != null && kategoriIds.Contains(x.Id))
                     .Select(x => x.Id)
                     .ToListAsync();
 

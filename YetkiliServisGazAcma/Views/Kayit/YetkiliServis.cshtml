@@ -1,10 +1,16 @@
 @model YetkiliServisGazAcma.Entities.Ys_Firma
 @{
     ViewData["Title"] = "Yetkili Servis Kaydı";
-    Layout = "~/Views/Shared/_PublicLayout.cshtml";
+    ViewData["LoginHeaderMode"] = "registration";
+    Layout = "~/Views/Shared/_AuthLayout.cshtml";
+
     var sehirler = ViewBag.Sehirler as List<string> ?? new();
     var sehirFirmaKodlari = ViewBag.SehirFirmaKodlari as Dictionary<string, string> ?? new();
     var tumKategoriler = ViewBag.Kategoriler as List<YetkiliServisGazAcma.Entities.UrunKategori> ?? new();
+    var seciliMarkalar = new HashSet<int>(ViewBag.SeciliMarkaIdleri as IEnumerable<int> ?? Array.Empty<int>());
+    var seciliKategoriler = new HashSet<int>(ViewBag.SeciliKategoriIdleri as IEnumerable<int> ?? Array.Empty<int>());
+    var seciliIlce = ViewBag.SeciliIlce as string;
+    var ilkAdim = ViewBag.Hata != null ? 2 : 1;
 
     string NormalizeKategori(string? value)
     {
@@ -23,20 +29,17 @@
             .Replace("ç", "c");
     }
 
-    bool KullanilanKategoriMi(string? value)
+    string KategoriIkonu(string? value)
     {
         var key = NormalizeKategori(value);
-        return key == "kombi" || key.Contains("merkezikazan") || key.Contains("sofben") || key.Contains("sohben");
+        if (key == "ocak") return "bi-grid-3x3-gap";
+        if (key.Contains("sofben") || key.Contains("sohben")) return "bi-droplet-half";
+        if (key.Contains("gazkullanicicihaz")) return "bi-grid-3x3-gap";
+        return "bi-fire";
     }
 
     var kategoriler = tumKategoriler
-        .Where(x => KullanilanKategoriMi(x.Ad))
-        .GroupBy(x => NormalizeKategori(x.Ad))
-        .Select(g => g.OrderByDescending(x => x.AktifMi)
-            .ThenBy(x => string.IsNullOrWhiteSpace(x.IconUrl) ? 1 : 0)
-            .ThenBy(x => x.SiraNo)
-            .ThenBy(x => x.Ad)
-            .First())
+        .Where(x => !x.SilindiMi && x.AktifMi)
         .OrderBy(x => x.SiraNo)
         .ThenBy(x => x.Ad)
         .ToList();
@@ -44,137 +47,169 @@
 
 @section Styles {
     <link rel="stylesheet" href="~/lib/bootstrap-icons/font/bootstrap-icons.min.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/login.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/registration.css" asp-append-version="true" />
 }
 
-<header class="registration-topbar">
-    <a class="registration-brand" href="/giris" aria-label="Giriş sayfası">
-        <img src="/images/company/corumgaz-kargaz-surmeligaz-logo.png" alt="Çorumgaz, Kargaz ve Sürmeligaz" />
-    </a>
-    <a class="registration-login" href="/giris"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i> Giriş Yap</a>
-</header>
+<partial name="_LoginHeader" />
 
-<main class="registration-page">
-    <form class="registration-form" method="post" action="/kayit/yetkili-servis">
-        @Html.AntiForgeryToken()
+<main class="login-shell login-shell--panel registration-shell" data-registration-shell>
+    <partial name="_LoginShowcase" />
 
-        <header class="registration-head">
-            <span class="registration-head-icon"><i class="bi bi-building-add" aria-hidden="true"></i></span>
-            <div>
-                <span>Yetkili servis başvurusu</span>
-                <h1>Firma Kaydı</h1>
+    <section class="login-side registration-side" aria-label="Yetkili servis kaydı">
+        <form class="login-card registration-card"
+              method="post"
+              action="/kayit/yetkili-servis"
+              data-registration-form
+              novalidate
+              data-initial-step="@ilkAdim">
+            @Html.AntiForgeryToken()
+
+            <header class="login-card-head registration-card-head"><h1>Yetkili Servis Kayıt Ekranı</h1></header>
+
+            <div class="registration-progress" aria-label="Kayıt adımları">
+                <button type="button" data-registration-step-target="1" aria-current="step">
+                    <span>1</span><strong>Firma bilgileri</strong><i class="bi bi-check-lg" aria-hidden="true"></i>
+                </button>
+                <button type="button" data-registration-step-target="2">
+                    <span>2</span><strong>Yetki ve hesap</strong><i class="bi bi-check-lg" aria-hidden="true"></i>
+                </button>
             </div>
-            <div class="registration-step"><strong>1</strong><span>Firma bilgileri</span><i class="bi bi-chevron-right" aria-hidden="true"></i><strong>2</strong><span>Yetki alanları</span></div>
-        </header>
 
-        @if (ViewBag.Hata != null)
-        {
-            <div class="registration-alert is-error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> @ViewBag.Hata</div>
-        }
-        @if (ViewBag.ApiUyari != null)
-        {
-            <div class="registration-alert is-error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> @ViewBag.ApiUyari</div>
-        }
+            @if (ViewBag.Hata != null)
+            {
+                <div class="registration-alert" role="alert"><i class="bi bi-exclamation-circle" aria-hidden="true"></i><span>@ViewBag.Hata</span></div>
+            }
+            @if (ViewBag.ApiUyari != null)
+            {
+                <div class="registration-alert" role="alert"><i class="bi bi-exclamation-circle" aria-hidden="true"></i><span>@ViewBag.ApiUyari</span></div>
+            }
 
-        <div class="registration-main-grid">
-            <section class="registration-section company-section" aria-labelledby="company-title">
-                <div class="registration-section-head">
-                    <i class="bi bi-building" aria-hidden="true"></i>
-                    <h2 id="company-title">Firma ve İletişim</h2>
-                </div>
+            <section class="registration-step-panel" data-registration-step="1" aria-label="Firma bilgileri">
                 <div class="registration-field-grid">
-                    <div class="registration-field"><label for="VergiNo">VKN <span>*</span></label><input id="VergiNo" type="text" name="VergiNo" maxlength="10" inputmode="numeric" placeholder="10 haneli VKN" required value="@Model?.VergiNo" /></div>
-                    <div class="registration-field"><label for="VergiDairesi">Vergi Dairesi <span>*</span></label><input id="VergiDairesi" type="text" name="VergiDairesi" placeholder="Vergi dairesi" required value="@Model?.VergiDairesi" /></div>
-                    <div class="registration-field"><label for="FirmaAdi">Firma Unvanı <span>*</span></label><input id="FirmaAdi" type="text" name="FirmaAdi" placeholder="Firma unvanı" required value="@Model?.FirmaAdi" /></div>
-                    <div class="registration-field"><label for="YetkiliKisi">Yetkili Kişi <span>*</span></label><input id="YetkiliKisi" type="text" name="YetkiliKisi" placeholder="Ad Soyad" required value="@Model?.YetkiliKisi" /></div>
-                    <div class="registration-field"><label for="TcKimlikNo">T.C. Kimlik No <span>*</span></label><input id="TcKimlikNo" type="text" name="TcKimlikNo" maxlength="11" inputmode="numeric" placeholder="11 haneli T.C. Kimlik No" required value="@Model?.TcKimlikNo" /></div>
-                    <div class="registration-field"><label for="Telefon">Telefon <span>*</span></label><input id="Telefon" type="tel" name="Telefon" placeholder="05XX XXX XX XX" required value="@Model?.Telefon" /></div>
-                    <div class="registration-field"><label for="Email">E-posta <span>*</span></label><input id="Email" type="email" name="Email" placeholder="ornek@firma.com" required value="@Model?.Email" /></div>
-                    <div class="registration-field"><label for="FaaliyetIli">Faaliyet İli <span>*</span></label><select name="FaaliyetIli" id="FaaliyetIli" data-firma-kodu-select required><option value="">İl seçin</option>@foreach (var sehir in sehirler){var firmaKodu = sehirFirmaKodlari.TryGetValue(sehir, out var kod) ? kod : "";<option value="@sehir" data-firma-kodu="@firmaKodu" selected="@(string.Equals(Model?.FaaliyetIli, sehir, StringComparison.CurrentCultureIgnoreCase) ? "selected" : null)">@sehir</option>}</select><small class="registration-field-hint" data-firma-kodu-target></small></div>
-                    <div class="registration-field is-wide"><label for="Adres">Adres <span>*</span></label><input id="Adres" type="text" name="Adres" placeholder="Açık firma adresi" required value="@Model?.Adres" /></div>
+                    <div class="registration-field">
+                        <label for="FirmaAdi">Firma / Kurum Adı <span>*</span></label>
+                        <input id="FirmaAdi" type="text" name="FirmaAdi" placeholder="Firma veya kurum adı" required autocomplete="organization" value="@Model?.FirmaAdi" />
+                    </div>
+                    <div class="registration-field">
+                        <label for="YetkiliKisi">Yetkili Ad Soyad <span>*</span></label>
+                        <input id="YetkiliKisi" type="text" name="YetkiliKisi" placeholder="Ad Soyad" required autocomplete="name" value="@Model?.YetkiliKisi" />
+                    </div>
+                    <div class="registration-field">
+                        <label for="VergiNo">VKN <span>*</span></label>
+                        <input id="VergiNo" type="text" name="VergiNo" maxlength="10" inputmode="numeric" pattern="[0-9]{10}" placeholder="10 haneli VKN" required value="@Model?.VergiNo" />
+                    </div>
+                    <div class="registration-field">
+                        <label for="TcKimlikNo">T.C. kimlik no <span>*</span></label>
+                        <input id="TcKimlikNo" type="text" name="TcKimlikNo" maxlength="11" inputmode="numeric" pattern="[0-9]{11}" placeholder="11 haneli T.C. kimlik no" aria-describedby="tc-kimlik-hata" required value="@Model?.TcKimlikNo" />
+                        <small id="tc-kimlik-hata" class="registration-field-error" aria-live="polite" hidden></small>
+                    </div>
+                    <div class="registration-field">
+                        <label for="Email">E-posta Adresi <span>*</span></label>
+                        <input id="Email" type="email" name="Email" placeholder="ornek@firma.com" required autocomplete="email" value="@Model?.Email" />
+                    </div>
+                    <div class="registration-field">
+                        <label for="Telefon">Telefon <span>*</span></label>
+                        <input id="Telefon" type="tel" name="Telefon" placeholder="05XX XXX XX XX" required autocomplete="tel" value="@Model?.Telefon" />
+                    </div>
+                    <div class="registration-field">
+                        <label for="FaaliyetIli">İl <span>*</span></label>
+                        <select name="FaaliyetIli" id="FaaliyetIli" data-firma-kodu-select required>
+                            <option value="">İl seçin</option>
+                            @foreach (var sehir in sehirler)
+                            {
+                                var firmaKodu = sehirFirmaKodlari.TryGetValue(sehir, out var kod) ? kod : "";
+                                <option value="@sehir" data-firma-kodu="@firmaKodu" selected="@(string.Equals(Model?.FaaliyetIli, sehir, StringComparison.CurrentCultureIgnoreCase) ? "selected" : null)">@sehir</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="registration-field">
+                        <label for="Ilce">İlçe <span>*</span></label>
+                        <input id="Ilce" type="text" name="ilce" maxlength="100" placeholder="İlçe" required value="@seciliIlce" />
+                    </div>
+                    <div class="registration-field is-address">
+                        <label for="Adres">Adres <span>*</span></label>
+                        <input id="Adres" type="text" name="Adres" placeholder="Açık firma adresi" required autocomplete="street-address" value="@Model?.Adres" />
+                    </div>
+                    <div class="registration-company-note" data-firma-kodu-target hidden></div>
                 </div>
+
+                <footer class="registration-step-actions">
+                    <a class="registration-secondary" href="/giris"><i class="bi bi-arrow-left" aria-hidden="true"></i> Girişe Dön</a>
+                    <button class="registration-primary" type="button" data-registration-next>Devam Et <i class="bi bi-arrow-right" aria-hidden="true"></i></button>
+                </footer>
             </section>
 
-            <section class="registration-section account-section" aria-labelledby="account-title">
-                <div class="registration-section-head is-green">
-                    <i class="bi bi-shield-lock" aria-hidden="true"></i>
-                    <h2 id="account-title">Hesap Güvenliği</h2>
-                </div>
-                <div class="registration-field"><label for="sifre">Şifre <span>*</span></label><input id="sifre" type="password" name="sifre" placeholder="En az 6 karakter ve 1 rakam" autocomplete="new-password" required /></div>
-                <div class="registration-field"><label for="sifreTekrar">Şifre Tekrar <span>*</span></label><input id="sifreTekrar" type="password" name="sifreTekrar" placeholder="Şifrenizi tekrar girin" autocomplete="new-password" required /></div>
-                <div class="registration-account-note"><i class="bi bi-info-circle" aria-hidden="true"></i><span>Giriş kullanıcı adınız VKN olacaktır. Yetki belgenizi kayıt sonrası panelden yükleyebilirsiniz.</span></div>
-            </section>
-        </div>
+            <section class="registration-step-panel" data-registration-step="2" aria-label="Yetki ve hesap" hidden>
+                <p class="registration-account-note">VKN, T.C. kimlik no veya e-posta adresinizle giriş yapabilirsiniz.</p>
 
-        <div class="registration-authority-grid">
-            <section class="registration-section" aria-labelledby="brands-title">
-                <div class="registration-section-head">
-                    <i class="bi bi-tags" aria-hidden="true"></i>
-                    <h2 id="brands-title">Cihaz Markaları</h2>
-                    <label class="registration-select-all"><input type="checkbox" id="tumMarkalar" onchange="TumunuSec(this)" /> Tümünü seç</label>
-                </div>
-                <div class="registration-brand-tools">
-                    <div class="registration-search"><i class="bi bi-search" aria-hidden="true"></i><input type="search" id="markaArama" placeholder="Marka ara" oninput="markaFiltrele(this.value)" /></div>
-                    <div class="registration-brand-list">
-                        @foreach (var m in ViewBag.Markalar)
-                        {
-                            <label class="registration-choice marka-item"><input type="checkbox" name="markaidleri" value="@m.Id" id="marka_@m.Id" class="marka-cb" onchange="tumKontrol()" /><span>@m.MarkaAdi</span></label>
-                        }
+                <div class="registration-password-grid">
+                    <div class="registration-field">
+                        <label for="sifre">Şifre <span>*</span></label>
+                        <div class="registration-password-control">
+                            <input id="sifre" type="password" name="sifre" placeholder="En az 6 karakter ve 1 rakam" autocomplete="new-password" required />
+                            <button type="button" data-password-toggle="sifre" aria-label="Şifreyi göster"><i class="bi bi-eye" aria-hidden="true"></i></button>
+                        </div>
+                    </div>
+                    <div class="registration-field">
+                        <label for="sifreTekrar">Şifre tekrar <span>*</span></label>
+                        <div class="registration-password-control">
+                            <input id="sifreTekrar" type="password" name="sifreTekrar" placeholder="Şifrenizi tekrar girin" autocomplete="new-password" required />
+                            <button type="button" data-password-toggle="sifreTekrar" aria-label="Şifreyi göster"><i class="bi bi-eye" aria-hidden="true"></i></button>
+                        </div>
                     </div>
                 </div>
-            </section>
 
-            <section class="registration-section" aria-labelledby="services-title">
-                <div class="registration-section-head is-amber">
-                    <i class="bi bi-tools" aria-hidden="true"></i>
-                    <h2 id="services-title">Hizmet Türleri</h2>
-                </div>
-                <div class="registration-service-list">
-                    @foreach (var k in kategoriler)
-                    {
-                        <label class="registration-choice is-service">
-                            <input type="checkbox" name="kategoriidleri" value="@k.Id" />
-                            <span class="registration-service-icon">@if (!string.IsNullOrWhiteSpace(k.IconUrl)){<img src="@k.IconUrl" alt="" />}else{<i class="bi bi-fire" aria-hidden="true"></i>}</span>
-                            <span>@k.Ad</span>
-                        </label>
-                    }
-                </div>
-            </section>
-        </div>
+                <div class="registration-selection-grid">
+                    <section class="registration-selection" aria-labelledby="brands-title">
+                        <div class="registration-selection-head">
+                            <div><i class="bi bi-tags" aria-hidden="true"></i><h2 id="brands-title">Cihaz markaları</h2></div>
+                            <label class="registration-select-all"><input type="checkbox" id="tumMarkalar" /> Tümünü seç</label>
+                        </div>
+                        <div class="registration-search"><i class="bi bi-search" aria-hidden="true"></i><input type="search" id="markaArama" placeholder="Marka ara" aria-label="Marka ara" /></div>
+                        <div class="registration-brand-list">
+                            @foreach (var m in ViewBag.Markalar)
+                            {
+                                <label class="registration-choice marka-item"><input type="checkbox" name="markaidleri" value="@m.Id" class="marka-cb" checked="@(seciliMarkalar.Contains(m.Id) ? "checked" : null)" /><span>@m.MarkaAdi</span></label>
+                            }
+                        </div>
+                    </section>
 
-        <footer class="registration-actions">
-            <div><a class="registration-cancel" href="/giris">Vazgeç</a><button class="registration-submit" type="submit"><i class="bi bi-send-check" aria-hidden="true"></i> Başvuruyu Tamamla</button></div>
-        </footer>
-    </form>
+                    <section class="registration-selection is-service-selection" aria-labelledby="services-title">
+                        <div class="registration-selection-head">
+                            <div><i class="bi bi-tools" aria-hidden="true"></i><h2 id="services-title">Hizmet türleri</h2></div>
+                        </div>
+                        <div class="registration-service-list">
+                            @foreach (var k in kategoriler)
+                            {
+                                <label class="registration-choice is-service">
+                                    <input type="checkbox" name="kategoriidleri" value="@k.Id" checked="@(seciliKategoriler.Contains(k.Id) ? "checked" : null)" />
+                                    <span class="registration-service-icon">
+                                        @if (!string.IsNullOrWhiteSpace(k.IconUrl))
+                                        {
+                                            <img src="@k.IconUrl" alt="" />
+                                        }
+                                        else
+                                        {
+                                            <i class="bi @KategoriIkonu(k.Ad)" aria-hidden="true"></i>
+                                        }
+                                    </span>
+                                    <span>@k.Ad</span>
+                                </label>
+                            }
+                        </div>
+                    </section>
+                </div>
+
+                <footer class="registration-step-actions">
+                    <button class="registration-secondary" type="button" data-registration-back><i class="bi bi-arrow-left" aria-hidden="true"></i> Geri</button>
+                    <button class="registration-primary is-submit" type="submit"><i class="bi bi-send-check" aria-hidden="true"></i> Kaydı Tamamla</button>
+                </footer>
+            </section>
+        </form>
+    </section>
 </main>
 
 @section Scripts {
-<script>
-function firmaKoduBilgisiniGuncelle() {
-    const select = document.querySelector('[data-firma-kodu-select]');
-    const target = document.querySelector('[data-firma-kodu-target]');
-    if (!select || !target) return;
-    const option = select.options[select.selectedIndex];
-    const firmaKodu = option ? option.getAttribute('data-firma-kodu') : '';
-    target.textContent = firmaKodu ? 'Firma kodu: ' + firmaKodu : '';
-    target.hidden = !firmaKodu;
-}
-function markaFiltrele(value) {
-    const query = (value || '').toLocaleLowerCase('tr-TR').trim();
-    document.querySelectorAll('.marka-item').forEach(item => { item.hidden = !item.textContent.toLocaleLowerCase('tr-TR').includes(query); });
-}
-function TumunuSec(element) {
-    document.querySelectorAll('.marka-cb').forEach(input => { input.checked = element.checked; });
-}
-function tumKontrol() {
-    const inputs = Array.from(document.querySelectorAll('.marka-cb'));
-    const all = document.getElementById('tumMarkalar');
-    if (all) all.checked = inputs.length > 0 && inputs.every(input => input.checked);
-}
-document.addEventListener('DOMContentLoaded', function () {
-    const select = document.querySelector('[data-firma-kodu-select]');
-    select?.addEventListener('change', firmaKoduBilgisiniGuncelle);
-    firmaKoduBilgisiniGuncelle();
-});
-</script>
+    <script src="~/js/registration.js" asp-append-version="true"></script>
 }

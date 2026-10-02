@@ -332,13 +332,15 @@ namespace YetkiliServisGazAcma.Business.Services
         {
             public List<AdminYetkiliServisCevap> Servisler { get; set; } = new();
             public Dictionary<int, int> DevreyeSayilari { get; set; } = new();
+            public Dictionary<int, string> Ilceler { get; set; } = new();
 
             public AdminYetkiliServisListeSonuc ToSonuc()
             {
                 return new AdminYetkiliServisListeSonuc
                 {
                     Servisler = Servisler.Select(x => x.ToEntity()).ToList(),
-                    DevreyeSayilari = DevreyeSayilari
+                    DevreyeSayilari = DevreyeSayilari,
+                    Ilceler = Ilceler
                 };
             }
         }

@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Identity;
 
 namespace YetkiliServisGazAcma.Controllers
 {
-    [Authorize(Roles = "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel")]
+    [Authorize(Roles = "GenelSistemAdmin,SirketAdmin,SuperAdmin")]
     [ApiExplorerSettings(IgnoreApi = true)]
     public class MarkaController : Controller
     {
@@ -67,7 +67,10 @@ namespace YetkiliServisGazAcma.Controllers
 
         public async Task<IActionResult> Index(string? q, string? durum)
         {
-            var markalar = await _markaApiClient.TumunuGetirAsync();
+            var kullanici = await GetCurrentUser();
+            if (kullanici == null) return Redirect("/giris");
+
+            var markalar = await _markaApiClient.TumunuGetirAsync(kullanici);
             ViewBag.MarkaVeriKaynagi = "API";
 
             if (markalar == null)
@@ -97,7 +100,6 @@ namespace YetkiliServisGazAcma.Controllers
             var dashboard = await GetDashboardOzetAsync();
             ViewBag.OnayBekleyen = dashboard?.OnayBekleyen ?? 0;
             ViewBag.SuresiBitecek = dashboard?.SuresiBitecek ?? 0;
-            var kullanici = await GetCurrentUser();
             ViewBag.Kullanici = kullanici;
             ViewBag.GenelSistemAdminMi = kullanici != null && await _aktifSirketService.GenelSistemAdminMi(kullanici);
             return View(markalar);

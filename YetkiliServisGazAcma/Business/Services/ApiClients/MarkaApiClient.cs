@@ -24,11 +24,11 @@ namespace YetkiliServisGazAcma.Business.Services
             _logger = logger;
         }
 
-        public async Task<List<Ys_Marka>?> TumunuGetirAsync()
+        public async Task<List<Ys_Marka>?> AktifleriGetirAsync()
         {
             if (!_options.Enabled)
             {
-                ApiClientFallback.EnsureAllowed(_options, "Marka liste");
+                ApiClientFallback.EnsureAllowed(_options, "Aktif marka listesi");
                 return null;
             }
 
@@ -36,12 +36,12 @@ namespace YetkiliServisGazAcma.Business.Services
             {
                 var response = await _httpClient.PostAsJsonAsync(
                     "api/marka/liste",
-                    new MarkaListeIstek { TumunuGetir = true });
+                    new MarkaListeIstek());
 
                 if (!response.IsSuccessStatusCode)
                 {
                     _logger.LogWarning("Marka API liste cagrisinda basarisiz yanit dondu. StatusCode: {StatusCode}", response.StatusCode);
-                    ApiClientFallback.EnsureAllowed(_options, "Marka liste");
+                    ApiClientFallback.EnsureAllowed(_options, "Aktif marka listesi");
                     return null;
                 }
 
@@ -53,10 +53,24 @@ namespace YetkiliServisGazAcma.Business.Services
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
             {
-                _logger.LogWarning(ex, "Marka API liste cagrisina ulasilamadi.");
-                ApiClientFallback.EnsureAllowed(_options, "Marka liste");
+                _logger.LogWarning(ex, "Aktif marka API liste cagrisina ulasilamadi.");
+                ApiClientFallback.EnsureAllowed(_options, "Aktif marka listesi");
                 return null;
             }
+        }
+
+        public async Task<List<Ys_Marka>?> TumunuGetirAsync(AppKullanici kullanici)
+        {
+            var markalar = await PostAsync<MarkaListeIstek, List<MarkaApiDto>>(
+                kullanici,
+                "api/marka/liste",
+                new MarkaListeIstek { TumunuGetir = true },
+                "Marka yönetim listesi");
+
+            return markalar?
+                .Select(x => x.ToEntity())
+                .OrderBy(x => x.MarkaAdi)
+                .ToList();
         }
 
         public async Task<Ys_Marka?> GetirAsync(AppKullanici kullanici, int id)

@@ -17,7 +17,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (kapsam.gecersiz)
                 return Forbid();
 
-            if (!await KullaniciYonetebilirMi(kullanici, kapsam.sirketId))
+            if (!PersonelYetkiYonetimKurali.YonetebilirMi(kullanici, kapsam.sirketId))
                 return Forbid();
 
             if (dto == null)
@@ -35,6 +35,9 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (string.IsNullOrWhiteSpace(dto.Email))
                 return Ok(AdminIslemSonucDto.Basarisiz("E-posta zorunludur."));
 
+            if (!CepTelefonuKurali.GecerliMi(dto.Telefon))
+                return Ok(AdminIslemSonucDto.Basarisiz("Telefon numarasi 05XXXXXXXXX veya 90XXXXXXXXXX formatinda olmalidir."));
+
             var sifreHatalari = ValidatePassword(dto.Sifre);
             if (sifreHatalari.Count > 0)
                 return Ok(AdminIslemSonucDto.Basarisiz(string.Join(" ", sifreHatalari)));
@@ -42,13 +45,15 @@ namespace YetkiliServisGazAcma.API.Controllers
             var email = dto.Email.Trim();
             var mevcut = await _userManager.FindByEmailAsync(email);
             if (mevcut != null)
-                return Ok(AdminIslemSonucDto.Basarisiz("Bu e-posta ile kayitli bir kullanici zaten var."));
+                return Ok(AdminIslemSonucDto.Basarisiz(mevcut.ArsivlemeTarihi.HasValue
+                    ? "Bu e-posta arşivlenmiş bir hesaba aittir. İşlem geçmişini korumak için yeni hesapta farklı bir e-posta adresi kullanın."
+                    : "Bu e-posta ile kayitli bir kullanici zaten var."));
 
             var yeni = new AppKullanici
             {
                 UserName = email,
                 Email = email,
-                PhoneNumber = dto.Telefon,
+                PhoneNumber = dto.Telefon?.Trim(),
                 AdSoyad = dto.AdSoyad.Trim(),
                 KullaniciTipi = KullaniciTipiDegerleri.Personel,
                 SirketId = dto.SirketId,

@@ -60,6 +60,12 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
 
+            var adminRoluVar = User.IsInRole(KullaniciRolAdlari.GenelSistemAdmin)
+                || User.IsInRole(KullaniciRolAdlari.EskiSuperAdmin)
+                || User.IsInRole(KullaniciRolAdlari.SirketAdmin);
+            if (!adminRoluVar && User.IsInRole(KullaniciRolAdlari.Personel))
+                return Redirect("/personel-panel");
+
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
             var dashboard = await GetAdminDashboardOzetAsync(kullanici, sirketId);
             ViewBag.AdminDashboardVeriKaynagi = "API";
@@ -81,6 +87,7 @@ namespace YetkiliServisGazAcma.Controllers
 
             ViewBag.Kullanici = kullanici;
             var genelSistemAdminMi = await _aktifSirketService.GenelSistemAdminMi(kullanici);
+            ViewBag.GenelSistemAdminMi = genelSistemAdminMi;
             var sirketler = await _aktifSirketService.KullaniciSirketleriAsync(kullanici);
             var aktifSirketAdi = sirketId.HasValue
                 ? sirketler.FirstOrDefault(x => x.Id == sirketId.Value)?.SirketAdi
@@ -302,7 +309,7 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpGet("kullanicilar/ekle")]
-        public async Task<IActionResult> KullaniciEkle()
+        public async Task<IActionResult> KullaniciEkle(int? firmaId)
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
@@ -311,6 +318,13 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.Kullanici = kullanici;
             ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
             await KullaniciFormSecenekleriHazirla(kullanici);
+            var seciliFirma = (ViewBag.Firmalar as List<Ys_Firma>)?.FirstOrDefault(x => x.Id == firmaId);
+            if (seciliFirma != null)
+            {
+                ViewBag.FormRol = "YetkiliServis";
+                ViewBag.FormFirmaId = seciliFirma.Id;
+                ViewBag.FormSirketId = seciliFirma.SirketId;
+            }
             return View("~/Views/AdminPanel/KullaniciEkle.cshtml");
         }
 
@@ -452,7 +466,7 @@ namespace YetkiliServisGazAcma.Controllers
 
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
             var sonuc = await _adminKullaniciApiClient.SilAsync(kullanici, id, aktifSirketId, sadecePersonel: true);
-            SetKullaniciIslemMesaji(sonuc, "Personel silindi.");
+            SetKullaniciIslemMesaji(sonuc, "Personel arşivlendi.");
             return Redirect("/AdminPanel/personeller");
         }
 
@@ -480,7 +494,7 @@ namespace YetkiliServisGazAcma.Controllers
 
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
             var sonuc = await _adminKullaniciApiClient.SilAsync(kullanici, id, aktifSirketId, sadecePersonel: false);
-            SetKullaniciIslemMesaji(sonuc, "Kullanici silindi.");
+            SetKullaniciIslemMesaji(sonuc, "Kullanıcı arşivlendi.");
             return Redirect("/AdminPanel/kullanicilar");
         }
 
@@ -500,6 +514,7 @@ namespace YetkiliServisGazAcma.Controllers
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
+            if (!PersonelYetkiYonetimKurali.YonetebilirMi(kullanici, kullanici.SirketId)) return Forbid();
 
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
             AdminYetkiListeSonuc? sonuc;
@@ -515,10 +530,10 @@ namespace YetkiliServisGazAcma.Controllers
 
             var yetkiIsimler = new Dictionary<string, string>
             {
-                [YetkiTipleri.YETKI_BELGESI_ONAY] = "Yetki Belgesi Onay",
-                [YetkiTipleri.RAPOR_GOR] = "Rapor Gor",
-                [YetkiTipleri.KULLANICI_YONET] = "Kullanici Yonet",
-                [YetkiTipleri.MARKA_YONET] = "Marka Yonet",
+                [YetkiTipleri.YETKI_BELGESI_ONAY] = "Yetki Belgesi Onay ve Red",
+                [YetkiTipleri.RAPOR_GOR] = "Devreye Alma Kayıtları ve Raporları",
+                [YetkiTipleri.KULLANICI_YONET] = "Yetkili Servis Yönetimi",
+                [YetkiTipleri.MARKA_YONET] = "Marka Yönetimi",
                 [YetkiTipleri.YKC_TALEP_GOR] = "YKC Taleplerini Gör",
                 [YetkiTipleri.YKC_ATAMA_YAP] = "YKC Atama ve Randevu",
                 [YetkiTipleri.YKC_FR265_IMZA_ISLEM] = "YKC FR265 ve İmza İşlemleri",
@@ -534,6 +549,7 @@ namespace YetkiliServisGazAcma.Controllers
                     x => x.Key,
                     x => x.Value.Where(y => y != YetkiTipleri.DAGITIM_SIRKET_YONET).ToList());
             ViewBag.YetkiSirketAdlariMap = sonuc?.YetkiSirketAdlariMap ?? new Dictionary<string, List<string>>();
+            ViewBag.SirketYetkileri = sonuc?.SirketYetkileri ?? new Dictionary<string, List<AdminSirketYetkiOzeti>>();
             ViewBag.YetkiIsimler = yetkiIsimler;
             return View("~/Views/AdminPanel/Yetkiler.cshtml");
         }
@@ -544,6 +560,7 @@ namespace YetkiliServisGazAcma.Controllers
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
+            if (!PersonelYetkiYonetimKurali.YonetebilirMi(kullanici, kullanici.SirketId)) return Forbid();
 
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
             AdminYetkiDuzenleSonuc? sonuc;
@@ -585,6 +602,7 @@ namespace YetkiliServisGazAcma.Controllers
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
+            if (!PersonelYetkiYonetimKurali.YonetebilirMi(kullanici, kullanici.SirketId)) return Forbid();
 
             var secilenSirketIds = (sirketIds ?? new List<int>())
                 .Distinct()

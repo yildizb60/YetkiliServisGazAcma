@@ -28,8 +28,8 @@
 }
 
 <partial name="_LoginHeader" />
-<main class="login-shell">
-    <div class="login-visual" aria-hidden="true"></div>
+<main class="login-shell login-shell--panel">
+    <partial name="_LoginShowcase" />
     <section class="login-side" aria-label="Kullanıcı girişi">
         <div class="login-card">
             <header class="login-card-head">
@@ -73,7 +73,7 @@
             {
                 <form method="post" action="/giris/sifre-unuttum">
                     @Html.AntiForgeryToken()
-                    <div class="login-field"><label for="sifre-kullanici">VKN veya E-posta</label><input id="sifre-kullanici" type="text" name="kullaniciAdi" placeholder="VKN veya e-posta adresiniz" autocomplete="username" required /></div>
+                    <div class="login-field"><label for="sifre-kullanici">VKN, T.C. Kimlik No veya E-posta</label><input id="sifre-kullanici" type="text" name="kullaniciAdi" placeholder="Kayıtlı giriş bilginiz" autocomplete="username" required /></div>
                     <button type="submit" class="login-submit">SMS Kodu Gönder</button>
                 </form>
                 <a class="login-link" href="/giris">Giriş ekranına dön</a>

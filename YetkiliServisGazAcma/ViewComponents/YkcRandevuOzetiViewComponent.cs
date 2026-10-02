@@ -12,13 +12,14 @@ public sealed class YkcRandevuOzetiModel
     public List<YkcTakvimGunOzeti> AyGunleri { get; init; } = new();
     public bool FirmaGorunumu { get; init; }
     public string Gorunum { get; init; } = "ay";
+    public string? Baslik { get; init; }
 }
 
 public sealed class YkcRandevuOzetiViewComponent(
     ApiKullaniciOturumu users, PanelKapsamApiClient yetki, YkcApiClient api, AktifSirketService sirket,
     ILogger<YkcRandevuOzetiViewComponent> logger) : ViewComponent
 {
-    public async Task<IViewComponentResult> InvokeAsync()
+    public async Task<IViewComponentResult> InvokeAsync(string? baslik = null)
     {
         var user = await users.GetUserAsync(HttpContext.User);
         if (user == null) return Content("");
@@ -50,12 +51,12 @@ public sealed class YkcRandevuOzetiViewComponent(
                 Baslangic = ayBasi, Bitis = ayBasi.AddMonths(1).AddDays(-1), Il = filtre.Il,
                 Bolge = filtre.Bolge, Personel = filtre.Personel, Musteri = filtre.Musteri, TesisatNo = filtre.TesisatNo
             });
-            return View(new YkcRandevuOzetiModel { Tarih = tarih, Filtre = filtre, Gun = gun, AyGunleri = ay?.Gunler ?? new(), FirmaGorunumu = firmaGorunumu, Gorunum = gorunum });
+            return View(new YkcRandevuOzetiModel { Tarih = tarih, Filtre = filtre, Gun = gun, AyGunleri = ay?.Gunler ?? new(), FirmaGorunumu = firmaGorunumu, Gorunum = gorunum, Baslik = baslik });
         }
         catch (ApiIntegrationException ex)
         {
             logger.LogWarning(ex, "Ana panel randevuları alınamadı.");
-            return View(new YkcRandevuOzetiModel { Tarih = tarih, Filtre = filtre, FirmaGorunumu = firmaGorunumu, Gorunum = gorunum });
+            return View(new YkcRandevuOzetiModel { Tarih = tarih, Filtre = filtre, FirmaGorunumu = firmaGorunumu, Gorunum = gorunum, Baslik = baslik });
         }
     }
 }

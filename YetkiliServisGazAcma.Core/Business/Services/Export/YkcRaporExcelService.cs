@@ -10,11 +10,11 @@ namespace YetkiliServisGazAcma.Business.Services
             };
 
             if (icOperasyon)
-                basliklar.AddRange(new[] { "Sertifikalı Firma", "Dağıtım Şirketi", "Projedeki Cihaz Türü", "Projedeki Marka", "Projedeki Kapasite" });
+                basliklar.AddRange(new[] { "Sertifikalı Firma", "Dağıtım Şirketi", "Projedeki Cihaz Türü", "Projedeki Marka", "Projedeki Kapasite", "Projedeki Baca Tipi" });
 
             basliklar.AddRange(new[]
             {
-                "Yeni Kullanılan Cihaz Türü", "Yeni Kullanılan Cihaz Markası", "Yeni Kullanılan Cihaz Modeli", "Yeni Kullanılan Cihaz Kapasitesi", "İkinci El",
+                "Yeni Kullanılan Cihaz Türü", "Yeni Kullanılan Cihaz Markası", "Yeni Kullanılan Cihaz Modeli", "Yeni Kullanılan Cihaz Kapasitesi", "Yeni Kullanılan Baca Tipi", "İkinci El",
                 "Kontrol Randevusu", "İl", "İlçe", "Bölge"
             });
 
@@ -43,7 +43,8 @@ namespace YetkiliServisGazAcma.Business.Services
                         kayit.SirketAdi ?? "",
                         kayit.EskiCihazTipi ?? "",
                         kayit.EskiMarka ?? "",
-                        kayit.EskiKapasite ?? ""
+                        kayit.EskiKapasite ?? "",
+                        kayit.EskiBacaTipi ?? ""
                     });
                 }
 
@@ -53,6 +54,7 @@ namespace YetkiliServisGazAcma.Business.Services
                     kayit.YeniMarka ?? "",
                     kayit.YeniModel ?? "",
                     kayit.YeniKapasite ?? "",
+                    kayit.YeniBacaTipi ?? "",
                     kayit.IkinciElCihazMi == true ? "Evet" : kayit.IkinciElCihazMi == false ? "Hayır" : "",
                     Randevu(kayit),
                     kayit.Il ?? "",

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using YetkiliServisGazAcma.API.Services;
 using YetkiliServisGazAcma.Business.Services;
@@ -17,7 +18,7 @@ namespace YetkiliServisGazAcma.API.Controllers;
 public sealed class AuthController(UserManager<AppKullanici> users, SignInManager<AppKullanici> signIn,
     SmsDogrulamaService sms, ISertifikaliFirmaKimlikProvider external,
     IOptions<SertifikaliFirmaKimlikOptions> externalOptions, IOptions<SmsOptions> smsOptions,
-    IDataProtectionProvider protection, OturumTokenService tokens) : ControllerBase
+    IDataProtectionProvider protection, OturumTokenService tokens, AppDbContext context) : ControllerBase
 {
     private const string LoginError = "Kullanıcı adı veya şifre hatalı.";
     private readonly ITimeLimitedDataProtector _challengeProtector = protection.CreateProtector("API.Auth.Challenge.v1").ToTimeLimitedDataProtector();
@@ -36,7 +37,7 @@ public sealed class AuthController(UserManager<AppKullanici> users, SignInManage
             user = await FindAsync(string.IsNullOrWhiteSpace(identity.YerelKullaniciAdi) ? dto.Email : identity.YerelKullaniciAdi);
             if (user?.KullaniciTipi != KullaniciTipiDegerleri.SertifikaliFirma) return Error(LoginError, 401);
         }
-        if (user == null || !user.AktifMi || await users.IsLockedOutAsync(user)) return Error(LoginError, 401);
+        if (user == null || !user.AktifMi || user.ArsivlemeTarihi != null || await users.IsLockedOutAsync(user)) return Error(LoginError, 401);
         if (identity == null)
         {
             var result = await signIn.CheckPasswordSignInAsync(user, dto.Sifre, lockoutOnFailure: true);
@@ -51,7 +52,18 @@ public sealed class AuthController(UserManager<AppKullanici> users, SignInManage
             if (!sms.SmsGirisAktifMi) return Error("Telefon doğrulaması için SMS servisi yapılandırılmalıdır.", 503);
             if (identity != null && string.IsNullOrWhiteSpace(identity.DogrulamaReferansi))
                 return Error("Kimlik servisi doğrulama işlem referansı döndürmedi.", 503);
-            return await ChallengeAsync(user, "GIRIS", identity?.DogrulamaReferansi, identity?.Telefon);
+            var phone = identity?.Telefon;
+            if (identity == null && user.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis
+                && string.IsNullOrWhiteSpace(user.PhoneNumber) && user.FirmaId.HasValue)
+            {
+                var firmPhone = await context.Ys_Firmalar.AsNoTracking()
+                    .Where(f => f.Id == user.FirmaId.Value && !f.SilindiMi)
+                    .Select(f => f.Telefon)
+                    .FirstOrDefaultAsync();
+                if (CepTelefonuKurali.GecerliMi(firmPhone))
+                    phone = firmPhone;
+            }
+            return await ChallengeAsync(user, "GIRIS", identity?.DogrulamaReferansi, phone);
         }
         if (!string.IsNullOrWhiteSpace(identity?.DogrulamaReferansi))
         {
@@ -82,7 +94,7 @@ public sealed class AuthController(UserManager<AppKullanici> users, SignInManage
     {
         var user = await FindAsync(dto.KullaniciAdi);
         // Unknown accounts never receive a usable verification challenge.
-        if (user == null || !user.AktifMi)
+        if (user == null || !user.AktifMi || user.ArsivlemeTarihi != null)
             return Ok(new OturumSonucu { Basarili = true, Dogrulama = Convert.ToHexString(RandomNumberGenerator.GetBytes(64)),
                 Mesaj = "Bilgileriniz kayıtlıysa telefonunuza doğrulama kodu gönderildi." });
         return await ChallengeAsync(user, "SIFRE_SIFIRLA", null, null);
@@ -108,14 +120,16 @@ public sealed class AuthController(UserManager<AppKullanici> users, SignInManage
     public async Task<IActionResult> Me()
     {
         var user = await users.GetUserAsync(User);
-        return user?.AktifMi == true ? Ok(new OturumSonucu { Basarili = true, Kullanici = await tokens.KullaniciAsync(user) }) : Unauthorized();
+        return (user?.AktifMi == true && user.ArsivlemeTarihi == null) ? Ok(new OturumSonucu { Basarili = true, Kullanici = await tokens.KullaniciAsync(user) }) : Unauthorized();
     }
 
     [Authorize, HttpPut("profil")]
     public async Task<IActionResult> Profile(ProfilGuncelleIstegi dto)
     {
         var user = await users.GetUserAsync(User);
-        if (user?.AktifMi != true) return Unauthorized();
+        if (user?.AktifMi != true || user.ArsivlemeTarihi != null) return Unauthorized();
+        if (!CepTelefonuKurali.GecerliMi(dto.PhoneNumber))
+            return Error("Telefon numarası 05XXXXXXXXX veya 90XXXXXXXXXX formatında olmalıdır.");
         user.AdSoyad = dto.AdSoyad.Trim();
         var emailChanged = !string.Equals(user.Email, dto.Email.Trim(), StringComparison.OrdinalIgnoreCase);
         var phoneChanged = user.PhoneNumber != dto.PhoneNumber?.Trim();
@@ -132,7 +146,7 @@ public sealed class AuthController(UserManager<AppKullanici> users, SignInManage
     public async Task<IActionResult> Password(SifreDegistirIstegi dto)
     {
         var user = await users.GetUserAsync(User);
-        if (user?.AktifMi != true) return Unauthorized();
+        if (user?.AktifMi != true || user.ArsivlemeTarihi != null) return Unauthorized();
         var result = await users.ChangePasswordAsync(user, dto.MevcutSifre, dto.YeniSifre);
         return result.Succeeded ? Ok(await tokens.OlusturAsync(user)) : IdentityError(result);
     }
@@ -156,12 +170,48 @@ public sealed class AuthController(UserManager<AppKullanici> users, SignInManage
         catch (Exception ex) when (ex is CryptographicException or JsonException) { return (null, null); }
         if (challenge?.Purpose != purpose) return (null, null);
         var user = await users.FindByIdAsync(challenge.UserId);
-        if (user?.AktifMi != true || await users.IsLockedOutAsync(user) || await users.GetSecurityStampAsync(user) != challenge.Stamp)
+        if (user?.AktifMi != true || user.ArsivlemeTarihi != null || await users.IsLockedOutAsync(user) || await users.GetSecurityStampAsync(user) != challenge.Stamp)
             return (null, null);
         return (challenge, user);
     }
 
-    private async Task<AppKullanici?> FindAsync(string login) => await users.FindByEmailAsync(login.Trim()) ?? await users.FindByNameAsync(login.Trim());
+    private async Task<AppKullanici?> FindAsync(string login)
+    {
+        var value = login.Trim();
+        var user = await users.FindByEmailAsync(value);
+        if (user != null)
+            return user;
+
+        user = await users.FindByNameAsync(value);
+        int firmId;
+        // Arsivde kalan VKN kullanici adi, ayni firmanin yeni hesabini engellememeli.
+        if (user?.ArsivlemeTarihi != null && user.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis
+            && user.FirmaId.HasValue && await context.Ys_Firmalar.AnyAsync(f =>
+                f.Id == user.FirmaId.Value && !f.SilindiMi && f.AktifMi && f.VergiNo == value))
+        {
+            firmId = user.FirmaId.Value;
+        }
+        else
+        {
+            if (user != null || value.Length != 11 || !value.All(char.IsDigit))
+                return user;
+
+            var firmIds = await context.Ys_Firmalar.AsNoTracking()
+                .Where(f => !f.SilindiMi && f.TcKimlikNo == value)
+                .Select(f => f.Id)
+                .Take(2)
+                .ToListAsync();
+            if (firmIds.Count != 1)
+                return null;
+            firmId = firmIds[0];
+        }
+
+        var serviceUsers = await users.Users
+            .Where(u => u.FirmaId == firmId && u.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis && u.AktifMi && u.ArsivlemeTarihi == null)
+            .Take(2)
+            .ToListAsync();
+        return serviceUsers.Count == 1 ? serviceUsers[0] : null;
+    }
     private IActionResult Error(string message, int status = 400) => StatusCode(status, new OturumSonucu { Mesaj = message });
     private IActionResult IdentityError(IdentityResult result) => Error(string.Join(" ", result.Errors.Select(x => x.Description)));
 

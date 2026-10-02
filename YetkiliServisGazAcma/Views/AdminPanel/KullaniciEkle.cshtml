@@ -15,10 +15,12 @@
         formRol = "Personel";
     }
     int formSirketId = ViewBag.FormSirketId is int s ? s : 0;
+    int formFirmaId = ViewBag.FormFirmaId is int f ? f : 0;
     var sirketler = ViewBag.Sirketler as List<YetkiliServisGazAcma.Entities.Dag_Sirket> ?? new();
+    var firmalar = ViewBag.Firmalar as List<YetkiliServisGazAcma.Entities.Ys_Firma> ?? new();
 }
 
-<div class="df-admin-workspace df-admin-editor df-user-create-workspace">
+<div class="df-admin-workspace df-admin-editor df-user-create-workspace df-management-form">
 
     <section class="df-admin-form-card">
         <div class="df-admin-form-body">
@@ -27,7 +29,7 @@
                 <div class="df-alert df-alert-danger">@ViewBag.Hata</div>
             }
 
-            <form method="post" action="/AdminPanel/Kullanicilar/ekle">
+            <form method="post" action="/AdminPanel/Kullanicilar/ekle" class="df-account-editor-form is-user-create">
                 @Html.AntiForgeryToken()
 
                 <section class="df-admin-form-section">
@@ -35,12 +37,11 @@
                         <span><i class="bi bi-diagram-3"></i></span>
                         <div>
                             <h3>Rol ve Bağlantı</h3>
-                            <p>Kullanıcının sistemde ne yapacağını ve hangi şirkette çalışacağını belirleyin.</p>
                         </div>
                     </div>
                     <div class="df-admin-form-grid">
                         <div class="df-admin-field is-half">
-                            <label>Rol *</label>
+                            <label for="rolSelect">Rol *</label>
                             <select name="rol" id="rolSelect" required>
                                 @if (genelSistemAdminMi)
                                 {
@@ -54,12 +55,22 @@
                             <small class="df-admin-field-note" id="roleHelp"></small>
                         </div>
                         <div class="df-admin-field is-half" id="sirketGroup">
-                            <label id="sirketLabel">Şirket *</label>
+                            <label id="sirketLabel" for="sirketIdSelect">Şirket *</label>
                             <select id="sirketIdSelect" name="SirketId">
                                 <option value="">Seçiniz</option>
                                 @foreach (var sirket in sirketler)
                                 {
                                     <option value="@sirket.Id" selected="@(formSirketId == sirket.Id)">@sirket.SirketAdi</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="df-admin-field is-half" id="firmaGroup" hidden>
+                            <label for="firmaIdSelect">Mevcut Yetkili Servis</label>
+                            <select id="firmaIdSelect" name="firmaId" disabled>
+                                <option value="">Yeni firma hesabı</option>
+                                @foreach (var firma in firmalar)
+                                {
+                                    <option value="@firma.Id" data-sirket-id="@firma.SirketId" selected="@(formFirmaId == firma.Id)">@firma.FirmaAdi</option>
                                 }
                             </select>
                         </div>
@@ -71,25 +82,24 @@
                         <span><i class="bi bi-person-vcard"></i></span>
                         <div>
                             <h3>Hesap Bilgileri</h3>
-                            <p>Oturum açacak kişiye ait temel iletişim ve giriş bilgilerini girin.</p>
                         </div>
                     </div>
                     <div class="df-admin-form-grid">
                         <div class="df-admin-field is-half">
-                            <label>Ad Soyad *</label>
-                            <input name="adSoyad" value="@formAdSoyad" autocomplete="name" required />
+                            <label for="yeniKullaniciAd">Ad Soyad *</label>
+                            <input id="yeniKullaniciAd" name="adSoyad" value="@formAdSoyad" autocomplete="name" required />
                         </div>
                         <div class="df-admin-field is-half">
-                            <label>E-Posta *</label>
-                            <input type="email" name="email" value="@formEmail" autocomplete="email" required />
+                            <label for="yeniKullaniciEmail">E-Posta *</label>
+                            <input id="yeniKullaniciEmail" type="email" name="email" value="@formEmail" autocomplete="email" required />
                         </div>
                         <div class="df-admin-field is-half">
-                            <label>Telefon</label>
-                            <input name="telefon" value="@formTelefon" autocomplete="tel" />
+                            <label for="yeniKullaniciTelefon">Telefon *</label>
+                            <input id="yeniKullaniciTelefon" type="tel" name="telefon" value="@formTelefon" autocomplete="tel" required />
                         </div>
                         <div class="df-admin-field is-half">
-                            <label>Geçici Şifre *</label>
-                            <input type="password" name="sifre" autocomplete="new-password" required />
+                            <label for="yeniKullaniciSifre">Geçici Şifre *</label>
+                            <input id="yeniKullaniciSifre" type="password" name="sifre" autocomplete="new-password" required />
                             <small class="df-admin-field-note">En az 6 karakter, en az bir küçük harf ve bir rakam.</small>
                         </div>
                     </div>
@@ -111,33 +121,43 @@
         var sirketGroup = document.getElementById("sirketGroup");
         var sirketLabel = document.getElementById("sirketLabel");
         var sirketIdSelect = document.getElementById("sirketIdSelect");
+        var firmaGroup = document.getElementById("firmaGroup");
+        var firmaIdSelect = document.getElementById("firmaIdSelect");
         var roleHelp = document.getElementById("roleHelp");
-        if (!rolSelect || !sirketGroup || !sirketLabel || !sirketIdSelect || !roleHelp) return;
+        if (!rolSelect || !sirketGroup || !sirketLabel || !sirketIdSelect || !firmaGroup || !firmaIdSelect || !roleHelp) return;
 
         function uygulaRolDavranisi() {
             var rol = (rolSelect.value || "").trim();
             var genelAdminMi = rol === "GenelSistemAdmin";
             var firmaKullanicisiMi = rol === "YetkiliServis" || rol === "SertifikaliFirma";
             var sirketGerekliMi = !genelAdminMi;
+            var mevcutServisMi = rol === "YetkiliServis" && !!firmaIdSelect.value;
 
-            sirketGroup.hidden = !sirketGerekliMi;
+            firmaGroup.hidden = rol !== "YetkiliServis";
+            firmaIdSelect.disabled = rol !== "YetkiliServis";
+            sirketGroup.hidden = !sirketGerekliMi || mevcutServisMi;
             sirketIdSelect.disabled = !sirketGerekliMi;
             sirketIdSelect.required = sirketGerekliMi;
             if (!sirketGerekliMi) sirketIdSelect.value = "";
+            if (mevcutServisMi) {
+                sirketIdSelect.value = firmaIdSelect.selectedOptions[0].dataset.sirketId || "";
+            }
 
             sirketLabel.textContent = firmaKullanicisiMi ? "Bağlı Dağıtım Şirketi *" : "Şirket *";
             if (firmaKullanicisiMi) {
-                roleHelp.textContent = "Firma hesabı oluşturulur ve seçilen dağıtım şirketine bağlanır.";
+                roleHelp.textContent = rol === "YetkiliServis" ? "Mevcut servisi seçebilir veya yeni firma hesabı oluşturabilirsiniz." : "Firma hesabı oluşturulur ve seçilen dağıtım şirketine bağlanır.";
             } else if (rol === "Personel") {
-                roleHelp.textContent = "Personelin ek işlem yetkileri Yetkiler ekranından belirlenir.";
+                roleHelp.textContent = "";
             } else if (rol === "SirketAdmin" || rol === "SuperAdmin") {
-                roleHelp.textContent = "Şirket yöneticisi yalnızca bağlı şirketteki kayıtları yönetir.";
+                roleHelp.textContent = "";
             } else {
                 roleHelp.textContent = "Sistem genelindeki yönetim hesabıdır.";
             }
+            roleHelp.hidden = !roleHelp.textContent;
         }
 
         rolSelect.addEventListener("change", uygulaRolDavranisi);
+        firmaIdSelect.addEventListener("change", uygulaRolDavranisi);
         uygulaRolDavranisi();
     })();
 </script>

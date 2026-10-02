@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using System.Security.Cryptography;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
@@ -15,6 +16,7 @@ namespace YetkiliServisGazAcma.API.Services
         private readonly IYkcImzaProvider _imzaProvider;
         private readonly IWebHostEnvironment _environment;
         private readonly ILogger<YkcImzaAkisService> _logger;
+        private readonly IConfiguration? _configuration;
 
         public YkcImzaAkisService(
             AppDbContext context,
@@ -22,7 +24,8 @@ namespace YetkiliServisGazAcma.API.Services
             YkcFr265FormService fr265FormService,
             IYkcImzaProvider imzaProvider,
             IWebHostEnvironment environment,
-            ILogger<YkcImzaAkisService> logger)
+            ILogger<YkcImzaAkisService> logger,
+            IConfiguration? configuration = null)
         {
             _context = context;
             _talepService = talepService;
@@ -30,6 +33,7 @@ namespace YetkiliServisGazAcma.API.Services
             _imzaProvider = imzaProvider;
             _environment = environment;
             _logger = logger;
+            _configuration = configuration;
         }
 
         public YkcImzaEntegrasyonDto EntegrasyonBilgisi()
@@ -46,12 +50,19 @@ namespace YetkiliServisGazAcma.API.Services
             int talepId,
             AppKullanici kullanici,
             bool genelYetkili,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            int? dogrulanmisSirketId = null)
         {
             if (!_imzaProvider.KullanilabilirMi)
                 return YkcIslemSonuc.HataliSonuc("Dijital imza sağlayıcısı henüz yapılandırılmadı; belge gönderilmedi.");
 
-            var detay = await _talepService.GetirAsync(talepId, kullanici, genelYetkili);
+            // Randevu degisikligi ile imzaya gonderim ayni talep kilidini kullanir.
+            await using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, cancellationToken);
+            await _context.Ykc_Talepler
+                .FromSqlInterpolated($"SELECT * FROM dbo.Ykc_Talepler WITH (UPDLOCK, HOLDLOCK) WHERE Id = {talepId}")
+                .AsNoTracking().Select(x => x.Id).FirstOrDefaultAsync(cancellationToken);
+
+            var detay = await _talepService.GetirAsync(talepId, kullanici, genelYetkili, dogrulanmisSirketId);
             if (detay == null)
                 return YkcIslemSonuc.HataliSonuc("Cihaz değişim talebi bulunamadı.");
 
@@ -65,7 +76,8 @@ namespace YetkiliServisGazAcma.API.Services
                 .Include(x => x.FormDosyalari)
                 .Include(x => x.ImzaSurecleri)
                     .ThenInclude(x => x.Imzacilar)
-                .FirstOrDefaultAsync(x => x.Id == talepId && !x.SilindiMi, cancellationToken);
+                .FirstOrDefaultAsync(x => x.Id == talepId && !x.SilindiMi
+                    && (!dogrulanmisSirketId.HasValue || x.SirketId == dogrulanmisSirketId.Value), cancellationToken);
 
             if (talep == null)
                 return YkcIslemSonuc.HataliSonuc("Cihaz değişim talebi bulunamadı.");
@@ -138,6 +150,8 @@ namespace YetkiliServisGazAcma.API.Services
             if (!await GonderimiSahiplenAsync(surec, kullanici.UserName, cancellationToken))
                 return YkcIslemSonuc.HataliSonuc("Form için başka bir gönderim işlemi devam ediyor.");
 
+            await transaction.CommitAsync(cancellationToken);
+
             YkcImzaGonderSonuc providerSonucu;
             try
             {
@@ -145,7 +159,7 @@ namespace YetkiliServisGazAcma.API.Services
                 {
                     TalepId = talep.Id,
                     BelgeVersiyonu = surec.BelgeVersiyonu,
-                    KontrolNo = detay.Kontroller.Where(x => x.Sonuc is YkcFr265KontrolSonucDegerleri.Uygun or YkcFr265KontrolSonucDegerleri.UygunDegil).Max(x => x.KontrolNo),
+                    KontrolNo = detay.AktifKontroller.Where(x => x.Sonuc is YkcFr265KontrolSonucDegerleri.Uygun or YkcFr265KontrolSonucDegerleri.UygunDegil).Max(x => x.FormKontrolNo),
                     BelgeAdi = taslak.DosyaAdi ?? $"Cihaz_Degisim_Formu_{talep.Id}.pdf",
                     IcerikTipi = taslak.IcerikTipi ?? "application/pdf",
                     BelgeBytes = belgeBytes,
@@ -202,23 +216,31 @@ namespace YetkiliServisGazAcma.API.Services
             int talepId,
             AppKullanici kullanici,
             bool genelYetkili,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            int? dogrulanmisSirketId = null)
         {
             if (!_imzaProvider.KullanilabilirMi)
                 return YkcIslemSonuc.HataliSonuc("Dijital imza sağlayıcısı henüz yapılandırılmadı.");
 
-            var detay = await _talepService.GetirAsync(talepId, kullanici, genelYetkili);
+            var detay = await _talepService.GetirAsync(talepId, kullanici, genelYetkili, dogrulanmisSirketId);
             if (detay == null)
                 return YkcIslemSonuc.HataliSonuc("Cihaz değişim talebi bulunamadı.");
+
+            if (detay.ImzaSureci?.Id is not int surecId)
+                return YkcIslemSonuc.HataliSonuc("İmza uygulamasına gönderilmiş bir form bulunamadı.");
+
+            await using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, cancellationToken);
+            await _context.Database.SqlQuery<int>($"SELECT [Id] AS [Value] FROM [dbo].[Ykc_ImzaSurecleri] WITH (UPDLOCK, HOLDLOCK) WHERE [Id] = {surecId}").ToListAsync(cancellationToken);
 
             var talep = await _context.Ykc_Talepler
                 .Include(x => x.FormDosyalari)
                 .Include(x => x.ImzaSurecleri)
                     .ThenInclude(x => x.Imzacilar)
-                .FirstOrDefaultAsync(x => x.Id == talepId && !x.SilindiMi, cancellationToken);
+                .FirstOrDefaultAsync(x => x.Id == talepId && !x.SilindiMi
+                    && (!dogrulanmisSirketId.HasValue || x.SirketId == dogrulanmisSirketId.Value), cancellationToken);
 
             var surec = talep == null ? null : AktifSurec(talep);
-            if (talep == null || surec == null || string.IsNullOrWhiteSpace(surec.ProviderDocumentId))
+            if (talep == null || surec?.Id != surecId || string.IsNullOrWhiteSpace(surec.ProviderDocumentId))
                 return YkcIslemSonuc.HataliSonuc("İmza uygulamasına gönderilmiş bir form bulunamadı.");
 
             if (ImzaliNihaiBelgeHazirMi(surec, talep.FormDosyalari))
@@ -234,12 +256,16 @@ namespace YetkiliServisGazAcma.API.Services
                         && await DemoNihaiBelgeyiYenileGerekiyorsaAsync(detay, talep, surec, mevcutNihaiDosya, kullanici, cancellationToken))
                     {
                         await _context.SaveChangesAsync(cancellationToken);
+                        await transaction.CommitAsync(cancellationToken);
                         return YkcIslemSonuc.BasariliSonuc("Demo PDF güncel form düzeniyle yenilendi.", talep.Id);
                     }
                 }
 
                 return YkcIslemSonuc.BasariliSonuc("İmzalı nihai belge zaten hazır.", talep.Id);
             }
+
+            if (TerminalDurumMu(talep.Durum))
+                return YkcIslemSonuc.HataliSonuc("Kapanmış talep için imza sonucu güncellenemez.");
 
             YkcImzaDurumSonuc providerSonucu;
             try
@@ -261,6 +287,7 @@ namespace YetkiliServisGazAcma.API.Services
                 surec.HataKodu = providerSonucu.HataKodu;
                 surec.HataMesaji = providerSonucu.HataMesaji;
                 await _context.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
                 return YkcIslemSonuc.HataliSonuc(providerSonucu.HataMesaji ?? "İmza durumu alınamadı.");
             }
 
@@ -287,6 +314,7 @@ namespace YetkiliServisGazAcma.API.Services
                     surec.HataKodu = "NIHAI_BELGE_YOK";
                     surec.HataMesaji = "Sağlayıcı süreci tamamlandı bildirdi ancak imzalı nihai belgeyi döndürmedi.";
                     await _context.SaveChangesAsync(cancellationToken);
+                    await transaction.CommitAsync(cancellationToken);
                     return YkcIslemSonuc.HataliSonuc(surec.HataMesaji);
                 }
 
@@ -300,6 +328,7 @@ namespace YetkiliServisGazAcma.API.Services
                     surec.HataKodu = "NIHAI_BELGE_PDF_DEGIL";
                     surec.HataMesaji = "İmza sağlayıcısının nihai belgesi PDF olmalıdır. Belge kaydedilmedi.";
                     await _context.SaveChangesAsync(cancellationToken);
+                    await transaction.CommitAsync(cancellationToken);
                     return YkcIslemSonuc.HataliSonuc(surec.HataMesaji);
                 }
                 var nihaiHash = HashOlustur(nihaiBelgeBytes);
@@ -340,6 +369,7 @@ namespace YetkiliServisGazAcma.API.Services
             }
 
             await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
             return YkcIslemSonuc.BasariliSonuc("Dijital imza durumu güncellendi.", talep.Id);
         }
 
@@ -533,20 +563,16 @@ namespace YetkiliServisGazAcma.API.Services
             if (yol.StartsWith("ykc/", StringComparison.OrdinalIgnoreCase))
                 yol = yol["ykc/".Length..];
 
-            var kok = Path.GetFullPath(PrivateBelgeKoku());
-            var fizikselYol = Path.GetFullPath(Path.Combine(kok, yol.Replace('/', Path.DirectorySeparatorChar)));
-            if (!fizikselYol.StartsWith(kok + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
-                || !File.Exists(fizikselYol))
-            {
-                return null;
-            }
+            var fizikselYol = PrivateDocumentStorage.ExistingFile(
+                _environment, _configuration, "ykc-belgeler", yol.Replace('/', Path.DirectorySeparatorChar));
+            if (fizikselYol is null) return null;
 
             return await File.ReadAllBytesAsync(fizikselYol, cancellationToken);
         }
 
         private string PrivateBelgeKoku()
         {
-            return Path.Combine(_environment.ContentRootPath, "App_Data", "ykc-belgeler");
+            return PrivateDocumentStorage.Root(_environment, _configuration, "ykc-belgeler");
         }
 
         private static Ykc_ImzaSureci? AktifSurec(Ykc_Talep talep)
@@ -734,8 +760,7 @@ namespace YetkiliServisGazAcma.API.Services
                 return false;
             }
 
-            var sonKontrol = detay.Kontroller
-                .Where(x => x.KontrolNo is >= 1 and <= 5)
+            var sonKontrol = detay.AktifKontroller
                 .Where(x => x.Sonuc == YkcFr265KontrolSonucDegerleri.Uygun
                     || x.Sonuc == YkcFr265KontrolSonucDegerleri.UygunDegil)
                 .OrderByDescending(x => x.KontrolNo)
@@ -745,6 +770,14 @@ namespace YetkiliServisGazAcma.API.Services
             if (sonKontrol == null)
             {
                 mesaj = "Form imzaya gönderilmeden önce randevu sonrası en az bir kontrol sonucu girilmelidir.";
+                return false;
+            }
+
+            if (!TimeSpan.TryParse(detay.RandevuSaati, out var saat)
+                || detay.RandevuTarihi.Value.Date.Add(saat) > DateTime.Now
+                || detay.AktifAtamaId == null || sonKontrol.AtamaId != detay.AktifAtamaId)
+            {
+                mesaj = "Form için güncel randevunun gerçekleşmesi ve bu randevuya ait kontrol sonucunun kaydedilmesi gerekir.";
                 return false;
             }
 

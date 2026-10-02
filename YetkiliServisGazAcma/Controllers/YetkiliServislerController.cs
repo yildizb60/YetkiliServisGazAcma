@@ -1,6 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using System.Globalization;
-using System.Text;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models.ViewModels;
@@ -11,15 +9,6 @@ namespace YetkiliServisGazAcma.Controllers
     [Route("yetkili-servisler")]
     public class YetkiliServislerController : Controller
     {
-        private static readonly string[] KullanilanKategoriAnahtarlari =
-        {
-            "merkezikazan",
-            "kombi",
-            "sofben",
-            "ocak",
-            "gazkullanicicihazlar"
-        };
-
         private readonly YetkiliServisApiClient _yetkiliServisApiClient;
 
         public YetkiliServislerController(YetkiliServisApiClient yetkiliServisApiClient)
@@ -44,14 +33,7 @@ namespace YetkiliServisGazAcma.Controllers
                     ?? new YetkiliServisApiClient.YetkiliServisFiltreSecenekleri();
 
                 filtreSecenekleri.Kategoriler = filtreSecenekleri.Kategoriler
-                    .Where(x => KullanilanKategoriMi(x.Ad))
-                    .GroupBy(x => NormalizeKategori(x.Ad))
-                    .Select(g => g
-                        .OrderByDescending(x => x.AktifMi)
-                        .ThenBy(x => string.IsNullOrWhiteSpace(x.IconUrl) ? 1 : 0)
-                        .ThenBy(x => x.SiraNo)
-                        .ThenBy(x => x.Ad)
-                        .First())
+                    .Where(x => x.AktifMi)
                     .OrderBy(x => x.SiraNo)
                     .ThenBy(x => x.Ad)
                     .ToList();
@@ -59,7 +41,7 @@ namespace YetkiliServisGazAcma.Controllers
                 if (kategoriId.HasValue)
                 {
                     var secilenKategori = filtreSecenekleri.Kategoriler.FirstOrDefault(x => x.Id == kategoriId.Value);
-                    if (secilenKategori == null || !KullanilanKategoriMi(secilenKategori.Ad))
+                    if (secilenKategori == null)
                         kategoriId = null;
                 }
 
@@ -107,36 +89,6 @@ namespace YetkiliServisGazAcma.Controllers
             return View("~/Views/YetkiliServisler/Index.cshtml", model);
         }
 
-        private static bool KullanilanKategoriMi(string? ad)
-        {
-            var anahtar = NormalizeKategori(ad);
-
-            return anahtar == "kombi"
-                || anahtar.Contains("merkezikazan")
-                || anahtar.Contains("sofben")
-                || anahtar.Contains("sohben")
-                || anahtar == "ocak"
-                || anahtar.Contains("gazkullanicicihaz");
-        }
-
-        private static string NormalizeKategori(string? ad)
-        {
-            if (string.IsNullOrWhiteSpace(ad))
-                return string.Empty;
-
-            var normalized = ad.Trim().ToLower(new CultureInfo("tr-TR")).Normalize(NormalizationForm.FormD);
-            var chars = normalized
-                .Where(ch => CharUnicodeInfo.GetUnicodeCategory(ch) != UnicodeCategory.NonSpacingMark && char.IsLetterOrDigit(ch))
-                .ToArray();
-
-            return new string(chars)
-                .Replace("ı", "i")
-                .Replace("ş", "s")
-                .Replace("ğ", "g")
-                .Replace("ü", "u")
-                .Replace("ö", "o")
-                .Replace("ç", "c");
-        }
     }
 }
 

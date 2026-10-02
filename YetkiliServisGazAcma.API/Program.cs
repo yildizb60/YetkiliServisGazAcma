@@ -105,10 +105,14 @@ builder.Services.AddScoped<YetkiliServisService>();
 builder.Services.AddScoped<YetkiliServisIlkKurulumService>();
 builder.Services.AddScoped<YetkiBelgesiService>();
 builder.Services.AddScoped<YkcTalepService>();
-builder.Services.AddSingleton<YkcSorguKaydiService>();
+if (builder.Environment.IsDevelopment())
+    builder.Services.AddSingleton<IYkcSorguKaydiService, YkcSorguKaydiService>();
+else
+    builder.Services.AddScoped<IYkcSorguKaydiService, SqlYkcSorguKaydiService>();
 builder.Services.AddOptions<YkcPlanlamaOptions>()
     .Bind(builder.Configuration.GetSection("YkcPlanlama"))
     .Validate(x => x.AsgariAralikDakika is >= 0 and <= 240, "YkcPlanlama:AsgariAralikDakika 0-240 aralığında olmalıdır.")
+    .Validate(x => x.RandevuDilimDakika == 30, "YkcPlanlama:RandevuDilimDakika 30 dakika olmalıdır.")
     .Validate(x => x.Ekipler.All(e => !string.IsNullOrWhiteSpace(e.Id) && e.SirketId > 0
         && !string.IsNullOrWhiteSpace(e.Il) && !string.IsNullOrWhiteSpace(e.Bolge)
         && !string.IsNullOrWhiteSpace(e.Ad) && e.YonlendirmeTipi is "CRM187" or "Mühendis")
@@ -189,7 +193,7 @@ builder.Services.AddAuthentication(options =>
                 var users = context.HttpContext.RequestServices.GetRequiredService<UserManager<AppKullanici>>();
                 var user = await users.GetUserAsync(context.Principal!);
                 var stamp = context.Principal!.FindFirstValue("stamp");
-                if (user?.AktifMi != true || string.IsNullOrEmpty(stamp)
+                if (user?.AktifMi != true || user.ArsivlemeTarihi != null || string.IsNullOrEmpty(stamp)
                     || stamp != await users.GetSecurityStampAsync(user)
                     || context.Principal!.FindFirstValue("KullaniciTipi") != user.KullaniciTipi.ToString())
                 {
