@@ -379,6 +379,28 @@ namespace YetkiliServisGazAcma.Controllers
             }
         }
 
+        [HttpPost("cihaz-karsilastir")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CihazKarsilastir([FromForm] YkcCihazKarsilastirmaIstek model)
+        {
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
+            if (kullanici == null) return Unauthorized();
+            if (!YkcYetkileri().TalepOlusturabilir)
+                return StatusCode(StatusCodes.Status403Forbidden);
+            if (!ModelState.IsValid) return BadRequest();
+            try
+            {
+                return Json(await _ykcApiClient.CihazKarsilastirAsync(kullanici, model)
+                    ?? new YkcCihazKarsilastirmaSonuc { Mesaj = "Cihaz karşılaştırması alınamadı." });
+            }
+            catch (ApiIntegrationException ex)
+            {
+                _logger.LogWarning(ex, "Yeni cihaz bilgileri karşılaştırılamadı.");
+                return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                    new YkcCihazKarsilastirmaSonuc { Mesaj = "Cihaz karşılaştırması şu anda yapılamıyor." });
+            }
+        }
+
         [HttpGet("detay/{id:int}")]
         public async Task<IActionResult> Detay(int id, string? kaynak = null)
         {

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Globalization;
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
@@ -1419,6 +1420,24 @@ namespace YetkiliServisGazAcma.Business.Services
 
         [JsonIgnore]
         public Dictionary<string, string?> IzinliYeniCihazTipleri { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    }
+
+    public class YkcCihazKarsilastirmaIstek
+    {
+        [StringLength(64)] public string? SorguReferansi { get; set; }
+        [StringLength(19)] public string? TesisatNo { get; set; }
+        [StringLength(19)] public string? SozlesmeNo { get; set; }
+        [StringLength(100)] public string? YeniCihazTipi { get; set; }
+        [StringLength(100)] public string? YeniMarka { get; set; }
+        [StringLength(100)] public string? YeniBacaTipi { get; set; }
+        [StringLength(30)] public string? YeniKapasite { get; set; }
+    }
+
+    public class YkcCihazKarsilastirmaSonuc
+    {
+        public bool Basarili { get; set; }
+        public string? Mesaj { get; set; }
+        public List<string> Uyarilar { get; set; } = [];
     }
 
     public class YkcTesisatSorguIstek

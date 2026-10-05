@@ -38,6 +38,34 @@ public static class DevreyeAlmaKaynakBilgisi
             adaylar.Add(kaynak.SozlesmeNo.Trim());
         }
 
+        var eskiKayitIdleri = kayitlar.Where(x => !numaralar.ContainsKey(x.Id)).Select(x => x.Id).ToList();
+        if (eskiKayitIdleri.Count > 0)
+        {
+            // Legacy records predate query references; only an unambiguous online source can fill the gap.
+            var eskiKaynaklar = await (
+                from kayit in context.Ys_DevreyeAlmalar.AsNoTracking()
+                from talep in context.Ykc_Talepler.AsNoTracking()
+                where eskiKayitIdleri.Contains(kayit.Id) && !kayit.SilindiMi
+                    && kayit.KaynakCihazAnahtari == null && kayit.Firma != null
+                    && kayit.TesistatNo != null && kayit.TesistatNo.Trim() != ""
+                    && kayit.AboneNo != null && kayit.AboneNo.Trim() != ""
+                    && !context.Ys_DevreyeAlmaSorguKayitlari.Any(x => x.DevreyeAlmaId == kayit.Id)
+                    && !talep.SilindiMi && talep.KaynakTipi == "OnlineServis"
+                    && talep.SirketId == kayit.Firma.SirketId
+                    && talep.TesisatNo != null && talep.TesisatNo.Trim() == kayit.TesistatNo.Trim()
+                    && talep.AboneNo != null && talep.AboneNo.Trim() == kayit.AboneNo.Trim()
+                    && talep.SozlesmeNo != null && talep.SozlesmeNo.Trim() != ""
+                select new { Id = kayit.Id, talep.SozlesmeNo })
+                .Distinct()
+                .ToListAsync();
+            foreach (var kaynak in eskiKaynaklar)
+            {
+                if (!numaralar.TryGetValue(kaynak.Id, out var adaylar))
+                    numaralar[kaynak.Id] = adaylar = new HashSet<string>(StringComparer.Ordinal);
+                adaylar.Add(kaynak.SozlesmeNo!.Trim());
+            }
+        }
+
         foreach (var kayit in kayitlar)
             kayit.SozlesmeNo = numaralar.TryGetValue(kayit.Id, out var adaylar) && adaylar.Count == 1
                 ? adaylar.Single() : null;

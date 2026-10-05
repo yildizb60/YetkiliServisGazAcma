@@ -1180,6 +1180,8 @@ namespace YetkiliServisGazAcma.Controllers
 
             var basTarih = bas?.Date ?? DateTime.Now.Date.AddDays(-30);
             var bitTarih = bit?.Date ?? DateTime.Now.Date;
+            if (basTarih > bitTarih)
+                (basTarih, bitTarih) = (bitTarih, basTarih);
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
 
             try

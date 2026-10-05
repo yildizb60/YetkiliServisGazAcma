@@ -272,6 +272,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 });
 
                 using var response = await _httpClient.SendAsync(request);
+                await ApiDosyaSonuc.DogrulamaHatasiniYukseltAsync(response, operasyon);
                 if (!response.IsSuccessStatusCode)
                 {
                     _logger.LogWarning("{Operasyon} API cagrisinda basarisiz yanit dondu. StatusCode: {StatusCode}", operasyon, response.StatusCode);

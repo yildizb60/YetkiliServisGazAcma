@@ -1,7 +1,7 @@
 @{
     ViewData["Title"] = "Cihaz Devreye Alma Raporları";
-    ViewData["PanelTitle"] = "Raporlar";
-    ViewData["PanelModule"] = "Raporlama";
+    ViewData["PanelTitle"] = ViewData["Title"];
+    ViewData["PanelModule"] = "Cihaz Devreye Alma";
     ViewData["ActiveMenu"] = "Raporlar";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
@@ -88,7 +88,7 @@
         <div class="df-ops-export-actions">
             <a class="df-btn df-btn-sm df-btn-pdf" href="@pdfUrl"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF</a>
             <a class="df-btn df-btn-sm df-btn-excel" href="@excelUrl"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel</a>
-            <a class="df-btn df-btn-sm df-btn-secondary" href="@Url.Action("Gecmis", "DevreyeAlma")"><i class="bi bi-list-ul" aria-hidden="true"></i> Kayıtlar</a>
+            <a class="df-btn df-btn-sm df-btn-secondary" href="@Url.Action("Gecmis", "DevreyeAlma", new { bas = basTarih.ToString("yyyy-MM-dd"), bit = bitTarih.ToString("yyyy-MM-dd") })"><i class="bi bi-list-ul" aria-hidden="true"></i> Kayıtlar</a>
         </div>
     </section>
 </main>

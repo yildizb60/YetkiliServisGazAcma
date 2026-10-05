@@ -87,9 +87,7 @@
         return string.IsNullOrWhiteSpace(sonuc) ? "-" : sonuc;
     }
 
-    private static string DurumYazi(int durum) => durum == YkcDurumDegerleri.TalepAlindi
-        ? "İnceleme Bekleniyor"
-        : YkcDurumSunumu.Etiket(durum);
+    private static string DurumYazi(int durum) => YkcDurumSunumu.Etiket(durum);
     private static string DurumClass(int durum) => YkcDurumSunumu.CssSinifi(durum);
 
     private static string SurecIkonu(int durum, int? kontrolNo) => durum switch
@@ -207,16 +205,16 @@
                     <select name="durum">
                         <option value="">Tümü</option>
                         @foreach (var item in new[] {
-                            new { Id = YkcDurumDegerleri.TalepAlindi, Ad = "İnceleme Bekleniyor" },
-                            new { Id = YkcDurumDegerleri.AtamaBekliyor, Ad = "İnceleniyor" },
-                            new { Id = YkcDurumDegerleri.Atandi, Ad = "Randevu Oluşturuldu" },
-                            new { Id = YkcDurumDegerleri.SahaIsleminde, Ad = "İşlem Devam Ediyor" },
-                            new { Id = YkcDurumDegerleri.Reddedildi, Ad = "Reddedildi" },
-                            new { Id = YkcDurumDegerleri.Tamamlandi, Ad = "Tamamlandı" },
-                            new { Id = YkcDurumDegerleri.Iptal, Ad = "İptal" }
+                            YkcDurumDegerleri.TalepAlindi,
+                            YkcDurumDegerleri.AtamaBekliyor,
+                            YkcDurumDegerleri.Atandi,
+                            YkcDurumDegerleri.SahaIsleminde,
+                            YkcDurumDegerleri.Reddedildi,
+                            YkcDurumDegerleri.Tamamlandi,
+                            YkcDurumDegerleri.Iptal
                         })
                         {
-                            <option value="@item.Id" selected="@Secili(filtre.Durum == item.Id)">@item.Ad</option>
+                            <option value="@item" selected="@Secili(filtre.Durum == item)">@DurumYazi(item)</option>
                         }
                     </select>
                 </div>

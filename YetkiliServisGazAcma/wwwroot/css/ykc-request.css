@@ -47,6 +47,7 @@
 .ykc-request-customer #ykcCustomerName { color: #175b69; font-weight: 600; }
 .ykc-request-selection { padding-top: 16px; border-top: 1px solid #d8e2ec; }
 .ykc-request-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; }
+.ykc-device-comparison-toast .df-operation-toast-copy > span { white-space: pre-line; }
 .ykc-request-completion { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 16px; padding-top: 18px; margin-top: 18px; border-top: 1px solid #d8e2ec; }
 .ykc-request-completion > div { flex: 1 1 245px; min-width: 0; }
 .ykc-request-secondhand { padding: 0; margin: 0; border: 0; }

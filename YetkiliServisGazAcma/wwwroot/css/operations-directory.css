@@ -132,10 +132,10 @@
 .df-commissioning-detail-grid > section {
     min-width:0;
     min-height:76px;
-    padding:9px 13px;
+    padding:9px 13px 6px;
     display:grid;
     align-content:start;
-    gap:5px;
+    gap:8px;
     border-right:1px solid #e4eaf2;
 }
 .df-commissioning-detail-grid > section:last-child { border-right:0; }
@@ -675,6 +675,14 @@
 .df-approval-detail-grid > div:nth-child(2) strong { color:#213b53; font-weight:650; }
 .df-approval-detail-grid > div.is-valid strong { color:#187f61; font-weight:600; }
 .df-approval-detail-grid > div.is-expired strong { color:#b94740; font-weight:600; }
+
+@media (min-width:761px) {
+    /* Keep the five short facts together and give the address a compact full-width line. */
+    .df-approval-detail-grid:not(:has(> div:nth-child(7))) { grid-template-columns:repeat(5,minmax(0,1fr)); }
+    .df-approval-detail-grid:not(:has(> div:nth-child(7))) > div:nth-child(6).is-wide { grid-column:1 / -1; display:flex; align-items:baseline; gap:8px; }
+    .df-approval-detail-grid:not(:has(> div:nth-child(7))) > div:nth-child(6).is-wide > span { flex:0 0 auto; margin:0; }
+    .df-approval-detail-grid:not(:has(> div:nth-child(7))) > div:nth-child(6).is-wide > strong { min-width:0; }
+}
 
 @media (max-width:760px) {
     .df-approval-detail-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }

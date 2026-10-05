@@ -130,6 +130,10 @@ namespace YetkiliServisGazAcma.Business.Services
                 retryTransient: true);
         }
 
+        public Task<YkcCihazKarsilastirmaSonuc?> CihazKarsilastirAsync(AppKullanici kullanici, YkcCihazKarsilastirmaIstek istek)
+            => PostAsync<YkcCihazKarsilastirmaIstek, YkcCihazKarsilastirmaSonuc>(
+                kullanici, "api/ykc/cihaz-karsilastir", istek, "Yeni cihaz bilgilerini karşılaştır");
+
         public async Task<YkcTakvimSonuc?> TakvimAsync(AppKullanici kullanici, YkcTakvimFiltre filtre)
         {
             filtre.AktifSirketId = await _aktifSirket.AktifSirketIdAsync(kullanici);

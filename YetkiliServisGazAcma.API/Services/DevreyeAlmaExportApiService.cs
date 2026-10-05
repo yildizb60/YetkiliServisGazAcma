@@ -18,24 +18,28 @@ namespace YetkiliServisGazAcma.API.Services
         public async Task<DevreyeAlmaExportDosya?> AdminPdfAsync(int id, int? sirketId)
         {
             var kayit = await AdminDevreyeAlmaQuery(sirketId).FirstOrDefaultAsync(x => x.Id == id);
+            if (kayit != null) await DevreyeAlmaKaynakBilgisi.TamamlaAsync(_context, [kayit]);
             return kayit == null ? null : PdfDosyasi(kayit);
         }
 
         public async Task<DevreyeAlmaExportDosya?> AdminExcelAsync(int id, int? sirketId)
         {
             var kayit = await AdminDevreyeAlmaQuery(sirketId).FirstOrDefaultAsync(x => x.Id == id);
+            if (kayit != null) await DevreyeAlmaKaynakBilgisi.TamamlaAsync(_context, [kayit]);
             return kayit == null ? null : ExcelDosyasi(kayit);
         }
 
         public async Task<DevreyeAlmaExportDosya?> YetkiliServisPdfAsync(int id, int firmaId)
         {
             var kayit = await YetkiliServisDevreyeAlmaQuery(firmaId).FirstOrDefaultAsync(x => x.Id == id);
+            if (kayit != null) await DevreyeAlmaKaynakBilgisi.TamamlaAsync(_context, [kayit]);
             return kayit == null ? null : PdfDosyasi(kayit);
         }
 
         public async Task<DevreyeAlmaExportDosya?> YetkiliServisExcelAsync(int id, int firmaId)
         {
             var kayit = await YetkiliServisDevreyeAlmaQuery(firmaId).FirstOrDefaultAsync(x => x.Id == id);
+            if (kayit != null) await DevreyeAlmaKaynakBilgisi.TamamlaAsync(_context, [kayit]);
             return kayit == null ? null : ExcelDosyasi(kayit);
         }
 
@@ -102,35 +106,29 @@ namespace YetkiliServisGazAcma.API.Services
             DateTime? bit,
             List<int>? ids)
         {
-            var basTarih = bas?.Date ?? DateTime.Now.Date.AddDays(-30);
+            var basTarih = bas?.Date ?? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
             var bitTarih = bit?.Date ?? DateTime.Now.Date;
+            if (basTarih > bitTarih)
+                (basTarih, bitTarih) = (bitTarih, basTarih);
             var query = AdminDevreyeAlmaQuery(sirketId);
 
             if (ids?.Count > 0)
             {
-                var idListesi = ids.Distinct().Take(MaximumExportRows).ToList();
-                var secilenler = await query
-                    .Where(x => idListesi.Contains(x.Id))
-                    .OrderByDescending(x => x.OlusturmaTarihi)
-                    .Take(MaximumExportRows)
-                    .ToListAsync();
+                var idListesi = ids.Distinct().ToList();
+                var secilenler = await RaporKayitlariniGetirAsync(query.Where(x => idListesi.Contains(x.Id)));
 
                 if (secilenler.Count > 0)
                 {
-                    basTarih = secilenler.Min(x => x.OlusturmaTarihi).Date;
-                    bitTarih = secilenler.Max(x => x.OlusturmaTarihi).Date;
+                    basTarih = secilenler.Min(x => x.DevreyeAlmaTarihi).Date;
+                    bitTarih = secilenler.Max(x => x.DevreyeAlmaTarihi).Date;
                 }
 
                 return (secilenler, basTarih, bitTarih);
             }
 
             var bitSonrasi = bitTarih.AddDays(1);
-            query = query.Where(x => x.OlusturmaTarihi >= basTarih && x.OlusturmaTarihi < bitSonrasi)
-                .OrderByDescending(x => x.OlusturmaTarihi)
-                .Take(MaximumExportRows);
-
-            var islemler = await query.ToListAsync();
-
+            query = query.Where(x => x.DevreyeAlmaTarihi >= basTarih && x.DevreyeAlmaTarihi < bitSonrasi);
+            var islemler = await RaporKayitlariniGetirAsync(query);
             return (islemler, basTarih, bitTarih);
         }
 
@@ -146,12 +144,8 @@ namespace YetkiliServisGazAcma.API.Services
 
             if (ids?.Count > 0)
             {
-                var idListesi = ids.Distinct().Take(MaximumExportRows).ToList();
-                var secilenler = await query
-                    .Where(x => idListesi.Contains(x.Id))
-                    .OrderByDescending(x => x.DevreyeAlmaTarihi)
-                    .Take(MaximumExportRows)
-                    .ToListAsync();
+                var idListesi = ids.Distinct().ToList();
+                var secilenler = await RaporKayitlariniGetirAsync(query.Where(x => idListesi.Contains(x.Id)));
 
                 basTarih = secilenler.Count > 0 ? secilenler.Min(x => x.DevreyeAlmaTarihi).Date : DateTime.Now.Date;
                 bitTarih = secilenler.Count > 0 ? secilenler.Max(x => x.DevreyeAlmaTarihi).Date : DateTime.Now.Date;
@@ -186,14 +180,23 @@ namespace YetkiliServisGazAcma.API.Services
                 basTarih = bas?.Date ?? bitTarih.AddDays(-30);
             }
 
+            if (basTarih > bitTarih)
+                (basTarih, bitTarih) = (bitTarih, basTarih);
             var bitSonrasi = bitTarih.AddDays(1);
-            query = query.Where(x => x.DevreyeAlmaTarihi >= basTarih && x.DevreyeAlmaTarihi < bitSonrasi)
-                .OrderByDescending(x => x.DevreyeAlmaTarihi)
-                .Take(MaximumExportRows);
-
-            var islemler = await query.ToListAsync();
-
+            query = query.Where(x => x.DevreyeAlmaTarihi >= basTarih && x.DevreyeAlmaTarihi < bitSonrasi);
+            var islemler = await RaporKayitlariniGetirAsync(query);
             return (islemler, basTarih, bitTarih);
+        }
+
+        private async Task<List<Ys_DevreyeAlma>> RaporKayitlariniGetirAsync(IQueryable<Ys_DevreyeAlma> query)
+        {
+            var kayitlar = await query.OrderByDescending(x => x.DevreyeAlmaTarihi).ThenByDescending(x => x.Id)
+                .Take(MaximumExportRows + 1).ToListAsync();
+            if (kayitlar.Count > MaximumExportRows)
+                throw new DevreyeAlmaRaporLimitException(MaximumExportRows);
+
+            await DevreyeAlmaKaynakBilgisi.TamamlaAsync(_context, kayitlar);
+            return kayitlar;
         }
 
         private IQueryable<Ys_DevreyeAlma> TemelQuery()
@@ -231,6 +234,9 @@ namespace YetkiliServisGazAcma.API.Services
             return $"{onEk}_{basTarih:yyyyMMdd}_{bitTarih:yyyyMMdd}.{uzanti}";
         }
     }
+
+    public sealed class DevreyeAlmaRaporLimitException(int limit)
+        : Exception($"Tek dosyada en fazla {limit} kayıt dışa aktarılabilir. Tarih aralığını veya kayıt seçimini daraltın.");
 
     public class DevreyeAlmaExportDosya
     {

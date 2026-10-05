@@ -334,6 +334,7 @@ namespace YetkiliServisGazAcma.Business.Services
                     request.Content = JsonContent.Create(istek);
 
                     using var response = await _httpClient.SendAsync(request);
+                    await ApiDosyaSonuc.DogrulamaHatasiniYukseltAsync(response, operasyon);
                     if (!response.IsSuccessStatusCode)
                     {
                         if ((int)response.StatusCode >= 500 && attempt < 3)

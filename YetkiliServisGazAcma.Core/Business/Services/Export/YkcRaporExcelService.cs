@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace YetkiliServisGazAcma.Business.Services
 {
     public static class YkcRaporExcelService
@@ -10,25 +12,25 @@ namespace YetkiliServisGazAcma.Business.Services
             };
 
             if (icOperasyon)
-                basliklar.AddRange(new[] { "Sertifikalı Firma", "Dağıtım Şirketi", "Projedeki Cihaz Türü", "Projedeki Marka", "Projedeki Kapasite", "Projedeki Baca Tipi" });
+                basliklar.AddRange(new[] { "Sertifikalı Firma", "Dağıtım Şirketi", "Projedeki Yakıcı Cihaz Tipi", "Projedeki Marka", "Projedeki Kapasite", "Projedeki Baca Tipi" });
 
             basliklar.AddRange(new[]
             {
-                "Yeni Kullanılan Cihaz Türü", "Yeni Kullanılan Cihaz Markası", "Yeni Kullanılan Cihaz Modeli", "Yeni Kullanılan Cihaz Kapasitesi", "Yeni Kullanılan Baca Tipi", "İkinci El",
-                "Kontrol Randevusu", "İl", "İlçe", "Bölge"
+                "Yeni Kullanılan Yakıcı Cihaz Tipi", "Yeni Kullanılan Cihaz Markası", "Yeni Kullanılan Cihaz Modeli", "Yeni Kullanılan Cihaz Kapasitesi", "Yeni Kullanılan Baca Tipi", "İkinci El Cihaz",
+                "Kontrol Randevusu", "Kontrol Sırası", "İl", "İlçe", "Bölge"
             });
 
             if (icOperasyon)
                 basliklar.AddRange(new[] { "Ekip / Personel", "Hedef Uygulama" });
 
             basliklar.AddRange(new[] { "Durum", "Form Durumu" });
-            var satirlar = new List<IReadOnlyList<string?>>();
+            var satirlar = new List<IReadOnlyList<object?>>();
             foreach (var kayit in kayitlar)
             {
-                var alanlar = new List<string?>
+                var alanlar = new List<object?>
                 {
                     kayit.Id.ToString(),
-                    kayit.TalepTarihi.ToString("dd.MM.yyyy HH:mm"),
+                    kayit.TalepTarihi,
                     kayit.TesisatNo ?? "",
                     kayit.SozlesmeNo ?? "",
                     kayit.AboneNo ?? "",
@@ -37,35 +39,36 @@ namespace YetkiliServisGazAcma.Business.Services
 
                 if (icOperasyon)
                 {
-                    alanlar.AddRange(new[]
+                    alanlar.AddRange(new object?[]
                     {
                         kayit.FirmaAdi ?? "",
                         kayit.SirketAdi ?? "",
                         kayit.EskiCihazTipi ?? "",
                         kayit.EskiMarka ?? "",
-                        kayit.EskiKapasite ?? "",
+                        ExcelWorkbookService.KapasiteDegeri(kayit.EskiKapasite),
                         kayit.EskiBacaTipi ?? ""
                     });
                 }
 
-                alanlar.AddRange(new[]
+                alanlar.AddRange(new object?[]
                 {
                     kayit.YeniCihazTipi ?? "",
                     kayit.YeniMarka ?? "",
                     kayit.YeniModel ?? "",
-                    kayit.YeniKapasite ?? "",
+                    ExcelWorkbookService.KapasiteDegeri(kayit.YeniKapasite),
                     kayit.YeniBacaTipi ?? "",
                     kayit.IkinciElCihazMi == true ? "Evet" : kayit.IkinciElCihazMi == false ? "Hayır" : "",
                     Randevu(kayit),
+                    kayit.SiradakiKontrolNo,
                     kayit.Il ?? "",
                     kayit.Ilce ?? "",
                     kayit.Bolge ?? ""
                 });
 
                 if (icOperasyon)
-                    alanlar.AddRange(new[] { kayit.AtananEkip ?? "", kayit.HedefUygulama ?? "" });
+                    alanlar.AddRange(new[] { kayit.AtananEkip ?? "", YkcHedefUygulamaDegerleri.Etiket(kayit.HedefUygulama) });
 
-                alanlar.Add(Durum(kayit.Durum));
+                alanlar.Add(YkcDurumDegerleri.Etiket(kayit.Durum));
                 alanlar.Add(kayit.ImzaliNihaiBelgeVar ? "İmzalı belge hazır" : "İmzalı belge yok");
                 satirlar.Add(alanlar);
             }
@@ -73,8 +76,17 @@ namespace YetkiliServisGazAcma.Business.Services
             return ExcelWorkbookService.Olustur("Cihaz Değişim Raporu", basliklar, satirlar);
         }
 
-        private static string Randevu(YkcRaporKayitDto kayit)
+        private static object Randevu(YkcRaporKayitDto kayit)
         {
+            if (kayit.RandevuTarihi is DateTime tarih)
+            {
+                if (string.IsNullOrWhiteSpace(kayit.RandevuSaati))
+                    return DateOnly.FromDateTime(tarih);
+                if (TimeOnly.TryParseExact(kayit.RandevuSaati.Trim(), new[] { "HH:mm", "H:mm", "HH:mm:ss" },
+                    CultureInfo.InvariantCulture, DateTimeStyles.None, out var saat))
+                    return tarih.Date.Add(saat.ToTimeSpan());
+            }
+
             var randevu = string.Join(" ", new[]
             {
                 kayit.RandevuTarihi?.ToString("dd.MM.yyyy"),
@@ -86,22 +98,8 @@ namespace YetkiliServisGazAcma.Business.Services
                     ? $"{kayit.SiradakiKontrolNo}. kontrol randevusu bekleniyor"
                     : "Henüz planlanmadı";
 
-            return kayit.SiradakiKontrolNo is > 1
-                ? $"{kayit.SiradakiKontrolNo}. kontrol - {randevu}"
-                : randevu;
+            return randevu;
         }
-
-        private static string Durum(int durum) => durum switch
-        {
-            YkcDurumDegerleri.TalepAlindi => "İnceleme Bekleniyor",
-            YkcDurumDegerleri.AtamaBekliyor => "Randevu Planlanacak",
-            YkcDurumDegerleri.Atandi => "Randevu Oluşturuldu",
-            YkcDurumDegerleri.SahaIsleminde => "İşlem Devam Ediyor",
-            YkcDurumDegerleri.Reddedildi => "Reddedildi",
-            YkcDurumDegerleri.Tamamlandi => "Tamamlandı",
-            YkcDurumDegerleri.Iptal => "İptal",
-            _ => "Bilinmiyor"
-        };
 
     }
 }

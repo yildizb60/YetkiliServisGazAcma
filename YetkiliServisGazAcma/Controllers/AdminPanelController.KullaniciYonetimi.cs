@@ -530,15 +530,15 @@ namespace YetkiliServisGazAcma.Controllers
 
             var yetkiIsimler = new Dictionary<string, string>
             {
-                [YetkiTipleri.YETKI_BELGESI_ONAY] = "Yetki Belgesi Onay ve Red",
-                [YetkiTipleri.RAPOR_GOR] = "Devreye Alma Kayıtları ve Raporları",
-                [YetkiTipleri.KULLANICI_YONET] = "Yetkili Servis Yönetimi",
-                [YetkiTipleri.MARKA_YONET] = "Marka Yönetimi",
-                [YetkiTipleri.YKC_TALEP_GOR] = "YKC Taleplerini Gör",
-                [YetkiTipleri.YKC_ATAMA_YAP] = "YKC Atama ve Randevu",
-                [YetkiTipleri.YKC_FR265_IMZA_ISLEM] = "YKC FR265 ve İmza İşlemleri",
-                [YetkiTipleri.YKC_RAPOR_GOR] = "YKC Raporlarını Gör",
-                [YetkiTipleri.TAM_YETKI] = "Tam Yetki"
+                [YetkiTipleri.YETKI_BELGESI_ONAY] = "Yetki Belgelerini Onayla veya Reddet",
+                [YetkiTipleri.RAPOR_GOR] = "Cihaz Devreye Alma Kayıtlarını ve Raporlarını Görüntüle",
+                [YetkiTipleri.KULLANICI_YONET] = "Yetkili Servisleri Yönet",
+                [YetkiTipleri.MARKA_YONET] = "Markaları Yönet",
+                [YetkiTipleri.YKC_TALEP_GOR] = "Yakıcı Cihaz Değişim Taleplerini Görüntüle",
+                [YetkiTipleri.YKC_ATAMA_YAP] = "Talep İnceleme, Ret/İptal ve Randevu Yönetimi",
+                [YetkiTipleri.YKC_FR265_IMZA_ISLEM] = "Teknik Kontrol, FR265 ve İmza İşlemleri",
+                [YetkiTipleri.YKC_RAPOR_GOR] = "Yakıcı Cihaz Değişim Raporlarını Görüntüle",
+                [YetkiTipleri.TAM_YETKI] = "Seçili Şirketin Tüm İşlem Yetkileri"
             };
 
             ViewBag.Kullanici = kullanici;

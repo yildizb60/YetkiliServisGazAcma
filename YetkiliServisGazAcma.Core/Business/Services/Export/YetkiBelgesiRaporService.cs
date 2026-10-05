@@ -9,17 +9,17 @@ namespace YetkiliServisGazAcma.Business.Services
     {
         public static byte[] Olustur(IEnumerable<Ys_YetkiBelgesi> belgeler, string raporBasligi)
         {
-            var satirlar = belgeler.Select(belge => (IReadOnlyList<string?>)new[]
+            var satirlar = belgeler.Select(belge => (IReadOnlyList<object?>)new object?[]
             {
                 belge.Id.ToString(),
                 belge.Firma?.FirmaAdi ?? "",
                 belge.Firma?.VergiNo ?? "",
                 belge.Firma?.Sirket?.SirketAdi ?? "",
-                belge.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm"),
-                belge.YetkiBelgesiBaslangicTarihi?.ToString("dd.MM.yyyy") ?? "",
-                belge.YetkiBelgesiBitisTarihi.ToString("dd.MM.yyyy"),
+                belge.OlusturmaTarihi,
+                belge.YetkiBelgesiBaslangicTarihi is DateTime baslangic ? DateOnly.FromDateTime(baslangic) : null,
+                DateOnly.FromDateTime(belge.YetkiBelgesiBitisTarihi),
                 Durum(belge),
-                belge.OnayTarihi?.ToString("dd.MM.yyyy HH:mm") ?? "",
+                belge.OnayTarihi,
                 belge.OnaylayanKullanici ?? "",
                 belge.RedGerekce ?? ""
             }).ToList();

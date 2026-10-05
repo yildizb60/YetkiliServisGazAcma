@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Security.Claims;
+using System.Xml.Linq;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -56,6 +57,16 @@ if (args.Contains("--schema-only", StringComparer.Ordinal))
     await SchemaMigrationSqlScenario.RunAsync();
     return;
 }
+if (args.Contains("--panel-reports-only", StringComparer.Ordinal))
+{
+    await PanelReportSqlScenario.RunAsync();
+    return;
+}
+if (args.Contains("--service-scope-only", StringComparer.Ordinal))
+{
+    await ServiceScopeSqlScenario.RunAsync();
+    return;
+}
 try
 {
     databaseCreated = await db.Database.EnsureCreatedAsync();
@@ -65,7 +76,7 @@ try
     var otherCompany = new Dag_Sirket { SirketAdi = "Other scope" };
     db.AddRange(company, otherCompany);
     await db.SaveChangesAsync();
-    var admin = new AppKullanici { UserName = "audit-admin", KullaniciTipi = KullaniciTipiDegerleri.GenelSistemAdmin };
+    var admin = new AppKullanici { UserName = "audit-admin", AdSoyad = "Test Kontrol Yetkilisi", KullaniciTipi = KullaniciTipiDegerleri.GenelSistemAdmin };
     var staff = new AppKullanici { UserName = "test-staff", KullaniciTipi = KullaniciTipiDegerleri.Personel, SirketId = company.Id };
     db.Users.AddRange(admin, staff);
     var request = new Ykc_Talep
@@ -171,6 +182,17 @@ try
     {
         var xml = await reader.ReadToEndAsync();
         Check(xml.Contains("CONTROL_11") && !xml.Contains("CONTROL_10"), "Official document uses only the third cycle");
+        XNamespace word = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+        var controlTable = XDocument.Parse(xml).Descendants(word + "tbl")
+            .First(x => x.Value.Contains("Gaz Dağıtım Şirketi Yetkilisi") && x.Value.Contains("Kaşe / İmza"));
+        var rows = controlTable.Elements(word + "tr").ToList();
+        Check(rows[1].Elements(word + "tc").First().Value == "Adı Soyadı: Test Kontrol Yetkilisi"
+            && rows[1].Elements(word + "tc").ElementAt(1).Value == "Adı Soyadı: Workflow fixture",
+            "SQL-backed unsigned preview resolves control author and subscriber before signature submission");
+        var recordedDate = final.AktifKontroller[0].KontrolTarihi!.Value.ToString("dd.MM.yyyy");
+        Check(rows[2].Elements(word + "tc").All(x => x.Value == $"Tarih: {recordedDate}")
+            && !controlTable.Value.Contains("İmzalandı"),
+            "SQL-backed preview uses the saved control date without marking unsigned fields as signed");
     }
     var gate = typeof(YkcImzaAkisService).GetMethod("ImzaGonderimineHazirMi", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
     Check((bool)gate.Invoke(null, [final, null])!, "Third-cycle successful form is eligible for signature");
@@ -400,6 +422,37 @@ try
     Check(firmReport.Sayfa == 2 && firmReport.Toplam == 24 && firmReport.Kayitlar.Any(x => x.Id == targetId),
         "Certified-company detail navigation retains the full authorized report list");
 
+    var calendarDate = reportDate.Date;
+    for (var index = 0; index < 3; index++)
+    {
+        reportRequests[index].RandevuTarihi = calendarDate;
+        reportRequests[index].RandevuSaati = "09:00";
+        reportRequests[index].AtananKullaniciTipi = index == 0 ? "CRM187" : index == 1 ? "Mühendis" : null;
+        reportRequests[index].AtananKullaniciId = staff.Id;
+        reportRequests[index].AtananEkip = "Internal team";
+    }
+    otherReportRequest.RandevuTarihi = calendarDate;
+    otherReportRequest.AtananKullaniciTipi = "CRM187";
+    await db.SaveChangesAsync();
+    foreach (var monthView in new[] { false, true })
+    {
+        var calendar = await service.TakvimAsync(new()
+        {
+            Baslangic = monthView ? new DateTime(calendarDate.Year, calendarDate.Month, 1) : calendarDate,
+            Bitis = monthView ? new DateTime(calendarDate.Year, calendarDate.Month, 1).AddMonths(1).AddDays(-1) : calendarDate,
+            GorunumKayitlariniGetir = monthView
+        }, firmUser, false);
+        var calendarRows = monthView ? calendar.GorunumKayitlari : calendar.Kayitlar;
+        Check(calendar.Toplam == 3 && calendarRows.Count == 3 && calendarRows.All(x => x.Id != otherReportRequest.Id),
+            $"Firm calendar routing remains scoped to its own appointments (month: {monthView})");
+        Check(calendarRows.Single(x => x.Id == reportRequests[0].Id).Yonlendirme == "187 Acil"
+            && calendarRows.Single(x => x.Id == reportRequests[1].Id).Yonlendirme == "Mühendis"
+            && calendarRows.Single(x => x.Id == reportRequests[2].Id).Yonlendirme == null,
+            $"Firm calendar exposes truthful public routing labels (month: {monthView})");
+        Check(calendarRows.All(x => x.Personel == null && x.Ekip == null) && calendar.PersonelEkipSecenekleri.Count == 0,
+            $"Public routing never reveals internal staff or team names (month: {monthView})");
+    }
+
     var documentEnvironment = new TestEnvironment
     {
         ContentRootPath = documentRoot,
@@ -457,6 +510,91 @@ try
     await (Task)initializeDemo.Invoke(null, [db, approvalFirm])!;
     Check((await db.Ys_YetkiBelgeleri.AsNoTracking().SingleAsync(x => x.Id == certificate.Id)).DosyaYolu
         == "private:yetki-belgeleri/fixture.pdf", "Demo initialization never overwrites an uploaded certificate path");
+    var comparisonFirm = new Ys_Firma { FirmaAdi = "Comparison fixture", SirketId = company.Id };
+    db.Ys_Firmalar.Add(comparisonFirm);
+    await db.SaveChangesAsync();
+    var comparisonUser = new AppKullanici
+    {
+        UserName = "comparison-user", KullaniciTipi = KullaniciTipiDegerleri.SertifikaliFirma,
+        FirmaId = comparisonFirm.Id, SirketId = company.Id, AktifMi = true
+    };
+    var otherComparisonUser = new AppKullanici
+    {
+        UserName = "other-comparison-user", KullaniciTipi = KullaniciTipiDegerleri.SertifikaliFirma,
+        FirmaId = comparisonFirm.Id, SirketId = company.Id, AktifMi = true
+    };
+    db.Users.AddRange(comparisonUser, otherComparisonUser);
+    await db.SaveChangesAsync();
+    var comparisonSnapshots = new SqlYkcSorguKaydiService(db);
+    var comparisonReference = await comparisonSnapshots.EkleAsync(comparisonUser.Id, new()
+    {
+        FirmaId = comparisonFirm.Id, SirketId = company.Id, TesisatNo = "1000379", SozlesmeNo = "944",
+        EskiCihazTipi = "Kombi", EskiMarka = "ECA", EskiBacaTipi = "Hermetik", EskiKapasite = "20000",
+        IzinliYeniCihazTipleri = new() { ["Kombi"] = "1" }
+    });
+    YkcApiController ComparisonApi(AppKullanici user) => new(
+        new YkcTalepService(db, comparisonSnapshots), manager, documentEnvironment, db,
+        null!, null!, null!, authorization, comparisonSnapshots)
+    {
+        ControllerContext = DocumentApi("SertifikaliFirma", user.Id).ControllerContext
+    };
+    var comparisonInput = new YkcCihazKarsilastirmaIstek
+    {
+        SorguReferansi = comparisonReference, TesisatNo = "1000379", SozlesmeNo = "944", YeniCihazTipi = "Kombi",
+        YeniMarka = "Bosch", YeniBacaTipi = "Bacali", YeniKapasite = "25000"
+    };
+    async Task<YkcCihazKarsilastirmaSonuc> Compare(AppKullanici? user = null)
+        => (YkcCihazKarsilastirmaSonuc)((OkObjectResult)await ComparisonApi(user ?? comparisonUser)
+            .CihazKarsilastir(comparisonInput)).Value!;
+    var requestsBeforeComparison = await db.Ykc_Talepler.CountAsync();
+    var originalSnapshot = await db.Ykc_SorguKayitlari.AsNoTracking().SingleAsync(x => x.Referans == comparisonReference);
+    var comparisonResult = await Compare();
+    Check(comparisonResult.Basarili && comparisonResult.Uyarilar.Count == 3,
+        "Authenticated firm compares brand, flue and capacity against its SQL source snapshot");
+    Check(await db.Ykc_Talepler.CountAsync() == requestsBeforeComparison
+        && (await db.Ykc_SorguKayitlari.AsNoTracking().SingleAsync(x => x.Referans == comparisonReference)).KaynakJson == originalSnapshot.KaynakJson,
+        "Preview neither creates a request nor mutates or consumes the source snapshot");
+    Check(typeof(YkcCihazKarsilastirmaSonuc).GetProperties().Select(x => x.Name)
+        .ToHashSet().SetEquals(["Basarili", "Mesaj", "Uyarilar"])
+        && !System.Text.Json.JsonSerializer.Serialize(comparisonResult).Contains("20000"),
+        "Firm comparison returns advisory messages without source device values");
+    Check(!(await Compare(otherComparisonUser)).Basarili,
+        "Another user cannot reuse the reference, even within the same firm");
+    comparisonInput.TesisatNo = "1000380";
+    Check(!(await Compare()).Basarili, "Comparison rejects a source reference for a different installation");
+    comparisonInput.TesisatNo = "1000379";
+    comparisonInput.SozlesmeNo = "945";
+    Check(!(await Compare()).Basarili, "Comparison rejects a different contract number");
+    comparisonInput.SozlesmeNo = "944";
+    comparisonInput.YeniCihazTipi = "Unknown";
+    Check(!(await Compare()).Basarili, "Comparison rejects device types outside the source selection");
+    comparisonInput.YeniCihazTipi = "Kombi";
+    comparisonInput.YeniMarka = "E.C.A";
+    comparisonInput.YeniBacaTipi = "Hermetik";
+    comparisonInput.YeniKapasite = "20000,0";
+    Check((await Compare()).Uyarilar.Count == 0, "Corrected input clears warnings using the same live reference");
+    comparisonUser.SirketId = otherCompany.Id;
+    await db.SaveChangesAsync();
+    Check(!(await Compare()).Basarili, "Comparison refuses a reference after the user's company changes");
+    comparisonUser.SirketId = company.Id;
+    comparisonUser.AktifMi = false;
+    await db.SaveChangesAsync();
+    Check(await ComparisonApi(comparisonUser).CihazKarsilastir(comparisonInput) is ObjectResult { StatusCode: 403 },
+        "Inactive firm accounts cannot compare source records");
+    comparisonUser.AktifMi = true;
+    await db.SaveChangesAsync();
+    var savedDespiteWarnings = await ComparisonApi(comparisonUser).TalepOlustur(new()
+    {
+        SorguReferansi = comparisonReference, TesisatNo = "1000379", SozlesmeNo = "944", YeniCihazTipi = "Kombi",
+        YeniMarka = "Bosch", YeniBacaTipi = "Bacali", YeniKapasite = "25000", IkinciElCihazMi = false
+    });
+    Check(savedDespiteWarnings is OkObjectResult { Value: YkcIslemSonuc { Basarili: true } }
+        && await db.Ykc_Talepler.CountAsync() == requestsBeforeComparison + 1,
+        "All three advisory differences still allow creating the request");
+    await db.Ykc_SorguKayitlari.Where(x => x.Referans == comparisonReference)
+        .ExecuteUpdateAsync(x => x.SetProperty(r => r.GecerlilikTarihi, DateTime.UtcNow.AddMinutes(-1)));
+    Check(!(await Compare()).Basarili, "Expired SQL references cannot produce a stale comparison");
+    await ServiceScopeSqlScenario.RunAsync();
     Console.WriteLine($"{passed} workflow checks passed.");
 }
 finally

@@ -301,6 +301,7 @@ internal static class CommissioningSqlScenario
 
             Check(await db.Ys_DevreyeAlmalar.CountAsync() == 3,
                 "Failed duplicate attempts leave committed records unchanged");
+            await VerifyLegacyContractsAsync(db, firstFirm, firstRecord, firstController, Check);
             Console.WriteLine($"{passed} commissioning SQL checks passed. Isolated database: {databaseName}.");
         }
         finally
@@ -309,6 +310,85 @@ internal static class CommissioningSqlScenario
                 && db.Database.GetDbConnection().Database == databaseName)
                 await db.Database.EnsureDeletedAsync();
         }
+    }
+
+    private static async Task VerifyLegacyContractsAsync(AppDbContext db, Ys_Firma firm,
+        Ys_DevreyeAlma currentRecord, YetkiliServisDevreyeAlmaApiController serviceController,
+        Action<bool, string> check)
+    {
+        var otherCompany = new Dag_Sirket { SirketAdi = "Other legacy distributor" };
+        var legacy = new Ys_DevreyeAlma
+        {
+            FirmaId = firm.Id, TesistatNo = "1000200", AboneNo = "subscriber-legacy",
+            DevreyeAlmaTarihi = DateTime.Today.AddMonths(-1)
+        };
+        var wrongSubscriber = new Ys_DevreyeAlma
+        {
+            FirmaId = firm.Id, TesistatNo = legacy.TesistatNo, AboneNo = "another-subscriber"
+        };
+        db.AddRange(otherCompany, legacy, wrongSubscriber);
+        await db.SaveChangesAsync();
+
+        Ykc_Talep Source(string contract, string sourceType = "OnlineServis", int? companyId = null) => new()
+        {
+            SirketId = companyId ?? firm.SirketId, TesisatNo = legacy.TesistatNo,
+            AboneNo = legacy.AboneNo, SozlesmeNo = contract, KaynakTipi = sourceType
+        };
+        var onlineSource = Source("123456");
+        var deletedSource = Source("deleted-contract");
+        deletedSource.SilindiMi = true;
+        db.AddRange(onlineSource, Source(" 123456 "), Source("manual-contract", "Manuel"),
+            Source("other-company-contract", companyId: otherCompany.Id), deletedSource,
+            new Ykc_Talep
+            {
+                SirketId = firm.SirketId, TesisatNo = currentRecord.TesistatNo,
+                AboneNo = currentRecord.AboneNo, SozlesmeNo = "not-the-consumed-contract", KaynakTipi = "OnlineServis"
+            });
+        await db.SaveChangesAsync();
+
+        var countBefore = await db.Ys_DevreyeAlmalar.CountAsync();
+        await DevreyeAlmaKaynakBilgisi.TamamlaAsync(db, new[] { legacy, wrongSubscriber, currentRecord });
+        check(legacy.SozlesmeNo == "123456",
+            "A legacy contract is recovered from matching online company, installation and subscriber records");
+        check(wrongSubscriber.SozlesmeNo == null,
+            "A different subscriber on the same installation cannot inherit the contract");
+        check(currentRecord.SozlesmeNo == "241584",
+            "A consumed commissioning source takes precedence over later YKC contracts");
+        check(AdminDevreyeAlmaDto.FromEntity(legacy).SozlesmeNo == "123456"
+            && YsDevreyeAlmaDto.FromEntity(legacy).SozlesmeNo == "123456",
+            "Both admin and service DTOs expose the recovered legacy contract");
+
+        var conflict = Source("654321");
+        db.Add(conflict);
+        await db.SaveChangesAsync();
+        await DevreyeAlmaKaynakBilgisi.TamamlaAsync(db, new[] { legacy });
+        check(legacy.SozlesmeNo == null, "Conflicting legacy contracts remain unresolved instead of choosing the newest");
+        db.Remove(conflict);
+        await db.SaveChangesAsync();
+
+        var invalidSource = new Ys_DevreyeAlmaSorguKaydi
+        {
+            Referans = Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)),
+            DevreyeAlmaId = legacy.Id, FirmaId = firm.Id, DagitimSirketiId = firm.SirketId,
+            KullaniciId = "legacy-source-fixture", KaynakJson = "not-json"
+        };
+        db.Add(invalidSource);
+        await db.SaveChangesAsync();
+        await DevreyeAlmaKaynakBilgisi.TamamlaAsync(db, new[] { legacy });
+        check(legacy.SozlesmeNo == null,
+            "An invalid linked commissioning source cannot be bypassed using an unrelated lookup");
+        db.Remove(invalidSource);
+        await db.SaveChangesAsync();
+        await DevreyeAlmaKaynakBilgisi.TamamlaAsync(db, new[] { legacy });
+        check(legacy.SozlesmeNo == "123456" && await db.Ys_DevreyeAlmalar.CountAsync() == countBefore
+            && !db.ChangeTracker.HasChanges(),
+            "Legacy enrichment is repeatable and never changes saved commissioning records");
+        var list = await new AdminRaporApiService(db).DevreyeAlmalarAsync(null, firm.SirketId);
+        check(list.Islemler.Single(x => x.Id == legacy.Id).SozlesmeNo == "123456",
+            "The actual admin list endpoint includes the recovered legacy contract");
+        var history = (YsDevreyeAlmaGecmisDto)((OkObjectResult)await serviceController.Gecmis(null)).Value!;
+        check(history.Islemler.Single(x => x.Id == legacy.Id).SozlesmeNo == "123456",
+            "The actual authorized-service history endpoint includes the recovered legacy contract");
     }
 
     private sealed class CommissioningSoapHandler : HttpMessageHandler

@@ -340,6 +340,10 @@
 .df-service-operations-report .df-ops-filter { grid-template-columns: repeat(2, minmax(150px, 190px)) auto; justify-content: end; }
 .df-personnel-operations-report.is-commissioning-report .df-ops-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); }
 .df-personnel-operations-report.is-commissioning-report .df-ops-kpi.is-brand-leader strong { font-size:18px; }
+.df-personnel-operations-report.is-certificate-report .df-ops-kpis { grid-template-columns:minmax(0,1fr); }
+.df-personnel-operations-report.is-certificate-report .df-ops-kpi { min-height:64px; padding:10px 14px; }
+.df-personnel-operations-report.is-certificate-report .df-ops-kpi > div { display:flex; align-items:center; gap:12px; }
+.df-personnel-operations-report.is-certificate-report .df-ops-kpi > div > span { font-size:12px; font-weight:600; }
 .df-service-brand-chart { display:grid; align-content:center; gap:10px; min-height:195px; }
 .df-service-brand-row { display:grid; grid-template-columns:minmax(76px,1fr) minmax(54px,1.35fr) 24px; align-items:center; gap:8px; color:#4d6274; font-size:11px; }
 .df-service-brand-row > span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }

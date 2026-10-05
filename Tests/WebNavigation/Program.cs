@@ -152,6 +152,86 @@ using (var fixture = new NavigationFixture("Personel"))
     Check(unavailable.StatusCode == 503 && ((string)unavailable.Value!).Contains("Veri servisine"),
         "A network failure remains a service-unavailable response, not a missing file");
 }
+foreach (var (role, home) in new[]
+{
+    ("Personel", "/personel-panel"), ("SirketAdmin", "/AdminPanel"),
+    ("GenelSistemAdmin", "/AdminPanel"), ("YetkiliServis", "/ys-panel"), ("SertifikaliFirma", "/ykc")
+})
+{
+    using var fixture = new NavigationFixture(role, reportPermission: false);
+    foreach (var previousPage in new[] { "/personel-panel/raporlar", "/ykc/detay/54", "https://example.invalid/" })
+    {
+        var redirect = (RedirectResult)await fixture.CompanyController.SirketSec(8, previousPage);
+        Check(redirect.Url == home && fixture.Http.Session.GetInt32("AktifSirketId:fixture-user") == 8,
+            role + ": company switch starts at its home, not an old scoped record or forbidden report");
+    }
+    var rejected = (RedirectToActionResult)await fixture.CompanyController.SirketSec(99, "/personel-panel/raporlar");
+    Check(rejected.ActionName == nameof(PanelSirketController.SirketSec)
+        && fixture.Http.Session.GetInt32("AktifSirketId:fixture-user") == 8,
+        role + ": an unauthorized company cannot replace the current scope");
+}
+Check(YkcDurumSunumu.Etiket(YkcDurumDegerleri.TalepAlindi) == "Talep Alındı"
+    && YkcDurumSunumu.Etiket(YkcDurumDegerleri.AtamaBekliyor) == "İnceleniyor",
+    "Web status labels retain the shared report wording");
+foreach (var role in new[] { "GenelSistemAdmin", "SirketAdmin", "YetkiliServis" })
+{
+    using var fixture = new NavigationFixture(role);
+    var start = new DateTime(2026, 9, 1);
+    var end = new DateTime(2026, 9, 30);
+    var controller = role == "YetkiliServis" ? (Controller)fixture.ServicePanelController : fixture.AdminPanelController;
+    foreach (var excel in new[] { false, true })
+    {
+        fixture.Handler.CommissioningStatus = HttpStatusCode.BadRequest;
+        fixture.Handler.CommissioningBody = "{\"basarili\":false,\"mesaj\":\"Tek dosyada en fazla 5000 kayıt dışa aktarılabilir.\"}";
+        var before = fixture.Handler.CommissioningCalls;
+        var rejected = (RedirectToActionResult)await fixture.CommissioningExport(role == "YetkiliServis", excel, start, end);
+        Check(rejected.ActionName == "Raporlar" && (DateTime)rejected.RouteValues!["bas"]! == start
+            && (DateTime)rejected.RouteValues["bit"]! == end
+            && (role == "YetkiliServis" || (int)rejected.RouteValues["sirketId"]! == 7),
+            $"{role}, Excel={excel}: failed downloads return to the same report date and company filters");
+        Check(((string?)controller.TempData["Hata"])?.Contains("5000") == true
+            && fixture.Handler.CommissioningCalls == before + 1,
+            $"{role}, Excel={excel}: validation messages reach the user without outage text or retries");
+        fixture.Handler.CommissioningBody = "<html>internal diagnostic text</html>";
+        await fixture.CommissioningExport(role == "YetkiliServis", excel, start, end);
+        Check((string?)controller.TempData["Hata"] == "Rapor oluşturulamadı. Tarih aralığını ve kayıt seçimini kontrol edin.",
+            $"{role}, Excel={excel}: malformed validation payloads use a safe user-facing message");
+        fixture.Handler.CommissioningStatus = HttpStatusCode.OK;
+        var success = (FileContentResult)await fixture.CommissioningExport(role == "YetkiliServis", excel, start, end);
+        Check(success.FileContents.SequenceEqual(new byte[] { 37, 80, 68, 70 }),
+            $"{role}, Excel={excel}: successful report downloads retain their original bytes");
+    }
+}
+using (var fixture = new NavigationFixture("SertifikaliFirma"))
+{
+    var input = new YkcCihazKarsilastirmaIstek
+    {
+        SorguReferansi = "fixture-reference", TesisatNo = "00123", SozlesmeNo = "00456",
+        YeniCihazTipi = "Kombi", YeniMarka = "E.C.A", YeniBacaTipi = "Hermetik", YeniKapasite = "25000"
+    };
+    var result = (JsonResult)await fixture.Controller.CihazKarsilastir(input);
+    Check(result.Value is YkcCihazKarsilastirmaSonuc { Basarili: true, Uyarilar.Count: 1 }
+        && fixture.Handler.LastComparison?.SorguReferansi == input.SorguReferansi
+        && fixture.Handler.LastComparison.TesisatNo == "00123"
+        && fixture.Handler.LastComparison.YeniKapasite == "25000",
+        "Firm comparison forwards the authorized source reference and new fields without changing identifiers");
+    fixture.Handler.ComparisonUnavailable = true;
+    Check(await fixture.Controller.CihazKarsilastir(input) is ObjectResult
+        { StatusCode: 503, Value: YkcCihazKarsilastirmaSonuc { Basarili: false } },
+        "Comparison outage is reported without marking the device as matching");
+    fixture.Controller.ModelState.AddModelError("YeniMarka", "Too long");
+    var previousCalls = fixture.Handler.ComparisonCalls;
+    Check(await fixture.Controller.CihazKarsilastir(input) is BadRequestResult
+        && fixture.Handler.ComparisonCalls == previousCalls, "Invalid comparison fields never reach the API");
+}
+using (var fixture = new NavigationFixture("Personel"))
+{
+    Check(await fixture.Controller.CihazKarsilastir(new()) is StatusCodeResult { StatusCode: 403 }
+        && fixture.Handler.ComparisonCalls == 0, "Read permission does not authorize creating-device comparison");
+}
+Check(typeof(YkcController).GetMethod(nameof(YkcController.CihazKarsilastir))!
+    .IsDefined(typeof(ValidateAntiForgeryTokenAttribute), inherit: true),
+    "New comparison endpoint requires an antiforgery token");
 Console.WriteLine($"{passed} navigation checks passed. No application data changed.");
 
 sealed class NavigationFixture : IDisposable
@@ -161,6 +241,9 @@ sealed class NavigationFixture : IDisposable
     public DefaultHttpContext Http { get; }
     public YkcController Controller { get; }
     public YetkiBelgesiController CertificateController { get; }
+    public PanelSirketController CompanyController { get; }
+    public YetkiliServisPanelController ServicePanelController { get; }
+    public AdminPanelController AdminPanelController { get; }
 
     public NavigationFixture(string role, bool reportPermission = true, bool signaturePermission = true)
     {
@@ -185,6 +268,24 @@ sealed class NavigationFixture : IDisposable
             ControllerContext = new ControllerContext { HttpContext = Http }
         };
         var companies = new PanelKapsamApiClient(client, options, tokens, NullLogger<PanelKapsamApiClient>.Instance);
+        ServicePanelController = new YetkiliServisPanelController(session,
+            new YetkiliServisPanelApiClient(client, options, tokens, NullLogger<YetkiliServisPanelApiClient>.Instance), null!)
+        {
+            ControllerContext = new ControllerContext { HttpContext = Http },
+            TempData = new TempDataDictionary(Http, new MemoryTempData())
+        };
+        AdminPanelController = new AdminPanelController(session, null!,
+            new AktifSirketService(accessor, session, companies), null!, null!, null!, null!, null!,
+            new AdminRaporApiClient(client, options, tokens, NullLogger<AdminRaporApiClient>.Instance), null!, null!, null!)
+        {
+            ControllerContext = new ControllerContext { HttpContext = Http },
+            TempData = new TempDataDictionary(Http, new MemoryTempData())
+        };
+        CompanyController = new PanelSirketController(session, new AktifSirketService(accessor, session, companies))
+        {
+            ControllerContext = new ControllerContext { HttpContext = Http },
+            TempData = new TempDataDictionary(Http, new MemoryTempData())
+        };
         var api = new YkcApiClient(client, options, tokens, NullLogger<YkcApiClient>.Instance,
             new AktifSirketService(accessor, session, companies));
         Controller = new YkcController(session, api, NullLogger<YkcController>.Instance, null!)
@@ -194,7 +295,7 @@ sealed class NavigationFixture : IDisposable
         };
         Controller.ViewBag.YkcYetkileri = new YkcYetkiOzeti
         {
-            TalepleriGorebilir = true, AtamaYapabilir = true,
+            TalepleriGorebilir = true, AtamaYapabilir = true, TalepOlusturabilir = role == "SertifikaliFirma",
             Fr265ImzaIslemiYapabilir = signaturePermission, RaporlariGorebilir = reportPermission
         };
     }
@@ -206,6 +307,10 @@ sealed class NavigationFixture : IDisposable
         ? Controller.RaporExcel(null, null, null, null, null, null, null, null, null, null, null, ids, id)
         : Controller.RaporPdf(null, null, null, null, null, null, null, null, null, null, null, ids, id);
 
+    public Task<IActionResult> CommissioningExport(bool service, bool excel, DateTime start, DateTime end) => service
+        ? excel ? ServicePanelController.RaporlarExcel(start, end, [1]) : ServicePanelController.RaporlarPdf(start, end, [1])
+        : excel ? AdminPanelController.RaporlarExcel(start, end, [1], 7) : AdminPanelController.RaporlarPdf(start, end, [1], 7);
+
     public void Dispose() => client.Dispose();
 }
 
@@ -214,7 +319,13 @@ sealed class FixtureHandler(string role) : HttpMessageHandler
     public bool Success { get; set; } = true;
     public HttpStatusCode CertificateStatus { get; set; } = HttpStatusCode.OK;
     public bool CertificateUnavailable { get; set; }
+    public HttpStatusCode CommissioningStatus { get; set; } = HttpStatusCode.OK;
+    public string CommissioningBody { get; set; } = "{}";
+    public int CommissioningCalls { get; private set; }
     public int OperationCalls { get; private set; }
+    public int ComparisonCalls { get; private set; }
+    public bool ComparisonUnavailable { get; set; }
+    public YkcCihazKarsilastirmaIstek? LastComparison { get; private set; }
     public YkcRaporSonuc ReportResult { get; } = new();
     public YkcTalepListeFiltre? LastReportFilter { get; private set; }
 
@@ -222,6 +333,19 @@ sealed class FixtureHandler(string role) : HttpMessageHandler
     {
         var path = request.RequestUri!.AbsolutePath;
         object result;
+        if (path.StartsWith("/api/admin-panel/devreye-almalar/rapor/", StringComparison.Ordinal)
+            || path.StartsWith("/api/ys-panel/raporlar/", StringComparison.Ordinal))
+        {
+            CommissioningCalls++;
+            if (request.Headers.Authorization?.Parameter != "fixture-token")
+                throw new InvalidOperationException("Report download must forward the authenticated token");
+            return new HttpResponseMessage(CommissioningStatus)
+            {
+                Content = CommissioningStatus == HttpStatusCode.OK
+                    ? new ByteArrayContent([37, 80, 68, 70])
+                    : new StringContent(CommissioningBody, System.Text.Encoding.UTF8, "application/json")
+            };
+        }
         if (path == "/api/yetki-belgesi/dosya-indir")
         {
             if (CertificateUnavailable) throw new HttpRequestException("Fixture network failure");
@@ -233,15 +357,31 @@ sealed class FixtureHandler(string role) : HttpMessageHandler
         }
         if (path == "/api/auth/me")
             result = new OturumSonucu { Basarili = true, Kullanici = new OturumKullaniciDto(
-                "fixture-user", "fixture", null, "Fixture", null, KullaniciTipiDegerleri.Personel, null, 7, [role]) };
+                "fixture-user", "fixture", null, "Fixture", null, role switch
+                {
+                    "GenelSistemAdmin" => KullaniciTipiDegerleri.GenelSistemAdmin,
+                    "SirketAdmin" => KullaniciTipiDegerleri.SirketAdmin,
+                    "YetkiliServis" => KullaniciTipiDegerleri.YetkiliServis,
+                    "SertifikaliFirma" => KullaniciTipiDegerleri.SertifikaliFirma,
+                    _ => KullaniciTipiDegerleri.Personel
+                }, null, 7, [role]) };
         else if (path == "/api/panel-kapsam/sirketler")
-            result = new[] { new { Id = 7, SirketAdi = "Fixture company" } };
+            result = new[] { new { Id = 7, SirketAdi = "Fixture company" }, new { Id = 8, SirketAdi = "Second company" } };
         else if (path.StartsWith("/api/ykc/talepler/rapor", StringComparison.Ordinal))
         {
             LastReportFilter = await request.Content!.ReadFromJsonAsync<YkcTalepListeFiltre>(cancellationToken);
             if (path.EndsWith("/pdf", StringComparison.Ordinal) || path.EndsWith("/excel", StringComparison.Ordinal))
                 return new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent([1]) };
             result = ReportResult;
+        }
+        else if (path == "/api/ykc/cihaz-karsilastir")
+        {
+            ComparisonCalls++;
+            if (request.Headers.Authorization?.Parameter != "fixture-token")
+                throw new InvalidOperationException("Comparison must use the authenticated API token");
+            if (ComparisonUnavailable) throw new HttpRequestException("Fixture comparison unavailable");
+            LastComparison = await request.Content!.ReadFromJsonAsync<YkcCihazKarsilastirmaIstek>(cancellationToken);
+            result = new YkcCihazKarsilastirmaSonuc { Basarili = true, Uyarilar = ["Marka proje kaydıyla farklı."] };
         }
         else if (path is "/api/ykc/talepler/durum-guncelle" or "/api/ykc/talepler/imza-durum-sorgula")
         {

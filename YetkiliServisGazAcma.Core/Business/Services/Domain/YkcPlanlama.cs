@@ -48,6 +48,7 @@ public sealed class YkcTakvimKayit
     public string? Bolge { get; set; }
     public string? Personel { get; set; }
     public string? Ekip { get; set; }
+    public string? Yonlendirme { get; set; }
     public int Durum { get; set; }
 }
 
@@ -228,7 +229,10 @@ public partial class YkcTalepService
                             Id = t.Id, Tarih = t.RandevuTarihi!.Value, Saat = t.RandevuSaati,
                             Musteri = t.MusteriAdi, TesisatNo = t.TesisatNo, Adres = t.Adres,
                             Il = t.Il, Bolge = t.Bolge, Personel = u == null ? null : u.AdSoyad,
-                            Ekip = t.AtananEkip, Durum = t.Durum
+                            Ekip = t.AtananEkip,
+                            Yonlendirme = t.AtananKullaniciTipi == "CRM187" ? "187 Acil"
+                                : t.AtananKullaniciTipi == "Mühendis" ? "Mühendis" : null,
+                            Durum = t.Durum
                         };
 
         var personelEkipDegerleri = firmaGorunumu

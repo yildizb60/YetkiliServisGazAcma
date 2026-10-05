@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -57,14 +58,13 @@ namespace YetkiliServisGazAcma.API.Controllers
             var page = Math.Max(dto?.Page ?? 1, 1);
             var pageSize = Math.Clamp(dto?.PageSize ?? 20, 1, 100);
 
-            var query = _context.Ys_Firmalar
+            var query = RehberServisleri()
                 .Include(x => x.FirmaMarkalar!)
                     .ThenInclude(x => x.Marka)
                 .Include(x => x.FirmaKategoriler!)
                     .ThenInclude(x => x.Kategori)
                 .Include(x => x.Subeler!)
                 .Include(x => x.Sirket)
-                .Where(x => !x.SilindiMi && x.AktifMi)
                 .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(il))
@@ -145,6 +145,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         [EnableRateLimiting("PublicApi")]
         public async Task<IActionResult> FiltreSecenekleri([FromBody] YetkiliServisFiltreSecenekleriIstek? dto)
         {
+            var rehberServisleri = RehberServisleri();
             var markalar = await _context.Ys_Markalar
                 .Where(x => !x.SilindiMi && x.AktifMi)
                 .OrderBy(x => x.MarkaAdi)
@@ -169,8 +170,8 @@ namespace YetkiliServisGazAcma.API.Controllers
                 })
                 .ToListAsync();
 
-            var illerRaw = await _context.Ys_Firmalar
-                .Where(x => !x.SilindiMi && x.AktifMi && x.FaaliyetIli != null && x.FaaliyetIli != "")
+            var illerRaw = await rehberServisleri
+                .Where(x => x.FaaliyetIli != null && x.FaaliyetIli != "")
                 .Select(x => x.FaaliyetIli!)
                 .ToListAsync();
 
@@ -179,7 +180,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                     && x.AktifMi
                     && x.Il != null
                     && x.Il != ""
-                    && _context.Ys_Firmalar.Any(f => f.Id == x.FirmaId && !f.SilindiMi && f.AktifMi))
+                    && rehberServisleri.Any(f => f.Id == x.FirmaId))
                 .Select(x => x.Il!)
                 .ToListAsync();
 
@@ -203,7 +204,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                     && x.AktifMi
                     && x.Ilce != null
                     && x.Ilce != ""
-                    && _context.Ys_Firmalar.Any(f => f.Id == x.FirmaId && !f.SilindiMi && f.AktifMi));
+                    && rehberServisleri.Any(f => f.Id == x.FirmaId));
 
             if (!string.IsNullOrWhiteSpace(dto?.Il))
                 ilcelerQuery = ilcelerQuery.Where(x => x.Il == dto.Il);
@@ -268,6 +269,10 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return BadRequest(new { basarili = false, mesaj = "TC kimlik no 11 haneli ve sayisal olmalidir" });
             }
 
+            var sirketId = await _sehirFirmaKoduService.AktifSirketIdBulAsync(dto.FaaliyetIli);
+            if (!sirketId.HasValue)
+                return BadRequest(new { basarili = false, mesaj = "Seçilen il için aktif dağıtım şirketi bulunamadı veya şirket eşleşmesi belirsiz. Lütfen sistem yöneticisiyle iletişime geçin." });
+
             var firma = new Ys_Firma
             {
                 FirmaAdi = dto.FirmaAdi,
@@ -279,9 +284,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 VergiNo = dto.VergiNo,
                 VergiDairesi = dto.VergiDairesi,
                 TcKimlikNo = dto.TcKimlikNo,
-                SirketId = await _sehirFirmaKoduService.SirketIdBulVeyaOlustur(
-                    dto.FaaliyetIli,
-                    dto.Email ?? dto.VergiNo ?? "api-kayit")
+                SirketId = sirketId.Value
             };
 
             var sonuc = await _yetkiliServisService.Kayit(
@@ -301,7 +304,11 @@ namespace YetkiliServisGazAcma.API.Controllers
         [Authorize]
         public async Task<IActionResult> Getir([FromBody] IdDto dto)
         {
-            var servis = await _context.Ys_Firmalar
+            var kullanici = await AktifKullaniciAsync();
+            if (kullanici == null)
+                return Unauthorized();
+
+            var servis = await YetkiliServisKapsami(kullanici, yonetim: false)
                 .Include(x => x.Sirket)
                 .Include(x => x.FirmaMarkalar!)
                     .ThenInclude(x => x.Marka)
@@ -345,7 +352,11 @@ namespace YetkiliServisGazAcma.API.Controllers
         [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin")]
         public async Task<IActionResult> Guncelle([FromBody] YetkiliServisKaydetDto dto)
         {
-            var servis = await _context.Ys_Firmalar
+            var kullanici = await AktifKullaniciAsync();
+            if (kullanici == null)
+                return Unauthorized();
+
+            var servis = await YetkiliServisKapsami(kullanici, yonetim: true)
                 .FirstOrDefaultAsync(x => x.Id == dto.Id && !x.SilindiMi);
 
             if (servis == null)
@@ -368,9 +379,10 @@ namespace YetkiliServisGazAcma.API.Controllers
             servis.FaaliyetIli = dto.FaaliyetIli;
             servis.VergiNo = dto.VergiNo;
             servis.VergiDairesi = dto.VergiDairesi;
-            servis.SirketId = await _sehirFirmaKoduService.SirketIdBulVeyaOlustur(
-                dto.FaaliyetIli,
-                User.Identity?.Name ?? "api");
+            if (GenelSistemAdminMi(kullanici))
+                servis.SirketId = await _sehirFirmaKoduService.SirketIdBulVeyaOlustur(
+                    dto.FaaliyetIli,
+                    User.Identity?.Name ?? "api");
             servis.AktifMi = dto.AktifMi;
             servis.GuncellemeTarihi = DateTime.Now;
             servis.GuncelleyenKullanici = User.Identity?.Name ?? "api";
@@ -427,7 +439,11 @@ namespace YetkiliServisGazAcma.API.Controllers
         [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin")]
         public async Task<IActionResult> Sil([FromBody] IdDto dto)
         {
-            var servis = await _context.Ys_Firmalar
+            var kullanici = await AktifKullaniciAsync();
+            if (kullanici == null)
+                return Unauthorized();
+
+            var servis = await YetkiliServisKapsami(kullanici, yonetim: true)
                 .FirstOrDefaultAsync(x => x.Id == dto.Id && !x.SilindiMi);
 
             if (servis == null)
@@ -446,6 +462,43 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             return Ok(new { basarili = true, mesaj = "Yetkili servis silindi" });
         }
+
+        private Task<AppKullanici?> AktifKullaniciAsync()
+        {
+            var kullaniciId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            return _context.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == kullaniciId
+                && x.AktifMi && x.ArsivlemeTarihi == null);
+        }
+
+        private bool GenelSistemAdminMi(AppKullanici kullanici)
+            => User.IsInRole("GenelSistemAdmin") || User.IsInRole("SuperAdmin")
+                || kullanici.KullaniciTipi == KullaniciTipiDegerleri.GenelSistemAdmin
+                || (kullanici.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin && !kullanici.SirketId.HasValue);
+
+        private IQueryable<Ys_Firma> YetkiliServisKapsami(AppKullanici kullanici, bool yonetim)
+        {
+            var query = _context.Ys_Firmalar.Where(x => !x.SilindiMi);
+            if (GenelSistemAdminMi(kullanici))
+                return query;
+
+            if (kullanici.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin)
+                return query.Where(x => x.SirketId == kullanici.SirketId);
+
+            if (!yonetim && kullanici.KullaniciTipi == KullaniciTipiDegerleri.Personel)
+                return query.Where(x => _context.Dag_PersonelYetkiler.Any(y =>
+                    y.KullaniciId == kullanici.Id && !y.SilindiMi && y.SirketId == x.SirketId
+                    && (y.YetkiTipi == YetkiTipleri.TAM_YETKI || y.YetkiTipi == YetkiTipleri.KULLANICI_YONET)));
+
+            if (!yonetim && kullanici.KullaniciTipi is KullaniciTipiDegerleri.YetkiliServis or KullaniciTipiDegerleri.SertifikaliFirma)
+                return query.Where(x => x.Id == kullanici.FirmaId);
+
+            return query.Where(x => false);
+        }
+
+        private IQueryable<Ys_Firma> RehberServisleri()
+            => _context.Ys_Firmalar.Where(x => !x.SilindiMi && x.AktifMi
+                && _context.Users.Any(u => u.FirmaId == x.Id
+                    && u.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis));
 
         private static string NormalizeKonum(string? value)
         {

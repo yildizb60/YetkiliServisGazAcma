@@ -6,7 +6,7 @@
     var nihai = Model.ImzaSureci?.Durum == YkcImzaDurumDegerleri.Tamamlandi
         ? Model.Dosyalar.FirstOrDefault(x => x.Id == Model.ImzaSureci.NihaiDosyaId && x.DosyaTuru == YkcFormDosyaTuruDegerleri.Fr265ImzaliNihai) : null;
     var demoBelge = nihai != null && Model.ImzaSureci?.ProviderDocumentId?.StartsWith("DEMO-YKC-", StringComparison.Ordinal) == true;
-    var durum = Model.Durum == YkcDurumDegerleri.TalepAlindi ? "İnceleme Bekleniyor" : YkcDurumSunumu.Etiket(Model.Durum);
+    var durum = YkcDurumSunumu.Etiket(Model.Durum);
     var kontrolBaslik = Model.Durum switch
     {
         YkcDurumDegerleri.TalepAlindi => "Dağıtım şirketinin incelemesi bekleniyor",

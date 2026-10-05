@@ -4620,7 +4620,7 @@
     .ykc-operation-toast { top: 64px; right: 12px; }
 }
 
-/* Beyaz ana yuzeyler; sadece firma ozetinde hafif renk ayrimi. */
+/* Yerlesimi koruyan hafif bolum tonlari ve okunakli baslik vurgulari. */
 .ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) {
     --ykc-record-primary: #315fca;
     --ykc-record-ink: #213b53;
@@ -4655,9 +4655,9 @@
 }
 .ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-control-status {
     padding-block: 11px;
-    background: #f2f7fd;
-    border-color: #d7e4f2;
-    box-shadow: inset 2px 0 #8ca8de;
+    background: #edf4fd;
+    border-color: #d4e1f1;
+    box-shadow: inset 2px 0 #7f9dce;
 }
 .ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-control-status > i {
     display: grid;
@@ -4665,13 +4665,13 @@
     flex: 0 0 32px;
     width: 32px;
     height: 32px;
-    border: 1px solid #d5e1f2;
+    border: 1px solid #cbdaf0;
     border-radius: 6px;
-    background: #f4f7fd;
+    background: #e5edfb;
     color: var(--ykc-record-primary);
     font-size: 19px;
 }
-.ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-control-status h2 { color: var(--ykc-record-ink); font-weight: 600; }
+.ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-control-status h2 { color: #2b5485; font-weight: 600; }
 .ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-control-status > time { border-color: #c7d8f0; }
 .ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-control-status > time :is(strong,b) { color: var(--ykc-record-ink); }
 
@@ -4683,12 +4683,18 @@
     border-color: var(--ykc-record-line);
 }
 .ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-record-activity > [aria-labelledby="firm-record-title"] {
-    background: #f7faff;
+    background: #f4faf8;
+}
+.ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) [aria-labelledby="firm-device-title"] {
+    background: #fff9f7;
 }
 .ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-history-panel {
     background: var(--ykc-record-surface);
 }
 .ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-data-section h2 { color: var(--ykc-record-ink); font-weight: 600; }
+.ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) #firm-installation-title { color: #2a6091; }
+.ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) #firm-device-title { color: #974e47; }
+.ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) #firm-record-title { color: #276957; }
 .ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-data-section h2 > i {
     display: inline-grid;
     place-items: center;
@@ -4703,13 +4709,13 @@
     font-size: 15px;
 }
 .ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-data-section h2 > .bi-fire {
-    border-color: #ecdad6;
-    background: #fdf7f5;
+    border-color: #eed2ca;
+    background: #fcece6;
     color: #b94740;
 }
 .ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-data-section h2 > :is(.bi-building,.bi-file-earmark-check) {
-    border-color: #d0e3d9;
-    background: #f4f9f6;
+    border-color: #c6dfd3;
+    background: #e8f3ec;
     color: #187f61;
 }
 .ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-data-section h2 > .bi-clock-history {
@@ -4722,7 +4728,9 @@
 .ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-history-panel > summary > i { color: var(--ykc-record-muted); }
 .ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-history li { border-color: #c4d3eb; }
 .ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-record-activity .ykc-firm-data-section:first-child dl { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px 14px; }
-.ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-data-section { padding:13px 18px; }
+.ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-data-section {
+    padding:13px 18px;
+}
 .ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-data-section h2 { margin-bottom:8px; }
 .ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-history-panel > summary h2 { margin-bottom:0; }
 .ykc-detail-page > .ykc-firm-record:not(.ykc-staff-record) .ykc-firm-data-section dd { font-size:12px; line-height:1.35; }

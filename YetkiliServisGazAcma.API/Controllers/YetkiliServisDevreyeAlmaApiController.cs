@@ -63,15 +63,19 @@ namespace YetkiliServisGazAcma.API.Controllers
                     (x.CihazMarka != null && x.CihazMarka == marka));
             }
 
-            if (dto?.BaslangicTarihi.HasValue == true)
+            var basTarih = dto?.BaslangicTarihi?.Date;
+            var bitTarih = dto?.BitisTarihi?.Date;
+            if (basTarih > bitTarih)
+                (basTarih, bitTarih) = (bitTarih, basTarih);
+            if (basTarih.HasValue)
             {
-                var baslangic = dto.BaslangicTarihi.Value.Date;
+                var baslangic = basTarih.Value;
                 query = query.Where(x => x.DevreyeAlmaTarihi >= baslangic);
             }
 
-            if (dto?.BitisTarihi.HasValue == true)
+            if (bitTarih.HasValue)
             {
-                var bitis = dto.BitisTarihi.Value.Date.AddDays(1);
+                var bitis = bitTarih.Value.AddDays(1);
                 query = query.Where(x => x.DevreyeAlmaTarihi < bitis);
             }
 
@@ -110,7 +114,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             }
 
             var islemler = await query
-                .OrderByDescending(x => x.OlusturmaTarihi)
+                .OrderByDescending(x => x.DevreyeAlmaTarihi).ThenByDescending(x => x.Id)
                 .ToListAsync();
             await DevreyeAlmaKaynakBilgisi.TamamlaAsync(_context, islemler);
 

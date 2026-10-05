@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using YetkiliServisGazAcma.API.Services;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
 
@@ -378,13 +379,16 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (!await RaporGorebilirMi(kapsam.sirketId))
                 return Forbid();
 
-            var dosya = await _devreyeAlmaExportApiService.AdminRaporPdfAsync(
-                kapsam.sirketId,
-                dto?.BaslangicTarihi,
-                dto?.BitisTarihi,
-                dto?.Ids);
-
-            return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+            try
+            {
+                var dosya = await _devreyeAlmaExportApiService.AdminRaporPdfAsync(
+                    kapsam.sirketId, dto?.BaslangicTarihi, dto?.BitisTarihi, dto?.Ids);
+                return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+            }
+            catch (DevreyeAlmaRaporLimitException ex)
+            {
+                return BadRequest(new { basarili = false, mesaj = ex.Message });
+            }
         }
 
         [HttpPost("devreye-almalar/rapor/excel")]
@@ -396,13 +400,16 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (!await RaporGorebilirMi(kapsam.sirketId))
                 return Forbid();
 
-            var dosya = await _devreyeAlmaExportApiService.AdminRaporExcelAsync(
-                kapsam.sirketId,
-                dto?.BaslangicTarihi,
-                dto?.BitisTarihi,
-                dto?.Ids);
-
-            return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+            try
+            {
+                var dosya = await _devreyeAlmaExportApiService.AdminRaporExcelAsync(
+                    kapsam.sirketId, dto?.BaslangicTarihi, dto?.BitisTarihi, dto?.Ids);
+                return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+            }
+            catch (DevreyeAlmaRaporLimitException ex)
+            {
+                return BadRequest(new { basarili = false, mesaj = ex.Message });
+            }
         }
 
         [HttpPost("yetki-belgeleri/uyarilar")]
@@ -426,7 +433,15 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (!await RaporGorebilirMi(kapsam.sirketId))
                 return Forbid();
 
-            return Ok(await _adminRaporApiService.RaporlarOzetAsync(dto, kapsam.sirketId));
+            var operasyonGorebilir = await PersonelYetkisiVarMi(kapsam.sirketId, YetkiTipleri.YKC_RAPOR_GOR);
+            var belgeGorebilir = await YetkiBelgesiOnaylayabilirMi(kapsam.sirketId);
+            var tip = dto?.Tip?.Trim().ToLowerInvariant();
+            if ((tip is "onayli" or "bekleyen" or "reddedilen") && !belgeGorebilir
+                || (tip is "operasyon" or "ykc") && !operasyonGorebilir)
+                return Forbid();
+
+            return Ok(await _adminRaporApiService.RaporlarOzetAsync(
+                dto, kapsam.sirketId, operasyonGorebilir, belgeGorebilir));
         }
     }
 }

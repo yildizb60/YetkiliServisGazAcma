@@ -304,7 +304,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                     .Include(x => x.Firma)
                         .ThenInclude(x => x!.Sirket)
                     .Where(x => x.FirmaId == firmaId && !x.SilindiMi && dto.Ids.Contains(x.Id))
-                    .OrderByDescending(x => x.DevreyeAlmaTarihi)
+                    .OrderByDescending(x => x.DevreyeAlmaTarihi).ThenByDescending(x => x.Id)
                     .ToListAsync();
 
                 basTarih = islemler.Count > 0 ? islemler.Min(x => x.DevreyeAlmaTarihi).Date : DateTime.Now.Date;
@@ -325,7 +325,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                         && !x.SilindiMi
                         && x.DevreyeAlmaTarihi >= basTarih
                         && x.DevreyeAlmaTarihi < bitSonrasi)
-                    .OrderByDescending(x => x.DevreyeAlmaTarihi);
+                    .OrderByDescending(x => x.DevreyeAlmaTarihi).ThenByDescending(x => x.Id);
 
                 islemler = dto?.Limit is > 0
                     ? await query.Take(dto.Limit.Value).ToListAsync()
@@ -339,6 +339,8 @@ namespace YetkiliServisGazAcma.API.Controllers
                     && !x.SilindiMi
                     && x.DevreyeAlmaTarihi >= basTarih
                     && x.DevreyeAlmaTarihi < bitSonrasiRapor);
+            if (dto?.Ids?.Count > 0)
+                devreyeTemelQuery = devreyeTemelQuery.Where(x => dto.Ids.Contains(x.Id));
 
             var yetkiBelgesiTemelQuery = _context.Ys_YetkiBelgeleri
                 .Where(x => x.FirmaId == firmaId
@@ -377,8 +379,10 @@ namespace YetkiliServisGazAcma.API.Controllers
                 .ToList();
 
             var chartMarka = await devreyeTemelQuery
-                .Where(x => x.Marka != null && !string.IsNullOrEmpty(x.Marka.MarkaAdi))
-                .GroupBy(x => x.Marka!.MarkaAdi)
+                .Select(x => x.Marka != null && !string.IsNullOrWhiteSpace(x.Marka.MarkaAdi)
+                    ? x.Marka.MarkaAdi!.Trim()
+                    : !string.IsNullOrWhiteSpace(x.CihazMarka) ? x.CihazMarka.Trim() : "Marka belirtilmemiş")
+                .GroupBy(x => x)
                 .Select(g => new { Marka = g.Key, Sayi = g.Count() })
                 .OrderByDescending(x => x.Sayi)
                 .Take(6)
@@ -411,13 +415,16 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (kullanici?.FirmaId == null)
                 return Unauthorized();
 
-            var dosya = await _devreyeAlmaExportApiService.YetkiliServisRaporPdfAsync(
-                kullanici.FirmaId.Value,
-                dto?.Bas,
-                dto?.Bit,
-                dto?.Ids);
-
-            return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+            try
+            {
+                var dosya = await _devreyeAlmaExportApiService.YetkiliServisRaporPdfAsync(
+                    kullanici.FirmaId.Value, dto?.Bas, dto?.Bit, dto?.Ids);
+                return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+            }
+            catch (DevreyeAlmaRaporLimitException ex)
+            {
+                return BadRequest(new { basarili = false, mesaj = ex.Message });
+            }
         }
 
         [HttpPost("raporlar/excel")]
@@ -427,13 +434,16 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (kullanici?.FirmaId == null)
                 return Unauthorized();
 
-            var dosya = await _devreyeAlmaExportApiService.YetkiliServisRaporExcelAsync(
-                kullanici.FirmaId.Value,
-                dto?.Bas,
-                dto?.Bit,
-                dto?.Ids);
-
-            return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+            try
+            {
+                var dosya = await _devreyeAlmaExportApiService.YetkiliServisRaporExcelAsync(
+                    kullanici.FirmaId.Value, dto?.Bas, dto?.Bit, dto?.Ids);
+                return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+            }
+            catch (DevreyeAlmaRaporLimitException ex)
+            {
+                return BadRequest(new { basarili = false, mesaj = ex.Message });
+            }
         }
 
         [HttpPost("subeler/kaydet")]
@@ -549,7 +559,7 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             var bitTarih = bit?.Date ?? DateTime.Now.Date;
             var basTarih = bas?.Date ?? bitTarih.AddDays(-30);
-            return (basTarih, bitTarih);
+            return basTarih <= bitTarih ? (basTarih, bitTarih) : (bitTarih, basTarih);
         }
 
         private async Task<YsPanelBildirimDto> BildirimlerAsync(int firmaId)

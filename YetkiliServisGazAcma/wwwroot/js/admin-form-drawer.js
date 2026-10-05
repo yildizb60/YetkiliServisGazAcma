@@ -103,8 +103,9 @@
                 if (!state) return;
                 var selectedCount = options.filter(function (option) { return option.checked; }).length;
                 state.textContent = !companyToggle.checked
-                    ? "Yetki kapalı"
-                    : fullAccess && fullAccess.checked ? "Tam yetki" : selectedCount + " yetki seçili";
+                    ? "Şirket Yetkileri Kapalı"
+                    : fullAccess && fullAccess.checked ? "Tüm İşlem Yetkileri Açık"
+                    : selectedCount === 0 ? "İşlem Yetkisi Seçilmedi" : selectedCount + " İşlem Yetkisi Seçili";
             }
 
             function refreshCompanyState() {

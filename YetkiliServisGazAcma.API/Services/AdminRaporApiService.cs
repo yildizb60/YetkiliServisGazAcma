@@ -33,12 +33,16 @@ namespace YetkiliServisGazAcma.API.Services
                 query = query.Where(x => _context.Ys_Subeler.Any(s => !s.SilindiMi && s.FirmaId == x.FirmaId && s.Ilce != null && s.Ilce.Contains(dto.Ilce)));
             if (dto?.Durum.HasValue == true)
                 query = query.Where(x => x.Durum == dto.Durum.Value);
-            if (dto?.BaslangicTarihi.HasValue == true)
-                query = query.Where(x => x.OlusturmaTarihi >= dto.BaslangicTarihi.Value.Date);
-            if (dto?.BitisTarihi.HasValue == true)
-                query = query.Where(x => x.OlusturmaTarihi < dto.BitisTarihi.Value.Date.AddDays(1));
+            var basTarih = dto?.BaslangicTarihi?.Date;
+            var bitTarih = dto?.BitisTarihi?.Date;
+            if (basTarih > bitTarih)
+                (basTarih, bitTarih) = (bitTarih, basTarih);
+            if (basTarih.HasValue)
+                query = query.Where(x => x.DevreyeAlmaTarihi >= basTarih.Value);
+            if (bitTarih.HasValue)
+                query = query.Where(x => x.DevreyeAlmaTarihi < bitTarih.Value.AddDays(1));
 
-            var islemler = await query.OrderByDescending(x => x.OlusturmaTarihi).ToListAsync();
+            var islemler = await query.OrderByDescending(x => x.DevreyeAlmaTarihi).ThenByDescending(x => x.Id).ToListAsync();
             await DevreyeAlmaKaynakBilgisi.TamamlaAsync(_context, islemler);
             var firmaIds = islemler.Select(x => x.FirmaId).Distinct().ToList();
             var subeler = await _context.Ys_Subeler
@@ -102,7 +106,8 @@ namespace YetkiliServisGazAcma.API.Services
             };
         }
 
-        public async Task<AdminRaporOzetDto> RaporlarOzetAsync(AdminRaporOzetFiltreDto? dto, int? sirketId)
+        public async Task<AdminRaporOzetDto> RaporlarOzetAsync(
+            AdminRaporOzetFiltreDto? dto, int? sirketId, bool operasyonGorebilir, bool belgeGorebilir)
         {
             var basTarih = dto?.BaslangicTarihi?.Date ?? new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
             var bitTarih = dto?.BitisTarihi?.Date ?? DateTime.Now.Date;
@@ -114,7 +119,7 @@ namespace YetkiliServisGazAcma.API.Services
             var belgeRaporu = raporTipi is "onayli" or "bekleyen" or "reddedilen";
 
             var operasyonQuery = YkcTalepTemelQuery(sirketId)
-                .Where(x => x.TalepTarihi >= basTarih && x.TalepTarihi < bitSonrasi);
+                .Where(x => operasyonGorebilir && x.TalepTarihi >= basTarih && x.TalepTarihi < bitSonrasi);
             var operasyonTalepleri = await operasyonQuery
                 .Select(x => new
                 {
@@ -181,7 +186,7 @@ namespace YetkiliServisGazAcma.API.Services
 
             var aylikBitis = new DateTime(bitTarih.Year, bitTarih.Month, 1);
             var aylikBaslangic = aylikBitis.AddMonths(-5);
-            var operasyonAylikHam = await YkcTalepTemelQuery(sirketId)
+            var operasyonAylikHam = await operasyonQuery
                 .Where(x => x.TalepTarihi >= aylikBaslangic && x.TalepTarihi < aylikBitis.AddMonths(1))
                 .GroupBy(x => new { x.TalepTarihi.Year, x.TalepTarihi.Month })
                 .Select(x => new { x.Key.Year, x.Key.Month, Sayi = x.Count() })
@@ -220,10 +225,13 @@ namespace YetkiliServisGazAcma.API.Services
                 .ToList();
 
             var devreyeTemelQuery = DevreyeAlmaTemelQuery(sirketId)
-                .Where(x => x.OlusturmaTarihi >= basTarih && x.OlusturmaTarihi < bitSonrasi);
+                .Where(x => x.DevreyeAlmaTarihi >= basTarih && x.DevreyeAlmaTarihi < bitSonrasi);
 
-            var yetkiBelgesiTemelQuery = YetkiBelgesiTemelQuery(sirketId)
-                .Where(x => x.OlusturmaTarihi >= basTarih && x.OlusturmaTarihi < bitSonrasi);
+            var belgeKararRaporu = raporTipi is "onayli" or "reddedilen";
+            var yetkiBelgesiTemelQuery = YetkiBelgesiTemelQuery(sirketId).Where(x => belgeGorebilir);
+            yetkiBelgesiTemelQuery = belgeKararRaporu
+                ? yetkiBelgesiTemelQuery.Where(x => x.OnayTarihi >= basTarih && x.OnayTarihi < bitSonrasi)
+                : yetkiBelgesiTemelQuery.Where(x => x.OlusturmaTarihi >= basTarih && x.OlusturmaTarihi < bitSonrasi);
             var seciliYetkiBelgesiQuery = raporTipi switch
             {
                 "onayli" => yetkiBelgesiTemelQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi),
@@ -237,12 +245,13 @@ namespace YetkiliServisGazAcma.API.Services
             var devreyeTamamlanan = await devreyeTemelQuery.Where(x => x.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi).CountAsync();
             var devreyeBekleyen = await devreyeTemelQuery.Where(x => x.Durum == DevreyeAlmaDurumDegerleri.Bekliyor).CountAsync();
             var devreyeIptal = await devreyeTemelQuery.Where(x => x.Durum == DevreyeAlmaDurumDegerleri.Iptal).CountAsync();
-            var yetkiBelgesiOnayli = await yetkiBelgesiTemelQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi).CountAsync();
-            var yetkiBelgesiBekleyen = await yetkiBelgesiTemelQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
+            var yetkiBelgesiSayacQuery = belgeRaporu ? seciliYetkiBelgesiQuery : yetkiBelgesiTemelQuery;
+            var yetkiBelgesiOnayli = await yetkiBelgesiSayacQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi).CountAsync();
+            var yetkiBelgesiBekleyen = await yetkiBelgesiSayacQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
                 && x.YetkiBelgesiBitisTarihi >= DateTime.Today).CountAsync();
-            var yetkiBelgesiReddedilen = await yetkiBelgesiTemelQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Reddedildi).CountAsync();
+            var yetkiBelgesiReddedilen = await yetkiBelgesiSayacQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Reddedildi).CountAsync();
 
-            var devreyeAylikBaslangic = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1).AddMonths(-5);
+            var devreyeAylikBaslangic = new DateTime(bitTarih.Year, bitTarih.Month, 1).AddMonths(-5);
             var aylikEtiketler = Enumerable.Range(0, 6)
                 .Select(i => devreyeAylikBaslangic.AddMonths(i))
                 .ToList();
@@ -251,8 +260,9 @@ namespace YetkiliServisGazAcma.API.Services
             if (belgeRaporu)
             {
                 var aylikHam = await seciliYetkiBelgesiQuery
-                    .Where(x => x.OlusturmaTarihi >= devreyeAylikBaslangic)
-                    .GroupBy(x => new { x.OlusturmaTarihi.Year, x.OlusturmaTarihi.Month })
+                    .Select(x => new { Tarih = belgeKararRaporu ? x.OnayTarihi!.Value : x.OlusturmaTarihi })
+                    .Where(x => x.Tarih >= devreyeAylikBaslangic)
+                    .GroupBy(x => new { x.Tarih.Year, x.Tarih.Month })
                     .Select(g => new { g.Key.Year, g.Key.Month, Count = g.Count() })
                     .ToListAsync();
                 aylikMap = aylikHam.ToDictionary(x => $"{x.Year:D4}-{x.Month:D2}", x => x.Count);
@@ -260,8 +270,8 @@ namespace YetkiliServisGazAcma.API.Services
             else
             {
                 var aylikHam = await devreyeTemelQuery
-                    .Where(x => x.OlusturmaTarihi >= devreyeAylikBaslangic)
-                    .GroupBy(x => new { x.OlusturmaTarihi.Year, x.OlusturmaTarihi.Month })
+                    .Where(x => x.DevreyeAlmaTarihi >= devreyeAylikBaslangic)
+                    .GroupBy(x => new { x.DevreyeAlmaTarihi.Year, x.DevreyeAlmaTarihi.Month })
                     .Select(g => new { g.Key.Year, g.Key.Month, Count = g.Count() })
                     .ToListAsync();
                 aylikMap = aylikHam.ToDictionary(x => $"{x.Year:D4}-{x.Month:D2}", x => x.Count);
@@ -306,15 +316,17 @@ namespace YetkiliServisGazAcma.API.Services
                     .Take(6)
                     .ToListAsync();
                 var markaKirilimi = await devreyeTemelQuery
-                    .Where(x => x.Marka != null)
-                    .GroupBy(x => x.Marka!.MarkaAdi)
+                    .Select(x => x.Marka != null && !string.IsNullOrWhiteSpace(x.Marka.MarkaAdi)
+                        ? x.Marka.MarkaAdi!.Trim()
+                        : !string.IsNullOrWhiteSpace(x.CihazMarka) ? x.CihazMarka.Trim() : "Marka belirtilmemiş")
+                    .GroupBy(x => x)
                     .Select(g => new { Ad = g.Key, Sayi = g.Count() })
                     .OrderByDescending(x => x.Sayi)
                     .Take(6)
                     .ToListAsync();
                 chartSirketLabels = sirketKirilimi.Select(x => x.Ad).ToList();
                 chartSirketData = sirketKirilimi.Select(x => x.Sayi).ToList();
-                chartKirilimLabels = markaKirilimi.Select(x => x.Ad).ToList();
+                chartKirilimLabels = markaKirilimi.Select(x => (string?)x.Ad).ToList();
                 chartKirilimData = markaKirilimi.Select(x => x.Sayi).ToList();
             }
 
@@ -385,7 +397,7 @@ namespace YetkiliServisGazAcma.API.Services
             else
             {
                 var sonIslemler = await devreyeTemelQuery
-                    .OrderByDescending(x => x.OlusturmaTarihi)
+                    .OrderByDescending(x => x.DevreyeAlmaTarihi).ThenByDescending(x => x.Id)
                     .Take(12)
                     .ToListAsync();
 

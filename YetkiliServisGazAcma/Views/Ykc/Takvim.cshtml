@@ -2,7 +2,7 @@
 @{
     var firmaGorunumu = User.IsInRole("SertifikaliFirma");
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
-    ViewData["Title"] = firmaGorunumu ? "Yakıcı Cihaz Değişim Randevularım" : "Yakıcı Cihaz Değişim Randevuları";
+    ViewData["Title"] = firmaGorunumu ? "Cihaz Değişim Randevularım" : "Yakıcı Cihaz Değişim Randevuları";
     ViewData["PanelTitle"] = ViewData["Title"];
     ViewData["PanelModule"] = "Cihaz Değişim İşlemleri";
     ViewData["ActiveMenu"] = "YkcTakvim";

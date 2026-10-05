@@ -500,20 +500,8 @@ namespace YetkiliServisGazAcma.Controllers
 
         [HttpGet]
         [Route("raporlar/pdf")]
-        public async Task<IActionResult> RaporlarPdf(DateTime? bas, DateTime? bit, List<int>? ids)
-        {
-            var kullanici = await GetYetkiliServisKullanici();
-            if (kullanici == null) return Redirect("/giris");
-
-            var dosya = await _yetkiliServisPanelApiClient.RaporlarPdfAsync(kullanici, bas, bit, ids);
-            if (dosya == null)
-            {
-                TempData["Hata"] = "PDF raporu API uzerinden alinamadi.";
-                return Redirect("/ys-panel/raporlar");
-            }
-
-            return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
-        }
+        public Task<IActionResult> RaporlarPdf(DateTime? bas, DateTime? bit, List<int>? ids)
+            => RaporDosyasi(bas, bit, ids, excelMi: false);
 
         [HttpGet]
         [Route("raporlar/pdf-toplu")]
@@ -526,19 +514,28 @@ namespace YetkiliServisGazAcma.Controllers
 
         [HttpGet]
         [Route("raporlar/excel")]
-        public async Task<IActionResult> RaporlarExcel(DateTime? bas, DateTime? bit, List<int>? ids)
+        public Task<IActionResult> RaporlarExcel(DateTime? bas, DateTime? bit, List<int>? ids)
+            => RaporDosyasi(bas, bit, ids, excelMi: true);
+
+        private async Task<IActionResult> RaporDosyasi(DateTime? bas, DateTime? bit, List<int>? ids, bool excelMi)
         {
             var kullanici = await GetYetkiliServisKullanici();
             if (kullanici == null) return Redirect("/giris");
 
-            var dosya = await _yetkiliServisPanelApiClient.RaporlarExcelAsync(kullanici, bas, bit, ids);
-            if (dosya == null)
+            try
             {
-                TempData["Hata"] = "Excel raporu API uzerinden alinamadi.";
-                return Redirect("/ys-panel/raporlar");
+                var dosya = excelMi
+                    ? await _yetkiliServisPanelApiClient.RaporlarExcelAsync(kullanici, bas, bit, ids)
+                    : await _yetkiliServisPanelApiClient.RaporlarPdfAsync(kullanici, bas, bit, ids);
+                if (dosya != null)
+                    return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+                TempData["Hata"] = "Rapor dosyası şu anda oluşturulamadı.";
             }
-
-            return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
+            }
+            return RedirectToAction(nameof(Raporlar), new { bas, bit });
         }
 
         [HttpGet]

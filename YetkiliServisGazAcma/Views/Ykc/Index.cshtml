@@ -29,7 +29,7 @@
         });
         actions.Add(new DashboardTileViewModel
         {
-            Title = "Randevularım", Url = Url.Action("Takvim", "Ykc")!, Icon = "bi bi-calendar3",
+            Title = "Cihaz Değişim Randevularım", Url = Url.Action("Takvim", "Ykc")!, Icon = "bi bi-calendar3",
             MetricLabel = "Takvimi görüntüle", Tone = "cyan"
         });
     }
@@ -51,17 +51,7 @@
     {
         foreach (var item in Model.SonTalepler.Take(3))
         {
-            var durumEtiketi = item.Durum switch
-            {
-                YkcDurumDegerleri.TalepAlindi => "İncelemede",
-                YkcDurumDegerleri.AtamaBekliyor => "Atama Bekliyor",
-                YkcDurumDegerleri.Atandi => "Randevulu",
-                YkcDurumDegerleri.SahaIsleminde => "Kontrolde",
-                YkcDurumDegerleri.Tamamlandi => "Tamamlandı",
-                YkcDurumDegerleri.Reddedildi => "Reddedildi",
-                YkcDurumDegerleri.Iptal => "İptal",
-                _ => YkcDurumSunumu.Etiket(item.Durum)
-            };
+            var durumEtiketi = YkcDurumSunumu.Etiket(item.Durum);
             quickActions.Add(new DashboardTileViewModel
             {
                 Title = string.IsNullOrWhiteSpace(item.MusteriAdi) ? $"Talep #{item.Id}" : item.MusteriAdi,

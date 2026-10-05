@@ -114,7 +114,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 Hucre(table, Cihaz(kayit, icOperasyon));
                 Hucre(table, Randevu(kayit));
                 if (icOperasyon) Hucre(table, Atama(kayit));
-                Hucre(table, Durum(kayit.Durum));
+                Hucre(table, YkcDurumDegerleri.Etiket(kayit.Durum));
             }
         }
 
@@ -169,17 +169,6 @@ namespace YetkiliServisGazAcma.Business.Services
             return string.IsNullOrWhiteSpace(value) ? "Henüz atanmadı" : value;
         }
 
-        private static string Durum(int durum) => durum switch
-        {
-            YkcDurumDegerleri.TalepAlindi => "İnceleme Bekleniyor",
-            YkcDurumDegerleri.AtamaBekliyor => "Randevu Planlanacak",
-            YkcDurumDegerleri.Atandi => "Randevu Oluşturuldu",
-            YkcDurumDegerleri.SahaIsleminde => "İşlem Devam Ediyor",
-            YkcDurumDegerleri.Reddedildi => "Reddedildi",
-            YkcDurumDegerleri.Tamamlandi => "Tamamlandı",
-            YkcDurumDegerleri.Iptal => "İptal",
-            _ => "Bilinmiyor"
-        };
 
         private static string Deger(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
     }

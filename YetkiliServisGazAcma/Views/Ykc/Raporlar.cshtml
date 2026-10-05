@@ -295,16 +295,16 @@
                     <select name="durum">
                         <option value="">Tümü</option>
                         @foreach (var item in new[] {
-                            new { Id = YkcDurumDegerleri.TalepAlindi, Ad = "Talep Alındı" },
-                            new { Id = YkcDurumDegerleri.AtamaBekliyor, Ad = "İnceleniyor" },
-                            new { Id = YkcDurumDegerleri.Atandi, Ad = "Randevu Oluşturuldu" },
-                            new { Id = YkcDurumDegerleri.SahaIsleminde, Ad = "İşlem Devam Ediyor" },
-                            new { Id = YkcDurumDegerleri.Reddedildi, Ad = "Reddedildi" },
-                            new { Id = YkcDurumDegerleri.Tamamlandi, Ad = "Tamamlandı" },
-                            new { Id = YkcDurumDegerleri.Iptal, Ad = "İptal" }
+                            YkcDurumDegerleri.TalepAlindi,
+                            YkcDurumDegerleri.AtamaBekliyor,
+                            YkcDurumDegerleri.Atandi,
+                            YkcDurumDegerleri.SahaIsleminde,
+                            YkcDurumDegerleri.Reddedildi,
+                            YkcDurumDegerleri.Tamamlandi,
+                            YkcDurumDegerleri.Iptal
                         })
                         {
-                            <option value="@item.Id" selected="@Secili(filtre.Durum == item.Id)">@item.Ad</option>
+                            <option value="@item" selected="@Secili(filtre.Durum == item)">@YkcDurumSunumu.Etiket(item)</option>
                         }
                     </select>
                 </div>

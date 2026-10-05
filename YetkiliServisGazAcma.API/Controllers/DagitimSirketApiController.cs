@@ -104,7 +104,10 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (kullanici.SirketId == sirketId)
                 return true;
 
-            return false;
+            return kullanici.KullaniciTipi == KullaniciTipiDegerleri.Personel
+                && await _context.Dag_PersonelYetkiler.AnyAsync(x =>
+                    x.KullaniciId == kullanici.Id && x.SirketId == sirketId && !x.SilindiMi
+                    && _context.Dag_Sirketler.Any(s => s.Id == sirketId && s.AktifMi && !s.SilindiMi));
         }
 
         private async Task<AppKullanici?> AktifKullaniciAsync()
@@ -113,7 +116,8 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (string.IsNullOrWhiteSpace(kullaniciId))
                 return null;
 
-            return await _context.Users.FirstOrDefaultAsync(x => x.Id == kullaniciId);
+            return await _context.Users.FirstOrDefaultAsync(x =>
+                x.Id == kullaniciId && x.AktifMi && x.ArsivlemeTarihi == null);
         }
     }
 

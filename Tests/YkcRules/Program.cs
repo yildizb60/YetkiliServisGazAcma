@@ -3,6 +3,8 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.FileProviders;
+using System.Globalization;
+using System.Xml.Linq;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Business.Services.Online;
 using YetkiliServisGazAcma.Entities;
@@ -21,6 +23,36 @@ string ExcelParcasi(byte[] bytes, string path)
     using var reader = new StreamReader(archive.GetEntry(path)?.Open()
         ?? throw new InvalidOperationException($"Excel parçası bulunamadı: {path}"));
     return reader.ReadToEnd();
+}
+
+XElement ExcelHucresi(byte[] bytes, string baslik, int satir = 2)
+{
+    XNamespace ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+    var xml = XDocument.Parse(ExcelParcasi(bytes, "xl/worksheets/sheet1.xml"));
+    var rows = xml.Descendants(ns + "row").ToList();
+    var column = rows[0].Elements(ns + "c").Select((cell, index) => (cell, index))
+        .Single(x => x.cell.Value == baslik).index;
+    return rows[satir - 1].Elements(ns + "c").ElementAt(column);
+}
+
+bool ExcelSayisi(XElement cell, decimal expected)
+    => (string?)cell.Attribute("t") == "n"
+        && decimal.TryParse(cell.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
+        && Math.Abs(value - expected) < .00000001m;
+
+bool ExcelTarihi(XElement cell, DateTime expected)
+    => ExcelSayisi(cell, (decimal)expected.ToOADate()) && (string?)cell.Attribute("s") is "3" or "4";
+
+string[][] Fr265KontrolHucreleri(byte[] bytes, int kontrolNo)
+{
+    using var archive = new System.IO.Compression.ZipArchive(new MemoryStream(bytes));
+    using var stream = archive.GetEntry("word/document.xml")!.Open();
+    XNamespace ns = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+    var tables = XDocument.Load(stream).Descendants(ns + "tbl")
+        .Where(x => x.Value.Contains("Gaz Dağıtım Şirketi Yetkilisi") && x.Value.Contains("Kaşe / İmza"));
+    return tables.ElementAt(kontrolNo - 1).Elements(ns + "tr")
+        .Select(row => row.Elements(ns + "tc")
+            .Select(cell => string.Concat(cell.Descendants(ns + "t").Select(text => text.Value))).ToArray()).ToArray();
 }
 
 // No database or external providers: checks cannot alter application records.
@@ -310,6 +342,44 @@ Check(YkcCihazUyumKurali.Uyarilar("Kombi", "Kombi", "ARÇELİK", "Arçelik", nul
     "Brand case matching handles Turkish and international spellings");
 Check(YkcCihazUyumKurali.Uyarilar("Kombi", "Kombi", null, "E.C.A", null, null, "21070", "2600").Count == 0,
     "Missing source brand does not invent a mismatch");
+var previewDevice = new YkcTalepKaydetDto
+{
+    EskiMarka = "ECA", YeniMarka = "E.C.A", EskiBacaTipi = "Hermetik", YeniBacaTipi = " hermetik ",
+    EskiKapasite = "20000,5", YeniKapasite = "20000.50"
+};
+Check(YkcCihazUyumKurali.TalepOncesiUyarilar(previewDevice).Count == 0,
+    "Firm preview ignores brand formatting, case and equivalent decimal capacity");
+previewDevice.YeniMarka = "Bosch";
+previewDevice.YeniBacaTipi = "Bacali";
+previewDevice.YeniKapasite = "25000";
+Check(YkcCihazUyumKurali.TalepOncesiUyarilar(previewDevice).Count == 3
+    && YkcCihazUyumKurali.TalepOncesiUyarilar(previewDevice).Last().Contains("Tadilat projesi"),
+    "Firm preview advises on all three mismatches and preserves the higher-capacity rule");
+previewDevice.YeniMarka = "E.C.A";
+previewDevice.YeniBacaTipi = "Hermetik";
+previewDevice.YeniKapasite = "15000";
+Check(YkcCihazUyumKurali.TalepOncesiUyarilar(previewDevice).Single().Contains("düşük")
+    && !YkcCihazUyumKurali.TalepOncesiUyarilar(previewDevice).Single().Contains("Tadilat"),
+    "Lower capacity is informational, not a renovation-project requirement");
+previewDevice.EskiBacaTipi = null;
+previewDevice.YeniKapasite = "20000.50";
+Check(YkcCihazUyumKurali.TalepOncesiUyarilar(previewDevice).Count == 0,
+    "Missing source flue type is silent until the integration provides it");
+previewDevice.EskiBacaTipi = "-";
+Check(YkcCihazUyumKurali.TalepOncesiUyarilar(previewDevice).Count == 0,
+    "A missing flue placeholder is not treated as a mismatch");
+previewDevice.EskiMarka = null;
+previewDevice.EskiKapasite = null;
+Check(YkcCihazUyumKurali.TalepOncesiUyarilar(previewDevice).Count == 2
+    && YkcCihazUyumKurali.TalepOncesiUyarilar(previewDevice).All(x => x.Contains("karşılaştırılamadı")),
+    "Missing brand and capacity do not invent a technical mismatch");
+Check(YkcCihazUyumKurali.TalepOncesiUyarilar(new()).Count == 0,
+    "An untouched form does not display advisory messages");
+previewDevice.YeniMarka = "";
+previewDevice.YeniKapasite = "invalid";
+Check(YkcCihazUyumKurali.TalepOncesiUyarilar(previewDevice).Count == 0,
+    "Incomplete numeric input does not produce a capacity comparison");
+
 YkcTalepDetayDto Detail() => new() {
     EskiMarka = "Source brand", EskiKapasite = "20000", YeniMarka = "New brand", MusteriAdi = "Customer",
     AtananEkip = "Internal team", HedefUygulama = "Internal target",
@@ -334,7 +404,10 @@ var form = new YkcTalepDetayDto {
     Adres = "Test Mahallesi, Test Sokak No: 4/2, Merkez",
     EskiCihazTipi = "Kombi", YeniCihazTipi = "Kombi", EskiMarka = "Proje markasi", YeniMarka = "Yeni marka",
     EskiKapasite = "20000", YeniKapasite = "20000", IkinciElCihazMi = false,
-    Kontroller = new() { new YkcFr265KontrolDto { KontrolNo = 1, Sonuc = YkcFr265KontrolSonucDegerleri.Uygun } }
+    Kontroller = new() { new YkcFr265KontrolDto {
+        KontrolNo = 1, Sonuc = YkcFr265KontrolSonucDegerleri.Uygun,
+        KontrolEdenAdi = "Kontrol Personeli", KontrolTarihi = new DateTime(2026, 10, 2, 9, 30, 0)
+    } }
 };
 var wordForm = new YkcFr265FormService().WordOlustur(form);
 using (var zip = new System.IO.Compression.ZipArchive(new MemoryStream(wordForm.Bytes)))
@@ -344,10 +417,57 @@ using (var reader = new StreamReader(zip.GetEntry("word/document.xml")!.Open()))
     Check(xml.Contains("Daire 4") && xml.Contains("Bina 12"), "Official form retains supplied unit and building fields");
 }
 var formPdf = YkcFr265PdfService.Olustur(form);
+var draftCells = Fr265KontrolHucreleri(wordForm.Bytes, 1);
+Check(draftCells[1].SequenceEqual(["Adı Soyadı: Kontrol Personeli", "Adı Soyadı: Test Abone", "Firma / Yetkili: Test Yetkili"]),
+    "Unsigned FR265 preview fills the completed control's staff, subscriber and firm representative");
+Check(draftCells[2].All(x => x == "Tarih: 02.10.2026")
+    && draftCells[3].SequenceEqual(["İmza", "İmza", "Kaşe / İmza"]),
+    "Unsigned control uses the recorded control date, leaves signatures empty and does not claim anyone signed");
+Check(Fr265KontrolHucreleri(wordForm.Bytes, 2)[1].SequenceEqual(["Adı Soyadı", "Adı Soyadı", "Firma / Yetkili"])
+    && Fr265KontrolHucreleri(wordForm.Bytes, 2)[2].All(x => x == "Tarih"),
+    "Unperformed controls retain empty identity and date placeholders");
+var originalControls = form.Kontroller;
+form.Kontroller = Enumerable.Range(1, 5).Select(no => new YkcFr265KontrolDto
+{
+    KontrolNo = no, Sonuc = no == 5 ? YkcFr265KontrolSonucDegerleri.Uygun : YkcFr265KontrolSonucDegerleri.UygunDegil,
+    KontrolEdenAdi = $"Kontrol Personeli {no}", KontrolTarihi = new DateTime(2026, 10, no),
+    Aciklama = no == 5 ? null : $"Kontrol {no} uygunsuzluk nedeni"
+}).ToList();
+var allControlsWord = new YkcFr265FormService().WordOlustur(form);
+Check(Enumerable.Range(1, 5).All(no => {
+    var cells = Fr265KontrolHucreleri(allControlsWord.Bytes, no);
+    return cells[1][0] == $"Adı Soyadı: Kontrol Personeli {no}" && cells[2].All(x => x == $"Tarih: 0{no}.10.2026");
+}), "Each completed control retains its own author and date, including unsuccessful checks");
+var allControlsPdf = YkcFr265PdfService.Olustur(form);
+form.Kontroller = originalControls;
+var signedOptions = new YkcFr265BelgeSecenekleri
+{
+    ImzaliNihaiMi = true,
+    Imzalar = Enumerable.Range(1, 3).Select(no => new YkcFr265ImzaSatiri {
+        SiraNo = no, AdSoyad = $"Imzaci {no}", ImzaTarihi = new DateTime(2026, 10, no + 3)
+    }).ToList()
+};
+var signedCells = Fr265KontrolHucreleri(new YkcFr265FormService().WordOlustur(form, signedOptions).Bytes, 1);
+Check(signedCells[1].SequenceEqual(["Adı Soyadı: Imzaci 2", "Adı Soyadı: Imzaci 3", "Firma / Yetkili: Imzaci 1"])
+    && signedCells[2].SequenceEqual(["Tarih: 05.10.2026", "Tarih: 06.10.2026", "Tarih: 04.10.2026"])
+    && signedCells[3].All(x => x.Contains("İmzalandı")),
+    "Final form preserves actual signer identities, individual signature dates and signed markers");
+form.Kontroller[0].KontrolEdenAdi = null;
+form.Kontroller[0].KontrolTarihi = null;
+form.FirmaYetkiliKisi = null;
+var missingCells = Fr265KontrolHucreleri(new YkcFr265FormService().WordOlustur(form).Bytes, 1);
+Check(missingCells[1][0] == "Adı Soyadı:" && missingCells[2].All(x => x == "Tarih:")
+    && missingCells[1][2] == "Firma / Yetkili: Test Sertifikali Firma",
+    "Missing control author and date are not invented; firm name is used when the representative is missing");
+form.FirmaYetkiliKisi = "Test Yetkili";
+form.Kontroller[0].KontrolEdenAdi = "PREVIOUS_CONTROL_STAFF";
+form.Kontroller[0].KontrolTarihi = new DateTime(2026, 10, 2);
 form.Kontroller[0].Aciklama = "PREVIOUS_CYCLE_ONLY";
 form.Kontroller.AddRange(Enumerable.Range(6, 5).Select(no => new YkcFr265KontrolDto { KontrolNo = no }));
 form.Kontroller.Single(x => x.KontrolNo == 6).Sonuc = YkcFr265KontrolSonucDegerleri.UygunDegil;
 form.Kontroller.Single(x => x.KontrolNo == 6).Aciklama = "CURRENT_CYCLE_ONLY";
+form.Kontroller.Single(x => x.KontrolNo == 6).KontrolEdenAdi = "CURRENT_CONTROL_STAFF";
+form.Kontroller.Single(x => x.KontrolNo == 6).KontrolTarihi = new DateTime(2026, 10, 5);
 using (var cycleZip = new System.IO.Compression.ZipArchive(new MemoryStream(new YkcFr265FormService().WordOlustur(form).Bytes)))
 using (var cycleReader = new StreamReader(cycleZip.GetEntry("word/document.xml")!.Open()))
 {
@@ -356,6 +476,9 @@ using (var cycleReader = new StreamReader(cycleZip.GetEntry("word/document.xml")
         "Official form contains only the active cycle, retaining old results in the model");
     Check(form.KontrolDonemi == 2 && form.AktifKontroller.Count == 5 && form.Kontroller.Count == 6,
         "DTO keeps historical controls and exposes five active form slots");
+    Check(xml.Contains("CURRENT_CONTROL_STAFF") && !xml.Contains("PREVIOUS_CONTROL_STAFF")
+        && xml.Contains("05.10.2026") && !xml.Contains("02.10.2026"),
+        "Preview signature tables use only the active cycle's control author and date");
 }
 var demoPdf = YkcFr265PdfService.ImzaliNihaiOlustur(form, new() { ImzaliNihaiMi = true, ImzaTarihi = form.TalepTarihi });
 Check(System.Text.Encoding.ASCII.GetString(formPdf.Bytes, 0, 5) == "%PDF-", "Draft renders as PDF");
@@ -400,6 +523,61 @@ Check(!firmaExcelXml.Contains("Projedeki Marka") && !firmaExcelXml.Contains("Kay
 var raporPdf = YkcRaporPdfService.Olustur(new[] { raporKaydi }, icOperasyon: true);
 Check(System.Text.Encoding.ASCII.GetString(raporPdf, 0, 5) == "%PDF-", "YKC report export is a PDF");
 
+var typedReport = new YkcRaporKayitDto
+{
+    Id = 89, TalepTarihi = new DateTime(2026, 9, 15, 10, 30, 0),
+    TesisatNo = "00123456789012345678", SozlesmeNo = "000943", AboneNo = "0001234567890",
+    EskiKapasite = "20000,5", YeniKapasite = "25000.75", YeniModel = "=1+1",
+    RandevuTarihi = new DateTime(2026, 9, 28), RandevuSaati = "14:30", SiradakiKontrolNo = 2,
+    Durum = YkcDurumDegerleri.TalepAlindi, HedefUygulama = YkcHedefUygulamaDegerleri.YonetimPaneli
+};
+var typedReportExcel = YkcRaporExcelService.Olustur([typedReport], true);
+var originalCulture = CultureInfo.CurrentCulture;
+try
+{
+    foreach (var culture in new[] { "tr-TR", "en-US" })
+    {
+        CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(culture);
+        foreach (var internalReport in new[] { true, false })
+        {
+            var excel = YkcRaporExcelService.Olustur([typedReport], internalReport);
+            Check(ExcelTarihi(ExcelHucresi(excel, "Talep Tarihi"), typedReport.TalepTarihi)
+                && ExcelTarihi(ExcelHucresi(excel, "Kontrol Randevusu"), new DateTime(2026, 9, 28, 14, 30, 0)),
+                $"{culture}, internal={internalReport}: request and repeat appointment dates are sortable Excel dates");
+            Check(ExcelSayisi(ExcelHucresi(excel, "Yeni Kullanılan Cihaz Kapasitesi"), 25000.75m)
+                && (!internalReport || ExcelSayisi(ExcelHucresi(excel, "Projedeki Kapasite"), 20000.5m)),
+                $"{culture}, internal={internalReport}: comma and point capacities are numeric, independent of culture");
+            Check(ExcelSayisi(ExcelHucresi(excel, "Kontrol Sırası"), 2)
+                && ExcelHucresi(excel, "Tesisat No").Value == typedReport.TesisatNo
+                && (string?)ExcelHucresi(excel, "Tesisat No").Attribute("t") == "inlineStr"
+                && ExcelHucresi(excel, "Sözleşme No").Value == "000943"
+                && ExcelHucresi(excel, "Abone No").Value == "0001234567890",
+                "Repeat control number is retained while identifiers keep leading zeroes and precision");
+        }
+    }
+}
+finally { CultureInfo.CurrentCulture = originalCulture; }
+Check(ExcelHucresi(typedReportExcel, "Durum").Value == "Talep Alındı"
+    && ExcelHucresi(typedReportExcel, "Hedef Uygulama").Value == "Yönetim Paneli"
+    && !ExcelParcasi(typedReportExcel, "xl/worksheets/sheet1.xml").Contains("<f>"),
+    "YKC export uses user-facing labels and does not execute formula-like text");
+typedReport.Durum = YkcDurumDegerleri.AtamaBekliyor;
+typedReport.HedefUygulama = YkcHedefUygulamaDegerleri.Crm187;
+typedReport.RandevuTarihi = null;
+typedReport.RandevuSaati = null;
+typedReport.YeniKapasite = "Bilinmiyor";
+var waitingExcel = YkcRaporExcelService.Olustur([typedReport], true);
+Check(ExcelHucresi(waitingExcel, "Durum").Value == "İnceleniyor"
+    && ExcelHucresi(waitingExcel, "Hedef Uygulama").Value == "187 Acil"
+    && (string?)ExcelHucresi(waitingExcel, "Kontrol Randevusu").Attribute("t") == "inlineStr"
+    && ExcelHucresi(waitingExcel, "Yeni Kullanılan Cihaz Kapasitesi").Value == "Bilinmiyor",
+    "Unplanned appointments and unparseable legacy capacities are preserved without fabricated dates or numbers");
+typedReport.RandevuTarihi = new DateTime(2026, 9, 29);
+var dateOnlyExcel = YkcRaporExcelService.Olustur([typedReport], true);
+Check(ExcelTarihi(ExcelHucresi(dateOnlyExcel, "Kontrol Randevusu"), new DateTime(2026, 9, 29))
+    && (string?)ExcelHucresi(dateOnlyExcel, "Kontrol Randevusu").Attribute("s") == "3",
+    "An appointment without a time uses a date-only Excel format");
+
 var yetkiBelgesi = new Ys_YetkiBelgesi
 {
     Id = 7,
@@ -420,6 +598,15 @@ var belgeExcel = YetkiBelgesiRaporExcelService.Olustur(new[] { yetkiBelgesi }, "
 var belgeExcelXml = ExcelParcasi(belgeExcel, "xl/worksheets/sheet1.xml");
 Check(belgeExcelXml.Contains("Demo Yetkili Servis") && belgeExcelXml.Contains("Onaylandı"),
     "Certificate XLSX contains scoped report data");
+Check(ExcelTarihi(ExcelHucresi(belgeExcel, "Yükleme Tarihi"), yetkiBelgesi.OlusturmaTarihi)
+    && ExcelTarihi(ExcelHucresi(belgeExcel, "Başlangıç Tarihi"), yetkiBelgesi.YetkiBelgesiBaslangicTarihi!.Value)
+    && ExcelTarihi(ExcelHucresi(belgeExcel, "Bitiş Tarihi"), yetkiBelgesi.YetkiBelgesiBitisTarihi)
+    && ExcelTarihi(ExcelHucresi(belgeExcel, "Sonuç Tarihi"), yetkiBelgesi.OnayTarihi!.Value),
+    "Certificate upload, validity and decision dates use native Excel dates");
+var certificateStyles = XDocument.Parse(ExcelParcasi(belgeExcel, "xl/styles.xml"));
+Check(certificateStyles.Descendants().Any(x => x.Name.LocalName == "numFmt" && (string?)x.Attribute("formatCode") == "dd.mm.yyyy")
+    && certificateStyles.Descendants().Any(x => x.Name.LocalName == "numFmt" && (string?)x.Attribute("formatCode") == "dd.mm.yyyy hh:mm"),
+    "Date-only and date-time cells retain Turkish display formats");
 var belgePdf = YetkiBelgesiRaporPdfService.Olustur(new[] { yetkiBelgesi }, "Onaylanan Yetki Belgeleri");
 Check(System.Text.Encoding.ASCII.GetString(belgePdf, 0, 5) == "%PDF-", "Certificate report export is a PDF");
 var servisDetayi = new AdminYetkiliServisDetaySonuc
@@ -442,17 +629,40 @@ Check(servisExcelXml.Contains("Demo Yetkili Servis") && servisExcelXml.Contains(
     "Service record XLSX contains firm, responsible person and branch district");
 var servisPdf = YetkiliServisKayitDosyasi.PdfOlustur(servisDetayi);
 Check(System.Text.Encoding.ASCII.GetString(servisPdf, 0, 5) == "%PDF-", "Service record export is a PDF");
-var devreyeAlmaRaporu = DevreyeAlmaRaporPdfService.YetkiliServisRaporuOlustur(new[]
+var commissioningRecord = new Ys_DevreyeAlma
 {
-    new Ys_DevreyeAlma
-    {
-        TesistatNo = "1311884", MusteriAdi = "Serhat Battal", CihazTipi = "Ocak",
-        CihazMarka = "Arçelik", CihazModeli = "OCD K 651 DWYS", SeriNo = "200202020",
-        CihazKapasite = "7740", TeknisyenAdi = "Kenan Kılıç",
-        DevreyeAlmaTarihi = new DateTime(2026, 9, 25), Durum = DevreyeAlmaDurumDegerleri.Tamamlandi
-    }
-}, new DateTime(2026, 9, 1), new DateTime(2026, 9, 30));
+    Id = 38, TesistatNo = "1311884", SozlesmeNo = "0000943", AboneNo = "0001234567890",
+    MusteriAdi = "Serhat Battal", CihazTipi = "Kombi", MusteriTelefon = "05550000000",
+    CihazMarka = "Vaillant", CihazModeli = "Vaillant eloBLOCK VE 9 kW elektrikli kombi ısıtma cihazı",
+    SeriNo = "200202020", CihazKapasite = "7740", TeknisyenAdi = "Kenan Kılıç",
+    Adres = "Bahçelievler Mahallesi, Bahçelievler 6. Sokak, M. Ali Yurdakul Apartmanı No: 17/13 Çorum Merkez",
+    Firma = new() { FirmaAdi = "Örnek Yetkili Servis", Sirket = new() { SirketAdi = "Çorumgaz Doğalgaz A.Ş." } },
+    OlusturmaTarihi = new DateTime(2026, 10, 1), DevreyeAlmaTarihi = new DateTime(2026, 9, 25, 14, 30, 0),
+    Durum = DevreyeAlmaDurumDegerleri.Tamamlandi
+};
+var devreyeAlmaRaporu = DevreyeAlmaRaporPdfService.YetkiliServisRaporuOlustur(
+    [commissioningRecord], new DateTime(2026, 9, 1), new DateTime(2026, 9, 30));
+var adminCommissioningPdf = DevreyeAlmaRaporPdfService.AdminRaporuOlustur(
+    [commissioningRecord], new DateTime(2026, 9, 1), new DateTime(2026, 9, 30));
+var singleCommissioningPdf = DevreyeAlmaPdfService.Olustur(commissioningRecord);
 Check(System.Text.Encoding.ASCII.GetString(devreyeAlmaRaporu, 0, 5) == "%PDF-", "Service commissioning report renders device details as PDF");
+Check(System.Text.Encoding.ASCII.GetString(adminCommissioningPdf, 0, 5) == "%PDF-"
+    && System.Text.Encoding.ASCII.GetString(singleCommissioningPdf, 0, 5) == "%PDF-",
+    "Company and single-record commissioning PDFs render contract details and long device names");
+var commissioningExcel = DevreyeAlmaExcelService.Olustur([new Ys_DevreyeAlma
+{
+    TesistatNo = "00012345678901234567", SozlesmeNo = "0000943", SeriNo = "000321", MusteriTelefon = "05550000000",
+    CihazKapasite = "2,5", DevreyeAlmaTarihi = new DateTime(2026, 10, 2, 11, 30, 0)
+}]);
+Check(ExcelSayisi(ExcelHucresi(commissioningExcel, "Kapasite"), 2.5m)
+    && ExcelTarihi(ExcelHucresi(commissioningExcel, "Devreye Alma Tarihi"), new DateTime(2026, 10, 2, 11, 30, 0))
+    && ExcelHucresi(commissioningExcel, "Tesisat No").Value == "00012345678901234567"
+    && ExcelHucresi(commissioningExcel, "Seri No").Value == "000321"
+    && ExcelHucresi(commissioningExcel, "Telefon").Value == "05550000000",
+    "Commissioning dates and capacities are typed while serials, phones and long IDs remain unchanged");
+Check(ExcelHucresi(commissioningExcel, "Sözleşme No").Value == "0000943"
+    && (string?)ExcelHucresi(commissioningExcel, "Sözleşme No").Attribute("t") == "inlineStr",
+    "Commissioning export includes the sourced contract number as text, preserving leading zeroes");
 var uzunNotluRapor = DevreyeAlmaRaporPdfService.YetkiliServisRaporuOlustur(new[]
 {
     new Ys_DevreyeAlma
@@ -463,14 +673,36 @@ var uzunNotluRapor = DevreyeAlmaRaporPdfService.YetkiliServisRaporuOlustur(new[]
     }
 }, new DateTime(2026, 9, 1), new DateTime(2026, 9, 30));
 Check(System.Text.Encoding.ASCII.GetString(uzunNotluRapor, 0, 5) == "%PDF-", "Long service notes continue across PDF pages");
+var multiRecordPdf = DevreyeAlmaRaporPdfService.YetkiliServisRaporuOlustur(
+    Enumerable.Range(1, 8).Select(index => new Ys_DevreyeAlma
+    {
+        Id = index, TesistatNo = $"000100{index:D3}", SozlesmeNo = $"000943{index:D2}",
+        MusteriAdi = index == 2 ? "Birlik Mantar Sanayi ve Ticaret Limited Şirketi" : $"Örnek Abone {index}",
+        Firma = commissioningRecord.Firma, CihazTipi = index % 2 == 0 ? "Ocak" : "Kombi",
+        CihazMarka = commissioningRecord.CihazMarka, CihazModeli = commissioningRecord.CihazModeli,
+        SeriNo = $"000SERIAL{index}", CihazKapasite = "7740", TeknisyenAdi = "Kenan Kılıç",
+        TeknisyenYetkiBelgesiNo = $"000BELGE{index}", Adres = commissioningRecord.Adres,
+        DevreyeAlmaTarihi = new DateTime(2026, 9, index), Durum = DevreyeAlmaDurumDegerleri.Tamamlandi
+    }), new DateTime(2026, 9, 1), new DateTime(2026, 9, 30));
+Check(System.Text.Encoding.ASCII.GetString(multiRecordPdf, 0, 5) == "%PDF-",
+    "Multi-record commissioning report renders aligned groups, long customer names and page numbering");
 if (args.Length == 2 && args[0] == "--form-output")
 {
     Directory.CreateDirectory(args[1]);
     File.WriteAllBytes(Path.Combine(args[1], "form-draft.pdf"), formPdf.Bytes);
     File.WriteAllBytes(Path.Combine(args[1], "form-demo.pdf"), demoPdf.Bytes);
     File.WriteAllBytes(Path.Combine(args[1], "form-source.docx"), wordForm.Bytes);
+    File.WriteAllBytes(Path.Combine(args[1], "form-five-controls.pdf"), allControlsPdf.Bytes);
     File.WriteAllBytes(Path.Combine(args[1], "ykc-report.pdf"), raporPdf);
     File.WriteAllBytes(Path.Combine(args[1], "ykc-report.xlsx"), icOperasyonExcel);
+    File.WriteAllBytes(Path.Combine(args[1], "ykc-typed-report.xlsx"), typedReportExcel);
+    File.WriteAllBytes(Path.Combine(args[1], "certificate-report.xlsx"), belgeExcel);
+    File.WriteAllBytes(Path.Combine(args[1], "commissioning-report.xlsx"), commissioningExcel);
+    File.WriteAllBytes(Path.Combine(args[1], "commissioning-service.pdf"), devreyeAlmaRaporu);
+    File.WriteAllBytes(Path.Combine(args[1], "commissioning-company.pdf"), adminCommissioningPdf);
+    File.WriteAllBytes(Path.Combine(args[1], "commissioning-single.pdf"), singleCommissioningPdf);
+    File.WriteAllBytes(Path.Combine(args[1], "commissioning-multiple.pdf"), multiRecordPdf);
+    File.WriteAllBytes(Path.Combine(args[1], "commissioning-long-note.pdf"), uzunNotluRapor);
 }
 Console.WriteLine($"{passed} checks passed. No application data changed.");
 

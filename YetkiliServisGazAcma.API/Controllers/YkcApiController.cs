@@ -215,6 +215,46 @@ namespace YetkiliServisGazAcma.API.Controllers
             });
         }
 
+        [HttpPost("cihaz-karsilastir")]
+        public async Task<IActionResult> CihazKarsilastir([FromBody] YkcCihazKarsilastirmaIstek? istek)
+        {
+            var kullanici = await AktifKullaniciAsync();
+            if (kullanici == null) return Unauthorized();
+            var yetkiler = await _ykcYetkiService.OzetAsync(kullanici, kullanici.SirketId, HttpContext.RequestAborted);
+            if (!yetkiler.TalepOlusturabilir)
+                return YkcYetkisiz("Cihaz karşılaştırma yetkiniz bulunmuyor.");
+            if (istek == null) return BadRequest();
+
+            var cihaz = new YkcTalepKaydetDto
+            {
+                SorguReferansi = istek.SorguReferansi,
+                TesisatNo = istek.TesisatNo,
+                SozlesmeNo = istek.SozlesmeNo,
+                YeniCihazTipi = istek.YeniCihazTipi,
+                YeniMarka = istek.YeniMarka,
+                YeniBacaTipi = istek.YeniBacaTipi,
+                YeniKapasite = istek.YeniKapasite
+            };
+            if (!await _sorguKayitlari.UygulaAsync(kullanici.Id, cihaz)
+                || cihaz.FirmaId != kullanici.FirmaId
+                || (kullanici.SirketId.HasValue && cihaz.SirketId != kullanici.SirketId)
+                || !await _context.Ys_Firmalar.AnyAsync(x => x.Id == cihaz.FirmaId && !x.SilindiMi
+                    && x.SirketId == cihaz.SirketId, HttpContext.RequestAborted))
+            {
+                return Ok(new YkcCihazKarsilastirmaSonuc
+                {
+                    Mesaj = "Cihaz bilgileri karşılaştırılamadı. Tesisatı yeniden sorgulayıp cihazı seçin."
+                });
+            }
+
+            // Only advisory messages leave the API; the source snapshot stays private and unchanged.
+            return Ok(new YkcCihazKarsilastirmaSonuc
+            {
+                Basarili = true,
+                Uyarilar = YkcCihazUyumKurali.TalepOncesiUyarilar(cihaz)
+            });
+        }
+
         [HttpPost("talepler/liste")]
         public async Task<IActionResult> TaleplerListe([FromBody] YkcTalepListeFiltre? filtre)
         {

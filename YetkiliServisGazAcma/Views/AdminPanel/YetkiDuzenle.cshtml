@@ -13,37 +13,37 @@
     {
         new
         {
-            Baslik = "Yakıcı Cihaz Değişimi",
+            Baslik = "Yakıcı Cihaz Değişim İşlemleri",
             Ikon = "bi-fire",
             Ton = "is-blue",
             Yetkiler = new[]
             {
-                new { Kod = "YKC_TALEP_GOR", Ad = "Talepleri görüntüle", Ikon = "bi-inboxes" },
-                new { Kod = "YKC_ATAMA_YAP", Ad = "Randevu ve yönlendirme", Ikon = "bi-calendar2-check" },
-                new { Kod = "YKC_FR265_IMZA_ISLEM", Ad = "FR265 ve imza işlemleri", Ikon = "bi-pen" },
-                new { Kod = "YKC_RAPOR_GOR", Ad = "YKC raporlarını görüntüle", Ikon = "bi-bar-chart" }
+                new { Kod = "YKC_TALEP_GOR", Ad = "Yakıcı Cihaz Değişim Taleplerini Görüntüle", Ikon = "bi-inboxes" },
+                new { Kod = "YKC_ATAMA_YAP", Ad = "Talep İnceleme, Ret/İptal ve Randevu Yönetimi", Ikon = "bi-calendar2-check" },
+                new { Kod = "YKC_FR265_IMZA_ISLEM", Ad = "Teknik Kontrol, FR265 ve İmza İşlemleri", Ikon = "bi-pen" },
+                new { Kod = "YKC_RAPOR_GOR", Ad = "Yakıcı Cihaz Değişim Raporlarını Görüntüle", Ikon = "bi-bar-chart" }
             }
         },
         new
         {
-            Baslik = "Devreye Alma ve Belgeler",
+            Baslik = "Cihaz Devreye Alma ve Yetki Belgeleri",
             Ikon = "bi-file-earmark-check",
             Ton = "is-green",
             Yetkiler = new[]
             {
-                new { Kod = "YETKI_BELGESI_ONAY", Ad = "Yetki belgesi onay ve red", Ikon = "bi-patch-check" },
-                new { Kod = "RAPOR_GOR", Ad = "Devreye alma kayıtları", Ikon = "bi-file-earmark-bar-graph" }
+                new { Kod = "YETKI_BELGESI_ONAY", Ad = "Yetki Belgelerini Onayla veya Reddet", Ikon = "bi-patch-check" },
+                new { Kod = "RAPOR_GOR", Ad = "Cihaz Devreye Alma Kayıtlarını ve Raporlarını Görüntüle", Ikon = "bi-file-earmark-bar-graph" }
             }
         },
         new
         {
-            Baslik = "Yönetim",
+            Baslik = "Firma ve Marka Yönetimi",
             Ikon = "bi-sliders",
             Ton = "is-cyan",
             Yetkiler = new[]
             {
-                new { Kod = "KULLANICI_YONET", Ad = "Yetkili servisleri yönet", Ikon = "bi-tools" },
-                new { Kod = "MARKA_YONET", Ad = "Markaları yönet", Ikon = "bi-tags" }
+                new { Kod = "KULLANICI_YONET", Ad = "Yetkili Servisleri Yönet", Ikon = "bi-tools" },
+                new { Kod = "MARKA_YONET", Ad = "Markaları Yönet", Ikon = "bi-tags" }
             }
         },
         new
@@ -53,7 +53,7 @@
             Ton = "is-full",
             Yetkiler = new[]
             {
-                new { Kod = "TAM_YETKI", Ad = "Tam yetki", Ikon = "bi-shield-check" }
+                new { Kod = "TAM_YETKI", Ad = "Seçili Şirketin Tüm İşlem Yetkileri", Ikon = "bi-shield-check" }
             }
         }
     };
@@ -73,7 +73,7 @@
             @if (sirketler.Count > 1)
             {
                 <label class="permission-company-picker">
-                    <span>Yetki kapsamı</span>
+                    <span>Yetkilendirilecek Şirket</span>
                     <select data-permission-company-select aria-label="Yetkileri düzenlenecek şirket">
                         @for (var index = 0; index < sirketler.Count; index++)
                         {
@@ -90,12 +90,17 @@
                     ? tanimliYetkiler
                     : new List<string>();
                 var sirketSecili = seciliSirketIds.Contains(sirket.Id) || sirketYetkileri.Count > 0;
+                var sirketYetkiDurumu = !sirketSecili
+                    ? "Şirket Yetkileri Kapalı"
+                    : sirketYetkileri.Contains("TAM_YETKI", StringComparer.OrdinalIgnoreCase)
+                        ? "Tüm İşlem Yetkileri Açık"
+                        : sirketYetkileri.Count == 0 ? "İşlem Yetkisi Seçilmedi" : sirketYetkileri.Count + " İşlem Yetkisi Seçili";
                 <details class="company-permission @(index == 0 ? "is-current" : null)" data-permission-company="@sirket.Id" @(index == 0 ? "open" : null)>
                     <summary>
                         <span class="company-permission-mark"><i class="bi bi-buildings" aria-hidden="true"></i></span>
                         <span class="company-permission-name">@sirket.SirketAdi</span>
-                        <span class="company-permission-state">@(sirketSecili ? "Yetki veriliyor" : "Yetki kapalı")</span>
-                        <input type="checkbox" class="company-enable" name="sirketIds" value="@sirket.Id" role="switch" aria-label="@sirket.SirketAdi için yetkiyi etkinleştir" @(sirketSecili ? "checked" : null) />
+                        <span class="company-permission-state">@sirketYetkiDurumu</span>
+                        <input type="checkbox" class="company-enable" name="sirketIds" value="@sirket.Id" role="switch" aria-label="@sirket.SirketAdi için işlem yetkilerini etkinleştir" @(sirketSecili ? "checked" : null) />
                         <i class="bi bi-chevron-down company-permission-chevron" aria-hidden="true"></i>
                     </summary>
                     <div class="permission-groups">
@@ -114,12 +119,19 @@
                                     @foreach (var yetki in grup.Yetkiler)
                                     {
                                         var yetkiSecili = sirketYetkileri.Contains(yetki.Kod, StringComparer.OrdinalIgnoreCase);
-                                        <label class="permission-option-wrap">
+                                        var yetkiAciklamasi = yetki.Kod switch
+                                        {
+                                            "TAM_YETKI" => "Yalnız seçili şirketin işlem yetkilerini açar; şirket veya genel sistem admini rolü vermez.",
+                                            "YKC_ATAMA_YAP" => "Talebi incelemeye alma, reddetme, iptal etme, ekip/personel atama ve randevu planlama veya yeniden planlama.",
+                                            "YKC_FR265_IMZA_ISLEM" => "Teknik kontrol sonucunu kaydetme, FR265 formu ve ek belgeler, imzaya gönderme ve işlemi tamamlama.",
+                                            _ => yetki.Ad
+                                        };
+                                        <label class="permission-option-wrap" title="@yetkiAciklamasi">
                                             <input type="checkbox" class="permission-option" data-permission="@yetki.Kod" name="yetkiler_@sirket.Id" value="@yetki.Kod" @(yetkiSecili ? "checked" : null) />
                                             <span class="permission-option-icon"><i class="bi @yetki.Ikon" aria-hidden="true"></i></span>
                                             <span class="permission-option-copy">
                                                 <span class="permission-option-label">@yetki.Ad</span>
-                                                @if (yetki.Kod == "RAPOR_GOR") { <small class="permission-option-description">Ayrıntı, PDF/Excel ve raporlar</small> }
+                                                @if (yetki.Kod == "RAPOR_GOR") { <small class="permission-option-description">Kayıt ayrıntıları ve PDF/Excel indirme</small> }
                                             </span>
                                             <span class="permission-option-check" aria-hidden="true"><i class="bi bi-check2"></i></span>
                                         </label>
@@ -133,7 +145,7 @@
             </div>
             <div class="permission-editor-actions">
                 <a class="df-btn df-btn-secondary" href="/AdminPanel/yetkiler"><i class="bi bi-x-lg" aria-hidden="true"></i> Vazgeç</a>
-                <button type="submit" class="df-btn df-btn-primary"><i class="bi bi-check2" aria-hidden="true"></i> Kaydet</button>
+                <button type="submit" class="df-btn df-btn-primary"><i class="bi bi-check2" aria-hidden="true"></i> Yetkileri Kaydet</button>
             </div>
         </form>
     </div>
@@ -166,8 +178,9 @@
             function refreshSummary() {
                 var selectedCount = options.filter(function (option) { return option.checked; }).length;
                 company.querySelector(".company-permission-state").textContent = !companyToggle.checked
-                    ? "Yetki kapalı"
-                    : fullAccess && fullAccess.checked ? "Tam yetki" : selectedCount + " yetki seçili";
+                    ? "Şirket Yetkileri Kapalı"
+                    : fullAccess && fullAccess.checked ? "Tüm İşlem Yetkileri Açık"
+                    : selectedCount === 0 ? "İşlem Yetkisi Seçilmedi" : selectedCount + " İşlem Yetkisi Seçili";
             }
 
             function refreshCompanyState() {

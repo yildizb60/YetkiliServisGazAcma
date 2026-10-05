@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Globalization;
 using System.Text;
 using System.Xml;
 
@@ -13,7 +14,7 @@ namespace YetkiliServisGazAcma.Business.Services
         public static byte[] Olustur(
             string sayfaAdi,
             IReadOnlyList<string> basliklar,
-            IEnumerable<IReadOnlyList<string?>> satirlar)
+            IEnumerable<IReadOnlyList<object?>> satirlar)
         {
             ArgumentNullException.ThrowIfNull(basliklar);
             ArgumentNullException.ThrowIfNull(satirlar);
@@ -99,6 +100,12 @@ namespace YetkiliServisGazAcma.Business.Services
         {
             writer.WriteStartElement("styleSheet", SpreadsheetNamespace);
 
+            writer.WriteStartElement("numFmts", SpreadsheetNamespace);
+            writer.WriteAttributeString("count", "2");
+            SayiBicimi(writer, 164, "dd.mm.yyyy");
+            SayiBicimi(writer, 165, "dd.mm.yyyy hh:mm");
+            writer.WriteEndElement();
+
             writer.WriteStartElement("fonts", SpreadsheetNamespace);
             writer.WriteAttributeString("count", "2");
             Font(writer, bold: false, white: false);
@@ -124,10 +131,12 @@ namespace YetkiliServisGazAcma.Business.Services
             writer.WriteEndElement();
 
             writer.WriteStartElement("cellXfs", SpreadsheetNamespace);
-            writer.WriteAttributeString("count", "3");
+            writer.WriteAttributeString("count", "5");
             Xf(writer, 0, 0, 0, false, false);
             Xf(writer, 1, 2, 1, true, true);
             Xf(writer, 0, 0, 1, true, false);
+            Xf(writer, 0, 0, 1, true, false, 164);
+            Xf(writer, 0, 0, 1, true, false, 165);
             writer.WriteEndElement();
 
             writer.WriteStartElement("cellStyles", SpreadsheetNamespace);
@@ -198,10 +207,18 @@ namespace YetkiliServisGazAcma.Business.Services
             writer.WriteEndElement();
         }
 
-        private static void Xf(XmlWriter writer, int fontId, int fillId, int borderId, bool alignment, bool header)
+        private static void SayiBicimi(XmlWriter writer, int id, string bicim)
+        {
+            writer.WriteStartElement("numFmt", SpreadsheetNamespace);
+            writer.WriteAttributeString("numFmtId", id.ToString(CultureInfo.InvariantCulture));
+            writer.WriteAttributeString("formatCode", bicim);
+            writer.WriteEndElement();
+        }
+
+        private static void Xf(XmlWriter writer, int fontId, int fillId, int borderId, bool alignment, bool header, int numFmtId = 0)
         {
             writer.WriteStartElement("xf", SpreadsheetNamespace);
-            writer.WriteAttributeString("numFmtId", "0");
+            writer.WriteAttributeString("numFmtId", numFmtId.ToString(CultureInfo.InvariantCulture));
             writer.WriteAttributeString("fontId", fontId.ToString());
             writer.WriteAttributeString("fillId", fillId.ToString());
             writer.WriteAttributeString("borderId", borderId.ToString());
@@ -209,6 +226,7 @@ namespace YetkiliServisGazAcma.Business.Services
             if (fontId > 0) writer.WriteAttributeString("applyFont", "1");
             if (fillId > 0) writer.WriteAttributeString("applyFill", "1");
             if (borderId > 0) writer.WriteAttributeString("applyBorder", "1");
+            if (numFmtId > 0) writer.WriteAttributeString("applyNumberFormat", "1");
             if (alignment)
             {
                 writer.WriteAttributeString("applyAlignment", "1");
@@ -224,7 +242,7 @@ namespace YetkiliServisGazAcma.Business.Services
         private static void Worksheet(
             XmlWriter writer,
             IReadOnlyList<string> basliklar,
-            IReadOnlyList<string?[]> satirlar,
+            IReadOnlyList<object?[]> satirlar,
             IReadOnlyList<double> sutunGenislikleri)
         {
             var sonSatir = satirlar.Count + 1;
@@ -275,28 +293,46 @@ namespace YetkiliServisGazAcma.Business.Services
             writer.WriteEndElement();
         }
 
-        private static void Satir(XmlWriter writer, int satirNo, IReadOnlyList<string?> alanlar, int stil, int sutunSayisi)
+        private static void Satir(XmlWriter writer, int satirNo, IReadOnlyList<object?> alanlar, int stil, int sutunSayisi)
         {
             writer.WriteStartElement("row", SpreadsheetNamespace);
             writer.WriteAttributeString("r", satirNo.ToString());
             for (var index = 0; index < sutunSayisi; index++)
             {
+                var deger = index < alanlar.Count ? alanlar[index] : null;
+                var tarih = deger is DateOnly gun ? gun.ToDateTime(TimeOnly.MinValue) : deger as DateTime?;
+                var sayi = deger switch
+                {
+                    decimal kapasite => kapasite.ToString(CultureInfo.InvariantCulture),
+                    int adet => adet.ToString(CultureInfo.InvariantCulture),
+                    _ when tarih is { Year: >= 1900 } => tarih.Value.ToOADate().ToString("R", CultureInfo.InvariantCulture),
+                    _ => null
+                };
                 writer.WriteStartElement("c", SpreadsheetNamespace);
                 writer.WriteAttributeString("r", $"{SutunAdi(index + 1)}{satirNo}");
-                writer.WriteAttributeString("s", stil.ToString());
-                writer.WriteAttributeString("t", "inlineStr");
-                writer.WriteStartElement("is", SpreadsheetNamespace);
-                writer.WriteStartElement("t", SpreadsheetNamespace);
-                writer.WriteAttributeString("xml", "space", "http://www.w3.org/XML/1998/namespace", "preserve");
-                writer.WriteString(TemizMetin(index < alanlar.Count ? alanlar[index] : null));
-                writer.WriteEndElement();
-                writer.WriteEndElement();
+                var hucreStili = sayi != null && tarih.HasValue ? (deger is DateOnly ? 3 : 4) : stil;
+                writer.WriteAttributeString("s", hucreStili.ToString(CultureInfo.InvariantCulture));
+                if (sayi != null)
+                {
+                    writer.WriteAttributeString("t", "n");
+                    writer.WriteElementString("v", SpreadsheetNamespace, sayi);
+                }
+                else
+                {
+                    writer.WriteAttributeString("t", "inlineStr");
+                    writer.WriteStartElement("is", SpreadsheetNamespace);
+                    writer.WriteStartElement("t", SpreadsheetNamespace);
+                    writer.WriteAttributeString("xml", "space", "http://www.w3.org/XML/1998/namespace", "preserve");
+                    writer.WriteString(TemizMetin(GorunenMetin(deger)));
+                    writer.WriteEndElement();
+                    writer.WriteEndElement();
+                }
                 writer.WriteEndElement();
             }
             writer.WriteEndElement();
         }
 
-        private static IReadOnlyList<double> SutunGenislikleri(IReadOnlyList<string> basliklar, IReadOnlyList<string?[]> satirlar)
+        private static IReadOnlyList<double> SutunGenislikleri(IReadOnlyList<string> basliklar, IReadOnlyList<object?[]> satirlar)
         {
             var sonuclar = new double[basliklar.Count];
             for (var index = 0; index < basliklar.Count; index++)
@@ -305,12 +341,22 @@ namespace YetkiliServisGazAcma.Business.Services
                 foreach (var satir in satirlar)
                 {
                     if (index < satir.Length)
-                        uzunluk = Math.Max(uzunluk, (satir[index] ?? string.Empty).Length);
+                        uzunluk = Math.Max(uzunluk, GorunenMetin(satir[index]).Length);
                 }
                 sonuclar[index] = Math.Clamp(uzunluk + 2, 11, 42);
             }
             return sonuclar;
         }
+
+        internal static object? KapasiteDegeri(string? value)
+            => YkcCihazUyumKurali.Kapasite(value, out var kapasite) ? kapasite : value;
+
+        private static string GorunenMetin(object? value) => value switch
+        {
+            DateTime tarih => tarih.ToString("dd.MM.yyyy HH:mm", CultureInfo.InvariantCulture),
+            DateOnly tarih => tarih.ToString("dd.MM.yyyy", CultureInfo.InvariantCulture),
+            _ => Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty
+        };
 
         private static string SutunAdi(int sutunNo)
         {
