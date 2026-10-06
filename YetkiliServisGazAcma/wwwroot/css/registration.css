@@ -18,6 +18,12 @@
 }
 
 .registration-shell .login-visual { min-height: 0; }
+.registration-shell .login-showcase__stage {
+    /* Match the sign-in panel's inner bounds without shrinking the registration form. */
+    width: min(528px, calc(100% - 8px));
+    height: min(584px, calc(100% - 16px));
+    margin: auto;
+}
 .registration-side { min-height: 0; padding: 16px 28px; overflow: hidden; }
 .registration-shell .registration-card { max-width: none; height: auto; margin-block: auto; display: flex; flex-direction: column; min-height: 0; }
 
@@ -167,7 +173,8 @@
         flex: 1;
         min-height: 0;
         overflow-y: auto;
-        align-content: start;
+        align-content: space-between;
+        grid-auto-rows: max-content;
     }
     .registration-step-panel[data-registration-step="2"] .registration-selection-grid {
         flex: 1;

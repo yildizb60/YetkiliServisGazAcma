@@ -1,15 +1,20 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Mvc.ViewComponents;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Controllers;
+using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
+using YetkiliServisGazAcma.ViewComponents;
 
 // All HTTP responses are fixtures; no network requests or application data changes.
 var passed = 0;
@@ -18,6 +23,198 @@ void Check(bool condition, string name)
     if (!condition) throw new InvalidOperationException("FAIL: " + name);
     Console.WriteLine("PASS: " + name);
     passed++;
+}
+
+var firmDetail = new YkcTalepDetayDto
+{
+    Durum = YkcDurumDegerleri.AtamaBekliyor,
+    Kontroller = [new() { KontrolNo = 1, Sonuc = YkcFr265KontrolSonucDegerleri.UygunDegil, Aciklama = "Fixture reason" }]
+};
+foreach (var state in new[] { YkcDurumDegerleri.AtamaBekliyor, YkcDurumDegerleri.Atandi, YkcDurumDegerleri.SahaIsleminde })
+{
+    firmDetail.Durum = state;
+    Check(YkcDurumSunumu.SonUygunsuzKontrol(firmDetail)?.Aciklama == "Fixture reason",
+        $"Firm sees the last failure reason during planning, appointment and inspection: {state}");
+}
+firmDetail.Kontroller.Add(new() { KontrolNo = 6 });
+Check(YkcDurumSunumu.SonUygunsuzKontrol(firmDetail)?.KontrolNo == 1,
+    "A pending new control cycle does not hide the last recorded failure");
+firmDetail.Kontroller.Add(new() { KontrolNo = 7, Sonuc = YkcFr265KontrolSonucDegerleri.Uygun });
+Check(YkcDurumSunumu.SonUygunsuzKontrol(firmDetail) == null,
+    "A later suitable control clears the previous failure summary");
+firmDetail.Kontroller.RemoveAt(firmDetail.Kontroller.Count - 1);
+foreach (var state in new[] { YkcDurumDegerleri.TalepAlindi, YkcDurumDegerleri.Tamamlandi, YkcDurumDegerleri.Iptal, YkcDurumDegerleri.Reddedildi })
+{
+    firmDetail.Durum = state;
+    Check(YkcDurumSunumu.SonUygunsuzKontrol(firmDetail) == null,
+        $"Historical control reasons do not override the request's current outcome: {state}");
+}
+firmDetail.Kontroller.Clear();
+firmDetail.Durum = YkcDurumDegerleri.Atandi;
+Check(YkcDurumSunumu.SonUygunsuzKontrol(firmDetail) == null, "A request with no recorded control gets no invented failure");
+
+foreach (var role in new[] { "GenelSistemAdmin", "SirketAdmin" })
+{
+    using var fixture = new NavigationFixture(role);
+    for (var i = 1; i <= 50; i++)
+    {
+        var id = "person-" + i;
+        fixture.Handler.PermissionList.Personeller.Add(new AppKullanici { Id = id, AdSoyad = $"Personel {i:00}", Email = $"person{i}@fixture.test" });
+        fixture.Handler.PermissionList.SirketYetkileri[id] = [new AdminSirketYetkiOzeti
+        {
+            SirketId = 7, SirketAdi = i % 2 == 0 ? "SürmeliGAZ" : "Çorumgaz",
+            Yetkiler = [YetkiTipleri.YKC_TALEP_GOR]
+        }];
+    }
+    var first = (ViewResult)await fixture.AdminPanelController.Yetkiler();
+    var firstRows = (List<AppKullanici>)first.ViewData["Personeller"]!;
+    Check(firstRows.Count == 10 && firstRows.First().Id == "person-1" && firstRows.Last().Id == "person-10"
+        && (int)first.ViewData["ToplamPersonel"]! == 50 && (int)first.ViewData["ToplamSayfa"]! == 5,
+        role + ": 50 personnel are displayed as five compact pages without changing overall counters");
+    Check(role != "SirketAdmin" || fixture.Handler.PermissionScope == 7,
+        role + ": permission list pagination preserves company scope");
+    var last = (ViewResult)await fixture.AdminPanelController.Yetkiler(sayfa: int.MaxValue);
+    Check((int)last.ViewData["Sayfa"]! == 5 && ((List<AppKullanici>)last.ViewData["Personeller"]!).First().Id == "person-41",
+        role + ": out-of-range pages clamp to the final valid page");
+    var low = (ViewResult)await fixture.AdminPanelController.Yetkiler(sayfa: -1);
+    Check((int)low.ViewData["Sayfa"]! == 1, role + ": negative pages return to the first page");
+    var search = (ViewResult)await fixture.AdminPanelController.Yetkiler("  person49@fixture.test  ", 5);
+    Check(((List<AppKullanici>)search.ViewData["Personeller"]!).Single().Id == "person-49"
+        && (int)search.ViewData["EslesenPersonel"]! == 1 && (int)search.ViewData["Sayfa"]! == 1
+        && (int)search.ViewData["ToplamPersonel"]! == 50,
+        role + ": email search spans all pages and preserves the full overview count");
+    search = (ViewResult)await fixture.AdminPanelController.Yetkiler("PERSONEL 03");
+    Check(((List<AppKullanici>)search.ViewData["Personeller"]!).Single().Id == "person-3",
+        role + ": personnel search is case-insensitive");
+    search = (ViewResult)await fixture.AdminPanelController.Yetkiler("sürmeligaz");
+    Check((int)search.ViewData["EslesenPersonel"]! == 25 && (int)search.ViewData["ToplamSayfa"]! == 3,
+        role + ": company search handles Turkish casing and retains pagination");
+    search = (ViewResult)await fixture.AdminPanelController.Yetkiler("no matching person");
+    Check(((List<AppKullanici>)search.ViewData["Personeller"]!).Count == 0
+        && (int)search.ViewData["EslesenPersonel"]! == 0 && (int)search.ViewData["Sayfa"]! == 1,
+        role + ": empty search results retain a valid empty page");
+    var save = (RedirectToActionResult)await fixture.AdminPanelController.YetkiDuzenle("person-31", [7],
+        new FormCollection(new Dictionary<string, Microsoft.Extensions.Primitives.StringValues> { ["yetkiler_7"] = YetkiTipleri.YKC_TALEP_GOR }), "Personel", 4);
+    Check(save.ActionName == nameof(AdminPanelController.Yetkiler) && (string?)save.RouteValues!["q"] == "Personel"
+        && (int)save.RouteValues["sayfa"]! == 4,
+        role + ": saving permissions returns to the same search and page");
+}
+using (var fixture = new NavigationFixture("Personel"))
+{
+    Check(await fixture.AdminPanelController.Yetkiler("anything", 2) is ForbidResult && fixture.Handler.PermissionListCalls == 0,
+        "Permission list search and pagination do not grant management rights to personnel");
+}
+
+foreach (var role in new[] { "GenelSistemAdmin", "SirketAdmin" })
+{
+    using var fixture = new NavigationFixture(role);
+    var direct = (RedirectToActionResult)await fixture.AdminPanelController.SubeDuzenle(8);
+    Check(direct.ActionName == nameof(AdminPanelController.Subeler) && direct.RouteValues!["duzenle"] is 8,
+        role + ": direct branch edit links return to the list and open the correct drawer");
+    fixture.Http.Request.Headers["X-Requested-With"] = "XMLHttpRequest";
+    var edit = (ViewResult)await fixture.AdminPanelController.SubeDuzenle(8);
+    Check(edit.ViewName == "~/Views/AdminPanel/SubeDuzenle.cshtml"
+        && ((YetkiliServisGazAcma.Entities.Ys_Sube)edit.ViewData["Sube"]!).Id == 8,
+        role + ": AJAX branch editing returns the form for the scoped record");
+    Check(fixture.Handler.LastBranchPayload.GetProperty("id").GetInt32() == 8
+        && (role != "SirketAdmin" || fixture.Handler.LastBranchPayload.GetProperty("sirketId").GetInt32() == 7),
+        role + ": drawer lookup retains record and company scope");
+    fixture.Handler.BranchAvailable = false;
+    Check(await fixture.AdminPanelController.SubeDuzenle(8) is RedirectResult
+        && fixture.AdminPanelController.TempData.ContainsKey("Hata"),
+        role + ": an unavailable branch never returns an editable form");
+    fixture.Handler.BranchAvailable = true;
+    await fixture.AdminPanelController.SubeEkle(10, "Branch", "City", "District", "05550000000", "Address", true);
+    Check(fixture.Handler.LastBranchPath.EndsWith("/ekle")
+        && fixture.Handler.LastBranchPayload.GetProperty("firmaId").GetInt32() == 10
+        && fixture.Handler.LastBranchPayload.GetProperty("aktifMi").GetBoolean(),
+        role + ": creating a branch retains its firm and active state");
+    await fixture.AdminPanelController.SubeDuzenle(8, 10, "Edited branch", "City", "District", "05550000000", "Address", false);
+    Check(fixture.Handler.LastBranchPath.EndsWith("/guncelle")
+        && fixture.Handler.LastBranchPayload.GetProperty("id").GetInt32() == 8
+        && !fixture.Handler.LastBranchPayload.GetProperty("aktifMi").GetBoolean(),
+        role + ": editing a branch retains its ID and unchecked active state");
+}
+using (var fixture = new NavigationFixture("Personel"))
+{
+    fixture.Http.Request.Headers["X-Requested-With"] = "XMLHttpRequest";
+    Check(await fixture.AdminPanelController.SubeDuzenle(8) is ForbidResult && fixture.Handler.BranchCalls == 0,
+        "A drawer request does not grant personnel branch management permission");
+}
+using (var fixture = new NavigationFixture("YetkiliServis"))
+{
+    var direct = (RedirectToActionResult)await fixture.ServicePanelController.SubeDuzenle(8);
+    Check(direct.ActionName == nameof(YetkiliServisPanelController.Subeler) && direct.RouteValues!["duzenle"] is 8,
+        "Service branch links retain the same drawer navigation");
+    fixture.Http.Request.Headers["X-Requested-With"] = "XMLHttpRequest";
+    Check(await fixture.ServicePanelController.SubeDuzenle(8) is ViewResult,
+        "Service branch editing still loads the firm's own branch");
+    Check(await fixture.ServicePanelController.SubeDuzenle(9) is RedirectResult,
+        "Service branch editing cannot load a branch outside the firm's profile");
+}
+
+foreach (var mode in new[] { "gun", "ay", "yil", "invalid" })
+{
+    using var fixture = new NavigationFixture("Personel");
+    fixture.Http.Request.QueryString = new QueryString("?takvimTarih=2028-02-29&takvimGorunum=" + mode
+        + "&takvimAbone=ignored&takvimPersonel=ignored");
+    var result = (ViewViewComponentResult)await fixture.Calendar.InvokeAsync(genelTakvim: true);
+    var model = (YkcRandevuOzetiModel)result.ViewData!.Model!;
+    Check(model.GenelTakvim && model.Baslik == "Takvim" && model.Tarih == new DateTime(2028, 2, 29)
+        && model.Gorunum == (mode == "invalid" ? "ay" : mode),
+        "General calendar preserves the selected date and validates the view mode: " + mode);
+    Check(model.Gun == null && model.AyGunleri.Count == 0 && model.Filtre.Musteri == null
+        && fixture.Handler.CalendarFilters.Count == 0 && fixture.Handler.CalendarPermissionCalls == 0,
+        "General calendar has no appointment data or operational filters: " + mode);
+    fixture.Http.Request.QueryString = new QueryString("?takvimTarih=not-a-date");
+    result = (ViewViewComponentResult)await fixture.Calendar.InvokeAsync(genelTakvim: true);
+    Check(((YkcRandevuOzetiModel)result.ViewData!.Model!).Tarih == DateTime.Today,
+        "General calendar falls back to today for an invalid date: " + mode);
+}
+
+using (var fixture = new NavigationFixture("Personel"))
+{
+    fixture.Http.Request.QueryString = new QueryString("?takvimTarih=2026-10-05&takvimAbone=Subscriber&takvimPersonel=Team");
+    async Task<YkcRandevuOzetiModel> CalendarModel() =>
+        (YkcRandevuOzetiModel)((ViewViewComponentResult)await fixture.Calendar.InvokeAsync()).ViewData!.Model!;
+
+    var model = await CalendarModel();
+    Check(model.GenelTakvim && model.Baslik == "Takvim" && model.Gun == null
+        && model.Filtre.Musteri == null && fixture.Handler.CalendarFilters.Count == 0,
+        "Without appointment read permission the calendar stays plain and does not query records");
+
+    fixture.Handler.CalendarCompanies.Add(7);
+    model = await CalendarModel();
+    Check(!model.GenelTakvim && model.Gun?.Kayitlar.Single().Musteri == "Fixture subscriber"
+        && model.Gun.Kayitlar.Single().Id == 54 && model.AyGunleri.Count == 1,
+        "Granting read permission restores appointment names, detail IDs and day counts");
+    Check(model.Filtre.Musteri == "Subscriber" && model.Filtre.Personel == "Team"
+        && fixture.Handler.CalendarFilters.Count == 2
+        && fixture.Handler.CalendarFilters.All(x => x.AktifSirketId == 7),
+        "Authorized calendar filters are applied only within the active company");
+
+    fixture.Http.Session.SetInt32("AktifSirketId:fixture-user", 8);
+    model = await CalendarModel();
+    Check(model.GenelTakvim && model.Gun == null && model.AyGunleri.Count == 0
+        && fixture.Handler.CalendarFilters.Count == 2,
+        "Switching to a company without permission removes appointment data without querying it");
+
+    fixture.Handler.CalendarCompanies.Add(8);
+    model = await CalendarModel();
+    Check(!model.GenelTakvim && fixture.Handler.CalendarFilters.Count == 4
+        && fixture.Handler.CalendarFilters.Skip(2).All(x => x.AktifSirketId == 8),
+        "Permission granted in the new company loads only that company's calendar");
+
+    fixture.Handler.CalendarCompanies.Remove(8);
+    model = await CalendarModel();
+    Check(model.GenelTakvim && model.Gun == null && model.Filtre.Personel == null
+        && fixture.Handler.CalendarFilters.Count == 4 && fixture.Handler.CalendarPermissionCalls == 5,
+        "Revoking permission restores the plain calendar instead of retaining data or hiding the calendar");
+
+    fixture.Handler.CalendarPermissionUnavailable = true;
+    model = await CalendarModel();
+    Check(model.GenelTakvim && model.Gun == null && fixture.Handler.CalendarFilters.Count == 4,
+        "Unverified permissions never expose operational calendar links or trigger a data query");
 }
 
 foreach (var role in new[] { "GenelSistemAdmin", "SirketAdmin", "Personel" })
@@ -244,6 +441,7 @@ sealed class NavigationFixture : IDisposable
     public PanelSirketController CompanyController { get; }
     public YetkiliServisPanelController ServicePanelController { get; }
     public AdminPanelController AdminPanelController { get; }
+    public YkcRandevuOzetiViewComponent Calendar { get; }
 
     public NavigationFixture(string role, bool reportPermission = true, bool signaturePermission = true)
     {
@@ -275,7 +473,10 @@ sealed class NavigationFixture : IDisposable
             TempData = new TempDataDictionary(Http, new MemoryTempData())
         };
         AdminPanelController = new AdminPanelController(session, null!,
-            new AktifSirketService(accessor, session, companies), null!, null!, null!, null!, null!,
+            new AktifSirketService(accessor, session, companies),
+            new AdminDashboardApiClient(client, options, tokens, NullLogger<AdminDashboardApiClient>.Instance),
+            new AdminKullaniciApiClient(client, options, tokens, NullLogger<AdminKullaniciApiClient>.Instance), null!, null!,
+            new AdminSubeApiClient(client, options, tokens, NullLogger<AdminSubeApiClient>.Instance),
             new AdminRaporApiClient(client, options, tokens, NullLogger<AdminRaporApiClient>.Instance), null!, null!, null!)
         {
             ControllerContext = new ControllerContext { HttpContext = Http },
@@ -288,6 +489,11 @@ sealed class NavigationFixture : IDisposable
         };
         var api = new YkcApiClient(client, options, tokens, NullLogger<YkcApiClient>.Instance,
             new AktifSirketService(accessor, session, companies));
+        Calendar = new YkcRandevuOzetiViewComponent(session, companies, api,
+            new AktifSirketService(accessor, session, companies), NullLogger<YkcRandevuOzetiViewComponent>.Instance)
+        {
+            ViewComponentContext = new ViewComponentContext { ViewContext = new ViewContext { HttpContext = Http } }
+        };
         Controller = new YkcController(session, api, NullLogger<YkcController>.Instance, null!)
         {
             ControllerContext = new ControllerContext { HttpContext = Http },
@@ -316,6 +522,17 @@ sealed class NavigationFixture : IDisposable
 
 sealed class FixtureHandler(string role) : HttpMessageHandler
 {
+    public AdminYetkiListeSonuc PermissionList { get; } = new();
+    public int PermissionListCalls { get; private set; }
+    public int? PermissionScope { get; private set; }
+    public HashSet<int> CalendarCompanies { get; } = [];
+    public List<YkcTakvimFiltre> CalendarFilters { get; } = [];
+    public int CalendarPermissionCalls { get; private set; }
+    public bool CalendarPermissionUnavailable { get; set; }
+    public int BranchCalls { get; private set; }
+    public bool BranchAvailable { get; set; } = true;
+    public string LastBranchPath { get; private set; } = "";
+    public JsonElement LastBranchPayload { get; private set; }
     public bool Success { get; set; } = true;
     public HttpStatusCode CertificateStatus { get; set; } = HttpStatusCode.OK;
     public bool CertificateUnavailable { get; set; }
@@ -333,6 +550,63 @@ sealed class FixtureHandler(string role) : HttpMessageHandler
     {
         var path = request.RequestUri!.AbsolutePath;
         object result;
+        if (path == "/api/admin-panel/dashboard")
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new { OnayBekleyen = 0 }) };
+        if (path == "/api/admin-panel/yetkiler/liste")
+        {
+            PermissionListCalls++;
+            var scope = await request.Content!.ReadFromJsonAsync<JsonElement>(cancellationToken);
+            var company = scope.GetProperty("sirketId");
+            PermissionScope = company.ValueKind == JsonValueKind.Null ? null : company.GetInt32();
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(PermissionList) };
+        }
+        if (path == "/api/admin-panel/yetkiler/guncelle")
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new { Basarili = true }) };
+        if (path == "/api/panel-kapsam/ykc-yetkileri")
+        {
+            CalendarPermissionCalls++;
+            if (CalendarPermissionUnavailable) throw new HttpRequestException("Fixture permissions unavailable");
+            var scope = await request.Content!.ReadFromJsonAsync<JsonElement>(cancellationToken);
+            var company = scope.GetProperty("aktifSirketId").GetInt32();
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new YkcYetkiOzeti
+            {
+                TalepleriGorebilir = CalendarCompanies.Contains(company)
+            }) };
+        }
+        if (path == "/api/ykc/takvim")
+        {
+            var filter = (await request.Content!.ReadFromJsonAsync<YkcTakvimFiltre>(cancellationToken))!;
+            CalendarFilters.Add(filter);
+            if (!CalendarCompanies.Contains(filter.AktifSirketId ?? 0))
+                throw new InvalidOperationException("Calendar records requested without company permission");
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new YkcTakvimSonuc
+            {
+                Filtre = filter, Toplam = 1,
+                Kayitlar = [new YkcTakvimKayit { Id = 54, Musteri = "Fixture subscriber", Tarih = filter.Baslangic }],
+                Gunler = [new YkcTakvimGunOzeti { Tarih = filter.Baslangic, Toplam = 1 }]
+            }) };
+        }
+        if (path == "/api/admin-panel/kullanicilar/yonetim-yetkisi")
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new { YetkiliMi = role is "GenelSistemAdmin" or "SirketAdmin" }) };
+        if (path.StartsWith("/api/admin-panel/subeler/", StringComparison.Ordinal))
+        {
+            BranchCalls++;
+            LastBranchPath = path;
+            LastBranchPayload = await request.Content!.ReadFromJsonAsync<JsonElement>(cancellationToken);
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new
+            {
+                Basarili = BranchAvailable,
+                Sube = BranchAvailable ? new { Id = 8, FirmaId = 10, SubeAdi = "Fixture branch", AktifMi = true } : null,
+                Firmalar = new[] { new { Id = 10, FirmaAdi = "Fixture firm" } }
+            }) };
+        }
+        if (path == "/api/ys-panel/profil")
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new
+            {
+                Id = 10, FirmaAdi = "Fixture firm", Subeler = new[] { new { Id = 8, FirmaId = 10, SubeAdi = "Fixture branch", AktifMi = true } }
+            }) };
+        if (path == "/api/ys-panel/bildirimler")
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new { Bildirimler = Array.Empty<string>(), BildirimSayisi = 0 }) };
         if (path.StartsWith("/api/admin-panel/devreye-almalar/rapor/", StringComparison.Ordinal)
             || path.StartsWith("/api/ys-panel/raporlar/", StringComparison.Ordinal))
         {

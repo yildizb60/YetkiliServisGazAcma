@@ -28,7 +28,7 @@ namespace YetkiliServisGazAcma.Business.Services
             int? dogrulanmisSirketId = null)
         {
             var query = TalepOkumaQuery();
-            query = FiltreleriUygula(query, filtre, kullanici, genelYetkili, dogrulanmisSirketId);
+            query = await FiltreleriUygulaAsync(query, filtre, kullanici, genelYetkili, dogrulanmisSirketId);
 
             var toplam = await query.CountAsync();
             var sayfa = Math.Max(filtre.Sayfa, 1);
@@ -58,7 +58,7 @@ namespace YetkiliServisGazAcma.Business.Services
             bool genelYetkili,
             int? dogrulanmisSirketId = null)
         {
-            var query = FiltreleriUygula(TalepOkumaQuery(), filtre, kullanici, genelYetkili, dogrulanmisSirketId);
+            var query = await FiltreleriUygulaAsync(TalepOkumaQuery(), filtre, kullanici, genelYetkili, dogrulanmisSirketId);
 
             var toplam = await query.CountAsync();
             var durumOzetleri = await query
@@ -134,7 +134,8 @@ namespace YetkiliServisGazAcma.Business.Services
             int? dogrulanmisSirketId = null)
         {
             var limit = Math.Clamp(kayitLimiti, 1, 5001);
-            var kayitlar = await FiltreleriUygula(TalepOkumaQuery(), filtre, kullanici, genelYetkili, dogrulanmisSirketId)
+            var query = await FiltreleriUygulaAsync(TalepOkumaQuery(), filtre, kullanici, genelYetkili, dogrulanmisSirketId);
+            var kayitlar = await query
                 .OrderByDescending(x => x.TalepTarihi)
                 .ThenByDescending(x => x.Id)
                 .Take(limit)
@@ -148,6 +149,9 @@ namespace YetkiliServisGazAcma.Business.Services
             var query = YetkiKapsamiUygula(TalepOkumaQuery(), kullanici, genelYetkili, aktifSirketId);
 
             var toplam = await query.CountAsync();
+            var incelemeBekleyen = await (await BekleyenIsFiltresiAsync(query, YkcBekleyenIsDegerleri.Inceleme)).CountAsync();
+            var randevuBekleyen = await (await BekleyenIsFiltresiAsync(query, YkcBekleyenIsDegerleri.Randevu)).CountAsync();
+            var tamamlamaBekleyen = await (await BekleyenIsFiltresiAsync(query, YkcBekleyenIsDegerleri.Tamamlama)).CountAsync();
             var incelemede = await query.CountAsync(x =>
                 x.Durum == YkcDurumDegerleri.TalepAlindi ||
                 x.Durum == YkcDurumDegerleri.AtamaBekliyor);
@@ -187,6 +191,9 @@ namespace YetkiliServisGazAcma.Business.Services
             {
                 Toplam = toplam,
                 Incelemede = incelemede,
+                IncelemeBekleyen = incelemeBekleyen,
+                RandevuBekleyen = randevuBekleyen,
+                TamamlamaBekleyen = tamamlamaBekleyen,
                 RandevuSaha = randevuSaha,
                 Tamamlanan = tamamlanan,
                 ImzaliNihai = imzaliNihai,
@@ -982,7 +989,7 @@ namespace YetkiliServisGazAcma.Business.Services
             return TalepQuery().AsNoTracking();
         }
 
-        private static IQueryable<Ykc_Talep> FiltreleriUygula(
+        private static async Task<IQueryable<Ykc_Talep>> FiltreleriUygulaAsync(
             IQueryable<Ykc_Talep> query,
             YkcTalepListeFiltre filtre,
             AppKullanici kullanici,
@@ -1084,7 +1091,30 @@ namespace YetkiliServisGazAcma.Business.Services
             if (bitisTarihi.HasValue)
                 query = query.Where(x => x.TalepTarihi < bitisTarihi.Value.Date.AddDays(1));
 
-            return query;
+            return await BekleyenIsFiltresiAsync(query, filtre.BekleyenIs);
+        }
+
+        private static async Task<IQueryable<Ykc_Talep>> BekleyenIsFiltresiAsync(IQueryable<Ykc_Talep> query, string? bekleyenIs)
+        {
+            if (string.IsNullOrEmpty(bekleyenIs)) return query;
+            if (bekleyenIs == YkcBekleyenIsDegerleri.Inceleme)
+                return query.Where(x => x.Durum == YkcDurumDegerleri.TalepAlindi);
+            if (bekleyenIs == YkcBekleyenIsDegerleri.Randevu)
+                return query.Where(x => x.Durum == YkcDurumDegerleri.AtamaBekliyor);
+            if (bekleyenIs != YkcBekleyenIsDegerleri.Tamamlama)
+                return query.Where(x => false);
+
+            var adaylar = await query.Where(x => x.Durum == YkcDurumDegerleri.SahaIsleminde
+                    && x.ImzaSurecleri.Any(s => !s.SilindiMi
+                        && s.Durum == YkcImzaDurumDegerleri.Tamamlandi
+                        && s.ProviderDocumentId != null && s.ProviderDocumentId != ""
+                        && s.NihaiDosyaId != null && s.NihaiDosya != null && !s.NihaiDosya.SilindiMi
+                        && s.NihaiDosya.DosyaTuru == YkcFormDosyaTuruDegerleri.Fr265ImzaliNihai))
+                .Select(x => new { x.Id, x.RandevuTarihi, x.RandevuSaati }).ToListAsync();
+            // Reuse the completion guard, including its handling of missing or invalid times.
+            var idler = adaylar.Where(x => RandevuZamaniGeldiMi(x.RandevuTarihi, x.RandevuSaati))
+                .Select(x => x.Id).ToArray();
+            return query.Where(x => idler.Contains(x.Id));
         }
 
         private static int? PozitifId(int? value)
@@ -1312,6 +1342,7 @@ namespace YetkiliServisGazAcma.Business.Services
 
     public class YkcTalepListeFiltre
     {
+        public string? BekleyenIs { get; set; }
         public int? SirketId { get; set; }
         public int? FirmaId { get; set; }
         public string? TesisatNo { get; set; }
@@ -1345,6 +1376,9 @@ namespace YetkiliServisGazAcma.Business.Services
 
     public class YkcDashboardOzetDto
     {
+        public int IncelemeBekleyen { get; set; }
+        public int RandevuBekleyen { get; set; }
+        public int TamamlamaBekleyen { get; set; }
         public int Toplam { get; set; }
         public int Incelemede { get; set; }
         public int RandevuSaha { get; set; }

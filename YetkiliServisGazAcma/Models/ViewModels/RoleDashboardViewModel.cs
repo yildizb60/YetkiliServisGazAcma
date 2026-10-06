@@ -12,6 +12,7 @@ namespace YetkiliServisGazAcma.Models.ViewModels
         public string QuickActionsTitle { get; set; } = "Hızlı İşlemler";
         public string QuickActionsMeta { get; set; } = "Güncel durum";
         public bool ShowYkcCalendar { get; set; }
+        public bool ShowGeneralCalendar { get; set; }
         public string? YkcCalendarTitle { get; set; }
         public AuthorizedServiceCalendarViewModel? AuthorizedServiceCalendar { get; set; }
         public List<RoleDashboardFactViewModel> Facts { get; set; } = new();

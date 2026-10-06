@@ -1,74 +1,13 @@
+@using YetkiliServisGazAcma.Entities
+@using YetkiliServisGazAcma.Models.ViewModels
 @{
-    ViewData["Title"] = "Şube Düzenle";
-    ViewData["PanelTitle"] = ViewData["Title"];
-    ViewData["PanelSubtitle"] = "Admin Paneli";
-    ViewData["ActiveMenu"] = "Subeler";
-    Layout = "~/Views/Shared/_PanelLayout.cshtml";
-
-    var sube = ViewBag.Sube as YetkiliServisGazAcma.Entities.Ys_Sube;
-    var firmalar = ViewBag.Firmalar as List<YetkiliServisGazAcma.Entities.Ys_Firma> ?? new();
+    Layout = null;
+    var sube = ViewBag.Sube as Ys_Sube ?? new();
 }
-
-<div class="df-admin-workspace df-admin-editor df-branch-edit-workspace">
-
-    <section class="df-admin-form-card">
-        <div class="df-admin-form-body">
-            <form method="post" action="/AdminPanel/subeler/duzenle/@sube?.Id">
-                @Html.AntiForgeryToken()
-
-                <section class="df-admin-form-section">
-                    <div class="df-admin-form-section-head">
-                        <span><i class="bi bi-diagram-3"></i></span>
-                        <div>
-                            <h3>Firma ve Şube Bilgileri</h3>
-                            <p>Şubenin bağlı olduğu servisi, adını ve kayıt durumunu belirleyin.</p>
-                        </div>
-                    </div>
-                    <div class="df-admin-form-grid">
-                        <div class="df-admin-field is-half">
-                            <label>Bağlı Firma *</label>
-                            <select name="firmaId" required>
-                                @foreach (var firma in firmalar)
-                                {
-                                    <option value="@firma.Id" selected="@(sube?.FirmaId == firma.Id)">@firma.FirmaAdi</option>
-                                }
-                            </select>
-                        </div>
-                        <div class="df-admin-field is-half">
-                            <label>Şube Adı *</label>
-                            <input type="text" name="subeAdi" value="@sube?.SubeAdi" required />
-                        </div>
-                        <div class="df-admin-field is-half">
-                            <label>Kayıt Durumu</label>
-                            <select name="aktifMi">
-                                <option value="true" selected="@(sube?.AktifMi == true)">Aktif</option>
-                                <option value="false" selected="@(sube?.AktifMi == false)">Pasif</option>
-                            </select>
-                        </div>
-                    </div>
-                </section>
-
-                <section class="df-admin-form-section">
-                    <div class="df-admin-form-section-head">
-                        <span><i class="bi bi-geo-alt"></i></span>
-                        <div>
-                            <h3>Konum ve İletişim</h3>
-                            <p>Şubenin hizmet verdiği konum ve ulaşılabilir telefon bilgisini güncelleyin.</p>
-                        </div>
-                    </div>
-                    <div class="df-admin-form-grid">
-                        <div class="df-admin-field"><label>İl</label><input type="text" name="il" value="@sube?.Il" /></div>
-                        <div class="df-admin-field"><label>İlçe</label><input type="text" name="ilce" value="@sube?.Ilce" /></div>
-                        <div class="df-admin-field"><label>Telefon</label><input type="text" name="telefon" value="@sube?.Telefon" autocomplete="tel" /></div>
-                        <div class="df-admin-field is-full"><label>Adres</label><input type="text" name="adres" value="@sube?.Adres" /></div>
-                    </div>
-                </section>
-
-                <div class="df-admin-form-actions">
-                    <a class="df-btn df-btn-secondary df-btn-sm" href="/AdminPanel/subeler"><i class="bi bi-x-lg"></i> Vazgeç</a>
-                    <button type="submit" class="df-btn df-btn-primary df-btn-sm"><i class="bi bi-check2"></i> Değişiklikleri Kaydet</button>
-                </div>
-            </form>
-        </div>
-    </section>
-</div>
+@await Html.PartialAsync("_BranchEditor", new BranchEditorViewModel
+{
+    Branch = sube,
+    CanSelectFirm = true,
+    Firms = ViewBag.Firmalar as List<Ys_Firma> ?? new(),
+    PostUrl = Url.Action("SubeDuzenle", "AdminPanel", new { id = sube.Id })!
+})

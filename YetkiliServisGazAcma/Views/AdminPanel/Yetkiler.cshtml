@@ -8,13 +8,23 @@
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
     var personeller = ViewBag.Personeller as List<YetkiliServisGazAcma.Entities.AppKullanici>;
-    var yetkiIsimler = ViewBag.YetkiIsimler as Dictionary<string, string> ?? new();
     var sirketYetkileri = ViewBag.SirketYetkileri as Dictionary<string, List<AdminSirketYetkiOzeti>> ?? new();
-    var toplamPersonel = personeller?.Count ?? 0;
+    var toplamPersonel = (int?)ViewBag.ToplamPersonel ?? 0;
+    var eslesenPersonel = (int?)ViewBag.EslesenPersonel ?? 0;
+    var arama = ViewBag.Arama as string;
+    var sayfa = (int?)ViewBag.Sayfa ?? 1;
+    var toplamSayfa = (int?)ViewBag.ToplamSayfa ?? 1;
+    var sayfaBoyutu = (int?)ViewBag.SayfaBoyutu ?? 10;
+    var ilkKayit = eslesenPersonel == 0 ? 0 : (sayfa - 1) * sayfaBoyutu + 1;
+    var sonKayit = Math.Min(sayfa * sayfaBoyutu, eslesenPersonel);
+    string SayfaLink(int hedef) => Url.Action("Yetkiler", "AdminPanel", new { q = arama, sayfa = hedef })!;
     var yetkiTanimliPersonel = sirketYetkileri.Values.Count(sirketler => sirketler.Any(x => x.Yetkiler.Count > 0));
     var kapsamlar = sirketYetkileri.Values.SelectMany(x => x).ToList();
     var tamYetkiliKapsam = kapsamlar.Count(x => x.Yetkiler.Contains(YetkiTipleri.TAM_YETKI));
     var sirketKapsami = kapsamlar.Select(x => x.SirketId).Distinct().Count();
+    var tabloSirketleri = kapsamlar.GroupBy(x => x.SirketId).Select(x => x.First())
+        .OrderBy(x => x.SirketAdi, StringComparer.Create(System.Globalization.CultureInfo.GetCultureInfo("tr-TR"), true)).ToList();
+    var yetkiIsimleri = ViewBag.YetkiIsimler as Dictionary<string, string> ?? new();
 }
 
 <div class="df-admin-workspace df-permission-workspace">
@@ -93,66 +103,114 @@
         <div>
             <h3><i class="bi bi-person-lock"></i> Personel Yetkileri</h3>
         </div>
-        <strong>@toplamPersonel personel</strong>
-    </div>
-    <div class="tablo-head">
-        <div>Personel</div><div>E-posta</div><div>Şirket ve İşlem Yetkileri</div><div>İşlem</div>
+        <form method="get" action="@Url.Action("Yetkiler", "AdminPanel")" class="df-permission-search" role="search" aria-label="Personel yetkilerinde ara">
+            <input type="search" name="q" value="@arama" maxlength="120" placeholder="Personel, e-posta veya şirket" aria-label="Personel, e-posta veya şirket ara" />
+            @if (!string.IsNullOrEmpty(arama))
+            {
+                <a class="df-permission-search-clear" href="@Url.Action("Yetkiler", "AdminPanel")" title="Aramayı temizle" aria-label="Aramayı temizle"><i class="bi bi-x-lg" aria-hidden="true"></i></a>
+            }
+            <button type="submit" title="Ara" aria-label="Ara"><i class="bi bi-search" aria-hidden="true"></i></button>
+        </form>
     </div>
     @if (personeller == null || personeller.Count == 0)
     {
-        <div class="empty">Personel kaydı yok</div>
+        <div class="empty">@(string.IsNullOrEmpty(arama) ? "Personel kaydı yok." : "Aramanızla eşleşen personel bulunamadı.")</div>
     }
     else
     {
-        foreach (var p in personeller)
+        <table class="df-permission-table" aria-label="Personellerin şirket bazında işlem yetkileri">
+            <colgroup><col class="df-permission-person-column" />
+                @for (var i = 0; i < Math.Max(1, tabloSirketleri.Count); i++) { <col /> }
+                <col class="df-permission-action-column" />
+            </colgroup>
+            <thead><tr>
+                <th scope="col">Personel</th>
+                @foreach (var sirket in tabloSirketleri)
+                {
+                    <th scope="col">@(sirket.SirketAdi ?? "Şirket bilgisi yok")</th>
+                }
+                @if (tabloSirketleri.Count == 0) { <th scope="col">Şirket Yetkileri</th> }
+                <th scope="col" class="df-permission-action-heading">İşlem</th>
+            </tr></thead>
+            <tbody>
+        @foreach (var p in personeller)
         {
             var personelKapsamlari = sirketYetkileri.TryGetValue(p.Id, out var sirketler)
                 ? sirketler : new List<AdminSirketYetkiOzeti>();
 
-            <div class="tablo-row">
+            <tr>
+                <th scope="row" class="df-permission-person-cell">
                 <div class="df-permission-person" data-label="Personel">
                     <span class="df-permission-person-icon"><i class="bi bi-person" aria-hidden="true"></i></span>
-                    <span><strong>@(p.AdSoyad ?? "-")</strong></span>
+                    <span><strong title="@p.AdSoyad">@(p.AdSoyad ?? "Ad soyad bilgisi yok")</strong><span class="df-permission-email" title="@p.Email">@(p.Email ?? "E-posta bilgisi yok")</span></span>
                 </div>
-                <div class="df-permission-email" data-label="E-posta" title="@p.Email">@(p.Email ?? "E-posta bilgisi yok")</div>
-                <div class="df-permission-company-list" data-label="Şirket ve işlem yetkileri">
-                    @if (personelKapsamlari.Count == 0)
-                    {
-                        <span class="df-empty-value">Personele şirket atanmamış</span>
-                    }
-                    else
-                    {
-                        foreach (var kapsam in personelKapsamlari)
+                </th>
+                @foreach (var sirket in tabloSirketleri)
+                {
+                    var kapsam = personelKapsamlari.FirstOrDefault(x => x.SirketId == sirket.SirketId);
+                    var yetkiler = kapsam?.Yetkiler.Distinct(StringComparer.OrdinalIgnoreCase).ToList() ?? new();
+                    var tamYetkili = yetkiler.Contains(YetkiTipleri.TAM_YETKI, StringComparer.OrdinalIgnoreCase);
+                    var aciklama = tamYetkili ? "Bu şirkette tüm işlem yetkileri açık."
+                        : yetkiler.Count > 0 ? string.Join("; ", yetkiler.Select(x => yetkiIsimleri.GetValueOrDefault(x, "Diğer işlem yetkisi")))
+                        : "Bu şirket için işlem yetkisi tanımlanmamış.";
+                    <td class="df-permission-company-cell" data-label="@(sirket.SirketAdi ?? "Şirket bilgisi yok")">
+                        <span class="df-permission-level @(tamYetkili ? "is-full" : yetkiler.Count > 0 ? "is-limited" : "is-none")" title="@aciklama">
+                        @if (tamYetkili)
                         {
-                            <div class="df-permission-company-row">
-                                <span class="df-permission-company-name">@(kapsam.SirketAdi ?? "Şirket bilgisi yok")</span>
-                                @if (kapsam.Yetkiler.Count == 0)
-                                {
-                                    <span class="df-empty-value">Bu şirket için işlem yetkisi tanımlanmamış</span>
-                                }
-                                else
-                                {
-                                    <div class="yetki-list">
-                                        @foreach (var yetki in kapsam.Yetkiler)
-                                        {
-                                            <span class="df-permission-token" data-permission-code="@yetki">@(yetkiIsimler.TryGetValue(yetki, out var ad) ? ad : yetki)</span>
-                                        }
-                                    </div>
-                                }
-                            </div>
+                            <i class="bi bi-check-circle" aria-hidden="true"></i><span>Tüm işlemler</span>
                         }
-                    }
-                </div>
+                        else if (yetkiler.Count > 0)
+                        {
+                            <i class="bi bi-list-check" aria-hidden="true"></i><span>@yetkiler.Count işlem yetkisi</span>
+                        }
+                        else { <span>Yetki yok</span> }
+                        </span>
+                    </td>
+                }
+                @if (tabloSirketleri.Count == 0)
+                {
+                    <td class="df-permission-company-cell" data-label="Şirket Yetkileri"><span class="df-permission-level is-none">Şirket atanmamış</span></td>
+                }
+                <td class="df-permission-action-cell">
                 <div class="df-permission-row-action" data-label="İşlem">
                     <a class="df-permission-edit js-admin-form-sheet-trigger"
-                       href="@Url.Action("YetkiDuzenle", "AdminPanel", new { id = p.Id })"
-                       data-sheet-url="@Url.Action("YetkiDuzenle", "AdminPanel", new { id = p.Id })"
+                       href="@Url.Action("YetkiDuzenle", "AdminPanel", new { id = p.Id, q = arama, sayfa })"
+                       data-sheet-url="@Url.Action("YetkiDuzenle", "AdminPanel", new { id = p.Id, q = arama, sayfa })"
                        data-sheet-title="Yetkileri Düzenle"
+                       aria-haspopup="dialog" aria-label="@p.AdSoyad için yetkileri düzenle"
                        data-sheet-variant="permission"><i class="bi bi-sliders2" aria-hidden="true"></i> Düzenle</a>
                 </div>
-            </div>
+                </td>
+            </tr>
         }
+            </tbody>
+        </table>
     }
+    <footer class="df-permission-pager">
+        <span>@ilkKayit–@sonKayit / @eslesenPersonel personel</span>
+        @if (toplamSayfa > 1)
+        {
+            <nav aria-label="Personel yetkileri sayfaları">
+                @if (sayfa > 1)
+                {
+                    <a href="@SayfaLink(sayfa - 1)" title="Önceki sayfa" aria-label="Önceki sayfa"><i class="bi bi-chevron-left" aria-hidden="true"></i></a>
+                }
+                else
+                {
+                    <span class="is-disabled" aria-disabled="true" aria-label="Önceki sayfa"><i class="bi bi-chevron-left" aria-hidden="true"></i></span>
+                }
+                <span class="df-permission-page-number">Sayfa @sayfa / @toplamSayfa</span>
+                @if (sayfa < toplamSayfa)
+                {
+                    <a href="@SayfaLink(sayfa + 1)" title="Sonraki sayfa" aria-label="Sonraki sayfa"><i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+                }
+                else
+                {
+                    <span class="is-disabled" aria-disabled="true" aria-label="Sonraki sayfa"><i class="bi bi-chevron-right" aria-hidden="true"></i></span>
+                }
+            </nav>
+        }
+    </footer>
 </section>
 </div>
 

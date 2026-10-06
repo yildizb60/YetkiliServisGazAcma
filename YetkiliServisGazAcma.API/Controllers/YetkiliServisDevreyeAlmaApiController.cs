@@ -451,16 +451,39 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (kurulum.zorunluMu && !kurulum.tamamlandiMi)
                 return Ok(new YsMarkaKontrolSonucDto { Yetkili = false, Mesaj = "Ilk kurulum tamamlanmadan islem yapilamaz." });
 
-            if (string.IsNullOrWhiteSpace(dto?.CihazMarka))
+            if (string.IsNullOrWhiteSpace(dto?.SorguReferansi) || dto.SorguReferansi.Length != 64)
+                return Ok(new YsMarkaKontrolSonucDto { Yetkili = false, Mesaj = "Önce tesisatı sorgulayıp servisten gelen cihazı seçin." });
+
+            var sorguKaydi = await _context.Ys_DevreyeAlmaSorguKayitlari.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Referans == dto.SorguReferansi
+                    && x.KullaniciId == kullanici.Id && x.FirmaId == kullanici.FirmaId.Value
+                    && x.GecerlilikTarihi > DateTime.UtcNow && x.DevreyeAlmaId == null);
+            if (sorguKaydi == null)
+                return Ok(new YsMarkaKontrolSonucDto { Yetkili = false, Mesaj = "Cihaz sorgusu geçersiz, süresi dolmuş veya bu cihaz zaten kaydedilmiş. Tesisatı yeniden sorgulayın." });
+
+            if (!await _context.Ys_Firmalar.AnyAsync(x => x.Id == kullanici.FirmaId.Value
+                && !x.SilindiMi && x.AktifMi && x.SirketId == sorguKaydi.DagitimSirketiId))
+                return Ok(new YsMarkaKontrolSonucDto { Yetkili = false, Mesaj = "Firma kaydınız aktif değil veya firma kapsamı değişmiş. Tesisatı yeniden sorgulayın." });
+
+            YsDevreyeAlmaKaynak? kaynak;
+            try { kaynak = JsonSerializer.Deserialize<YsDevreyeAlmaKaynak>(sorguKaydi.KaynakJson); }
+            catch (JsonException) { kaynak = null; }
+            if (kaynak == null || string.IsNullOrWhiteSpace(kaynak.CihazTipi))
+                return Ok(new YsMarkaKontrolSonucDto { Yetkili = false, Mesaj = "Kaynak cihaz bilgisi doğrulanamadı. Tesisatı yeniden sorgulayın." });
+
+            if (!await FirmaKategoriYetkisiVarAsync(kullanici.FirmaId.Value, kaynak.CihazTipi))
+                return Ok(new YsMarkaKontrolSonucDto { Yetkili = false, Mesaj = $"{kaynak.CihazTipi} cihaz tipinde işlem yetkiniz yok." });
+
+            if (string.IsNullOrWhiteSpace(kaynak.CihazMarka))
                 return Ok(new YsMarkaKontrolSonucDto { Yetkili = false, Mesaj = "Cihaz marka bilgisi bulunmadığından devreye alma yapılamaz." });
 
-            var marka = await MarkaBulAsync(dto.CihazMarka);
+            var marka = await MarkaBulAsync(kaynak.CihazMarka);
             if (marka == null)
             {
                 return Ok(new YsMarkaKontrolSonucDto
                 {
                     Yetkili = false,
-                    Mesaj = $"{dto.CihazMarka} markasında işlem yetkiniz yok."
+                    Mesaj = $"{kaynak.CihazMarka} markasında işlem yetkiniz yok."
                 });
             }
 
@@ -833,7 +856,7 @@ namespace YetkiliServisGazAcma.API.Controllers
 
     public class YsMarkaKontrolDto
     {
-        public string? CihazMarka { get; set; }
+        public string? SorguReferansi { get; set; }
     }
 
     public class YsDevreyeAlmaBildirimDto

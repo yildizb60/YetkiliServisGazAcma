@@ -26,10 +26,11 @@
     var actionLayoutClass = actionCount > 3
         ? "is-carousel"
         : $"is-count-{Math.Clamp(actionCount, 1, 3)}";
-    var hasCalendar = Model.ShowYkcCalendar || Model.AuthorizedServiceCalendar != null;
+    var hasCalendar = Model.ShowYkcCalendar || Model.ShowGeneralCalendar || Model.AuthorizedServiceCalendar != null;
     var hasSidePanel = hasCalendar || Model.SidePanel != null;
     var calendarLabel = Model.ShowYkcCalendar
         ? "Kontrol takvimi"
+        : Model.ShowGeneralCalendar ? "Takvim"
         : Model.AuthorizedServiceCalendar != null ? "Devreye alma takvimi" : Model.SidePanel?.Title;
 }
 
@@ -129,7 +130,10 @@
                             <a class="personnel-work-row @(item.Featured ? "is-highlighted" : null)" href="@item.Url">
                                 <span class="personnel-work-row__icon"><i class="@item.Icon" aria-hidden="true"></i></span>
                                 <strong class="personnel-work-row__title">@item.Title</strong>
-                                <span class="personnel-work-row__category">@item.Subtitle</span>
+                                @if (!string.IsNullOrWhiteSpace(item.Subtitle))
+                                {
+                                    <span class="personnel-work-row__category">@item.Subtitle</span>
+                                }
                                 <span class="personnel-work-row__metric"><strong>@item.MetricValue</strong><small>@item.MetricLabel</small></span>
                                 <span class="personnel-work-row__actions"><i class="bi bi-arrow-up-right" aria-hidden="true"></i><i class="bi bi-three-dots-vertical" aria-hidden="true"></i></span>
                             </a>
@@ -141,10 +145,14 @@
 
         @if (hasSidePanel)
         {
-            <aside class="personnel-calendar-surface @(hasCalendar ? null : "is-summary")" aria-label="@calendarLabel">
+            <aside class="personnel-calendar-surface @(hasCalendar ? null : "is-summary") @(Model.ShowGeneralCalendar ? "is-general" : null)" aria-label="@calendarLabel">
                 @if (Model.ShowYkcCalendar)
                 {
                     @await Component.InvokeAsync("YkcRandevuOzeti", new { baslik = Model.YkcCalendarTitle })
+                }
+                else if (Model.ShowGeneralCalendar)
+                {
+                    @await Component.InvokeAsync("YkcRandevuOzeti", new { genelTakvim = true })
                 }
                 else if (Model.AuthorizedServiceCalendar != null)
                 {

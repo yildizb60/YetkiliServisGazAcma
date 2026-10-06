@@ -1,19 +1,11 @@
+@using YetkiliServisGazAcma.Entities
+@using YetkiliServisGazAcma.Models.ViewModels
 @{
     Layout = null;
-    var sube = ViewBag.Sube as YetkiliServisGazAcma.Entities.Ys_Sube;
+    var sube = ViewBag.Sube as Ys_Sube ?? new();
 }
-<form class="ys-branch-editor" method="post" action="/ys-panel/subeler/duzenle/@sube?.Id">
-    @Html.AntiForgeryToken()
-    <div class="ys-branch-editor-fields">
-        <div class="ys-field is-wide"><label for="duzenleSubeAdi">Şube Adı *</label><input type="text" id="duzenleSubeAdi" name="subeAdi" value="@sube?.SubeAdi" required maxlength="200" /></div>
-        <div class="ys-field"><label for="duzenleIl">İl</label><input type="text" id="duzenleIl" name="il" value="@sube?.Il" /></div>
-        <div class="ys-field"><label for="duzenleIlce">İlçe</label><input type="text" id="duzenleIlce" name="ilce" value="@sube?.Ilce" /></div>
-        <div class="ys-field"><label for="duzenleTelefon">Telefon</label><input type="tel" id="duzenleTelefon" name="telefon" value="@sube?.Telefon" /></div>
-        <div class="ys-field is-wide"><label for="duzenleAdres">Adres</label><textarea id="duzenleAdres" name="adres" rows="2">@sube?.Adres</textarea></div>
-        <label class="ys-branch-active"><input type="checkbox" name="aktifMi" value="true" checked="@(sube?.AktifMi == true)" /><span>Aktif şube</span></label>
-    </div>
-    <div class="ys-branch-editor-actions">
-        <button type="button" class="df-btn df-btn-secondary" data-branch-sheet-cancel><i class="bi bi-x-lg" aria-hidden="true"></i> Vazgeç</button>
-        <button type="submit" class="df-btn df-btn-primary"><i class="bi bi-check2" aria-hidden="true"></i> Değişiklikleri Kaydet</button>
-    </div>
-</form>
+@await Html.PartialAsync("_BranchEditor", new BranchEditorViewModel
+{
+    Branch = sube,
+    PostUrl = Url.Action("SubeDuzenleKaydet", "YetkiliServisPanel", new { id = sube.Id })!
+})

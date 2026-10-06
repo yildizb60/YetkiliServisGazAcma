@@ -384,6 +384,81 @@ internal static class PanelReportSqlScenario
             var foreignExport = await exports.AdminRaporExcelAsync(secondary.Id, today, today, null);
             Check(ExcelColumn(foreignExport.Bytes, "Tesisat No").SequenceEqual(new[] { "foreign" }),
                 "Another company's large report cannot block an otherwise small scoped download");
+            var pendingService = new YkcTalepService(db);
+            var pendingCases = new List<Ykc_Talep>();
+            for (var i = 0; i < 17; i++)
+            {
+                var request = new Ykc_Talep
+                {
+                    SirketId = primary.Id, FirmaId = certifiedFirm.Id, MusteriAdi = "Pending fixture " + i,
+                    TesisatNo = "PENDING-" + i, Durum = YkcDurumDegerleri.SahaIsleminde,
+                    RandevuTarihi = today.AddDays(-1), RandevuSaati = "09:00", TalepTarihi = today.AddMinutes(i)
+                };
+                var file = new Ykc_FormDosya { Talep = request, DosyaTuru = YkcFormDosyaTuruDegerleri.Fr265ImzaliNihai };
+                request.FormDosyalari.Add(file);
+                request.ImzaSurecleri.Add(new Ykc_ImzaSureci
+                {
+                    Durum = YkcImzaDurumDegerleri.Tamamlandi, ProviderDocumentId = "pending-fixture-" + i, NihaiDosya = file
+                });
+                pendingCases.Add(request);
+            }
+            pendingCases[2].Durum = YkcDurumDegerleri.Tamamlandi;
+            pendingCases[3].Durum = YkcDurumDegerleri.Iptal;
+            pendingCases[4].Durum = YkcDurumDegerleri.Atandi;
+            pendingCases[5].RandevuTarihi = today.AddDays(1);
+            pendingCases[6].RandevuSaati = "invalid";
+            pendingCases[7].RandevuTarihi = null;
+            pendingCases[8].ImzaSurecleri.Single().ProviderDocumentId = "";
+            pendingCases[9].ImzaSurecleri.Single().Durum = YkcImzaDurumDegerleri.ImzaBekliyor;
+            pendingCases[10].FormDosyalari.Single().SilindiMi = true;
+            pendingCases[11].ImzaSurecleri.Single().SilindiMi = true;
+            pendingCases[12].FormDosyalari.Single().DosyaTuru = YkcFormDosyaTuruDegerleri.TeknikEk;
+            pendingCases[13].SilindiMi = true;
+            pendingCases[14].SirketId = secondary.Id;
+            pendingCases[14].FirmaId = foreignFirm.Id;
+            pendingCases[15].Durum = YkcDurumDegerleri.TalepAlindi;
+            pendingCases[16].Durum = YkcDurumDegerleri.AtamaBekliyor;
+            db.AddRange(pendingCases);
+            await db.SaveChangesAsync();
+
+            var pendingSummary = await pendingService.DashboardOzetAsync(staff, false, primary.Id);
+            Check(pendingSummary.TamamlamaBekleyen == 2,
+                "Completion queue excludes closed, future, malformed, unsigned, deleted and foreign requests");
+            foreach (var (kind, count) in new[]
+            {
+                (YkcBekleyenIsDegerleri.Inceleme, pendingSummary.IncelemeBekleyen),
+                (YkcBekleyenIsDegerleri.Randevu, pendingSummary.RandevuBekleyen),
+                (YkcBekleyenIsDegerleri.Tamamlama, pendingSummary.TamamlamaBekleyen)
+            })
+            {
+                var list = await pendingService.ListeAsync(new() { BekleyenIs = kind }, staff, false, primary.Id);
+                var scopedIds = await db.Ykc_Talepler.Where(x => x.SirketId == primary.Id).Select(x => x.Id).ToListAsync();
+                Check(list.Toplam == count && list.Talepler.All(x => scopedIds.Contains(x.Id)),
+                    $"Dashboard count and list share the same company-scoped pending rule: {kind}");
+            }
+            var secondPending = await pendingService.ListeAsync(new()
+            {
+                BekleyenIs = YkcBekleyenIsDegerleri.Tamamlama, Sayfa = 2, SayfaBoyutu = 1
+            }, staff, false, primary.Id);
+            Check(secondPending.Toplam == 2 && secondPending.Sayfa == 2 && secondPending.Talepler.Single().Id == pendingCases[0].Id,
+                "Completion queue applies filtering before pagination");
+            var extraFilter = await pendingService.ListeAsync(new()
+            {
+                BekleyenIs = YkcBekleyenIsDegerleri.Tamamlama, TesisatNo = pendingCases[1].TesisatNo
+            }, staff, false, primary.Id);
+            Check(extraFilter.Toplam == 1 && extraFilter.Talepler.Single().Id == pendingCases[1].Id,
+                "Pending work filter is preserved alongside the user's installation filter");
+            Check((await pendingService.DashboardOzetAsync(staff, false, secondary.Id)).TamamlamaBekleyen == 1,
+                "Switching the authorized company changes the pending completion count");
+            var queueFirm = new AppKullanici { FirmaId = certifiedFirm.Id, KullaniciTipi = KullaniciTipiDegerleri.SertifikaliFirma };
+            Check((await pendingService.ListeAsync(new() { BekleyenIs = YkcBekleyenIsDegerleri.Tamamlama }, queueFirm, true)).Toplam == 2,
+                "Pending filters never broaden a firm account's scope");
+            Check((await pendingService.ListeAsync(new() { BekleyenIs = "unknown" }, staff, false, primary.Id)).Toplam == 0,
+                "An unknown pending filter does not silently display every record");
+            pendingCases[0].Durum = YkcDurumDegerleri.Tamamlandi;
+            await db.SaveChangesAsync();
+            Check((await pendingService.DashboardOzetAsync(staff, false, primary.Id)).TamamlamaBekleyen == 1,
+                "Completed requests leave the pending count on the next read");
             Console.WriteLine($"{passed} panel/report SQL checks passed. Application records were not used.");
         }
         finally

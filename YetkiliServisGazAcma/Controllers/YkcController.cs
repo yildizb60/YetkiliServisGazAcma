@@ -137,7 +137,8 @@ namespace YetkiliServisGazAcma.Controllers
             int? kontrolNo,
             DateTime? bas,
             DateTime? bit,
-            int sayfa = 1)
+            int sayfa = 1,
+            string? bekleyenIs = null)
         {
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null)
@@ -150,6 +151,7 @@ namespace YetkiliServisGazAcma.Controllers
 
             var filtre = new YkcTalepListeFiltre
             {
+                BekleyenIs = bekleyenIs,
                 TesisatNo = tesisatNo,
                 MusteriAdi = musteriAdi,
                 SozlesmeNo = sozlesmeNo,

@@ -37,6 +37,21 @@ namespace YetkiliServisGazAcma.Business.Services
         };
     }
 
+    public static class YkcBekleyenIsDegerleri
+    {
+        public const string Inceleme = "inceleme";
+        public const string Randevu = "randevu";
+        public const string Tamamlama = "tamamlama";
+
+        public static string? Etiket(string? deger) => deger switch
+        {
+            Inceleme => "İnceleme bekleyen talepler",
+            Randevu => "Randevu planlanacak talepler",
+            Tamamlama => "Tamamlama bekleyen talepler",
+            _ => null
+        };
+    }
+
     public static class YkcHedefUygulamaDegerleri
     {
         public const string YonetimPaneli = "YONETIM_PANELI";

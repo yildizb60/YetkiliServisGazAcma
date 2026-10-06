@@ -4306,6 +4306,7 @@ html.df-sheet-open {
 
 :is(.permission-editor, .df-permission-sheet) .permission-group + .permission-group { border-top: 1px solid var(--permission-line); }
 :is(.permission-editor, .df-permission-sheet) .permission-group.is-blue,
+:is(.permission-editor, .df-permission-sheet) .permission-group.is-cyan,
 :is(.permission-editor, .df-permission-sheet) .permission-group--full { grid-column: 1 / -1; }
 
 :is(.permission-editor, .df-permission-sheet) .permission-group-head {
@@ -4337,8 +4338,8 @@ html.df-sheet-open {
 :is(.permission-editor, .df-permission-sheet) .permission-group-head p { margin: 1px 0 0; color: #768797; font-size: 8.5px; line-height: 1.2; }
 
 :is(.permission-editor, .df-permission-sheet) .permission-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; }
-:is(.permission-editor, .df-permission-sheet) .permission-group.is-blue .permission-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-:is(.permission-editor, .df-permission-sheet) .permission-group.is-blue .permission-option-wrap:nth-child(even) { border-left: 1px solid #e7edf3; }
+:is(.permission-editor, .df-permission-sheet) .permission-group:is(.is-blue, .is-cyan) .permission-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+:is(.permission-editor, .df-permission-sheet) .permission-group:is(.is-blue, .is-cyan) .permission-option-wrap:nth-child(even) { border-left: 1px solid #e7edf3; }
 
 :is(.permission-editor, .df-permission-sheet) .permission-option-wrap {
     min-width: 0;
@@ -4358,7 +4359,7 @@ html.df-sheet-open {
 }
 
 :is(.permission-editor, .df-permission-sheet) .permission-list .permission-option-wrap:first-child,
-:is(.permission-editor, .df-permission-sheet) .permission-group.is-blue .permission-option-wrap:nth-child(-n+2) { border-top: 0; }
+:is(.permission-editor, .df-permission-sheet) .permission-group:is(.is-blue, .is-cyan) .permission-option-wrap:nth-child(-n+2) { border-top: 0; }
 :is(.permission-editor, .df-permission-sheet) .permission-option-wrap:hover { background: #f7faff; }
 :is(.permission-editor, .df-permission-sheet) .permission-option-wrap:has(input:checked) { border-color: #dbe6f6; background: #f1f6ff; }
 :is(.permission-editor, .df-permission-sheet) .permission-group.is-green .permission-option-wrap:has(input:checked) { background: #f0f8f5; }
@@ -4431,10 +4432,10 @@ html.df-sheet-open {
     .df-permission-sheet .df-directory-sheet-body { overflow-y: auto; }
     .df-permission-sheet .permission-groups { grid-template-columns: 1fr; padding-left: 0; }
     .df-permission-sheet .permission-group--full { grid-column: auto; }
-    :is(.permission-editor, .df-permission-sheet) .permission-group.is-blue { grid-column: auto; }
-    :is(.permission-editor, .df-permission-sheet) .permission-group.is-blue .permission-list { grid-template-columns: minmax(0, 1fr); }
-    :is(.permission-editor, .df-permission-sheet) .permission-group.is-blue .permission-option-wrap:nth-child(even) { border-left: 0; }
-    :is(.permission-editor, .df-permission-sheet) .permission-group.is-blue .permission-option-wrap:nth-child(n+2) { border-top: 1px solid #edf1f5; }
+    :is(.permission-editor, .df-permission-sheet) .permission-group:is(.is-blue, .is-cyan) { grid-column: auto; }
+    :is(.permission-editor, .df-permission-sheet) .permission-group:is(.is-blue, .is-cyan) .permission-list { grid-template-columns: minmax(0, 1fr); }
+    :is(.permission-editor, .df-permission-sheet) .permission-group:is(.is-blue, .is-cyan) .permission-option-wrap:nth-child(even) { border-left: 0; }
+    :is(.permission-editor, .df-permission-sheet) .permission-group:is(.is-blue, .is-cyan) .permission-option-wrap:nth-child(n+2) { border-top: 1px solid #edf1f5; }
     :is(.permission-editor, .df-permission-sheet) .permission-option-label,
     :is(.permission-editor, .df-permission-sheet) .permission-option-description { overflow: visible; text-overflow: clip; white-space: normal; }
 }
@@ -5935,27 +5936,56 @@ body.df-modal-open {
 
 .df-permission-workspace .df-permission-list {
     border-top: 3px solid #315fca;
+    container: permission-directory / inline-size;
 }
 
-.df-permission-workspace .tablo-head,
-.df-permission-workspace .tablo-row {
-    grid-template-columns: minmax(180px, 1.2fr) minmax(150px, 1fr) minmax(340px, 2.3fr) 84px;
-    gap: 9px;
+.df-permission-table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    color: #344f65;
+    font-size: 12px;
 }
-
-.df-permission-workspace .tablo-head { padding-block: 8px; }
-.df-permission-workspace .tablo-row { min-height: 54px; padding-block: 7px; }
-
-.df-permission-company-list { display: grid; gap: 6px; min-width: 0; }
-.df-permission-company-row {
-    display: grid;
-    grid-template-columns: minmax(120px, .9fr) minmax(0, 1.4fr);
-    align-items: start;
-    gap: 8px;
+.df-permission-person-column { width: 27%; }
+.df-permission-action-column { width: 96px; }
+.df-permission-table :is(th, td) { padding: 10px 12px; text-align: left; vertical-align: middle; border-bottom: 1px solid #e5ebf2; }
+.df-permission-table thead th { background: #f6f8fc; color: #4b6075; font-size: 11px; font-weight: 600; line-height: 1.5; }
+.df-permission-table thead th:first-child,
+.df-permission-table .df-permission-person-cell { padding-left: 18px; }
+.df-permission-table thead th:not(:first-child),
+.df-permission-table .df-permission-company-cell { border-left: 1px solid #edf0f5; }
+.df-permission-table tbody tr { height: 56px; }
+.df-permission-table tbody tr:hover { background: #f8fbff; }
+.df-permission-table tbody tr:last-child :is(th, td) { border-bottom: 0; }
+.df-permission-table .df-permission-action-heading { text-align: right; padding-right: 18px; }
+.df-permission-table .df-permission-action-cell { padding-right: 18px; }
+.df-permission-level {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    max-width: 100%;
+    line-height: 1.45;
+    font-size: 11px;
+    font-weight: 500;
+    color: #276eae;
 }
-.df-permission-company-row + .df-permission-company-row { padding-top: 6px; border-top: 1px solid #e6ebf1; }
-.df-permission-company-name { color: #213b53; font-size: 11px; font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; }
-.df-permission-company-row .df-permission-token { white-space: normal; overflow-wrap: anywhere; }
+.df-permission-level > i { flex-shrink: 0; font-size: 13px; }
+.df-permission-level.is-full { color: #16765f; }
+.df-permission-level.is-none { color: #7a8795; font-weight: 400; }
+
+.df-permission-list .df-service-list-head { min-height: 52px; padding: 9px 18px; gap: 12px; }
+.df-permission-search { display: flex; align-items: center; width: min(360px, 100%); min-width: 0; border: 1px solid #d4dfeb; border-radius: 6px; background: #fff; }
+.df-permission-search input { width: 100%; min-width: 0; height: 34px; padding: 6px 10px; border: 0; border-radius: 6px; background: transparent; color: #344f65; font: inherit; font-size: 12px; }
+.df-permission-search :is(button, .df-permission-search-clear) { width: 34px; height: 34px; flex-shrink: 0; display: grid; place-items: center; border: 0; background: transparent; color: #315fca; cursor: pointer; text-decoration: none; }
+.df-permission-search :is(button, .df-permission-search-clear):hover { background: #edf4ff; }
+.df-permission-search:focus-within { outline: 2px solid #bccff2; outline-offset: 1px; }
+.df-permission-search input:focus { outline: none; box-shadow: none; }
+.df-permission-pager { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; padding: 9px 18px; border-top: 1px solid #e2e9f1; color: #63788b; font-size: 11px; }
+.df-permission-pager nav { display: flex; align-items: center; gap: 8px; }
+.df-permission-pager :is(a, .is-disabled) { width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid #d6e1ee; border-radius: 5px; color: #315fca; text-decoration: none; }
+.df-permission-pager a:hover { background: #edf4ff; }
+.df-permission-pager .is-disabled { color: #a4afbb; background: #fafbfd; }
+.df-permission-page-number { min-width: 80px; text-align: center; }
 
 .df-permission-person {
     display: grid;
@@ -5980,9 +6010,9 @@ body.df-modal-open {
 .df-permission-person > span:last-child { min-width: 0; }
 .df-permission-person strong,
 .df-permission-person small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.df-permission-person strong { color: #223b50; font-size: 11.5px; font-weight: 750; }
+.df-permission-person strong { color: #223b50; font-size: 12px; font-weight: 600; line-height: 1.5; }
 .df-permission-person small { margin-top: 3px; color: #758696; font-size: 9.5px; }
-.df-permission-email { min-width: 0; overflow: hidden; color: #526679; font-size: 10.5px; text-overflow: ellipsis; white-space: nowrap; }
+.df-permission-email { display: block; min-width: 0; overflow: hidden; color: #687b8c; font-size: 11px; font-weight: 400; line-height: 1.5; text-overflow: ellipsis; white-space: nowrap; }
 
 .df-permission-workspace .yetki-list { gap: 4px; }
 .df-permission-workspace .df-permission-token {
@@ -6014,34 +6044,33 @@ body.df-modal-open {
 
 .df-permission-row-action { display: flex; justify-content: flex-end; }
 
-@media (max-width: 1050px) {
-    .df-permission-workspace .tablo-head,
-    .df-permission-workspace .tablo-row {
-        grid-template-columns: minmax(110px, 1fr) minmax(140px, 1fr) minmax(280px, 2fr) 78px;
-        gap: 8px;
+@container permission-directory (max-width: 760px) {
+    .df-permission-table,
+    .df-permission-table tbody { display: block; }
+    .df-permission-table :is(colgroup, thead) { display: none; }
+    .df-permission-table tbody tr {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px 16px;
+        height: auto;
+        padding: 12px 14px;
+        border-bottom: 1px solid #e5ebf2;
     }
+    .df-permission-table tbody tr:last-child { border-bottom: 0; }
+    .df-permission-table tbody tr > :is(th, td) { min-width: 0; padding: 0; border: 0; }
+    .df-permission-table .df-permission-person-cell { grid-column: 1 / -1; grid-row: 1; padding-right: 90px; }
+    .df-permission-table .df-permission-action-cell { grid-column: 2; grid-row: 1; justify-self: end; align-self: center; }
+    .df-permission-company-cell::before { display: block; margin-bottom: 3px; content: attr(data-label); color: #536b80; font-size: 11px; line-height: 1.45; }
+    .df-permission-table .df-permission-person { grid-template-columns: minmax(0, 1fr); }
+    .df-permission-table .df-permission-person-icon { display: none; }
+    .df-permission-list .df-service-list-head { flex-wrap: wrap; }
+    .df-permission-search { width: 100%; }
 }
 
 @media (max-width: 760px) {
     .df-permission-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .df-permission-stat:nth-child(3) { border-left: 0; }
     .df-permission-stat:nth-child(n+3) { border-top: 1px solid #e6ebf1; }
-    .df-permission-workspace .tablo-head { display: none; }
-    .df-permission-workspace .tablo-row {
-        grid-template-columns: 1fr;
-        gap: 11px;
-        padding: 13px 14px;
-    }
-    .df-permission-workspace .tablo-row > div:not(.df-permission-person)::before {
-        display: block;
-        margin-bottom: 5px;
-        color: #768797;
-        content: attr(data-label);
-        font-size: 9px;
-        font-weight: 750;
-    }
-    .df-permission-row-action { justify-content: flex-start; }
-    .df-permission-company-row { grid-template-columns: 1fr; gap: 4px; }
 }
 
 @media (max-width: 420px) {

@@ -698,27 +698,6 @@
 .ys-branch-action:hover,.ys-branch-action:focus-visible { border-color:#a6bdea; background:#edf4ff; color:#244dab; }
 .ys-branch-action.is-danger { color:#b44a4a; }
 .ys-branch-action.is-danger:hover { border-color:#ebc7c7; background:#fff3f3; }
-.ys-branch-sheet { width:min(560px,calc(100vw - 24px)); }
-.ys-branch-sheet .df-directory-sheet-frame { background:#f8faff; }
-.ys-branch-sheet .df-directory-sheet-head h2 { font-size:16px; }
-.ys-branch-sheet .df-directory-sheet-body { overflow:hidden; }
-.ys-branch-editor { height:100%; min-height:0; box-sizing:border-box; padding:18px; display:flex; flex-direction:column; gap:14px; }
-.ys-branch-editor-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; align-content:start; }
-.ys-branch-editor .ys-field label { font-size:11px; color:#3e566b; }
-.ys-branch-editor .ys-field input,.ys-branch-editor .ys-field textarea { min-height:40px; border-color:#d9e3ef; }
-.ys-branch-editor .ys-field textarea { min-height:64px; max-height:88px; resize:none; }
-.ys-branch-active { min-height:40px; padding:8px 11px; display:flex; align-items:center; gap:9px; border:1px solid #cfe4dc; border-radius:6px; background:#f1f9f5; color:#176f53; font-size:11px; font-weight:700; }
-.ys-branch-active input { width:16px; height:16px; margin:0; accent-color:#168565; }
-.ys-branch-editor-actions { margin-top:auto; padding-top:12px; display:flex; justify-content:flex-end; gap:8px; border-top:1px solid #d9e3ee; }
-@media (max-width:620px) {
-    .ys-branch-editor-fields { grid-template-columns:1fr; gap:8px; }
-    .ys-branch-sheet .df-directory-sheet-body { overflow-y:auto; }
-    .ys-branch-editor { height:auto; min-height:100%; }
-}
-@media (max-height:620px) {
-    .ys-branch-sheet .df-directory-sheet-body { overflow-y:auto; }
-    .ys-branch-editor { height:auto; min-height:100%; }
-}
 
 .ys-empty {
     min-height: 110px;

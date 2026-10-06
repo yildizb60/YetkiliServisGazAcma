@@ -13,37 +13,46 @@
     {
         new
         {
-            Baslik = "Yakıcı Cihaz Değişim İşlemleri",
+            Baslik = "Cihaz Değişim İşlemleri",
             Ikon = "bi-fire",
             Ton = "is-blue",
             Yetkiler = new[]
             {
-                new { Kod = "YKC_TALEP_GOR", Ad = "Yakıcı Cihaz Değişim Taleplerini Görüntüle", Ikon = "bi-inboxes" },
-                new { Kod = "YKC_ATAMA_YAP", Ad = "Talep İnceleme, Ret/İptal ve Randevu Yönetimi", Ikon = "bi-calendar2-check" },
-                new { Kod = "YKC_FR265_IMZA_ISLEM", Ad = "Teknik Kontrol, FR265 ve İmza İşlemleri", Ikon = "bi-pen" },
-                new { Kod = "YKC_RAPOR_GOR", Ad = "Yakıcı Cihaz Değişim Raporlarını Görüntüle", Ikon = "bi-bar-chart" }
+                new { Kod = "YKC_TALEP_GOR", Ad = "Talepleri ve Randevuları Görüntüle", Ikon = "bi-inboxes" },
+                new { Kod = "YKC_ATAMA_YAP", Ad = "Talepleri ve Randevuları Yönet", Ikon = "bi-calendar2-check" },
+                new { Kod = "YKC_FR265_IMZA_ISLEM", Ad = "Teknik Kontrol ve İmza İşlemlerini Yürüt", Ikon = "bi-pen" },
+                new { Kod = "YKC_RAPOR_GOR", Ad = "Raporları Görüntüle", Ikon = "bi-bar-chart" }
             }
         },
         new
         {
-            Baslik = "Cihaz Devreye Alma ve Yetki Belgeleri",
+            Baslik = "Yetki Belgesi İşlemleri",
             Ikon = "bi-file-earmark-check",
             Ton = "is-green",
             Yetkiler = new[]
             {
-                new { Kod = "YETKI_BELGESI_ONAY", Ad = "Yetki Belgelerini Onayla veya Reddet", Ikon = "bi-patch-check" },
-                new { Kod = "RAPOR_GOR", Ad = "Cihaz Devreye Alma Kayıtlarını ve Raporlarını Görüntüle", Ikon = "bi-file-earmark-bar-graph" }
+                new { Kod = "YETKI_BELGESI_ONAY", Ad = "Belge Onay ve Takip", Ikon = "bi-patch-check" }
             }
         },
         new
         {
-            Baslik = "Firma ve Marka Yönetimi",
+            Baslik = "Cihaz Devreye Alma İşlemleri",
+            Ikon = "bi-tools",
+            Ton = "is-green",
+            Yetkiler = new[]
+            {
+                new { Kod = "RAPOR_GOR", Ad = "Kayıtları ve Raporları Görüntüle", Ikon = "bi-file-earmark-bar-graph" }
+            }
+        },
+        new
+        {
+            Baslik = "Yetkili Servis Yönetimi",
             Ikon = "bi-sliders",
             Ton = "is-cyan",
             Yetkiler = new[]
             {
                 new { Kod = "KULLANICI_YONET", Ad = "Yetkili Servisleri Yönet", Ikon = "bi-tools" },
-                new { Kod = "MARKA_YONET", Ad = "Markaları Yönet", Ikon = "bi-tags" }
+                new { Kod = "MARKA_YONET", Ad = "Yetkili Servis Markalarını Yönet", Ikon = "bi-tags" }
             }
         },
         new
@@ -53,7 +62,7 @@
             Ton = "is-full",
             Yetkiler = new[]
             {
-                new { Kod = "TAM_YETKI", Ad = "Seçili Şirketin Tüm İşlem Yetkileri", Ikon = "bi-shield-check" }
+                new { Kod = "TAM_YETKI", Ad = "Bu Şirkette Tüm İşlem Yetkileri", Ikon = "bi-shield-check" }
             }
         }
     };
@@ -73,7 +82,7 @@
             @if (sirketler.Count > 1)
             {
                 <label class="permission-company-picker">
-                    <span>Yetkilendirilecek Şirket</span>
+                    <span>Şirket</span>
                     <select data-permission-company-select aria-label="Yetkileri düzenlenecek şirket">
                         @for (var index = 0; index < sirketler.Count; index++)
                         {
@@ -122,6 +131,7 @@
                                         var yetkiAciklamasi = yetki.Kod switch
                                         {
                                             "TAM_YETKI" => "Yalnız seçili şirketin işlem yetkilerini açar; şirket veya genel sistem admini rolü vermez.",
+                                            "YETKI_BELGESI_ONAY" => "Yetki belgelerini görüntüleme, onaylama, reddetme ve karar geçmişini takip etme.",
                                             "YKC_ATAMA_YAP" => "Talebi incelemeye alma, reddetme, iptal etme, ekip/personel atama ve randevu planlama veya yeniden planlama.",
                                             "YKC_FR265_IMZA_ISLEM" => "Teknik kontrol sonucunu kaydetme, FR265 formu ve ek belgeler, imzaya gönderme ve işlemi tamamlama.",
                                             _ => yetki.Ad
@@ -131,7 +141,6 @@
                                             <span class="permission-option-icon"><i class="bi @yetki.Ikon" aria-hidden="true"></i></span>
                                             <span class="permission-option-copy">
                                                 <span class="permission-option-label">@yetki.Ad</span>
-                                                @if (yetki.Kod == "RAPOR_GOR") { <small class="permission-option-description">Kayıt ayrıntıları ve PDF/Excel indirme</small> }
                                             </span>
                                             <span class="permission-option-check" aria-hidden="true"><i class="bi bi-check2"></i></span>
                                         </label>

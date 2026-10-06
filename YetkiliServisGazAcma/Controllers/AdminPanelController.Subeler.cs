@@ -64,8 +64,10 @@ namespace YetkiliServisGazAcma.Controllers
                 return Redirect("/AdminPanel/subeler");
             }
 
+            if (Request.Headers["X-Requested-With"] != "XMLHttpRequest")
+                return RedirectToAction(nameof(Subeler), new { duzenle = id });
+
             ViewBag.Kullanici = kullanici;
-            ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
             ViewBag.Sube = sonuc.Sube;
             ViewBag.Firmalar = sonuc.Firmalar;
             return View("~/Views/AdminPanel/SubeDuzenle.cshtml");

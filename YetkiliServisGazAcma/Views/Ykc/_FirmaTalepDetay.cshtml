@@ -3,6 +3,9 @@
     string Deger(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
     var kontroller = Model.Kontroller.Where(x => x.Sonuc is YkcFr265KontrolSonucDegerleri.Uygun or YkcFr265KontrolSonucDegerleri.UygunDegil).OrderBy(x => x.KontrolNo).ToList();
     var sonKontrol = Model.AktifKontroller.LastOrDefault(x => x.Sonuc is YkcFr265KontrolSonucDegerleri.Uygun or YkcFr265KontrolSonucDegerleri.UygunDegil);
+    var sonUygunsuzKontrol = YkcDurumSunumu.SonUygunsuzKontrol(Model);
+    var uygunsuzlukGerekcesi = sonUygunsuzKontrol?.Aciklama?.Trim();
+    var uzunGerekce = uygunsuzlukGerekcesi?.Length > 160;
     var nihai = Model.ImzaSureci?.Durum == YkcImzaDurumDegerleri.Tamamlandi
         ? Model.Dosyalar.FirstOrDefault(x => x.Id == Model.ImzaSureci.NihaiDosyaId && x.DosyaTuru == YkcFormDosyaTuruDegerleri.Fr265ImzaliNihai) : null;
     var demoBelge = nihai != null && Model.ImzaSureci?.ProviderDocumentId?.StartsWith("DEMO-YKC-", StringComparison.Ordinal) == true;
@@ -62,7 +65,28 @@
     {
     <section class="ykc-firm-control-status" aria-label="Kontrol durumu">
         <i class="bi @(Model.RandevuTarihi.HasValue ? "bi-calendar2-check" : "bi-hourglass-split")" aria-hidden="true"></i>
-        <div><h2>@kontrolBaslik</h2>@if (!string.IsNullOrWhiteSpace(aciklama)) { <p>@aciklama</p> }</div>
+        <div>
+            <h2>@kontrolBaslik</h2>
+            @if (sonUygunsuzKontrol != null)
+            {
+                <p class="ykc-firm-last-control">Son kontrol: <strong>Uygun değil</strong></p>
+                @if (!string.IsNullOrWhiteSpace(uygunsuzlukGerekcesi))
+                {
+                    @if (uzunGerekce)
+                    {
+                        <details class="ykc-firm-reason">
+                            <summary><span><b>Uygunsuzluk gerekçesi:</b> @uygunsuzlukGerekcesi[..160]…</span><span class="ykc-reason-more">Devamını göster</span><span class="ykc-reason-less">Kısalt</span></summary>
+                            <p>@uygunsuzlukGerekcesi</p>
+                        </details>
+                    }
+                    else
+                    {
+                        <p class="ykc-firm-reason-text"><b>Uygunsuzluk gerekçesi:</b> @uygunsuzlukGerekcesi</p>
+                    }
+                }
+            }
+            else if (!string.IsNullOrWhiteSpace(aciklama)) { <p>@aciklama</p> }
+        </div>
         @if (Model.RandevuTarihi.HasValue)
         {
             <time datetime="@Model.RandevuTarihi.Value.ToString("yyyy-MM-dd")"><span>Kontrol Randevusu</span><strong>@Model.RandevuTarihi.Value.ToString("dd.MM.yyyy") <b>@Model.RandevuSaati</b></strong></time>

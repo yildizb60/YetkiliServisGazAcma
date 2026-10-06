@@ -33,6 +33,7 @@
     AktifFiltreEkle("İl", filtre.Il);
     AktifFiltreEkle("İlçe", filtre.Ilce);
     AktifFiltreEkle("Bölge", filtre.Bolge);
+    AktifFiltreEkle("Bekleyen iş", YkcBekleyenIsDegerleri.Etiket(filtre.BekleyenIs));
     if (filtre.Durum.HasValue)
         AktifFiltreEkle("Durum", DurumYazi(filtre.Durum.Value));
     if (filtre.KontrolNo is >= 1 and <= 5)
@@ -54,6 +55,7 @@
         bolge = seciliFiltre.Bolge,
         durum = seciliFiltre.Durum,
         kontrolNo = seciliFiltre.KontrolNo,
+        bekleyenIs = seciliFiltre.BekleyenIs,
         bas = seciliFiltre.BaslangicTarihi?.ToString("yyyy-MM-dd"),
         bit = seciliFiltre.BitisTarihi?.ToString("yyyy-MM-dd"),
         sayfa
@@ -142,14 +144,14 @@
             </div>
         }
         <dl class="ykc-inline-overview" aria-label="Talep özeti">
-            <div><dt>Toplam talep</dt><dd>@ozet.Toplam</dd></div>
+            <div><dt>@(sertifikaliFirmaMi ? "Firmanızın talep sayısı" : "Erişebildiğiniz talep sayısı")</dt><dd>@ozet.Toplam</dd></div>
             <div><dt>İnceleme / atama bekleyen talep</dt><dd>@ozet.Incelemede</dd></div>
             <div><dt>Kontrol sürecindeki talep</dt><dd>@ozet.RandevuSaha</dd></div>
             <div><dt>Tamamlanan talep</dt><dd>@ozet.Tamamlanan</dd></div>
         </dl>
     </header>
 
-    <details class="ykc-filter-panel" open="@(aktifFiltreler.Any() ? "open" : null)">
+    <details class="ykc-filter-panel" open="@(aktifFiltreler.Any() && string.IsNullOrEmpty(filtre.BekleyenIs) ? "open" : null)">
         <summary class="ykc-filter-bar">
             <span class="ykc-filter-leading"><i class="bi bi-sliders2"></i> Filtreler</span>
             <span class="ykc-filter-state">
@@ -164,6 +166,10 @@
             <span class="ykc-filter-chevron"><i class="bi bi-chevron-down"></i></span>
         </summary>
         <form method="get" action="@Url.Action("Talepler", "Ykc")" class="ykc-filter-form">
+            @if (!string.IsNullOrEmpty(filtre.BekleyenIs))
+            {
+                <input type="hidden" name="bekleyenIs" value="@filtre.BekleyenIs" />
+            }
             <div class="ykc-filter-grid">
                 <div class="ykc-filter-field">
                     <label>Tesisat No</label>
@@ -259,7 +265,7 @@
                 </colgroup>
                 <thead>
                     <tr>
-                        <th>Talep No</th>
+                        <th title="Talebin benzersiz kayıt numarasıdır; toplam talep sayısı değildir.">Talep No</th>
                         <th>Abone Adı Soyadı</th>
                         @if (icOperasyonGorsun) { <th class="ykc-list-company-cell">Firma</th> }
                         <th class="ykc-list-installation-cell">Tesisat ve Sözleşme Bilgileri</th>
@@ -291,7 +297,7 @@
                             var randevuPlanli = talep.RandevuTarihi.HasValue || !string.IsNullOrWhiteSpace(talep.RandevuSaati);
                             <tr>
                                 <td data-label="Talep No">
-                                    <div class="ykc-primary-cell"><span class="ykc-code">#@talep.Id</span></div>
+                                    <div class="ykc-primary-cell"><span class="ykc-code" title="Talep kayıt numarası: @talep.Id" aria-label="Talep kayıt numarası: @talep.Id">#@talep.Id</span></div>
                                 </td>
                                 <td data-label="Abone Adı Soyadı">
                                     <div class="ykc-primary-cell">@Deger(talep.MusteriAdi)</div>

@@ -145,6 +145,60 @@ internal static class CommissioningSqlScenario
                 && soap.RequestCount == 1,
                 "SOAP query persists a separate SQL reference for each source device");
 
+            async Task<YsMarkaKontrolSonucDto> CheckDevice(string? reference, AppKullanici? user = null)
+            {
+                db.ChangeTracker.Clear();
+                return Body<YsMarkaKontrolSonucDto>(await Controller(user ?? firstUser).MarkaKontrol(
+                    new YsMarkaKontrolDto { SorguReferansi = reference }));
+            }
+            var stoveReference = firstQuery.Cihazlar[1].SorguReferansi;
+            var stoveGrant = db.Ys_FirmaKategoriler.Where(x => x.FirmaId == firstFirm.Id && x.KategoriId == ocak.Id);
+            Check((await CheckDevice(stoveReference)).Yetkili, "Device selection accepts an authorized source category and brand");
+            await stoveGrant.ExecuteUpdateAsync(s => s.SetProperty(x => x.SilindiMi, true));
+            var deniedStove = await CheckDevice(stoveReference);
+            Check(!deniedStove.Yetkili && deniedStove.Mesaj == "Ocak cihaz tipinde işlem yetkiniz yok.",
+                "Stove selection immediately explains the missing category permission despite valid brand permission");
+            Check((await CheckDevice(firstQuery.Cihazlar[0].SorguReferansi)).Yetkili,
+                "An unauthorized stove does not block an authorized boiler");
+            await stoveGrant.ExecuteUpdateAsync(s => s.SetProperty(x => x.SilindiMi, false)
+                .SetProperty(x => x.YetkiBitisTarihi, DateTime.Today.AddDays(-1)));
+            Check(!(await CheckDevice(stoveReference)).Yetkili, "Expired category permission blocks device selection");
+            await stoveGrant.ExecuteUpdateAsync(s => s.SetProperty(x => x.YetkiBitisTarihi, DateTime.Today));
+            await db.UrunKategoriler.Where(x => x.Id == ocak.Id).ExecuteUpdateAsync(s => s.SetProperty(x => x.AktifMi, false));
+            Check(!(await CheckDevice(stoveReference)).Yetkili, "Inactive category blocks device selection");
+            await db.UrunKategoriler.Where(x => x.Id == ocak.Id).ExecuteUpdateAsync(s => s.SetProperty(x => x.AktifMi, true)
+                .SetProperty(x => x.SilindiMi, true));
+            Check(!(await CheckDevice(stoveReference)).Yetkili, "Deleted category blocks device selection");
+            await db.UrunKategoriler.Where(x => x.Id == ocak.Id).ExecuteUpdateAsync(s => s.SetProperty(x => x.SilindiMi, false));
+            Check((await CheckDevice(stoveReference)).Yetkili, "Category permission remains valid on its last day");
+            var stoveBrandGrant = db.Ys_FirmaMarkalar.Where(x => x.FirmaId == firstFirm.Id && x.MarkaId == arcelik.Id);
+            await stoveBrandGrant.ExecuteUpdateAsync(s => s.SetProperty(x => x.YetkiBitisTarihi, DateTime.Today.AddDays(-1)));
+            var deniedBrand = await CheckDevice(stoveReference);
+            Check(!deniedBrand.Yetkili && deniedBrand.Mesaj!.Contains("markasında"),
+                "Device selection still checks brand permission after category approval");
+            await stoveBrandGrant.ExecuteUpdateAsync(s => s.SetProperty(x => x.YetkiBitisTarihi, DateTime.Today.AddDays(30)));
+            Check(!(await CheckDevice(null)).Yetkili && !(await CheckDevice(new string('0', 64))).Yetkili,
+                "Missing or invented source references cannot authorize device selection");
+            Check(!(await CheckDevice(stoveReference, secondUser)).Yetkili,
+                "Device selection cannot use another firm's source reference");
+            var sameFirmUser = new AppKullanici { UserName = "test-service-a-other",
+                KullaniciTipi = KullaniciTipiDegerleri.YetkiliServis, FirmaId = firstFirm.Id };
+            db.Users.Add(sameFirmUser);
+            await db.SaveChangesAsync();
+            Check(!(await CheckDevice(stoveReference, sameFirmUser)).Yetkili,
+                "Device selection cannot use another user's source reference within the same firm");
+            var stoveQuery = db.Ys_DevreyeAlmaSorguKayitlari.Where(x => x.Referans == stoveReference);
+            await stoveQuery.ExecuteUpdateAsync(s => s.SetProperty(x => x.GecerlilikTarihi, DateTime.UtcNow.AddMinutes(-1)));
+            Check(!(await CheckDevice(stoveReference)).Yetkili, "Expired source reference blocks device selection");
+            await stoveQuery.ExecuteUpdateAsync(s => s.SetProperty(x => x.GecerlilikTarihi, DateTime.UtcNow.AddMinutes(20)));
+            var originalSourceJson = await stoveQuery.Select(x => x.KaynakJson).SingleAsync();
+            await stoveQuery.ExecuteUpdateAsync(s => s.SetProperty(x => x.KaynakJson, "invalid-json"));
+            Check(!(await CheckDevice(stoveReference)).Yetkili, "Malformed source data fails closed during device selection");
+            await stoveQuery.ExecuteUpdateAsync(s => s.SetProperty(x => x.KaynakJson, originalSourceJson));
+            Check(!await db.Ys_DevreyeAlmalar.AnyAsync()
+                && !await db.Ys_DevreyeAlmaSorguKayitlari.AnyAsync(x => x.DevreyeAlmaId != null),
+                "Device permission checks do not save a record or consume a source reference");
+
             async Task Rejected(string label)
             {
                 db.ChangeTracker.Clear();
@@ -184,6 +238,8 @@ internal static class CommissioningSqlScenario
                 && firstRecord.CihazKapasite == "20000"
                 && firstRecord.CihazModeli == "Technician model",
                 "Save ignores forged client source fields and retains technician-entered fields");
+            Check(!(await CheckDevice(firstQuery.Cihazlar[0].SorguReferansi)).Yetkili,
+                "Consumed source reference cannot reopen an editable device form");
 
             await DevreyeAlmaKaynakBilgisi.TamamlaAsync(db, new[] { firstRecord });
             Check(firstRecord.SozlesmeNo == "241584" && firstRecord.SozlesmeNo != firstRecord.AboneNo,

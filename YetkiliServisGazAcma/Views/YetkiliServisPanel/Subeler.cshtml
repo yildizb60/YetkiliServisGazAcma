@@ -1,6 +1,6 @@
 @{
-    ViewData["Title"] = "Şube / Servis Noktaları";
-    ViewData["PanelTitle"] = "Şube / Servis Noktaları";
+    ViewData["Title"] = "Şubelerim";
+    ViewData["PanelTitle"] = ViewData["Title"];
     ViewData["PanelModule"] = "Yetkili Servis İşlemleri";
     ViewData["PanelSubtitle"] = "Yetkili Servis";
     ViewData["ActiveMenu"] = "Subeler";
@@ -12,6 +12,7 @@
 
 @section PageStyles {
     <link rel="stylesheet" href="~/css/ys-operations.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/branch-editor.css" asp-append-version="true" />
 }
 
 <div class="ys-workspace ys-branch-workspace">
@@ -74,109 +75,11 @@
     </section>
 </div>
 
-<dialog class="df-directory-sheet ys-branch-sheet" data-branch-sheet aria-labelledby="branchSheetTitle">
-    <div class="df-directory-sheet-frame">
-        <header class="df-directory-sheet-head">
-            <h2 id="branchSheetTitle" data-branch-sheet-title>Şubeyi Düzenle</h2>
-            <button type="button" class="df-directory-sheet-close" data-branch-sheet-close title="Paneli kapat" aria-label="Paneli kapat"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
-        </header>
-        <div class="df-directory-sheet-body" data-branch-sheet-body></div>
-    </div>
-</dialog>
-<template data-branch-add-template>
-    <form class="ys-branch-editor" method="post" action="@Url.Action("SubeEkle", "YetkiliServisPanel")">
-        @Html.AntiForgeryToken()
-        <div class="ys-branch-editor-fields">
-            <div class="ys-field is-wide"><label for="subeAdi">Şube Adı *</label><input type="text" id="subeAdi" name="subeAdi" placeholder="Örn. Merkez Şube" required maxlength="200" /></div>
-            <div class="ys-field"><label for="subeIl">İl</label><input type="text" id="subeIl" name="il" placeholder="Örn. Çorum" /></div>
-            <div class="ys-field"><label for="subeIlce">İlçe</label><input type="text" id="subeIlce" name="ilce" placeholder="Örn. Merkez" /></div>
-            <div class="ys-field"><label for="subeTelefon">Telefon</label><input type="tel" id="subeTelefon" name="telefon" placeholder="0XXX XXX XX XX" /></div>
-            <div class="ys-field is-wide"><label for="subeAdres">Adres</label><textarea id="subeAdres" name="adres" rows="2" placeholder="Şubenin açık adresi"></textarea></div>
-            <label class="ys-branch-active"><input type="checkbox" name="aktifMi" value="true" checked /><span>Aktif şube</span></label>
-        </div>
-        <div class="ys-branch-editor-actions">
-            <button type="button" class="df-btn df-btn-secondary" data-branch-sheet-cancel><i class="bi bi-x-lg" aria-hidden="true"></i> Vazgeç</button>
-            <button type="submit" class="df-btn df-btn-primary"><i class="bi bi-check2" aria-hidden="true"></i> Şubeyi Kaydet</button>
-        </div>
-    </form>
-</template>
+@await Html.PartialAsync("_BranchSheet", new YetkiliServisGazAcma.Models.ViewModels.BranchEditorViewModel
+{
+    PostUrl = Url.Action("SubeEkle", "YetkiliServisPanel")!
+})
 
 @section Scripts {
-<script>
-    (() => {
-        const sheet = document.querySelector("[data-branch-sheet]");
-        const body = sheet?.querySelector("[data-branch-sheet-body]");
-        const title = sheet?.querySelector("[data-branch-sheet-title]");
-        const addTemplate = document.querySelector("[data-branch-add-template]");
-        if (!sheet || !body || !title || !addTemplate) return;
-        let requestId = 0;
-
-        function closeSheet() {
-            requestId++;
-            sheet.classList.remove("is-visible");
-            document.documentElement.classList.remove("df-sheet-open");
-            window.setTimeout(() => { if (sheet.open && !sheet.classList.contains("is-visible")) sheet.close(); }, 180);
-        }
-
-        function showSheet() {
-            if (!sheet.open) sheet.showModal();
-            document.documentElement.classList.add("df-sheet-open");
-            requestAnimationFrame(() => sheet.classList.add("is-visible"));
-        }
-
-        document.querySelector("[data-branch-add]")?.addEventListener("click", () => {
-            requestId++;
-            title.textContent = "Yeni Şube Ekle";
-            body.replaceChildren(addTemplate.content.cloneNode(true));
-            showSheet();
-            body.querySelector("input:not([type='hidden'])")?.focus();
-        });
-
-        async function openSheet(trigger) {
-            const currentRequest = ++requestId;
-            title.textContent = trigger.dataset.branchName ? `${trigger.dataset.branchName} · Şube Düzenle` : "Şubeyi Düzenle";
-            body.innerHTML = '<div class="df-directory-sheet-loading" role="status">Form hazırlanıyor</div>';
-            showSheet();
-            try {
-                const response = await fetch(trigger.href, { credentials: "same-origin", headers: { "X-Requested-With": "XMLHttpRequest" } });
-                if (response.redirected) {
-                    const redirect = new URL(response.url, window.location.href);
-                    if (redirect.origin === window.location.origin
-                        && (redirect.pathname === "/giris" || redirect.pathname === "/yetkisiz-erisim")) {
-                        window.location.assign(redirect.href);
-                        return;
-                    }
-                }
-                if (currentRequest !== requestId) return;
-                if (response.redirected) { window.location.assign(response.url); return; }
-                if (!response.ok) throw new Error("Form alınamadı");
-                const parsed = new DOMParser().parseFromString(await response.text(), "text/html");
-                const form = parsed.querySelector(".ys-branch-editor");
-                if (!form) throw new Error("Form bulunamadı");
-                if (currentRequest !== requestId) return;
-                body.replaceChildren(document.importNode(form, true));
-                body.querySelector("input:not([type='hidden'])")?.focus();
-            } catch {
-                if (currentRequest === requestId) body.innerHTML = '<div class="df-directory-sheet-error">Şube formu açılamadı. Lütfen yeniden deneyin.</div>';
-            }
-        }
-
-        document.querySelectorAll(".js-branch-sheet-trigger").forEach(trigger => {
-            trigger.addEventListener("click", event => { event.preventDefault(); openSheet(trigger); });
-        });
-        sheet.querySelector("[data-branch-sheet-close]")?.addEventListener("click", closeSheet);
-        sheet.addEventListener("cancel", event => { event.preventDefault(); closeSheet(); });
-        body.addEventListener("click", event => { if (event.target.closest("[data-branch-sheet-cancel]")) closeSheet(); });
-
-        const params = new URLSearchParams(window.location.search);
-        const editId = params.get("duzenle");
-        if (editId && /^\d+$/.test(editId)) {
-            const trigger = Array.from(document.querySelectorAll(".js-branch-sheet-trigger"))
-                .find(item => item.dataset.branchId === editId);
-            params.delete("duzenle");
-            history.replaceState({}, document.title, window.location.pathname + (params.size ? `?${params}` : ""));
-            if (trigger) openSheet(trigger);
-        }
-    })();
-</script>
+    <script src="~/js/branch-sheet.js" asp-append-version="true"></script>
 }

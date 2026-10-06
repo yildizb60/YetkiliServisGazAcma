@@ -24,10 +24,13 @@
     });
 }
 <link rel="stylesheet" href="~/css/home-calendar.css" asp-append-version="true" />
-<section class="home-calendar @(Model.FirmaGorunumu ? "is-firm-calendar" : "has-view-modes")" id="home-calendar" aria-labelledby="home-calendar-title">
+<section class="home-calendar @(Model.FirmaGorunumu ? "is-firm-calendar" : "has-view-modes") @(Model.GenelTakvim ? "is-general-calendar" : null)" id="home-calendar" aria-labelledby="home-calendar-title">
     <header class="home-calendar-heading">
         <h2 id="home-calendar-title"><i class="bi bi-calendar2-week" aria-hidden="true"></i>@(Model.Baslik ?? (Model.FirmaGorunumu ? "Cihaz Değişim Randevularım" : "Yakıcı Cihaz Değişim Randevuları"))</h2>
-        <a href="@takvimLink">Takvimi Aç <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+        @if (!Model.GenelTakvim)
+        {
+            <a href="@takvimLink">Takvimi Aç <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+        }
     </header>
     @if (!Model.FirmaGorunumu)
     {
@@ -37,6 +40,8 @@
             <a href="@GorunumLink("yil")" aria-current="@(Model.Gorunum == "yil" ? "page" : null)">Yıllık</a>
         </nav>
     }
+    @if (!Model.GenelTakvim)
+    {
     <details class="home-calendar-filter-panel" open="@(filtreAktif ? "open" : null)">
     <summary><span><i class="bi bi-funnel" aria-hidden="true"></i>Randevuları Filtrele</span><span>@(filtreAktif ? "Filtre uygulandı" : "")<i class="bi bi-chevron-down" aria-hidden="true"></i></span></summary>
     <form method="get" action="@action#home-calendar" class="home-calendar-filters">
@@ -63,22 +68,29 @@
         <a href="@temizleLink" class="home-calendar-icon" aria-label="Takvim filtrelerini temizle" title="Filtreleri temizle"><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i></a>
     </form>
     </details>
+    }
     <div class="home-calendar-body is-@Model.Gorunum-view">
         @if (!Model.FirmaGorunumu && Model.Gorunum == "gun")
         {
-            <nav class="home-day-picker" aria-label="Randevu günü seçimi">
+            <nav class="home-day-picker" aria-label="Gün seçimi">
                 <div class="home-period-nav">
                     <a class="home-calendar-icon" href="@OzetLink(Model.Tarih.AddDays(-1), "gun")" title="Önceki gün" aria-label="Önceki gün"><i class="bi bi-chevron-left" aria-hidden="true"></i></a>
                     <strong>@Model.Tarih.ToString("dd MMMM yyyy", tr)</strong>
                     <a class="home-calendar-icon" href="@OzetLink(Model.Tarih.AddDays(1), "gun")" title="Sonraki gün" aria-label="Sonraki gün"><i class="bi bi-chevron-right" aria-hidden="true"></i></a>
                 </div>
-                <div class="home-day-picker__summary"><span>@Model.Tarih.ToString("dddd", tr)</span><strong>@(Model.Gun?.Toplam ?? 0)</strong><small>kontrol randevusu</small></div>
+                <div class="home-day-picker__summary">
+                    <span>@Model.Tarih.ToString("dddd", tr)</span>
+                    @if (!Model.GenelTakvim)
+                    {
+                        <strong>@(Model.Gun?.Toplam ?? 0)</strong><small>kontrol randevusu</small>
+                    }
+                </div>
                 <a class="home-calendar-today" href="@OzetLink(DateTime.Today, "gun")">Bugüne Dön</a>
             </nav>
         }
         else if (!Model.FirmaGorunumu && Model.Gorunum == "yil")
         {
-            <nav class="home-year-picker" aria-label="Randevu ayı seçimi">
+            <nav class="home-year-picker" aria-label="Ay seçimi">
                 <div class="home-period-nav">
                     <a class="home-calendar-icon" href="@OzetLink(Model.Tarih.AddYears(-1), "yil")" title="Önceki yıl" aria-label="Önceki yıl"><i class="bi bi-chevron-left" aria-hidden="true"></i></a>
                     <strong>@Model.Tarih.Year</strong>
@@ -96,7 +108,7 @@
         }
         else
         {
-            <nav class="home-month" aria-label="Randevu günü seçimi">
+            <nav class="home-month" aria-label="Gün seçimi">
                 <div class="home-month-nav">
                     <a class="home-calendar-icon" href="@OzetLink(ayBasi.AddMonths(-1), "ay")" title="Önceki ay" aria-label="Önceki ay"><i class="bi bi-chevron-left" aria-hidden="true"></i></a>
                     <strong>@Model.Tarih.ToString("MMMM yyyy", tr)</strong>
@@ -118,7 +130,7 @@
                                aria-current="@(gun == Model.Tarih ? "date" : null)"
                                aria-label="@($"{gun.ToString("dd MMMM yyyy", tr)}{(count > 0 ? $", {count} randevu" : "")}")">
                                 @gun.Day
-                                @if (count > 0 || (!Model.FirmaGorunumu && gun == DateTime.Today))
+                                @if (!Model.GenelTakvim && (count > 0 || (!Model.FirmaGorunumu && gun == DateTime.Today)))
                                 {
                                     <i class="home-month-dot" aria-hidden="true"></i>
                                 }
@@ -129,6 +141,8 @@
                 <a class="home-calendar-today" href="@OzetLink(DateTime.Today, "ay")">Bugüne Dön</a>
             </nav>
         }
+        @if (!Model.GenelTakvim)
+        {
         <div class="home-visits">
             <header>
                 <h3>@(Model.FirmaGorunumu ? $"{(Model.Tarih == DateTime.Today ? "Bugün · " : "")}{Model.Tarih.ToString("dd MMMM dddd", tr)}" : "Yakıcı Cihaz Değişim Randevuları")</h3>
@@ -212,5 +226,6 @@
                 @if (Model.Gun.Toplam > Model.Gun.Kayitlar.Count) { <a class="home-calendar-more" href="@takvimLink">Günün tüm @Model.Gun.Toplam randevusunu gör <i class="bi bi-arrow-right" aria-hidden="true"></i></a> }
             }
         </div>
+        }
     </div>
 </section>

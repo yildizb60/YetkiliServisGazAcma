@@ -13,13 +13,14 @@ public sealed class YkcRandevuOzetiModel
     public bool FirmaGorunumu { get; init; }
     public string Gorunum { get; init; } = "ay";
     public string? Baslik { get; init; }
+    public bool GenelTakvim { get; init; }
 }
 
 public sealed class YkcRandevuOzetiViewComponent(
     ApiKullaniciOturumu users, PanelKapsamApiClient yetki, YkcApiClient api, AktifSirketService sirket,
     ILogger<YkcRandevuOzetiViewComponent> logger) : ViewComponent
 {
-    public async Task<IViewComponentResult> InvokeAsync(string? baslik = null)
+    public async Task<IViewComponentResult> InvokeAsync(string? baslik = null, bool genelTakvim = false)
     {
         var user = await users.GetUserAsync(HttpContext.User);
         if (user == null) return Content("");
@@ -33,6 +34,13 @@ public sealed class YkcRandevuOzetiViewComponent(
         };
         var tarih = DateTime.TryParseExact(query["takvimTarih"], "yyyy-MM-dd", CultureInfo.InvariantCulture,
             DateTimeStyles.None, out var value) && value.Year is >= 2000 and <= 2100 ? value.Date : DateTime.Today;
+        IViewComponentResult GenelGorunum() => View(new YkcRandevuOzetiModel
+        {
+            Tarih = tarih, Gorunum = gorunum, Baslik = "Takvim", GenelTakvim = true
+        });
+        // The general calendar is date navigation only; it must not query operational data.
+        if (genelTakvim)
+            return GenelGorunum();
         string? Filter(string key) => query[key].ToString().Trim() is { Length: > 0 and <= 120 } text ? text : null;
         var filtre = new YkcTakvimFiltre {
             Baslangic = tarih, Bitis = tarih,
@@ -41,10 +49,12 @@ public sealed class YkcRandevuOzetiViewComponent(
             Personel = firmaGorunumu ? null : Filter("takvimPersonel"),
             Musteri = Filter("takvimAbone"), TesisatNo = Filter("takvimTesisat")
         };
+        var takvimYetkisi = false;
         try
         {
-            if (!(await yetki.YkcYetkileriAsync(user, await sirket.AktifSirketIdAsync(user))).TalepleriGorebilir)
-                return Content("");
+            takvimYetkisi = (await yetki.YkcYetkileriAsync(user, await sirket.AktifSirketIdAsync(user))).TalepleriGorebilir;
+            if (!takvimYetkisi)
+                return GenelGorunum();
             var gun = await api.TakvimAsync(user, filtre);
             var ayBasi = new DateTime(tarih.Year, tarih.Month, 1);
             var ay = await api.TakvimAsync(user, new YkcTakvimFiltre {
@@ -56,6 +66,8 @@ public sealed class YkcRandevuOzetiViewComponent(
         catch (ApiIntegrationException ex)
         {
             logger.LogWarning(ex, "Ana panel randevuları alınamadı.");
+            if (!takvimYetkisi)
+                return GenelGorunum();
             return View(new YkcRandevuOzetiModel { Tarih = tarih, Filtre = filtre, FirmaGorunumu = firmaGorunumu, Gorunum = gorunum, Baslik = baslik });
         }
     }

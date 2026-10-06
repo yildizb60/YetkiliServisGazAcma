@@ -102,7 +102,7 @@ namespace YetkiliServisGazAcma.Controllers
 
             try
             {
-                var sonuc = await _devreyeAlmaApiClient.MarkaKontrolAsync(kullanici, dto.CihazMarka);
+                var sonuc = await _devreyeAlmaApiClient.MarkaKontrolAsync(kullanici, dto.SorguReferansi);
                 return Json(new
                 {
                     yetkili = sonuc?.Yetkili == true,
@@ -239,7 +239,7 @@ namespace YetkiliServisGazAcma.Controllers
 
     public class MarkaKontrolDto
     {
-        public string? CihazMarka { get; set; }
+        public string? SorguReferansi { get; set; }
     }
 }
 

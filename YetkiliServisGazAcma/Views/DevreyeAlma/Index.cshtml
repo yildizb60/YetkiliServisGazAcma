@@ -53,10 +53,10 @@
                 <section class="ykc-source-device" aria-labelledby="ys-source-title">
                     <header><div><span class="ykc-request-section-icon"><i class="bi bi-person-vcard" aria-hidden="true"></i></span><h2 id="ys-source-title">Müşteri ve Tesisat</h2></div><span class="ys-source-status" id="b-durum" role="status"></span></header>
                     <dl class="ykc-request-customer ys-source-facts">
-                        <div><dt>Müşteri Adı</dt><dd id="b-musteriAdi">-</dd></div>
-                        <div><dt>Telefon</dt><dd id="b-musteriTelefon">-</dd></div>
-                        <div><dt>Sözleşme No</dt><dd id="b-sozlesmeNo">-</dd></div>
-                        <div class="is-wide"><dt>Adres</dt><dd id="b-adres">-</dd></div>
+                        <div><dt>Müşteri Adı:</dt><dd id="b-musteriAdi">-</dd></div>
+                        <div><dt>Telefon:</dt><dd id="b-musteriTelefon">-</dd></div>
+                        <div><dt>Sözleşme No:</dt><dd id="b-sozlesmeNo">-</dd></div>
+                        <div class="is-wide"><dt>Adres:</dt><dd id="b-adres">-</dd></div>
                     </dl>
                     <div class="ys-commissioning-device-picker">
                         <h3><i class="bi bi-fire" aria-hidden="true"></i> Projedeki Cihazlar</h3>
@@ -186,13 +186,30 @@
         govde.className = "ys-device-work-body";
         govde.id = `ys-device-work-${index}`;
         dugme.setAttribute("aria-controls", govde.id);
-        dugme.addEventListener("click", () => cihazKartiniAc(index));
+        dugme.addEventListener("click", () => cihazKartiniAcKapat(index));
         kart.append(dugme, govde);
         const sonrakiKart = Array.from(cihazKartlari.children).find(item => Number(item.dataset.index) > index);
         cihazKartlari.insertBefore(kart, sonrakiKart || null);
         taslak.kart = kart;
         taslak.govde = govde;
         taslak.durum = durum;
+    }
+
+    function cihazKartiniAcKapat(index) {
+        const taslak = cihazTaslaklari.get(index);
+        if (!taslak) return;
+        if (!taslak.kart.classList.contains("is-active")) {
+            cihazKartiniAc(index);
+            return;
+        }
+        aktifTaslagiSakla();
+        taslak.kart.classList.remove("is-active");
+        taslak.kart.querySelector(".ys-device-work-toggle")?.setAttribute("aria-expanded", "false");
+        document.querySelectorAll(".ys-commissioning-device-option.is-active")
+            .forEach(button => button.classList.remove("is-active"));
+        formKart.hidden = true;
+        formKart.disabled = true;
+        seciliServisCihazIndex = -1;
     }
 
     function cihazKartiniAc(index) {
@@ -383,13 +400,13 @@
             const response = await fetch("/ys-devreyeal/marka-kontrol", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "RequestVerificationToken": antiForgeryToken },
-                body: JSON.stringify({ cihazMarka: cihaz?.cihazMarka || "" })
+                body: JSON.stringify({ sorguReferansi: cihaz.sorguReferansi })
             });
             if (kontrolSirasi !== markaKontrolSirasi) return;
-            if (!response.ok) { islemHatasi("Marka yetkisi kontrol edilemedi."); return; }
+            if (!response.ok) { islemHatasi("Cihaz işlem yetkisi kontrol edilemedi."); return; }
             const data = await response.json();
             if (kontrolSirasi !== markaKontrolSirasi) return;
-            if (!data.yetkili) { cihazUyarisiGoster(index, data.mesaj || "Bu marka için firmanızın yetkisi bulunmuyor."); return; }
+            if (!data.yetkili) { cihazUyarisiGoster(index, data.mesaj || "Bu cihaz için firmanızın işlem yetkisi bulunmuyor."); return; }
 
             const taslak = {
                 markaId: data.markaId || 0,

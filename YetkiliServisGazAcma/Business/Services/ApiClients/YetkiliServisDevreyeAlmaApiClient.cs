@@ -114,12 +114,12 @@ namespace YetkiliServisGazAcma.Business.Services
                 "Yetkili servis tesisat sorgula");
         }
 
-        public Task<YsMarkaKontrolSonuc?> MarkaKontrolAsync(AppKullanici kullanici, string? cihazMarka)
+        public Task<YsMarkaKontrolSonuc?> MarkaKontrolAsync(AppKullanici kullanici, string? sorguReferansi)
         {
             return PostAsync<YsMarkaKontrolIstek, YsMarkaKontrolSonuc>(
                 kullanici,
                 "api/ys-devreyeal/marka-kontrol",
-                new YsMarkaKontrolIstek { CihazMarka = cihazMarka },
+                new YsMarkaKontrolIstek { SorguReferansi = sorguReferansi },
                 "Yetkili servis marka kontrol");
         }
 
@@ -240,7 +240,7 @@ namespace YetkiliServisGazAcma.Business.Services
 
         private class YsMarkaKontrolIstek
         {
-            public string? CihazMarka { get; set; }
+            public string? SorguReferansi { get; set; }
         }
 
         private class YsTesisatSorguIstek

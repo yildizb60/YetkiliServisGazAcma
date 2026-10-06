@@ -510,7 +510,7 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpGet("yetkiler")]
-        public async Task<IActionResult> Yetkiler()
+        public async Task<IActionResult> Yetkiler(string? q = null, int sayfa = 1)
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
@@ -541,15 +541,35 @@ namespace YetkiliServisGazAcma.Controllers
                 [YetkiTipleri.TAM_YETKI] = "Seçili Şirketin Tüm İşlem Yetkileri"
             };
 
+            var personeller = sonuc?.Personeller ?? new List<AppKullanici>();
+            var sirketYetkileri = sonuc?.SirketYetkileri ?? new Dictionary<string, List<AdminSirketYetkiOzeti>>();
+            q = q?.Trim();
+            if (q?.Length > 120) q = q[..120];
+            var karsilastirma = System.Globalization.CultureInfo.GetCultureInfo("tr-TR").CompareInfo;
+            bool Eslesiyor(string? metin) => string.IsNullOrEmpty(q)
+                || karsilastirma.IndexOf(metin ?? "", q, System.Globalization.CompareOptions.IgnoreCase) >= 0;
+            var eslesenler = personeller.Where(p => Eslesiyor(p.AdSoyad) || Eslesiyor(p.Email)
+                || (sirketYetkileri.TryGetValue(p.Id, out var kapsamlar) && kapsamlar.Any(x => Eslesiyor(x.SirketAdi))))
+                .ToList();
+            const int sayfaBoyutu = 10;
+            var toplamSayfa = Math.Max(1, (eslesenler.Count + sayfaBoyutu - 1) / sayfaBoyutu);
+            sayfa = Math.Clamp(sayfa, 1, toplamSayfa);
+
             ViewBag.Kullanici = kullanici;
             ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
-            ViewBag.Personeller = sonuc?.Personeller ?? new List<AppKullanici>();
+            ViewBag.Personeller = eslesenler.Skip((sayfa - 1) * sayfaBoyutu).Take(sayfaBoyutu).ToList();
+            ViewBag.ToplamPersonel = personeller.Count;
+            ViewBag.EslesenPersonel = eslesenler.Count;
+            ViewBag.Arama = q;
+            ViewBag.Sayfa = sayfa;
+            ViewBag.ToplamSayfa = toplamSayfa;
+            ViewBag.SayfaBoyutu = sayfaBoyutu;
             ViewBag.YetkiMap = (sonuc?.YetkiMap ?? new Dictionary<string, List<string>>())
                 .ToDictionary(
                     x => x.Key,
                     x => x.Value.Where(y => y != YetkiTipleri.DAGITIM_SIRKET_YONET).ToList());
             ViewBag.YetkiSirketAdlariMap = sonuc?.YetkiSirketAdlariMap ?? new Dictionary<string, List<string>>();
-            ViewBag.SirketYetkileri = sonuc?.SirketYetkileri ?? new Dictionary<string, List<AdminSirketYetkiOzeti>>();
+            ViewBag.SirketYetkileri = sirketYetkileri;
             ViewBag.YetkiIsimler = yetkiIsimler;
             return View("~/Views/AdminPanel/Yetkiler.cshtml");
         }
@@ -598,7 +618,7 @@ namespace YetkiliServisGazAcma.Controllers
         [HttpPost("yetkiler/duzenle/{id}")]
         [HttpPost("yetkiler/Düzenle/{id}")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> YetkiDuzenle(string id, List<int> sirketIds, Microsoft.AspNetCore.Http.IFormCollection form)
+        public async Task<IActionResult> YetkiDuzenle(string id, List<int> sirketIds, Microsoft.AspNetCore.Http.IFormCollection form, string? q = null, int sayfa = 1)
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
@@ -641,7 +661,7 @@ namespace YetkiliServisGazAcma.Controllers
             {
                 TempData["Hata"] = ex.Message;
             }
-            return Redirect("/AdminPanel/yetkiler");
+            return RedirectToAction(nameof(Yetkiler), new { q, sayfa });
         }
     }
 }
