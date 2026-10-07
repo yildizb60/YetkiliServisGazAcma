@@ -1268,8 +1268,8 @@
         });
     }
     for (const role of ['personnel', 'company-admin', 'system-admin', 'service']) {
-        await test(`Commissioning ${role} uses shared compact columns, labels and status dimensions`, async (doc, win) => {
-            win.frameElement.style.width = '1536px';
+        await test(`Commissioning ${role} uses balanced shared columns and preserves model tooltips`, async (doc, win, load) => {
+            win.frameElement.style.width = '1920px';
             const style = doc.createElement('style');
             style.textContent = panelCss + '\n' + operationsCss;
             doc.head.append(style);
@@ -1294,7 +1294,8 @@
             doc.body.innerHTML = `<main class="df-admin-workspace df-operations-directory ${role === 'personnel' ? 'df-personnel-commissioning-workspace' : ''}">
                 <div class="df-admin-table-scroll" style="width:1400px"><table class="df-table df-commissioning-table ${firm ? 'is-firm-history' : ''}">
                 <thead><tr>${columns.map(({ key, label }) => `<th class="df-commissioning-col-${key}">${label}</th>`).join('')}</tr></thead>
-                <tbody><tr class="df-commissioning-record-row">${columns.map(({ key }) => `<td class="df-commissioning-col-${key}">${contents[key] || '<input type="checkbox" value="42">'}</td>`).join('')}</tr></tbody></table></div></main>`;
+                <tbody><tr class="df-commissioning-record-row" data-commissioning-record>${columns.map(({ key }) => `<td class="df-commissioning-col-${key}">${contents[key] || '<input type="checkbox" value="42">'}</td>`).join('')}</tr></tbody></table></div></main>`;
+            load('commissioning');
             await doc.fonts.ready;
             const container = doc.querySelector('.df-admin-table-scroll');
             const row = doc.querySelector('tbody tr'), headers = [...doc.querySelectorAll('th')];
@@ -1304,10 +1305,17 @@
             assert(customerStyle.fontWeight === '500' && customerStyle.fontSize === '11.5px', 'Subscriber names are larger or bolder than the other table values');
             assert([...facts.querySelectorAll('dd')].every(value => win.getComputedStyle(value).fontWeight === '400'), 'Device values remain unnecessarily bold');
             assert([...facts.querySelectorAll('dt')].every(label => Number(win.getComputedStyle(label).fontWeight) <= 500), 'Device labels overpower the values');
-            for (const width of firm ? [1400, 1100, 980, 960, 900] : [1400, 1100, 980, 960]) {
+            for (const width of firm ? [1740, 1400, 1100, 980, 960, 900] : [1740, 1400, 1100, 980, 960]) {
                 container.style.width = `${width}px`;
-                await new Promise(resolve => win.requestAnimationFrame(resolve));
+                for (let frame = 0; frame < 3; frame++)
+                    await new Promise(resolve => win.requestAnimationFrame(resolve));
                 assert(container.scrollWidth <= container.clientWidth + 1, `Commissioning columns cause horizontal scrolling at ${width}px`);
+                const deviceWidth = row.querySelector('.df-commissioning-col-device').getBoundingClientRect().width;
+                assert(deviceWidth <= width * .28, `Device column takes excessive spare space at ${width}px: ${deviceWidth}`);
+                if (width >= 1400) {
+                    assert(row.querySelector('.df-commissioning-col-installation').getBoundingClientRect().width >= 120, 'Spare width is not shared with installation numbers');
+                    assert(row.querySelector('.df-commissioning-col-contract').getBoundingClientRect().width >= 130, 'Spare width is not shared with contract numbers');
+                }
                 const gap = time.getBoundingClientRect().left - facts.getBoundingClientRect().right;
                 assert(gap >= 28 && gap <= 40, `Device/date gutter is unbalanced at ${width}px: ${gap}`);
                 assert(row.getBoundingClientRect().height <= 58, 'Compact columns increase ordinary row height');
@@ -1329,6 +1337,16 @@
                 }
                 assert(headers[0].getBoundingClientRect().height <= 36, 'Header row remains unnecessarily tall');
                 assert(row.querySelector('.df-commissioning-col-contract').textContent === '0000943', 'Contract number loses its leading zeros');
+                const model = facts.querySelector('.df-device-model dd');
+                const tooltip = doc.querySelector('[role="tooltip"]');
+                assert(model.scrollWidth > model.clientWidth && model.tabIndex === 0, `Long model no longer has an accessible overflow target at ${width}px`);
+                model.dispatchEvent(new win.PointerEvent('pointerenter', { pointerType: 'mouse' }));
+                assert(!tooltip.hidden && tooltip.textContent === model.textContent, `Full model is not readable on hover at ${width}px`);
+                doc.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+                model.focus();
+                assert(!tooltip.hidden, `Full model is not readable on focus at ${width}px`);
+                model.blur();
+                assert(tooltip.hidden, 'Model tooltip remains visible after blur');
             }
             const status = row.querySelector('.df-pill');
             for (const [label, css] of [['Bekliyor', 'df-pill-warning'], ['İptal', 'df-pill-danger'], ['Tamamlandı', 'df-pill-success']]) {

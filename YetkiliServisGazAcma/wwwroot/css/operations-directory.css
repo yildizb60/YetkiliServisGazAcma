@@ -57,19 +57,19 @@
 @media(max-width:480px) {
     .df-operations-directory .df-commissioning-filter .df-admin-filter-grid { grid-template-columns:minmax(0,1fr); }
 }
-.df-commissioning-table { min-width:960px; table-layout:fixed; }
+.df-commissioning-table { --df-commissioning-extra-width:max(0px,calc(100cqw - 960px)); min-width:960px; table-layout:fixed; }
 .df-admin-table-scroll:has(> .df-commissioning-table) { container:commissioning-table / inline-size; }
 .df-table.df-commissioning-table th { padding:8px 6px; color:#53677a; font-size:11px; font-weight:600; line-height:1.3; letter-spacing:0; white-space:nowrap; }
 .df-table.df-commissioning-table td { padding:8px 6px; color:#40566a; font-size:11.5px; font-weight:400; line-height:1.35; }
 .df-commissioning-table .df-commissioning-col-select { width:32px; text-align:center; }
-.df-commissioning-table .df-commissioning-col-customer { width:12.5%; text-align:left; }
-.df-commissioning-table .df-commissioning-col-installation { width:80px; white-space:nowrap; }
-.df-commissioning-table .df-commissioning-col-contract { width:90px; white-space:nowrap; }
-.df-commissioning-table .df-commissioning-col-company { width:10.5%; overflow-wrap:break-word; }
-.df-commissioning-table .df-commissioning-col-type { width:108px; }
-.df-table.df-commissioning-table .df-commissioning-col-device { padding-left:12px; border-left:1px solid #edf1f4; }
+.df-commissioning-table .df-commissioning-col-customer { width:calc(120px + var(--df-commissioning-extra-width) * .22); text-align:left; }
+.df-commissioning-table .df-commissioning-col-installation { width:calc(80px + var(--df-commissioning-extra-width) * .1); white-space:nowrap; }
+.df-commissioning-table .df-commissioning-col-contract { width:calc(90px + var(--df-commissioning-extra-width) * .1); white-space:nowrap; }
+.df-commissioning-table .df-commissioning-col-company { width:calc(100px + var(--df-commissioning-extra-width) * .18); overflow-wrap:break-word; }
+.df-commissioning-table .df-commissioning-col-type { width:calc(108px + var(--df-commissioning-extra-width) * .08); }
+.df-table.df-commissioning-table .df-commissioning-col-device { width:calc(146px + var(--df-commissioning-extra-width) * .22); padding-left:12px; border-left:1px solid #edf1f4; }
 .df-table.df-commissioning-table .df-commissioning-col-date {
-    width:142px;
+    width:calc(142px + var(--df-commissioning-extra-width) * .1);
     padding-left:24px;
     border-left:1px solid #edf1f4;
 }
@@ -387,12 +387,13 @@
 .ys-commissioning-modal .commissioning-modal-info .ykc-modal-label { margin-bottom:3px; font-size:10px; font-weight:600; }
 .ys-commissioning-modal .commissioning-modal-info .ykc-modal-value { color:#2e465b; font-size:12px; font-weight:500; line-height:1.4; }
 
-.df-commissioning-table.is-firm-history { min-width: 900px; }
-.df-commissioning-table.is-firm-history .df-commissioning-col-customer { width:17%; }
-.df-commissioning-table.is-firm-history .df-commissioning-col-installation { width:86px; }
-.df-commissioning-table.is-firm-history .df-commissioning-col-contract { width:96px; }
-.df-commissioning-table.is-firm-history .df-commissioning-col-type { width:118px; }
-.df-commissioning-table.is-firm-history .df-commissioning-col-date { width:154px; }
+.df-commissioning-table.is-firm-history { --df-commissioning-extra-width:max(0px,calc(100cqw - 900px)); min-width:900px; }
+.df-commissioning-table.is-firm-history .df-commissioning-col-customer { width:calc(153px + var(--df-commissioning-extra-width) * .2); }
+.df-commissioning-table.is-firm-history .df-commissioning-col-installation { width:calc(86px + var(--df-commissioning-extra-width) * .12); }
+.df-commissioning-table.is-firm-history .df-commissioning-col-contract { width:calc(96px + var(--df-commissioning-extra-width) * .12); }
+.df-commissioning-table.is-firm-history .df-commissioning-col-type { width:calc(118px + var(--df-commissioning-extra-width) * .1); }
+.df-commissioning-table.is-firm-history .df-commissioning-col-device { width:calc(145px + var(--df-commissioning-extra-width) * .34); }
+.df-commissioning-table.is-firm-history .df-commissioning-col-date { width:calc(154px + var(--df-commissioning-extra-width) * .12); }
 .df-commissioning-table.is-firm-history .df-commissioning-col-status { width:104px; }
 .df-commissioning-table.is-firm-history .df-commissioning-col-action { width:44px; padding-inline:6px; }
 
