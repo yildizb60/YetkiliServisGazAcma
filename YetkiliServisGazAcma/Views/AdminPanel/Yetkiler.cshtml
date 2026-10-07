@@ -7,8 +7,8 @@
     ViewData["ActiveMenu"] = "Yetkiler";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
-    var personeller = ViewBag.Personeller as List<YetkiliServisGazAcma.Entities.AppKullanici>;
-    var sirketYetkileri = ViewBag.SirketYetkileri as Dictionary<string, List<AdminSirketYetkiOzeti>> ?? new();
+    var personeller = ViewBag.Personeller as List<AdminKullaniciListeDto>;
+    var sirketYetkileri = ViewBag.SirketYetkileri as Dictionary<string, List<AdminSirketYetkiOzetDto>> ?? new();
     var toplamPersonel = (int?)ViewBag.ToplamPersonel ?? 0;
     var eslesenPersonel = (int?)ViewBag.EslesenPersonel ?? 0;
     var arama = ViewBag.Arama as string;
@@ -18,12 +18,11 @@
     var ilkKayit = eslesenPersonel == 0 ? 0 : (sayfa - 1) * sayfaBoyutu + 1;
     var sonKayit = Math.Min(sayfa * sayfaBoyutu, eslesenPersonel);
     string SayfaLink(int hedef) => Url.Action("Yetkiler", "AdminPanel", new { q = arama, sayfa = hedef })!;
-    var yetkiTanimliPersonel = sirketYetkileri.Values.Count(sirketler => sirketler.Any(x => x.Yetkiler.Count > 0));
-    var kapsamlar = sirketYetkileri.Values.SelectMany(x => x).ToList();
-    var tamYetkiliKapsam = kapsamlar.Count(x => x.Yetkiler.Contains(YetkiTipleri.TAM_YETKI));
-    var sirketKapsami = kapsamlar.Select(x => x.SirketId).Distinct().Count();
-    var tabloSirketleri = kapsamlar.GroupBy(x => x.SirketId).Select(x => x.First())
-        .OrderBy(x => x.SirketAdi, StringComparer.Create(System.Globalization.CultureInfo.GetCultureInfo("tr-TR"), true)).ToList();
+    var ozet = ViewBag.YetkiListeOzeti as PersonelYetkiListeOzeti ?? new();
+    var yetkiTanimliPersonel = ozet.YetkiliPersonel;
+    var tamYetkiliKapsam = ozet.TamYetkiAtamalari;
+    var sirketKapsami = ozet.Sirketler.Count;
+    var tabloSirketleri = ozet.Sirketler;
     var yetkiIsimleri = ViewBag.YetkiIsimler as Dictionary<string, string> ?? new();
 }
 
@@ -136,7 +135,7 @@
         @foreach (var p in personeller)
         {
             var personelKapsamlari = sirketYetkileri.TryGetValue(p.Id, out var sirketler)
-                ? sirketler : new List<AdminSirketYetkiOzeti>();
+                ? sirketler : new List<AdminSirketYetkiOzetDto>();
 
             <tr>
                 <th scope="row" class="df-permission-person-cell">

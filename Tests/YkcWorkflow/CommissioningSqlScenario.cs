@@ -111,8 +111,12 @@ internal static class CommissioningSqlScenario
             {
                 var principal = new ClaimsPrincipal(new ClaimsIdentity(
                     [new Claim(ClaimTypes.NameIdentifier, user.Id)], "test"));
-                return new YetkiliServisDevreyeAlmaApiController(db, manager, online, codes,
-                    new DevreyeAlmaExportApiService(db), new YetkiliServisIlkKurulumService(db))
+                var setup = new YetkiliServisIlkKurulumService(db);
+                var authorization = new DevreyeAlmaYetkiDogrulamaService(db);
+                return new YetkiliServisDevreyeAlmaApiController(manager,
+                    new DevreyeAlmaKayitApiService(db, setup, authorization), new DevreyeAlmaExportApiService(db),
+                    new DevreyeAlmaOkumaApiService(db, setup, authorization),
+                    new DevreyeAlmaSorguApiService(db, online, codes, setup, authorization))
                 {
                     ControllerContext = new ControllerContext
                     {

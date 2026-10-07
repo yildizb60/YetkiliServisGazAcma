@@ -21,6 +21,25 @@ namespace YetkiliServisGazAcma.Business.Services
                 .ToListAsync();
         }
 
+        public async Task<List<MarkaApiDto>> ListeleAsync(MarkaListeFiltreDto? filtre)
+        {
+            var query = _context.Ys_Markalar.AsNoTracking().Where(x => !x.SilindiMi);
+            if (filtre?.TumunuGetir != true)
+                query = query.Where(x => x.AktifMi);
+            if (filtre?.AktifMi.HasValue == true)
+                query = query.Where(x => x.AktifMi == filtre.AktifMi.Value);
+            if (!string.IsNullOrWhiteSpace(filtre?.Q))
+            {
+                var arama = filtre.Q.Trim();
+                query = query.Where(x => x.MarkaAdi != null
+                    && EF.Functions.Collate(x.MarkaAdi, "Turkish_CI_AS").StartsWith(arama));
+            }
+            return await query.OrderBy(x => x.MarkaAdi).Select(x => new MarkaApiDto
+            {
+                Id = x.Id, MarkaAdi = x.MarkaAdi, Aciklama = x.Aciklama, AktifMi = x.AktifMi
+            }).ToListAsync();
+        }
+
         public async Task<Ys_Marka?> IdIleGetir(int id)
         {
             return await _context.Ys_Markalar

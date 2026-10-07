@@ -17,15 +17,14 @@ namespace YetkiliServisGazAcma.Controllers
             var sonuc = await _adminSubeApiClient.ListeleAsync(kullanici, aktifSirketId, q, firmaId);
 
             ViewBag.Kullanici = kullanici;
-            ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
             ViewBag.SeciliFirmaId = firmaId;
             ViewBag.SeciliQ = q ?? "";
 
             if (sonuc == null)
             {
                 TempData["Hata"] = "Sube verileri API uzerinden alinamadi.";
-                ViewBag.Subeler = new List<Ys_Sube>();
-                ViewBag.Firmalar = new List<Ys_Firma>();
+                ViewBag.Subeler = new List<AdminSubeDto>();
+                ViewBag.Firmalar = new List<AdminSubeFirmaDto>();
                 return View("~/Views/AdminPanel/Subeler.cshtml");
             }
 
@@ -44,6 +43,12 @@ namespace YetkiliServisGazAcma.Controllers
 
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
             var sonuc = await _adminSubeApiClient.EkleAsync(kullanici, aktifSirketId, firmaId, subeAdi, il, ilce, telefon, adres, aktifMi);
+
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            {
+                if (sonuc?.Basarili == true) SetSubeIslemMesaji(sonuc, "Şube kaydı eklendi.");
+                return Json(new { basarili = sonuc?.Basarili == true, mesaj = sonuc?.Mesaj ?? "Şube kaydedilemedi." });
+            }
 
             SetSubeIslemMesaji(sonuc, "Sube kaydi eklendi.");
             return Redirect("/AdminPanel/subeler");
@@ -84,6 +89,12 @@ namespace YetkiliServisGazAcma.Controllers
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
             var sonuc = await _adminSubeApiClient.GuncelleAsync(kullanici, id, aktifSirketId, firmaId, subeAdi, il, ilce, telefon, adres, aktifMi);
 
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            {
+                if (sonuc?.Basarili == true) SetSubeIslemMesaji(sonuc, "Şube güncellendi.");
+                return Json(new { basarili = sonuc?.Basarili == true, mesaj = sonuc?.Mesaj ?? "Şube kaydedilemedi." });
+            }
+
             SetSubeIslemMesaji(sonuc, "Sube guncellendi.");
             return Redirect("/AdminPanel/subeler");
         }
@@ -118,7 +129,7 @@ namespace YetkiliServisGazAcma.Controllers
             return Redirect("/AdminPanel/subeler");
         }
 
-        private void SetSubeIslemMesaji(AdminSubeIslemSonuc? sonuc, string varsayilanBasari)
+        private void SetSubeIslemMesaji(ApiIslemSonuc? sonuc, string varsayilanBasari)
         {
             if (sonuc?.Basarili == true)
             {

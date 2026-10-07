@@ -339,7 +339,7 @@
                                         <span class="ykc-process-state @DurumClass(talep.Durum)" title="@DurumYazi(talep.Durum)" aria-label="@DurumYazi(talep.Durum)">
                                             <i class="@SurecIkonu(talep.Durum, talep.SiradakiKontrolNo)" aria-hidden="true"></i>
                                         </span>
-                                        <a class="ykc-next-action" href="@Url.Action("Detay", "Ykc", new { id = talep.Id })" title="@gerekenIslem">
+                                        <a class="ykc-next-action" href="@Url.Action("Detay", "Ykc", new { id = talep.Id, geri = SayfaUrl(filtre, aktifSayfa) })" title="@gerekenIslem">
                                             <span>@gerekenIslem</span><i class="bi bi-arrow-right" aria-hidden="true"></i>
                                         </a>
                                     </div>

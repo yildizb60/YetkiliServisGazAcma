@@ -89,9 +89,6 @@ namespace YetkiliServisGazAcma.Business.Services
             var dosyaAdi = $"yb_{firmaId}_{DateTime.UtcNow:yyyyMMddHHmmss}_{Guid.NewGuid():N}{uzanti}";
             var dosyaYolu = Path.Combine(klasor, dosyaAdi);
 
-            await using (var stream = new FileStream(dosyaYolu, FileMode.CreateNew))
-                await dosya.CopyToAsync(stream);
-
             var yetkiBelgesi = new Ys_YetkiBelgesi
             {
                 FirmaId = firmaId,
@@ -104,14 +101,22 @@ namespace YetkiliServisGazAcma.Business.Services
                 SilindiMi = false
             };
 
-            _context.Ys_YetkiBelgeleri.Add(yetkiBelgesi);
+            var dosyaOlusturuldu = false;
             try
             {
+                await using (var stream = new FileStream(dosyaYolu, FileMode.CreateNew))
+                {
+                    dosyaOlusturuldu = true;
+                    await dosya.CopyToAsync(stream);
+                }
+
+                _context.Ys_YetkiBelgeleri.Add(yetkiBelgesi);
                 await _context.SaveChangesAsync();
             }
             catch
             {
-                if (File.Exists(dosyaYolu))
+                _context.Entry(yetkiBelgesi).State = EntityState.Detached;
+                if (dosyaOlusturuldu && File.Exists(dosyaYolu))
                     File.Delete(dosyaYolu);
                 throw;
             }

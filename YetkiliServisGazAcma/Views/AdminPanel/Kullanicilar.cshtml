@@ -5,7 +5,7 @@
     ViewData["ActiveMenu"] = "Kullanicilar";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
-    var kullanicilar = ViewBag.Kullanicilar as List<YetkiliServisGazAcma.Entities.AppKullanici> ?? new();
+    var kullanicilar = ViewBag.Kullanicilar as List<AdminKullaniciListeDto> ?? new();
     var seciliQ = ViewBag.SeciliQ as string ?? "";
     var seciliTip = ViewBag.SeciliTip as string ?? "";
     var seciliDurum = ViewBag.SeciliDurum as string ?? "";
@@ -101,11 +101,11 @@
                             : kullanici.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin
                                 ? "Şirket Admini"
                                 : "Genel Sistem Admini";
-                    var bagli = kullanici.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis ? kullanici.Firma?.FirmaAdi : kullanici.Sirket?.SirketAdi;
+                    var bagli = kullanici.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis ? kullanici.FirmaAdi : kullanici.SirketAdi;
                     if (kullanici.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma)
                     {
                         tip = "Sertifikalı Firma";
-                        bagli = kullanici.Firma?.FirmaAdi;
+                        bagli = kullanici.FirmaAdi;
                     }
 
                     var kullaniciIslemYapilabilir = genelSistemAdminMi ||

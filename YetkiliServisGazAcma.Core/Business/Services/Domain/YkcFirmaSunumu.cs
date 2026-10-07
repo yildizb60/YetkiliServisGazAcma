@@ -6,6 +6,7 @@ public static class YkcFirmaSunumu
     {
         if (!resmiForm)
         {
+            talep.ProjeNo = null;
             talep.EskiCihaz = null;
             talep.ProjedekiCihazBilgisi = null;
             talep.EskiCihazTipi = null;

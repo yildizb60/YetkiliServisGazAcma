@@ -6,10 +6,10 @@
     ViewData["ActiveMenu"] = "OnayBekleyenler";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
-    var bekleyenler = ViewBag.Bekleyenler as List<Ys_YetkiBelgesi> ?? new List<Ys_YetkiBelgesi>();
-    var onaylananlar = ViewBag.Onaylananlar as List<Ys_YetkiBelgesi> ?? new List<Ys_YetkiBelgesi>();
-    var reddedilenler = ViewBag.Reddedilenler as List<Ys_YetkiBelgesi> ?? new List<Ys_YetkiBelgesi>();
-    var suresiDolanlar = ViewBag.SuresiDolanlar as List<Ys_YetkiBelgesi> ?? new List<Ys_YetkiBelgesi>();
+    var bekleyenler = ViewBag.Bekleyenler as List<AdminYetkiBelgesiOnayDto> ?? new List<AdminYetkiBelgesiOnayDto>();
+    var onaylananlar = ViewBag.Onaylananlar as List<AdminYetkiBelgesiOnayDto> ?? new List<AdminYetkiBelgesiOnayDto>();
+    var reddedilenler = ViewBag.Reddedilenler as List<AdminYetkiBelgesiOnayDto> ?? new List<AdminYetkiBelgesiOnayDto>();
+    var suresiDolanlar = ViewBag.SuresiDolanlar as List<AdminYetkiBelgesiOnayDto> ?? new List<AdminYetkiBelgesiOnayDto>();
     var listelenenBelgeSayisi = bekleyenler.Concat(onaylananlar).Concat(reddedilenler).Concat(suresiDolanlar)
         .Select(x => x.Id).Distinct().Count();
 }
@@ -60,16 +60,16 @@
     </details>
 
         <div data-panel="bekleyen" class="active" id="admin-approval-waiting" role="tabpanel" aria-labelledby="admin-approval-waiting-tab">
-            @await Html.PartialAsync("~/Views/Shared/_YetkiBelgesiOnayTable.cshtml", new Tuple<List<Ys_YetkiBelgesi>, string, string>(bekleyenler, "bekleyen", "admin"))
+            @await Html.PartialAsync("~/Views/Shared/_YetkiBelgesiOnayTable.cshtml", new Tuple<IReadOnlyList<YetkiBelgesiKayitDto>, string, string>(bekleyenler, "bekleyen", "admin"))
         </div>
         <div data-panel="onaylanan" id="admin-approval-approved" role="tabpanel" aria-labelledby="admin-approval-approved-tab">
-            @await Html.PartialAsync("~/Views/Shared/_YetkiBelgesiOnayTable.cshtml", new Tuple<List<Ys_YetkiBelgesi>, string, string>(onaylananlar, "onaylanan", "admin"))
+            @await Html.PartialAsync("~/Views/Shared/_YetkiBelgesiOnayTable.cshtml", new Tuple<IReadOnlyList<YetkiBelgesiKayitDto>, string, string>(onaylananlar, "onaylanan", "admin"))
         </div>
         <div data-panel="reddedilen" id="admin-approval-rejected" role="tabpanel" aria-labelledby="admin-approval-rejected-tab">
-            @await Html.PartialAsync("~/Views/Shared/_YetkiBelgesiOnayTable.cshtml", new Tuple<List<Ys_YetkiBelgesi>, string, string>(reddedilenler, "reddedilen", "admin"))
+            @await Html.PartialAsync("~/Views/Shared/_YetkiBelgesiOnayTable.cshtml", new Tuple<IReadOnlyList<YetkiBelgesiKayitDto>, string, string>(reddedilenler, "reddedilen", "admin"))
         </div>
         <div data-panel="suresi-dolan" id="admin-approval-expired" role="tabpanel" aria-labelledby="admin-approval-expired-tab">
-            @await Html.PartialAsync("~/Views/Shared/_YetkiBelgesiOnayTable.cshtml", new Tuple<List<Ys_YetkiBelgesi>, string, string>(suresiDolanlar, "suresi-dolan", "admin"))
+            @await Html.PartialAsync("~/Views/Shared/_YetkiBelgesiOnayTable.cshtml", new Tuple<IReadOnlyList<YetkiBelgesiKayitDto>, string, string>(suresiDolanlar, "suresi-dolan", "admin"))
         </div>
     </section>
 </div>

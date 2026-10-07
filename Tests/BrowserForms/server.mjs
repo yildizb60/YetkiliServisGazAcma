@@ -12,6 +12,7 @@ const files = new Map([
     ['/branch.js', 'wwwroot/js/branch-sheet.js'],
     ['/branch.css', 'wwwroot/css/branch-editor.css'],
     ['/login.css', 'wwwroot/css/login.css'],
+    ['/login.js', 'wwwroot/js/login-flow.js'],
     ['/registration.css', 'wwwroot/css/registration.css'],
     ['/permission.js', 'Views/AdminPanel/YetkiDuzenle.cshtml'],
     ['/appointment.js', 'Views/Ykc/Detay.cshtml'],
@@ -41,6 +42,14 @@ createServer(async (request, response) => {
         } else if (path === '/') {
             response.setHeader('Content-Type', 'text/html; charset=utf-8');
             response.end(await readFile(new URL('regression.html', import.meta.url)));
+        } else if (path === '/login-fixture.json') {
+            const source = await readFile(new URL('Views/Giris/Index.cshtml', app), 'utf8');
+            const form = source.match(/<form[^>]+id="login-form">[\s\S]*?<\/form>/)?.[0]
+                .replace('@Html.AntiForgeryToken()', '<input type="hidden" name="__RequestVerificationToken" value="test-token">');
+            const registration = source.match(/<div class="login-registration"[^>]*>[\s\S]*?<\/div>/)?.[0];
+            if (!form || !registration) throw new Error('Login fixture source changed');
+            response.setHeader('Content-Type', 'application/json');
+            response.end(JSON.stringify({ source, markup: `<main class="login-shell"><section class="login-side"><div class="login-card"><header class="login-card-head"><h1>Giris</h1></header>${form}${registration}</div></section></main>` }));
         } else if (path === '/request-view.html') {
             const view = await readFile(new URL('Views/Ykc/Yeni.cshtml', app), 'utf8');
             response.setHeader('Content-Type', 'text/html; charset=utf-8');

@@ -7,7 +7,7 @@
 <ol id="results"></ol>
 <script type="module">
     const assert = (condition, message) => { if (!condition) throw new Error(message); };
-    const scripts = Object.fromEntries(await Promise.all(['toast', 'drawer', 'branch', 'permission', 'appointment', 'report', 'dropdown', 'commissioning', 'request'].map(async name =>
+    const scripts = Object.fromEntries(await Promise.all(['toast', 'drawer', 'branch', 'permission', 'appointment', 'report', 'dropdown', 'commissioning', 'request', 'login'].map(async name =>
         [name, await (await fetch(`/${name}.js`)).text()])));
     const reportCss = await (await fetch('/report.css')).text();
     const requestCss = await (await fetch('/request.css')).text();
@@ -27,6 +27,7 @@
         await (await fetch(`/${name}.css`)).text()))).join('\n');
     const limits = await (await fetch('/appointment-limits.json')).json();
     const permissionFixture = await (await fetch('/permission-fixture.json')).json();
+    const loginFixture = await (await fetch('/login-fixture.json')).json();
     const previewTest = new URLSearchParams(location.search).get('preview');
     let passed = 0, failed = 0;
 
@@ -63,6 +64,45 @@
         }
     }
 
+    await test('Sign-in uses one role-independent form and keeps registration available', (doc, win, load) => {
+        assert(!/data-login-mode|role="tab(?:list|panel)?"/.test(loginFixture.source), 'Sign-in still requires role tabs');
+        doc.body.innerHTML = loginFixture.markup;
+        load('login');
+        assert(doc.querySelectorAll('#login-form').length === 1, 'A single login form is required');
+        assert(!doc.querySelector('#kullanici-adi').value && !doc.querySelector('#sifre').value, 'Login preselects a development account');
+        assert(!doc.querySelector('.login-registration').hidden, 'Registration depends on a removed role tab');
+        assert(doc.querySelector('.login-register').getAttribute('href') === '/kayit/yetkili-servis', 'Registration destination changed');
+        assert(!doc.querySelector('[name="rol"], [name="role"]'), 'Client supplies an authentication role');
+    });
+
+    await test('Unified login retains POST, antiforgery and error-to-OTP transitions', async (doc, win, load) => {
+        doc.body.innerHTML = loginFixture.markup;
+        const requests = [];
+        win.fetch = async (url, options) => {
+            requests.push(options);
+            return { ok: true, url: new URL('/giris', win.location.href).href,
+                text: async () => requests.length === 1
+                    ? loginFixture.markup.replace('<h1>Giris</h1>', '<h1>Giris</h1><p class="login-message is-error">Giris bilgileri gecersiz</p>')
+                    : '<main class="login-shell"><div class="login-card"><h1>Dogrulama Kodu</h1><form method="post" action="/giris/sms-dogrula"><input name="kod"><button type="submit">Tamamla</button></form></div></main>' };
+        };
+        load('login');
+        for (let attempt = 0; attempt < 2; attempt++) {
+            doc.querySelector('#kullanici-adi').value = 'login@example.test';
+            doc.querySelector('#sifre').value = 'fixture-only';
+            doc.querySelector('#login-form').requestSubmit();
+            await new Promise(resolve => win.setTimeout(resolve, 0));
+            assert(requests[attempt].method === 'POST', 'Login no longer posts');
+            assert(requests[attempt].body.get('__RequestVerificationToken') === 'test-token', 'Antiforgery token was lost');
+            assert(requests[attempt].body.get('kullaniciAdi') === 'login@example.test', 'Username was lost');
+            if (attempt === 0) {
+                assert(doc.querySelector('.login-message.is-error'), 'Server login error is not displayed');
+                assert(!doc.querySelector('.login-registration').hidden, 'Registration disappears after failed sign-in');
+            }
+        }
+        assert(doc.querySelector('form[action="/giris/sms-dogrula"]'), 'OTP transition depends on removed tabs');
+        assert(!doc.querySelector('[data-login-network-error]'), 'Removing role tabs caused a script error');
+    });
+
     for (const [width, height] of [[1280, 720], [1024, 650], [1920, 1080], [390, 844]]) {
         await test(`Registration showcase matches sign-in size at ${width}x${height}`, async (doc, win) => {
             win.frameElement.style.width = `${width}px`;
@@ -83,6 +123,10 @@
                 return;
             }
             const stages = visuals.map(visual => visual.querySelector('.login-showcase__stage'));
+            const [loginPanel, registrationPanel] = visuals.map(visual => visual.getBoundingClientRect());
+            assert(Math.abs(loginPanel.width - registrationPanel.width) <= 1
+                && Math.abs(loginPanel.height - registrationPanel.height) <= 1,
+                `Visual panel sizes differ: ${loginPanel.width}x${loginPanel.height} vs ${registrationPanel.width}x${registrationPanel.height}`);
             const [login, registration] = stages.map(stage => stage.getBoundingClientRect());
             assert(Math.abs(login.width - registration.width) <= 1 && Math.abs(login.height - registration.height) <= 1,
                 `Showcase sizes differ: ${login.width}x${login.height} vs ${registration.width}x${registration.height}`);
@@ -96,6 +140,51 @@
                 assert(Math.abs(parseFloat(first.width) - parseFloat(second.width)) <= 1
                     && Math.abs(parseFloat(first.height) - parseFloat(second.height)) <= 1, `${selector} scales differently between pages`);
             }
+        });
+    }
+
+    for (const [width, height] of [[1280, 720], [1024, 650], [1920, 1080], [390, 844]]) {
+        await test(`Registration fields keep compact spacing at ${width}x${height}`, async (doc, win) => {
+            win.frameElement.style.width = `${width}px`;
+            win.frameElement.style.height = `${height}px`;
+            const style = doc.createElement('style');
+            style.textContent = authCss;
+            doc.head.append(style);
+            doc.body.innerHTML = `<header class="login-topbar"></header>
+                <main class="login-shell login-shell--panel registration-shell">
+                <section class="login-visual"><div class="login-showcase__stage"></div></section>
+                <section class="login-side registration-side"><form class="login-card registration-card">
+                <header class="login-card-head registration-card-head"><h1>Yetkili Servis Kayit Ekrani</h1></header>
+                <div class="registration-progress"><button type="button">Firma bilgileri</button><button type="button">Yetki ve hesap</button></div>
+                <section class="registration-step-panel" data-registration-step="1"><div class="registration-field-grid">
+                ${['Firma / Kurum Adi', 'Yetkili Ad Soyad', 'VKN', 'T.C. kimlik no', 'E-posta', 'Telefon', 'Il', 'Ilce', 'Adres'].map((label, index) =>
+                    `<div class="registration-field ${index === 8 ? 'is-address' : ''}"><label for="field-${index}">${label} *</label><input id="field-${index}"><small class="registration-field-error" hidden></small></div>`).join('')}
+                </div><footer class="registration-step-actions"><button class="registration-secondary" type="button">Girise Don</button><button class="registration-primary" type="button">Devam Et</button></footer>
+                </section></form></section></main>`;
+            await new Promise(resolve => win.requestAnimationFrame(resolve));
+            const fields = [...doc.querySelectorAll('.registration-field')];
+            const columns = width > 620 ? 2 : 1;
+            const measure = () => {
+                for (let i = 0; i < fields.length - columns; i++) {
+                    const current = fields[i].getBoundingClientRect();
+                    const next = fields[i + columns].getBoundingClientRect();
+                    const gap = next.top - current.bottom;
+                    assert(gap >= 6 && gap <= 11, `Field rows stretch apart: ${gap}px`);
+                }
+                const grid = doc.querySelector('.registration-field-grid');
+                assert(grid.scrollHeight <= grid.clientHeight + 1, 'Normal registration fields require an inner scrollbar');
+                const footer = doc.querySelector('.registration-step-actions').getBoundingClientRect();
+                const address = fields.at(-1).getBoundingClientRect();
+                assert(footer.top - address.bottom <= 17, 'Unnecessary space remains before the next-step actions');
+                assert(doc.documentElement.scrollWidth <= width + 1, 'Registration overflows horizontally');
+                if (width > 980) assert(footer.bottom <= height, 'Next-step actions fall below the viewport');
+            };
+            measure();
+            const error = fields[3].querySelector('.registration-field-error');
+            error.hidden = false;
+            error.textContent = 'Kimlik numarasi 11 haneli olmalidir.';
+            await new Promise(resolve => win.requestAnimationFrame(resolve));
+            measure();
         });
     }
 
@@ -362,6 +451,48 @@
                 dialog.dispatchEvent(new win.Event('cancel', {cancelable:true}));
                 await new Promise(resolve => win.setTimeout(resolve, 210));
                 assert(!dialog.open && !doc.documentElement.classList.contains('df-sheet-open'), 'Escape leaves the page scroll locked');
+            });
+        }
+    }
+    for (const admin of [true, false]) {
+        for (const width of [1280, 375]) {
+            await test(`Rejected branch save preserves all fields and list context, admin=${admin}, width=${width}`, async (doc, win, load) => {
+                win.frameElement.style.width = `${width}px`;
+                const dialog = branchFixture(doc, admin);
+                win.history.replaceState({}, '', '/?q=branch&firmaId=10#list');
+                load('branch');
+                doc.querySelector('[data-branch-add]').click();
+                const form = dialog.querySelector('form');
+                form.elements.subeAdi.value = 'Edited branch';
+                form.elements.il.value = 'City';
+                form.elements.ilce.value = 'District';
+                form.elements.telefon.value = '05550000000';
+                form.elements.adres.value = 'Full address';
+                form.elements.aktifMi.checked = false;
+                let calls = 0, complete;
+                win.fetch = (url, options) => {
+                    calls++;
+                    assert(options.method === 'POST' && options.credentials === 'same-origin', 'Save must keep authenticated scope');
+                    assert(options.body.get('__RequestVerificationToken') === 'fixture-token'
+                        && options.body.get('subeAdi') === 'Edited branch' && !options.body.has('aktifMi'), 'Posted draft or antiforgery token changed');
+                    return new Promise(resolve => { complete = resolve; });
+                };
+                form.requestSubmit();
+                form.dispatchEvent(new win.Event('submit', { bubbles:true, cancelable:true }));
+                assert(calls === 1 && form.querySelector('[type=submit]').disabled, 'Duplicate pending save was sent');
+                complete({ ok:true, redirected:false, headers:new win.Headers({'content-type':'application/json'}),
+                    json:async () => ({basarili:false, mesaj:'<b>Fixture validation error</b>'}) });
+                await new Promise(resolve => win.setTimeout(resolve, 0));
+                const error = form.querySelector('[role=alert]');
+                assert(error && !error.querySelector('b') && error.textContent.includes('<b>'), 'Error content must be shown as text, not HTML');
+                assert(dialog.open && form.elements.adres.value === 'Full address' && form.elements.telefon.value === '05550000000'
+                    && !form.elements.aktifMi.checked && !form.querySelector('[type=submit]').disabled, 'Failed save changed or disabled the form');
+                assert(win.location.search === '?q=branch&firmaId=10' && win.location.hash === '#list', 'Failed save lost list filters');
+                win.fetch = async () => { throw new TypeError('Network unavailable'); };
+                form.requestSubmit();
+                await new Promise(resolve => win.setTimeout(resolve, 0));
+                assert(form.querySelectorAll('[role=alert]').length === 1 && form.elements.subeAdi.value === 'Edited branch', 'Network retry erased the draft or accumulated alerts');
+                assert(dialog.scrollWidth <= dialog.clientWidth + 1, 'Error creates horizontal scrolling');
             });
         }
     }

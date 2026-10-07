@@ -6,6 +6,7 @@ namespace YetkiliServisGazAcma.Business.Services
     public class AktifSirketService
     {
         private const string SessionPrefix = "AktifSirketId:";
+        private readonly Dictionary<string, Task<List<PanelSirketDto>?>> _sirketler = new();
 
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ApiKullaniciOturumu _kullaniciOturumu;
@@ -52,13 +53,14 @@ namespace YetkiliServisGazAcma.Business.Services
             return await _kullaniciOturumu.IsInRoleAsync(kullanici, KullaniciRolAdlari.SirketAdmin);
         }
 
-        public async Task<List<Dag_Sirket>> KullaniciSirketleriAsync(AppKullanici? kullanici)
+        public async Task<List<PanelSirketDto>> KullaniciSirketleriAsync(AppKullanici? kullanici)
         {
             if (kullanici == null)
-                return new List<Dag_Sirket>();
+                return new List<PanelSirketDto>();
 
-            return await _panelKapsamApiClient.KullaniciSirketleriAsync(kullanici)
-                ?? new List<Dag_Sirket>();
+            if (!_sirketler.TryGetValue(kullanici.Id, out var task))
+                _sirketler[kullanici.Id] = task = _panelKapsamApiClient.KullaniciSirketleriAsync(kullanici);
+            return await task ?? new List<PanelSirketDto>();
         }
 
         public async Task<int?> AktifSirketIdAsync(AppKullanici? kullanici)

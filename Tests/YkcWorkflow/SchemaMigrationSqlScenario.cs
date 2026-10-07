@@ -76,7 +76,11 @@ internal static class SchemaMigrationSqlScenario
             {
                 await using var sqlConnection = new SqlConnection(connection);
                 await sqlConnection.OpenAsync();
-                foreach (var batch in Regex.Split(sql, @"^\s*GO\s*$", RegexOptions.Multiline | RegexOptions.IgnoreCase))
+                foreach (var batch in Regex.Split(
+                    sql,
+                    @"^\s*GO\s*$",
+                    RegexOptions.Multiline | RegexOptions.IgnoreCase,
+                    TimeSpan.FromSeconds(2)))
                 {
                     if (string.IsNullOrWhiteSpace(batch)) continue;
                     await using var command = new SqlCommand(batch, sqlConnection);

@@ -7,10 +7,12 @@ namespace YetkiliServisGazAcma.Business.Services
     public class AdminYetkiliServisListeService
     {
         private readonly AppDbContext _context;
+        private readonly SehirFirmaKoduService? _sehirFirmaKoduService;
 
-        public AdminYetkiliServisListeService(AppDbContext context)
+        public AdminYetkiliServisListeService(AppDbContext context, SehirFirmaKoduService? sehirFirmaKoduService = null)
         {
             _context = context;
+            _sehirFirmaKoduService = sehirFirmaKoduService;
         }
 
         public async Task<AdminYetkiliServisListeSonuc> ListeleAsync(AdminYetkiliServisListeFiltre filtre)
@@ -97,6 +99,7 @@ namespace YetkiliServisGazAcma.Business.Services
             return new AdminYetkiliServisListeSonuc
             {
                 Servisler = servisler,
+                Sehirler = _sehirFirmaKoduService?.Sehirler() ?? new List<string>(),
                 DevreyeSayilari = devreyeSayilari,
                 Ilceler = ilceler
             };
@@ -171,6 +174,7 @@ namespace YetkiliServisGazAcma.Business.Services
     public class AdminYetkiliServisListeSonuc
     {
         public List<Ys_Firma> Servisler { get; set; } = new();
+        public List<string> Sehirler { get; set; } = new();
         public Dictionary<int, int> DevreyeSayilari { get; set; } = new();
         public Dictionary<int, string> Ilceler { get; set; } = new();
     }

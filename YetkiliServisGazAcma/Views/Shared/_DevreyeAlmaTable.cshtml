@@ -1,4 +1,4 @@
-@model List<YetkiliServisGazAcma.Entities.Ys_DevreyeAlma>
+@model IReadOnlyList<DevreyeAlmaKayitDto>
 @{
     var alan = ViewData["DevreyeAlmaAlan"] as string ?? "/personel-panel";
     var servisPaneli = alan == "/ys-devreyeal";
@@ -36,7 +36,7 @@
             var durumYazi = d.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? "Tamamlandı" : d.Durum == DevreyeAlmaDurumDegerleri.Iptal ? "İptal" : "Bekliyor";
             var durumSinif = d.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi ? "df-pill-success" : d.Durum == DevreyeAlmaDurumDegerleri.Iptal ? "df-pill-danger" : "df-pill-warning";
             var tarihVar = d.DevreyeAlmaTarihi.Year > 1900;
-            var cihazMarka = d.CihazMarka ?? d.Marka?.MarkaAdi;
+            var cihazMarka = d.CihazMarka ?? d.MarkaAdi;
             var cihazModeli = string.Equals(d.CihazModeli?.Trim(), cihazMarka?.Trim(), StringComparison.OrdinalIgnoreCase)
                 || string.Equals(d.CihazModeli?.Trim(), d.CihazTipi?.Trim(), StringComparison.OrdinalIgnoreCase)
                     ? null
@@ -52,7 +52,7 @@
                 <td class="df-commissioning-col-contract"><span class="df-cell-value">@(d.SozlesmeNo ?? "-")</span></td>
                 @if (!servisPaneli)
                 {
-                    <td class="df-commissioning-col-company"><div class="df-cell-value">@(d.Firma?.FirmaAdi ?? "-")</div></td>
+                    <td class="df-commissioning-col-company"><div class="df-cell-value">@(d.FirmaAdi ?? "-")</div></td>
                 }
                 <td class="df-commissioning-col-type"><span class="df-device-type-tag">@DevreyeAlmaCihazTipiSunumu.Etiket(d.CihazTipi)</span></td>
                 <td class="df-commissioning-col-device"><dl class="df-device-facts"><div><dt>Marka:</dt><dd>@(string.IsNullOrWhiteSpace(cihazMarka) ? "-" : cihazMarka)</dd></div>@if (!string.IsNullOrWhiteSpace(cihazModeli)) { <div class="df-device-model"><dt>Model:</dt><dd title="@cihazModeli">@cihazModeli</dd></div> }</dl></td>

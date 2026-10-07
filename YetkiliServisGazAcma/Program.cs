@@ -31,11 +31,11 @@ builder.Services.AddControllersWithViews(options =>
     options.Filters.AddService<PanelKimlikActionFilter>();
 });
 
-builder.Services.AddScoped<SehirFirmaKodlari>();
 builder.Services.AddScoped<ApiKullaniciOturumu>();
 builder.Services.AddScoped<AktifSirketService>();
 builder.Services.AddScoped<PanelKimlikService>();
 builder.Services.AddScoped<PanelKimlikActionFilter>();
+builder.Services.AddScoped<PanelGorunumService>();
 builder.Services.AddScoped<ApiIntegrationExceptionFilter>();
 builder.Services.AddScoped<ApiJwtTokenService>();
 builder.Services.Configure<ApiIntegrationOptions>(builder.Configuration.GetSection("ApiIntegration"));

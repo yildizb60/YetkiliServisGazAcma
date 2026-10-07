@@ -5,7 +5,7 @@
     ViewData["ActiveMenu"] = "Personeller";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
-    var sirketler = ViewBag.Sirketler as List<YetkiliServisGazAcma.Entities.Dag_Sirket> ?? new();
+    var sirketler = ViewBag.Sirketler as List<AdminSirketSecenekDto> ?? new();
     string formAdSoyad = ViewBag.FormAdSoyad ?? "";
     string formEmail = ViewBag.FormEmail ?? "";
     string formTelefon = ViewBag.FormTelefon ?? "";

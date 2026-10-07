@@ -22,22 +22,6 @@ namespace YetkiliServisGazAcma.Controllers
             _devreyeAlmaApiClient = devreyeAlmaApiClient;
         }
 
-        private async Task SetBildirimler(AppKullanici kullanici)
-        {
-            try
-            {
-                var sonuc = await _devreyeAlmaApiClient.BildirimlerAsync(kullanici)
-                    ?? new YsDevreyeAlmaBildirimSonuc();
-
-                ViewBag.Bildirimler = sonuc.Bildirimler;
-                ViewBag.BildirimSayisi = sonuc.BildirimSayisi;
-            }
-            catch (ApiIntegrationException)
-            {
-                ViewBag.Bildirimler = new List<string>();
-                ViewBag.BildirimSayisi = 0;
-            }
-        }
 
         [HttpGet]
         [Route("")]
@@ -62,7 +46,6 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.Markalar = ekran.Markalar;
             ViewBag.Firma = ekran.Firma;
             ViewBag.Kullanici = kullanici;
-            await SetBildirimler(kullanici);
 
             return View("~/Views/DevreyeAlma/Index.cshtml");
         }
@@ -79,7 +62,7 @@ namespace YetkiliServisGazAcma.Controllers
             try
             {
                 var sonuc = await _devreyeAlmaApiClient.TesisatSorgulaAsync(kullanici, dto.TesistatNo, dto.SozlesmeNo);
-                return Json(sonuc ?? new YsTesisatSorguSonuc
+                return Json(sonuc ?? new YsTesisatSorguSonucDto
                 {
                     Basarili = false,
                     Mesaj = "Tesisat sorgulama API uzerinden tamamlanamadi."
@@ -154,7 +137,7 @@ namespace YetkiliServisGazAcma.Controllers
         [HttpPost]
         [Route("kaydet")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Kaydet(YsDevreyeAlmaKaydetIstek model)
+        public async Task<IActionResult> Kaydet(YsDevreyeAlmaKaydetDto model)
         {
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
@@ -181,7 +164,7 @@ namespace YetkiliServisGazAcma.Controllers
         [HttpPost]
         [Route("kaydet-json")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> KaydetJson([FromBody] YsDevreyeAlmaKaydetIstek model)
+        public async Task<IActionResult> KaydetJson([FromBody] YsDevreyeAlmaKaydetDto model)
         {
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Unauthorized();
@@ -210,7 +193,7 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null) return Redirect("/giris");
 
             var sonuc = await _devreyeAlmaApiClient.GecmisAsync(kullanici, marka, bas, bit, musteri, null, tesisat)
-                ?? new YsDevreyeAlmaGecmisSonuc();
+                ?? new YsDevreyeAlmaGecmisDto();
 
             var islemler = sonuc.Islemler;
 
@@ -226,7 +209,6 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.SeciliMusteri = musteri;
             ViewBag.SeciliTesisat = tesisat;
             ViewBag.Kullanici = kullanici;
-            await SetBildirimler(kullanici);
             return View("~/Views/DevreyeAlma/Gecmis.cshtml", islemler);
         }
     }

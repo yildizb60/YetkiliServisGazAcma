@@ -1,7 +1,7 @@
 @using YetkiliServisGazAcma.Entities
-@model Tuple<List<Ys_YetkiBelgesi>, string, string>
+@model Tuple<IReadOnlyList<YetkiBelgesiKayitDto>, string, string>
 @{
-    var kayitlar = Model.Item1 ?? new List<Ys_YetkiBelgesi>();
+    var kayitlar = Model.Item1 ?? Array.Empty<YetkiBelgesiKayitDto>();
     var durum = Model.Item2;
     var panel = Model.Item3;
     var bekleyen = durum == "bekleyen";
@@ -44,26 +44,26 @@
                 foreach (var s in kayitlar)
                 {
                     var baslangic = s.YetkiBelgesiBaslangicTarihi ?? s.OlusturmaTarihi;
-                    var kalanGun = (s.YetkiBelgesiBitisTarihi.Date - DateTime.Now.Date).Days;
+                    var kalanGun = (s.YetkiBelgesiBitisTarihi.GetValueOrDefault().Date - DateTime.Now.Date).Days;
                     var suresiDolmus = kalanGun < 0;
-                    var onaylanabilir = YetkiBelgesiService.OnaylanabilirMi(s, DateTime.Today);
+                    var onaylanabilir = s.Onaylanabilir;
                     var kalanYazi = kalanGun < 0 ? $"{Math.Abs(kalanGun)} gün geçti" : $"{kalanGun} gün kaldı";
                     var durumClass = s.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "is-approved" : s.Durum == YetkiBelgesiDurumDegerleri.Reddedildi ? "is-rejected" : suresiDolmus ? "is-expired" : "is-waiting";
                     var durumIcon = s.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "bi-check-circle" : s.Durum == YetkiBelgesiDurumDegerleri.Reddedildi ? "bi-x-circle" : suresiDolmus ? "bi-calendar-x" : "bi-hourglass-split";
                     var durumYazi = s.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "Onaylandı" : s.Durum == YetkiBelgesiDurumDegerleri.Reddedildi ? "Reddedildi" : suresiDolmus ? "Süresi doldu" : "Onay bekliyor";
-                    var firmaAdi = s.Firma?.FirmaAdi ?? "";
-                    var sirketAdi = s.Firma?.Sirket?.SirketAdi ?? "";
-                    var firmaAdres = s.Firma?.Adres ?? "";
-                    var vergiNo = s.Firma?.VergiNo ?? "";
+                    var firmaAdi = s.FirmaAdi ?? "";
+                    var sirketAdi = s.SirketAdi ?? "";
+                    var firmaAdres = s.FirmaAdres ?? "";
+                    var vergiNo = s.VergiNo ?? "";
                     var yukleme = s.OlusturmaTarihi.ToString("yyyy-MM-dd");
                     var baslangicFiltre = baslangic.ToString("yyyy-MM-dd");
-                    var bitisFiltre = s.YetkiBelgesiBitisTarihi.ToString("yyyy-MM-dd");
+                    var bitisFiltre = s.YetkiBelgesiBitisTarihi.GetValueOrDefault().ToString("yyyy-MM-dd");
                     var detailId = $"approval-detail-{panel}-{durum}-{s.Id}";
 
                     <tr data-approval-row="true"
                         data-firma="@firmaAdi"
                         data-sirket="@sirketAdi"
-                        data-adres="@($"{firmaAdres} {s.Firma?.FaaliyetIli}")"
+                        data-adres="@($"{firmaAdres} {s.FirmaFaaliyetIli}")"
                         data-vergi="@vergiNo"
                         data-yukleme="@yukleme"
                         data-baslangic="@baslangicFiltre"
@@ -77,7 +77,7 @@
                         <td>
                             <span class="df-approval-company-name">@(string.IsNullOrWhiteSpace(sirketAdi) ? "-" : sirketAdi)</span>
                         </td>
-                        <td><time datetime="@bitisFiltre">@s.YetkiBelgesiBitisTarihi.ToString("dd.MM.yyyy")</time></td>
+                        <td><time datetime="@bitisFiltre">@s.YetkiBelgesiBitisTarihi.GetValueOrDefault().ToString("dd.MM.yyyy")</time></td>
                         <td><time datetime="@yukleme">@s.OlusturmaTarihi.ToString("dd.MM.yyyy")</time></td>
                         <td>
                             <span class="df-certificate-status @durumClass"><i class="bi @durumIcon" aria-hidden="true"></i>@durumYazi</span>
@@ -133,9 +133,9 @@
                             <td colspan="7">
                                 <div class="df-approval-detail-grid">
                                     <div><span>Vergi No</span><strong>@(string.IsNullOrWhiteSpace(vergiNo) ? "Tanımlı değil" : vergiNo)</strong></div>
-                                    <div><span>Yetkili Kişi</span><strong>@(string.IsNullOrWhiteSpace(s.Firma?.YetkiliKisi) ? "Tanımlı değil" : s.Firma.YetkiliKisi)</strong></div>
-                                    <div><span>Telefon</span><strong>@(string.IsNullOrWhiteSpace(s.Firma?.Telefon) ? "Tanımlı değil" : s.Firma.Telefon)</strong></div>
-                                    <div><span>İl</span><strong>@(string.IsNullOrWhiteSpace(s.Firma?.FaaliyetIli) ? "Tanımlı değil" : s.Firma.FaaliyetIli)</strong></div>
+                                    <div><span>Yetkili Kişi</span><strong>@(string.IsNullOrWhiteSpace(s.FirmaYetkiliKisi) ? "Tanımlı değil" : s.FirmaYetkiliKisi)</strong></div>
+                                    <div><span>Telefon</span><strong>@(string.IsNullOrWhiteSpace(s.FirmaTelefon) ? "Tanımlı değil" : s.FirmaTelefon)</strong></div>
+                                    <div><span>İl</span><strong>@(string.IsNullOrWhiteSpace(s.FirmaFaaliyetIli) ? "Tanımlı değil" : s.FirmaFaaliyetIli)</strong></div>
                                     <div class="@(suresiDolmus ? "is-expired" : "is-valid")"><span>Bitiş Durumu</span><strong>@kalanYazi</strong></div>
                                     <div class="is-wide"><span>Firma Adresi</span><strong>@(string.IsNullOrWhiteSpace(firmaAdres) ? "Tanımlı değil" : firmaAdres)</strong></div>
                                     @if (s.OnayTarihi.HasValue)

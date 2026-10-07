@@ -11,6 +11,7 @@ namespace YetkiliServisGazAcma.Entities
         public string? Vkn { get; set; }
         public string? FirmaKodu { get; set; }
         public string? KaynakTipi { get; set; } = "Manuel";
+        public string? SorguReferansi { get; set; }
 
         public string? TesisatNo { get; set; }
         public string? SozlesmeNo { get; set; }

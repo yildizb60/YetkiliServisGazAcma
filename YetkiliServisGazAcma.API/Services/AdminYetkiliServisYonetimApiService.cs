@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using YetkiliServisGazAcma.API.Controllers;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
@@ -19,16 +18,54 @@ namespace YetkiliServisGazAcma.API.Services
             _sehirFirmaKoduService = sehirFirmaKoduService;
         }
 
-        public async Task<AdminIslemSonucDto> EkleAsync(
+        public async Task<AdminYetkiliServisEditorDto?> EditorAsync(int id, int? kapsamSirketId)
+        {
+            if (id < 0) return null;
+            Ys_Firma? firma = null;
+            if (id > 0)
+            {
+                firma = await _context.Ys_Firmalar.AsNoTracking().AsSplitQuery()
+                    .Include(x => x.Sirket)
+                    .Include(x => x.FirmaMarkalar!).ThenInclude(x => x.Marka)
+                    .Include(x => x.FirmaKategoriler!).ThenInclude(x => x.Kategori)
+                    .SingleOrDefaultAsync(x => x.Id == id && !x.SilindiMi
+                        && (kapsamSirketId == null || x.SirketId == kapsamSirketId));
+                if (firma == null) return null;
+            }
+
+            var markaIds = firma?.FirmaMarkalar?.Where(x => !x.SilindiMi && x.Marka is { SilindiMi: false })
+                .Select(x => x.MarkaId).Distinct().ToList() ?? new List<int>();
+            var kategoriIds = firma?.FirmaKategoriler?.Where(x => !x.SilindiMi)
+                .Select(x => x.KategoriId).Distinct().ToList() ?? new List<int>();
+            return new AdminYetkiliServisEditorDto
+            {
+                Servis = firma == null ? new AdminYetkiliServisDto { AktifMi = true } : AdminYetkiliServisDto.FromEntity(firma),
+                Sehirler = _sehirFirmaKoduService.Sehirler(),
+                SehirFirmaKodlari = _sehirFirmaKoduService.TumKodlar(),
+                SeciliMarkaIds = markaIds,
+                SeciliKategoriIds = kategoriIds,
+                Markalar = await _context.Ys_Markalar.AsNoTracking()
+                    .Where(x => !x.SilindiMi && (x.AktifMi || markaIds.Contains(x.Id)))
+                    .OrderBy(x => x.MarkaAdi)
+                    .Select(x => new MarkaApiDto { Id = x.Id, MarkaAdi = x.MarkaAdi, AktifMi = x.AktifMi, Aciklama = x.Aciklama })
+                    .ToListAsync(),
+                Kategoriler = await _context.UrunKategoriler.AsNoTracking()
+                    .Where(x => !x.SilindiMi && x.AktifMi).OrderBy(x => x.SiraNo).ThenBy(x => x.Ad)
+                    .Select(x => new AdminYetkiliServisKategoriDto { Id = x.Id, Ad = x.Ad, IconUrl = x.IconUrl })
+                    .ToListAsync()
+            };
+        }
+
+        public async Task<ApiIslemSonuc> EkleAsync(
             AdminYetkiliServisKaydetDto? dto,
             AppKullanici kullanici,
             int? kapsamSirketId)
         {
             if (dto == null || string.IsNullOrWhiteSpace(dto.FirmaAdi))
-                return AdminIslemSonucDto.Basarisiz("Firma adi zorunludur.");
+                return ApiIslemSonuc.Basarisiz("Firma adi zorunludur.");
 
-            if (!await KategoriIdsGecerliMi(dto.KategoriIds))
-                return AdminIslemSonucDto.Basarisiz("Geçersiz hizmet türü seçildi.");
+            if (!await FirmaYetkiIliskileri.GecerliMiAsync(_context, dto.KategoriIds, dto.MarkaIds))
+                return ApiIslemSonuc.Basarisiz("Geçersiz marka veya hizmet türü seçildi.");
 
             if (!string.IsNullOrWhiteSpace(dto.VergiNo))
             {
@@ -37,7 +74,7 @@ namespace YetkiliServisGazAcma.API.Services
                     x.VergiNo == dto.VergiNo.Trim());
 
                 if (vknVar)
-                    return AdminIslemSonucDto.Basarisiz("Bu VKN ile kayitli bir yetkili servis zaten var.");
+                    return ApiIslemSonuc.Basarisiz("Bu VKN ile kayitli bir yetkili servis zaten var.");
             }
 
             var kullaniciAdi = kullanici.UserName ?? "api";
@@ -67,35 +104,33 @@ namespace YetkiliServisGazAcma.API.Services
             _context.Ys_Firmalar.Add(yeni);
             await _context.SaveChangesAsync();
 
-            await YetkiliServisIliskileriniYenileAsync(
+            await FirmaYetkiIliskileri.GuncelleAsync(_context,
                 yeni.Id,
                 dto.KategoriIds,
                 dto.MarkaIds,
-                kullaniciAdi,
-                kategoriSil: false,
-                markaSil: false);
+                kullaniciAdi);
 
             await _context.SaveChangesAsync();
-            return AdminIslemSonucDto.BasariliSonuc("Servis kaydedildi. Giris hesabi Kullanicilar bolumunden olusturulur.");
+            return ApiIslemSonuc.BasariliSonuc("Servis kaydedildi. Giris hesabi Kullanicilar bolumunden olusturulur.");
         }
 
-        public async Task<AdminIslemSonucDto> GuncelleAsync(
+        public async Task<ApiIslemSonuc> GuncelleAsync(
             AdminYetkiliServisKaydetDto? dto,
             AppKullanici kullanici,
             int? kapsamSirketId)
         {
             if (dto == null || dto.Id <= 0 || string.IsNullOrWhiteSpace(dto.FirmaAdi))
-                return AdminIslemSonucDto.Basarisiz("Yetkili servis ve firma adi zorunludur.");
+                return ApiIslemSonuc.Basarisiz("Yetkili servis ve firma adi zorunludur.");
 
-            if (!await KategoriIdsGecerliMi(dto.KategoriIds))
-                return AdminIslemSonucDto.Basarisiz("Geçersiz hizmet türü seçildi.");
+            if (!await FirmaYetkiIliskileri.GecerliMiAsync(_context, dto.KategoriIds, dto.MarkaIds))
+                return ApiIslemSonuc.Basarisiz("Geçersiz marka veya hizmet türü seçildi.");
 
             var servis = await _context.Ys_Firmalar
                 .FirstOrDefaultAsync(x => x.Id == dto.Id && !x.SilindiMi
                     && (kapsamSirketId == null || x.SirketId == kapsamSirketId.Value));
 
             if (servis == null)
-                return AdminIslemSonucDto.Basarisiz("Yetkili servis bulunamadi.");
+                return ApiIslemSonuc.Basarisiz("Yetkili servis bulunamadi.");
 
             if (!string.IsNullOrWhiteSpace(dto.VergiNo))
             {
@@ -105,7 +140,7 @@ namespace YetkiliServisGazAcma.API.Services
                     x.VergiNo == dto.VergiNo.Trim());
 
                 if (vknVar)
-                    return AdminIslemSonucDto.Basarisiz("Bu VKN ile kayitli baska bir yetkili servis var.");
+                    return ApiIslemSonuc.Basarisiz("Bu VKN ile kayitli baska bir yetkili servis var.");
             }
 
             var kullaniciAdi = kullanici.UserName ?? "api";
@@ -127,119 +162,44 @@ namespace YetkiliServisGazAcma.API.Services
             servis.GuncellemeTarihi = DateTime.Now;
             servis.GuncelleyenKullanici = kullaniciAdi;
 
-            await YetkiliServisIliskileriniYenileAsync(
+            await FirmaYetkiIliskileri.GuncelleAsync(_context,
                 servis.Id,
                 dto.KategoriIds,
                 dto.MarkaIds,
-                kullaniciAdi,
-                kategoriSil: dto.KategoriIds != null,
-                markaSil: dto.MarkaIds != null);
+                kullaniciAdi);
 
             await _context.SaveChangesAsync();
-            return AdminIslemSonucDto.BasariliSonuc("Yetkili servis guncellendi.");
+            return ApiIslemSonuc.BasariliSonuc("Yetkili servis guncellendi.");
         }
 
-        public async Task<AdminIslemSonucDto> SilAsync(
+        public async Task<ApiIslemSonuc> SilAsync(
             AdminYetkiliServisDurumDto? dto,
             AppKullanici kullanici,
             int? kapsamSirketId)
         {
             if (dto == null || dto.Id <= 0)
-                return AdminIslemSonucDto.Basarisiz("Yetkili servis id zorunludur.");
+                return ApiIslemSonuc.Basarisiz("Yetkili servis id zorunludur.");
 
             var servis = await _context.Ys_Firmalar
                 .FirstOrDefaultAsync(x => x.Id == dto.Id && !x.SilindiMi
                     && (kapsamSirketId == null || x.SirketId == kapsamSirketId.Value));
 
             if (servis == null)
-                return AdminIslemSonucDto.Basarisiz("Yetkili servis bulunamadi.");
+                return ApiIslemSonuc.Basarisiz("Yetkili servis bulunamadi.");
 
             var devreyeAlmaVar = await _context.Ys_DevreyeAlmalar
                 .AnyAsync(x => !x.SilindiMi && x.FirmaId == servis.Id);
 
             if (devreyeAlmaVar)
-                return AdminIslemSonucDto.Basarisiz("Bu yetkili servis uzerinde devreye alma islemi oldugu icin silinemez.");
+                return ApiIslemSonuc.Basarisiz("Bu yetkili servis uzerinde devreye alma islemi oldugu icin silinemez.");
 
             servis.SilindiMi = true;
             servis.SilinmeTarihi = DateTime.Now;
             servis.SilenKullanici = kullanici.UserName ?? "api";
 
             await _context.SaveChangesAsync();
-            return AdminIslemSonucDto.BasariliSonuc("Yetkili servis silindi.");
+            return ApiIslemSonuc.BasariliSonuc("Yetkili servis silindi.");
         }
 
-        private async Task<bool> KategoriIdsGecerliMi(List<int>? kategoriIds)
-        {
-            if (kategoriIds == null)
-                return true;
-
-            var secilenIds = kategoriIds.Distinct().ToList();
-            var gecerliSayi = await _context.UrunKategoriler
-                .CountAsync(x => secilenIds.Contains(x.Id) && !x.SilindiMi && x.AktifMi);
-            return gecerliSayi == secilenIds.Count;
-        }
-
-        private async Task YetkiliServisIliskileriniYenileAsync(
-            int firmaId,
-            List<int>? kategoriIds,
-            List<int>? markaIds,
-            string kullanici,
-            bool kategoriSil,
-            bool markaSil)
-        {
-            if (kategoriIds != null || kategoriSil)
-            {
-                var mevcutKategoriler = await _context.Ys_FirmaKategoriler
-                    .Where(x => x.FirmaId == firmaId)
-                    .ToListAsync();
-
-                _context.Ys_FirmaKategoriler.RemoveRange(mevcutKategoriler);
-
-                var gecerliKategoriIds = await _context.UrunKategoriler
-                    .Where(x => !x.SilindiMi && x.AktifMi && kategoriIds != null && kategoriIds.Contains(x.Id))
-                    .Select(x => x.Id)
-                    .ToListAsync();
-
-                foreach (var kategoriId in gecerliKategoriIds.Distinct())
-                {
-                    _context.Ys_FirmaKategoriler.Add(new Ys_FirmaKategori
-                    {
-                        FirmaId = firmaId,
-                        KategoriId = kategoriId,
-                        YetkiBitisTarihi = DateTime.Now.AddYears(5),
-                        OlusturmaTarihi = DateTime.Now,
-                        OlusturanKullanici = kullanici,
-                        SilindiMi = false
-                    });
-                }
-            }
-
-            if (markaIds != null || markaSil)
-            {
-                var mevcutMarkalar = await _context.Ys_FirmaMarkalar
-                    .Where(x => x.FirmaId == firmaId)
-                    .ToListAsync();
-
-                _context.Ys_FirmaMarkalar.RemoveRange(mevcutMarkalar);
-
-                var gecerliMarkaIds = await _context.Ys_Markalar
-                    .Where(x => !x.SilindiMi && markaIds != null && markaIds.Contains(x.Id))
-                    .Select(x => x.Id)
-                    .ToListAsync();
-
-                foreach (var markaId in gecerliMarkaIds.Distinct())
-                {
-                    _context.Ys_FirmaMarkalar.Add(new Ys_FirmaMarka
-                    {
-                        FirmaId = firmaId,
-                        MarkaId = markaId,
-                        YetkiBitisTarihi = DateTime.Now.AddYears(5),
-                        OlusturmaTarihi = DateTime.Now,
-                        OlusturanKullanici = kullanici,
-                        SilindiMi = false
-                    });
-                }
-            }
-        }
     }
 }

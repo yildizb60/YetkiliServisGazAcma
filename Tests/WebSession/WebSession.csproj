@@ -10,6 +10,11 @@
     <ProjectReference Include="../../YetkiliServisGazAcma.Core/YetkiliServisGazAcma.Core.csproj" />
     <Compile Include="../../YetkiliServisGazAcma/Business/Services/Panel/ApiKullaniciOturumu.cs" Link="ApiKullaniciOturumu.cs" />
     <Compile Include="../../YetkiliServisGazAcma/Business/Services/ApiClients/AuthApiClient.cs" Link="AuthApiClient.cs" />
+    <Compile Include="../../YetkiliServisGazAcma/Business/Services/ApiClients/ApiHttpClient.cs" Link="ApiHttpClient.cs" />
+    <Compile Include="../../YetkiliServisGazAcma/Business/Services/ApiClients/ApiIntegrationOptions.cs" Link="ApiIntegrationOptions.cs" />
+    <Compile Include="../../YetkiliServisGazAcma/Business/Services/ApiClients/ApiClientFallback.cs" Link="ApiClientFallback.cs" />
+    <Compile Include="../../YetkiliServisGazAcma/Business/Services/ApiClients/ApiDosyaSonuc.cs" Link="ApiDosyaSonuc.cs" />
+    <Compile Include="../../YetkiliServisGazAcma/Business/Services/ApiClients/ApiJwtTokenService.cs" Link="ApiJwtTokenService.cs" />
     <Using Include="Microsoft.AspNetCore.Http" />
     <Using Include="System.Net.Http.Json" />
   </ItemGroup>

@@ -8,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using YetkiliServisGazAcma.API.Controllers;
+using YetkiliServisGazAcma.API.Services;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
@@ -70,7 +71,9 @@ internal static class ServiceScopeSqlScenario
                 ["SehirFirmaKodlari:CityMissing"] = "COMPANY_MISSING"
             }).Build();
             var cities = new SehirFirmaKoduService(configuration, db);
-            YetkiliServislerController Controller(AppKullanici? user) => new(db, registration, cities)
+            YetkiliServislerController Controller(AppKullanici? user) => new(
+                new YetkiliServisRehberApiService(db), new YetkiliServisBasvuruApiService(db, registration, cities),
+                new YetkiliServisKayitYonetimApiService(db, cities))
             {
                 ControllerContext = new()
                 {

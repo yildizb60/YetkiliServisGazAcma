@@ -36,7 +36,7 @@ namespace YetkiliServisGazAcma.Controllers
                 return Redirect("/giris");
 
             var firmaId = kullanici.FirmaId ?? 0;
-            YetkiBelgesiFirmaEkraniSonuc? ekran;
+            YetkiBelgesiFirmaEkraniDto? ekran;
             try
             {
                 ekran = await _yetkiBelgesiApiClient.FirmaEkraniAsync(kullanici, firmaId);
@@ -52,7 +52,7 @@ namespace YetkiliServisGazAcma.Controllers
                 if (!TempData.ContainsKey("Hata"))
                     TempData["Hata"] = "Yetki belgesi bilgileri API uzerinden alinamadi.";
 
-                ekran = new YetkiBelgesiFirmaEkraniSonuc();
+                ekran = new YetkiBelgesiFirmaEkraniDto();
             }
 
             ViewBag.FirmaId = firmaId;
@@ -153,7 +153,7 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null) return Redirect("/giris");
 
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            YetkiBelgesiOnayEkraniSonuc? ekran;
+            YetkiBelgesiOnayEkraniDto? ekran;
             try
             {
                 ekran = await _yetkiBelgesiApiClient.OnayEkraniAsync(kullanici, sirketId);
@@ -222,7 +222,7 @@ namespace YetkiliServisGazAcma.Controllers
             return Redirect("/ys-yetki-belgesi/onay-bekleyenler");
         }
 
-        private void SetYetkiBelgesiIslemMesaji(YetkiBelgesiIslemSonuc? sonuc, string varsayilanBasari, string basariKey)
+        private void SetYetkiBelgesiIslemMesaji(ApiIslemSonuc? sonuc, string varsayilanBasari, string basariKey)
         {
             if (sonuc?.Basarili == true)
             {

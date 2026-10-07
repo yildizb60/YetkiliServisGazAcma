@@ -1,4 +1,4 @@
-@model YetkiliServisGazAcma.Entities.Ys_Firma
+@model AdminYetkiliServisDto
 @{
     ViewData["Title"] = "Yetkili Servis Düzenle";
     ViewData["PanelTitle"] = ViewData["Title"];
@@ -6,10 +6,10 @@
     ViewData["ActiveMenu"] = "YetkiliServisler";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
-    var servis = Model ?? ViewBag.Servis as YetkiliServisGazAcma.Entities.Ys_Firma;
+    var servis = Model ?? ViewBag.Servis as AdminYetkiliServisDto;
     var sehirler = ViewBag.Sehirler as List<string> ?? new();
     var sehirFirmaKodlari = ViewBag.SehirFirmaKodlari as Dictionary<string, string> ?? new();
-    var kategoriler = ViewBag.Kategoriler as List<YetkiliServisGazAcma.Entities.UrunKategori> ?? new();
+    var kategoriler = ViewBag.Kategoriler as List<AdminYetkiliServisKategoriDto> ?? new();
     var seciliKategoriler = ViewBag.SeciliKategoriler as List<int> ?? new();
 }
 

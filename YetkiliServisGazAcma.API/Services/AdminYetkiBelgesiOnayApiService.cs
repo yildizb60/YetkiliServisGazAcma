@@ -92,6 +92,48 @@ namespace YetkiliServisGazAcma.API.Services
             };
         }
 
+        public async Task<(byte[] Bytes, string ContentType, string DosyaAdi)?> RaporAsync(
+            YetkiBelgesiRaporFiltre filtre, int? sirketId, bool excelMi)
+        {
+            if (filtre.Tip is not ("bekleyen" or "onayli" or "reddedilen"))
+                throw new ArgumentException("Geçerli bir yetki belgesi rapor türü seçin.");
+
+            var bas = filtre.BaslangicTarihi?.Date ?? DateTime.Today.AddDays(-30);
+            var bit = filtre.BitisTarihi?.Date ?? DateTime.Today;
+            if (bas > bit) (bas, bit) = (bit, bas);
+            if (bit == DateTime.MaxValue.Date)
+                throw new ArgumentException("Bitiş tarihi geçerli aralığın dışında.");
+            var bitSonrasi = bit.AddDays(1);
+            var query = YetkiBelgesiTemelQuery(sirketId).AsNoTracking();
+            if (filtre.Tip == "bekleyen")
+            {
+                var bugun = DateTime.Today;
+                query = query.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
+                    && x.YetkiBelgesiBitisTarihi >= bugun
+                    && x.OlusturmaTarihi >= bas && x.OlusturmaTarihi < bitSonrasi);
+            }
+            else
+            {
+                var durum = filtre.Tip == "onayli" ? YetkiBelgesiDurumDegerleri.Onaylandi : YetkiBelgesiDurumDegerleri.Reddedildi;
+                query = query.Where(x => x.Durum == durum && x.OnayTarihi >= bas && x.OnayTarihi < bitSonrasi);
+            }
+            var belgeler = await query.OrderByDescending(x => x.OnayTarihi ?? x.OlusturmaTarihi)
+                .ThenByDescending(x => x.Id).Take(5001).ToListAsync();
+            if (belgeler.Count > 5000)
+                throw new ArgumentException("Rapor 5000 kaydı aşıyor. Tarih aralığını daraltın.");
+            if (belgeler.Count == 0) return null;
+            var baslik = filtre.Tip switch
+            {
+                "onayli" => "Onaylanan Yetki Belgeleri",
+                "reddedilen" => "Reddedilen Yetki Belgeleri",
+                _ => "Onay Bekleyen Yetki Belgeleri"
+            };
+            return (
+                excelMi ? YetkiBelgesiRaporExcelService.Olustur(belgeler, baslik) : YetkiBelgesiRaporPdfService.Olustur(belgeler, baslik),
+                excelMi ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : "application/pdf",
+                $"yetki-belgesi-raporu-{DateTime.Now:yyyyMMdd-HHmm}.{(excelMi ? "xlsx" : "pdf")}");
+        }
+
         private IQueryable<Ys_YetkiBelgesi> YetkiBelgesiTemelQuery(int? sirketId)
         {
             return _context.Ys_YetkiBelgeleri
