@@ -1,6 +1,6 @@
 # Review-only branch: do not merge this scoped configuration into main.
 # yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
-language: tr-TR
+language: tr
 reviews:
   auto_review:
     enabled: false
