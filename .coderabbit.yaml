@@ -1,0 +1,15 @@
+# Review-only branch: do not merge this scoped configuration into main.
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: tr-TR
+reviews:
+  auto_review:
+    enabled: false
+  path_filters:
+    - ".coderabbit.yaml"
+    - ".gitignore"
+    - "Docs/**"
+    - "Tests/**"
+    - "YetkiliServisGazAcma/Business/**"
+    - "YetkiliServisGazAcma/Controllers/**"
+    - "YetkiliServisGazAcma/Models/**"
+    - "YetkiliServisGazAcma/Program.cs"
