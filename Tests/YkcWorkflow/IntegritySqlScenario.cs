@@ -171,6 +171,18 @@ internal static class IntegritySqlScenario
                 $"UPDATE dbo.Ykc_Talepler SET Vkn = {otherFirm.VergiNo} WHERE Id = {legacy.Id}");
             var removeVkn = await File.ReadAllTextAsync(Path.Combine(Directory.GetCurrentDirectory(),
                 "DatabaseScripts", "2026-10-08_ykc_talep_vkn_kaldir.sql"));
+            try
+            {
+                await db.Database.ExecuteSqlRawAsync(removeVkn);
+                throw new InvalidOperationException("Populated VKN must stop the migration.");
+            }
+            catch (SqlException ex) when (ex.Number == 51011)
+            {
+                Check(await db.Database.SqlQueryRaw<string>("SELECT Vkn AS [Value] FROM dbo.Ykc_Talepler").SingleAsync()
+                    == otherFirm.VergiNo, "VKN migration rejects populated values without changing data or schema");
+            }
+            await db.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE dbo.Ykc_Talepler SET Vkn = N'   ' WHERE Id = {legacy.Id}");
             await db.Database.ExecuteSqlRawAsync(removeVkn);
             await db.Database.ExecuteSqlRawAsync(removeVkn);
             db.ChangeTracker.Clear();

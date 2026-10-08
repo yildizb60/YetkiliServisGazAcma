@@ -1221,8 +1221,12 @@
             assert([...doc.querySelectorAll('dd')].every(value => value.scrollWidth <= value.clientWidth + 1), 'Detail values are clipped');
             assert([...doc.querySelectorAll('.df-commissioning-detail-grid p, .df-commissioning-extra-facts dd')].every(value => {
                 const computed = win.getComputedStyle(value);
-                return computed.fontWeight === '400' && computed.color === 'rgb(64, 86, 106)';
-            }), 'Routine detail values must remain regular-weight, muted blue text');
+                return computed.fontWeight === '500' && computed.fontSize === '11.5px' && computed.color === 'rgb(52, 78, 99)';
+            }), 'Detail values need readable medium-weight text without heavy bold');
+            assert([...doc.querySelectorAll('.df-commissioning-extra-facts dt')].every(label => {
+                const computed = win.getComputedStyle(label);
+                return computed.fontWeight === '500' && computed.fontSize === '10.5px' && computed.color === 'rgb(82, 103, 123)';
+            }), 'Detail labels must remain readable and secondary to their values');
             assert(groups.every(group => win.getComputedStyle(group.firstElementChild).fontWeight === '600'), 'Detail headings must be distinct without heavy bold');
             assert([...doc.querySelectorAll('dt')].every(label => label.textContent.endsWith(':')), 'Detail labels have no colon');
             const certificateValue = doc.querySelector('section:last-child dd:last-child');
@@ -1322,6 +1326,7 @@
             doc.head.append(style);
             const firm = role === 'service';
             assert(commissioningTable.sharedViews && commissioningTable.headers.length === 9, 'A role bypasses the shared commissioning table');
+            assert(commissioningTable.headers.find(column => column.key === 'customer')?.label === 'Abone Adı Soyadı', 'Subscriber heading must identify the full name for every role');
             assert(commissioningTable.source.includes('servisPaneli ? 8 : 10'), 'Inline detail colspan does not follow the shared columns');
             const contents = {
                 customer: '<div class="df-cell-main">CUSTOMER NAME</div>',
@@ -1375,6 +1380,16 @@
                 }
                 const status = row.querySelector('.df-pill').getBoundingClientRect();
                 const type = row.querySelector('.df-device-type-tag').getBoundingClientRect();
+                const action = row.querySelector('.commissioning-row-action').getBoundingClientRect();
+                const extraWidth = Math.max(0, width - (firm ? 900 : 960));
+                assert(Math.abs(action.left - status.right - ((firm ? 29 : 24) + extraWidth * (firm ? .08 : .06))) <= 1,
+                    `Status/action spacing does not share the available width at ${width}px`);
+                for (const key of ['status', 'action']) {
+                    const header = headers.find(item => item.classList.contains(`df-commissioning-col-${key}`)).getBoundingClientRect();
+                    const content = key === 'status' ? status : action;
+                    assert(Math.abs(header.left + header.width / 2 - content.left - content.width / 2) <= 1,
+                        `${key} is not centered under its header at ${width}px`);
+                }
                 assert(status.width === 80 && status.height === 24 && type.width === 80 && type.height === 24, 'Status and device type must both measure 80 by 24 pixels');
                 for (const badge of row.querySelectorAll('.df-pill, .df-device-type-tag')) {
                     const range = doc.createRange();
