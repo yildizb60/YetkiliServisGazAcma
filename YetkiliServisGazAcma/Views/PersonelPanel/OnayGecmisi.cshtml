@@ -1,4 +1,4 @@
-@model List<YetkiliServisGazAcma.Entities.Ys_YetkiBelgesi>
+@model List<AdminYetkiBelgesiOnayDto>
 @{
     ViewData["Title"] = "Yetki Belgesi Geçmişi";
     ViewData["PanelTitle"] = ViewData["Title"];
@@ -61,13 +61,13 @@
                 {
                     var onayli = belge.Durum == YetkiBelgesiDurumDegerleri.Onaylandi;
                     <tr>
-                        <td><div class="df-cell-main">@(belge.Firma?.FirmaAdi ?? "-")</div>@if (!string.IsNullOrWhiteSpace(belge.Firma?.VergiNo)) { <div class="df-cell-sub">Vergi No: @belge.Firma.VergiNo</div> }</td>
-                        <td><time datetime="@belge.YetkiBelgesiBitisTarihi.ToString("yyyy-MM-dd")">@belge.YetkiBelgesiBitisTarihi.ToString("dd.MM.yyyy")</time></td>
+                        <td><div class="df-cell-main">@(belge.FirmaAdi ?? "-")</div>@if (!string.IsNullOrWhiteSpace(belge.VergiNo)) { <div class="df-cell-sub">Vergi No: @belge.VergiNo</div> }</td>
+                        <td><time datetime="@belge.YetkiBelgesiBitisTarihi.GetValueOrDefault().ToString("yyyy-MM-dd")">@belge.YetkiBelgesiBitisTarihi.GetValueOrDefault().ToString("dd.MM.yyyy")</time></td>
                         <td>@(string.IsNullOrWhiteSpace(belge.OnaylayanKullanici) ? "-" : belge.OnaylayanKullanici)</td>
                         <td><span class="df-certificate-status @(onayli ? "is-approved" : "is-rejected")"><i class="bi @(onayli ? "bi-check-circle" : "bi-x-circle")" aria-hidden="true"></i>@(onayli ? "Onaylandı" : "Reddedildi")</span></td>
                         <td>@(belge.OnayTarihi?.ToString("dd.MM.yyyy HH:mm") ?? "-")</td>
                         <td><div class="df-cell-sub">@(string.IsNullOrWhiteSpace(belge.RedGerekce) ? "-" : belge.RedGerekce)</div></td>
-                        <td>@if (!string.IsNullOrWhiteSpace(belge.DosyaYolu)) { <a class="df-document-link is-icon" href="@Url.Action("Dosya", "YetkiBelgesi", new { id = belge.Id })" target="_blank" rel="noopener noreferrer" title="Yetki belgesini görüntüle" aria-label="@(belge.Firma?.FirmaAdi ?? "Yetkili servis") belgesini görüntüle"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i></a> } else { <span class="df-cell-sub">Yok</span> }</td>
+                        <td>@if (!string.IsNullOrWhiteSpace(belge.DosyaYolu)) { <a class="df-document-link is-icon" href="@Url.Action("Dosya", "YetkiBelgesi", new { id = belge.Id })" target="_blank" rel="noopener noreferrer" title="Yetki belgesini görüntüle" aria-label="@(belge.FirmaAdi ?? "Yetkili servis") belgesini görüntüle"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i></a> } else { <span class="df-cell-sub">Yok</span> }</td>
                     </tr>
                 }
                 </tbody>

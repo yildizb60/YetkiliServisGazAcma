@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using YetkiliServisGazAcma.API.Controllers;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
@@ -60,16 +59,16 @@ namespace YetkiliServisGazAcma.API.Services
             };
         }
 
-        public async Task<AdminIslemSonucDto> GetirAsync(AdminSubeGetirFiltreDto? dto, int? sirketId)
+        public async Task<AdminSubeDetayDto> GetirAsync(AdminSubeGetirFiltreDto? dto, int? sirketId)
         {
             if (dto == null || dto.Id <= 0)
-                return AdminIslemSonucDto.Basarisiz("Sube id zorunludur.");
+                return new AdminSubeDetayDto { Basarili = false, Mesaj = "Sube id zorunludur." };
 
             var sube = await SubeTemelQuery(sirketId)
                 .FirstOrDefaultAsync(x => x.Id == dto.Id);
 
             if (sube == null)
-                return AdminIslemSonucDto.Basarisiz("Sube bulunamadi.");
+                return new AdminSubeDetayDto { Basarili = false, Mesaj = "Sube bulunamadi." };
 
             var firmalar = await SubeFirmaQuery(sirketId)
                 .OrderBy(x => x.FirmaAdi)
@@ -83,14 +82,14 @@ namespace YetkiliServisGazAcma.API.Services
             };
         }
 
-        public async Task<AdminIslemSonucDto> EkleAsync(AdminSubeKaydetDto? dto, int? sirketId, string kullaniciAdi)
+        public async Task<ApiIslemSonuc> EkleAsync(AdminSubeKaydetDto? dto, int? sirketId, string kullaniciAdi)
         {
             if (dto == null || dto.FirmaId <= 0 || string.IsNullOrWhiteSpace(dto.SubeAdi))
-                return AdminIslemSonucDto.Basarisiz("Firma ve sube adi zorunludur.");
+                return ApiIslemSonuc.Basarisiz("Firma ve sube adi zorunludur.");
 
             var gecerliFirma = await SubeFirmaQuery(sirketId).AnyAsync(x => x.Id == dto.FirmaId);
             if (!gecerliFirma)
-                return AdminIslemSonucDto.Basarisiz("Secilen firma aktif yetkili servis kullanicisina sahip degil.");
+                return ApiIslemSonuc.Basarisiz("Secilen firma aktif yetkili servis kullanicisina sahip degil.");
 
             var yeni = new Ys_Sube
             {
@@ -109,22 +108,22 @@ namespace YetkiliServisGazAcma.API.Services
             _context.Ys_Subeler.Add(yeni);
             await _context.SaveChangesAsync();
 
-            return AdminIslemSonucDto.BasariliSonuc("Sube kaydi eklendi.");
+            return ApiIslemSonuc.BasariliSonuc("Sube kaydi eklendi.");
         }
 
-        public async Task<AdminIslemSonucDto> GuncelleAsync(AdminSubeKaydetDto? dto, int? sirketId, string kullaniciAdi)
+        public async Task<ApiIslemSonuc> GuncelleAsync(AdminSubeKaydetDto? dto, int? sirketId, string kullaniciAdi)
         {
             if (dto == null || dto.Id <= 0 || dto.FirmaId <= 0 || string.IsNullOrWhiteSpace(dto.SubeAdi))
-                return AdminIslemSonucDto.Basarisiz("Firma ve sube adi zorunludur.");
+                return ApiIslemSonuc.Basarisiz("Firma ve sube adi zorunludur.");
 
             var sube = await SubeTemelQuery(sirketId)
                 .FirstOrDefaultAsync(x => x.Id == dto.Id);
             if (sube == null)
-                return AdminIslemSonucDto.Basarisiz("Sube bulunamadi.");
+                return ApiIslemSonuc.Basarisiz("Sube bulunamadi.");
 
             var hedefFirmaGecerli = await SubeFirmaQuery(sirketId).AnyAsync(x => x.Id == dto.FirmaId);
             if (!hedefFirmaGecerli)
-                return AdminIslemSonucDto.Basarisiz("Secilen firma aktif yetkili servis kullanicisina sahip degil.");
+                return ApiIslemSonuc.Basarisiz("Secilen firma aktif yetkili servis kullanicisina sahip degil.");
 
             sube.FirmaId = dto.FirmaId;
             sube.SubeAdi = dto.SubeAdi.Trim();
@@ -138,43 +137,43 @@ namespace YetkiliServisGazAcma.API.Services
 
             await _context.SaveChangesAsync();
 
-            return AdminIslemSonucDto.BasariliSonuc("Sube guncellendi.");
+            return ApiIslemSonuc.BasariliSonuc("Sube guncellendi.");
         }
 
-        public async Task<AdminIslemSonucDto> DurumDegistirAsync(AdminSubeDurumDto? dto, int? sirketId, string kullaniciAdi)
+        public async Task<ApiIslemSonuc> DurumDegistirAsync(AdminSubeDurumDto? dto, int? sirketId, string kullaniciAdi)
         {
             if (dto == null || dto.Id <= 0)
-                return AdminIslemSonucDto.Basarisiz("Sube id zorunludur.");
+                return ApiIslemSonuc.Basarisiz("Sube id zorunludur.");
 
             var sube = await SubeTemelQuery(sirketId)
                 .FirstOrDefaultAsync(x => x.Id == dto.Id);
             if (sube == null)
-                return AdminIslemSonucDto.Basarisiz("Sube bulunamadi.");
+                return ApiIslemSonuc.Basarisiz("Sube bulunamadi.");
 
             sube.AktifMi = !sube.AktifMi;
             sube.GuncellemeTarihi = DateTime.Now;
             sube.GuncelleyenKullanici = kullaniciAdi;
             await _context.SaveChangesAsync();
 
-            return AdminIslemSonucDto.BasariliSonuc("Sube durumu guncellendi.");
+            return ApiIslemSonuc.BasariliSonuc("Sube durumu guncellendi.");
         }
 
-        public async Task<AdminIslemSonucDto> SilAsync(AdminSubeDurumDto? dto, int? sirketId, string kullaniciAdi)
+        public async Task<ApiIslemSonuc> SilAsync(AdminSubeDurumDto? dto, int? sirketId, string kullaniciAdi)
         {
             if (dto == null || dto.Id <= 0)
-                return AdminIslemSonucDto.Basarisiz("Sube id zorunludur.");
+                return ApiIslemSonuc.Basarisiz("Sube id zorunludur.");
 
             var sube = await SubeTemelQuery(sirketId)
                 .FirstOrDefaultAsync(x => x.Id == dto.Id);
             if (sube == null)
-                return AdminIslemSonucDto.Basarisiz("Sube bulunamadi.");
+                return ApiIslemSonuc.Basarisiz("Sube bulunamadi.");
 
             sube.SilindiMi = true;
             sube.GuncellemeTarihi = DateTime.Now;
             sube.GuncelleyenKullanici = kullaniciAdi;
             await _context.SaveChangesAsync();
 
-            return AdminIslemSonucDto.BasariliSonuc("Sube kaydi silindi.");
+            return ApiIslemSonuc.BasariliSonuc("Sube kaydi silindi.");
         }
 
         private IQueryable<int> AktifYetkiliServisFirmaIdsQuery()

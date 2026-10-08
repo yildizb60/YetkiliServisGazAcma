@@ -89,6 +89,46 @@
         if (event.target.closest("[data-branch-sheet-retry]") && activeTrigger) openSheet(activeTrigger);
     });
 
+    body.addEventListener("submit", async event => {
+        const form = event.target.closest("form.ys-branch-editor");
+        if (!form) return;
+        event.preventDefault();
+        if (form.dataset.saving === "true") return;
+        const currentRequest = requestId;
+        const data = new FormData(form);
+        const submit = form.querySelector("button[type='submit']");
+        form.dataset.saving = "true";
+        if (submit) submit.disabled = true;
+        form.querySelector("[data-branch-save-error]")?.remove();
+        try {
+            const response = await fetch(form.action, {
+                method: "POST", credentials: "same-origin", body: data,
+                headers: { "X-Requested-With": "XMLHttpRequest" }
+            });
+            if (currentRequest !== requestId) return;
+            if (response.redirected || !(response.headers.get("content-type") || "").includes("application/json"))
+                throw new Error("Şube kaydedilemedi. Oturumunuzu ve bağlantınızı kontrol edip yeniden deneyin.");
+            const result = await response.json();
+            if (currentRequest !== requestId) return;
+            if (!response.ok || !result.basarili)
+                throw new Error(result.mesaj || "Şube kaydedilemedi.");
+            window.location.reload();
+        } catch (error) {
+            if (currentRequest !== requestId) return;
+            const alert = document.createElement("div");
+            alert.className = "df-directory-sheet-error";
+            alert.dataset.branchSaveError = "";
+            alert.setAttribute("role", "alert");
+            alert.tabIndex = -1;
+            alert.textContent = error instanceof Error ? error.message : "Şube kaydedilemedi.";
+            form.prepend(alert);
+            alert.focus();
+        } finally {
+            form.dataset.saving = "false";
+            if (submit) submit.disabled = false;
+        }
+    });
+
     const params = new URLSearchParams(window.location.search);
     const editId = params.get("duzenle");
     if (editId && /^\d+$/.test(editId)) {

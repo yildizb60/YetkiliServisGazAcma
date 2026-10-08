@@ -1,4 +1,4 @@
-@model List<YetkiliServisGazAcma.Entities.Ys_Marka>
+@model List<YetkiliServisGazAcma.Business.Services.MarkaApiDto>
 @{
     ViewData["Title"] = "Yetkili Servis Markaları";
     ViewData["PanelTitle"] = ViewData["Title"];
@@ -6,7 +6,7 @@
     ViewData["ActiveMenu"] = "Markalar";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
-    var markalar = Model ?? new List<YetkiliServisGazAcma.Entities.Ys_Marka>();
+    var markalar = Model ?? new List<YetkiliServisGazAcma.Business.Services.MarkaApiDto>();
     var aktifSayisi = markalar.Count(x => x.AktifMi);
     var pasifSayisi = markalar.Count - aktifSayisi;
     var markaYonetebilir = ViewBag.YetkiMarkaYonet != false;

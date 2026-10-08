@@ -9,9 +9,9 @@ namespace YetkiliServisGazAcma.API.Services
 {
     public sealed partial class YkcImzaAkisService
     {
-        private static readonly TimeSpan GonderimKilidiSuresi = TimeSpan.FromMinutes(5);
+        private static readonly TimeSpan GonderimKilidiSuresi = YkcTalepIslemKurali.GonderimKilidiSuresi;
         private readonly AppDbContext _context;
-        private readonly YkcTalepService _talepService;
+        private readonly YkcTalepOkumaService _talepService;
         private readonly YkcFr265FormService _fr265FormService;
         private readonly IYkcImzaProvider _imzaProvider;
         private readonly IWebHostEnvironment _environment;
@@ -20,7 +20,7 @@ namespace YetkiliServisGazAcma.API.Services
 
         public YkcImzaAkisService(
             AppDbContext context,
-            YkcTalepService talepService,
+            YkcTalepOkumaService talepService,
             YkcFr265FormService fr265FormService,
             IYkcImzaProvider imzaProvider,
             IWebHostEnvironment environment,
@@ -69,7 +69,7 @@ namespace YetkiliServisGazAcma.API.Services
             if (TerminalDurumMu(detay.Durum))
                 return YkcIslemSonuc.HataliSonuc("Kapanmış talep dijital imzaya gönderilemez.");
 
-            if (!ImzaGonderimineHazirMi(detay, out var hazirlikMesaji))
+            if (!YkcTalepIslemKurali.ImzaGonderimineHazirMi(detay, DateTime.Now, out var hazirlikMesaji))
                 return YkcIslemSonuc.HataliSonuc(hazirlikMesaji);
 
             var talep = await _context.Ykc_Talepler
@@ -744,51 +744,6 @@ namespace YetkiliServisGazAcma.API.Services
             return durum == YkcDurumDegerleri.Tamamlandi
                 || durum == YkcDurumDegerleri.Reddedildi
                 || durum == YkcDurumDegerleri.Iptal;
-        }
-
-        private static bool ImzaGonderimineHazirMi(YkcTalepDetayDto detay, out string mesaj)
-        {
-            if (detay.Durum != YkcDurumDegerleri.SahaIsleminde)
-            {
-                mesaj = "Form yalnız randevu gerçekleşip kontrol aşamasına geçtikten sonra imzaya gönderilebilir.";
-                return false;
-            }
-
-            if (!detay.RandevuTarihi.HasValue || string.IsNullOrWhiteSpace(detay.RandevuSaati))
-            {
-                mesaj = "Form imzaya gönderilmeden önce randevu tarih ve saat bilgisi kaydedilmelidir.";
-                return false;
-            }
-
-            var sonKontrol = detay.AktifKontroller
-                .Where(x => x.Sonuc == YkcFr265KontrolSonucDegerleri.Uygun
-                    || x.Sonuc == YkcFr265KontrolSonucDegerleri.UygunDegil)
-                .OrderByDescending(x => x.KontrolNo)
-                .ThenByDescending(x => x.KontrolTarihi ?? DateTime.MinValue)
-                .FirstOrDefault();
-
-            if (sonKontrol == null)
-            {
-                mesaj = "Form imzaya gönderilmeden önce randevu sonrası en az bir kontrol sonucu girilmelidir.";
-                return false;
-            }
-
-            if (!TimeSpan.TryParse(detay.RandevuSaati, out var saat)
-                || detay.RandevuTarihi.Value.Date.Add(saat) > DateTime.Now
-                || detay.AktifAtamaId == null || sonKontrol.AtamaId != detay.AktifAtamaId)
-            {
-                mesaj = "Form için güncel randevunun gerçekleşmesi ve bu randevuya ait kontrol sonucunun kaydedilmesi gerekir.";
-                return false;
-            }
-
-            if (sonKontrol.Sonuc != YkcFr265KontrolSonucDegerleri.Uygun)
-            {
-                mesaj = "Son kontrol uygun değil. Firma eksikliği giderdikten sonra bir sonraki kontrol sonucu uygun olmalıdır.";
-                return false;
-            }
-
-            mesaj = "";
-            return true;
         }
 
         private static string HashOlustur(byte[] bytes)

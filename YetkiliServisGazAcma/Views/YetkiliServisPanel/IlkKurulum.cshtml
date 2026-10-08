@@ -6,9 +6,9 @@
     ViewData["ActiveMenu"] = "Dashboard";
     ViewData["PanelArea"] = "YetkiliServis";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
-    var firma = ViewBag.Firma as YetkiliServisGazAcma.Entities.Ys_Firma;
-    var tumMarkalar = ViewBag.TumMarkalar as List<YetkiliServisGazAcma.Entities.Ys_Marka> ?? new();
-    var tumKategoriler = ViewBag.TumKategoriler as List<YetkiliServisGazAcma.Entities.UrunKategori> ?? new();
+    var firma = ViewBag.Firma as YsPanelFirmaDto;
+    var tumMarkalar = ViewBag.TumMarkalar as List<YsPanelMarkaDto> ?? new();
+    var tumKategoriler = ViewBag.TumKategoriler as List<YsPanelUrunKategoriDto> ?? new();
     var seciliMarkaIds = ViewBag.SeciliMarkaIds as List<int> ?? new();
     var seciliKategoriIds = ViewBag.SeciliKategoriIds as List<int> ?? new();
     var aktifSubeSayisi = ViewBag.AktifSubeSayisi as int? ?? 0;

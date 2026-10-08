@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using YetkiliServisGazAcma.Entities;
@@ -11,20 +10,20 @@ namespace YetkiliServisGazAcma.Business.Services
         private readonly PanelKimlikService _panelKimlikService;
         private readonly AktifSirketService _aktifSirketService;
         private readonly PanelKapsamApiClient _panelKapsamApiClient;
-        private readonly PersonelPanelApiClient _personelPanelApiClient;
+        private readonly PanelGorunumService _panelGorunum;
 
         public PanelKimlikActionFilter(
             ApiKullaniciOturumu kullaniciOturumu,
             PanelKimlikService panelKimlikService,
             AktifSirketService aktifSirketService,
             PanelKapsamApiClient panelKapsamApiClient,
-            PersonelPanelApiClient personelPanelApiClient)
+            PanelGorunumService panelGorunum)
         {
             _kullaniciOturumu = kullaniciOturumu;
             _panelKimlikService = panelKimlikService;
             _aktifSirketService = aktifSirketService;
             _panelKapsamApiClient = panelKapsamApiClient;
-            _personelPanelApiClient = personelPanelApiClient;
+            _panelGorunum = panelGorunum;
         }
 
         public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
@@ -53,36 +52,21 @@ namespace YetkiliServisGazAcma.Business.Services
                     controller.ViewBag.GenelSistemAdminMi = await _aktifSirketService.GenelSistemAdminMi(kullanici);
                     controller.ViewBag.SirketAdminMi = await _aktifSirketService.SirketAdminMi(kullanici);
                     controller.ViewBag.YkcYetkileri = await _panelKapsamApiClient.YkcYetkileriAsync(kullanici, aktifSirketId);
-
-                    if (context.HttpContext.User.IsInRole(KullaniciRolAdlari.Personel))
-                    {
-                        List<string> yetkiler;
-                        try
-                        {
-                            yetkiler = await _personelPanelApiClient.YetkilerimAsync(kullanici, aktifSirketId)
-                                ?? new List<string>();
-                        }
-                        catch (ApiIntegrationException)
-                        {
-                            yetkiler = new List<string>();
-                        }
-                        var tamYetkili = yetkiler.Contains(YetkiTipleri.TAM_YETKI, StringComparer.OrdinalIgnoreCase);
-                        bool Yetkili(string kod) => tamYetkili || yetkiler.Contains(kod, StringComparer.OrdinalIgnoreCase);
-
-                        controller.ViewBag.YetkiBelgesi = Yetkili(YetkiTipleri.YETKI_BELGESI_ONAY);
-                        controller.ViewBag.YetkiRapor = Yetkili(YetkiTipleri.RAPOR_GOR);
-                        controller.ViewBag.YetkiServis = Yetkili(YetkiTipleri.KULLANICI_YONET);
-                        controller.ViewBag.YetkiMarka = Yetkili(YetkiTipleri.MARKA_YONET);
-                        controller.ViewBag.YetkiMarkaYonet = controller.ViewBag.YetkiMarka;
-                        controller.ViewBag.YetkiYkcTalep = Yetkili(YetkiTipleri.YKC_TALEP_GOR);
-                        controller.ViewBag.YetkiYkcAtama = Yetkili(YetkiTipleri.YKC_ATAMA_YAP);
-                        controller.ViewBag.YetkiYkcImza = Yetkili(YetkiTipleri.YKC_FR265_IMZA_ISLEM);
-                        controller.ViewBag.YetkiYkcRapor = Yetkili(YetkiTipleri.YKC_RAPOR_GOR);
-                    }
                 }
             }
 
-            await next();
+            var executed = await next();
+            if (executed.Exception == null && executed.Result is ViewResult
+                && context.Controller is Controller panel
+                && context.HttpContext.User.Identity?.IsAuthenticated == true)
+            {
+                var user = await _kullaniciOturumu.GetUserAsync(context.HttpContext.User);
+                if (user != null)
+                {
+                    await _panelGorunum.HazirlaAsync(user, panel.ViewData);
+                    if (_panelGorunum.HataMesaji != null) panel.TempData["Hata"] = _panelGorunum.HataMesaji;
+                }
+            }
         }
     }
 }

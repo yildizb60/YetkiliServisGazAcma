@@ -1,4 +1,4 @@
-@model List<YetkiliServisGazAcma.Entities.Ys_DevreyeAlma>
+@model List<AdminDevreyeAlmaDto>
 @{
     ViewData["Title"] = "Cihaz Devreye Alma Kayıtları";
     ViewData["PanelTitle"] = ViewData["Title"];
@@ -8,7 +8,7 @@
     ViewData["DevreyeAlmaAlan"] = "/personel-panel";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
-    var markalar = ViewBag.Markalar as List<YetkiliServisGazAcma.Entities.Ys_Marka> ?? new();
+    var markalar = ViewBag.Markalar as List<AdminMarkaSecenekDto> ?? new();
     var secilenTesisat = Context.Request.Query["tesisat"].ToString();
     var secilenMusteri = ViewBag.Musteri as string ?? Context.Request.Query["musteri"].ToString();
     var secilenMarka = Context.Request.Query["marka"].ToString();

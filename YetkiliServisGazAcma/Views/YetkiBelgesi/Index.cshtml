@@ -1,4 +1,4 @@
-@model List<YetkiliServisGazAcma.Entities.Ys_YetkiBelgesi>
+@model List<YetkiBelgesiDto>
 @{
     ViewData["Title"] = "Yetki Belgem";
     ViewData["PanelTitle"] = ViewData["Title"];
@@ -8,8 +8,8 @@
     ViewData["PanelArea"] = "YetkiliServis";
     ViewData["ContentClass"] = "certificate-content";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
-    var bekleyen = Model.Count(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor && x.YetkiBelgesiBitisTarihi.Date >= DateTime.Today);
-    var suresiDolan = Model.Count(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor && x.YetkiBelgesiBitisTarihi.Date < DateTime.Today);
+    var bekleyen = Model.Count(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor && x.YetkiBelgesiBitisTarihi.GetValueOrDefault().Date >= DateTime.Today);
+    var suresiDolan = Model.Count(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor && x.YetkiBelgesiBitisTarihi.GetValueOrDefault().Date < DateTime.Today);
     var onaylanan = Model.Count(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi);
     var reddedilen = Model.Count(x => x.Durum == YetkiBelgesiDurumDegerleri.Reddedildi);
 }
@@ -70,7 +70,7 @@
                 <tbody>
                 @foreach (var belge in Model)
                 {
-                    var suresiDolmus = belge.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor && belge.YetkiBelgesiBitisTarihi.Date < DateTime.Today;
+                    var suresiDolmus = belge.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor && belge.YetkiBelgesiBitisTarihi.GetValueOrDefault().Date < DateTime.Today;
                     var durumText = suresiDolmus ? "Süresi Doldu" : belge.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor ? "Onay Bekliyor" : belge.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "Onaylandı" : "Reddedildi";
                     var durumClass = suresiDolmus ? "is-expired" : belge.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor ? "is-pending" : belge.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "is-approved" : "is-rejected";
                     var durumIcon = suresiDolmus ? "bi-calendar-x" : belge.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor ? "bi-hourglass-split" : belge.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "bi-check-circle" : "bi-x-circle";
@@ -78,7 +78,7 @@
                     <tr class="sert-row" data-search="@searchText" data-durum="@durumText">
                         <td><div class="df-cell-main"><i class="bi bi-file-earmark-text" aria-hidden="true"></i> Yetki Belgesi</div>@if (!string.IsNullOrWhiteSpace(belge.RedGerekce)) { <div class="df-cell-sub">Red gerekçesi: @belge.RedGerekce</div> }</td>
                         <td>@belge.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</td>
-                        <td>@belge.YetkiBelgesiBitisTarihi.ToString("dd.MM.yyyy")</td>
+                        <td>@belge.YetkiBelgesiBitisTarihi.GetValueOrDefault().ToString("dd.MM.yyyy")</td>
                         <td><span class="ys-certificate-state @durumClass"><i class="bi @durumIcon" aria-hidden="true"></i>@durumText</span></td>
                         <td><div class="df-actions">
                             <a class="df-icon-action" href="@Url.Action("Dosya", "YetkiBelgesi", new { id = belge.Id })" target="_blank" rel="noopener" title="Belgeyi görüntüle"><i class="bi bi-eye" aria-hidden="true"></i><span>Görüntüle</span></a>

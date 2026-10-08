@@ -2,38 +2,12 @@
 @{
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
     ViewData["ContentClass"] = "fr265-preview-content";
-    var formTarihi = Model.TalepTarihi.ToString("dd.MM.yyyy");
-    var imzaEntegrasyonu = ViewBag.ImzaEntegrasyonu as YkcImzaEntegrasyonDto ?? new YkcImzaEntegrasyonDto();
-    var ykcYetkileri = ViewBag.YkcYetkileri as YkcYetkiOzeti ?? new YkcYetkiOzeti();
-    var imzaIslemYetkisi = ykcYetkileri.Fr265ImzaIslemiYapabilir;
-    var demoImzaModu = imzaEntegrasyonu.DemoModuMu;
-    var imzaliBelge = Model.ImzaSureci?.NihaiDosyaId is int nihaiDosyaId
-        ? Model.Dosyalar.FirstOrDefault(x => x.Id == nihaiDosyaId && x.DosyaTuru == YkcFormDosyaTuruDegerleri.Fr265ImzaliNihai)
-        : null;
-    var imzaliBelgeHazir = imzaliBelge != null
-        && Model.ImzaSureci?.Durum == YkcImzaDurumDegerleri.Tamamlandi
-        && !string.IsNullOrWhiteSpace(Model.ImzaSureci.ProviderDocumentId)
-        && Model.ImzaSureci.NihaiDosyaId.HasValue;
-    var gonderimTakildi = Model.ImzaSureci?.Durum == YkcImzaDurumDegerleri.ImzayaGonderildi
-        && string.IsNullOrWhiteSpace(Model.ImzaSureci.ProviderDocumentId)
-        && (!Model.ImzaSureci.GonderimTarihi.HasValue || Model.ImzaSureci.GonderimTarihi <= DateTime.Now.AddMinutes(-5));
-    var sonKontrol = Model.AktifKontroller
-        .Where(x => x.Sonuc == YkcFr265KontrolSonucDegerleri.Uygun || x.Sonuc == YkcFr265KontrolSonucDegerleri.UygunDegil)
-        .OrderBy(x => x.KontrolNo)
-        .LastOrDefault();
-    var imzayaHazir = Model.Durum == YkcDurumDegerleri.SahaIsleminde
-        && Model.RandevuTarihi.HasValue
-        && !string.IsNullOrWhiteSpace(Model.RandevuSaati)
-        && sonKontrol?.Sonuc == YkcFr265KontrolSonucDegerleri.Uygun;
-    var imzayaGonderebilir = imzaIslemYetkisi
-        && imzaEntegrasyonu.KullanilabilirMi
-        && imzayaHazir
-        && string.IsNullOrWhiteSpace(Model.ImzaSureci?.ProviderDocumentId)
-        && (Model.ImzaSureci?.Durum is null or YkcImzaDurumDegerleri.Hazir or YkcImzaDurumDegerleri.Hata || gonderimTakildi);
-    var imzaDurumuSorgulanabilir = imzaIslemYetkisi
-        && imzaEntegrasyonu.KullanilabilirMi
-        && !string.IsNullOrWhiteSpace(Model.ImzaSureci?.ProviderDocumentId)
-        && Model.ImzaSureci?.Durum != YkcImzaDurumDegerleri.Tamamlandi;
+    var ekran = Model.Ekran;
+    var imzaEntegrasyonu = ekran.ImzaEntegrasyonu;
+    var imzaliBelge = ekran.ImzaliBelge;
+    var imzaliBelgeHazir = ekran.ImzaliBelgeHazir;
+    var imzayaGonderebilir = ekran.ImzayaGonderebilir;
+    var imzaDurumuSorgulanabilir = ekran.ImzaDurumuSorgulanabilir;
 }
 
 @section Styles {
@@ -85,9 +59,7 @@
         @if (imzaliBelgeHazir && imzaliBelge != null)
         {
             <a class="df-btn df-btn-primary df-btn-sm fr265-signature-action" href="/ykc/dosya/@imzaliBelge.Id" target="_blank" title="İmzalı Belgeyi İndir" aria-label="İmzalı Belgeyi İndir"><i class="bi bi-file-earmark-check" aria-hidden="true"></i></a>
-            @if (demoImzaModu && imzaIslemYetkisi
-                && Model.ImzaSureci?.ProviderDocumentId?.StartsWith("DEMO-YKC-", StringComparison.Ordinal) == true
-                && imzaliBelge.DosyaAdi?.Contains(YkcFr265PdfService.TasarimSurumu, StringComparison.Ordinal) != true)
+            @if (ekran.DemoPdfGuncellenebilir)
             {
                 <form method="post" action="/ykc/imza-durum-sorgula">
                     @Html.AntiForgeryToken()

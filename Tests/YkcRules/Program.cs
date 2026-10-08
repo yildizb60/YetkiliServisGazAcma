@@ -56,6 +56,15 @@ string[][] Fr265KontrolHucreleri(byte[] bytes, int kontrolNo)
 }
 
 // No database or external providers: checks cannot alter application records.
+Check(typeof(Ykc_Talep).GetProperty("Vkn") is null
+    && typeof(YkcTalepKaydetDto).GetProperty("Vkn") is null
+    && typeof(YkcTalepDetayDto).GetProperty("Vkn") is null,
+    "YKC requests and API contracts do not duplicate the firm's tax number");
+var legacySource = System.Text.Json.JsonSerializer.Deserialize<YkcTalepKaydetDto>(
+    """{"FirmaId":7,"SirketId":3,"Vkn":"1234567890","TesisatNo":"1000149"}""")!;
+Check(legacySource.FirmaId == 7 && legacySource.SirketId == 3 && legacySource.TesisatNo == "1000149"
+    && !System.Text.Json.JsonSerializer.Serialize(legacySource).Contains("\"Vkn\"", StringComparison.Ordinal),
+    "Legacy source JSON remains readable without retaining its redundant VKN");
 var commissioningSource = new YsDevreyeAlmaKaynak
 {
     TesisatNo = "1000149",
@@ -126,6 +135,23 @@ var configuredOnline = new OnlineCihazBilgileriClient(onlineHttp,
 await configuredOnline.YSCihazBilgileriGetirAsync("CORUMGAZ", 1000132, 432237);
 Check(onlineHandler.Calls == 1 && onlineHandler.LastUri?.AbsoluteUri == "https://example.invalid/Online.svc",
     "Configured online service uses its explicit endpoint");
+using (var cancelledOnline = new CancellationTokenSource())
+{
+    cancelledOnline.Cancel();
+    var cancelled = false;
+    try { await configuredOnline.YSCihazBilgileriGetirAsync("CORUMGAZ", 1000132, 432237, cancelledOnline.Token); }
+    catch (OperationCanceledException) { cancelled = true; }
+    Check(cancelled, "Caller cancellation is propagated instead of reported as an online connection failure");
+}
+using (var interruptedOnline = new CancellationTokenSource())
+{
+    onlineHandler.CancelDuringSend = interruptedOnline;
+    var cancelled = false;
+    try { await configuredOnline.YSCihazBilgileriGetirAsync("CORUMGAZ", 1000132, 432237, interruptedOnline.Token); }
+    catch (OperationCanceledException) { cancelled = true; }
+    Check(cancelled, "Cancellation while sending SOAP is not converted to a connection error");
+    onlineHandler.CancelDuringSend = null;
+}
 
 var adminSetup = YetkiliServisIlkKurulumService.Degerlendir(
     YetkiliServisOlusturmaTipleri.Admin, true, true, true, true);
@@ -381,6 +407,7 @@ Check(YkcCihazUyumKurali.TalepOncesiUyarilar(previewDevice).Count == 0,
     "Incomplete numeric input does not produce a capacity comparison");
 
 YkcTalepDetayDto Detail() => new() {
+    ProjeNo = "Internal project",
     EskiMarka = "Source brand", EskiKapasite = "20000", YeniMarka = "New brand", MusteriAdi = "Customer",
     AtananEkip = "Internal team", HedefUygulama = "Internal target",
     Atamalar = new() { new YkcAtamaDto() },
@@ -389,6 +416,7 @@ YkcTalepDetayDto Detail() => new() {
 var official = Detail();
 YkcFirmaSunumu.Hazirla(official, resmiForm: true);
 Check(official.EskiMarka == "Source brand" && official.EskiKapasite == "20000", "Official form retains source device fields");
+Check(official.ProjeNo == "Internal project", "Official form project contract remains unchanged");
 Check(official.Atamalar.Count == 0 && official.AtananEkip == null && official.HedefUygulama == null,
     "Official form response does not expose internal routing");
 Check(official.Gecmis[0].Aciklama == null && official.Gecmis[0].KullaniciAdi == null,
@@ -397,6 +425,7 @@ var screen = Detail();
 YkcFirmaSunumu.Hazirla(screen, resmiForm: false);
 Check(screen.EskiMarka == null && screen.EskiKapasite == null && screen.YeniMarka == "New brand" && screen.MusteriAdi == "Customer",
     "Firm screen hides source device without losing request data");
+Check(screen.ProjeNo == null, "Firm detail does not disclose the internal project number");
 var form = new YkcTalepDetayDto {
     Id = 42, TesisatNo = "1000132", MusteriAdi = "Test Abone",
     FirmaAdi = "Test Sertifikali Firma", FirmaYetkiliKisi = "Test Yetkili",
@@ -704,10 +733,96 @@ if (args.Length == 2 && args[0] == "--form-output")
     File.WriteAllBytes(Path.Combine(args[1], "commissioning-multiple.pdf"), multiRecordPdf);
     File.WriteAllBytes(Path.Combine(args[1], "commissioning-long-note.pdf"), uzunNotluRapor);
 }
+var ekranSimdi = new DateTime(2026, 10, 7, 12, 0, 0);
+var ekranYetki = new YkcYetkiOzeti { TalepleriGorebilir = true, AtamaYapabilir = true, Fr265ImzaIslemiYapabilir = true };
+var ekranImza = new YkcImzaEntegrasyonDto { KullanilabilirMi = true };
+var ekranTalep = new YkcTalepDetayDto
+{
+    Durum = YkcDurumDegerleri.Atandi, RandevuTarihi = ekranSimdi.Date, RandevuSaati = "12:30",
+    EskiCihazTipi = "Kombi", YeniCihazTipi = "Kombi", EskiKapasite = "20000", YeniKapasite = "20000",
+    Atamalar = [new() { Id = 10, RandevuTarihi = ekranSimdi.Date, RandevuSaati = "12:30" }]
+};
+YkcTalepEkranDto Ekran() => YkcTalepIslemKurali.EkranHazirla(ekranTalep, ekranYetki, true, ekranImza, [], ekranSimdi);
+Check(Ekran().KontroleGecisGorsun && !Ekran().RandevuZamaniGeldi && Ekran().AtamaYapilabilir,
+    "API screen keeps appointment transition disabled until the appointment time");
+Check(Ekran().CihazUyarilari.Count == 0, "API screen accepts missing chimney data and equal capacity");
+ekranTalep.Durum = YkcDurumDegerleri.SahaIsleminde;
+Check(!Ekran().KontrolBolumuAktif, "A stale field-control state cannot enable entry before the appointment");
+ekranTalep.YeniKapasite = "21000";
+Check(Ekran().CihazUyarilari.Count == 1, "API screen compares device capacity on the server");
+ekranTalep.RandevuSaati = "11:30";
+ekranTalep.Atamalar[0].RandevuSaati = "11:30";
+ekranTalep.Durum = YkcDurumDegerleri.SahaIsleminde;
+Check(Ekran().RandevuZamaniGeldi && Ekran().KontrolBolumuAktif && Ekran().AktifKontrolNo == 1,
+    "API screen exposes the first technical control after the appointment");
+ekranTalep.Kontroller = [new() { KontrolNo = 1, AtamaId = 10, Sonuc = YkcFr265KontrolSonucDegerleri.Uygun }];
+Check(Ekran().ImzayaGonderebilir && !Ekran().KontrolBolumuAktif
+    && YkcTalepIslemKurali.ImzaGonderimineHazirMi(ekranTalep, ekranSimdi, out _),
+    "Screen and signature command share the same current-appointment readiness rule");
+ekranTalep.Kontroller[0].AtamaId = 9;
+Check(!Ekran().ImzayaGonderebilir && !YkcTalepIslemKurali.ImzaGonderimineHazirMi(ekranTalep, ekranSimdi, out _),
+    "An old appointment's suitable control cannot enable signature sending");
+ekranTalep.Kontroller[0].AtamaId = 10;
+ekranTalep.ImzaSureci = new() { Durum = YkcImzaDurumDegerleri.ImzayaGonderildi, GonderimTarihi = ekranSimdi.AddMinutes(-5) };
+Check(!Ekran().ImzayaGonderebilir && !Ekran().AtamaYapilabilir,
+    "The five-minute signature lock boundary matches the command and locks assignment");
+ekranTalep.ImzaSureci.GonderimTarihi = ekranSimdi.AddMinutes(-5).AddSeconds(-1);
+Check(Ekran().ImzayaGonderebilir, "An expired signature submission lock permits retry");
+ekranTalep.ImzaSureci.ProviderDocumentId = "provider-1";
+Check(!Ekran().ImzayaGonderebilir && Ekran().ImzaDurumuSorgulanabilir,
+    "An existing provider document permits polling but never another submission");
+ekranTalep.ImzaSureci.Durum = YkcImzaDurumDegerleri.Tamamlandi;
+ekranTalep.ImzaSureci.NihaiDosyaId = 12;
+Check(!Ekran().TamamlamayaHazir, "A completed provider state without the stored final PDF cannot complete the request");
+ekranTalep.Dosyalar = [new() { Id = 12, DosyaTuru = YkcFormDosyaTuruDegerleri.Fr265ImzaliNihai }];
+Check(Ekran().TamamlamayaHazir && Ekran().IndirilebilirDosyalar.Count == 1,
+    "The verified final PDF enables completion and authorized download");
+var readOnlyScreen = YkcTalepIslemKurali.EkranHazirla(ekranTalep, new() { TalepleriGorebilir = true }, true, ekranImza, [], ekranSimdi);
+Check(!readOnlyScreen.TamamlamayaHazir && !readOnlyScreen.AtamaYapilabilir && !readOnlyScreen.RedIptalYapabilir
+    && !readOnlyScreen.ImzayaGonderebilir, "Read-only access never enables write actions");
+var firmScreen = YkcTalepIslemKurali.EkranHazirla(ekranTalep, new() { TalepleriGorebilir = true }, false, ekranImza,
+    [new() { Id = "private-team", Secili = true }], ekranSimdi);
+Check(!firmScreen.IcOperasyonGorsun && firmScreen.Ekipler.Count == 0 && firmScreen.SeciliEkipId == null && firmScreen.CihazUyarilari.Count == 0
+    && !firmScreen.TamamlamayaHazir, "Certified firm screen receives neither internal comparisons nor assignment choices");
+ekranImza.DemoModuMu = true;
+ekranTalep.ImzaSureci.ProviderDocumentId = "DEMO-YKC-fixture";
+Check(Ekran().ImzaliBelgeDemoMu && Ekran().DemoPdfGuncellenebilir,
+    "API enables legacy demo PDF refresh for authorized internal operators");
+Check(!YkcTalepIslemKurali.EkranHazirla(ekranTalep, ekranYetki, false, ekranImza, [], ekranSimdi).DemoPdfGuncellenebilir,
+    "Firm views cannot refresh demo PDFs even with stale internal permission flags");
+ekranTalep.Dosyalar[0].DosyaAdi = $"Form_Demo_Nihai_{YkcFr265PdfService.TasarimSurumu}_1.pdf";
+Check(!Ekran().DemoPdfGuncellenebilir, "Current demo PDF version needs no refresh");
+ekranTalep.ImzaSureci.ProviderDocumentId = "real-provider-fixture";
+ekranTalep.Dosyalar[0].DosyaAdi = "old.pdf";
+Check(!Ekran().ImzaliBelgeDemoMu && !Ekran().DemoPdfGuncellenebilir,
+    "Real provider documents are never treated as demo refresh candidates");
+ekranImza.DemoModuMu = false;
+ekranTalep.ImzaSureci = null;
+ekranTalep.Dosyalar.Clear();
+ekranTalep.Durum = YkcDurumDegerleri.AtamaBekliyor;
+ekranTalep.Kontroller = Enumerable.Range(1, 5).Select(no => new YkcFr265KontrolDto
+    { KontrolNo = no, AtamaId = 10, Sonuc = YkcFr265KontrolSonucDegerleri.UygunDegil }).ToList();
+Check(Ekran().KontrolAlaniDoldu && Ekran().AtamaYapilabilir && !Ekran().ImzayaGonderebilir
+    && Ekran().AktifKontrolNo == null, "Five unsuitable controls close the current period and retain appointment planning");
+ekranTalep.Kontroller.AddRange(Enumerable.Range(6, 5).Select(no => new YkcFr265KontrolDto { KontrolNo = no }));
+Check(Ekran().KontrolDonemi == 2 && Ekran().AktifKontrolNo == 1 && Ekran().TumSonucluKontroller.Count == 5
+    && Ekran().SonUygunsuzKontrol?.KontrolNo == 5,
+    "A new five-control period preserves past results and the last unsuitable reason");
+var ekranJson = System.Text.Json.JsonSerializer.Serialize(Ekran());
+var ekranRoundTrip = System.Text.Json.JsonSerializer.Deserialize<YkcTalepEkranDto>(ekranJson)!;
+Check(ekranRoundTrip.KontrolDonemi == 2 && ekranRoundTrip.AktifKontrolNo == 1
+    && ekranRoundTrip.TumSonucluKontroller.Count == 5, "API screen state survives JSON without client-side rule execution");
+foreach (var terminal in new[] { YkcDurumDegerleri.Tamamlandi, YkcDurumDegerleri.Reddedildi, YkcDurumDegerleri.Iptal })
+{
+    ekranTalep.Durum = terminal;
+    Check(Ekran().TerminalDurum && !Ekran().AtamaYapilabilir && !Ekran().RedIptalYapabilir && !Ekran().KontrolBolumuAktif,
+        "Terminal state disables operational actions: " + terminal);
+}
 Console.WriteLine($"{passed} checks passed. No application data changed.");
 
 sealed class RecordingOnlineHandler : HttpMessageHandler
 {
+    public CancellationTokenSource? CancelDuringSend { get; set; }
     public int Calls { get; private set; }
     public Uri? LastUri { get; private set; }
 
@@ -715,6 +830,9 @@ sealed class RecordingOnlineHandler : HttpMessageHandler
     {
         Calls++;
         LastUri = request.RequestUri;
+        CancelDuringSend?.Cancel();
+        if (cancellationToken.IsCancellationRequested)
+            return Task.FromCanceled<HttpResponseMessage>(cancellationToken);
         return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.ServiceUnavailable)
         {
             Content = new StringContent("")

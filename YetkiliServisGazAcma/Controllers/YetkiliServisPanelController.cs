@@ -13,34 +13,15 @@ namespace YetkiliServisGazAcma.Controllers
     {
         private readonly ApiKullaniciOturumu _kullaniciOturumu;
         private readonly YetkiliServisPanelApiClient _yetkiliServisPanelApiClient;
-        private readonly YetkiliServisDevreyeAlmaApiClient _devreyeAlmaApiClient;
 
         public YetkiliServisPanelController(
             ApiKullaniciOturumu kullaniciOturumu,
-            YetkiliServisPanelApiClient yetkiliServisPanelApiClient,
-            YetkiliServisDevreyeAlmaApiClient devreyeAlmaApiClient)
+            YetkiliServisPanelApiClient yetkiliServisPanelApiClient)
         {
             _kullaniciOturumu = kullaniciOturumu;
             _yetkiliServisPanelApiClient = yetkiliServisPanelApiClient;
-            _devreyeAlmaApiClient = devreyeAlmaApiClient;
         }
 
-        private async Task SetBildirimler(AppKullanici kullanici)
-        {
-            try
-            {
-                var sonuc = await _yetkiliServisPanelApiClient.BildirimlerAsync(kullanici)
-                    ?? new YsPanelBildirimSonuc();
-
-                ViewBag.Bildirimler = sonuc.Bildirimler;
-                ViewBag.BildirimSayisi = sonuc.BildirimSayisi;
-            }
-            catch (ApiIntegrationException)
-            {
-                ViewBag.Bildirimler = new List<string>();
-                ViewBag.BildirimSayisi = 0;
-            }
-        }
 
         private async Task<AppKullanici?> GetYetkiliServisKullanici()
         {
@@ -60,34 +41,15 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await GetYetkiliServisKullanici();
             if (kullanici == null) return Redirect("/giris");
 
-            var dashboard = await _yetkiliServisPanelApiClient.DashboardAsync(kullanici)
-                ?? new YsPanelDashboardSonuc();
-            var seciliTarih = takvimTarih?.Date ?? DateTime.Today;
-            if (seciliTarih.Year is < 2000 or > 2100)
-                seciliTarih = DateTime.Today;
-
-            var gorunum = takvimGorunum is "gun" or "yil" ? takvimGorunum : "ay";
-            var ayBasi = new DateTime(seciliTarih.Year, seciliTarih.Month, 1);
-            var aySonu = ayBasi.AddMonths(1).AddDays(-1);
-            var takvimIslemleri = new List<Ys_DevreyeAlma>();
-            var takvimVerisiTam = true;
-
-            try
-            {
-                var takvimSonucu = await _devreyeAlmaApiClient.GecmisAsync(
-                    kullanici, null, ayBasi, aySonu, null, null);
-                takvimIslemleri = takvimSonucu?.Islemler ?? takvimIslemleri;
-            }
-            catch (ApiIntegrationException)
-            {
-                takvimVerisiTam = false;
-                takvimIslemleri = dashboard.SonIslemler
-                    .Where(x => x.DevreyeAlmaTarihi.Date >= ayBasi && x.DevreyeAlmaTarihi.Date <= aySonu)
-                    .ToList();
-            }
+            var dashboard = await _yetkiliServisPanelApiClient.DashboardAsync(kullanici, takvimTarih, takvimGorunum)
+                ?? new YsPanelDashboardDto();
 
             ViewBag.Firma = dashboard.Firma;
             ViewBag.BuAy = dashboard.BuAy;
+            ViewBag.GecerliBelgeSayisi = dashboard.GecerliBelgeSayisi;
+            ViewBag.BekleyenBelgeSayisi = dashboard.BekleyenBelgeSayisi;
+            ViewBag.AktifMarkaSayisi = dashboard.AktifMarkaSayisi;
+            ViewBag.AktifSubeSayisi = dashboard.AktifSubeSayisi;
             ViewBag.Toplam = dashboard.Toplam;
             ViewBag.BekleyenIslem = dashboard.Bekleyen;
             ViewBag.TamamlananIslem = dashboard.Tamamlanan;
@@ -100,10 +62,10 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.Bildirimler = dashboard.Bildirimler;
             ViewBag.BildirimSayisi = dashboard.BildirimSayisi;
             ViewBag.YetkiBelgesiUyariGun = dashboard.YetkiBelgesiUyariGun;
-            ViewBag.TakvimTarih = seciliTarih;
-            ViewBag.TakvimGorunum = gorunum;
-            ViewBag.TakvimIslemleri = takvimIslemleri;
-            ViewBag.TakvimVerisiTam = takvimVerisiTam;
+            ViewBag.TakvimTarih = dashboard.TakvimTarih;
+            ViewBag.TakvimGorunum = dashboard.TakvimGorunum;
+            ViewBag.TakvimIslemleri = dashboard.TakvimIslemleri;
+            ViewBag.TakvimVerisiTam = dashboard.TakvimVerisiTam;
 
             return View("~/Views/YetkiliServisPanel/Index.cshtml");
         }
@@ -145,7 +107,6 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.YetkiBelgesiVar = kurulum.YetkiBelgesiVar;
             ViewBag.OnayliYetkiBelgesiVar = kurulum.OnayliYetkiBelgesiVar;
             ViewBag.IlkKurulumEksikler = kurulum.Eksikler;
-            await SetBildirimler(kullanici);
             return View("~/Views/YetkiliServisPanel/IlkKurulum.cshtml");
         }
 
@@ -156,21 +117,15 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await GetYetkiliServisKullanici();
             if (kullanici == null) return Redirect("/giris");
 
-            var firma = await _yetkiliServisPanelApiClient.ProfilAsync(kullanici);
-            if (firma == null)
+            var subeler = await _yetkiliServisPanelApiClient.SubelerAsync(kullanici);
+            if (subeler == null)
             {
                 TempData["Hata"] = "Sube bilgileri API uzerinden alinamadi.";
                 return Redirect("/ys-panel");
             }
 
             ViewBag.Kullanici = kullanici;
-            ViewBag.Firma = firma;
-            ViewBag.Subeler = firma.Subeler?
-                .Where(x => !x.SilindiMi)
-                .OrderByDescending(x => x.AktifMi)
-                .ThenBy(x => x.SubeAdi)
-                .ToList() ?? new List<Ys_Sube>();
-            await SetBildirimler(kullanici);
+            ViewBag.Subeler = subeler;
 
             return View("~/Views/YetkiliServisPanel/Subeler.cshtml");
         }
@@ -185,8 +140,16 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await GetYetkiliServisKullanici();
             if (kullanici == null) return Redirect("/giris");
 
-            var firma = await _yetkiliServisPanelApiClient.ProfilAsync(kullanici);
-            var sube = firma?.Subeler?.FirstOrDefault(x => x.Id == id && !x.SilindiMi);
+            AdminSubeDto? sube;
+            try
+            {
+                sube = await _yetkiliServisPanelApiClient.SubeGetirAsync(kullanici, id);
+            }
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
+                return Redirect("/ys-panel/subeler");
+            }
             if (sube == null)
             {
                 TempData["Hata"] = "Sube kaydi bulunamadi.";
@@ -194,9 +157,7 @@ namespace YetkiliServisGazAcma.Controllers
             }
 
             ViewBag.Kullanici = kullanici;
-            ViewBag.Firma = firma;
             ViewBag.Sube = sube;
-            await SetBildirimler(kullanici);
 
             return View("~/Views/YetkiliServisPanel/SubeDuzenle.cshtml");
         }
@@ -220,7 +181,6 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.TumMarkalar = sonuc.TumMarkalar;
             ViewBag.FirmaMarkalar = sonuc.FirmaMarkalar;
             ViewBag.SeciliMarkaIds = sonuc.SeciliMarkaIds;
-            await SetBildirimler(kullanici);
 
             return View("~/Views/YetkiliServisPanel/Markalar.cshtml");
         }
@@ -241,7 +201,6 @@ namespace YetkiliServisGazAcma.Controllers
 
             ViewBag.Kullanici = kullanici;
             ViewBag.Firma = firma;
-            await SetBildirimler(kullanici);
 
             return View("~/Views/YetkiliServisPanel/Profil.cshtml");
         }
@@ -273,9 +232,13 @@ namespace YetkiliServisGazAcma.Controllers
 
             if (sonuc?.Basarili == true)
                 TempData["Basarili"] = sonuc.Mesaj ?? "Sube guncellendi.";
+            else if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return Json(new { basarili = false, mesaj = sonuc?.Mesaj ?? "Şube kaydedilemedi." });
             else
                 TempData["Hata"] = sonuc?.Mesaj ?? "Sube API uzerinden guncellenemedi.";
 
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return Json(new { basarili = true });
             return Redirect("/ys-panel/subeler");
         }
         [HttpPost]
@@ -304,9 +267,13 @@ namespace YetkiliServisGazAcma.Controllers
 
             if (sonuc?.Basarili == true)
                 TempData["Basarili"] = sonuc.Mesaj ?? "Sube kaydi eklendi.";
+            else if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return Json(new { basarili = false, mesaj = sonuc?.Mesaj ?? "Şube kaydedilemedi." });
             else
                 TempData["Hata"] = sonuc?.Mesaj ?? "Sube API uzerinden eklenemedi.";
 
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return Json(new { basarili = true });
             return Redirect("/ys-panel/subeler");
         }
         [HttpPost]
@@ -494,7 +461,6 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.ChartMarkaData = rapor.ChartMarkaData;
             ViewBag.Firma = rapor.Firma;
             ViewBag.Kullanici = kullanici;
-            await SetBildirimler(kullanici);
             return View("~/Views/YetkiliServisPanel/Raporlar.cshtml");
         }
 

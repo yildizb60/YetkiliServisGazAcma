@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using YetkiliServisGazAcma.Models;
+using YetkiliServisGazAcma.API.Services;
 
 namespace YetkiliServisGazAcma.API.Controllers
 {
@@ -8,36 +7,18 @@ namespace YetkiliServisGazAcma.API.Controllers
     [Route("api/urun-kategorileri")]
     public class UrunKategorilerController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly UrunKategoriKatalogApiService _service;
 
-        public UrunKategorilerController(AppDbContext context)
+        public UrunKategorilerController(UrunKategoriKatalogApiService service)
         {
-            _context = context;
+            _service = service;
         }
 
         [HttpPost("liste")]
         public async Task<IActionResult> Liste([FromBody] UrunKategoriListeFiltreDto? dto)
         {
-            var kategoriler = await _context.UrunKategoriler
-                .Where(x => !x.SilindiMi && x.AktifMi)
-                .OrderBy(x => x.SiraNo)
-                .ThenBy(x => x.Ad)
-                .ToListAsync();
-
-            var list = kategoriler
-                .Select(x => new
-                {
-                    x.Id,
-                    x.Ad,
-                    x.IconUrl,
-                    x.SiraNo,
-                    x.AktifMi
-                })
-                .ToList();
-
-            return Ok(list);
+            return Ok(await _service.AktifleriListeleAsync());
         }
-
     }
 
     public class UrunKategoriListeFiltreDto

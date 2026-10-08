@@ -6,8 +6,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using YetkiliServisGazAcma.API.Controllers;
+using YetkiliServisGazAcma.API.Services;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
@@ -70,7 +72,9 @@ internal static class ServiceScopeSqlScenario
                 ["SehirFirmaKodlari:CityMissing"] = "COMPANY_MISSING"
             }).Build();
             var cities = new SehirFirmaKoduService(configuration, db);
-            YetkiliServislerController Controller(AppKullanici? user) => new(db, registration, cities)
+            YetkiliServislerController Controller(AppKullanici? user) => new(
+                new YetkiliServisRehberApiService(db), new YetkiliServisBasvuruApiService(db, registration, cities),
+                new YetkiliServisKayitYonetimApiService(db, cities))
             {
                 ControllerContext = new()
                 {
@@ -165,6 +169,20 @@ internal static class ServiceScopeSqlScenario
             Check(await anonymous.Kayit(Application("CityA")) is OkObjectResult
                 && await db.Ys_Firmalar.AnyAsync(f => f.VergiNo == "2000000001" && f.SirketId == primary.Id),
                 "A valid public application still creates a service under the existing active company");
+            var beforeFormattedRetry = await db.Ys_Firmalar.CountAsync();
+            foreach (var formatted in new[] { "200-000-0001", "200.000.0001", " 2000000001 " })
+            {
+                var duplicate = Application("CityA", formatted);
+                duplicate.Email = "formatted-retry@example.invalid";
+                Check(await anonymous.Kayit(duplicate) is BadRequestObjectResult
+                    && await db.Ys_Firmalar.CountAsync() == beforeFormattedRetry,
+                    "Formatted tax number cannot bypass duplicate registration: " + formatted);
+            }
+            var formattedApplication = Application("CityA", "200-000-0004");
+            Check(await anonymous.Kayit(formattedApplication) is OkObjectResult
+                && await db.Ys_Firmalar.AnyAsync(x => x.VergiNo == "2000000004")
+                && await db.Users.AnyAsync(x => x.UserName == "2000000004"),
+                "New formatted tax number uses the same canonical firm and login identity");
             Check(await anonymous.Kayit(Application("SecondCityB", "2000000002")) is OkObjectResult
                 && await db.Ys_Firmalar.AnyAsync(f => f.VergiNo == "2000000002" && f.SirketId == secondary.Id)
                 && await db.Dag_Sirketler.CountAsync() == companyCount,
@@ -173,6 +191,31 @@ internal static class ServiceScopeSqlScenario
             await db.SaveChangesAsync();
             Check(await anonymous.Kayit(Application("CityA", "2000000003")) is BadRequestObjectResult
                 && !await db.Ys_Firmalar.AnyAsync(f => f.VergiNo == "2000000003"), "Ambiguous company matches fail closed instead of choosing the first company");
+            db.Roles.Add(new IdentityRole("GenelSistemAdmin") { NormalizedName = "GENELSISTEMADMIN" });
+            await db.SaveChangesAsync();
+            using var roleUsers = new RoleProbeUsers(db);
+            var logs = new RoleProbeLogger();
+            var accountService = new AdminKullaniciYonetimApiService(db, roleUsers, logs);
+            foreach (var mode in new[] { "missing", "failure", "success" })
+            {
+                if (mode == "failure")
+                {
+                    db.Roles.Add(new IdentityRole("SuperAdmin") { NormalizedName = "SUPERADMIN" });
+                    await db.SaveChangesAsync();
+                }
+                roleUsers.FailLegacyRole = mode == "failure";
+                var warningCount = logs.Warnings;
+                var result = await accountService.KullaniciEkleAsync(new()
+                {
+                    Rol = "GenelSistemAdmin", AdSoyad = "Admin fixture", Email = mode + "@example.invalid",
+                    Telefon = "05550000000", Sifre = "FixtureOnly123!"
+                }, general, null, true);
+                var savedUser = (await roleUsers.FindByEmailAsync(mode + "@example.invalid"))!;
+                Check(result.Sonuc is { Basarili: true } && await roleUsers.IsInRoleAsync(savedUser, "GenelSistemAdmin")
+                    && (mode == "success" ? await roleUsers.IsInRoleAsync(savedUser, "SuperAdmin")
+                        : logs.Warnings == warningCount + 1),
+                    "Primary admin role remains usable and optional legacy role outcome is observed: " + mode);
+            }
             Console.WriteLine($"{passed} service scope and public registration checks passed.");
         }
         finally
@@ -180,6 +223,30 @@ internal static class ServiceScopeSqlScenario
             if (created && db.Database.GetDbConnection().Database == databaseName
                 && databaseName.StartsWith("ServiceScopeSqlTest_", StringComparison.Ordinal))
                 await db.Database.EnsureDeletedAsync();
+        }
+    }
+
+    private sealed class RoleProbeUsers(AppDbContext db) : UserManager<AppKullanici>(
+        new UserStore<AppKullanici>(db), Microsoft.Extensions.Options.Options.Create(new IdentityOptions()), new PasswordHasher<AppKullanici>(),
+        [new UserValidator<AppKullanici>()], [new PasswordValidator<AppKullanici>()], new UpperInvariantLookupNormalizer(),
+        new IdentityErrorDescriber(), null!, NullLogger<UserManager<AppKullanici>>.Instance)
+    {
+        public bool FailLegacyRole { get; set; }
+        public override Task<IdentityResult> AddToRoleAsync(AppKullanici user, string role)
+            => FailLegacyRole && role == "SuperAdmin"
+                ? Task.FromResult(IdentityResult.Failed(new IdentityError { Code = "FixtureLegacyRoleFailure" }))
+                : base.AddToRoleAsync(user, role);
+    }
+
+    private sealed class RoleProbeLogger : ILogger<AdminPanelApiController>
+    {
+        public int Warnings { get; private set; }
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel logLevel) => true;
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            if (logLevel == LogLevel.Warning) Warnings++;
         }
     }
 }

@@ -1,4 +1,4 @@
-@model List<YetkiliServisGazAcma.Entities.Ys_Firma>
+@model List<AdminYetkiliServisDto>
 @{
     var adminMi = ViewData["ServiceDirectoryAdmin"] is true;
     var servisYonetebilir = ViewData["ServiceDirectoryCanManage"] is true;
@@ -23,10 +23,8 @@
                 var devreyeSayisi = devreyeSayilari.TryGetValue(servis.Id, out var sayi) ? sayi : 0;
                 var ilce = ilceler.TryGetValue(servis.Id, out var ilceAdi) && !string.IsNullOrWhiteSpace(ilceAdi) ? ilceAdi : "-";
                 var detayId = $"servis-detay-{servis.Id}";
-                var markaAdlari = string.Join(", ", servis.FirmaMarkalar?.Where(x => x.Marka != null && !string.IsNullOrWhiteSpace(x.Marka.MarkaAdi)).Select(x => x.Marka!.MarkaAdi) ?? Enumerable.Empty<string?>());
-                var kategoriAdlari = string.Join(", ", servis.FirmaKategoriler?
-                    .Where(x => !x.SilindiMi && x.Kategori != null && !x.Kategori.SilindiMi && x.Kategori.AktifMi && !string.IsNullOrWhiteSpace(x.Kategori.Ad))
-                    .Select(x => x.Kategori!.Ad).Distinct() ?? Enumerable.Empty<string?>());
+                var markaAdlari = string.Join(", ", servis.Markalar.Select(x => x.MarkaAdi));
+                var kategoriAdlari = string.Join(", ", servis.Kategoriler.Select(x => x.Ad));
                 <article class="df-service-record @(servis.AktifMi ? "is-active" : "is-passive")" data-service-record data-service-id="@servis.Id">
                     <div class="df-service-grid df-service-row">
                         <div><span class="df-service-name" title="@servis.FirmaAdi">@(servis.FirmaAdi ?? "-")</span></div>
@@ -65,7 +63,7 @@
                             <div class="df-service-detail-grid">
                                 <div><span>E-posta</span><strong>@(string.IsNullOrWhiteSpace(servis.Email) ? "Tanımlı değil" : servis.Email)</strong></div>
                                 <div><span>Vergi bilgisi</span><strong>@(string.IsNullOrWhiteSpace(servis.VergiNo) ? "Numara tanımlı değil" : servis.VergiNo)</strong><small>@(string.IsNullOrWhiteSpace(servis.VergiDairesi) ? "Vergi dairesi tanımlı değil" : servis.VergiDairesi)</small></div>
-                                <div><span>Bağlı dağıtım şirketi</span><strong>@(string.IsNullOrWhiteSpace(servis.Sirket?.SirketAdi) ? "Şirket bilgisi tanımlı değil" : servis.Sirket.SirketAdi)</strong></div>
+                                <div><span>Bağlı dağıtım şirketi</span><strong>@(string.IsNullOrWhiteSpace(servis.SirketAdi) ? "Şirket bilgisi tanımlı değil" : servis.SirketAdi)</strong></div>
                                 <div><span>Yetkili markalar</span><strong>@(string.IsNullOrWhiteSpace(markaAdlari) ? "Marka atanmamış" : markaAdlari)</strong></div>
                                 <div><span>Hizmet kategorileri</span><strong>@(string.IsNullOrWhiteSpace(kategoriAdlari) ? "Kategori atanmamış" : kategoriAdlari)</strong></div>
                                 <div><span>Açık adres</span><strong>@(string.IsNullOrWhiteSpace(servis.Adres) ? "Adres tanımlı değil" : servis.Adres)</strong></div>

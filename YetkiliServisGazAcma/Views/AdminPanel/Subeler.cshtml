@@ -6,8 +6,8 @@
     ViewData["ActiveMenu"] = "Subeler";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
-    var subeler = ViewBag.Subeler as List<Ys_Sube> ?? new List<Ys_Sube>();
-    var firmalar = ViewBag.Firmalar as List<Ys_Firma> ?? new List<Ys_Firma>();
+    var subeler = ViewBag.Subeler as List<AdminSubeDto> ?? new List<AdminSubeDto>();
+    var firmalar = ViewBag.Firmalar as List<AdminSubeFirmaDto> ?? new List<AdminSubeFirmaDto>();
     var seciliFirmaId = ViewBag.SeciliFirmaId is int fid ? fid : 0;
     var seciliQ = ViewBag.SeciliQ as string ?? "";
     var aktifSayisi = subeler.Count(x => x.AktifMi);
@@ -142,8 +142,8 @@
                                     <div class="df-cell-sub">@(string.IsNullOrWhiteSpace(sube.Adres) ? "-" : sube.Adres)</div>
                                 </td>
                                 <td>
-                                    <div class="df-cell-main">@(sube.Firma?.FirmaAdi ?? "-")</div>
-                                    <div class="df-cell-sub">@(sube.Firma?.Email ?? "")</div>
+                                    <div class="df-cell-main">@(sube.FirmaAdi ?? "-")</div>
+                                    <div class="df-cell-sub">@(sube.FirmaEmail ?? "")</div>
                                 </td>
                                 <td>@(string.IsNullOrWhiteSpace($"{sube.Il} {sube.Ilce}".Trim()) ? "-" : $"{sube.Il} {sube.Ilce}".Trim())</td>
                                 <td>@(string.IsNullOrWhiteSpace(sube.Telefon) ? "-" : sube.Telefon)</td>
@@ -186,7 +186,7 @@
 {
     CanSelectFirm = true,
     Firms = firmalar,
-    Branch = new Ys_Sube { FirmaId = seciliFirmaId },
+    Branch = new AdminSubeDto { FirmaId = seciliFirmaId, AktifMi = true },
     PostUrl = Url.Action("SubeEkle", "AdminPanel")!
 })
 

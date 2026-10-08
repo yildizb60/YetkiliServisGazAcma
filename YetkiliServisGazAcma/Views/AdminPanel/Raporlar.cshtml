@@ -9,7 +9,7 @@
     ViewData["ActiveMenu"] = "Raporlar";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
-    var sirketler = ViewBag.Sirketler as List<Dag_Sirket> ?? new();
+    var sirketler = ViewBag.Sirketler as List<AdminSirketSecenekDto> ?? new();
     int? seciliSirketId = ViewBag.SeciliSirketId as int?;
     DateTime basTarih = ViewBag.BasTarih;
     DateTime bitTarih = ViewBag.BitTarih;
@@ -244,7 +244,7 @@
             <div class="df-ops-export-actions">
                 <a class="df-btn df-btn-sm df-btn-pdf @(!operasyonVar ? "is-disabled" : "")" aria-disabled="@(!operasyonVar ? "true" : "false")" tabindex="@(!operasyonVar ? "-1" : null)" href="@(operasyonVar ? Url.Action("OperasyonRaporPdf", "AdminPanel", new { bas = basTarih.ToString("yyyy-MM-dd"), bit = bitTarih.ToString("yyyy-MM-dd"), sirketId = seciliSirketId }) : null)"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF</a>
                 <a class="df-btn df-btn-sm df-btn-excel @(!operasyonVar ? "is-disabled" : "")" aria-disabled="@(!operasyonVar ? "true" : "false")" tabindex="@(!operasyonVar ? "-1" : null)" href="@(operasyonVar ? Url.Action("OperasyonRaporExcel", "AdminPanel", new { bas = basTarih.ToString("yyyy-MM-dd"), bit = bitTarih.ToString("yyyy-MM-dd"), sirketId = seciliSirketId }) : null)"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel</a>
-                <a class="df-icon-action" href="/ykc/raporlar?bas=@basTarih.ToString("yyyy-MM-dd")&bit=@bitTarih.ToString("yyyy-MM-dd")" title="Cihaz değişim kayıtlarını aç" aria-label="Cihaz değişim kayıtlarını aç"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+                <a class="df-icon-action" href="@Url.Action("Raporlar", "Ykc", new { bas = basTarih.ToString("yyyy-MM-dd"), bit = bitTarih.ToString("yyyy-MM-dd"), sirketId = seciliSirketId })" title="Cihaz değişim kayıtlarını aç" aria-label="Cihaz değişim kayıtlarını aç"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
             </div>
         </div>
         <div class="df-ops-export-row">
@@ -252,7 +252,7 @@
             <div class="df-ops-export-actions">
                 <a class="df-btn df-btn-sm df-btn-pdf @(devreyeSayisi == 0 ? "is-disabled" : "")" aria-disabled="@(devreyeSayisi == 0 ? "true" : "false")" tabindex="@(devreyeSayisi == 0 ? "-1" : null)" href="@(devreyeSayisi > 0 ? Url.Action("RaporlarPdf", "AdminPanel", new { bas = basTarih.ToString("yyyy-MM-dd"), bit = bitTarih.ToString("yyyy-MM-dd"), sirketId = seciliSirketId }) : null)"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF</a>
                 <a class="df-btn df-btn-sm df-btn-excel @(devreyeSayisi == 0 ? "is-disabled" : "")" aria-disabled="@(devreyeSayisi == 0 ? "true" : "false")" tabindex="@(devreyeSayisi == 0 ? "-1" : null)" href="@(devreyeSayisi > 0 ? Url.Action("RaporlarExcel", "AdminPanel", new { bas = basTarih.ToString("yyyy-MM-dd"), bit = bitTarih.ToString("yyyy-MM-dd"), sirketId = seciliSirketId }) : null)"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel</a>
-                <a class="df-icon-action" href="@Url.Action("DevreyeAlmalar", "AdminPanel")" title="Devreye alma kayıtlarını aç" aria-label="Devreye alma kayıtlarını aç"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+                <a class="df-icon-action" href="@Url.Action("DevreyeAlmalar", "AdminPanel", new { bas = basTarih.ToString("yyyy-MM-dd"), bit = bitTarih.ToString("yyyy-MM-dd"), sirketId = seciliSirketId })" title="Devreye alma kayıtlarını aç" aria-label="Devreye alma kayıtlarını aç"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
             </div>
         </div>
         <div class="df-ops-export-row">
