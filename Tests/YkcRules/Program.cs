@@ -56,6 +56,15 @@ string[][] Fr265KontrolHucreleri(byte[] bytes, int kontrolNo)
 }
 
 // No database or external providers: checks cannot alter application records.
+Check(typeof(Ykc_Talep).GetProperty("Vkn") is null
+    && typeof(YkcTalepKaydetDto).GetProperty("Vkn") is null
+    && typeof(YkcTalepDetayDto).GetProperty("Vkn") is null,
+    "YKC requests and API contracts do not duplicate the firm's tax number");
+var legacySource = System.Text.Json.JsonSerializer.Deserialize<YkcTalepKaydetDto>(
+    """{"FirmaId":7,"SirketId":3,"Vkn":"1234567890","TesisatNo":"1000149"}""")!;
+Check(legacySource.FirmaId == 7 && legacySource.SirketId == 3 && legacySource.TesisatNo == "1000149"
+    && !System.Text.Json.JsonSerializer.Serialize(legacySource).Contains("\"Vkn\"", StringComparison.Ordinal),
+    "Legacy source JSON remains readable without retaining its redundant VKN");
 var commissioningSource = new YsDevreyeAlmaKaynak
 {
     TesisatNo = "1000149",
@@ -126,6 +135,23 @@ var configuredOnline = new OnlineCihazBilgileriClient(onlineHttp,
 await configuredOnline.YSCihazBilgileriGetirAsync("CORUMGAZ", 1000132, 432237);
 Check(onlineHandler.Calls == 1 && onlineHandler.LastUri?.AbsoluteUri == "https://example.invalid/Online.svc",
     "Configured online service uses its explicit endpoint");
+using (var cancelledOnline = new CancellationTokenSource())
+{
+    cancelledOnline.Cancel();
+    var cancelled = false;
+    try { await configuredOnline.YSCihazBilgileriGetirAsync("CORUMGAZ", 1000132, 432237, cancelledOnline.Token); }
+    catch (OperationCanceledException) { cancelled = true; }
+    Check(cancelled, "Caller cancellation is propagated instead of reported as an online connection failure");
+}
+using (var interruptedOnline = new CancellationTokenSource())
+{
+    onlineHandler.CancelDuringSend = interruptedOnline;
+    var cancelled = false;
+    try { await configuredOnline.YSCihazBilgileriGetirAsync("CORUMGAZ", 1000132, 432237, interruptedOnline.Token); }
+    catch (OperationCanceledException) { cancelled = true; }
+    Check(cancelled, "Cancellation while sending SOAP is not converted to a connection error");
+    onlineHandler.CancelDuringSend = null;
+}
 
 var adminSetup = YetkiliServisIlkKurulumService.Degerlendir(
     YetkiliServisOlusturmaTipleri.Admin, true, true, true, true);
@@ -796,6 +822,7 @@ Console.WriteLine($"{passed} checks passed. No application data changed.");
 
 sealed class RecordingOnlineHandler : HttpMessageHandler
 {
+    public CancellationTokenSource? CancelDuringSend { get; set; }
     public int Calls { get; private set; }
     public Uri? LastUri { get; private set; }
 
@@ -803,6 +830,9 @@ sealed class RecordingOnlineHandler : HttpMessageHandler
     {
         Calls++;
         LastUri = request.RequestUri;
+        CancelDuringSend?.Cancel();
+        if (cancellationToken.IsCancellationRequested)
+            return Task.FromCanceled<HttpResponseMessage>(cancellationToken);
         return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.ServiceUnavailable)
         {
             Content = new StringContent("")

@@ -1,7 +1,15 @@
 using System.Text.Json;
+using System.Security.Claims;
+using System.Security.Cryptography;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using YetkiliServisGazAcma.API.Controllers;
 using YetkiliServisGazAcma.API.Services;
 using YetkiliServisGazAcma.Business.Services;
@@ -13,6 +21,7 @@ internal static class IntegritySqlScenario
     public static async Task RunAsync()
     {
         var name = "YsIntegrityTest_" + Guid.NewGuid().ToString("N");
+        var documentRoot = Path.Combine(Path.GetTempPath(), name);
         var options = new DbContextOptionsBuilder<AppDbContext>().UseSqlServer(
             $@"Server=(localdb)\MSSQLLocalDB;Database={name};Integrated Security=true;TrustServerCertificate=true").Options;
         await using var db = new AppDbContext(options);
@@ -30,7 +39,7 @@ internal static class IntegritySqlScenario
             if (!created) throw new InvalidOperationException("Test database already exists.");
             var company = new Dag_Sirket { SirketAdi = "Integrity fixture" };
             var firm = new Ys_Firma { FirmaAdi = "Fixture service", Sirket = company, AktifMi = true };
-            var otherFirm = new Ys_Firma { FirmaAdi = "Other firm", Sirket = company, AktifMi = true };
+            var otherFirm = new Ys_Firma { FirmaAdi = "Other firm", Sirket = company, AktifMi = true, VergiNo = "1234567890" };
             var brand = new Ys_Marka { MarkaAdi = "Isı", AktifMi = true };
             var addedBrand = new Ys_Marka { MarkaAdi = "Vaillant", AktifMi = true };
             var inactiveBrand = new Ys_Marka { MarkaAdi = "Inactive", AktifMi = false };
@@ -115,8 +124,32 @@ internal static class IntegritySqlScenario
             Check((await brands.ListeleAsync(new() { TumunuGetir = true, AktifMi = false })).Single().Id == inactiveBrand.Id
                 && (await brands.ListeleAsync(new())).All(x => x.AktifMi),
                 "Public catalogue excludes inactive brands; authorized filter can find them");
+            var catalogue = new MarkaKatalogApiService(db, brands);
+            var principal = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Role, "GenelSistemAdmin")], "Fixture"));
+            foreach (var active in new[] { false, true })
+            {
+                var saved = await catalogue.EkleAsync(new() { MarkaAdi = "New brand " + active, AktifMi = active }, principal);
+                Check(saved.Veri is { Basarili: true, Id: not null }
+                    && await db.Ys_Markalar.AnyAsync(x => x.Id == saved.Veri.Id && x.AktifMi == active),
+                    "Brand creation preserves requested active state: " + active);
+            }
+            await db.UrunKategoriler.Where(x => x.Id == addedCategory.Id).ExecuteUpdateAsync(s => s.SetProperty(x => x.AktifMi, false));
+            await db.Ys_Markalar.Where(x => x.Id == addedBrand.Id).ExecuteUpdateAsync(s => s.SetProperty(x => x.SilindiMi, true));
+            db.ChangeTracker.Clear();
+            var editor = (await admin.EditorAsync(firm.Id, company.Id))!;
+            Check(!editor.SeciliKategoriIds.Contains(addedCategory.Id)
+                && editor.SeciliKategoriIds.All(id => editor.Kategoriler.Any(x => x.Id == id))
+                && editor.Servis.Markalar.All(x => x.Id != addedBrand.Id),
+                "Editor excludes inactive categories and deleted brands from active selections and DTOs");
+            Check(await db.Ys_FirmaKategoriler.AnyAsync(x => x.Id == newCategory.Id && !x.SilindiMi
+                    && x.YetkiBitisTarihi == newCategory.YetkiBitisTarihi),
+                "Reading the editor does not alter existing authorization history");
+            Check((await admin.GuncelleAsync(Edit(editor.SeciliMarkaIds, editor.SeciliKategoriIds), user, company.Id)).Basarili
+                && await db.Ys_FirmaKategoriler.AnyAsync(x => x.Id == newCategory.Id && x.SilindiMi
+                    && x.YetkiBitisTarihi == newCategory.YetkiBitisTarihi),
+                "Filtered editor can save while removed grants retain historical dates");
 
-            var legacy = new Ykc_Talep { TesisatNo = "123", SirketId = company.Id };
+            var legacy = new Ykc_Talep { TesisatNo = "123", SirketId = company.Id, FirmaId = otherFirm.Id };
             db.Ykc_Talepler.Add(legacy);
             await db.SaveChangesAsync();
             await db.Database.ExecuteSqlRawAsync("""
@@ -133,6 +166,24 @@ internal static class IntegritySqlScenario
             db.ChangeTracker.Clear();
             Check(await db.Ykc_Talepler.AnyAsync(x => x.Id == legacy.Id && x.SorguReferansi == null),
                 "Migration is repeatable and preserves historical requests with no reference");
+            await db.Database.ExecuteSqlRawAsync("ALTER TABLE dbo.Ykc_Talepler ADD Vkn nvarchar(32) NULL;");
+            await db.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE dbo.Ykc_Talepler SET Vkn = {otherFirm.VergiNo} WHERE Id = {legacy.Id}");
+            var removeVkn = await File.ReadAllTextAsync(Path.Combine(Directory.GetCurrentDirectory(),
+                "DatabaseScripts", "2026-10-08_ykc_talep_vkn_kaldir.sql"));
+            await db.Database.ExecuteSqlRawAsync(removeVkn);
+            await db.Database.ExecuteSqlRawAsync(removeVkn);
+            db.ChangeTracker.Clear();
+            Check(await db.Database.SqlQueryRaw<int>("""
+                SELECT COUNT(*) AS [Value] FROM sys.columns
+                WHERE object_id = OBJECT_ID(N'dbo.Ykc_Talepler') AND name = N'Vkn'
+                """).SingleAsync() == 0,
+                "VKN migration removes only the redundant column and can run twice");
+            Check(await db.Ykc_Talepler.CountAsync() == 1
+                && await db.Ykc_Talepler.AnyAsync(x => x.Id == legacy.Id && x.FirmaId == otherFirm.Id
+                    && x.SirketId == company.Id && x.TesisatNo == "123")
+                && await db.Ys_Firmalar.AnyAsync(x => x.Id == otherFirm.Id && x.VergiNo == "1234567890"),
+                "Removing request VKN preserves requests, firm links and the firm's tax number");
             var source = new YkcTalepKaydetDto
             {
                 FirmaId = firm.Id, SirketId = company.Id, TesisatNo = "123456", SozlesmeNo = "001234",
@@ -166,10 +217,74 @@ internal static class IntegritySqlScenario
             Check(!(await service.OlusturAsync(Request(reference), foreign)).Basarili,
                 "Another user cannot replay a captured reference");
             user.KullaniciTipi = KullaniciTipiDegerleri.SertifikaliFirma;
+            await db.Ykc_Talepler.Where(x => x.Id == requestId).ExecuteUpdateAsync(s => s
+                .SetProperty(x => x.AtananEkip, "Private team").SetProperty(x => x.HedefUygulama, "INTERNAL-TARGET"));
             var list = await new YkcTalepOkumaService(db).ListeAsync(new(), user, false);
             var report = await new YkcTalepOkumaService(db).RaporAsync(new(), user, false);
             Check(list.Talepler.Single().ProjeNo == null && report.Kayitlar.Single().ProjeNo == null,
                 "Firm list and report responses omit internal project information");
+            Check(report.HedefOzetleri.Count == 0 && report.EkipOzetleri.Count == 0,
+                "Firm report service omits internal routing aggregates as well as row values");
+            var driftedFirm = new AppKullanici
+            {
+                Id = user.Id, FirmaId = firm.Id, SirketId = company.Id, KullaniciTipi = KullaniciTipiDegerleri.Personel
+            };
+            var read = new YkcTalepOkumaService(db);
+            var driftedList = await read.ListeAsync(new(), driftedFirm, false);
+            var driftedDashboard = await read.DashboardOzetAsync(driftedFirm, false);
+            var driftedReport = await read.RaporAsync(new(), driftedFirm, false);
+            var driftedExport = await read.RaporKayitlariAsync(new(), driftedFirm, false, 100);
+            Check(driftedList.Talepler.Single().ProjeNo == null && driftedList.Talepler.Single().AtananEkip == null
+                && driftedDashboard.SonTalepler.Single().ProjeNo == null && driftedDashboard.SonTalepler.Single().HedefUygulama == null
+                && driftedReport.EkipOzetleri.Count == 0 && driftedReport.Kayitlar.Single().EskiMarka == null
+                && driftedExport.Single().ProjeNo == null && driftedExport.Single().AtananEkip == null,
+                "Firm-bound reads stay private when account type and firm role are inconsistent");
+            var internalReport = await read.RaporAsync(new(), new AppKullanici { SirketId = company.Id }, false);
+            Check(internalReport.EkipOzetleri.Single().Ad == "Private team"
+                && internalReport.HedefOzetleri.Any(x => x.Ad == "INTERNAL-TARGET")
+                && internalReport.Kayitlar.Single(x => x.Id == requestId).ProjeNo == source.ProjeNo,
+                "Internal personnel retain source details and operational report aggregates");
+            db.Roles.Add(new IdentityRole("SertifikaliFirma") { NormalizedName = "SERTIFIKALIFIRMA" });
+            await db.SaveChangesAsync();
+            await db.Users.Where(x => x.Id == user.Id).ExecuteUpdateAsync(s => s.SetProperty(x => x.KullaniciTipi, KullaniciTipiDegerleri.Personel));
+            db.ChangeTracker.Clear();
+            using var users = new UserManager<AppKullanici>(new UserStore<AppKullanici>(db), Options.Create(new IdentityOptions()),
+                new PasswordHasher<AppKullanici>(), [], [], new UpperInvariantLookupNormalizer(), new IdentityErrorDescriber(),
+                null!, NullLogger<UserManager<AppKullanici>>.Instance);
+            var storedActor = (await users.FindByIdAsync(user.Id))!;
+            Check((await users.AddToRoleAsync(storedActor, "SertifikaliFirma")).Succeeded,
+                "Fixture creates a persisted firm role with a mismatched account type");
+            var api = new YkcApiController(service, read, users, null!, db, null!, new YkcYetkiService(db, users),
+                null!, new YkcPlanlamaOkumaService(db), null!)
+            {
+                ControllerContext = new ControllerContext
+                {
+                    HttpContext = new DefaultHttpContext
+                    {
+                        User = new ClaimsPrincipal(new ClaimsIdentity([
+                            new Claim(ClaimTypes.NameIdentifier, user.Id), new Claim(ClaimTypes.Role, "SertifikaliFirma")], "Fixture"))
+                    }
+                }
+            };
+            var apiList = (YkcTalepListeSonuc)((OkObjectResult)await api.TaleplerListe(new())).Value!;
+            Check(apiList.Talepler.Single().ProjeNo == null && apiList.Talepler.Single().AtananEkip == null,
+                "Actual list endpoint hides internal fields despite role/type mismatch");
+            Check(await api.TaleplerRapor(new()) is ObjectResult { StatusCode: 403 }
+                && await api.TaleplerRaporExcel(new()) is ObjectResult { StatusCode: 403 },
+                "Privacy hardening does not grant firm users report or export access");
+            Check(await api.Takvim(new() { Baslangic = DateTime.MaxValue, Bitis = DateTime.MaxValue }) is BadRequestObjectResult,
+                "Extreme calendar input returns HTTP 400 instead of a server error");
+            var calendar = new YkcPlanlamaOkumaService(db);
+            var extremeDates = new YkcTakvimFiltre { Baslangic = DateTime.MaxValue.Date.AddDays(-2), Bitis = DateTime.MinValue };
+            await calendar.TakvimAsync(extremeDates, user, false);
+            Check(extremeDates.Bitis == DateTime.MaxValue.Date.AddDays(-1),
+                "Near-maximum calendar range remains bounded without arithmetic overflow");
+            var normalDates = new YkcTakvimFiltre { Baslangic = DateTime.Today, Bitis = DateTime.Today.AddDays(-1) };
+            await calendar.TakvimAsync(normalDates, user, false);
+            Check(normalDates.Bitis == DateTime.Today.AddDays(6), "Normal reversed calendar range retains its seven-day fallback");
+            var installationList = await new IcTesisatDevreyeAlmaApiService(db).ListeleAsync(
+                new() { Sayfa = int.MaxValue, SayfaBoyutu = 500 }, new AppKullanici(), ["GenelSistemAdmin"]);
+            Check(installationList is { Sayfa: 1 }, "Extreme page number resolves an empty scoped list without SQL OFFSET overflow");
             var detail = (await new YkcTalepOkumaService(db).GetirAsync(requestId, user, false))!;
             YkcFirmaSunumu.Hazirla(detail, resmiForm: false);
             var json = JsonSerializer.Serialize(detail);
@@ -179,6 +294,41 @@ internal static class IntegritySqlScenario
             YkcFirmaSunumu.Hazirla(official, resmiForm: true);
             Check(official.ProjeNo == source.ProjeNo && official.EskiKapasite == source.EskiKapasite,
                 "Official FR265 data retains project and device values");
+            var uploads = new YkcBelgeYuklemeApiService(service, new TestEnvironment { ContentRootPath = documentRoot });
+            var storage = Path.Combine(documentRoot, "App_Data", "ykc-belgeler");
+            foreach (var (fileName, contentType, bytes) in new[]
+            {
+                ("../../../outside.pdf", "application/pdf", "%PDF-1.4\n%%EOF"u8.ToArray()),
+                (@"C:\outside\device.pdf", "application/pdf", "%PDF-1.4\n%%EOF"u8.ToArray()),
+                ("technical attachment.jpeg", "image/jpeg", new byte[] { 0xFF, 0xD8, 0xFF, 0xE0, 1, 2, 3, 4 }),
+                ("device.png", "image/png", new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A })
+            })
+            {
+                using var input = new MemoryStream(bytes);
+                var upload = new FormFile(input, 0, bytes.Length, "Dosya", fileName)
+                { Headers = new HeaderDictionary(), ContentType = contentType };
+                Check((await uploads.YukleAsync(requestId, null, upload, user, false, company.Id)).Basarili,
+                    "Supported technical upload succeeds: " + contentType);
+                var stored = await db.Ykc_FormDosyalari.AsNoTracking().OrderByDescending(x => x.Id).FirstAsync();
+                var generatedName = stored.DosyaYolu!.Split('/').Last();
+                var physical = Path.Combine(storage, requestId.ToString(), generatedName);
+                Check(Guid.TryParseExact(Path.GetFileNameWithoutExtension(generatedName), "N", out _)
+                    && stored.DosyaYolu.StartsWith($"ykc/{requestId}/", StringComparison.Ordinal)
+                    && PrivateDocumentStorage.IsInRoot(physical, storage)
+                    && File.Exists(physical) && (await File.ReadAllBytesAsync(physical)).SequenceEqual(bytes)
+                    && stored.BelgeHash == Convert.ToHexString(SHA256.HashData(bytes))
+                    && stored.DosyaAdi == Path.GetFileName(fileName.Replace('\\', '/')),
+                    "Private upload preserves content, display name and hash without trusting the supplied path");
+            }
+            var savedFiles = Directory.GetFiles(storage, "*", SearchOption.AllDirectories).Length;
+            using (var input = new MemoryStream("%PDF-1.4\n%%EOF"u8.ToArray()))
+            {
+                var upload = new FormFile(input, 0, input.Length, "Dosya", "foreign.pdf")
+                { Headers = new HeaderDictionary(), ContentType = "application/pdf" };
+                Check(!(await uploads.YukleAsync(requestId, null, upload, foreign, false, company.Id)).Basarili
+                    && Directory.GetFiles(storage, "*", SearchOption.AllDirectories).Length == savedFiles,
+                    "Cross-firm upload is rejected without leaving a physical file");
+            }
             var another = await new SqlYkcSorguKaydiService(db).EkleAsync(user.Id, source);
             var fresh = await service.OlusturAsync(Request(another), user);
             Check(fresh.Basarili && fresh.Id != requestId,
@@ -195,6 +345,9 @@ internal static class IntegritySqlScenario
         }
         finally
         {
+            if (Directory.Exists(documentRoot) && PrivateDocumentStorage.IsInRoot(documentRoot, Path.GetTempPath())
+                && Path.GetFileName(documentRoot).StartsWith("YsIntegrityTest_", StringComparison.Ordinal))
+                Directory.Delete(documentRoot, true);
             if (created && db.Database.GetDbConnection().Database == name && name.StartsWith("YsIntegrityTest_", StringComparison.Ordinal))
                 await db.Database.EnsureDeletedAsync();
         }

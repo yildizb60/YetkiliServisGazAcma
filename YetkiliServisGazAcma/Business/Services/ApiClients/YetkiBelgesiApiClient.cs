@@ -34,12 +34,14 @@ namespace YetkiliServisGazAcma.Business.Services
                 "Yetki belgesi firma ekrani");
         }
 
-        public Task<YetkiBelgesiOnayEkraniDto?> OnayEkraniAsync(AppKullanici kullanici, int? sirketId)
+        public Task<YetkiBelgesiOnayEkraniDto?> OnayEkraniAsync(AppKullanici kullanici, int? sirketId, YetkiBelgesiOnayFiltreDto? filtre = null)
         {
-            return _api.PostAsync<YetkiBelgesiFiltreDto, YetkiBelgesiOnayEkraniDto>(
+            filtre ??= new();
+            filtre.SirketId = sirketId;
+            return _api.PostAsync<YetkiBelgesiOnayFiltreDto, YetkiBelgesiOnayEkraniDto>(
                 kullanici,
                 "api/yetki-belgesi/onay-ekrani",
-                new YetkiBelgesiFiltreDto { SirketId = sirketId },
+                filtre,
                 "Yetki belgesi onay ekrani");
         }
 

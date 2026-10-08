@@ -1,8 +1,33 @@
 namespace YetkiliServisGazAcma.Business.Services
 {
-    public class AdminYetkiBelgesiOnayFiltreDto
+    public class YetkiBelgesiOnayFiltreDto
     {
         public int? SirketId { get; set; }
+        public string? Durum { get; set; }
+        public int Sayfa { get; set; } = 1;
+        public int SayfaBoyutu { get; set; } = 25;
+        public string? Firma { get; set; }
+        public string? Sirket { get; set; }
+        public string? Adres { get; set; }
+        public DateTime? Yukleme { get; set; }
+        public DateTime? Baslangic { get; set; }
+        public DateTime? Bitis { get; set; }
+    }
+
+    public class AdminYetkiBelgesiOnayFiltreDto : YetkiBelgesiOnayFiltreDto { }
+
+    public class YetkiBelgesiOnaySayfalamaDto
+    {
+        public YetkiBelgesiOnayFiltreDto Filtre { get; set; } = new();
+        public string Durum { get; set; } = "bekleyen";
+        public int Sayfa { get; set; } = 1;
+        public int SayfaBoyutu { get; set; } = 25;
+        public int Toplam { get; set; }
+        public int Bekleyen { get; set; }
+        public int Onaylanan { get; set; }
+        public int Reddedilen { get; set; }
+        public int SuresiDolan { get; set; }
+        public int ToplamSayfa => Math.Max(1, (int)Math.Ceiling(Toplam / (double)SayfaBoyutu));
     }
 
     public class AdminYetkiBelgesiOnayGecmisiFiltreDto
@@ -21,15 +46,13 @@ namespace YetkiliServisGazAcma.Business.Services
 
     public class AdminYetkiBelgesiOnayListeDto
     {
+        public YetkiBelgesiOnaySayfalamaDto Sayfalama { get; set; } = new();
         public List<AdminYetkiBelgesiOnayDto> Bekleyenler { get; set; } = new();
         public List<AdminYetkiBelgesiOnayDto> SuresiDolanlar { get; set; } = new();
         public List<AdminYetkiBelgesiOnayDto> Onaylananlar { get; set; } = new();
         public List<AdminYetkiBelgesiOnayDto> Reddedilenler { get; set; } = new();
     }
-    public class YetkiBelgesiFiltreDto
-    {
-        public int? SirketId { get; set; }
-    }
+    public class YetkiBelgesiFiltreDto : YetkiBelgesiOnayFiltreDto { }
 
     public class YetkiBelgesiRedDto
     {
@@ -60,6 +83,7 @@ namespace YetkiliServisGazAcma.Business.Services
 
     public class YetkiBelgesiOnayEkraniDto
     {
+        public YetkiBelgesiOnaySayfalamaDto Sayfalama { get; set; } = new();
         public List<YetkiBelgesiDto> Bekleyenler { get; set; } = new();
         public List<YetkiBelgesiDto> SuresiDolanlar { get; set; } = new();
         public List<YetkiBelgesiDto> Onaylananlar { get; set; } = new();

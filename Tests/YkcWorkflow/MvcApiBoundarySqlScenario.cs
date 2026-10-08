@@ -118,7 +118,9 @@ internal static class MvcApiBoundarySqlScenario
             await db.SaveChangesAsync();
             var certificates = new AdminYetkiBelgesiOnayApiService(db);
             var lists = await certificates.ListeleAsync(primary.Id);
-            Check(lists.Bekleyenler.Single().Id == pending.Id && lists.SuresiDolanlar.Single().Id == expired.Id,
+            var expiredPage = await certificates.ListeleAsync(primary.Id, new() { Durum = "suresi-dolan" });
+            Check(lists.Bekleyenler.Single().Id == pending.Id && expiredPage.SuresiDolanlar.Single().Id == expired.Id
+                && lists.Sayfalama.SuresiDolan == 1 && lists.SuresiDolanlar.Count == 0,
                 "API alone classifies active versus expired pending certificates");
             foreach (var type in new[] { "bekleyen", "onayli", "reddedilen" })
             {
@@ -398,6 +400,7 @@ internal static class MvcApiBoundarySqlScenario
 
             await ServisEkraniVeKullaniciBilgileriAsync(db, commands, Check);
             await PersonelRaporKurallariAsync(db, Check);
+            await OkumaPerformansiAsync(db, commands, Check);
             Console.WriteLine($"{passed} MVC/API boundary SQL checks passed.");
         }
         finally
@@ -616,6 +619,119 @@ internal static class MvcApiBoundarySqlScenario
         await db.SaveChangesAsync();
         check(await Controller(staff).PersonelRapor(Filter(), reports) is UnauthorizedResult,
             "Inactive personnel cannot request report screen data");
+    }
+
+    private static async Task OkumaPerformansiAsync(AppDbContext db, ReadCommands commands, Action<bool, string> check)
+    {
+        var today = DateTime.Today;
+        var company = new Dag_Sirket { SirketAdi = "Performance scope" };
+        var firm = new Ys_Firma { FirmaAdi = "Paging fixture", Sirket = company, VergiNo = "1234567890", Adres = "Test address", FaaliyetIli = "Test city" };
+        var other = new Ys_Firma { FirmaAdi = "Other paging fixture", Sirket = new() { SirketAdi = "Other performance scope" } };
+        db.AddRange(firm, other);
+        await db.SaveChangesAsync();
+        var documents = new List<Ys_YetkiBelgesi>();
+        foreach (var status in new[] { "bekleyen", "onaylanan", "reddedilen", "suresi-dolan" })
+            for (var i = 0; i < 105; i++)
+                documents.Add(new()
+                {
+                    FirmaId = firm.Id, Durum = status == "onaylanan" ? 1 : status == "reddedilen" ? 2 : 0,
+                    YetkiBelgesiBitisTarihi = status == "suresi-dolan" ? today.AddDays(-1) : today.AddMonths(1),
+                    YetkiBelgesiBaslangicTarihi = today.AddDays(-2), OlusturmaTarihi = today,
+                    OnayTarihi = status is "onaylanan" or "reddedilen" ? today : null
+                });
+        db.Ys_YetkiBelgeleri.AddRange(documents);
+        db.Ys_YetkiBelgeleri.Add(new() { FirmaId = other.Id, YetkiBelgesiBitisTarihi = today.AddMonths(1) });
+        db.Ys_DevreyeAlmalar.AddRange(Enumerable.Range(0, 120).Select(i => new Ys_DevreyeAlma
+        {
+            FirmaId = firm.Id, MusteriAdi = "Read fixture " + i, DevreyeAlmaTarihi = today,
+            Durum = DevreyeAlmaDurumDegerleri.Tamamlandi, CihazMarka = "Fixture"
+        }));
+        await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
+        var certificates = new AdminYetkiBelgesiOnayApiService(db);
+        commands.Sql.Clear();
+        var first = await certificates.ListeleAsync(company.Id);
+        check(first.Bekleyenler.Count == 25 && first.Sayfalama.Bekleyen == 105
+            && first.Sayfalama.Onaylanan == 105 && first.Sayfalama.Reddedilen == 105 && first.Sayfalama.SuresiDolan == 105,
+            "Certificate page is bounded while all four counters include every authorized record");
+        check(commands.Sql.Count == 2 && commands.Sql.Any(x => x.Contains("OFFSET", StringComparison.Ordinal))
+            && !db.ChangeTracker.Entries().Any(), "Certificate paging executes two SQL reads without tracking entities");
+        foreach (var status in new[] { "bekleyen", "onaylanan", "reddedilen", "suresi-dolan" })
+        {
+            var ids = new List<int>();
+            for (var page = 1; page <= 5; page++)
+            {
+                var result = await certificates.ListeleAsync(company.Id, new() { Durum = status, Sayfa = page });
+                ids.AddRange(result.Bekleyenler.Concat(result.Onaylananlar).Concat(result.Reddedilenler)
+                    .Concat(result.SuresiDolanlar).Select(x => x.Id));
+                check(result.Sayfalama.Sayfa == page && result.Sayfalama.Toplam == 105,
+                    $"Certificate pagination retains scope and totals: {status}, page {page}");
+            }
+            check(ids.Count == 105 && ids.Distinct().Count() == 105
+                && ids.SequenceEqual(ids.OrderDescending()), "Every certificate remains reachable exactly once, including after record 100: " + status);
+        }
+        var excessive = await certificates.ListeleAsync(company.Id, new() { Sayfa = int.MaxValue, SayfaBoyutu = int.MaxValue });
+        check(excessive.Sayfalama.Sayfa == 2 && excessive.Bekleyenler.Count == 5, "Extreme certificate page/size cannot overflow or read an unbounded list");
+        var filtered = await certificates.ListeleAsync(company.Id, new()
+        {
+            Firma = "1234567890", Sirket = "Performance", Adres = "Test city", Yukleme = today,
+            Baslangic = today.AddDays(-2), Bitis = today.AddMonths(1), Sayfa = 2
+        });
+        check(filtered.Sayfalama.Toplam == 105 && filtered.Bekleyenler.Count == 25
+            && !filtered.Bekleyenler.Select(x => x.Id).Intersect(first.Bekleyenler.Select(x => x.Id)).Any(),
+            "All approval filters execute before SQL pagination, including tax number and address");
+        var empty = await certificates.ListeleAsync(company.Id, new() { Firma = "Other paging", Sayfa = 5 });
+        check(empty.Sayfalama.Toplam == 0 && empty.Sayfalama.Sayfa == 1 && empty.Bekleyenler.Count == 0,
+            "Certificate filtering never escapes company scope");
+        var legacy = await new YetkiBelgesiOkumaApiService(db, null!).OnayEkraniAsync(company.Id, new() { Durum = "onayli", Sayfa = 5 });
+        check(legacy.Onaylananlar.Count == 5 && legacy.Sayfalama.Toplam == 105,
+            "Legacy certificate route shares the same complete paging and status aliases");
+        commands.Sql.Clear();
+        var reportService = new YetkiliServisRaporApiService(db);
+        var summary = await reportService.GetirAsync(firm.Id, new() { Bas = today, Bit = today });
+        check(commands.Sql.Count == 6 && summary.SonIslemler.Count == 10 && summary.DevreyeSayisi == 120
+            && summary.Tamamlanan == 120 && summary.ChartAylikData.Sum() == 120 && summary.ChartMarkaData.Sum() == 120,
+            "Service summary uses six reads instead of eleven and limits only recent rows, never counters/charts");
+        check(!db.ChangeTracker.Entries().Any(), "Service report reads do not populate the change tracker");
+        var selectedIds = await db.Ys_DevreyeAlmalar.Where(x => x.FirmaId == firm.Id).Select(x => x.Id).ToListAsync();
+        var selectedSummary = await reportService.GetirAsync(firm.Id, new() { Ids = selectedIds, Limit = int.MaxValue });
+        check(selectedSummary.SonIslemler.Count == 100 && selectedSummary.DevreyeSayisi == 120
+            && selectedSummary.ChartAylikData.Sum() == 120,
+            "Explicit report selections are bounded on screen while every selected row contributes to totals");
+        foreach (var limit in new[] { 0, -1, int.MaxValue })
+        {
+            var result = await reportService.GetirAsync(firm.Id, new() { Bas = today, Bit = today, Limit = limit });
+            check(result.SonIslemler.Count == (limit > 0 ? 100 : 10) && result.DevreyeSayisi == 120,
+                "Service report normalizes display limit without truncating totals: " + limit);
+        }
+
+        var request = new Ykc_Talep
+        {
+            FirmaId = firm.Id, SirketId = company.Id, MusteriAdi = "Query fixture", TesisatNo = "PERF",
+            EskiKapasite = "20000", YeniKapasite = "18000", YeniBacaTipi = "Hermetik"
+        };
+        request.Kontroller.Add(new() { KontrolNo = 1, Sonuc = YkcFr265KontrolSonucDegerleri.UygunDegil });
+        for (var i = 0; i < 40; i++) request.IslemGecmisi.Add(new() { Aciklama = "History " + i, OlusturmaTarihi = today.AddMinutes(i) });
+        var file = new Ykc_FormDosya { DosyaTuru = YkcFormDosyaTuruDegerleri.Fr265ImzaliNihai };
+        request.FormDosyalari.Add(file);
+        request.ImzaSurecleri.Add(new() { Durum = YkcImzaDurumDegerleri.Tamamlandi, ProviderDocumentId = "fixture", NihaiDosya = file });
+        db.Add(request);
+        await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
+        var reader = new YkcTalepOkumaService(db);
+        var actor = new AppKullanici { SirketId = company.Id, KullaniciTipi = KullaniciTipiDegerleri.Personel };
+        commands.Sql.Clear();
+        var list = await reader.ListeAsync(new(), actor, false);
+        check(commands.Sql.Count == 3 && list.Talepler.Single().SiradakiKontrolNo == 2,
+            "YKC list uses three reads: count, page and controls; detail collections are not loaded");
+        commands.Sql.Clear();
+        var rows = await reader.RaporKayitlariAsync(new(), actor, false, 5001);
+        check(commands.Sql.Count == 4 && commands.Sql.All(x => !x.Contains("Ykc_IslemGecmisi") && !x.Contains("Ykc_Imzacilar") && !x.Contains("Ys_YetkiBelgeleri"))
+            && rows.Single().ImzaliNihaiDosyaId == file.Id && rows.Single().YeniBacaTipi == "Hermetik" && rows.Single().EskiKapasite == "20000",
+            "YKC export uses four reads without detail history, signers or certificates and retains signed-file/device fields");
+        var detail = await reader.GetirAsync(request.Id, actor, false);
+        check(detail!.Gecmis.Count == 40 && detail.Kontroller.Count == 1 && detail.ImzaSureci != null,
+            "Lean list queries do not remove the full history or signature from request details");
     }
 
     private sealed class ReadCommands : DbCommandInterceptor

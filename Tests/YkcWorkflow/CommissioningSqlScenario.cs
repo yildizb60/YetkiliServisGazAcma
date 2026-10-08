@@ -143,11 +143,53 @@ internal static class CommissioningSqlScenario
 
             var firstController = Controller(firstUser);
             var queryRequest = new YsTesisatSorguDto { TesistatNo = "1000149", SozlesmeNo = "241584" };
+            var certificate = await db.Ys_YetkiBelgeleri.SingleAsync(x => x.FirmaId == firstFirm.Id);
+            var certificates = new YetkiBelgesiOkumaApiService(db, new YetkiBelgesiService(db, null!));
+            foreach (var state in new[] { "expired", "future", "pending", "rejected", "deleted" })
+            {
+                certificate.Durum = state == "pending" ? YetkiBelgesiDurumDegerleri.OnaydaBekliyor
+                    : state == "rejected" ? YetkiBelgesiDurumDegerleri.Reddedildi : YetkiBelgesiDurumDegerleri.Onaylandi;
+                certificate.SilindiMi = state == "deleted";
+                certificate.YetkiBelgesiBaslangicTarihi = DateTime.Today.AddDays(state == "future" ? 1 : -2);
+                certificate.YetkiBelgesiBitisTarihi = DateTime.Today.AddDays(state == "expired" ? -1 : 30);
+                await db.SaveChangesAsync();
+                var rejectedQuery = Body<YsTesisatSorguSonucDto>(await firstController.TesisatSorgula(queryRequest));
+                Check(!rejectedQuery.Basarili && string.IsNullOrEmpty(rejectedQuery.MusteriAdi)
+                    && soap.RequestCount == 0 && !await db.Ys_DevreyeAlmaSorguKayitlari.AnyAsync(),
+                    "Invalid certificate blocks external I/O and source references: " + state);
+                var screen = (await certificates.FirmaEkraniAsync(firstFirm.Id))!;
+                Check(screen.Bildirimler.All(x => !x.Contains("Cihaz devreye alabilirsiniz") && !x.Contains("-1 gün")),
+                    "Invalid certificate does not advertise commissioning: " + state);
+            }
+            certificate.Durum = YetkiBelgesiDurumDegerleri.Onaylandi;
+            certificate.SilindiMi = false;
+            certificate.YetkiBelgesiBaslangicTarihi = DateTime.Today.AddDays(-1);
+            certificate.YetkiBelgesiBitisTarihi = DateTime.Today;
+            await db.SaveChangesAsync();
+            Check((await certificates.FirmaEkraniAsync(firstFirm.Id))!.Bildirimler.Any(x => x.Contains("Cihaz devreye alabilirsiniz")),
+                "The expiry day remains valid in certificate notifications");
             var firstQuery = Body<YsTesisatSorguSonucDto>(await firstController.TesisatSorgula(queryRequest));
             Check(firstQuery.Basarili && firstQuery.Cihazlar.Count == 3
                 && firstQuery.Cihazlar.Select(x => x.SorguReferansi).Distinct().Count() == 3
                 && soap.RequestCount == 1,
                 "SOAP query persists a separate SQL reference for each source device");
+            certificate.YetkiBelgesiBitisTarihi = DateTime.Today.AddDays(30);
+            var renewal = new Ys_YetkiBelgesi
+            {
+                FirmaId = firstFirm.Id, Durum = YetkiBelgesiDurumDegerleri.Onaylandi,
+                YetkiBelgesiBaslangicTarihi = DateTime.Today.AddDays(31),
+                YetkiBelgesiBitisTarihi = DateTime.Today.AddYears(1), OlusturmaTarihi = DateTime.Now.AddSeconds(1)
+            };
+            db.Ys_YetkiBelgeleri.Add(renewal);
+            await db.SaveChangesAsync();
+            Check((await certificates.FirmaEkraniAsync(firstFirm.Id))!.Bildirimler.Any(x => x.Contains("Cihaz devreye alabilirsiniz")),
+                "Future renewal does not hide an older currently valid certificate");
+            renewal.Durum = YetkiBelgesiDurumDegerleri.OnaydaBekliyor;
+            await db.SaveChangesAsync();
+            Check((await certificates.FirmaEkraniAsync(firstFirm.Id))!.Bildirimler.Any(x => x.Contains("Mevcut geçerli belgenizle")),
+                "Pending renewal does not falsely block the existing valid certificate");
+            renewal.SilindiMi = true;
+            await db.SaveChangesAsync();
 
             async Task<YsMarkaKontrolSonucDto> CheckDevice(string? reference, AppKullanici? user = null)
             {
@@ -361,6 +403,65 @@ internal static class CommissioningSqlScenario
 
             Check(await db.Ys_DevreyeAlmalar.CountAsync() == 3,
                 "Failed duplicate attempts leave committed records unchanged");
+
+            var originalSerialKey = firstRecord.SeriAnahtari;
+            await db.Database.ExecuteSqlRawAsync("ALTER TABLE dbo.Ys_DevreyeAlmalar ADD PdfYolu nvarchar(max) NULL;");
+            await db.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE dbo.Ys_DevreyeAlmalar SET PdfYolu = {"legacy-fixture.pdf"} WHERE Id = {firstRecord.Id}");
+            var removePdfPath = await File.ReadAllTextAsync(Path.Combine(Directory.GetCurrentDirectory(),
+                "DatabaseScripts", "2026-10-08_ys_devreye_alma_pdf_yolu_kaldir.sql"));
+            try
+            {
+                await db.Database.ExecuteSqlRawAsync(removePdfPath);
+                throw new InvalidOperationException("PDF path migration discarded an existing path.");
+            }
+            catch (SqlException ex) when (ex.Number == 51010)
+            {
+                Check(true, "PDF path migration refuses to discard nonempty legacy paths");
+            }
+            await db.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE dbo.Ys_DevreyeAlmalar SET PdfYolu = NULL WHERE Id = {firstRecord.Id}");
+            await db.Database.ExecuteSqlRawAsync(removePdfPath);
+            await db.Database.ExecuteSqlRawAsync(removePdfPath);
+            db.ChangeTracker.Clear();
+            Check(await db.Database.SqlQueryRaw<int>("""
+                SELECT COUNT(*) AS [Value] FROM sys.columns
+                WHERE object_id = OBJECT_ID(N'dbo.Ys_DevreyeAlmalar') AND name = N'PdfYolu'
+                """).SingleAsync() == 0
+                && await db.Ys_DevreyeAlmalar.CountAsync() == 3
+                && await db.Ys_DevreyeAlmalar.AnyAsync(x => x.Id == firstRecord.Id
+                    && x.FirmaId == firstFirm.Id && x.SeriAnahtari == originalSerialKey),
+                "Repeatable PDF path migration preserves commissioning records and serial keys");
+            Check(typeof(Ys_DevreyeAlma).GetProperty("PdfYolu") is null
+                && typeof(DevreyeAlmaKayitDto).GetProperty("PdfYolu") is null,
+                "Commissioning entity and shared API contract no longer expose an unused PDF path");
+            var exports = new DevreyeAlmaExportApiService(db);
+            var servicePdf = await exports.YetkiliServisPdfAsync(firstRecord.Id, firstFirm.Id);
+            var adminPdf = await exports.AdminPdfAsync(firstRecord.Id, company.Id);
+            Check(servicePdf is not null && adminPdf is not null
+                && System.Text.Encoding.ASCII.GetString(servicePdf.Bytes, 0, 5) == "%PDF-"
+                && System.Text.Encoding.ASCII.GetString(adminPdf.Bytes, 0, 5) == "%PDF-",
+                "Service and admin PDFs are generated successfully without a stored PDF path");
+            Check(await exports.YetkiliServisPdfAsync(firstRecord.Id, secondFirm.Id) is null,
+                "Removing PDF path does not bypass file access scope");
+            await using (var duplicateSerialDb = new AppDbContext(options))
+            {
+                duplicateSerialDb.Ys_DevreyeAlmalar.Add(new Ys_DevreyeAlma
+                {
+                    FirmaId = secondFirm.Id, SeriAnahtari = originalSerialKey,
+                    DevreyeAlmaTarihi = DateTime.Now
+                });
+                try
+                {
+                    await duplicateSerialDb.SaveChangesAsync();
+                    throw new InvalidOperationException("SQL unique index accepted a duplicate serial key.");
+                }
+                catch (DbUpdateException ex) when (ex.GetBaseException() is SqlException sql
+                    && sql.Number is 2601 or 2627)
+                {
+                    Check(true, "Serial unique index still rejects duplicates after PDF path removal");
+                }
+            }
             await VerifyLegacyContractsAsync(db, firstFirm, firstRecord, firstController, Check);
             Console.WriteLine($"{passed} commissioning SQL checks passed. Isolated database: {databaseName}.");
         }
