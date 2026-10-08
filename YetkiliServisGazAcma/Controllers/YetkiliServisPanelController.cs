@@ -22,22 +22,6 @@ namespace YetkiliServisGazAcma.Controllers
             _yetkiliServisPanelApiClient = yetkiliServisPanelApiClient;
         }
 
-        private async Task SetBildirimler(AppKullanici kullanici)
-        {
-            try
-            {
-                var sonuc = await _yetkiliServisPanelApiClient.BildirimlerAsync(kullanici)
-                    ?? new YsPanelBildirimSonuc();
-
-                ViewBag.Bildirimler = sonuc.Bildirimler;
-                ViewBag.BildirimSayisi = sonuc.BildirimSayisi;
-            }
-            catch (ApiIntegrationException)
-            {
-                ViewBag.Bildirimler = new List<string>();
-                ViewBag.BildirimSayisi = 0;
-            }
-        }
 
         private async Task<AppKullanici?> GetYetkiliServisKullanici()
         {
@@ -52,16 +36,20 @@ namespace YetkiliServisGazAcma.Controllers
         [HttpGet]
         [Route("")]
         [Route("index")]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(DateTime? takvimTarih, string? takvimGorunum)
         {
             var kullanici = await GetYetkiliServisKullanici();
             if (kullanici == null) return Redirect("/giris");
 
-            var dashboard = await _yetkiliServisPanelApiClient.DashboardAsync(kullanici)
-                ?? new YsPanelDashboardSonuc();
+            var dashboard = await _yetkiliServisPanelApiClient.DashboardAsync(kullanici, takvimTarih, takvimGorunum)
+                ?? new YsPanelDashboardDto();
 
             ViewBag.Firma = dashboard.Firma;
             ViewBag.BuAy = dashboard.BuAy;
+            ViewBag.GecerliBelgeSayisi = dashboard.GecerliBelgeSayisi;
+            ViewBag.BekleyenBelgeSayisi = dashboard.BekleyenBelgeSayisi;
+            ViewBag.AktifMarkaSayisi = dashboard.AktifMarkaSayisi;
+            ViewBag.AktifSubeSayisi = dashboard.AktifSubeSayisi;
             ViewBag.Toplam = dashboard.Toplam;
             ViewBag.BekleyenIslem = dashboard.Bekleyen;
             ViewBag.TamamlananIslem = dashboard.Tamamlanan;
@@ -74,6 +62,10 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.Bildirimler = dashboard.Bildirimler;
             ViewBag.BildirimSayisi = dashboard.BildirimSayisi;
             ViewBag.YetkiBelgesiUyariGun = dashboard.YetkiBelgesiUyariGun;
+            ViewBag.TakvimTarih = dashboard.TakvimTarih;
+            ViewBag.TakvimGorunum = dashboard.TakvimGorunum;
+            ViewBag.TakvimIslemleri = dashboard.TakvimIslemleri;
+            ViewBag.TakvimVerisiTam = dashboard.TakvimVerisiTam;
 
             return View("~/Views/YetkiliServisPanel/Index.cshtml");
         }
@@ -115,7 +107,6 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.YetkiBelgesiVar = kurulum.YetkiBelgesiVar;
             ViewBag.OnayliYetkiBelgesiVar = kurulum.OnayliYetkiBelgesiVar;
             ViewBag.IlkKurulumEksikler = kurulum.Eksikler;
-            await SetBildirimler(kullanici);
             return View("~/Views/YetkiliServisPanel/IlkKurulum.cshtml");
         }
 
@@ -126,21 +117,15 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await GetYetkiliServisKullanici();
             if (kullanici == null) return Redirect("/giris");
 
-            var firma = await _yetkiliServisPanelApiClient.ProfilAsync(kullanici);
-            if (firma == null)
+            var subeler = await _yetkiliServisPanelApiClient.SubelerAsync(kullanici);
+            if (subeler == null)
             {
                 TempData["Hata"] = "Sube bilgileri API uzerinden alinamadi.";
                 return Redirect("/ys-panel");
             }
 
             ViewBag.Kullanici = kullanici;
-            ViewBag.Firma = firma;
-            ViewBag.Subeler = firma.Subeler?
-                .Where(x => !x.SilindiMi)
-                .OrderByDescending(x => x.AktifMi)
-                .ThenBy(x => x.SubeAdi)
-                .ToList() ?? new List<Ys_Sube>();
-            await SetBildirimler(kullanici);
+            ViewBag.Subeler = subeler;
 
             return View("~/Views/YetkiliServisPanel/Subeler.cshtml");
         }
@@ -149,11 +134,22 @@ namespace YetkiliServisGazAcma.Controllers
         [Route("subeler/duzenle/{id:int}")]
         public async Task<IActionResult> SubeDuzenle(int id)
         {
+            if (Request.Headers["X-Requested-With"] != "XMLHttpRequest")
+                return RedirectToAction(nameof(Subeler), new { duzenle = id });
+
             var kullanici = await GetYetkiliServisKullanici();
             if (kullanici == null) return Redirect("/giris");
 
-            var firma = await _yetkiliServisPanelApiClient.ProfilAsync(kullanici);
-            var sube = firma?.Subeler?.FirstOrDefault(x => x.Id == id && !x.SilindiMi);
+            AdminSubeDto? sube;
+            try
+            {
+                sube = await _yetkiliServisPanelApiClient.SubeGetirAsync(kullanici, id);
+            }
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
+                return Redirect("/ys-panel/subeler");
+            }
             if (sube == null)
             {
                 TempData["Hata"] = "Sube kaydi bulunamadi.";
@@ -161,9 +157,7 @@ namespace YetkiliServisGazAcma.Controllers
             }
 
             ViewBag.Kullanici = kullanici;
-            ViewBag.Firma = firma;
             ViewBag.Sube = sube;
-            await SetBildirimler(kullanici);
 
             return View("~/Views/YetkiliServisPanel/SubeDuzenle.cshtml");
         }
@@ -187,7 +181,6 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.TumMarkalar = sonuc.TumMarkalar;
             ViewBag.FirmaMarkalar = sonuc.FirmaMarkalar;
             ViewBag.SeciliMarkaIds = sonuc.SeciliMarkaIds;
-            await SetBildirimler(kullanici);
 
             return View("~/Views/YetkiliServisPanel/Markalar.cshtml");
         }
@@ -208,7 +201,6 @@ namespace YetkiliServisGazAcma.Controllers
 
             ViewBag.Kullanici = kullanici;
             ViewBag.Firma = firma;
-            await SetBildirimler(kullanici);
 
             return View("~/Views/YetkiliServisPanel/Profil.cshtml");
         }
@@ -240,9 +232,13 @@ namespace YetkiliServisGazAcma.Controllers
 
             if (sonuc?.Basarili == true)
                 TempData["Basarili"] = sonuc.Mesaj ?? "Sube guncellendi.";
+            else if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return Json(new { basarili = false, mesaj = sonuc?.Mesaj ?? "Şube kaydedilemedi." });
             else
                 TempData["Hata"] = sonuc?.Mesaj ?? "Sube API uzerinden guncellenemedi.";
 
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return Json(new { basarili = true });
             return Redirect("/ys-panel/subeler");
         }
         [HttpPost]
@@ -271,9 +267,13 @@ namespace YetkiliServisGazAcma.Controllers
 
             if (sonuc?.Basarili == true)
                 TempData["Basarili"] = sonuc.Mesaj ?? "Sube kaydi eklendi.";
+            else if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return Json(new { basarili = false, mesaj = sonuc?.Mesaj ?? "Şube kaydedilemedi." });
             else
                 TempData["Hata"] = sonuc?.Mesaj ?? "Sube API uzerinden eklenemedi.";
 
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return Json(new { basarili = true });
             return Redirect("/ys-panel/subeler");
         }
         [HttpPost]
@@ -450,12 +450,10 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.BasTarih = rapor.BasTarih;
             ViewBag.BitTarih = rapor.BitTarih;
             ViewBag.DevreyeSayisi = rapor.DevreyeSayisi;
-            ViewBag.Tamamlanan = rapor.Tamamlanan;
             ViewBag.Bekleyen = rapor.Bekleyen;
             ViewBag.YetkiBelgesiOnayli = rapor.YetkiBelgesiOnayli;
             ViewBag.YetkiBelgesiBekleyen = rapor.YetkiBelgesiBekleyen;
             ViewBag.YetkiBelgesiReddedilen = rapor.YetkiBelgesiReddedilen;
-            ViewBag.SonIslemler = rapor.SonIslemler;
             ViewBag.ChartAylikLabels = rapor.ChartAylikLabels;
             ViewBag.ChartAylikData = rapor.ChartAylikData;
             ViewBag.ChartDurumData = rapor.ChartDurumData;
@@ -463,26 +461,13 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.ChartMarkaData = rapor.ChartMarkaData;
             ViewBag.Firma = rapor.Firma;
             ViewBag.Kullanici = kullanici;
-            await SetBildirimler(kullanici);
             return View("~/Views/YetkiliServisPanel/Raporlar.cshtml");
         }
 
         [HttpGet]
         [Route("raporlar/pdf")]
-        public async Task<IActionResult> RaporlarPdf(DateTime? bas, DateTime? bit, List<int>? ids)
-        {
-            var kullanici = await GetYetkiliServisKullanici();
-            if (kullanici == null) return Redirect("/giris");
-
-            var dosya = await _yetkiliServisPanelApiClient.RaporlarPdfAsync(kullanici, bas, bit, ids);
-            if (dosya == null)
-            {
-                TempData["Hata"] = "PDF raporu API uzerinden alinamadi.";
-                return Redirect("/ys-panel/raporlar");
-            }
-
-            return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
-        }
+        public Task<IActionResult> RaporlarPdf(DateTime? bas, DateTime? bit, List<int>? ids)
+            => RaporDosyasi(bas, bit, ids, excelMi: false);
 
         [HttpGet]
         [Route("raporlar/pdf-toplu")]
@@ -495,19 +480,28 @@ namespace YetkiliServisGazAcma.Controllers
 
         [HttpGet]
         [Route("raporlar/excel")]
-        public async Task<IActionResult> RaporlarExcel(DateTime? bas, DateTime? bit, List<int>? ids)
+        public Task<IActionResult> RaporlarExcel(DateTime? bas, DateTime? bit, List<int>? ids)
+            => RaporDosyasi(bas, bit, ids, excelMi: true);
+
+        private async Task<IActionResult> RaporDosyasi(DateTime? bas, DateTime? bit, List<int>? ids, bool excelMi)
         {
             var kullanici = await GetYetkiliServisKullanici();
             if (kullanici == null) return Redirect("/giris");
 
-            var dosya = await _yetkiliServisPanelApiClient.RaporlarExcelAsync(kullanici, bas, bit, ids);
-            if (dosya == null)
+            try
             {
-                TempData["Hata"] = "Excel raporu API uzerinden alinamadi.";
-                return Redirect("/ys-panel/raporlar");
+                var dosya = excelMi
+                    ? await _yetkiliServisPanelApiClient.RaporlarExcelAsync(kullanici, bas, bit, ids)
+                    : await _yetkiliServisPanelApiClient.RaporlarPdfAsync(kullanici, bas, bit, ids);
+                if (dosya != null)
+                    return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+                TempData["Hata"] = "Rapor dosyası şu anda oluşturulamadı.";
             }
-
-            return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
+            }
+            return RedirectToAction(nameof(Raporlar), new { bas, bit });
         }
 
         [HttpGet]

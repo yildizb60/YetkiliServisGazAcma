@@ -1,332 +1,37 @@
-using System.Net.Http.Json;
 using Microsoft.Extensions.Options;
-using YetkiliServisGazAcma.Entities;
 
 namespace YetkiliServisGazAcma.Business.Services
 {
     public class YetkiliServisApiClient
     {
-        private readonly HttpClient _httpClient;
-        private readonly ApiIntegrationOptions _options;
-        private readonly ILogger<YetkiliServisApiClient> _logger;
+        private readonly ApiHttpClient _api;
 
         public YetkiliServisApiClient(
             HttpClient httpClient,
             IOptions<ApiIntegrationOptions> options,
             ILogger<YetkiliServisApiClient> logger)
         {
-            _httpClient = httpClient;
-            _options = options.Value;
-            _logger = logger;
+            _api = new ApiHttpClient(httpClient, options.Value, null, logger);
         }
 
-        public async Task<List<Ys_Firma>?> ListeAsync(YetkiliServisListeIstek istek)
-        {
-            var sonuc = await ListeSayfaliAsync(istek);
-            return sonuc?.Items;
-        }
+        public Task<YetkiliServisSayfaliDto?> ListeSayfaliAsync(YetkiliServisFiltreDto istek)
+            => _api.PostAsync<YetkiliServisFiltreDto, YetkiliServisSayfaliDto>(
+                null, "api/yetkili-servisler/liste", istek, "Yetkili servis liste");
 
-        public async Task<YetkiliServisSayfaliSonuc?> ListeSayfaliAsync(YetkiliServisListeIstek istek)
-        {
-            if (!_options.Enabled)
-            {
-                ApiClientFallback.EnsureAllowed(_options, "Yetkili servis liste");
-                return null;
-            }
+        public Task<YetkiliServisFiltreSecenekleriDto?> FiltreSecenekleriAsync(string? il)
+            => _api.PostAsync<YetkiliServisFiltreSecenekleriIstek, YetkiliServisFiltreSecenekleriDto>(
+                null, "api/yetkili-servisler/filtre-secenekleri", new() { Il = il }, "Yetkili servis filtre secenekleri");
 
-            try
-            {
-                var response = await _httpClient.PostAsJsonAsync("api/yetkili-servisler/liste", istek);
-                if (!response.IsSuccessStatusCode)
-                {
-                    _logger.LogWarning("Yetkili servis API liste cagrisinda basarisiz yanit dondu. StatusCode: {StatusCode}", response.StatusCode);
-                    ApiClientFallback.EnsureAllowed(_options, "Yetkili servis liste");
-                    return null;
-                }
+        public Task<YetkiliServisRehberEkranDto?> RehberEkraniAsync(YetkiliServisFiltreDto istek)
+            => _api.PostAsync<YetkiliServisFiltreDto, YetkiliServisRehberEkranDto>(
+                null, "api/yetkili-servisler/rehber-ekrani", istek, "Yetkili servis rehber ekrani");
 
-                var sonuc = await response.Content.ReadFromJsonAsync<YetkiliServisSayfaliCevap>();
-                return sonuc?.ToModel();
-            }
-            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
-            {
-                _logger.LogWarning(ex, "Yetkili servis API liste cagrisina ulasilamadi.");
-                ApiClientFallback.EnsureAllowed(_options, "Yetkili servis liste");
-                return null;
-            }
-        }
+        public Task<YetkiliServisBasvuruSecenekleriDto?> BasvuruSecenekleriAsync()
+            => _api.PostAsync<object, YetkiliServisBasvuruSecenekleriDto>(
+                null, "api/yetkili-servisler/basvuru-secenekleri", new { }, "Yetkili servis basvuru secenekleri");
 
-        public async Task<YetkiliServisFiltreSecenekleri?> FiltreSecenekleriAsync(string? il)
-        {
-            if (!_options.Enabled)
-            {
-                ApiClientFallback.EnsureAllowed(_options, "Yetkili servis filtre secenekleri");
-                return null;
-            }
-
-            try
-            {
-                var response = await _httpClient.PostAsJsonAsync(
-                    "api/yetkili-servisler/filtre-secenekleri",
-                    new YetkiliServisFiltreSecenekleriIstek { Il = il });
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    _logger.LogWarning("Yetkili servis filtre secenekleri API cagrisinda basarisiz yanit dondu. StatusCode: {StatusCode}", response.StatusCode);
-                    ApiClientFallback.EnsureAllowed(_options, "Yetkili servis filtre secenekleri");
-                    return null;
-                }
-
-                var secenekler = await response.Content.ReadFromJsonAsync<YetkiliServisFiltreSecenekleriCevap>();
-                return secenekler?.ToModel();
-            }
-            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
-            {
-                _logger.LogWarning(ex, "Yetkili servis filtre secenekleri API cagrisina ulasilamadi.");
-                ApiClientFallback.EnsureAllowed(_options, "Yetkili servis filtre secenekleri");
-                return null;
-            }
-        }
-
-        public async Task<YetkiliServisKayitSonuc?> KayitAsync(YetkiliServisKayitIstek istek)
-        {
-            if (!_options.Enabled)
-            {
-                ApiClientFallback.EnsureAllowed(_options, "Yetkili servis kayit");
-                return null;
-            }
-
-            try
-            {
-                var response = await _httpClient.PostAsJsonAsync("api/yetkili-servisler/kayit", istek);
-                var sonuc = await response.Content.ReadFromJsonAsync<YetkiliServisKayitSonuc>();
-
-                if (sonuc != null)
-                    return sonuc;
-
-                return new YetkiliServisKayitSonuc
-                {
-                    Basarili = false,
-                    Mesaj = response.IsSuccessStatusCode
-                        ? "API kayit cevabi okunamadi."
-                        : "API kayit islemi basarisiz oldu."
-                };
-            }
-            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
-            {
-                _logger.LogWarning(ex, "Yetkili servis API kayit cagrisina ulasilamadi.");
-                ApiClientFallback.EnsureAllowed(_options, "Yetkili servis kayit");
-                return null;
-            }
-        }
-
-        private static Ys_Firma MapToFirma(YetkiliServisApiDto dto)
-        {
-            return new Ys_Firma
-            {
-                Id = dto.Id,
-                FirmaAdi = dto.FirmaAdi,
-                YetkiliKisi = dto.YetkiliKisi,
-                Telefon = dto.Telefon,
-                Email = dto.Email,
-                Adres = dto.Adres,
-                FaaliyetIli = dto.FaaliyetIli,
-                SirketId = dto.SirketId,
-                Sirket = new Dag_Sirket
-                {
-                    Id = dto.SirketId,
-                    SirketAdi = dto.SirketAdi
-                },
-                AktifMi = true,
-                FirmaMarkalar = dto.Markalar
-                    .Where(x => !string.IsNullOrWhiteSpace(x))
-                    .Select((marka, index) => new Ys_FirmaMarka
-                    {
-                        FirmaId = dto.Id,
-                        MarkaId = index + 1,
-                        Marka = new Ys_Marka { Id = index + 1, MarkaAdi = marka },
-                        YetkiBitisTarihi = DateTime.Now.AddYears(1),
-                        SilindiMi = false
-                    })
-                    .ToList(),
-                FirmaKategoriler = dto.Kategoriler
-                    .Select(kategori => new Ys_FirmaKategori
-                    {
-                        FirmaId = dto.Id,
-                        KategoriId = kategori.Id,
-                        Kategori = new UrunKategori
-                        {
-                            Id = kategori.Id,
-                            Ad = kategori.Ad,
-                            IconUrl = kategori.IconUrl,
-                            AktifMi = true
-                        },
-                        YetkiBitisTarihi = DateTime.Now.AddYears(1),
-                        SilindiMi = false
-                    })
-                    .ToList(),
-                Subeler = string.IsNullOrWhiteSpace(dto.Ilce)
-                    ? new List<Ys_Sube>()
-                    : new List<Ys_Sube>
-                    {
-                        new()
-                        {
-                            FirmaId = dto.Id,
-                            Il = dto.FaaliyetIli,
-                            Ilce = dto.Ilce,
-                            AktifMi = true,
-                            SilindiMi = false
-                        }
-                    }
-            };
-        }
-
-        public class YetkiliServisListeIstek
-        {
-            public string? Il { get; set; }
-            public string? Ilce { get; set; }
-            public int? MarkaId { get; set; }
-            public int? KategoriId { get; set; }
-            public string? Q { get; set; }
-            public int Page { get; set; } = 1;
-            public int PageSize { get; set; } = 20;
-        }
-
-        public class YetkiliServisSayfaliSonuc
-        {
-            public List<Ys_Firma> Items { get; set; } = new();
-            public int Page { get; set; }
-            public int PageSize { get; set; }
-            public int TotalCount { get; set; }
-            public int TotalPages { get; set; }
-        }
-
-        public class YetkiliServisFiltreSecenekleri
-        {
-            public List<Ys_Marka> Markalar { get; set; } = new();
-            public List<UrunKategori> Kategoriler { get; set; } = new();
-            public List<string> Iller { get; set; } = new();
-            public List<string> Ilceler { get; set; } = new();
-        }
-
-        private class YetkiliServisFiltreSecenekleriIstek
-        {
-            public string? Il { get; set; }
-        }
-
-        public class YetkiliServisKayitIstek
-        {
-            public string? FirmaAdi { get; set; }
-            public string? YetkiliKisi { get; set; }
-            public string? Telefon { get; set; }
-            public string? Email { get; set; }
-            public string? Adres { get; set; }
-            public string? FaaliyetIli { get; set; }
-            public string? VergiNo { get; set; }
-            public string? VergiDairesi { get; set; }
-            public string? TcKimlikNo { get; set; }
-            public string Sifre { get; set; } = string.Empty;
-            public List<int> MarkaIdleri { get; set; } = new();
-            public List<int> KategoriIdleri { get; set; } = new();
-        }
-
-        public class YetkiliServisKayitSonuc
-        {
-            public bool Basarili { get; set; }
-            public string? Mesaj { get; set; }
-            public int? FirmaId { get; set; }
-        }
-
-        private class YetkiliServisApiDto
-        {
-            public int Id { get; set; }
-            public string? FirmaAdi { get; set; }
-            public string? YetkiliKisi { get; set; }
-            public string? Telefon { get; set; }
-            public string? Email { get; set; }
-            public string? Adres { get; set; }
-            public string? FaaliyetIli { get; set; }
-            public string? Ilce { get; set; }
-            public int SirketId { get; set; }
-            public string? SirketAdi { get; set; }
-            public List<string> Markalar { get; set; } = new();
-            public List<KategoriApiDto> Kategoriler { get; set; } = new();
-        }
-
-        private class YetkiliServisSayfaliCevap
-        {
-            public int Page { get; set; }
-            public int PageSize { get; set; }
-            public int TotalCount { get; set; }
-            public int TotalPages { get; set; }
-            public List<YetkiliServisApiDto> Items { get; set; } = new();
-
-            public YetkiliServisSayfaliSonuc ToModel()
-            {
-                return new YetkiliServisSayfaliSonuc
-                {
-                    Page = Page,
-                    PageSize = PageSize,
-                    TotalCount = TotalCount,
-                    TotalPages = TotalPages,
-                    Items = Items
-                        .Select(MapToFirma)
-                        .OrderBy(x => x.FirmaAdi)
-                        .ToList()
-                };
-            }
-        }
-
-        private class KategoriApiDto
-        {
-            public int Id { get; set; }
-            public string? Ad { get; set; }
-            public string? IconUrl { get; set; }
-            public int SiraNo { get; set; }
-            public bool AktifMi { get; set; }
-        }
-
-        private class YetkiliServisFiltreSecenekleriCevap
-        {
-            public List<MarkaSecenekDto> Markalar { get; set; } = new();
-            public List<KategoriApiDto> Kategoriler { get; set; } = new();
-            public List<string> Iller { get; set; } = new();
-            public List<string> Ilceler { get; set; } = new();
-
-            public YetkiliServisFiltreSecenekleri ToModel()
-            {
-                return new YetkiliServisFiltreSecenekleri
-                {
-                    Markalar = Markalar
-                        .Select(x => new Ys_Marka
-                        {
-                            Id = x.Id,
-                            MarkaAdi = x.MarkaAdi,
-                            AktifMi = true
-                        })
-                        .OrderBy(x => x.MarkaAdi)
-                        .ToList(),
-                    Kategoriler = Kategoriler
-                        .Select(x => new UrunKategori
-                        {
-                            Id = x.Id,
-                            Ad = x.Ad,
-                            IconUrl = x.IconUrl,
-                            SiraNo = x.SiraNo,
-                            AktifMi = x.AktifMi
-                        })
-                        .OrderBy(x => x.SiraNo)
-                        .ThenBy(x => x.Ad)
-                        .ToList(),
-                    Iller = Iller,
-                    Ilceler = Ilceler
-                };
-            }
-        }
-
-        private class MarkaSecenekDto
-        {
-            public int Id { get; set; }
-            public string? MarkaAdi { get; set; }
-        }
+        public Task<YetkiliServisKayitSonuc?> KayitAsync(YetkiliServisBasvuruDto istek)
+            => _api.PostAsync<YetkiliServisBasvuruDto, YetkiliServisKayitSonuc>(
+                null, "api/yetkili-servisler/kayit", istek, "Yetkili servis kayit");
     }
 }

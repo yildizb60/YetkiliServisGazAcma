@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using YetkiliServisGazAcma.Business.Services;
-using YetkiliServisGazAcma.Models;
+using YetkiliServisGazAcma.API.Services;
 
 namespace YetkiliServisGazAcma.API.Controllers
 {
@@ -11,37 +9,18 @@ namespace YetkiliServisGazAcma.API.Controllers
     [Route("api/home")]
     public class HomeApiController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly HomeOzetApiService _service;
 
-        public HomeApiController(AppDbContext context)
+        public HomeApiController(HomeOzetApiService service)
         {
-            _context = context;
+            _service = service;
         }
 
         [HttpPost("ozet")]
         public async Task<IActionResult> Ozet()
         {
-            var servisCount = await _context.Ys_Firmalar.CountAsync(x => !x.SilindiMi && x.AktifMi);
-            var devreyeCount = await _context.Ys_DevreyeAlmalar.CountAsync(x => !x.SilindiMi && x.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi);
-            var yetkiBelgesiCount = await _context.Ys_YetkiBelgeleri.CountAsync(x => !x.SilindiMi && x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi);
-            var toplamIslem = await _context.Ys_DevreyeAlmalar.CountAsync(x => !x.SilindiMi);
-            var zamaninda = toplamIslem == 0 ? 100.0 : Math.Round(100.0 * devreyeCount / toplamIslem, 1);
-
-            return Ok(new HomeOzetDto
-            {
-                ServisCount = servisCount,
-                DevreyeCount = devreyeCount,
-                YetkiBelgesiCount = yetkiBelgesiCount,
-                ZamanindaOran = zamaninda
-            });
+            return Ok(await _service.GetirAsync(HttpContext.RequestAborted));
         }
     }
 
-    public class HomeOzetDto
-    {
-        public int ServisCount { get; set; }
-        public int DevreyeCount { get; set; }
-        public int YetkiBelgesiCount { get; set; }
-        public double ZamanindaOran { get; set; }
-    }
 }

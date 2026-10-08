@@ -114,7 +114,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 Hucre(table, Cihaz(kayit, icOperasyon));
                 Hucre(table, Randevu(kayit));
                 if (icOperasyon) Hucre(table, Atama(kayit));
-                Hucre(table, Durum(kayit.Durum));
+                Hucre(table, YkcDurumDegerleri.Etiket(kayit.Durum));
             }
         }
 
@@ -126,13 +126,29 @@ namespace YetkiliServisGazAcma.Business.Services
 
         private static string Cihaz(YkcRaporKayitDto kayit, bool icOperasyon)
         {
-            var yeni = string.Join(" / ", new[] { kayit.YeniCihazTipi, kayit.YeniMarka, kayit.YeniModel, kayit.YeniKapasite }.Where(x => !string.IsNullOrWhiteSpace(x)));
+            var yeni = string.Join(" / ", new[]
+            {
+                kayit.YeniCihazTipi,
+                kayit.YeniMarka,
+                kayit.YeniModel,
+                Etiketli("Kapasite", kayit.YeniKapasite),
+                Etiketli("Baca tipi", kayit.YeniBacaTipi)
+            }.Where(x => !string.IsNullOrWhiteSpace(x)));
             if (!icOperasyon)
                 return Deger(yeni);
 
-            var eski = string.Join(" / ", new[] { kayit.EskiCihazTipi, kayit.EskiMarka, kayit.EskiKapasite }.Where(x => !string.IsNullOrWhiteSpace(x)));
+            var eski = string.Join(" / ", new[]
+            {
+                kayit.EskiCihazTipi,
+                kayit.EskiMarka,
+                Etiketli("Kapasite", kayit.EskiKapasite),
+                Etiketli("Baca tipi", kayit.EskiBacaTipi)
+            }.Where(x => !string.IsNullOrWhiteSpace(x)));
             return $"Projedeki Cihaz: {Deger(eski)}\nYeni Kullanılan Cihaz: {Deger(yeni)}";
         }
+
+        private static string? Etiketli(string etiket, string? deger)
+            => string.IsNullOrWhiteSpace(deger) ? null : $"{etiket}: {deger}";
 
         private static string Randevu(YkcRaporKayitDto kayit)
         {
@@ -153,17 +169,6 @@ namespace YetkiliServisGazAcma.Business.Services
             return string.IsNullOrWhiteSpace(value) ? "Henüz atanmadı" : value;
         }
 
-        private static string Durum(int durum) => durum switch
-        {
-            YkcDurumDegerleri.TalepAlindi => "İnceleme Bekleniyor",
-            YkcDurumDegerleri.AtamaBekliyor => "Randevu Planlanacak",
-            YkcDurumDegerleri.Atandi => "Randevu Oluşturuldu",
-            YkcDurumDegerleri.SahaIsleminde => "İşlem Devam Ediyor",
-            YkcDurumDegerleri.Reddedildi => "Reddedildi",
-            YkcDurumDegerleri.Tamamlandi => "Tamamlandı",
-            YkcDurumDegerleri.Iptal => "İptal",
-            _ => "Bilinmiyor"
-        };
 
         private static string Deger(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
     }

@@ -33,6 +33,7 @@
     AktifFiltreEkle("İl", filtre.Il);
     AktifFiltreEkle("İlçe", filtre.Ilce);
     AktifFiltreEkle("Bölge", filtre.Bolge);
+    AktifFiltreEkle("Bekleyen iş", YkcBekleyenIsDegerleri.Etiket(filtre.BekleyenIs));
     if (filtre.Durum.HasValue)
         AktifFiltreEkle("Durum", DurumYazi(filtre.Durum.Value));
     if (filtre.KontrolNo is >= 1 and <= 5)
@@ -54,6 +55,7 @@
         bolge = seciliFiltre.Bolge,
         durum = seciliFiltre.Durum,
         kontrolNo = seciliFiltre.KontrolNo,
+        bekleyenIs = seciliFiltre.BekleyenIs,
         bas = seciliFiltre.BaslangicTarihi?.ToString("yyyy-MM-dd"),
         bit = seciliFiltre.BitisTarihi?.ToString("yyyy-MM-dd"),
         sayfa
@@ -87,9 +89,7 @@
         return string.IsNullOrWhiteSpace(sonuc) ? "-" : sonuc;
     }
 
-    private static string DurumYazi(int durum) => durum == YkcDurumDegerleri.TalepAlindi
-        ? "İnceleme Bekleniyor"
-        : YkcDurumSunumu.Etiket(durum);
+    private static string DurumYazi(int durum) => YkcDurumSunumu.Etiket(durum);
     private static string DurumClass(int durum) => YkcDurumSunumu.CssSinifi(durum);
 
     private static string SurecIkonu(int durum, int? kontrolNo) => durum switch
@@ -144,14 +144,14 @@
             </div>
         }
         <dl class="ykc-inline-overview" aria-label="Talep özeti">
-            <div><dt>Toplam talep</dt><dd>@ozet.Toplam</dd></div>
+            <div><dt>@(sertifikaliFirmaMi ? "Firmanızın talep sayısı" : "Toplam talep sayısı")</dt><dd>@ozet.Toplam</dd></div>
             <div><dt>İnceleme / atama bekleyen talep</dt><dd>@ozet.Incelemede</dd></div>
             <div><dt>Kontrol sürecindeki talep</dt><dd>@ozet.RandevuSaha</dd></div>
             <div><dt>Tamamlanan talep</dt><dd>@ozet.Tamamlanan</dd></div>
         </dl>
     </header>
 
-    <details class="ykc-filter-panel" open="@(aktifFiltreler.Any() ? "open" : null)">
+    <details class="ykc-filter-panel" open="@(aktifFiltreler.Any() && string.IsNullOrEmpty(filtre.BekleyenIs) ? "open" : null)">
         <summary class="ykc-filter-bar">
             <span class="ykc-filter-leading"><i class="bi bi-sliders2"></i> Filtreler</span>
             <span class="ykc-filter-state">
@@ -166,6 +166,10 @@
             <span class="ykc-filter-chevron"><i class="bi bi-chevron-down"></i></span>
         </summary>
         <form method="get" action="@Url.Action("Talepler", "Ykc")" class="ykc-filter-form">
+            @if (!string.IsNullOrEmpty(filtre.BekleyenIs))
+            {
+                <input type="hidden" name="bekleyenIs" value="@filtre.BekleyenIs" />
+            }
             <div class="ykc-filter-grid">
                 <div class="ykc-filter-field">
                     <label>Tesisat No</label>
@@ -207,16 +211,16 @@
                     <select name="durum">
                         <option value="">Tümü</option>
                         @foreach (var item in new[] {
-                            new { Id = YkcDurumDegerleri.TalepAlindi, Ad = "İnceleme Bekleniyor" },
-                            new { Id = YkcDurumDegerleri.AtamaBekliyor, Ad = "İnceleniyor" },
-                            new { Id = YkcDurumDegerleri.Atandi, Ad = "Randevu Oluşturuldu" },
-                            new { Id = YkcDurumDegerleri.SahaIsleminde, Ad = "İşlem Devam Ediyor" },
-                            new { Id = YkcDurumDegerleri.Reddedildi, Ad = "Reddedildi" },
-                            new { Id = YkcDurumDegerleri.Tamamlandi, Ad = "Tamamlandı" },
-                            new { Id = YkcDurumDegerleri.Iptal, Ad = "İptal" }
+                            YkcDurumDegerleri.TalepAlindi,
+                            YkcDurumDegerleri.AtamaBekliyor,
+                            YkcDurumDegerleri.Atandi,
+                            YkcDurumDegerleri.SahaIsleminde,
+                            YkcDurumDegerleri.Reddedildi,
+                            YkcDurumDegerleri.Tamamlandi,
+                            YkcDurumDegerleri.Iptal
                         })
                         {
-                            <option value="@item.Id" selected="@Secili(filtre.Durum == item.Id)">@item.Ad</option>
+                            <option value="@item" selected="@Secili(filtre.Durum == item)">@DurumYazi(item)</option>
                         }
                     </select>
                 </div>
@@ -252,20 +256,20 @@
                 <colgroup>
                     @if (icOperasyonGorsun)
                     {
-                        <col style="width:7%" /><col style="width:8.5%" /><col style="width:9%" /><col style="width:16%" /><col style="width:7%" /><col style="width:12.5%" /><col style="width:2%" /><col style="width:12.5%" /><col style="width:11%" /><col style="width:14.5%" />
+                        <col style="width:7%" /><col style="width:9%" /><col style="width:9%" /><col style="width:14.5%" /><col style="width:12%" /><col style="width:12.25%" /><col style="width:2%" /><col style="width:12.25%" /><col style="width:10.5%" /><col style="width:11.5%" />
                     }
                     else
                     {
-                        <col style="width:10%" /><col style="width:17%" /><col style="width:22%" /><col style="width:10%" /><col style="width:18%" /><col style="width:12%" /><col style="width:11%" />
+                        <col style="width:9%" /><col style="width:16%" /><col style="width:18%" /><col style="width:13%" /><col style="width:17%" /><col style="width:12%" /><col style="width:15%" />
                     }
                 </colgroup>
                 <thead>
                     <tr>
-                        <th>Talep</th>
+                        <th title="Talebin benzersiz kayıt numarasıdır; toplam talep sayısı değildir.">Talep No</th>
                         <th>Abone Adı Soyadı</th>
-                        @if (icOperasyonGorsun) { <th>Firma</th> }
-                        <th>Tesisat ve Abone Bilgileri</th>
-                        <th>Cihaz Türü</th>
+                        @if (icOperasyonGorsun) { <th class="ykc-list-company-cell">Firma</th> }
+                        <th class="ykc-list-installation-cell">Tesisat ve Sözleşme Bilgileri</th>
+                        <th class="ykc-device-type-heading">Yakıcı Cihaz Tipi</th>
                         @if (icOperasyonGorsun)
                         {
                             <th>Projedeki Cihaz</th>
@@ -292,35 +296,33 @@
                             var gerekenIslem = GerekenIslemYazi(talep.Durum, icOperasyonGorsun, talep.SiradakiKontrolNo);
                             var randevuPlanli = talep.RandevuTarihi.HasValue || !string.IsNullOrWhiteSpace(talep.RandevuSaati);
                             <tr>
-                                <td data-label="Talep">
-                                    <div class="ykc-primary-cell"><span class="ykc-code">#@talep.Id</span></div>
-                                    <time class="ykc-cell-meta ykc-request-time" datetime="@talep.TalepTarihi.ToString("yyyy-MM-ddTHH:mm:ss")"><span>@talep.TalepTarihi.ToString("dd.MM.yyyy")</span><span>@talep.TalepTarihi.ToString("HH:mm")</span></time>
+                                <td data-label="Talep No">
+                                    <div class="ykc-primary-cell"><span class="ykc-code" title="Talep kayıt numarası: @talep.Id" aria-label="Talep kayıt numarası: @talep.Id">#@talep.Id</span></div>
                                 </td>
                                 <td data-label="Abone Adı Soyadı">
                                     <div class="ykc-primary-cell">@Deger(talep.MusteriAdi)</div>
                                 </td>
                                 @if (icOperasyonGorsun)
                                 {
-                                    <td data-label="Firma"><div class="ykc-primary-cell is-regular">@Deger(talep.FirmaAdi)</div></td>
+                                    <td class="ykc-list-company-cell" data-label="Firma"><div class="ykc-primary-cell is-regular">@Deger(talep.FirmaAdi)</div></td>
                                 }
-                                <td data-label="Tesisat ve Abone Bilgileri">
+                                <td class="ykc-list-installation-cell" data-label="Tesisat ve Sözleşme Bilgileri">
                                     <dl class="ykc-id-list">
                                         <div><dt>Tesisat No:</dt><dd>@Deger(talep.TesisatNo)</dd></div>
                                         <div><dt>Sözleşme No:</dt><dd>@Deger(talep.SozlesmeNo)</dd></div>
-                                        <div><dt>Abone No:</dt><dd>@Deger(talep.AboneNo)</dd></div>
                                     </dl>
                                 </td>
-                                <td data-label="Cihaz Türü"><span class="ykc-device-type">@Deger(talep.YeniCihazBilgisi?.Tip)</span></td>
+                                <td data-label="Yakıcı Cihaz Tipi"><span class="ykc-device-type">@Deger(talep.YeniCihazBilgisi?.Tip)</span></td>
                                 @if (icOperasyonGorsun)
                                 {
                                     <td data-label="Projedeki Cihaz" class="ykc-project-device-cell">
-                                        <div class="ykc-device-summary is-project"><strong title="Marka: @Deger(talep.ProjedekiCihazBilgisi?.Marka)">@Deger(talep.ProjedekiCihazBilgisi?.Marka)</strong><span title="Kapasite"><i class="bi bi-speedometer2" aria-hidden="true"></i>@Deger(talep.ProjedekiCihazBilgisi?.Kapasite) kcal/h</span></div>
+                                        <div class="ykc-device-summary is-project"><strong title="Marka: @Deger(talep.ProjedekiCihazBilgisi?.Marka)">@Deger(talep.ProjedekiCihazBilgisi?.Marka)</strong><span title="Baca tipi"><i class="bi bi-wind" aria-hidden="true"></i>Baca: @Deger(talep.ProjedekiCihazBilgisi?.BacaTipi)</span><span title="Kapasite"><i class="bi bi-speedometer2" aria-hidden="true"></i>Kapasite: @Deger(talep.ProjedekiCihazBilgisi?.Kapasite) kcal/h</span></div>
                                     </td>
                                     <td class="ykc-device-arrow-cell" aria-label="Projedeki cihazdan yeni kullanılan cihaza geçiş">
                                         <i class="bi bi-arrow-right" aria-hidden="true" title="Projedeki cihazdan yeni kullanılan cihaza geçiş"></i>
                                     </td>
                                 }
-                                <td data-label="Yeni Kullanılan Cihaz"><div class="ykc-device-summary is-new"><strong title="Marka: @Deger(talep.YeniCihazBilgisi?.Marka)">@Deger(talep.YeniCihazBilgisi?.Marka)</strong><span title="Kapasite"><i class="bi bi-speedometer2" aria-hidden="true"></i>@Deger(talep.YeniCihazBilgisi?.Kapasite) kcal/h</span></div></td>
+                                <td data-label="Yeni Kullanılan Cihaz"><div class="ykc-device-summary is-new"><strong title="Marka: @Deger(talep.YeniCihazBilgisi?.Marka)">@Deger(talep.YeniCihazBilgisi?.Marka)</strong><span title="Baca tipi"><i class="bi bi-wind" aria-hidden="true"></i>Baca: @Deger(talep.YeniCihazBilgisi?.BacaTipi)</span><span title="Kapasite"><i class="bi bi-speedometer2" aria-hidden="true"></i>Kapasite: @Deger(talep.YeniCihazBilgisi?.Kapasite) kcal/h</span></div></td>
                                 <td data-label="Kontrol Randevusu">
                                     <div class="ykc-primary-cell @(randevuPlanli ? null : "is-pending-appointment")">@RandevuYazi(talep.RandevuTarihi, talep.RandevuSaati, talep.SiradakiKontrolNo)</div>
                                     @if (talep.KontrolAlaniDolduMu)
@@ -337,7 +339,7 @@
                                         <span class="ykc-process-state @DurumClass(talep.Durum)" title="@DurumYazi(talep.Durum)" aria-label="@DurumYazi(talep.Durum)">
                                             <i class="@SurecIkonu(talep.Durum, talep.SiradakiKontrolNo)" aria-hidden="true"></i>
                                         </span>
-                                        <a class="ykc-next-action" href="@Url.Action("Detay", "Ykc", new { id = talep.Id })" title="@gerekenIslem">
+                                        <a class="ykc-next-action" href="@Url.Action("Detay", "Ykc", new { id = talep.Id, geri = SayfaUrl(filtre, aktifSayfa) })" title="@gerekenIslem">
                                             <span>@gerekenIslem</span><i class="bi bi-arrow-right" aria-hidden="true"></i>
                                         </a>
                                     </div>

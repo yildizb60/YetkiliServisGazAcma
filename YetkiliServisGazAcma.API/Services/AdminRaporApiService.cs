@@ -9,10 +9,12 @@ namespace YetkiliServisGazAcma.API.Services
     public class AdminRaporApiService
     {
         private readonly AppDbContext _context;
+        private readonly SehirFirmaKoduService? _sehirFirmaKoduService;
 
-        public AdminRaporApiService(AppDbContext context)
+        public AdminRaporApiService(AppDbContext context, SehirFirmaKoduService? sehirFirmaKoduService = null)
         {
             _context = context;
+            _sehirFirmaKoduService = sehirFirmaKoduService;
         }
 
         public async Task<AdminDevreyeAlmaListeDto> DevreyeAlmalarAsync(AdminDevreyeAlmaListeFiltreDto? dto, int? sirketId)
@@ -21,6 +23,14 @@ namespace YetkiliServisGazAcma.API.Services
 
             if (!string.IsNullOrWhiteSpace(dto?.TesisatNo))
                 query = query.Where(x => x.TesistatNo != null && x.TesistatNo.Contains(dto.TesisatNo));
+            if (!string.IsNullOrWhiteSpace(dto?.Musteri))
+            {
+                var musteri = dto.Musteri.Trim();
+                query = query.Where(x =>
+                    (x.MusteriAdi != null && EF.Functions.Collate(x.MusteriAdi, "Turkish_CI_AS").Contains(musteri)) ||
+                    (x.AboneNo != null && x.AboneNo.Contains(musteri)) ||
+                    (x.MusteriTelefon != null && x.MusteriTelefon.Contains(musteri)));
+            }
             if (!string.IsNullOrWhiteSpace(dto?.Marka))
                 query = query.Where(x =>
                     (x.CihazMarka != null && x.CihazMarka.Contains(dto.Marka)) ||
@@ -33,12 +43,17 @@ namespace YetkiliServisGazAcma.API.Services
                 query = query.Where(x => _context.Ys_Subeler.Any(s => !s.SilindiMi && s.FirmaId == x.FirmaId && s.Ilce != null && s.Ilce.Contains(dto.Ilce)));
             if (dto?.Durum.HasValue == true)
                 query = query.Where(x => x.Durum == dto.Durum.Value);
-            if (dto?.BaslangicTarihi.HasValue == true)
-                query = query.Where(x => x.OlusturmaTarihi >= dto.BaslangicTarihi.Value.Date);
-            if (dto?.BitisTarihi.HasValue == true)
-                query = query.Where(x => x.OlusturmaTarihi < dto.BitisTarihi.Value.Date.AddDays(1));
+            var basTarih = dto?.BaslangicTarihi?.Date;
+            var bitTarih = dto?.BitisTarihi?.Date;
+            if (basTarih > bitTarih)
+                (basTarih, bitTarih) = (bitTarih, basTarih);
+            if (basTarih.HasValue)
+                query = query.Where(x => x.DevreyeAlmaTarihi >= basTarih.Value);
+            if (bitTarih.HasValue)
+                query = query.Where(x => x.DevreyeAlmaTarihi < bitTarih.Value.AddDays(1));
 
-            var islemler = await query.OrderByDescending(x => x.OlusturmaTarihi).ToListAsync();
+            var islemler = await query.OrderByDescending(x => x.DevreyeAlmaTarihi).ThenByDescending(x => x.Id).ToListAsync();
+            await DevreyeAlmaKaynakBilgisi.TamamlaAsync(_context, islemler);
             var firmaIds = islemler.Select(x => x.FirmaId).Distinct().ToList();
             var subeler = await _context.Ys_Subeler
                 .Where(x => !x.SilindiMi && firmaIds.Contains(x.FirmaId))
@@ -58,6 +73,7 @@ namespace YetkiliServisGazAcma.API.Services
             return new AdminDevreyeAlmaListeDto
             {
                 Islemler = islemler.Select(AdminDevreyeAlmaDto.FromEntity).ToList(),
+                Sehirler = _sehirFirmaKoduService?.Sehirler() ?? new List<string>(),
                 Markalar = markalar,
                 FirmaIlceleri = subeler
                     .GroupBy(x => x.FirmaId)
@@ -72,7 +88,9 @@ namespace YetkiliServisGazAcma.API.Services
             var kayit = await DevreyeAlmaTemelQuery(sirketId)
                 .FirstOrDefaultAsync(x => x.Id == id);
 
-            return kayit == null ? null : AdminDevreyeAlmaDto.FromEntity(kayit);
+            if (kayit == null) return null;
+            await DevreyeAlmaKaynakBilgisi.TamamlaAsync(_context, new[] { kayit });
+            return AdminDevreyeAlmaDto.FromEntity(kayit);
         }
 
         public async Task<AdminYetkiBelgesiUyariListeDto> YetkiBelgesiUyarilariAsync(int? sirketId)
@@ -99,19 +117,132 @@ namespace YetkiliServisGazAcma.API.Services
             };
         }
 
-        public async Task<AdminRaporOzetDto> RaporlarOzetAsync(AdminRaporOzetFiltreDto? dto, int? sirketId)
+        public async Task<AdminRaporOzetDto> RaporlarOzetAsync(
+            AdminRaporOzetFiltreDto? dto, int? sirketId, bool operasyonGorebilir, bool belgeGorebilir)
         {
-            var basTarih = dto?.BaslangicTarihi?.Date ?? DateTime.Now.Date.AddDays(-30);
+            var basTarih = dto?.BaslangicTarihi?.Date ?? new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
             var bitTarih = dto?.BitisTarihi?.Date ?? DateTime.Now.Date;
+            if (basTarih > bitTarih)
+                (basTarih, bitTarih) = (bitTarih, basTarih);
+
             var bitSonrasi = bitTarih.AddDays(1);
             var raporTipi = string.IsNullOrWhiteSpace(dto?.Tip) ? "devreye" : dto.Tip.Trim().ToLowerInvariant();
             var belgeRaporu = raporTipi is "onayli" or "bekleyen" or "reddedilen";
 
-            var devreyeTemelQuery = DevreyeAlmaTemelQuery(sirketId)
-                .Where(x => x.OlusturmaTarihi >= basTarih && x.OlusturmaTarihi < bitSonrasi);
+            var operasyonQuery = YkcTalepTemelQuery(sirketId)
+                .Where(x => operasyonGorebilir && x.TalepTarihi >= basTarih && x.TalepTarihi < bitSonrasi);
+            var operasyonTalepleri = await operasyonQuery
+                .Select(x => new
+                {
+                    x.Id,
+                    x.TalepTarihi,
+                    x.Durum,
+                    FirmaAdi = x.Firma != null ? x.Firma.FirmaAdi : null,
+                    x.Il,
+                    x.Ilce,
+                    x.AtananEkip,
+                    x.RedAciklama
+                })
+                .ToListAsync();
+            var operasyonTalepIds = operasyonTalepleri.Select(x => x.Id).ToList();
 
-            var yetkiBelgesiTemelQuery = YetkiBelgesiTemelQuery(sirketId)
-                .Where(x => x.OlusturmaTarihi >= basTarih && x.OlusturmaTarihi < bitSonrasi);
+            var tamamlanmaGecmisi = operasyonTalepIds.Count == 0
+                ? new List<OperasyonTamamlanmaSatiri>()
+                : await _context.Ykc_IslemGecmisi
+                    .AsNoTracking()
+                    .Where(x => !x.SilindiMi
+                        && operasyonTalepIds.Contains(x.TalepId)
+                        && x.YeniDurum == YkcDurumDegerleri.Tamamlandi)
+                    .GroupBy(x => x.TalepId)
+                    .Select(x => new OperasyonTamamlanmaSatiri
+                    {
+                        TalepId = x.Key,
+                        TamamlanmaTarihi = x.Min(y => y.OlusturmaTarihi)
+                    })
+                    .ToListAsync();
+            var tamamlanmaMap = tamamlanmaGecmisi.ToDictionary(x => x.TalepId, x => x.TamamlanmaTarihi);
+            var tamamlanmaSureleri = operasyonTalepleri
+                .Where(x => tamamlanmaMap.ContainsKey(x.Id) && tamamlanmaMap[x.Id] >= x.TalepTarihi)
+                .Select(x => (tamamlanmaMap[x.Id] - x.TalepTarihi).TotalHours)
+                .ToList();
+
+            var kontrolKayitlari = operasyonTalepIds.Count == 0
+                ? new List<OperasyonKontrolSatiri>()
+                : await _context.Ykc_Fr265Kontroller
+                    .AsNoTracking()
+                    .Where(x => !x.SilindiMi
+                        && operasyonTalepIds.Contains(x.TalepId)
+                        && (x.Sonuc == YkcFr265KontrolSonucDegerleri.Uygun
+                            || x.Sonuc == YkcFr265KontrolSonucDegerleri.UygunDegil))
+                    .Select(x => new OperasyonKontrolSatiri
+                    {
+                        Id = x.Id,
+                        TalepId = x.TalepId,
+                        KontrolNo = x.KontrolNo,
+                        Sonuc = x.Sonuc,
+                        KontrolTarihi = x.KontrolTarihi
+                    })
+                    .ToListAsync();
+            var sonKontroller = kontrolKayitlari
+                .GroupBy(x => new { x.TalepId, x.KontrolNo })
+                .Select(x => x.OrderByDescending(y => y.KontrolTarihi ?? DateTime.MinValue).ThenByDescending(y => y.Id).First())
+                .ToList();
+            var ilkKontroller = sonKontroller.Where(x => x.KontrolNo == 1).ToList();
+            var kontrolEdilenTalepSayisi = sonKontroller.Select(x => x.TalepId).Distinct().Count();
+            var tekrarRandevuTalepSayisi = sonKontroller
+                .Where(x => x.Sonuc == YkcFr265KontrolSonucDegerleri.UygunDegil)
+                .Select(x => x.TalepId)
+                .Distinct()
+                .Count();
+
+            var aylikBitis = new DateTime(bitTarih.Year, bitTarih.Month, 1);
+            var aylikBaslangic = aylikBitis.AddMonths(-5);
+            var operasyonAylikHam = await operasyonQuery
+                .Where(x => x.TalepTarihi >= aylikBaslangic && x.TalepTarihi < aylikBitis.AddMonths(1))
+                .GroupBy(x => new { x.TalepTarihi.Year, x.TalepTarihi.Month })
+                .Select(x => new { x.Key.Year, x.Key.Month, Sayi = x.Count() })
+                .ToListAsync();
+            var operasyonAylikMap = operasyonAylikHam.ToDictionary(x => $"{x.Year:D4}-{x.Month:D2}", x => x.Sayi);
+            var operasyonAylar = Enumerable.Range(0, 6).Select(aylikBaslangic.AddMonths).ToList();
+
+            var operasyonFirmaKirilimi = operasyonTalepleri
+                .GroupBy(x => string.IsNullOrWhiteSpace(x.FirmaAdi) ? "Firma belirtilmemiş" : x.FirmaAdi!.Trim())
+                .Select(x => new { Etiket = x.Key, Sayi = x.Count() })
+                .OrderByDescending(x => x.Sayi)
+                .ThenBy(x => x.Etiket)
+                .Take(6)
+                .ToList();
+            var lokasyonKirilimi = operasyonTalepleri
+                .GroupBy(x => LokasyonEtiketi(x.Il, x.Ilce))
+                .Select(x => new { Etiket = x.Key, Sayi = x.Count() })
+                .OrderByDescending(x => x.Sayi)
+                .ThenBy(x => x.Etiket)
+                .Take(6)
+                .ToList();
+            var ekipKirilimi = operasyonTalepleri
+                .GroupBy(x => string.IsNullOrWhiteSpace(x.AtananEkip) ? "Ekip atanmamış" : x.AtananEkip!.Trim())
+                .Select(x => new { Etiket = x.Key, Sayi = x.Count() })
+                .OrderByDescending(x => x.Sayi)
+                .ThenBy(x => x.Etiket)
+                .Take(6)
+                .ToList();
+            var redKirilimi = operasyonTalepleri
+                .Where(x => x.Durum == YkcDurumDegerleri.Reddedildi)
+                .GroupBy(x => KisaEtiket(x.RedAciklama, "Gerekçe belirtilmemiş"))
+                .Select(x => new { Etiket = x.Key, Sayi = x.Count() })
+                .OrderByDescending(x => x.Sayi)
+                .ThenBy(x => x.Etiket)
+                .Take(6)
+                .ToList();
+
+            var devreyeTemelQuery = DevreyeAlmaTemelQuery(sirketId)
+                .Where(x => x.DevreyeAlmaTarihi >= basTarih && x.DevreyeAlmaTarihi < bitSonrasi);
+
+            var belgeKararRaporu = raporTipi is "onayli" or "reddedilen";
+            var yetkiBelgesiTemelQuery = YetkiBelgesiTemelQuery(sirketId).Where(x => belgeGorebilir);
+            yetkiBelgesiTemelQuery = belgeKararRaporu
+                ? yetkiBelgesiTemelQuery.Where(x => x.OnayTarihi >= basTarih && x.OnayTarihi < bitSonrasi)
+                : yetkiBelgesiTemelQuery.Where(x => x.OlusturmaTarihi >= basTarih && x.OlusturmaTarihi < bitSonrasi);
             var seciliYetkiBelgesiQuery = raporTipi switch
             {
                 "onayli" => yetkiBelgesiTemelQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi),
@@ -125,22 +256,24 @@ namespace YetkiliServisGazAcma.API.Services
             var devreyeTamamlanan = await devreyeTemelQuery.Where(x => x.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi).CountAsync();
             var devreyeBekleyen = await devreyeTemelQuery.Where(x => x.Durum == DevreyeAlmaDurumDegerleri.Bekliyor).CountAsync();
             var devreyeIptal = await devreyeTemelQuery.Where(x => x.Durum == DevreyeAlmaDurumDegerleri.Iptal).CountAsync();
-            var yetkiBelgesiOnayli = await yetkiBelgesiTemelQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi).CountAsync();
-            var yetkiBelgesiBekleyen = await yetkiBelgesiTemelQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
+            var yetkiBelgesiSayacQuery = belgeRaporu ? seciliYetkiBelgesiQuery : yetkiBelgesiTemelQuery;
+            var yetkiBelgesiOnayli = await yetkiBelgesiSayacQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi).CountAsync();
+            var yetkiBelgesiBekleyen = await yetkiBelgesiSayacQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
                 && x.YetkiBelgesiBitisTarihi >= DateTime.Today).CountAsync();
-            var yetkiBelgesiReddedilen = await yetkiBelgesiTemelQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Reddedildi).CountAsync();
+            var yetkiBelgesiReddedilen = await yetkiBelgesiSayacQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Reddedildi).CountAsync();
 
-            var aylikBaslangic = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1).AddMonths(-5);
+            var devreyeAylikBaslangic = new DateTime(bitTarih.Year, bitTarih.Month, 1).AddMonths(-5);
             var aylikEtiketler = Enumerable.Range(0, 6)
-                .Select(i => aylikBaslangic.AddMonths(i))
+                .Select(i => devreyeAylikBaslangic.AddMonths(i))
                 .ToList();
 
             Dictionary<string, int> aylikMap;
             if (belgeRaporu)
             {
                 var aylikHam = await seciliYetkiBelgesiQuery
-                    .Where(x => x.OlusturmaTarihi >= aylikBaslangic)
-                    .GroupBy(x => new { x.OlusturmaTarihi.Year, x.OlusturmaTarihi.Month })
+                    .Select(x => new { Tarih = belgeKararRaporu ? x.OnayTarihi!.Value : x.OlusturmaTarihi })
+                    .Where(x => x.Tarih >= devreyeAylikBaslangic)
+                    .GroupBy(x => new { x.Tarih.Year, x.Tarih.Month })
                     .Select(g => new { g.Key.Year, g.Key.Month, Count = g.Count() })
                     .ToListAsync();
                 aylikMap = aylikHam.ToDictionary(x => $"{x.Year:D4}-{x.Month:D2}", x => x.Count);
@@ -148,8 +281,8 @@ namespace YetkiliServisGazAcma.API.Services
             else
             {
                 var aylikHam = await devreyeTemelQuery
-                    .Where(x => x.OlusturmaTarihi >= aylikBaslangic)
-                    .GroupBy(x => new { x.OlusturmaTarihi.Year, x.OlusturmaTarihi.Month })
+                    .Where(x => x.DevreyeAlmaTarihi >= devreyeAylikBaslangic)
+                    .GroupBy(x => new { x.DevreyeAlmaTarihi.Year, x.DevreyeAlmaTarihi.Month })
                     .Select(g => new { g.Key.Year, g.Key.Month, Count = g.Count() })
                     .ToListAsync();
                 aylikMap = aylikHam.ToDictionary(x => $"{x.Year:D4}-{x.Month:D2}", x => x.Count);
@@ -194,15 +327,17 @@ namespace YetkiliServisGazAcma.API.Services
                     .Take(6)
                     .ToListAsync();
                 var markaKirilimi = await devreyeTemelQuery
-                    .Where(x => x.Marka != null)
-                    .GroupBy(x => x.Marka!.MarkaAdi)
+                    .Select(x => x.Marka != null && !string.IsNullOrWhiteSpace(x.Marka.MarkaAdi)
+                        ? x.Marka.MarkaAdi!.Trim()
+                        : !string.IsNullOrWhiteSpace(x.CihazMarka) ? x.CihazMarka.Trim() : "Marka belirtilmemiş")
+                    .GroupBy(x => x)
                     .Select(g => new { Ad = g.Key, Sayi = g.Count() })
                     .OrderByDescending(x => x.Sayi)
                     .Take(6)
                     .ToListAsync();
                 chartSirketLabels = sirketKirilimi.Select(x => x.Ad).ToList();
                 chartSirketData = sirketKirilimi.Select(x => x.Sayi).ToList();
-                chartKirilimLabels = markaKirilimi.Select(x => x.Ad).ToList();
+                chartKirilimLabels = markaKirilimi.Select(x => (string?)x.Ad).ToList();
                 chartKirilimData = markaKirilimi.Select(x => x.Sayi).ToList();
             }
 
@@ -218,6 +353,36 @@ namespace YetkiliServisGazAcma.API.Services
                 YetkiBelgesiOnayli = yetkiBelgesiOnayli,
                 YetkiBelgesiBekleyen = yetkiBelgesiBekleyen,
                 YetkiBelgesiReddedilen = yetkiBelgesiReddedilen,
+                OperasyonTalepSayisi = operasyonTalepleri.Count,
+                OperasyonTamamlanan = operasyonTalepleri.Count(x => x.Durum == YkcDurumDegerleri.Tamamlandi),
+                OperasyonAktif = operasyonTalepleri.Count(x => x.Durum is YkcDurumDegerleri.TalepAlindi
+                    or YkcDurumDegerleri.AtamaBekliyor
+                    or YkcDurumDegerleri.Atandi
+                    or YkcDurumDegerleri.SahaIsleminde),
+                OperasyonReddedilen = operasyonTalepleri.Count(x => x.Durum == YkcDurumDegerleri.Reddedildi),
+                OperasyonIptal = operasyonTalepleri.Count(x => x.Durum == YkcDurumDegerleri.Iptal),
+                OrtalamaTamamlanmaSaati = tamamlanmaSureleri.Count == 0 ? 0 : Math.Round(tamamlanmaSureleri.Average(), 1),
+                TamamlanmaSuresiKayitSayisi = tamamlanmaSureleri.Count,
+                IlkKontrolUygunlukOrani = ilkKontroller.Count == 0
+                    ? 0
+                    : Math.Round(ilkKontroller.Count(x => x.Sonuc == YkcFr265KontrolSonucDegerleri.Uygun) * 100d / ilkKontroller.Count, 1),
+                IlkKontrolKayitSayisi = ilkKontroller.Count,
+                TekrarRandevuOrani = kontrolEdilenTalepSayisi == 0
+                    ? 0
+                    : Math.Round(tekrarRandevuTalepSayisi * 100d / kontrolEdilenTalepSayisi, 1),
+                KontrolEdilenTalepSayisi = kontrolEdilenTalepSayisi,
+                OperasyonAylikLabels = operasyonAylar.Select(x => x.ToString("MMM yyyy")).ToList(),
+                OperasyonAylikData = operasyonAylar
+                    .Select(x => operasyonAylikMap.TryGetValue($"{x.Year:D4}-{x.Month:D2}", out var value) ? value : 0)
+                    .ToList(),
+                OperasyonFirmaLabels = operasyonFirmaKirilimi.Select(x => x.Etiket).ToList(),
+                OperasyonFirmaData = operasyonFirmaKirilimi.Select(x => x.Sayi).ToList(),
+                OperasyonLokasyonLabels = lokasyonKirilimi.Select(x => x.Etiket).ToList(),
+                OperasyonLokasyonData = lokasyonKirilimi.Select(x => x.Sayi).ToList(),
+                OperasyonEkipLabels = ekipKirilimi.Select(x => x.Etiket).ToList(),
+                OperasyonEkipData = ekipKirilimi.Select(x => x.Sayi).ToList(),
+                OperasyonRedNedeniLabels = redKirilimi.Select(x => x.Etiket).ToList(),
+                OperasyonRedNedeniData = redKirilimi.Select(x => x.Sayi).ToList(),
                 ChartAylikLabels = chartAylikLabels,
                 ChartAylikData = chartAylikData,
                 ChartDurumData = belgeRaporu
@@ -243,7 +408,7 @@ namespace YetkiliServisGazAcma.API.Services
             else
             {
                 var sonIslemler = await devreyeTemelQuery
-                    .OrderByDescending(x => x.OlusturmaTarihi)
+                    .OrderByDescending(x => x.DevreyeAlmaTarihi).ThenByDescending(x => x.Id)
                     .Take(12)
                     .ToListAsync();
 
@@ -252,6 +417,47 @@ namespace YetkiliServisGazAcma.API.Services
             }
 
             return sonuc;
+        }
+
+        private IQueryable<Ykc_Talep> YkcTalepTemelQuery(int? sirketId)
+        {
+            return _context.Ykc_Talepler
+                .AsNoTracking()
+                .Where(x => !x.SilindiMi
+                    && (sirketId == null
+                        || x.SirketId == sirketId
+                        || (x.SirketId == null && x.Firma != null && x.Firma.SirketId == sirketId)));
+        }
+
+        private static string LokasyonEtiketi(string? il, string? ilce)
+        {
+            var temizIl = string.IsNullOrWhiteSpace(il) ? null : il.Trim();
+            var temizIlce = string.IsNullOrWhiteSpace(ilce) ? null : ilce.Trim();
+            if (temizIl == null && temizIlce == null) return "Konum belirtilmemiş";
+            if (temizIl == null) return temizIlce!;
+            if (temizIlce == null) return temizIl;
+            return $"{temizIl} / {temizIlce}";
+        }
+
+        private static string KisaEtiket(string? value, string fallback)
+        {
+            var temiz = string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
+            return temiz.Length <= 54 ? temiz : temiz[..51] + "...";
+        }
+
+        private sealed class OperasyonTamamlanmaSatiri
+        {
+            public int TalepId { get; set; }
+            public DateTime TamamlanmaTarihi { get; set; }
+        }
+
+        private sealed class OperasyonKontrolSatiri
+        {
+            public int Id { get; set; }
+            public int TalepId { get; set; }
+            public int KontrolNo { get; set; }
+            public string Sonuc { get; set; } = string.Empty;
+            public DateTime? KontrolTarihi { get; set; }
         }
 
         private IQueryable<Ys_DevreyeAlma> DevreyeAlmaTemelQuery(int? sirketId)

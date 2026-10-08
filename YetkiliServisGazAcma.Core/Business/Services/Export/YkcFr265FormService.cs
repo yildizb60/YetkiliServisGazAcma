@@ -86,12 +86,9 @@ namespace YetkiliServisGazAcma.Business.Services
             SetCellText(ikinciElTablosu, 1, 2, talep.IkinciElCihazMi == false ? "☒" : "☐");
 
             FirmaImzaTablosunuDoldur(firmaImzaTablosu, talep, secenekler, formTarihi);
-            KontrolleriDoldur(document, talep.Kontroller);
+            KontrolleriDoldur(document, talep.AktifKontroller);
             GorulduImzaTablosunuDoldur(gorulduImzaTablosu, talep, secenekler, formTarihi);
-            if (secenekler.ImzaliNihaiMi)
-            {
-                KontrolImzaTablolariniDoldur(document, talep, secenekler, formTarihi);
-            }
+            KontrolImzaTablolariniDoldur(document, talep, secenekler, formTarihi);
         }
 
         private static XElement? FindTable(XDocument document, params string[] labels)
@@ -127,7 +124,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 if (baslikIndex < 0)
                     continue;
 
-                var kontrol = kontroller.FirstOrDefault(x => x.KontrolNo == kontrolNo);
+                var kontrol = kontroller.FirstOrDefault(x => x.FormKontrolNo == kontrolNo);
                 var sonucParagrafi = SonrakiParagraf(bodyElements, baslikIndex + 1);
                 var aciklamaEtiketiIndex = sonucParagrafi == null ? -1 : bodyElements.IndexOf(sonucParagrafi);
                 var aciklamaParagrafi = aciklamaEtiketiIndex < 0
@@ -274,20 +271,25 @@ namespace YetkiliServisGazAcma.Business.Services
 
             for (var index = 0; index < imzaTablolari.Count && index < 5; index++)
             {
-                var kontrol = talep.Kontroller.FirstOrDefault(x => x.KontrolNo == index + 1);
+                var kontrol = talep.AktifKontroller.FirstOrDefault(x => x.FormKontrolNo == index + 1);
                 if (kontrol?.Sonuc is not (YkcFr265KontrolSonucDegerleri.Uygun or YkcFr265KontrolSonucDegerleri.UygunDegil))
                     continue;
 
                 var table = imzaTablolari[index];
-                SetCellText(table, 1, 0, $"Adı Soyadı: {ImzaAdSoyad(dagitim, null)}");
+                var kontrolTarihi = kontrol.KontrolTarihi?.ToString("dd.MM.yyyy") ?? string.Empty;
+                var firmaYetkilisi = string.IsNullOrWhiteSpace(talep.FirmaYetkiliKisi) ? talep.FirmaAdi : talep.FirmaYetkiliKisi;
+                SetCellText(table, 1, 0, $"Adı Soyadı: {ImzaAdSoyad(dagitim, kontrol.KontrolEdenAdi)}");
                 SetCellText(table, 1, 1, $"Adı Soyadı: {ImzaAdSoyad(abone, talep.MusteriAdi)}");
-                SetCellText(table, 1, 2, $"Firma / Yetkili: {ImzaAdSoyad(firma, talep.FirmaYetkiliKisi)}");
-                SetCellText(table, 2, 0, $"Tarih: {ImzaTarihi(dagitim, secenekler, formTarihi)}");
-                SetCellText(table, 2, 1, $"Tarih: {ImzaTarihi(abone, secenekler, formTarihi)}");
-                SetCellText(table, 2, 2, $"Tarih: {ImzaTarihi(firma, secenekler, formTarihi)}");
-                SetCellText(table, 3, 0, $"İmza: {ImzaKaydiMetni()}");
-                SetCellText(table, 3, 1, $"İmza: {ImzaKaydiMetni()}");
-                SetCellText(table, 3, 2, $"Kaşe / İmza: {ImzaKaydiMetni()}");
+                SetCellText(table, 1, 2, $"Firma / Yetkili: {ImzaAdSoyad(firma, firmaYetkilisi)}");
+                SetCellText(table, 2, 0, $"Tarih: {(secenekler.ImzaliNihaiMi ? ImzaTarihi(dagitim, secenekler, formTarihi) : kontrolTarihi)}");
+                SetCellText(table, 2, 1, $"Tarih: {(secenekler.ImzaliNihaiMi ? ImzaTarihi(abone, secenekler, formTarihi) : kontrolTarihi)}");
+                SetCellText(table, 2, 2, $"Tarih: {(secenekler.ImzaliNihaiMi ? ImzaTarihi(firma, secenekler, formTarihi) : kontrolTarihi)}");
+                if (secenekler.ImzaliNihaiMi)
+                {
+                    SetCellText(table, 3, 0, $"İmza: {ImzaKaydiMetni()}");
+                    SetCellText(table, 3, 1, $"İmza: {ImzaKaydiMetni()}");
+                    SetCellText(table, 3, 2, $"Kaşe / İmza: {ImzaKaydiMetni()}");
+                }
             }
         }
 

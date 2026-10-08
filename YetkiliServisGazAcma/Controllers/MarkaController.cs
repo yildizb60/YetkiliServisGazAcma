@@ -1,47 +1,26 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Filters;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
-using Microsoft.AspNetCore.Identity;
 
 namespace YetkiliServisGazAcma.Controllers
 {
-    [Authorize(Roles = "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel")]
+    [Authorize(Roles = "GenelSistemAdmin,SirketAdmin,SuperAdmin")]
     [ApiExplorerSettings(IgnoreApi = true)]
     public class MarkaController : Controller
     {
         private readonly MarkaApiClient _markaApiClient;
-        private readonly AdminDashboardApiClient _adminDashboardApiClient;
         private readonly ApiKullaniciOturumu _kullaniciOturumu;
         private readonly AktifSirketService _aktifSirketService;
 
         public MarkaController(
             MarkaApiClient markaApiClient,
-            AdminDashboardApiClient adminDashboardApiClient,
             ApiKullaniciOturumu kullaniciOturumu,
             AktifSirketService aktifSirketService)
         {
             _markaApiClient = markaApiClient;
-            _adminDashboardApiClient = adminDashboardApiClient;
             _kullaniciOturumu = kullaniciOturumu;
             _aktifSirketService = aktifSirketService;
-        }
-
-        private async Task<int> GetOnayBekleyenCount()
-        {
-            var dashboard = await GetDashboardOzetAsync();
-            return dashboard?.OnayBekleyen ?? 0;
-        }
-
-        public override async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
-        {
-            var dashboard = await GetDashboardOzetAsync();
-            ViewBag.OnayBekleyen = dashboard?.OnayBekleyen ?? 0;
-            ViewBag.SuresiBitecek = dashboard?.SuresiBitecek ?? 0;
-            var kullanici = await GetCurrentUser();
-            ViewBag.GenelSistemAdminMi = kullanici != null && await _aktifSirketService.GenelSistemAdminMi(kullanici);
-            await next();
         }
 
         private async Task<AppKullanici?> GetCurrentUser()
@@ -49,55 +28,23 @@ namespace YetkiliServisGazAcma.Controllers
             return await _kullaniciOturumu.GetUserAsync(User);
         }
 
-        private async Task<AdminDashboardOzet?> GetDashboardOzetAsync()
-        {
-            var kullanici = await GetCurrentUser();
-            if (kullanici == null) return null;
-
-            var cacheKey = "MarkaDashboard:tum";
-            if (HttpContext.Items.TryGetValue(cacheKey, out var cached))
-                return cached as AdminDashboardOzet;
-
-            var dashboard = await _adminDashboardApiClient.GetirAsync(kullanici, null);
-            if (dashboard != null)
-                HttpContext.Items[cacheKey] = dashboard;
-
-            return dashboard;
-        }
-
         public async Task<IActionResult> Index(string? q, string? durum)
         {
-            var markalar = await _markaApiClient.TumunuGetirAsync();
+            var kullanici = await GetCurrentUser();
+            if (kullanici == null) return Redirect("/giris");
+
+            bool? aktifMi = durum switch { "aktif" => true, "pasif" => false, _ => null };
+            var markalar = await _markaApiClient.TumunuGetirAsync(kullanici, q, aktifMi);
             ViewBag.MarkaVeriKaynagi = "API";
 
             if (markalar == null)
             {
                 TempData["Hata"] = "Marka listesi API uzerinden alinamadi.";
-                markalar = new List<Ys_Marka>();
-            }
-
-            if (!string.IsNullOrWhiteSpace(q))
-            {
-                var aranacak = q.Trim();
-                markalar = markalar
-                    .Where(x =>
-                        !string.IsNullOrWhiteSpace(x.MarkaAdi) &&
-                        x.MarkaAdi.StartsWith(aranacak, StringComparison.CurrentCultureIgnoreCase))
-                    .ToList();
-            }
-
-            if (!string.IsNullOrWhiteSpace(durum) && durum != "tumu")
-            {
-                var aktifMi = durum == "aktif";
-                markalar = markalar.Where(x => x.AktifMi == aktifMi).ToList();
+                markalar = new List<MarkaApiDto>();
             }
 
             ViewBag.SeciliQ = q ?? "";
             ViewBag.SeciliDurum = string.IsNullOrWhiteSpace(durum) ? "tumu" : durum;
-            var dashboard = await GetDashboardOzetAsync();
-            ViewBag.OnayBekleyen = dashboard?.OnayBekleyen ?? 0;
-            ViewBag.SuresiBitecek = dashboard?.SuresiBitecek ?? 0;
-            var kullanici = await GetCurrentUser();
             ViewBag.Kullanici = kullanici;
             ViewBag.GenelSistemAdminMi = kullanici != null && await _aktifSirketService.GenelSistemAdminMi(kullanici);
             return View(markalar);
@@ -115,7 +62,7 @@ namespace YetkiliServisGazAcma.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Ekle(Ys_Marka marka)
+        public async Task<IActionResult> Ekle(MarkaKaydetDto marka)
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
@@ -138,7 +85,7 @@ namespace YetkiliServisGazAcma.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Duzenle(Ys_Marka marka)
+        public async Task<IActionResult> Duzenle(MarkaKaydetDto marka)
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
@@ -165,7 +112,7 @@ namespace YetkiliServisGazAcma.Controllers
             return RedirectToAction("Index");
         }
 
-        private void SetMarkaIslemMesaji(MarkaIslemSonuc? sonuc, string varsayilanBasari, string? varsayilanHata = null)
+        private void SetMarkaIslemMesaji(ApiIslemSonuc? sonuc, string varsayilanBasari, string? varsayilanHata = null)
         {
             if (sonuc?.Basarili == true)
             {

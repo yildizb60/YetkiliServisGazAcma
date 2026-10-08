@@ -1,127 +1,56 @@
 @model YkcTalepDetayDto
 @{
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
-    var ykcYetkileri = ViewBag.YkcYetkileri as YkcYetkiOzeti ?? new YkcYetkiOzeti();
+    var ekran = Model.Ekran;
+    var ykcYetkileri = ekran.Yetkiler;
     var atamaYetkisi = ykcYetkileri.AtamaYapabilir;
     var fr265ImzaYetkisi = ykcYetkileri.Fr265ImzaIslemiYapabilir;
     var yonetebilir = atamaYetkisi || fr265ImzaYetkisi;
-    var icOperasyonGorsun = !User.IsInRole("SertifikaliFirma");
+    var icOperasyonGorsun = ekran.IcOperasyonGorsun;
     var kaynak = Context.Request.Query["kaynak"].ToString() switch { "rapor" => "rapor", "takvim" => "takvim", _ => "" };
-    var geriUrl = kaynak == "rapor" && icOperasyonGorsun
-        ? Url.Action("Raporlar", "Ykc")
-        : kaynak == "takvim" && icOperasyonGorsun
-            ? Url.Action("Takvim", "Ykc")
-            : Url.Action("Talepler", "Ykc");
+    var donusEkrani = kaynak == "rapor" && icOperasyonGorsun ? "Raporlar" : kaynak == "takvim" && icOperasyonGorsun ? "Takvim" : "Talepler";
+    var raporDonusYolu = Url.Action(donusEkrani, "Ykc") ?? "/ykc/talepler";
+    var raporDonus = Context.Request.Query["geri"].ToString();
+    var raporDonusGecerli = Url.IsLocalUrl(raporDonus)
+        && raporDonus.StartsWith(raporDonusYolu, StringComparison.OrdinalIgnoreCase)
+        && (raporDonus.Length == raporDonusYolu.Length || raporDonus[raporDonusYolu.Length] == '?');
+    var geriUrl = raporDonusGecerli ? raporDonus : raporDonusYolu;
+    ViewData["YkcGeriUrl"] = geriUrl;
     var geriMetni = kaynak == "rapor" && icOperasyonGorsun ? "Raporlara Dön" : kaynak == "takvim" && icOperasyonGorsun ? "Takvime Dön" : "Taleplere Dön";
     ViewData["PanelSubtitle"] = "Cihaz Değişimi";
-    var terminalDurum = Model.Durum == YkcDurumDegerleri.Tamamlandi || Model.Durum == YkcDurumDegerleri.Reddedildi || Model.Durum == YkcDurumDegerleri.Iptal;
+    var terminalDurum = ekran.TerminalDurum;
+    var imzaSureciBasladi = ekran.ImzaSureciBasladi;
+    var atamaYapilabilir = ekran.AtamaYapilabilir;
+    var randevuZamaniGeldi = ekran.RandevuZamaniGeldi;
+    var randevuYenidenPlanlanacak = ekran.RandevuYenidenPlanlanacak;
+    var tesisatBolgesi = ekran.TesisatBolgesi;
+    var farkliRandevular = ekran.FarkliRandevular;
+    var acilEkipSecili = ekran.AcilEkipSecili;
+    var muhendisEkipSecili = ekran.MuhendisEkipSecili;
+    var seciliEkipId = ekran.SeciliEkipId;
+    var imzaliBelge = ekran.ImzaliBelge;
+    var imzaliBelgeHazir = ekran.ImzaliBelgeHazir;
+    var sonucGirilenKontroller = ekran.SonucGirilenKontroller;
+    var kontrollerImzayaHazir = ekran.KontrollerImzayaHazir;
+    var kontrolAlaniDoldu = ekran.KontrolAlaniDoldu;
+    var sonKontrolGecmisiId = ekran.SonKontrolGecmisiId;
+    var aktifKontrolNo = ekran.AktifKontrolNo;
+    var aktifKontrol = ekran.AktifKontrol;
+    var tekrarKontrolBekleniyor = ekran.TekrarKontrolBekleniyor;
+    var tekrarRandevuBekleniyor = ekran.TekrarRandevuBekleniyor;
+    var imzayaGonderebilir = ekran.ImzayaGonderebilir;
+    var imzaDurumuSorgulanabilir = ekran.ImzaDurumuSorgulanabilir;
+    var kontrolBolumuAktif = ekran.KontrolBolumuAktif;
+    var tamamlamayaHazir = ekran.TamamlamayaHazir;
+    var imzaBirincilIslemVar = ekran.ImzaBirincilIslemVar;
+    var imzaBolumuGorsun = ekran.ImzaBolumuGorsun;
+    var imzaBolumuAktif = ekran.ImzaBolumuAktif;
+    var indirilebilirDosyalar = ekran.IndirilebilirDosyalar;
+    var cihazUyarilari = ekran.CihazUyarilari;
     var imzaSureci = Model.ImzaSureci;
-    var imzaSureciBasladi = !string.IsNullOrWhiteSpace(imzaSureci?.ProviderDocumentId)
-        || imzaSureci?.Durum == YkcImzaDurumDegerleri.ImzayaGonderildi
-        || imzaSureci?.Durum == YkcImzaDurumDegerleri.ImzaBekliyor
-        || imzaSureci?.Durum == YkcImzaDurumDegerleri.KismiImzali
-        || imzaSureci?.Durum == YkcImzaDurumDegerleri.Tamamlandi;
-    var atamaYapilabilir = !imzaSureciBasladi
-        && (Model.Durum == YkcDurumDegerleri.AtamaBekliyor || Model.Durum == YkcDurumDegerleri.Atandi || Model.Durum == YkcDurumDegerleri.SahaIsleminde);
-    var tesisatBolgesi = string.IsNullOrWhiteSpace(Model.Bolge) ? Model.Il : Model.Bolge;
-    var sonAtamaTipi = Model.Atamalar.FirstOrDefault()?.AtananKullaniciTipi ?? string.Empty;
-    var acilEkipSecili = string.Equals(Model.HedefUygulama, YkcHedefUygulamaDegerleri.Crm187, StringComparison.OrdinalIgnoreCase)
-        || sonAtamaTipi.Contains("187", StringComparison.OrdinalIgnoreCase)
-        || (Model.AtananEkip?.Contains("187", StringComparison.OrdinalIgnoreCase) ?? false);
-    var muhendisEkipSecili = !acilEkipSecili
-        && (string.Equals(Model.HedefUygulama, YkcHedefUygulamaDegerleri.DogalgazMobileApp, StringComparison.OrdinalIgnoreCase)
-            || sonAtamaTipi.Contains("Mühendis", StringComparison.OrdinalIgnoreCase)
-            || (Model.AtananEkip?.Contains("Mühendis", StringComparison.OrdinalIgnoreCase) ?? false));
-    var ekipler = ViewBag.Ekipler as List<YkcEkipSecenegi> ?? new();
-    var mevcutEkipler = ekipler.Where(x => x.Secili).ToList();
-    var seciliEkipId = mevcutEkipler.Count == 1 ? mevcutEkipler[0].Id : null;
-    var imzaEntegrasyonu = ViewBag.ImzaEntegrasyonu as YkcImzaEntegrasyonDto ?? new YkcImzaEntegrasyonDto();
+    var ekipler = ekran.Ekipler;
+    var imzaEntegrasyonu = ekran.ImzaEntegrasyonu;
     var demoImzaModu = imzaEntegrasyonu.DemoModuMu;
-    var imzaliBelge = imzaSureci?.NihaiDosyaId is int nihaiDosyaId
-        ? Model.Dosyalar.FirstOrDefault(x => x.Id == nihaiDosyaId && x.DosyaTuru == YkcFormDosyaTuruDegerleri.Fr265ImzaliNihai)
-        : null;
-    var imzaliBelgeHazir = imzaliBelge != null
-        && !string.IsNullOrWhiteSpace(imzaSureci?.ProviderDocumentId)
-        && string.Equals(imzaSureci?.Durum, YkcImzaDurumDegerleri.Tamamlandi, StringComparison.OrdinalIgnoreCase);
-    var gonderimTakildi = imzaSureci?.Durum == YkcImzaDurumDegerleri.ImzayaGonderildi
-        && string.IsNullOrWhiteSpace(imzaSureci.ProviderDocumentId)
-        && (!imzaSureci.GonderimTarihi.HasValue || imzaSureci.GonderimTarihi <= DateTime.Now.AddMinutes(-5));
-    var sonKontrolKayitlari = Model.Kontroller
-        .Where(x => x.KontrolNo is >= 1 and <= 5)
-        .GroupBy(x => x.KontrolNo)
-        .Select(x => x.OrderByDescending(k => k.KontrolTarihi ?? DateTime.MinValue).First())
-        .OrderBy(x => x.KontrolNo)
-        .ToList();
-    var kontrolSatirlari = Enumerable.Range(1, 5)
-        .Select(no => sonKontrolKayitlari.FirstOrDefault(x => x.KontrolNo == no) ?? new YkcFr265KontrolDto { KontrolNo = no })
-        .ToList();
-    var sonucGirilenKontroller = kontrolSatirlari
-        .Where(x => x.Sonuc == YkcFr265KontrolSonucDegerleri.Uygun || x.Sonuc == YkcFr265KontrolSonucDegerleri.UygunDegil)
-        .OrderBy(x => x.KontrolNo)
-        .ToList();
-    var sonKontrol = sonucGirilenKontroller.LastOrDefault();
-    var kontrollerImzayaHazir = sonKontrol?.Sonuc == YkcFr265KontrolSonucDegerleri.Uygun;
-    var kontrolAlaniDoldu = sonucGirilenKontroller.Count == 5
-        && sonucGirilenKontroller.All(x => x.Sonuc == YkcFr265KontrolSonucDegerleri.UygunDegil);
-    var sonKontrolGecmisiId = Model.Gecmis
-        .Where(x => x.IslemTipi == "FR265KontrolleriGuncellendi")
-        .OrderByDescending(x => x.OlusturmaTarihi)
-        .ThenByDescending(x => x.Id)
-        .Select(x => (int?)x.Id)
-        .FirstOrDefault();
-    var siradakiKontrolNo = (sonKontrol?.KontrolNo ?? 0) + 1;
-    var aktifKontrolNo = kontrollerImzayaHazir || siradakiKontrolNo > 5 ? (int?)null : siradakiKontrolNo;
-    var aktifKontrol = aktifKontrolNo.HasValue
-        ? kontrolSatirlari.FirstOrDefault(x => x.KontrolNo == aktifKontrolNo.Value)
-        : null;
-    var tekrarKontrolBekleniyor = sonKontrol?.Sonuc == YkcFr265KontrolSonucDegerleri.UygunDegil && aktifKontrolNo.HasValue;
-    var tekrarRandevuBekleniyor = tekrarKontrolBekleniyor
-        && Model.Durum == YkcDurumDegerleri.AtamaBekliyor;
-    var talepImzayaHazir = Model.Durum == YkcDurumDegerleri.SahaIsleminde
-        && Model.RandevuTarihi.HasValue
-        && !string.IsNullOrWhiteSpace(Model.RandevuSaati)
-        && kontrollerImzayaHazir;
-    var imzayaGonderebilir = fr265ImzaYetkisi
-        && imzaEntegrasyonu.KullanilabilirMi
-        && talepImzayaHazir
-        && string.IsNullOrWhiteSpace(imzaSureci?.ProviderDocumentId)
-        && (imzaSureci?.Durum is null or YkcImzaDurumDegerleri.Hazir or YkcImzaDurumDegerleri.Hata || gonderimTakildi);
-    var imzaDurumuSorgulanabilir = fr265ImzaYetkisi
-        && imzaEntegrasyonu.KullanilabilirMi
-        && !string.IsNullOrWhiteSpace(imzaSureci?.ProviderDocumentId)
-        && !imzaliBelgeHazir;
-    var kontrolBolumuAktif = icOperasyonGorsun
-        && fr265ImzaYetkisi
-        && Model.Durum == YkcDurumDegerleri.SahaIsleminde
-        && !kontrollerImzayaHazir
-        && aktifKontrol != null
-        && !imzaliBelgeHazir
-        && !imzaDurumuSorgulanabilir;
-    var tamamlamayaHazir = Model.Durum == YkcDurumDegerleri.SahaIsleminde
-        && imzaliBelgeHazir
-        && fr265ImzaYetkisi;
-    var imzaBirincilIslemVar = imzaliBelge != null || imzayaGonderebilir || imzaDurumuSorgulanabilir;
-    var imzaBolumuGorsun = !icOperasyonGorsun
-        || imzaliBelgeHazir
-        || imzaDurumuSorgulanabilir
-        || imzayaGonderebilir
-        || kontrollerImzayaHazir
-        || Model.Durum == YkcDurumDegerleri.Tamamlandi;
-    var imzaBolumuAktif = imzaBolumuGorsun
-        && (imzayaGonderebilir || imzaDurumuSorgulanabilir);
-    var indirilebilirDosyalar = Model.Dosyalar
-        .Where(x => x.DosyaTuru == YkcFormDosyaTuruDegerleri.TeknikEk
-            || (x.DosyaTuru == YkcFormDosyaTuruDegerleri.Fr265ImzaliNihai && imzaliBelgeHazir && imzaliBelge != null && x.Id == imzaliBelge.Id))
-        .ToList();
-    var cihazUyarilari = YkcCihazUyumKurali.Uyarilar(
-        Model.EskiCihazTipi,
-        Model.YeniCihazTipi,
-        Model.EskiMarka,
-        Model.YeniMarka,
-        Model.EskiBacaTipi,
-        Model.YeniBacaTipi,
-        Model.EskiKapasite,
-        Model.YeniKapasite).ToList();
     var aktifAdim = Model.Durum switch
     {
         YkcDurumDegerleri.TalepAlindi => 1,
@@ -135,7 +64,7 @@
     {
         YkcDurumDegerleri.TalepAlindi => "Talebi incelemeye alın",
         YkcDurumDegerleri.AtamaBekliyor => "Randevu ve yönlendirmeyi planlayın",
-        YkcDurumDegerleri.Atandi => "Randevu sonucunu kaydedin",
+        YkcDurumDegerleri.Atandi => randevuZamaniGeldi ? "Randevu sonucunu kaydedin" : "Randevuyu yönetin",
         YkcDurumDegerleri.SahaIsleminde => "Form ve imza işlemlerini tamamlayın",
         YkcDurumDegerleri.Tamamlandi => "Talep tamamlandı",
         YkcDurumDegerleri.Reddedildi => "Talep reddedildi",
@@ -148,7 +77,7 @@
         YkcDurumDegerleri.AtamaBekliyor => "Tesisattan belirlenen bölge için ekibi ve randevu bilgisini kaydedin.",
         YkcDurumDegerleri.Atandi => "Randevu gerçekleştiyse saha kontrolünü başlatın; gidilemediyse randevuyu güncelleyin.",
         YkcDurumDegerleri.SahaIsleminde => "Kontrol sonucunu kaydedin, formu inceleyin ve imza durumunu takip edin.",
-        YkcDurumDegerleri.Tamamlandi => "İmzalı belgeyi ve işlem geçmişini görüntüleyebilirsiniz.",
+        YkcDurumDegerleri.Tamamlandi => "",
         YkcDurumDegerleri.Reddedildi => "Red gerekçesi işlem geçmişinde yer alır.",
         YkcDurumDegerleri.Iptal => "İptal bilgisi işlem geçmişinde yer alır.",
         _ => "Talebin güncel bilgilerini kontrol edin."
@@ -235,6 +164,7 @@
         "FR265ImzaliNihaiBelgeAlindi" => "İmzalı form alındı",
         "FR265DemoNihaiBelgeYenilendi" => "İmzalı form yenilendi",
         "FR265KontrolleriGuncellendi" => "Kontrol sonucu kaydedildi",
+        "KontrolDonemiAcildi" => "Yeni kontrol dönemi açıldı",
         "DosyaEklendi" => "Belge eklendi",
         _ => Deger(islemTipi)
     };
@@ -302,7 +232,7 @@
     <link rel="stylesheet" href="~/css/ykc-operations.css" asp-append-version="true" />
 }
 
-<div class="ykc-workspace ykc-detail-page is-streamlined" data-return-context="@kaynak" data-request-id="@Model.Id">
+<div class="ykc-workspace ykc-detail-page is-streamlined" data-return-context="@kaynak" data-return-url="@geriUrl" data-request-id="@Model.Id">
     @if (!icOperasyonGorsun)
     {
         <partial name="_FirmaTalepDetay" model="Model" />
@@ -315,22 +245,31 @@
             <span class="ykc-firm-record-number">Cihaz Değişim Talebi #@Model.Id</span>
             <div class="ykc-staff-identity-fields">
                 <h1><span>Müşteri Adı:</span> @Deger(Model.MusteriAdi)</h1>
-                <p><i class="bi bi-house-check" aria-hidden="true"></i> Tesisat No: <strong>@Deger(Model.TesisatNo)</strong></p>
             </div>
         </div>
         <div class="ykc-firm-record-actions">
-            <span class="df-pill @DurumClass(Model.Durum)">@(Model.Durum == YkcDurumDegerleri.Atandi ? "Planlandı" : DurumYazi(Model.Durum))</span>
-            <a class="df-btn df-btn-secondary df-btn-sm" href="@geriUrl"><i class="bi bi-arrow-left"></i> @geriMetni</a>
-            <a class="df-btn df-btn-secondary df-btn-sm" href="@Url.Action("Fr265Onizle", "Ykc", new { id = Model.Id })" target="_blank"><i class="bi bi-file-earmark-pdf"></i> Formu Önizle</a>
+            <span class="df-pill @DurumClass(Model.Durum) ykc-detail-status">@(Model.Durum == YkcDurumDegerleri.Atandi ? "Planlandı" : DurumYazi(Model.Durum))</span>
+            <a class="df-btn df-btn-sm ykc-detail-back" href="@geriUrl"><i class="bi bi-arrow-left"></i> @geriMetni</a>
+            <a class="df-btn df-btn-sm ykc-detail-preview" href="@Url.Action("Fr265Onizle", "Ykc", new { id = Model.Id })" target="_blank"><i class="bi bi-file-earmark-pdf"></i> Formu Önizle</a>
         </div>
     </header>
     <div class="ykc-staff-record-body">
-    <section class="ykc-focus-section @(terminalDurum ? "is-resolved" : null)" aria-labelledby="current-task-title">
+    <section class="ykc-focus-section @(terminalDurum ? "is-resolved" : Model.Durum == YkcDurumDegerleri.TalepAlindi ? "is-review" : null)" aria-labelledby="current-task-title">
         <header class="ykc-focus-header">
             <span class="ykc-focus-icon" aria-hidden="true"><i class="bi @gorevIkonu"></i></span>
             <div>
-                <h2 id="current-task-title">@gorevBasligi</h2>
-                @if (terminalDurum) { <p>@gorevAciklamasi</p> }
+                <h2 id="current-task-title">
+                    @if (Model.Durum == YkcDurumDegerleri.Atandi || Model.Durum == YkcDurumDegerleri.SahaIsleminde)
+                    {
+                        <span class="ykc-task-title-default">@gorevBasligi</span>
+                        <span class="ykc-task-title-reschedule">@(Model.Durum == YkcDurumDegerleri.SahaIsleminde ? "Randevuyu düzenleyin" : "Randevuyu yeniden planlayın")</span>
+                    }
+                    else
+                    {
+                        @gorevBasligi
+                    }
+                </h2>
+                @if (terminalDurum && !string.IsNullOrWhiteSpace(gorevAciklamasi)) { <p>@gorevAciklamasi</p> }
             </div>
         </header>
         @if (Model.RandevuTarihi.HasValue && Model.Durum != YkcDurumDegerleri.Atandi)
@@ -349,7 +288,7 @@
         }
         else if (yonetebilir)
         {
-            @if (Model.Durum == YkcDurumDegerleri.TalepAlindi && atamaYetkisi)
+            @if (ekran.IncelemeyeAlabilir)
             {
                 <form method="post" action="@Url.Action("DurumGuncelle", "Ykc")" class="ykc-inline-action-form">
                     @Html.AntiForgeryToken()
@@ -360,17 +299,16 @@
                 </form>
             }
 
-            @if (Model.Durum == YkcDurumDegerleri.Atandi && (atamaYetkisi || fr265ImzaYetkisi))
+            @if (ekran.KontroleGecisGorsun)
             {
-                <div class="ykc-current-plan">
+                <div class="ykc-current-plan is-appointment-transition">
                     <div><span>Planlanan randevu</span><strong>@RandevuYazi(Model.RandevuTarihi, Model.RandevuSaati)</strong></div>
-                    <div><span>Yönlendirilen birim / kişi</span><strong>@Deger(Model.AtananEkip)</strong></div>
                     <div class="ykc-appointment-confirmation">
                         <form method="post" action="@Url.Action("DurumGuncelle", "Ykc")">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="TalepId" value="@Model.Id" />
                             <input type="hidden" name="Durum" value="@YkcDurumDegerleri.SahaIsleminde" />
-                            <button class="df-btn df-btn-primary" type="submit"><i class="bi bi-check2-circle"></i> Randevu Gerçekleşti</button>
+                            <button class="df-btn df-btn-primary" type="submit" data-appointment-transition data-available-at="@ekran.RandevuZamaniUnixMs" disabled="@(!randevuZamaniGeldi)" title="@(randevuZamaniGeldi ? null : "Randevu saatinde kullanılabilir")"><i class="bi bi-check2-circle"></i> Randevu Gerçekleşti, Kontrole Geç</button>
                         </form>
                     </div>
                 </div>
@@ -423,9 +361,10 @@
                 </div>
             }
 
-            @if (atamaYapilabilir && atamaYetkisi)
+            @if (atamaYapilabilir)
             {
-                <div class="ykc-assignment-disclosure is-inline">
+                <details class="ykc-assignment-disclosure is-inline @(Model.Durum == YkcDurumDegerleri.AtamaBekliyor ? "is-initial" : "is-reschedule") @(Model.Durum == YkcDurumDegerleri.SahaIsleminde ? "is-edit-appointment" : null)" name="ykc-workflow-action" open="@(Model.Durum == YkcDurumDegerleri.AtamaBekliyor)">
+                    <summary>@if (Model.Durum == YkcDurumDegerleri.SahaIsleminde) { <i class="bi bi-calendar3" aria-hidden="true"></i> } @(Model.Durum == YkcDurumDegerleri.SahaIsleminde ? "Randevuyu Düzenle" : "Randevuyu Yeniden Planla") <i class="bi bi-chevron-down" aria-hidden="true"></i></summary>
                     <form method="post" action="@Url.Action("AtamaYap", "Ykc")" class="ykc-assignment-form" data-appointment-form>
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="TalepId" value="@Model.Id" />
@@ -455,16 +394,16 @@
                             </div>
                         </div>
                         <div class="ykc-assignment-fields">
-                            <div class="ykc-field"><label>Randevu Tarihi</label><div class="ykc-picker"><input id="randevuTarihi" type="date" name="RandevuTarihi" value="@Model.RandevuTarihi?.ToString("yyyy-MM-dd")" min="@DateTime.Now.ToString("yyyy-MM-dd")" required /><button type="button" data-picker="#randevuTarihi" title="Takvimi aç"><i class="bi bi-calendar3"></i></button></div></div>
-                            <div class="ykc-field"><label>Randevu Saati</label><div class="ykc-picker"><input id="randevuSaati" type="time" name="RandevuSaati" value="@Model.RandevuSaati" required /><button type="button" data-picker="#randevuSaati" title="Saati seç"><i class="bi bi-clock"></i></button></div></div>
+                            <div class="ykc-field"><label>Randevu Tarihi</label><div class="ykc-picker"><input id="randevuTarihi" type="date" name="RandevuTarihi" value="@(randevuYenidenPlanlanacak ? null : Model.RandevuTarihi?.ToString("yyyy-MM-dd"))" min="@ekran.Bugun.ToString("yyyy-MM-dd")" required /><button type="button" data-picker="#randevuTarihi" title="Takvimi aç"><i class="bi bi-calendar3"></i></button></div></div>
+                            <div class="ykc-field"><label>Randevu Saati</label><div class="ykc-picker"><input id="randevuSaati" type="time" name="RandevuSaati" value="@(randevuYenidenPlanlanacak ? null : Model.RandevuSaati)" min="08:00" max="17:30" step="1800" required /><button type="button" data-picker="#randevuSaati" title="Saati seç"><i class="bi bi-clock"></i></button></div></div>
                             <div class="ykc-field ykc-field-wide"><label>Not</label><textarea name="Aciklama" placeholder="Atama ve yönlendirme notu"></textarea></div>
                         </div>
-                        <div class="ykc-form-actions"><button class="df-btn df-btn-primary" type="submit"><i class="bi bi-calendar2-check"></i> @(Model.Durum == YkcDurumDegerleri.AtamaBekliyor ? "Randevuyu Kaydet" : "Randevuyu Güncelle")</button></div>
+                        <div class="ykc-form-actions"><button class="df-btn df-btn-primary" type="submit"><i class="bi bi-calendar2-check"></i> @(Model.Durum == YkcDurumDegerleri.AtamaBekliyor ? "Randevuyu Kaydet" : "Randevuyu Yeniden Planla")</button></div>
                     </form>
-                </div>
+                </details>
             }
 
-            @if (!terminalDurum && atamaYetkisi)
+            @if (ekran.RedIptalYapabilir)
             {
                 <details class="ykc-other-actions">
                     <summary>Diğer işlemler <i class="bi bi-chevron-down"></i></summary>
@@ -484,14 +423,23 @@
         {
             <div class="ykc-terminal-message">Bu talebi görüntüleyebilirsiniz. Atama veya form işlemi için ayrıca YKC operasyon yetkisi gerekir.</div>
         }
-        @if (icOperasyonGorsun && terminalDurum && imzaliBelge != null)
+        @if (icOperasyonGorsun && terminalDurum && (imzaliBelge != null || (Model.Durum == YkcDurumDegerleri.Tamamlandi && ykcYetkileri.RaporlariGorebilir)))
         {
-            <a class="df-btn df-btn-secondary df-btn-sm" href="@Url.Action("DosyaAc", "Ykc", new { id = imzaliBelge.Id })" target="_blank"><i class="bi bi-download"></i> İmzalı Belgeyi İndir</a>
+            <div class="ykc-final-toolbar">
+                @if (imzaliBelge != null)
+                {
+                    <a class="df-btn df-btn-secondary df-btn-sm" href="@Url.Action("DosyaAc", "Ykc", new { id = imzaliBelge.Id })" target="_blank"><i class="bi bi-download"></i> İmzalı Belgeyi İndir</a>
+                }
+                @if (Model.Durum == YkcDurumDegerleri.Tamamlandi && ykcYetkileri.RaporlariGorebilir)
+                {
+                    <a class="df-btn df-btn-primary df-btn-sm" href="@Url.Action("Raporlar", "Ykc", new { detayTalepId = Model.Id })"><i class="bi bi-bar-chart-line" aria-hidden="true"></i> Raporlarda Gör</a>
+                }
+            </div>
         }
     @if (icOperasyonGorsun && (Model.Durum == YkcDurumDegerleri.SahaIsleminde || sonucGirilenKontroller.Any()))
     {
-        <details class="ykc-detail-section @(kontrolBolumuAktif ? "is-current-task" : null)" id="fr265-controls" data-auto-focus="@(kontrolBolumuAktif ? "true" : "false")" tabindex="-1" open="@(kontrolBolumuAktif ? "open" : null)">
-            <summary><span><strong>@(tekrarRandevuBekleniyor ? "Kontrol Geçmişi" : "Kontrol Sonucu")</strong><small>@(tekrarRandevuBekleniyor ? "Yeni randevu bekleniyor" : aktifKontrolNo.HasValue ? $"{aktifKontrolNo}. kontrol" : "Kontrol geçmişi")</small></span><i class="bi bi-chevron-down"></i></summary>
+        <details class="ykc-detail-section @(kontrolBolumuAktif ? "is-current-task" : null)" id="fr265-controls" name="ykc-workflow-action" data-auto-focus="@(kontrolBolumuAktif ? "true" : "false")" tabindex="-1" open="@(kontrolBolumuAktif ? "open" : null)">
+            <summary><span><strong>@(tekrarRandevuBekleniyor ? "Kontrol Geçmişi" : "Kontrol Sonucu")</strong>@if (tekrarRandevuBekleniyor || aktifKontrolNo.HasValue) { <small>@(tekrarRandevuBekleniyor ? "Yeni randevu bekleniyor" : $"{aktifKontrolNo}. kontrol")</small> }</span><i class="bi bi-chevron-down"></i></summary>
             <div class="ykc-detail-section-body">
                 @if (sonucGirilenKontroller.Any())
                 {
@@ -499,7 +447,7 @@
                         @foreach (var kontrol in sonucGirilenKontroller)
                         {
                             <div>
-                                <span>@(kontrol.KontrolNo). kontrol</span>
+                                <span>@(kontrol.FormKontrolNo). kontrol</span>
                                 <strong class="@KontrolSonucClass(kontrol.Sonuc)">@KontrolSonucYazi(kontrol.Sonuc)</strong>
                                 @if (!string.IsNullOrWhiteSpace(kontrol.Aciklama))
                                 {
@@ -517,7 +465,7 @@
                         <input type="hidden" name="TalepId" value="@Model.Id" />
                         <input type="hidden" name="Kontroller[0].KontrolNo" value="@aktifKontrol.KontrolNo" />
                         <div>
-                            <h3>@(aktifKontrol.KontrolNo). Kontrol</h3>
+                            <h3>@if (ekran.KontrolDonemi > 1) { <span>@ekran.KontrolDonemi. Dönem · </span> }@(aktifKontrol.FormKontrolNo). Kontrol</h3>
                         </div>
                         <fieldset class="ykc-control-choice-group">
                             <legend>Kontrol sonucu</legend>
@@ -533,7 +481,7 @@
                 }
                 else if (kontrollerImzayaHazir)
                 {
-                    <div class="ykc-inline-status is-success"><i class="bi bi-check2-circle"></i> Kontrol uygun. Form imzaya gönderilebilir.</div>
+                    <div class="ykc-inline-status is-success"><i class="bi bi-check2-circle"></i> @(terminalDurum ? "Kontrol uygun sonuçlandı." : imzaSureciBasladi ? "Kontrol uygun. Form imza sürecinde." : "Kontrol uygun. Form imzaya gönderilebilir.")</div>
                 }
                 else if (!fr265ImzaYetkisi)
                 {
@@ -545,7 +493,7 @@
 
     @if (imzaBolumuGorsun)
     {
-        <details class="ykc-detail-section @(imzaBolumuAktif ? "is-current-task" : null)" id="fr265-signature" open="@(imzaBolumuAktif ? "open" : null)">
+        <details class="ykc-detail-section @(imzaBolumuAktif ? "is-current-task" : null)" id="fr265-signature" name="ykc-workflow-action">
             <summary><span><strong>Form ve Ekler</strong></span><i class="bi bi-chevron-down"></i></summary>
             <div class="ykc-detail-section-body">
                 <div class="ykc-form-actions is-left">
@@ -610,8 +558,8 @@
             <h2><i class="bi bi-person-vcard" aria-hidden="true"></i>Abone Bilgileri</h2>
             <dl class="ykc-firm-data-grid">
                 <div><dt>Sözleşme No:</dt><dd>@Deger(Model.SozlesmeNo)</dd></div>
+                <div><dt>Tesisat No:</dt><dd>@Deger(Model.TesisatNo)</dd></div>
                 <div><dt>Abone No:</dt><dd>@Deger(Model.AboneNo)</dd></div>
-                <div><dt>Sayaç No:</dt><dd>@Deger(Model.SayacNo)</dd></div>
                 @if (!string.IsNullOrWhiteSpace(Model.MusteriTelefon)) { <div><dt>Telefon:</dt><dd>@Model.MusteriTelefon</dd></div> }
                 <div class="wide"><dt>Adres:</dt><dd>@Deger(Model.Adres)</dd></div>
             </dl>
@@ -643,22 +591,46 @@
                 </tbody>
             </table>
         </div>
-        <div class="ykc-secondhand-status"><span>Takılan cihaz ikinci el mi?</span><strong>@EvetHayir(Model.IkinciElCihazMi)</strong></div>
+        <div class="ykc-secondhand-status"><span>Takılan Yakıcı Cihaz İkinci El Cihaz Mı?</span><strong class="@(Model.IkinciElCihazMi == true ? "is-used" : null)">@EvetHayir(Model.IkinciElCihazMi)</strong></div>
     </section>
     </div>
     <section class="ykc-firm-data-section" id="staff-company" role="tabpanel" aria-labelledby="staff-company-tab" hidden>
         <h2><i class="bi bi-building" aria-hidden="true"></i>Firma Bilgileri</h2>
-        <dl class="ykc-firm-data-grid">
-            <div class="wide"><dt>Firma:</dt><dd>@Deger(Model.FirmaAdi)</dd></div>
-            <div class="wide"><dt>Dağıtım Şirketi:</dt><dd>@Deger(Model.SirketAdi)</dd></div>
-            <div><dt>VKN:</dt><dd>@Deger(Model.Vkn)</dd></div><div><dt>Firma Kodu:</dt><dd>@Deger(Model.FirmaKodu)</dd></div>
-            <div><dt>Talep Tarihi:</dt><dd>@Model.TalepTarihi.ToString("dd.MM.yyyy HH:mm")</dd></div>
-            <div><dt>İl / İlçe:</dt><dd>@Deger(Model.Il) / @Deger(Model.Ilce)</dd></div>
-            <div><dt>Bölge:</dt><dd>@Deger(Model.Bolge)</dd></div>
+        <dl class="ykc-firm-data-grid ykc-company-facts">
+            <div><dt>Firma</dt><dd>@Deger(Model.FirmaAdi)</dd></div>
+            <div><dt>Dağıtım Şirketi</dt><dd>@Deger(Model.SirketAdi)</dd></div>
+            <div><dt>Firma Kodu</dt><dd>@Deger(Model.FirmaKodu)</dd></div>
+            <div><dt>Talep Tarihi</dt><dd>@Model.TalepTarihi.ToString("dd.MM.yyyy HH:mm")</dd></div>
+            <div><dt>Bölge</dt><dd>@Deger(Model.Bolge)</dd></div>
+            <div class="ykc-company-location"><dt>İl / İlçe</dt><dd>@(string.IsNullOrWhiteSpace(Model.Ilce) ? Deger(Model.Il) : $"{Deger(Model.Il)} / {Model.Ilce}")</dd></div>
         </dl>
     </section>
     <section class="ykc-firm-data-section ykc-history-section" id="request-history" role="tabpanel" aria-labelledby="staff-history-tab" hidden>
         <h2><i class="bi bi-clock-history" aria-hidden="true"></i>İşlem Geçmişi</h2>
+        @if (farkliRandevular.Count > 1)
+        {
+            <details class="ykc-detail-section ykc-appointment-history">
+                <summary><span><strong>Randevu geçmişi</strong><small>@farkliRandevular.Count farklı randevu</small></span><i class="bi bi-chevron-down"></i></summary>
+                <ol class="ykc-appointment-history-list">
+                    @foreach (var atama in farkliRandevular)
+                    {
+                        <li><span>@(atama.Id == farkliRandevular[0].Id ? "Güncel randevu" : "Önceki randevu")</span><strong>@RandevuYazi(atama.RandevuTarihi, atama.RandevuSaati)</strong><small>@Deger(atama.AtananEkip ?? atama.AtananKullaniciTipi)</small></li>
+                    }
+                </ol>
+            </details>
+        }
+        @foreach (var donem in Model.Kontroller.Where(x => x.DonemNo < ekran.KontrolDonemi).GroupBy(x => x.DonemNo).OrderByDescending(x => x.Key))
+        {
+            <details class="ykc-detail-section">
+                <summary><span><strong>@donem.Key. Dönem Kontrolleri</strong></span><i class="bi bi-chevron-down"></i></summary>
+                <div class="ykc-detail-section-body ykc-control-history">
+                    @foreach (var kontrol in donem.OrderBy(x => x.KontrolNo))
+                    {
+                        <div><span>@kontrol.FormKontrolNo. Kontrol · @kontrol.KontrolTarihi?.ToString("dd.MM.yyyy HH:mm")</span><strong class="@KontrolSonucClass(kontrol.Sonuc)">@KontrolSonucYazi(kontrol.Sonuc)</strong><small>@kontrol.Aciklama</small></div>
+                    }
+                </div>
+            </details>
+        }
         @if (!Model.Gecmis.Any())
         {
             <div class="ykc-empty-state">Henüz işlem geçmişi yok.</div>
@@ -704,10 +676,12 @@
 @section Scripts {
     <script>
         document.querySelectorAll('.ykc-detail-page form[method="post"]').forEach(form => {
-            const context = document.querySelector('.ykc-detail-page').dataset.returnContext;
-            if (!context) return;
-            const input = document.createElement('input');
-            input.type = 'hidden'; input.name = 'kaynak'; input.value = context; form.append(input);
+            const page = document.querySelector('.ykc-detail-page');
+            for (const [name, value] of [['kaynak', page.dataset.returnContext], ['geri', page.dataset.returnUrl]]) {
+                if (!value) continue;
+                const input = document.createElement('input');
+                input.type = 'hidden'; input.name = name; input.value = value; form.append(input);
+            }
         });
         document.addEventListener('click', event => {
             const button = event.target.closest('[data-picker]');
@@ -718,10 +692,53 @@
         });
 
         (() => {
+            const button = document.querySelector('[data-appointment-transition]');
+            if (!button?.disabled || !button.dataset.availableAt) return;
+            const availableAt = Number(button.dataset.availableAt);
+            if (!Number.isFinite(availableAt)) return;
+
+            let timer;
+            const update = () => {
+                window.clearTimeout(timer);
+                if (Date.now() >= availableAt) {
+                    button.disabled = false;
+                    button.removeAttribute('title');
+                    const title = document.querySelector('.ykc-task-title-default');
+                    if (title) title.textContent = 'Randevu sonucunu kaydedin';
+                    return;
+                }
+                timer = window.setTimeout(update, Math.min(availableAt - Date.now(), 60_000));
+            };
+            document.addEventListener('visibilitychange', update);
+            window.addEventListener('focus', update);
+            update();
+        })();
+
+        (() => {
             const date = document.getElementById('randevuTarihi');
             const time = document.getElementById('randevuSaati');
             const route = document.getElementById('ykcRoute');
             const team = document.getElementById('ykcTeam');
+            const pastAppointmentMessage = 'Geçmiş tarih veya saat için randevu kaydedilemez.';
+            function validateAppointmentTime() {
+                if (!time) return true;
+                time.setCustomValidity('');
+                if (time.validity.rangeUnderflow || time.validity.rangeOverflow) {
+                    time.setCustomValidity(`Randevu saati ${time.min.replace(':', '.')} ile ${time.max.replace(':', '.')} arasında olmalıdır.`);
+                } else if (time.validity.stepMismatch) {
+                    time.setCustomValidity('Randevu saati 00 veya 30 dakikalık dilimlerden seçilmelidir.');
+                }
+                return time.validity.valid;
+            }
+            time?.addEventListener('input', validateAppointmentTime);
+            time?.addEventListener('change', validateAppointmentTime);
+            time?.addEventListener('invalid', validateAppointmentTime);
+            validateAppointmentTime();
+            date?.addEventListener('invalid', event => {
+                if (!date.validity.rangeUnderflow) return;
+                event.preventDefault();
+                window.operationToast?.error(pastAppointmentMessage);
+            });
             team?.addEventListener('change', () => {
                 const selected = team.selectedOptions[0];
                 if (selected?.dataset.route) route.value = selected.dataset.route;
@@ -732,11 +749,15 @@
             document.querySelectorAll('[data-appointment-form]').forEach(form => {
                 form.addEventListener('submit', event => {
                     if (!date?.value || !time?.value) return;
+                    if (!validateAppointmentTime()) {
+                        event.preventDefault();
+                        time.reportValidity();
+                        return;
+                    }
                     const selected = new Date(date.value + 'T' + time.value);
                     if (!Number.isNaN(selected.valueOf()) && selected < new Date()) {
                         event.preventDefault();
-                        alert('Geçmiş tarih veya saat için randevu kaydedilemez.');
-                        date.focus();
+                        window.operationToast?.error(pastAppointmentMessage);
                     }
                 });
             });
@@ -747,6 +768,13 @@
             if (!controls) return;
 
             controls.open = true;
+            const appointment = document.querySelector('.ykc-assignment-disclosure.is-reschedule');
+            appointment?.addEventListener('toggle', () => {
+                const workflow = appointment.closest('.ykc-focus-section');
+                if (!appointment.open && !workflow.querySelector('details[name="ykc-workflow-action"][open]')) {
+                    controls.open = true;
+                }
+            });
         })();
 
         (() => {

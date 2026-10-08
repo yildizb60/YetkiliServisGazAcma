@@ -10,6 +10,8 @@ namespace YetkiliServisGazAcma.Entities
         public int KullaniciTipi { get; set; }
 
         public bool AktifMi { get; set; } = true;
+        public DateTime? ArsivlemeTarihi { get; set; }
+        public string? ArsivleyenKullaniciId { get; set; }
 
         // Yetkili servis ise dolu, değilse null
         public int? FirmaId { get; set; }

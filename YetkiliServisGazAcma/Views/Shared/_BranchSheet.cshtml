@@ -1,0 +1,13 @@
+@model YetkiliServisGazAcma.Models.ViewModels.BranchEditorViewModel
+<dialog class="df-directory-sheet ys-branch-sheet" data-branch-sheet aria-labelledby="branchSheetTitle">
+    <div class="df-directory-sheet-frame">
+        <header class="df-directory-sheet-head">
+            <h2 id="branchSheetTitle" data-branch-sheet-title>Şubeyi Düzenle</h2>
+            <button type="button" class="df-directory-sheet-close" data-branch-sheet-close title="Paneli kapat" aria-label="Paneli kapat"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+        </header>
+        <div class="df-directory-sheet-body" data-branch-sheet-body></div>
+    </div>
+</dialog>
+<template data-branch-add-template>
+    @await Html.PartialAsync("_BranchEditor", Model)
+</template>

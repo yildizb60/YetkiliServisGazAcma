@@ -1,29 +1,30 @@
 using Microsoft.AspNetCore.Mvc;
 using YetkiliServisGazAcma.Business.Services;
+using YetkiliServisGazAcma.Entities;
 
 namespace YetkiliServisGazAcma.Controllers
 {
     public partial class AdminPanelController
     {
         [HttpGet("devreyealmalar")]
-        public async Task<IActionResult> DevreyeAlmalar(string? marka, string? servis, string? il, string? durum, DateTime? bas, DateTime? bit)
+        public async Task<IActionResult> DevreyeAlmalar(string? marka, string? servis, string? il, DateTime? bas, DateTime? bit, int? sirketId = null)
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
 
-            var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            var sonuc = await _adminRaporApiClient.DevreyeAlmalarAsync(kullanici, aktifSirketId, marka, servis, il, durum, bas, bit);
+            var aktifSirketId = await RaporKapsamSirketIdAsync(kullanici, sirketId);
+            var sonuc = await _adminRaporApiClient.DevreyeAlmalarAsync(kullanici, aktifSirketId, marka, servis, il, null, bas, bit);
             if (sonuc == null)
             {
                 TempData["Hata"] = "Devreye alma listesi API uzerinden alinamadi.";
-                sonuc = new AdminDevreyeAlmaListeSonuc();
+                sonuc = new AdminDevreyeAlmaListeDto();
             }
 
             ViewBag.Kullanici = kullanici;
-            ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
             ViewBag.Markalar = sonuc.Markalar;
-            ViewBag.Sehirler = _sehirFirmaKoduService.Sehirler();
+            ViewBag.Sehirler = sonuc.Sehirler;
             ViewBag.SeciliIl = il ?? "";
+            ViewBag.SeciliSirketId = aktifSirketId;
             ViewBag.FirmaIlceleri = sonuc.FirmaIlceleri;
             return View("~/Views/AdminPanel/DevreyeAlmalar.cshtml", sonuc.Islemler);
         }
@@ -42,9 +43,7 @@ namespace YetkiliServisGazAcma.Controllers
                 return Redirect("/AdminPanel/devreyealmalar");
             }
 
-            ViewBag.Kullanici = kullanici;
-            ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
-            return View("~/Views/AdminPanel/DevreyeAlmaDetay.cshtml", kayit);
+            return Redirect($"/AdminPanel/devreyealmalar#devreye-alma-detay-{id}");
         }
 
         [HttpGet("devreyealmalar/pdf/{id:int}")]
@@ -79,13 +78,14 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
 
-            var sonuc = await _adminRaporApiClient.RaporlarOzetAsync(kullanici, sirketId, bas, bit, tip);
+            var kapsamSirketId = await RaporKapsamSirketIdAsync(kullanici, sirketId);
+            var sonuc = await _adminRaporApiClient.RaporlarOzetAsync(kullanici, kapsamSirketId, bas, bit, tip);
             if (sonuc == null)
             {
                 TempData["Hata"] = "Rapor ozeti API uzerinden alinamadi.";
-                sonuc = new AdminRaporOzetSonuc
+                sonuc = new AdminRaporOzetDto
                 {
-                    BasTarih = bas?.Date ?? DateTime.Now.Date.AddDays(-30),
+                    BasTarih = bas?.Date ?? new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1),
                     BitTarih = bit?.Date ?? DateTime.Now.Date,
                     RaporTipi = string.IsNullOrWhiteSpace(tip) ? "devreye" : tip.Trim().ToLowerInvariant(),
                     ListeTipi = (tip == "onayli" || tip == "bekleyen" || tip == "reddedilen") ? "yetkiBelgesi" : "devreye"
@@ -93,7 +93,13 @@ namespace YetkiliServisGazAcma.Controllers
             }
 
             ViewBag.Kullanici = kullanici;
-            ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
+            var genelSistemAdminMi = await _aktifSirketService.GenelSistemAdminMi(kullanici);
+            ViewBag.GenelSistemAdminMi = genelSistemAdminMi;
+            ViewBag.AktifSirketAdi = genelSistemAdminMi && !kapsamSirketId.HasValue
+                ? "Tüm dağıtım şirketleri"
+                : sonuc.Sirketler.FirstOrDefault(x => x.Id == kapsamSirketId)?.SirketAdi
+                    ?? kullanici.Sirket?.SirketAdi
+                    ?? "Aktif dağıtım şirketi";
             ViewBag.BasTarih = sonuc.BasTarih;
             ViewBag.BitTarih = sonuc.BitTarih;
             ViewBag.DevreyeSayisi = sonuc.DevreyeSayisi;
@@ -104,8 +110,29 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.ListeTipi = sonuc.ListeTipi;
             ViewBag.SonIslemler = sonuc.SonIslemler;
             ViewBag.YetkiBelgesiIslemler = sonuc.YetkiBelgesiIslemler;
-            ViewBag.SeciliSirketId = sirketId;
+            ViewBag.SeciliSirketId = kapsamSirketId;
             ViewBag.Sirketler = sonuc.Sirketler;
+            ViewBag.OperasyonTalepSayisi = sonuc.OperasyonTalepSayisi;
+            ViewBag.OperasyonTamamlanan = sonuc.OperasyonTamamlanan;
+            ViewBag.OperasyonAktif = sonuc.OperasyonAktif;
+            ViewBag.OperasyonReddedilen = sonuc.OperasyonReddedilen;
+            ViewBag.OperasyonIptal = sonuc.OperasyonIptal;
+            ViewBag.OrtalamaTamamlanmaSaati = sonuc.OrtalamaTamamlanmaSaati;
+            ViewBag.TamamlanmaSuresiKayitSayisi = sonuc.TamamlanmaSuresiKayitSayisi;
+            ViewBag.IlkKontrolUygunlukOrani = sonuc.IlkKontrolUygunlukOrani;
+            ViewBag.IlkKontrolKayitSayisi = sonuc.IlkKontrolKayitSayisi;
+            ViewBag.TekrarRandevuOrani = sonuc.TekrarRandevuOrani;
+            ViewBag.KontrolEdilenTalepSayisi = sonuc.KontrolEdilenTalepSayisi;
+            ViewBag.OperasyonAylikLabels = sonuc.OperasyonAylikLabels;
+            ViewBag.OperasyonAylikData = sonuc.OperasyonAylikData;
+            ViewBag.OperasyonFirmaLabels = sonuc.OperasyonFirmaLabels;
+            ViewBag.OperasyonFirmaData = sonuc.OperasyonFirmaData;
+            ViewBag.OperasyonLokasyonLabels = sonuc.OperasyonLokasyonLabels;
+            ViewBag.OperasyonLokasyonData = sonuc.OperasyonLokasyonData;
+            ViewBag.OperasyonEkipLabels = sonuc.OperasyonEkipLabels;
+            ViewBag.OperasyonEkipData = sonuc.OperasyonEkipData;
+            ViewBag.OperasyonRedNedeniLabels = sonuc.OperasyonRedNedeniLabels;
+            ViewBag.OperasyonRedNedeniData = sonuc.OperasyonRedNedeniData;
             ViewBag.ChartAylikLabels = sonuc.ChartAylikLabels;
             ViewBag.ChartAylikData = sonuc.ChartAylikData;
             ViewBag.ChartDurumData = sonuc.ChartDurumData;
@@ -117,21 +144,8 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpGet("raporlar/pdf")]
-        public async Task<IActionResult> RaporlarPdf(DateTime? bas, DateTime? bit, List<int>? ids, int? sirketId)
-        {
-            var kullanici = await GetCurrentUser();
-            if (kullanici == null) return Redirect("/giris");
-
-            var kapsamSirketId = sirketId ?? await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            var dosya = await _adminRaporApiClient.RaporlarPdfAsync(kullanici, kapsamSirketId, bas, bit, ids);
-            if (dosya == null)
-            {
-                TempData["Hata"] = "Rapor PDF dosyasi API uzerinden alinamadi.";
-                return Redirect("/AdminPanel/raporlar");
-            }
-
-            return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
-        }
+        public Task<IActionResult> RaporlarPdf(DateTime? bas, DateTime? bit, List<int>? ids, int? sirketId)
+            => DevreyeAlmaRaporDosyasi(bas, bit, ids, sirketId, excelMi: false);
 
         [HttpGet("raporlar/pdf-toplu")]
         public async Task<IActionResult> RaporlarPdfToplu(int? sirketId)
@@ -142,20 +156,30 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpGet("raporlar/excel")]
-        public async Task<IActionResult> RaporlarExcel(DateTime? bas, DateTime? bit, List<int>? ids, int? sirketId)
+        public Task<IActionResult> RaporlarExcel(DateTime? bas, DateTime? bit, List<int>? ids, int? sirketId)
+            => DevreyeAlmaRaporDosyasi(bas, bit, ids, sirketId, excelMi: true);
+
+        private async Task<IActionResult> DevreyeAlmaRaporDosyasi(
+            DateTime? bas, DateTime? bit, List<int>? ids, int? sirketId, bool excelMi)
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
 
-            var kapsamSirketId = sirketId ?? await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            var dosya = await _adminRaporApiClient.RaporlarExcelAsync(kullanici, kapsamSirketId, bas, bit, ids);
-            if (dosya == null)
+            var kapsamSirketId = await RaporKapsamSirketIdAsync(kullanici, sirketId);
+            try
             {
-                TempData["Hata"] = "Rapor Excel dosyasi API uzerinden alinamadi.";
-                return Redirect("/AdminPanel/raporlar");
+                var dosya = excelMi
+                    ? await _adminRaporApiClient.RaporlarExcelAsync(kullanici, kapsamSirketId, bas, bit, ids)
+                    : await _adminRaporApiClient.RaporlarPdfAsync(kullanici, kapsamSirketId, bas, bit, ids);
+                if (dosya != null)
+                    return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+                TempData["Hata"] = "Rapor dosyası şu anda oluşturulamadı.";
             }
-
-            return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
+            }
+            return RedirectToAction(nameof(Raporlar), new { bas, bit, sirketId = kapsamSirketId });
         }
 
         [HttpGet("raporlar/excel-toplu")]
@@ -166,24 +190,77 @@ namespace YetkiliServisGazAcma.Controllers
             return await RaporlarExcel(bas, bit, null, sirketId);
         }
 
+        [HttpGet("raporlar/operasyon/pdf")]
+        public Task<IActionResult> OperasyonRaporPdf(DateTime? bas, DateTime? bit, int? sirketId)
+            => OperasyonRaporDosyasi(bas, bit, sirketId, excelMi: false);
+
+        [HttpGet("raporlar/operasyon/excel")]
+        public Task<IActionResult> OperasyonRaporExcel(DateTime? bas, DateTime? bit, int? sirketId)
+            => OperasyonRaporDosyasi(bas, bit, sirketId, excelMi: true);
+
+        private async Task<IActionResult> OperasyonRaporDosyasi(DateTime? bas, DateTime? bit, int? sirketId, bool excelMi)
+        {
+            var kullanici = await GetCurrentUser();
+            if (kullanici == null) return Redirect("/giris");
+
+            var kapsamSirketId = await RaporKapsamSirketIdAsync(kullanici, sirketId);
+            var filtre = new YkcTalepListeFiltre
+            {
+                SirketId = kapsamSirketId,
+                BaslangicTarihi = bas?.Date,
+                BitisTarihi = bit?.Date,
+                Sayfa = 1,
+                SayfaBoyutu = 5000
+            };
+
+            try
+            {
+                var dosya = excelMi
+                    ? await _ykcApiClient.RaporExcelAsync(kullanici, filtre)
+                    : await _ykcApiClient.RaporPdfAsync(kullanici, filtre);
+                if (dosya != null)
+                    return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
+            }
+            catch (ApiIntegrationException ex)
+            {
+                TempData["Hata"] = ex.Message;
+                return RedirectToAction(nameof(Raporlar), new { bas, bit, sirketId = kapsamSirketId });
+            }
+
+            TempData["Hata"] = "Operasyon raporu dosyasi su anda olusturulamadi.";
+            return RedirectToAction(nameof(Raporlar), new { bas, bit, sirketId = kapsamSirketId });
+        }
+
+        private async Task<int?> RaporKapsamSirketIdAsync(AppKullanici kullanici, int? istenenSirketId)
+        {
+            if (await _aktifSirketService.GenelSistemAdminMi(kullanici))
+                return istenenSirketId;
+
+            if (await _aktifSirketService.SirketAdminMi(kullanici))
+                return kullanici.SirketId;
+
+            return await _aktifSirketService.AktifSirketIdAsync(kullanici);
+        }
+
         [HttpGet("onay-bekleyenler")]
-        public async Task<IActionResult> OnayBekleyenler()
+        public async Task<IActionResult> OnayBekleyenler([FromQuery] YetkiBelgesiOnayFiltreDto? filtre = null)
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
 
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            var onayListesi = await _adminYetkiBelgesiOnayApiClient.ListeleAsync(kullanici, aktifSirketId);
+            var onayListesi = await _adminYetkiBelgesiOnayApiClient.ListeleAsync(kullanici, aktifSirketId, filtre);
             ViewBag.AdminYetkiBelgesiOnayVeriKaynagi = "API";
 
             if (onayListesi == null)
             {
                 TempData["Hata"] = "Yetki belgesi onay listesi API uzerinden alinamadi.";
-                onayListesi = new AdminYetkiBelgesiOnaySonuc();
+                onayListesi = new AdminYetkiBelgesiOnayListeDto();
             }
 
             ViewBag.Kullanici = kullanici;
-            ViewBag.OnayBekleyen = onayListesi.Bekleyenler.Count;
+            ViewBag.OnayBekleyen = onayListesi.Sayfalama.Bekleyen;
+            ViewBag.Sayfalama = onayListesi.Sayfalama;
             ViewBag.Bekleyenler = onayListesi.Bekleyenler;
             ViewBag.SuresiDolanlar = onayListesi.SuresiDolanlar;
             ViewBag.Onaylananlar = onayListesi.Onaylananlar;
@@ -202,11 +279,10 @@ namespace YetkiliServisGazAcma.Controllers
             if (sonuc == null)
             {
                 TempData["Hata"] = "Yetki belgesi uyarilari API uzerinden alinamadi.";
-                sonuc = new AdminYetkiBelgesiUyariSonuc();
+                sonuc = new AdminYetkiBelgesiUyariListeDto();
             }
 
             ViewBag.Kullanici = kullanici;
-            ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
             ViewBag.Yaklasan = sonuc.Yaklasan;
             ViewBag.Gecmis = sonuc.Gecmis;
             return View("~/Views/AdminPanel/YetkiBelgesiUyarilari.cshtml");

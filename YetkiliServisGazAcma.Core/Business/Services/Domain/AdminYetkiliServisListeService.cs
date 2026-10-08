@@ -7,16 +7,24 @@ namespace YetkiliServisGazAcma.Business.Services
     public class AdminYetkiliServisListeService
     {
         private readonly AppDbContext _context;
+        private readonly SehirFirmaKoduService? _sehirFirmaKoduService;
 
-        public AdminYetkiliServisListeService(AppDbContext context)
+        public AdminYetkiliServisListeService(AppDbContext context, SehirFirmaKoduService? sehirFirmaKoduService = null)
         {
             _context = context;
+            _sehirFirmaKoduService = sehirFirmaKoduService;
         }
 
         public async Task<AdminYetkiliServisListeSonuc> ListeleAsync(AdminYetkiliServisListeFiltre filtre)
         {
             var query = _context.Ys_Firmalar
                 .Include(x => x.Sirket)
+                .Include(x => x.FirmaKategoriler!)
+                    .ThenInclude(x => x.Kategori)
+                .Include(x => x.FirmaMarkalar!)
+                    .ThenInclude(x => x.Marka)
+                .AsSplitQuery()
+                .AsNoTracking()
                 .Where(x => !x.SilindiMi
                     && _context.Users.Any(u =>
                         u.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis &&
@@ -61,6 +69,20 @@ namespace YetkiliServisGazAcma.Business.Services
                 .Select(x => new { FirmaId = x.Key, Sayisi = x.Count() })
                 .ToDictionaryAsync(x => x.FirmaId, x => x.Sayisi);
 
+            var subeIlceleri = await _context.Ys_Subeler
+                .AsNoTracking()
+                .Where(x => !x.SilindiMi && servisIds.Contains(x.FirmaId) && x.Ilce != null && x.Ilce != "")
+                .Select(x => new { x.FirmaId, x.Ilce })
+                .ToListAsync();
+            var ilceler = subeIlceleri
+                .GroupBy(x => x.FirmaId)
+                .ToDictionary(
+                    x => x.Key,
+                    x => string.Join(", ", x.Select(sube => sube.Ilce!.Trim())
+                        .Where(ilce => ilce.Length > 0)
+                        .Distinct(StringComparer.CurrentCultureIgnoreCase)
+                        .OrderBy(ilce => ilce, StringComparer.CurrentCultureIgnoreCase)));
+
             servisler = filtre.DevreyeSiralama?.ToLowerInvariant() switch
             {
                 "artan" => servisler
@@ -77,7 +99,9 @@ namespace YetkiliServisGazAcma.Business.Services
             return new AdminYetkiliServisListeSonuc
             {
                 Servisler = servisler,
-                DevreyeSayilari = devreyeSayilari
+                Sehirler = _sehirFirmaKoduService?.Sehirler() ?? new List<string>(),
+                DevreyeSayilari = devreyeSayilari,
+                Ilceler = ilceler
             };
         }
 
@@ -89,7 +113,9 @@ namespace YetkiliServisGazAcma.Business.Services
                     .ThenInclude(x => x.Kategori)
                 .Include(x => x.FirmaMarkalar!)
                     .ThenInclude(x => x.Marka)
-                .Where(x => x.Id == id && !x.SilindiMi);
+                .Where(x => x.Id == id && !x.SilindiMi
+                    && _context.Users.Any(u =>
+                        u.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis && u.FirmaId == x.Id));
 
             if (sirketId.HasValue)
                 servisQuery = servisQuery.Where(x => x.SirketId == sirketId.Value);
@@ -148,7 +174,9 @@ namespace YetkiliServisGazAcma.Business.Services
     public class AdminYetkiliServisListeSonuc
     {
         public List<Ys_Firma> Servisler { get; set; } = new();
+        public List<string> Sehirler { get; set; } = new();
         public Dictionary<int, int> DevreyeSayilari { get; set; } = new();
+        public Dictionary<int, string> Ilceler { get; set; } = new();
     }
 
     public class AdminYetkiliServisDetaySonuc

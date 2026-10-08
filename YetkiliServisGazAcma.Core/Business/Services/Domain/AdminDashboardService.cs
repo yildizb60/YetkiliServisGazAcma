@@ -13,43 +13,67 @@ namespace YetkiliServisGazAcma.Business.Services
             _context = context;
         }
 
-        public async Task<AdminDashboardOzet> GetirAsync(int? sirketId)
+        public async Task<AdminDashboardApiDto> GetirAsync(int? sirketId)
         {
             var devreyeQuery = DevreyeAlmaTemelQuery(sirketId);
             var yetkiBelgesiQuery = YetkiBelgesiTemelQuery(sirketId);
             var firmaQuery = FirmaTemelQuery(sirketId);
             var now = DateTime.Now;
+            var ayBasi = new DateTime(now.Year, now.Month, 1);
+            var sonrakiAy = ayBasi.AddMonths(1);
 
-            return new AdminDashboardOzet
+            var bildirimler = await BildirimOzetiAsync(sirketId);
+            return new AdminDashboardApiDto
             {
                 ToplamDevreyeAlma = await devreyeQuery.CountAsync(),
                 ToplamFirma = await firmaQuery.CountAsync(),
-                OnayBekleyen = await yetkiBelgesiQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
-                    && x.YetkiBelgesiBitisTarihi >= now.Date).CountAsync(),
-                SuresiBitecek = await yetkiBelgesiQuery
-                    .Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi
-                        && x.YetkiBelgesiBitisTarihi <= now.AddDays(30)
-                        && x.YetkiBelgesiBitisTarihi >= now)
-                    .CountAsync(),
+                OnayBekleyen = bildirimler.OnayBekleyen,
+                SuresiBitecek = bildirimler.SuresiBitecek,
                 ToplamSirket = sirketId.HasValue
                     ? 1
                     : await _context.Dag_Sirketler.Where(x => !x.SilindiMi && x.AktifMi).CountAsync(),
                 BuAyDevreyeAlma = await devreyeQuery
-                    .Where(x => x.OlusturmaTarihi.Month == now.Month
-                        && x.OlusturmaTarihi.Year == now.Year)
+                    .Where(x => x.DevreyeAlmaTarihi >= ayBasi && x.DevreyeAlmaTarihi < sonrakiAy)
                     .CountAsync(),
                 SonYetkiBelgeleri = await yetkiBelgesiQuery
-                    .Include(x => x.Firma)
-                        .ThenInclude(x => x!.Sirket)
                     .OrderByDescending(x => x.OlusturmaTarihi)
                     .Take(8)
+                    .Select(x => new AdminYetkiBelgesiOzetDto
+                    {
+                        Id = x.Id,
+                        FirmaId = x.FirmaId,
+                        FirmaAdi = x.Firma!.FirmaAdi,
+                        SirketAdi = x.Firma.Sirket != null ? x.Firma.Sirket.SirketAdi : null,
+                        Durum = x.Durum,
+                        OlusturmaTarihi = x.OlusturmaTarihi,
+                        YetkiBelgesiBitisTarihi = x.YetkiBelgesiBitisTarihi
+                    })
                     .ToListAsync(),
                 SonDevreyeAlmalar = await devreyeQuery
-                    .Include(x => x.Firma)
-                    .Include(x => x.Marka)
                     .OrderByDescending(x => x.OlusturmaTarihi)
                     .Take(6)
+                    .Select(x => new AdminDevreyeAlmaOzetDto
+                    {
+                        Id = x.Id,
+                        FirmaId = x.FirmaId,
+                        FirmaAdi = x.Firma!.FirmaAdi,
+                        MarkaAdi = x.Marka != null ? x.Marka.MarkaAdi : null,
+                        MusteriAdi = x.MusteriAdi,
+                        TesistatNo = x.TesistatNo,
+                        DevreyeAlmaTarihi = x.DevreyeAlmaTarihi,
+                        Durum = x.Durum,
+                        OlusturmaTarihi = x.OlusturmaTarihi
+                    })
                     .ToListAsync()
+            };
+        }
+
+        public async Task<PanelBildirimOzeti> BildirimOzetiAsync(int? sirketId)
+        {
+            return new PanelBildirimOzeti
+            {
+                OnayBekleyen = await OnayBekleyenSayisiAsync(sirketId),
+                SuresiBitecek = await SuresiBitecekSayisiAsync(sirketId)
             };
         }
 
@@ -64,11 +88,12 @@ namespace YetkiliServisGazAcma.Business.Services
 
         public async Task<int> SuresiBitecekSayisiAsync(int? sirketId)
         {
-            var now = DateTime.Now;
+            var bugun = DateTime.Today;
+            var bitisHaric = bugun.AddDays(31);
             return await YetkiBelgesiTemelQuery(sirketId)
                 .Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi
-                    && x.YetkiBelgesiBitisTarihi <= now.AddDays(30)
-                    && x.YetkiBelgesiBitisTarihi >= now)
+                    && x.YetkiBelgesiBitisTarihi < bitisHaric
+                    && x.YetkiBelgesiBitisTarihi >= bugun)
                 .CountAsync();
         }
 
@@ -101,15 +126,4 @@ namespace YetkiliServisGazAcma.Business.Services
         }
     }
 
-    public class AdminDashboardOzet
-    {
-        public int ToplamDevreyeAlma { get; set; }
-        public int ToplamFirma { get; set; }
-        public int OnayBekleyen { get; set; }
-        public int SuresiBitecek { get; set; }
-        public int ToplamSirket { get; set; }
-        public int BuAyDevreyeAlma { get; set; }
-        public List<Ys_YetkiBelgesi> SonYetkiBelgeleri { get; set; } = new();
-        public List<Ys_DevreyeAlma> SonDevreyeAlmalar { get; set; } = new();
-    }
 }

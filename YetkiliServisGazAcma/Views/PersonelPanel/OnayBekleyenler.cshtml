@@ -1,124 +1,22 @@
-@model List<YetkiliServisGazAcma.Entities.Ys_YetkiBelgesi>
-@using YetkiliServisGazAcma.Entities
+@model List<AdminYetkiBelgesiOnayDto>
 @{
-    ViewData["Title"] = "Onay Bekleyen Belgeler";
+    ViewData["Title"] = "Yetki Belgesi Onay ve Takip";
     ViewData["PanelTitle"] = ViewData["Title"];
-    ViewData["PanelSubtitle"] = "Personel Paneli";
+    ViewData["PanelSubtitle"] = "Yetki Belgesi";
     ViewData["ActiveMenu"] = "OnayBekleyenler";
+    ViewData["PanelArea"] = "Personel";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
-
-    var bekleyenler = Model ?? new List<Ys_YetkiBelgesi>();
-    var onaylananlar = ViewBag.Onaylananlar as List<Ys_YetkiBelgesi> ?? new List<Ys_YetkiBelgesi>();
-    var reddedilenler = ViewBag.Reddedilenler as List<Ys_YetkiBelgesi> ?? new List<Ys_YetkiBelgesi>();
-    var suresiDolanlar = ViewBag.SuresiDolanlar as List<Ys_YetkiBelgesi> ?? new List<Ys_YetkiBelgesi>();
+    var bekleyenler = Model ?? new List<AdminYetkiBelgesiOnayDto>();
+    var onaylananlar = ViewBag.Onaylananlar as List<AdminYetkiBelgesiOnayDto> ?? new List<AdminYetkiBelgesiOnayDto>();
+    var reddedilenler = ViewBag.Reddedilenler as List<AdminYetkiBelgesiOnayDto> ?? new List<AdminYetkiBelgesiOnayDto>();
+    var suresiDolanlar = ViewBag.SuresiDolanlar as List<AdminYetkiBelgesiOnayDto> ?? new List<AdminYetkiBelgesiOnayDto>();
+    var kayitlar = bekleyenler.Concat(onaylananlar).Concat(reddedilenler).Concat(suresiDolanlar).Cast<YetkiBelgesiKayitDto>().ToList();
+    var sayfalama = ViewBag.Sayfalama as YetkiBelgesiOnaySayfalamaDto ?? new();
 }
-
 @section PageStyles {
     <link rel="stylesheet" href="~/css/operations-directory.css" asp-append-version="true" />
 }
-
-<div class="approval-board df-approval-workspace">
-    <section class="df-page-panel approval-panels is-admin-approval">
-        <div class="df-approval-status-bar" role="tablist" data-approval-tabs aria-label="Yetki belgesi durumu">
-            <button type="button" role="tab" id="personnel-approval-waiting-tab" aria-controls="personnel-approval-waiting" aria-selected="true" class="approval-tab approval-metric is-waiting active" data-target="bekleyen"><i class="bi bi-hourglass-split" aria-hidden="true"></i><span>Onay Bekleyen</span><strong>@bekleyenler.Count</strong></button>
-            <button type="button" role="tab" id="personnel-approval-approved-tab" aria-controls="personnel-approval-approved" aria-selected="false" class="approval-tab approval-metric is-approved" data-target="onaylanan"><i class="bi bi-check-circle" aria-hidden="true"></i><span>Onaylanan</span><strong>@onaylananlar.Count</strong></button>
-            <button type="button" role="tab" id="personnel-approval-rejected-tab" aria-controls="personnel-approval-rejected" aria-selected="false" class="approval-tab approval-metric is-rejected" data-target="reddedilen"><i class="bi bi-x-circle" aria-hidden="true"></i><span>Reddedilen</span><strong>@reddedilenler.Count</strong></button>
-            <button type="button" role="tab" id="personnel-approval-expired-tab" aria-controls="personnel-approval-expired" aria-selected="false" class="approval-tab approval-metric is-expired" data-target="suresi-dolan"><i class="bi bi-calendar-x" aria-hidden="true"></i><span>Süresi Dolan</span><strong>@suresiDolanlar.Count</strong></button>
-        </div>
-    <details class="df-approval-filter">
-        <summary><span><i class="bi bi-funnel" aria-hidden="true"></i><strong>Filtreler</strong></span><span>Aç <i class="bi bi-chevron-down" aria-hidden="true"></i></span></summary>
-        <div class="df-approval-filter-body">
-            <div class="df-approval-filter-grid">
-                <div class="filtre-alan"><label>Firma</label><input type="text" id="filterFirma" placeholder="Firma adı" autocomplete="off" /></div>
-                <div class="filtre-alan"><label>Şirket</label><input type="text" id="filterSirket" placeholder="Şirket adı" autocomplete="off" /></div>
-                <div class="filtre-alan"><label>Yükleme</label><input type="date" id="filterYukleme" /></div>
-                <div class="filtre-alan"><label>Başlangıç</label><input type="date" id="filterBaslangic" /></div>
-                <div class="filtre-alan"><label>Bitiş</label><input type="date" id="filterBitis" /></div>
-            </div>
-            <div class="df-approval-filter-actions">
-                <button type="button" class="df-btn df-btn-primary df-btn-sm" id="approvalFilterApply"><i class="bi bi-funnel-fill" aria-hidden="true"></i> Filtrele</button>
-                <button type="button" class="df-btn df-btn-secondary df-btn-sm" id="approvalFilterClear"><i class="bi bi-x-lg" aria-hidden="true"></i> Temizle</button>
-            </div>
-        </div>
-    </details>
-
-        <div data-panel="bekleyen" class="active" id="personnel-approval-waiting" role="tabpanel" aria-labelledby="personnel-approval-waiting-tab">
-            @await Html.PartialAsync("~/Views/Shared/_YetkiBelgesiOnayTable.cshtml", new Tuple<List<Ys_YetkiBelgesi>, string, string>(bekleyenler, "bekleyen", "personel"))
-        </div>
-        <div data-panel="onaylanan" id="personnel-approval-approved" role="tabpanel" aria-labelledby="personnel-approval-approved-tab">
-            @await Html.PartialAsync("~/Views/Shared/_YetkiBelgesiOnayTable.cshtml", new Tuple<List<Ys_YetkiBelgesi>, string, string>(onaylananlar, "onaylanan", "personel"))
-        </div>
-        <div data-panel="reddedilen" id="personnel-approval-rejected" role="tabpanel" aria-labelledby="personnel-approval-rejected-tab">
-            @await Html.PartialAsync("~/Views/Shared/_YetkiBelgesiOnayTable.cshtml", new Tuple<List<Ys_YetkiBelgesi>, string, string>(reddedilenler, "reddedilen", "personel"))
-        </div>
-        <div data-panel="suresi-dolan" id="personnel-approval-expired" role="tabpanel" aria-labelledby="personnel-approval-expired-tab">
-            @await Html.PartialAsync("~/Views/Shared/_YetkiBelgesiOnayTable.cshtml", new Tuple<List<Ys_YetkiBelgesi>, string, string>(suresiDolanlar, "suresi-dolan", "personel"))
-        </div>
-    </section>
-</div>
-
+@await Html.PartialAsync("_YetkiBelgesiOnayWorkspace", new Tuple<IReadOnlyList<YetkiBelgesiKayitDto>, YetkiBelgesiOnaySayfalamaDto, string>(kayitlar, sayfalama, "personel"))
 @section Scripts {
-<script>
-(() => {
-    const tabs = document.querySelector('[data-approval-tabs]');
-    const fields = {
-        firma: document.getElementById('filterFirma'),
-        sirket: document.getElementById('filterSirket'),
-        yukleme: document.getElementById('filterYukleme'),
-        baslangic: document.getElementById('filterBaslangic'),
-        bitis: document.getElementById('filterBitis')
-    };
-
-    const normalize = value => (value || '').toLocaleLowerCase('tr-TR').trim();
-
-    function applyFilters() {
-        const panel = document.querySelector('.approval-panels [data-panel].active');
-        if (!panel) return;
-        const values = {
-            firma: normalize(fields.firma?.value),
-            sirket: normalize(fields.sirket?.value),
-            yukleme: fields.yukleme?.value || '',
-            baslangic: fields.baslangic?.value || '',
-            bitis: fields.bitis?.value || ''
-        };
-
-        let visibleCount = 0;
-        const rows = panel.querySelectorAll('tr[data-approval-row="true"]');
-        rows.forEach(row => {
-            let visible = true;
-            if (values.firma) visible = normalize(row.dataset.firma).includes(values.firma) || normalize(row.dataset.vergi).includes(values.firma);
-            if (values.sirket) visible = visible && normalize(row.dataset.sirket).includes(values.sirket);
-            if (values.yukleme) visible = visible && row.dataset.yukleme === values.yukleme;
-            if (values.baslangic) visible = visible && row.dataset.baslangic >= values.baslangic;
-            if (values.bitis) visible = visible && row.dataset.bitis <= values.bitis;
-            row.hidden = !visible;
-            if (visible) visibleCount++;
-        });
-        const empty = panel.querySelector('.df-approval-filter-empty');
-        if (empty) empty.hidden = rows.length === 0 || visibleCount > 0;
-    }
-
-    function activatePanel(target = 'bekleyen') {
-        document.querySelectorAll('.approval-panels [data-panel]').forEach(panel => panel.classList.toggle('active', panel.dataset.panel === target));
-        tabs?.querySelectorAll('[data-target]').forEach(tab => tab.classList.toggle('active', tab.dataset.target === target));
-        tabs?.querySelectorAll('[data-target]').forEach(tab => {
-            const selected = tab.dataset.target === target;
-            tab.setAttribute('aria-selected', selected ? 'true' : 'false');
-            tab.tabIndex = selected ? 0 : -1;
-        });
-        applyFilters();
-    }
-
-    tabs?.addEventListener('click', event => {
-        const tab = event.target.closest('[data-target]');
-        if (tab) activatePanel(tab.dataset.target);
-    });
-    document.getElementById('approvalFilterApply')?.addEventListener('click', applyFilters);
-    document.getElementById('approvalFilterClear')?.addEventListener('click', () => {
-        Object.values(fields).forEach(field => { if (field) field.value = ''; });
-        const activeTarget = tabs?.querySelector('[data-target].active')?.dataset.target || 'bekleyen';
-        activatePanel(activeTarget);
-    });
-})();
-</script>
+    <script src="~/js/approval-row-details.js" asp-append-version="true"></script>
 }

@@ -31,12 +31,13 @@ namespace YetkiliServisGazAcma.Business.Services.Online
             long sozlesmeNo,
             CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!_options.Enabled)
                 return OnlineCihazBilgileriSonuc.Basarisiz("Online cihaz servisi kapali.");
 
-            var endpoint = string.IsNullOrWhiteSpace(_options.Endpoint)
-                ? "http://onlinesvc.marmaragaz.com.tr/Test/Online.svc"
-                : _options.Endpoint.Trim();
+            if (!Uri.TryCreate(_options.Endpoint?.Trim(), UriKind.Absolute, out var endpoint)
+                || endpoint.Scheme is not ("http" or "https"))
+                return OnlineCihazBilgileriSonuc.Basarisiz("Online cihaz servisi adresi yapılandırılmadı.");
 
             var firmaKodu = string.IsNullOrWhiteSpace(firma) ? _options.Firma : firma;
             if (string.IsNullOrWhiteSpace(firmaKodu))
@@ -71,6 +72,10 @@ namespace YetkiliServisGazAcma.Business.Services.Online
             catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
                 return OnlineCihazBilgileriSonuc.Basarisiz("Online cihaz servisi zaman asimina ugradi.");
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception ex)
             {

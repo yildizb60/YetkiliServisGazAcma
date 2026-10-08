@@ -1,12 +1,14 @@
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Configuration;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Models;
 
 namespace YetkiliServisGazAcma.API.Services;
 
 // Pull integration: the document is queued locally; no remote signature is simulated.
-public sealed class MobilYkcImzaProvider(IOptions<MobilImzaOptions> settings, IWebHostEnvironment environment) : IYkcImzaProvider
+public sealed class MobilYkcImzaProvider(IOptions<MobilImzaOptions> settings, IWebHostEnvironment environment,
+    IConfiguration? configuration = null) : IYkcImzaProvider
 {
     public const string Prefix = "MOBIL-YKC-";
     public string ProviderAdi => "Mobil İmza Entegrasyonu";
@@ -19,7 +21,7 @@ public sealed class MobilYkcImzaProvider(IOptions<MobilImzaOptions> settings, IW
             return YkcImzaGonderSonuc.Basarisiz("IMZA_ALANLARI_EKSIK", "PDF şablonuna ait onaylanmış imza koordinatları yapılandırılmadı.");
         var key = Prefix + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(istek.TekrarsizIstekAnahtari)));
         var manifest = new MobilImzaManifest(settings.Value.SablonSurumu, istek.BelgeHash, settings.Value.Alanlar(istek.KontrolNo));
-        var directory = Path.Combine(environment.ContentRootPath, "App_Data", "imza-paketleri");
+        var directory = PrivateDocumentStorage.Root(environment, configuration, "imza-paketleri");
         Directory.CreateDirectory(directory);
         // Freeze the approved coordinates alongside this exact PDF version.
         var path = Path.Combine(directory, key + ".json");

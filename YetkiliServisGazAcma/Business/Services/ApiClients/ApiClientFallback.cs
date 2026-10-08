@@ -2,13 +2,15 @@ namespace YetkiliServisGazAcma.Business.Services
 {
     public class ApiIntegrationException : Exception
     {
-        public ApiIntegrationException(string operation, string message)
+        public ApiIntegrationException(string operation, string message, int statusCode = 503)
             : base(message)
         {
             Operation = operation;
+            StatusCode = statusCode;
         }
 
         public string Operation { get; }
+        public int StatusCode { get; }
     }
 
     internal static class ApiClientFallback

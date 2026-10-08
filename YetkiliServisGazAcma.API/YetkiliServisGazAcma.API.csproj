@@ -17,4 +17,9 @@
     <ProjectReference Include="..\YetkiliServisGazAcma.Core\YetkiliServisGazAcma.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Update="appsettings.Local.json" CopyToOutputDirectory="Never" CopyToPublishDirectory="Never" />
+    <EmbeddedResource Include="..\YetkiliServisGazAcma\wwwroot\uploads\demo-yetki-belgesi.html" LogicalName="YetkiliServisGazAcma.API.DemoYetkiBelgesi.html" />
+  </ItemGroup>
+
 </Project>

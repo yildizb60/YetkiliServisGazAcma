@@ -1,12 +1,14 @@
 @model YkcTalepDetayDto
 @{
     string Deger(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
-    var kontroller = Model.Kontroller.Where(x => x.Sonuc is YkcFr265KontrolSonucDegerleri.Uygun or YkcFr265KontrolSonucDegerleri.UygunDegil).OrderBy(x => x.KontrolNo).ToList();
-    var sonKontrol = kontroller.LastOrDefault();
-    var nihai = Model.ImzaSureci?.Durum == YkcImzaDurumDegerleri.Tamamlandi
-        ? Model.Dosyalar.FirstOrDefault(x => x.Id == Model.ImzaSureci.NihaiDosyaId && x.DosyaTuru == YkcFormDosyaTuruDegerleri.Fr265ImzaliNihai) : null;
-    var demoBelge = nihai != null && Model.ImzaSureci?.ProviderDocumentId?.StartsWith("DEMO-YKC-", StringComparison.Ordinal) == true;
-    var durum = Model.Durum == YkcDurumDegerleri.TalepAlindi ? "İnceleme Bekleniyor" : YkcDurumSunumu.Etiket(Model.Durum);
+    var kontroller = Model.Ekran.TumSonucluKontroller;
+    var sonKontrol = Model.Ekran.SonKontrol;
+    var sonUygunsuzKontrol = Model.Ekran.SonUygunsuzKontrol;
+    var uygunsuzlukGerekcesi = sonUygunsuzKontrol?.Aciklama?.Trim();
+    var uzunGerekce = uygunsuzlukGerekcesi?.Length > 160;
+    var nihai = Model.Ekran.ImzaliBelgeHazir ? Model.Ekran.ImzaliBelge : null;
+    var demoBelge = Model.Ekran.ImzaliBelgeDemoMu;
+    var durum = YkcDurumSunumu.Etiket(Model.Durum);
     var kontrolBaslik = Model.Durum switch
     {
         YkcDurumDegerleri.TalepAlindi => "Dağıtım şirketinin incelemesi bekleniyor",
@@ -33,6 +35,7 @@
         "DurumGuncellendi" => "Durum güncellendi",
         "AtamaYapildi" => "Kontrol randevusu planlandı",
         "FR265KontrolleriGuncellendi" => "Kontrol sonucu kaydedildi",
+        "KontrolDonemiAcildi" => "Yeni kontrol dönemi açıldı",
         "FR265TaslakOlusturuldu" => "Form hazırlandı",
         "FR265ImzayaGonderildi" => "Form imzaya gönderildi",
         "FR265ImzaliNihaiBelgeAlindi" => "İmzalı form alındı",
@@ -43,24 +46,49 @@
 }
 <section class="ykc-firm-record" aria-labelledby="firm-customer">
     <header class="ykc-firm-record-head">
-        <div><span class="ykc-firm-record-number">Talep No: #@Model.Id</span><h1 id="firm-customer">@Deger(Model.MusteriAdi)</h1><p>Tesisat No: @Deger(Model.TesisatNo)</p></div>
+        <div><span class="ykc-firm-record-number">Talep No: #@Model.Id</span><h1 id="firm-customer">@Deger(Model.MusteriAdi)</h1></div>
         <div class="ykc-firm-record-actions">
             @if (Model.Durum != YkcDurumDegerleri.TalepAlindi)
             {
                 <span class="df-pill @YkcDurumSunumu.CssSinifi(Model.Durum)">@durum</span>
             }
-            <a class="df-btn df-btn-secondary df-btn-sm" href="@Url.Action("Talepler", "Ykc")"><i class="bi bi-arrow-left" aria-hidden="true"></i>Taleplere Dön</a>
-            <a class="df-btn df-btn-primary df-btn-sm" href="@Url.Action("Fr265Onizle", "Ykc", new { id = Model.Id })" target="_blank"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i>Formu Önizle</a>
+            <a class="df-btn df-btn-sm ykc-detail-back" href="@(ViewData["YkcGeriUrl"] ?? Url.Action("Talepler", "Ykc"))"><i class="bi bi-arrow-left" aria-hidden="true"></i>Taleplere Dön</a>
+            @if (Model.Durum == YkcDurumDegerleri.Tamamlandi && Model.Ekran.Yetkiler.RaporlariGorebilir)
+            {
+                <a class="df-btn df-btn-sm df-btn-secondary" href="@Url.Action("Raporlar", "Ykc", new { detayTalepId = Model.Id })"><i class="bi bi-bar-chart-line" aria-hidden="true"></i>Raporlarda Gör</a>
+            }
+            <a class="df-btn df-btn-sm ykc-detail-preview" href="@Url.Action("Fr265Onizle", "Ykc", new { id = Model.Id })" target="_blank"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i>Formu Önizle</a>
         </div>
     </header>
     @if (kontrolBaslik != null || Model.RandevuTarihi.HasValue)
     {
     <section class="ykc-firm-control-status" aria-label="Kontrol durumu">
         <i class="bi @(Model.RandevuTarihi.HasValue ? "bi-calendar2-check" : "bi-hourglass-split")" aria-hidden="true"></i>
-        <div><h2>@kontrolBaslik</h2>@if (!string.IsNullOrWhiteSpace(aciklama)) { <p>@aciklama</p> }</div>
+        <div>
+            <h2>@kontrolBaslik</h2>
+            @if (sonUygunsuzKontrol != null)
+            {
+                <p class="ykc-firm-last-control">Son kontrol: <strong>Uygun değil</strong></p>
+                @if (!string.IsNullOrWhiteSpace(uygunsuzlukGerekcesi))
+                {
+                    @if (uzunGerekce)
+                    {
+                        <details class="ykc-firm-reason">
+                            <summary><span><b>Uygunsuzluk gerekçesi:</b> @uygunsuzlukGerekcesi[..160]…</span><span class="ykc-reason-more">Devamını göster</span><span class="ykc-reason-less">Kısalt</span></summary>
+                            <p>@uygunsuzlukGerekcesi</p>
+                        </details>
+                    }
+                    else
+                    {
+                        <p class="ykc-firm-reason-text"><b>Uygunsuzluk gerekçesi:</b> @uygunsuzlukGerekcesi</p>
+                    }
+                }
+            }
+            else if (!string.IsNullOrWhiteSpace(aciklama)) { <p>@aciklama</p> }
+        </div>
         @if (Model.RandevuTarihi.HasValue)
         {
-            <time datetime="@Model.RandevuTarihi.Value.ToString("yyyy-MM-dd")"><span>Kontrol Tarihi</span><strong>@Model.RandevuTarihi.Value.ToString("dd.MM.yyyy") <b>@Model.RandevuSaati</b></strong></time>
+            <time datetime="@Model.RandevuTarihi.Value.ToString("yyyy-MM-dd")"><span>Kontrol Randevusu</span><strong>@Model.RandevuTarihi.Value.ToString("dd.MM.yyyy") <b>@Model.RandevuSaati</b></strong></time>
         }
     </section>
     }
@@ -70,8 +98,8 @@
                 <h2 id="firm-installation-title"><i class="bi bi-house-check" aria-hidden="true"></i>Tesisat ve Abone</h2>
                 <dl class="ykc-firm-data-grid">
                     <div><dt>Sözleşme No:</dt><dd>@Deger(Model.SozlesmeNo)</dd></div>
+                    <div><dt>Tesisat No:</dt><dd>@Deger(Model.TesisatNo)</dd></div>
                     <div><dt>Abone No:</dt><dd>@Deger(Model.AboneNo)</dd></div>
-                    <div><dt>Sayaç No:</dt><dd>@Deger(Model.SayacNo)</dd></div>
                     @if (!string.IsNullOrWhiteSpace(Model.MusteriTelefon)) { <div><dt>Telefon:</dt><dd>@Model.MusteriTelefon</dd></div> }
                     <div class="wide"><dt>Adres:</dt><dd>@Deger(Model.Adres)</dd></div>
                 </dl>
@@ -79,7 +107,7 @@
             <section class="ykc-firm-data-section" aria-labelledby="firm-device-title">
                 <h2 id="firm-device-title"><i class="bi bi-fire" aria-hidden="true"></i>Yeni Kullanılan Cihaz</h2>
                 <dl class="ykc-firm-data-grid">
-                    <div><dt>Cihaz Türü:</dt><dd>@Deger(Model.YeniCihazTipi)</dd></div>
+                    <div><dt>Yakıcı Cihaz Tipi:</dt><dd>@Deger(Model.YeniCihazTipi)</dd></div>
                     <div><dt>Marka:</dt><dd>@Deger(Model.YeniMarka)</dd></div>
                     <div><dt>Kapasite:</dt><dd>@Deger(Model.YeniKapasite) kcal/h</dd></div>
                     @if (!string.IsNullOrWhiteSpace(Model.YeniBacaTipi)) { <div><dt>Baca Tipi:</dt><dd>@Model.YeniBacaTipi</dd></div> }
@@ -92,7 +120,7 @@
                     <h2 id="firm-controls-title"><i class="bi bi-clipboard2-check" aria-hidden="true"></i>Kontrol Sonuçları</h2>
                     @foreach (var kontrol in kontroller)
                     {
-                        <div class="ykc-firm-control-result"><strong>@kontrol.KontrolNo. Kontrol</strong><time>@kontrol.KontrolTarihi?.ToString("dd.MM.yyyy")</time><span class="df-pill @(kontrol.Sonuc == YkcFr265KontrolSonucDegerleri.Uygun ? "df-pill-success" : "df-pill-danger")">@(kontrol.Sonuc == YkcFr265KontrolSonucDegerleri.Uygun ? "Uygun" : "Uygun Değil")</span>@if (!string.IsNullOrWhiteSpace(kontrol.Aciklama)) { <p>@kontrol.Aciklama</p> }</div>
+                        <div class="ykc-firm-control-result"><strong>@if (Model.KontrolDonemi > 1) { <span>@kontrol.DonemNo. Dönem · </span> }@kontrol.FormKontrolNo. Kontrol</strong><time>@kontrol.KontrolTarihi?.ToString("dd.MM.yyyy")</time><span class="df-pill @(kontrol.Sonuc == YkcFr265KontrolSonucDegerleri.Uygun ? "df-pill-success" : "df-pill-danger")">@(kontrol.Sonuc == YkcFr265KontrolSonucDegerleri.Uygun ? "Uygun" : "Uygun Değil")</span>@if (!string.IsNullOrWhiteSpace(kontrol.Aciklama)) { <p>@kontrol.Aciklama</p> }</div>
                     }
                 </section>
             }
@@ -106,19 +134,15 @@
             {
                 <section class="ykc-firm-data-section"><h2><i class="bi bi-file-earmark-check" aria-hidden="true"></i>Sonuç Belgesi</h2><a class="df-btn df-btn-secondary df-btn-sm" href="@Url.Action("DosyaAc", "Ykc", new { id = nihai.Id })"><i class="bi bi-download" aria-hidden="true"></i>İmzalı PDF'yi İndir</a></section>
             }
-            <section class="ykc-firm-data-section" aria-labelledby="firm-history-title">
-                <h2 id="firm-history-title"><i class="bi bi-clock-history" aria-hidden="true"></i>İşlem Geçmişi <small>@Model.Gecmis.Count kayıt</small></h2>
+            <details class="ykc-firm-data-section ykc-firm-history-panel" aria-labelledby="firm-history-title">
+                <summary><h2 id="firm-history-title"><i class="bi bi-clock-history" aria-hidden="true"></i>İşlem Geçmişi <small>@Model.Gecmis.Count kayıt</small></h2><i class="bi bi-chevron-down" aria-hidden="true"></i></summary>
                 <ol class="ykc-firm-history">
-                    @foreach (var kayit in Model.Gecmis.Take(3))
+                    @foreach (var kayit in Model.Gecmis)
                     {
                         <li><time>@kayit.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</time><strong>@IslemAdi(kayit.IslemTipi)</strong>@if (kayit.YeniDurum.HasValue) { <span>@YkcDurumSunumu.Etiket(kayit.YeniDurum.Value)</span> }</li>
                     }
                 </ol>
-                @if (Model.Gecmis.Count > 3)
-                {
-                    <details class="ykc-firm-history-more"><summary>Önceki işlemler (@(Model.Gecmis.Count - 3))</summary><ol class="ykc-firm-history">@foreach (var kayit in Model.Gecmis.Skip(3)) { <li><time>@kayit.OlusturmaTarihi.ToString("dd.MM.yyyy HH:mm")</time><strong>@IslemAdi(kayit.IslemTipi)</strong></li> }</ol></details>
-                }
-            </section>
+            </details>
         </aside>
     </div>
 </section>

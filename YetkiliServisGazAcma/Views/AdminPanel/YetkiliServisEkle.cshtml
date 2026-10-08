@@ -7,15 +7,15 @@
 
     var sehirler = ViewBag.Sehirler as List<string> ?? new();
     var sehirFirmaKodlari = ViewBag.SehirFirmaKodlari as Dictionary<string, string> ?? new();
-    var kategoriler = ViewBag.Kategoriler as List<YetkiliServisGazAcma.Entities.UrunKategori> ?? new();
-    var markalar = ViewBag.Markalar as List<YetkiliServisGazAcma.Entities.Ys_Marka> ?? new();
+    var kategoriler = ViewBag.Kategoriler as List<AdminYetkiliServisKategoriDto> ?? new();
+    var markalar = ViewBag.Markalar as List<MarkaApiDto> ?? new();
 }
 
 <div class="df-admin-workspace df-admin-editor df-service-create-workspace">
 
     <section class="df-admin-form-card">
         <div class="df-admin-form-body">
-            <form method="post" action="/AdminPanel/yetkiliservisler/ekle">
+            <form class="df-admin-service-editor-form is-create" method="post" action="/AdminPanel/yetkiliservisler/ekle">
                 @Html.AntiForgeryToken()
 
                 <section class="df-admin-form-section">

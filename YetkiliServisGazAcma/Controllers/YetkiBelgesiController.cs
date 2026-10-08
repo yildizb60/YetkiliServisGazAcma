@@ -36,7 +36,7 @@ namespace YetkiliServisGazAcma.Controllers
                 return Redirect("/giris");
 
             var firmaId = kullanici.FirmaId ?? 0;
-            YetkiBelgesiFirmaEkraniSonuc? ekran;
+            YetkiBelgesiFirmaEkraniDto? ekran;
             try
             {
                 ekran = await _yetkiBelgesiApiClient.FirmaEkraniAsync(kullanici, firmaId);
@@ -52,7 +52,7 @@ namespace YetkiliServisGazAcma.Controllers
                 if (!TempData.ContainsKey("Hata"))
                     TempData["Hata"] = "Yetki belgesi bilgileri API uzerinden alinamadi.";
 
-                ekran = new YetkiBelgesiFirmaEkraniSonuc();
+                ekran = new YetkiBelgesiFirmaEkraniDto();
             }
 
             ViewBag.FirmaId = firmaId;
@@ -133,30 +133,30 @@ namespace YetkiliServisGazAcma.Controllers
             {
                 var dosya = await _yetkiBelgesiApiClient.DosyaIndirAsync(kullanici, id);
                 if (dosya == null)
-                    return NotFound("Yetki belgesi dosyasi bulunamadi veya bu belge icin yetkiniz yok.");
+                    return NotFound("Yetki belgesi dosyası bulunamadı. Dosya silinmiş veya kaydı eksik olabilir.");
 
                 Response.Headers.CacheControl = "private, no-store";
                 return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
             }
             catch (ApiIntegrationException ex)
             {
-                return NotFound(ex.Message);
+                return StatusCode(ex.StatusCode, ex.Message);
             }
         }
 
         [Authorize(Roles = "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin")]
         [HttpGet]
         [Route("onay-bekleyenler")]
-        public async Task<IActionResult> OnayBekleyenler()
+        public async Task<IActionResult> OnayBekleyenler([FromQuery] YetkiBelgesiOnayFiltreDto? filtre = null)
         {
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
             var sirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            YetkiBelgesiOnayEkraniSonuc? ekran;
+            YetkiBelgesiOnayEkraniDto? ekran;
             try
             {
-                ekran = await _yetkiBelgesiApiClient.OnayEkraniAsync(kullanici, sirketId);
+                ekran = await _yetkiBelgesiApiClient.OnayEkraniAsync(kullanici, sirketId, filtre);
             }
             catch (ApiIntegrationException ex)
             {
@@ -171,7 +171,8 @@ namespace YetkiliServisGazAcma.Controllers
             }
 
             ViewBag.Kullanici = kullanici;
-            ViewBag.OnayBekleyen = ekran.Bekleyenler.Count;
+            ViewBag.OnayBekleyen = ekran.Sayfalama.Bekleyen;
+            ViewBag.Sayfalama = ekran.Sayfalama;
             ViewBag.Onaylananlar = ekran.Onaylananlar;
             ViewBag.Reddedilenler = ekran.Reddedilenler;
             ViewBag.SuresiDolanlar = ekran.SuresiDolanlar;
@@ -182,7 +183,7 @@ namespace YetkiliServisGazAcma.Controllers
         [HttpPost]
         [Route("onayla")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Onayla(int id)
+        public async Task<IActionResult> Onayla(int id, string? returnUrl = null)
         {
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
@@ -197,14 +198,14 @@ namespace YetkiliServisGazAcma.Controllers
                 TempData["Hata"] = ex.Message;
             }
 
-            return Redirect("/ys-yetki-belgesi/onay-bekleyenler");
+            return Url.IsLocalUrl(returnUrl) ? LocalRedirect(returnUrl!) : Redirect("/ys-yetki-belgesi/onay-bekleyenler");
         }
 
         [Authorize(Roles = "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin")]
         [HttpPost]
         [Route("reddet")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Reddet(int id, string? gerekce)
+        public async Task<IActionResult> Reddet(int id, string? gerekce, string? returnUrl = null)
         {
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
@@ -219,10 +220,10 @@ namespace YetkiliServisGazAcma.Controllers
                 TempData["Hata"] = ex.Message;
             }
 
-            return Redirect("/ys-yetki-belgesi/onay-bekleyenler");
+            return Url.IsLocalUrl(returnUrl) ? LocalRedirect(returnUrl!) : Redirect("/ys-yetki-belgesi/onay-bekleyenler");
         }
 
-        private void SetYetkiBelgesiIslemMesaji(YetkiBelgesiIslemSonuc? sonuc, string varsayilanBasari, string basariKey)
+        private void SetYetkiBelgesiIslemMesaji(ApiIslemSonuc? sonuc, string varsayilanBasari, string basariKey)
         {
             if (sonuc?.Basarili == true)
             {

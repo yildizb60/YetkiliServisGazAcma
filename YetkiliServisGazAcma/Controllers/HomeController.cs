@@ -21,7 +21,7 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.ServisCount = ozet?.ServisCount ?? 0;
             ViewBag.DevreyeCount = ozet?.DevreyeCount ?? 0;
             ViewBag.YetkiBelgesiCount = ozet?.YetkiBelgesiCount ?? 0;
-            ViewBag.ZamanindaOran = ozet?.ZamanindaOran ?? 0;
+            ViewBag.TamamlanmaOrani = ozet?.TamamlanmaOrani ?? 0;
 
             return View();
         }

@@ -66,6 +66,7 @@ namespace YetkiliServisGazAcma.Business.Services
                     });
                     Satir(t, "Tesisat No", i.TesistatNo);
                     Satir(t, "Abone No", i.AboneNo);
+                    SatirGenis(t, "Sözleşme No", i.SozlesmeNo);
                     Satir(t, "Uygunluk Belge No", i.UygunlukBelgeNo);
                     Satir(t, "Uygunluk Tarihi", i.UygunlukTarihi?.ToString("dd.MM.yyyy"));
                 });
@@ -80,7 +81,7 @@ namespace YetkiliServisGazAcma.Business.Services
                     });
                     Satir(t, "M\u00fc\u015fteri Ad\u0131", i.MusteriAdi);
                     Satir(t, "TC Kimlik No", i.MusteriTcNo);
-                    Satir(t, "Telefon", i.MusteriTelefon);
+                    SatirGenis(t, "Telefon", i.MusteriTelefon);
                     SatirGenis(t, "Adres", i.Adres);
                 });
 

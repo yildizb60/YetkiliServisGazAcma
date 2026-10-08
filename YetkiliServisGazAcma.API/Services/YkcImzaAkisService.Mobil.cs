@@ -37,8 +37,9 @@ public sealed partial class YkcImzaAkisService
         if (draft == null) return null;
         var pdf = await PrivateBelgeOkuAsync(draft, ct);
         if (!PdfDosyasiMi(pdf, draft) || !string.Equals(HashOlustur(pdf!), surec.BelgeHash, StringComparison.OrdinalIgnoreCase)) return null;
-        var manifestPath = Path.Combine(_environment.ContentRootPath, "App_Data", "imza-paketleri", surec.ProviderDocumentId + ".json");
-        if (!File.Exists(manifestPath)) return null;
+        var manifestPath = PrivateDocumentStorage.ExistingFile(
+            _environment, _configuration, "imza-paketleri", surec.ProviderDocumentId + ".json");
+        if (manifestPath is null) return null;
         var manifest = JsonSerializer.Deserialize<MobilImzaManifest>(await File.ReadAllTextAsync(manifestPath, ct));
         if (manifest == null || !string.Equals(manifest.BelgeHash, surec.BelgeHash, StringComparison.OrdinalIgnoreCase)) return null;
         return new MobilImzaPaketi(new MobilImzaBelgesi(surec.Id, surec.TalepId, surec.Talep.SirketId!.Value,

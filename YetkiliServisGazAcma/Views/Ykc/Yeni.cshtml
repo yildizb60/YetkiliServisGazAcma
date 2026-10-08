@@ -1,7 +1,7 @@
 @model YkcTalepKaydetDto
 @{
     ViewData["Title"] = "Yeni Cihaz Değişim Talebi";
-    ViewData["PanelTitle"] = "Talep Oluştur";
+    ViewData["PanelTitle"] = ViewData["Title"];
     ViewData["PanelModule"] = "Cihaz Değişim İşlemleri";
     ViewData["PanelSubtitle"] = string.Empty;
     ViewData["ActiveMenu"] = "YkcYeni";
@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="~/css/ykc-request.css" asp-append-version="true" />
 }
 <div class="ykc-request" data-has-query="@sorgulandi.ToString().ToLowerInvariant()">
-    <form method="post" action="@Url.Action("Yeni", "Ykc")" id="ykcCreateForm" class="ykc-request-workspace">
+    <form method="post" action="@Url.Action("Yeni", "Ykc")" id="ykcCreateForm" class="ykc-request-workspace" data-device-comparison>
         @Html.AntiForgeryToken()
         <div asp-validation-summary="All" class="text-danger"></div>
         <input type="hidden" asp-for="SorguReferansi" />
@@ -86,7 +86,7 @@
             <div class="ykc-request-completion">
                 <div>
                     <fieldset class="ykc-request-secondhand">
-                        <legend>Takılan yakıcı cihaz ikinci el mi?</legend>
+                        <legend>Takılan Yakıcı Cihaz İkinci El Cihaz Mı?</legend>
                         <label><input type="radio" name="IkinciElCihazMi" value="false" checked="@(Model.IkinciElCihazMi != true)" /> Hayır</label>
                         <label><input type="radio" name="IkinciElCihazMi" value="true" checked="@(Model.IkinciElCihazMi == true)" /> Evet</label>
                     </fieldset>

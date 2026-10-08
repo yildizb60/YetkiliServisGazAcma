@@ -22,22 +22,6 @@ namespace YetkiliServisGazAcma.Controllers
             _devreyeAlmaApiClient = devreyeAlmaApiClient;
         }
 
-        private async Task SetBildirimler(AppKullanici kullanici)
-        {
-            try
-            {
-                var sonuc = await _devreyeAlmaApiClient.BildirimlerAsync(kullanici)
-                    ?? new YsDevreyeAlmaBildirimSonuc();
-
-                ViewBag.Bildirimler = sonuc.Bildirimler;
-                ViewBag.BildirimSayisi = sonuc.BildirimSayisi;
-            }
-            catch (ApiIntegrationException)
-            {
-                ViewBag.Bildirimler = new List<string>();
-                ViewBag.BildirimSayisi = 0;
-            }
-        }
 
         [HttpGet]
         [Route("")]
@@ -62,7 +46,6 @@ namespace YetkiliServisGazAcma.Controllers
             ViewBag.Markalar = ekran.Markalar;
             ViewBag.Firma = ekran.Firma;
             ViewBag.Kullanici = kullanici;
-            await SetBildirimler(kullanici);
 
             return View("~/Views/DevreyeAlma/Index.cshtml");
         }
@@ -79,7 +62,7 @@ namespace YetkiliServisGazAcma.Controllers
             try
             {
                 var sonuc = await _devreyeAlmaApiClient.TesisatSorgulaAsync(kullanici, dto.TesistatNo, dto.SozlesmeNo);
-                return Json(sonuc ?? new YsTesisatSorguSonuc
+                return Json(sonuc ?? new YsTesisatSorguSonucDto
                 {
                     Basarili = false,
                     Mesaj = "Tesisat sorgulama API uzerinden tamamlanamadi."
@@ -102,7 +85,7 @@ namespace YetkiliServisGazAcma.Controllers
 
             try
             {
-                var sonuc = await _devreyeAlmaApiClient.MarkaKontrolAsync(kullanici, dto.CihazMarka);
+                var sonuc = await _devreyeAlmaApiClient.MarkaKontrolAsync(kullanici, dto.SorguReferansi);
                 return Json(new
                 {
                     yetkili = sonuc?.Yetkili == true,
@@ -119,19 +102,10 @@ namespace YetkiliServisGazAcma.Controllers
 
         [HttpGet]
         [Route("detay/{id}")]
-        public async Task<IActionResult> Detay(int id)
+        public IActionResult Detay(int id)
         {
-            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
-            if (kullanici == null) return Redirect("/giris");
-
-            var islem = await _devreyeAlmaApiClient.DetayAsync(kullanici, id);
-
-            if (islem == null) return Redirect("/ys-devreyeal/gecmis");
-
-            ViewBag.Firma = islem.Firma;
-            ViewBag.Kullanici = kullanici;
-            await SetBildirimler(kullanici);
-            return View("~/Views/DevreyeAlma/Detay.cshtml", islem);
+            var gecmisUrl = Url.Action(nameof(Gecmis), "DevreyeAlma") ?? "/ys-devreyeal/gecmis";
+            return Redirect(id > 0 ? $"{gecmisUrl}#devreye-alma-detay-{id}" : gecmisUrl);
         }
 
         [HttpGet]
@@ -163,7 +137,7 @@ namespace YetkiliServisGazAcma.Controllers
         [HttpPost]
         [Route("kaydet")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Kaydet(Ys_DevreyeAlma model)
+        public async Task<IActionResult> Kaydet(YsDevreyeAlmaKaydetDto model)
         {
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
@@ -187,27 +161,54 @@ namespace YetkiliServisGazAcma.Controllers
             }
         }
 
+        [HttpPost]
+        [Route("kaydet-json")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> KaydetJson([FromBody] YsDevreyeAlmaKaydetDto model)
+        {
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
+            if (kullanici == null) return Unauthorized();
+
+            try
+            {
+                var sonuc = await _devreyeAlmaApiClient.KaydetAsync(kullanici, model);
+                return Json(new
+                {
+                    basarili = sonuc?.Basarili == true,
+                    mesaj = sonuc?.Mesaj ?? "Cihaz devreye alma işlemi tamamlanamadı.",
+                    id = sonuc?.Id
+                });
+            }
+            catch (ApiIntegrationException ex)
+            {
+                return Json(new { basarili = false, mesaj = ex.Message });
+            }
+        }
+
         [HttpGet]
         [Route("gecmis")]
-        public async Task<IActionResult> Gecmis(string? marka, DateTime? bas, DateTime? bit, string? musteri, string? durum)
+        public async Task<IActionResult> Gecmis(string? marka, DateTime? bas, DateTime? bit, string? musteri, string? tesisat)
         {
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
-            var sonuc = await _devreyeAlmaApiClient.GecmisAsync(kullanici, marka, bas, bit, musteri, durum)
-                ?? new YsDevreyeAlmaGecmisSonuc();
+            var sonuc = await _devreyeAlmaApiClient.GecmisAsync(kullanici, marka, bas, bit, musteri, null, tesisat)
+                ?? new YsDevreyeAlmaGecmisDto();
 
             var islemler = sonuc.Islemler;
 
             ViewBag.Firma = sonuc.Firma;
             ViewBag.MarkaList = sonuc.MarkaList;
+            ViewBag.Toplam = sonuc.Toplam;
+            ViewBag.Tamamlanan = sonuc.Tamamlanan;
+            ViewBag.Bekleyen = sonuc.Bekleyen;
+            ViewBag.Iptal = sonuc.Iptal;
             ViewBag.SeciliMarka = marka;
             ViewBag.SeciliBas = bas?.ToString("yyyy-MM-dd");
             ViewBag.SeciliBit = bit?.ToString("yyyy-MM-dd");
             ViewBag.SeciliMusteri = musteri;
-            ViewBag.SeciliDurum = durum;
+            ViewBag.SeciliTesisat = tesisat;
             ViewBag.Kullanici = kullanici;
-            await SetBildirimler(kullanici);
             return View("~/Views/DevreyeAlma/Gecmis.cshtml", islemler);
         }
     }
@@ -220,7 +221,7 @@ namespace YetkiliServisGazAcma.Controllers
 
     public class MarkaKontrolDto
     {
-        public string? CihazMarka { get; set; }
+        public string? SorguReferansi { get; set; }
     }
 }
 

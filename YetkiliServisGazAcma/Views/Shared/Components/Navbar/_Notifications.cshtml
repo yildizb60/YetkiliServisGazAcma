@@ -1,0 +1,127 @@
+@model YetkiliServisGazAcma.Models.ViewModels.PanelNotificationsViewModel
+@if (Model.ShowCompanySelector)
+{
+    <div class="df-dropdown">
+        <button class="df-nb-btn" id="companyBtn" type="button" data-dropdown-toggle="" title="Şirket değiştir" aria-label="Şirket değiştir" aria-controls="companyMenu" aria-expanded="false">
+            <i class="bi bi-building-gear"></i>
+        </button>
+
+        <div class="df-dropdown-menu df-nb-dropdown-wide df-company-menu" id="companyMenu">
+            <div class="df-dropdown-header">
+                <span><i class="bi bi-building-gear" aria-hidden="true"></i> Şirket Seç</span>
+                <small>@Model.Companies.Count şirket</small>
+            </div>
+            <div class="df-nb-account-list">
+                @if (Model.AllCompaniesAllowed)
+                {
+                    var tumAktif = Model.AllCompaniesSelected;
+                    <form method="post" action="@Model.CompanySelectionUrl" class="df-company-form">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="sirketId" value="0" />
+                        <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
+                        <button type="submit" class="df-nb-account-item @(tumAktif ? "active" : "")" aria-current="@(tumAktif ? "true" : null)">
+                            <span class="df-nb-account-avatar df-avatar-primary"><i class="bi bi-buildings" aria-hidden="true"></i></span>
+                            <span class="df-nb-account-info">
+                                <span class="df-nb-account-name">Tüm Şirketler</span>
+                                <span class="df-nb-account-sub">Genel yönetim</span>
+                            </span>
+                            @if (tumAktif)
+                            {
+                                <i class="bi bi-check-circle-fill df-nb-account-check" aria-hidden="true"></i>
+                            }
+                        </button>
+                    </form>
+                }
+
+                @foreach (var sirket in Model.Companies)
+                {
+                    var aktif = sirket.Selected;
+                    var ad = sirket.Name;
+                    <form method="post" action="@Model.CompanySelectionUrl" class="df-company-form">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="sirketId" value="@sirket.Id" />
+                        <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
+                        <button type="submit" class="df-nb-account-item @(aktif ? "active" : "")" aria-current="@(aktif ? "true" : null)">
+                            <span class="df-nb-account-avatar df-avatar-primary"><i class="bi bi-building" aria-hidden="true"></i></span>
+                            <span class="df-nb-account-info">
+                                <span class="df-nb-account-name">@ad</span>
+                                @if (aktif)
+                                {
+                                    <span class="df-nb-account-sub">Aktif şirket</span>
+                                }
+                            </span>
+                            @if (aktif)
+                            {
+                                <i class="bi bi-check-circle-fill df-nb-account-check" aria-hidden="true"></i>
+                            }
+                        </button>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+<div class="df-dropdown" data-notification-scope="@Model.Scope">
+    <button class="df-nb-btn" id="notifBtn" type="button" data-dropdown-toggle="" aria-label="Bildirimler" aria-controls="notifMenu" aria-expanded="false">
+        <i class="bi bi-bell"></i>
+        @if (Model.Count > 0)
+        {
+            <span class="df-nb-badge red-bildirim-count" data-count="@Model.Count">@Model.CountLabel</span>
+        }
+    </button>
+
+    <div class="df-dropdown-menu df-nb-dropdown-wide df-notif-menu" id="notifMenu">
+        <div class="df-notif-header">
+            <span class="df-notif-title">
+                Bildirimler
+                @if (Model.Count > 0)
+                {
+                    <span class="df-badge df-badge-primary df-badge-sm noti-quantity">
+                        <span class="bildirim-count">@Model.CountLabel</span> yeni
+                    </span>
+                }
+            </span>
+
+            @if (Model.Count > 0)
+            {
+                <button type="button" class="df-notif-mark-all btn-bildirim-all">Tümünü okundu yap</button>
+            }
+        </div>
+
+        <div class="df-notif-filter" id="filterContainer">
+            <button type="button" class="df-btn df-btn-sm active df-btn-primary" data-filter="all">Tümü</button>
+            <button type="button" class="df-btn df-btn-sm df-btn-secondary" data-filter="1">Onay</button>
+            <button type="button" class="df-btn df-btn-sm df-btn-secondary" data-filter="2">Süre</button>
+            <button type="button" class="df-btn df-btn-sm df-btn-secondary" data-filter="3">Sistem</button>
+        </div>
+
+        <div class="df-notif-list notification-body">
+            @if (!Model.Items.Any())
+            {
+                <div class="df-empty df-empty-compact">
+                    <div class="df-empty-title">Yeni bildirim yok.</div>
+                    <p class="df-empty-text">Bekleyen işlem oluştuğunda burada görünecek.</p>
+                </div>
+            }
+            else
+            {
+                foreach (var item in Model.Items)
+                {
+                    <div class="df-notif-item notification-item" data-type="@item.Type" data-notification-key="@item.Key">
+                        <div class="df-notif-icon @item.Tone">
+                            <i class="bi @item.Icon"></i>
+                        </div>
+                        <a class="df-notif-body js-notif-redirect" href="@item.Path">
+                            <div class="df-notif-text">@item.Title</div>
+                            <div class="df-notif-message">@item.Text</div>
+                            <div class="df-notif-time"><i class="bi bi-clock"></i> @item.Time</div>
+                        </a>
+                    </div>
+                }
+            }
+        </div>
+
+        <div class="df-notif-footer"></div>
+    </div>
+</div>

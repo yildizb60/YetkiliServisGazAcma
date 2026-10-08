@@ -5,7 +5,8 @@ namespace YetkiliServisGazAcma.Business.Services;
 
 public sealed class YetkiliServisIlkKurulumService(AppDbContext context)
 {
-    public async Task<(bool zorunluMu, bool tamamlandiMi, List<string> eksikler)> GetirAsync(int firmaId)
+    public async Task<(bool zorunluMu, bool tamamlandiMi, List<string> eksikler)> GetirAsync(int firmaId,
+        CancellationToken cancellationToken = default)
     {
         var bugun = DateTime.Today;
         var firma = await context.Ys_Firmalar.AsNoTracking()
@@ -20,7 +21,7 @@ public sealed class YetkiliServisIlkKurulumService(AppDbContext context)
                 SubeVar = x.Subeler!.Any(s => !s.SilindiMi && s.AktifMi),
                 YetkiBelgesiVar = x.YetkiBelgeleri!.Any(b => !b.SilindiMi)
             })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (firma == null)
             return (true, false, new List<string> { "Firma kaydi" });
