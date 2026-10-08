@@ -8,8 +8,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Mvc.ViewComponents;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Mvc.Abstractions;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Configuration;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Controllers;
 using YetkiliServisGazAcma.Entities;
@@ -33,66 +37,245 @@ var firmDetail = new YkcTalepDetayDto
 foreach (var state in new[] { YkcDurumDegerleri.AtamaBekliyor, YkcDurumDegerleri.Atandi, YkcDurumDegerleri.SahaIsleminde })
 {
     firmDetail.Durum = state;
-    Check(YkcDurumSunumu.SonUygunsuzKontrol(firmDetail)?.Aciklama == "Fixture reason",
+    Check(YkcTalepIslemKurali.SonUygunsuzKontrol(firmDetail)?.Aciklama == "Fixture reason",
         $"Firm sees the last failure reason during planning, appointment and inspection: {state}");
 }
 firmDetail.Kontroller.Add(new() { KontrolNo = 6 });
-Check(YkcDurumSunumu.SonUygunsuzKontrol(firmDetail)?.KontrolNo == 1,
+Check(YkcTalepIslemKurali.SonUygunsuzKontrol(firmDetail)?.KontrolNo == 1,
     "A pending new control cycle does not hide the last recorded failure");
 firmDetail.Kontroller.Add(new() { KontrolNo = 7, Sonuc = YkcFr265KontrolSonucDegerleri.Uygun });
-Check(YkcDurumSunumu.SonUygunsuzKontrol(firmDetail) == null,
+Check(YkcTalepIslemKurali.SonUygunsuzKontrol(firmDetail) == null,
     "A later suitable control clears the previous failure summary");
 firmDetail.Kontroller.RemoveAt(firmDetail.Kontroller.Count - 1);
 foreach (var state in new[] { YkcDurumDegerleri.TalepAlindi, YkcDurumDegerleri.Tamamlandi, YkcDurumDegerleri.Iptal, YkcDurumDegerleri.Reddedildi })
 {
     firmDetail.Durum = state;
-    Check(YkcDurumSunumu.SonUygunsuzKontrol(firmDetail) == null,
+    Check(YkcTalepIslemKurali.SonUygunsuzKontrol(firmDetail) == null,
         $"Historical control reasons do not override the request's current outcome: {state}");
 }
 firmDetail.Kontroller.Clear();
 firmDetail.Durum = YkcDurumDegerleri.Atandi;
-Check(YkcDurumSunumu.SonUygunsuzKontrol(firmDetail) == null, "A request with no recorded control gets no invented failure");
+Check(YkcTalepIslemKurali.SonUygunsuzKontrol(firmDetail) == null, "A request with no recorded control gets no invented failure");
+
+async Task<IActionResult> ExecuteViewAction(Controller controller, Func<Task<IActionResult>> action)
+{
+    var context = new ActionContext(controller.HttpContext, new RouteData(), new ActionDescriptor());
+    IActionResult result = null!;
+    var filter = (PanelKimlikActionFilter)controller.HttpContext.Items["fixture.panel-filter"]!;
+    var executing = new ActionExecutingContext(context, [], new Dictionary<string, object?>(), controller);
+    await filter.OnActionExecutionAsync(executing, async () =>
+    {
+        await controller.OnActionExecutionAsync(executing,
+            async () => new ActionExecutedContext(context, [], controller) { Result = result = await action() });
+        return new ActionExecutedContext(context, [], controller) { Result = result };
+    });
+    return result;
+}
+
+foreach (var role in new[] { "GenelSistemAdmin", "SirketAdmin" })
+{
+    using (var fixture = new NavigationFixture(role))
+    {
+        var home = (ViewResult)await ExecuteViewAction(fixture.AdminPanelController, fixture.AdminPanelController.Index);
+        Check(fixture.Handler.Paths.Count(x => x == "/api/admin-panel/dashboard") == 1
+            && !fixture.Handler.Paths.Contains("/api/admin-panel/bildirim-ozeti")
+            && home.ViewData["OnayBekleyen"] is 9,
+            role + ": admin home reuses its aggregate for navbar counts without a second request");
+    }
+    using (var fixture = new NavigationFixture(role))
+    {
+        var profile = (ViewResult)await ExecuteViewAction(fixture.AdminPanelController, fixture.AdminPanelController.Profil);
+        Check(!fixture.Handler.Paths.Contains("/api/admin-panel/dashboard")
+            && fixture.Handler.Paths.Count(x => x == "/api/admin-panel/bildirim-ozeti") == 1
+            && profile.ViewData["OnayBekleyen"] is 3 && profile.ViewData["SuresiBitecek"] is 2,
+            role + ": profile and action filter share a lightweight notification request");
+        Check(role != "SirketAdmin" || fixture.Handler.NotificationScope == 7,
+            role + ": notification request retains the active company");
+    }
+    using (var fixture = new NavigationFixture(role))
+    {
+        fixture.Http.Session.SetInt32("AktifSirketId:fixture-user", 7);
+        await ExecuteViewAction(fixture.BrandController, () => fixture.BrandController.Index(null, null));
+        Check(!fixture.Handler.Paths.Contains("/api/admin-panel/dashboard")
+            && fixture.Handler.Paths.Count(x => x == "/api/admin-panel/bildirim-ozeti") == 1
+            && fixture.Handler.NotificationScope == 7,
+            role + ": brand management no longer fetches dashboard record lists for notifications");
+    }
+    foreach (var pdf in new[] { true, false })
+    {
+        using var fixture = new NavigationFixture(role);
+        var download = (FileContentResult)await ExecuteViewAction(fixture.AdminPanelController,
+            () => pdf ? fixture.AdminPanelController.YetkiliServisPdf(12) : fixture.AdminPanelController.YetkiliServisExcel(12));
+        Check(download.FileContents.SequenceEqual(new byte[] { 1, 2, 3 })
+            && download.FileDownloadName == (pdf ? "api-export.pdf" : "api-export.xlsx")
+            && fixture.Http.Response.Headers.CacheControl == "private, no-store",
+            role + ": service-record download passes through the API bytes and filename: " + pdf);
+        Check(!fixture.Handler.Paths.Contains("/api/admin-panel/yetkili-servisler/getir")
+            && !fixture.Handler.Paths.Contains("/api/admin-panel/dashboard")
+            && !fixture.Handler.Paths.Contains("/api/admin-panel/bildirim-ozeti")
+            && fixture.Handler.LastServicePayload.GetProperty("id").GetInt32() == 12
+            && (role != "SirketAdmin" || fixture.Handler.LastServicePayload.GetProperty("sirketId").GetInt32() == 7),
+            role + ": export does not reconstruct records or fetch notifications and retains scope: " + pdf);
+    }
+}
+foreach (var role in new[] { "GenelSistemAdmin", "SirketAdmin" })
+{
+    using var fixture = new NavigationFixture(role);
+    fixture.Handler.UserList.Add(new()
+    {
+        Id = "api-user", KullaniciTipi = KullaniciTipiDegerleri.YetkiliServis, FirmaId = 12,
+        FirmaAdi = "Not a client fallback", FirmaEmail = "not-a-client-fallback@fixture.test", FirmaTelefon = "555"
+    });
+    var view = (ViewResult)await fixture.AdminPanelController.Kullanicilar("query", "Servis", "Aktif", "firm");
+    var row = ((List<AdminKullaniciListeDto>)view.ViewData["Kullanicilar"]!).Single();
+    Check(string.IsNullOrEmpty(row.AdSoyad) && string.IsNullOrEmpty(row.Email) && string.IsNullOrEmpty(row.PhoneNumber),
+        role + ": MVC never rewrites API user fields from firm properties");
+    Check(fixture.Handler.UserFilter is { Q: "query", Tip: "Servis", Durum: "Aktif", Bagli: "firm" }
+        && (role != "SirketAdmin" || fixture.Handler.UserFilter.SirketId == 7),
+        role + ": user filters and company scope are delegated to API");
+}
+foreach (var complete in new[] { true, false })
+{
+    using var fixture = new NavigationFixture("YetkiliServis");
+    var response = fixture.Handler.ServiceSummary;
+    response.TakvimTarih = new DateTime(2026, 2, 12);
+    response.TakvimGorunum = "gun";
+    response.TakvimVerisiTam = complete;
+    response.TakvimIslemleri = [new() { Id = 51, DevreyeAlmaTarihi = response.TakvimTarih }];
+    response.SonIslemler = [new() { Id = 99, DevreyeAlmaTarihi = response.TakvimTarih }];
+    response.Toplam = 67;
+    var requested = new DateTime(1999, 1, 1, 18, 0, 0);
+    var view = (ViewResult)await fixture.ServicePanelController.Index(requested, "unsupported");
+    Check(fixture.Handler.ServiceFilter?.TakvimTarih == requested
+        && fixture.Handler.ServiceFilter.TakvimGorunum == "unsupported"
+        && fixture.Handler.Paths.Count(x => x == "/api/ys-panel/dashboard") == 1
+        && !fixture.Handler.Paths.Any(x => x.StartsWith("/api/ys-devreyeal/", StringComparison.Ordinal)),
+        "Service MVC delegates calendar validation and fetches a single screen response: " + complete);
+    Check(view.ViewData["TakvimTarih"] is DateTime date && date == response.TakvimTarih
+        && view.ViewData["TakvimGorunum"] is "gun" && view.ViewData["Toplam"] is 67
+        && view.ViewData["TakvimVerisiTam"] is bool isComplete && isComplete == complete
+        && ((IReadOnlyList<DevreyeAlmaKayitDto>)view.ViewData["TakvimIslemleri"]!).Single().Id == 51,
+        "Service MVC renders API calendar values including partial data without local fallback: " + complete);
+}
+foreach (var role in new[] { "Personel", "SirketAdmin", "GenelSistemAdmin" })
+{
+    using var fixture = new NavigationFixture(role);
+    var response = fixture.Handler.PersonnelReport;
+    response.RaporTipi = "bekleyen";
+    response.IzinliRaporTipleri = ["devreye", "onayli", "bekleyen", "reddedilen"];
+    response.Toplam = 81;
+    response.BasTarih = new DateTime(2026, 9, 1);
+    response.BitTarih = new DateTime(2026, 9, 30);
+    response.DonemEtiketleri = ["09.2026"];
+    response.DonemSayilari = [81];
+    var requested = new DateTime(2026, 9, 25, 18, 0, 0);
+    var view = (ViewResult)await fixture.PersonnelController.Raporlar(requested, requested.AddDays(-3), " BEKLEYEN ");
+    Check(view.Model is PersonelRaporDto { RaporTipi: "bekleyen", Toplam: 81 } model
+        && model.BasTarih == response.BasTarih && model.DonemSayilari.SequenceEqual(response.DonemSayilari),
+        role + ": MVC passes the typed report and normalized dates through without reconstructing chart data");
+    Check(fixture.Handler.PersonnelReportFilter is { Tip: " BEKLEYEN " } filter
+        && filter.BaslangicTarihi == requested && filter.BitisTarihi == requested.AddDays(-3)
+        && (role == "GenelSistemAdmin" || filter.SirketId == 7)
+        && fixture.Handler.Paths.Count(x => x == "/api/admin-panel/personel-rapor") == 1
+        && !fixture.Handler.Paths.Contains("/api/admin-panel/raporlar/ozet")
+        && !fixture.Handler.Paths.Contains("/api/ykc/raporlar")
+        && !fixture.Handler.Paths.Contains("/api/personel-panel/yetkilerim"),
+        role + ": report type, date and permission decisions use one report API response");
+}
+foreach (var status in new[] { HttpStatusCode.Forbidden, HttpStatusCode.ServiceUnavailable })
+{
+    using var fixture = new NavigationFixture("Personel");
+    fixture.Handler.PersonnelReportStatus = status;
+    var result = await fixture.PersonnelController.Raporlar(null, null, "ykc");
+    Check(status == HttpStatusCode.Forbidden
+        ? result is RedirectResult { Url: "/yetkisiz-erisim" }
+        : result is RedirectToActionResult { ActionName: "Index" } && fixture.PersonnelController.TempData["Hata"] is string,
+        "Report API failure is not presented as a successful zero-record report: " + status);
+}
+foreach (var role in new[] { "GenelSistemAdmin", "SirketAdmin" })
+{
+    using var fixture = new NavigationFixture(role);
+    var view = (ViewResult)await fixture.AdminPanelController.PersonelEkle("Form name", "form@fixture.test", "05551234567", 7, "weak");
+    Check(fixture.Handler.PersonnelCreatePayload.GetProperty("sifre").GetString() == "weak"
+        && view.ViewData["Hata"] is "API password policy"
+        && view.ViewData["FormAdSoyad"] is "Form name" && view.ViewData["FormEmail"] is "form@fixture.test"
+        && view.ViewData["FormTelefon"] is "05551234567" && view.ViewData["FormSirketId"] is 7,
+        role + ": personnel form delegates password policy to API and preserves non-secret fields on validation failure");
+    fixture.Handler.PermissionEditor.Personel = new() { Id = "person-31" };
+    fixture.Handler.PermissionEditor.MevcutYetkiler = ["API_NORMALIZED"];
+    fixture.Handler.PermissionEditor.YetkiSirketMap = new() { [7] = ["API_NORMALIZED"] };
+    var editor = (ViewResult)await fixture.AdminPanelController.YetkiDuzenle("person-31");
+    Check(((List<string>)editor.ViewData["MevcutYetkiler"]!).SequenceEqual(["API_NORMALIZED"])
+        && ((Dictionary<int, List<string>>)editor.ViewData["YetkiSirketMap"]!)[7].SequenceEqual(["API_NORMALIZED"]),
+        role + ": permission editor forwards API-normalized grants unchanged");
+}
+using (var fixture = new NavigationFixture("SirketAdmin"))
+{
+    await fixture.AdminPanelController.YetkiliServisEkle("Firm", "", "", "", "", "", "", "", [999, 999], [888, 888]);
+    Check(fixture.Handler.LastServicePayload.GetProperty("kategoriIds").GetArrayLength() == 2
+        && fixture.Handler.LastServicePayload.GetProperty("markaIds").GetArrayLength() == 2
+        && !fixture.Handler.Paths.Contains("/api/urun-kategorileri/liste"),
+        "MVC forwards category and brand selections unchanged for API validation without querying the catalog");
+}
+using (var fixture = new NavigationFixture("Personel"))
+{
+    var profile = (ViewResult)await ExecuteViewAction(fixture.PersonnelController, fixture.PersonnelController.Profil);
+    Check(profile.ViewData["OnayBekleyen"] is 3 && fixture.Handler.NotificationScope == 7
+        && fixture.Handler.Paths.Count(x => x == "/api/admin-panel/bildirim-ozeti") == 1
+        && !fixture.Handler.Paths.Contains("/api/admin-panel/dashboard"),
+        "Personnel subpages use scoped notifications without requesting administrative dashboard data");
+}
+
+using (var fixture = new NavigationFixture("Personel"))
+{
+    fixture.Handler.PersonnelSummary.OnayBekleyen = 97;
+    fixture.Handler.PersonnelSummary.BelgeYetkisi = true;
+    var home = (ViewResult)await fixture.PersonnelController.Index();
+    Check(home.Model is PersonelDashboardDto { OnayBekleyen: 97, BelgeYetkisi: true }
+        && fixture.Handler.Paths.Count(x => x == "/api/admin-panel/personel-dashboard") == 1,
+        "Personnel MVC home forwards the typed aggregate from a single dashboard request");
+    Check(!fixture.Handler.Paths.Contains("/api/admin-panel/dashboard")
+        && !fixture.Handler.Paths.Contains("/api/ykc/dashboard/ozet"),
+        "Personnel home no longer loads the admin dashboard or a separate YKC aggregate");
+    fixture.Handler.Paths.Clear();
+    var detail = (ViewResult)await fixture.Controller.Detay(42);
+    Check(detail.Model is YkcTalepDetayDto { Ekran.IcOperasyonGorsun: true, Ekran.ImzayaGonderebilir: false }
+        && fixture.Handler.Paths.Count(x => x.StartsWith("/api/ykc/", StringComparison.Ordinal)) == 1,
+        "MVC detail uses API screen state without separate signature and team requests");
+}
 
 foreach (var role in new[] { "GenelSistemAdmin", "SirketAdmin" })
 {
     using var fixture = new NavigationFixture(role);
-    for (var i = 1; i <= 50; i++)
+    var response = fixture.Handler.PermissionList;
+    response.Personeller = Enumerable.Range(1, 10).Select(i => new AdminKullaniciListeDto
+        { Id = "person-" + i, AdSoyad = $"Personel {i:00}" }).ToList();
+    response.Ozet = new PersonelYetkiListeOzeti
     {
-        var id = "person-" + i;
-        fixture.Handler.PermissionList.Personeller.Add(new AppKullanici { Id = id, AdSoyad = $"Personel {i:00}", Email = $"person{i}@fixture.test" });
-        fixture.Handler.PermissionList.SirketYetkileri[id] = [new AdminSirketYetkiOzeti
-        {
-            SirketId = 7, SirketAdi = i % 2 == 0 ? "SürmeliGAZ" : "Çorumgaz",
-            Yetkiler = [YetkiTipleri.YKC_TALEP_GOR]
-        }];
-    }
+        Sayfa = 1, SayfaBoyutu = 10, ToplamSayfa = 5, ToplamPersonel = 50,
+        EslesenPersonel = 50, YetkiliPersonel = 43, TamYetkiAtamalari = 12,
+        Sirketler = [new() { SirketId = 7, SirketAdi = "Çorumgaz" }]
+    };
     var first = (ViewResult)await fixture.AdminPanelController.Yetkiler();
-    var firstRows = (List<AppKullanici>)first.ViewData["Personeller"]!;
-    Check(firstRows.Count == 10 && firstRows.First().Id == "person-1" && firstRows.Last().Id == "person-10"
+    var firstRows = (List<AdminKullaniciListeDto>)first.ViewData["Personeller"]!;
+    Check(firstRows.Count == 10 && firstRows.First().Id == "person-1"
         && (int)first.ViewData["ToplamPersonel"]! == 50 && (int)first.ViewData["ToplamSayfa"]! == 5,
-        role + ": 50 personnel are displayed as five compact pages without changing overall counters");
+        role + ": MVC renders the API page without recomputing totals from ten visible rows");
     Check(role != "SirketAdmin" || fixture.Handler.PermissionScope == 7,
-        role + ": permission list pagination preserves company scope");
-    var last = (ViewResult)await fixture.AdminPanelController.Yetkiler(sayfa: int.MaxValue);
-    Check((int)last.ViewData["Sayfa"]! == 5 && ((List<AppKullanici>)last.ViewData["Personeller"]!).First().Id == "person-41",
-        role + ": out-of-range pages clamp to the final valid page");
-    var low = (ViewResult)await fixture.AdminPanelController.Yetkiler(sayfa: -1);
-    Check((int)low.ViewData["Sayfa"]! == 1, role + ": negative pages return to the first page");
-    var search = (ViewResult)await fixture.AdminPanelController.Yetkiler("  person49@fixture.test  ", 5);
-    Check(((List<AppKullanici>)search.ViewData["Personeller"]!).Single().Id == "person-49"
-        && (int)search.ViewData["EslesenPersonel"]! == 1 && (int)search.ViewData["Sayfa"]! == 1
-        && (int)search.ViewData["ToplamPersonel"]! == 50,
-        role + ": email search spans all pages and preserves the full overview count");
-    search = (ViewResult)await fixture.AdminPanelController.Yetkiler("PERSONEL 03");
-    Check(((List<AppKullanici>)search.ViewData["Personeller"]!).Single().Id == "person-3",
-        role + ": personnel search is case-insensitive");
-    search = (ViewResult)await fixture.AdminPanelController.Yetkiler("sürmeligaz");
-    Check((int)search.ViewData["EslesenPersonel"]! == 25 && (int)search.ViewData["ToplamSayfa"]! == 3,
-        role + ": company search handles Turkish casing and retains pagination");
-    search = (ViewResult)await fixture.AdminPanelController.Yetkiler("no matching person");
-    Check(((List<AppKullanici>)search.ViewData["Personeller"]!).Count == 0
-        && (int)search.ViewData["EslesenPersonel"]! == 0 && (int)search.ViewData["Sayfa"]! == 1,
-        role + ": empty search results retain a valid empty page");
+        role + ": permission list retains company scope");
+    response.Personeller = [new() { Id = "person-49", Email = "person49@fixture.test" }];
+    response.Ozet.Sayfa = 1;
+    response.Ozet.ToplamSayfa = 1;
+    response.Ozet.EslesenPersonel = 1;
+    response.Ozet.Arama = "person49@fixture.test";
+    var search = (ViewResult)await fixture.AdminPanelController.Yetkiler("  person49@fixture.test  ", int.MaxValue);
+    Check(fixture.Handler.PermissionFilter?.Q == "  person49@fixture.test  "
+        && fixture.Handler.PermissionFilter.Sayfa == int.MaxValue,
+        role + ": search and requested page are forwarded to the API");
+    Check(((List<AdminKullaniciListeDto>)search.ViewData["Personeller"]!).Single().Id == "person-49"
+        && (int)search.ViewData["Sayfa"]! == 1 && (int)search.ViewData["ToplamPersonel"]! == 50
+        && (string)search.ViewData["Arama"]! == "person49@fixture.test",
+        role + ": MVC trusts the API's normalized filter, page and overview");
     var save = (RedirectToActionResult)await fixture.AdminPanelController.YetkiDuzenle("person-31", [7],
         new FormCollection(new Dictionary<string, Microsoft.Extensions.Primitives.StringValues> { ["yetkiler_7"] = YetkiTipleri.YKC_TALEP_GOR }), "Personel", 4);
     Check(save.ActionName == nameof(AdminPanelController.Yetkiler) && (string?)save.RouteValues!["q"] == "Personel"
@@ -114,7 +297,7 @@ foreach (var role in new[] { "GenelSistemAdmin", "SirketAdmin" })
     fixture.Http.Request.Headers["X-Requested-With"] = "XMLHttpRequest";
     var edit = (ViewResult)await fixture.AdminPanelController.SubeDuzenle(8);
     Check(edit.ViewName == "~/Views/AdminPanel/SubeDuzenle.cshtml"
-        && ((YetkiliServisGazAcma.Entities.Ys_Sube)edit.ViewData["Sube"]!).Id == 8,
+        && ((AdminSubeDto)edit.ViewData["Sube"]!).Id == 8,
         role + ": AJAX branch editing returns the form for the scoped record");
     Check(fixture.Handler.LastBranchPayload.GetProperty("id").GetInt32() == 8
         && (role != "SirketAdmin" || fixture.Handler.LastBranchPayload.GetProperty("sirketId").GetInt32() == 7),
@@ -150,7 +333,10 @@ using (var fixture = new NavigationFixture("YetkiliServis"))
     Check(await fixture.ServicePanelController.SubeDuzenle(8) is ViewResult,
         "Service branch editing still loads the firm's own branch");
     Check(await fixture.ServicePanelController.SubeDuzenle(9) is RedirectResult,
-        "Service branch editing cannot load a branch outside the firm's profile");
+        "Service branch editing cannot load an inaccessible branch");
+    Check(!fixture.Handler.Paths.Contains("/api/ys-panel/profil")
+        && fixture.Handler.Paths.Count(x => x == "/api/ys-panel/subeler/getir") == 2,
+        "Branch edit requests only the selected ID and never fetches all firm branches");
 }
 
 foreach (var mode in new[] { "gun", "ay", "yil", "invalid" })
@@ -327,7 +513,7 @@ foreach (var status in new[] { HttpStatusCode.NotFound, HttpStatusCode.Forbidden
     using var fixture = new NavigationFixture("Personel");
     fixture.Handler.CertificateStatus = status;
     var result = (ObjectResult)await fixture.CertificateController.Dosya(26);
-    var expected = status is HttpStatusCode.InternalServerError ? 503 : (int)status;
+    var expected = (int)status;
     var message = result.Value as string ?? "";
     Check(result.StatusCode == expected, "Certificate download preserves the correct status for " + status);
     Check(status switch
@@ -429,6 +615,73 @@ using (var fixture = new NavigationFixture("Personel"))
 Check(typeof(YkcController).GetMethod(nameof(YkcController.CihazKarsilastir))!
     .IsDefined(typeof(ValidateAntiForgeryTokenAttribute), inherit: true),
     "New comparison endpoint requires an antiforgery token");
+await ApiClientRegression.RunAsync();
+await SharedApiTransportRegression.RunAsync();
+await AuthTransportRegression.RunAsync();
+await PublicDirectoryRegression.RunAsync();
+await CityOptionsRegression.RunAsync();
+await MvcPolicyRegression.RunAsync();
+ApiBoundaryRegression.Run();
+
+foreach (var role in new[] { "GenelSistemAdmin", "SirketAdmin", "Personel" })
+{
+    using var fixture = new NavigationFixture(role);
+    fixture.Http.Request.Headers["X-Requested-With"] = "XMLHttpRequest";
+    fixture.Handler.PersonnelPermissions[7] = [YetkiTipleri.KULLANICI_YONET];
+    var controller = role == "Personel" ? (Controller)fixture.PersonnelController : fixture.AdminPanelController;
+    var view = (ViewResult)await ExecuteViewAction(controller, () => role == "Personel"
+        ? fixture.PersonnelController.YetkiliServisDuzenle(12) : fixture.AdminPanelController.YetkiliServisDuzenle(12));
+    Check(view.Model is AdminYetkiliServisDto { Id: 12, FirmaAdi: "Editor firm" }
+        && ((List<int>)view.ViewData["SeciliKategoriler"]!).SequenceEqual([4])
+        && fixture.Handler.Paths.Count(x => x == "/api/admin-panel/yetkili-servisler/editor") == 1
+        && !fixture.Handler.Paths.Contains("/api/admin-panel/yetkili-servisler/getir")
+        && !fixture.Handler.Paths.Contains("/api/marka/liste")
+        && !fixture.Handler.Paths.Contains("/api/urun-kategorileri/liste"),
+        role + ": firm editing uses one form-data endpoint, not profile/catalog reconstruction");
+    if (role == "Personel")
+        Check(fixture.Handler.Paths.Count(x => x == "/api/personel-panel/yetkilerim") == 1
+            && ((List<int>)view.ViewData["SeciliMarkalar"]!).SequenceEqual([3])
+            && ((List<MarkaApiDto>)view.ViewData["Markalar"]!).Single().AktifMi == false,
+            "Personnel action and common panel share permission retrieval; selected inactive brands are retained");
+}
+using (var fixture = new NavigationFixture("YetkiliServis"))
+{
+    var view = (ViewResult)await ExecuteViewAction(fixture.ServicePanelController, fixture.ServicePanelController.Subeler);
+    Check(((List<AdminSubeDto>)view.ViewData["Subeler"]!).Single().Id == 8
+        && fixture.Handler.Paths.Count(x => x == "/api/ys-panel/subeler/liste") == 1
+        && !fixture.Handler.Paths.Contains("/api/ys-panel/profil")
+        && fixture.Handler.Paths.Count(x => x == "/api/ys-panel/bildirimler") == 1,
+        "Service branch list fetches only branches and one shared notification summary");
+}
+using (var fixture = new NavigationFixture("Personel"))
+{
+    var user = new AppKullanici { Id = "fixture-user", SirketId = 7, KullaniciTipi = KullaniciTipiDegerleri.Personel };
+    fixture.Handler.PersonnelPermissions[7] = [YetkiTipleri.KULLANICI_YONET, YetkiTipleri.YETKI_BELGESI_ONAY];
+    fixture.Handler.PersonnelPermissions[8] = [YetkiTipleri.RAPOR_GOR];
+    Check(await fixture.PanelPresentation.YetkiliMiAsync(user, YetkiTipleri.KULLANICI_YONET), "Panel permission preparation reads the current company's API grants");
+    await fixture.PanelPresentation.HazirlaAsync(user, fixture.PersonnelController.ViewData);
+    Check(fixture.PersonnelController.ViewData["YetkiServis"] is true
+        && fixture.Handler.Paths.Count(x => x == "/api/personel-panel/yetkilerim") == 1,
+        "Permission checks and menu presentation reuse a single request-scoped API response");
+    fixture.Http.Session.SetInt32("AktifSirketId:fixture-user", 8);
+    fixture.PersonnelController.ViewData.Clear();
+    await fixture.PanelPresentation.HazirlaAsync(user, fixture.PersonnelController.ViewData);
+    Check(fixture.PersonnelController.ViewData["YetkiServis"] is false
+        && fixture.PersonnelController.ViewData["YetkiBelgesi"] is false
+        && fixture.PersonnelController.ViewData["YetkiRapor"] is true
+        && fixture.Handler.NotificationScope == 8
+        && fixture.Handler.Paths.Count(x => x == "/api/personel-panel/yetkilerim") == 2,
+        "A changed company gets fresh grants and notification scope without inheriting the previous company's permissions");
+}
+using (var fixture = new NavigationFixture("Personel"))
+{
+    fixture.Handler.PermissionFailure = true;
+    var user = new AppKullanici { Id = "fixture-user", SirketId = 7, KullaniciTipi = KullaniciTipiDegerleri.Personel };
+    Check(!await fixture.PanelPresentation.YetkiliMiAsync(user, YetkiTipleri.KULLANICI_YONET)
+        && fixture.PanelPresentation.HataMesaji != null, "Unverified API permissions fail closed and report a service error");
+}
+
+await PanelChromeRegression.RunAsync();
 Console.WriteLine($"{passed} navigation checks passed. No application data changed.");
 
 sealed class NavigationFixture : IDisposable
@@ -437,10 +690,15 @@ sealed class NavigationFixture : IDisposable
     public FixtureHandler Handler { get; }
     public DefaultHttpContext Http { get; }
     public YkcController Controller { get; }
+    public YkcApiClient YkcClient { get; }
+    public MarkaApiClient Brands { get; }
+    public MarkaController BrandController { get; }
     public YetkiBelgesiController CertificateController { get; }
     public PanelSirketController CompanyController { get; }
     public YetkiliServisPanelController ServicePanelController { get; }
     public AdminPanelController AdminPanelController { get; }
+    public PersonelPanelController PersonnelController { get; }
+    public PanelGorunumService PanelPresentation { get; }
     public YkcRandevuOzetiViewComponent Calendar { get; }
 
     public NavigationFixture(string role, bool reportPermission = true, bool signaturePermission = true)
@@ -460,24 +718,32 @@ sealed class NavigationFixture : IDisposable
         var session = new ApiKullaniciOturumu(new AuthApiClient(client), accessor);
         var options = Options.Create(new ApiIntegrationOptions { Enabled = true });
         var tokens = new ApiJwtTokenService(accessor);
+        Brands = new MarkaApiClient(client, options, tokens, NullLogger<MarkaApiClient>.Instance);
         CertificateController = new YetkiBelgesiController(
             new YetkiBelgesiApiClient(client, options, tokens, NullLogger<YetkiBelgesiApiClient>.Instance), session, null!)
         {
             ControllerContext = new ControllerContext { HttpContext = Http }
         };
         var companies = new PanelKapsamApiClient(client, options, tokens, NullLogger<PanelKapsamApiClient>.Instance);
-        ServicePanelController = new YetkiliServisPanelController(session,
-            new YetkiliServisPanelApiClient(client, options, tokens, NullLogger<YetkiliServisPanelApiClient>.Instance), null!)
+        BrandController = new MarkaController(Brands,
+            session, new AktifSirketService(accessor, session, companies))
         {
             ControllerContext = new ControllerContext { HttpContext = Http },
             TempData = new TempDataDictionary(Http, new MemoryTempData())
         };
-        AdminPanelController = new AdminPanelController(session, null!,
+        ServicePanelController = new YetkiliServisPanelController(session,
+            new YetkiliServisPanelApiClient(client, options, tokens, NullLogger<YetkiliServisPanelApiClient>.Instance))
+        {
+            ControllerContext = new ControllerContext { HttpContext = Http },
+            TempData = new TempDataDictionary(Http, new MemoryTempData())
+        };
+        AdminPanelController = new AdminPanelController(session,
             new AktifSirketService(accessor, session, companies),
             new AdminDashboardApiClient(client, options, tokens, NullLogger<AdminDashboardApiClient>.Instance),
-            new AdminKullaniciApiClient(client, options, tokens, NullLogger<AdminKullaniciApiClient>.Instance), null!, null!,
+            new AdminKullaniciApiClient(client, options, tokens, NullLogger<AdminKullaniciApiClient>.Instance),
+            new AdminYetkiliServisApiClient(client, options, tokens, NullLogger<AdminYetkiliServisApiClient>.Instance), null!,
             new AdminSubeApiClient(client, options, tokens, NullLogger<AdminSubeApiClient>.Instance),
-            new AdminRaporApiClient(client, options, tokens, NullLogger<AdminRaporApiClient>.Instance), null!, null!, null!)
+            new AdminRaporApiClient(client, options, tokens, NullLogger<AdminRaporApiClient>.Instance), null!)
         {
             ControllerContext = new ControllerContext { HttpContext = Http },
             TempData = new TempDataDictionary(Http, new MemoryTempData())
@@ -489,6 +755,23 @@ sealed class NavigationFixture : IDisposable
         };
         var api = new YkcApiClient(client, options, tokens, NullLogger<YkcApiClient>.Instance,
             new AktifSirketService(accessor, session, companies));
+        YkcClient = api;
+        PanelPresentation = new PanelGorunumService(new AktifSirketService(accessor, session, companies),
+            new PersonelPanelApiClient(client, options, tokens, NullLogger<PersonelPanelApiClient>.Instance),
+            new AdminDashboardApiClient(client, options, tokens, NullLogger<AdminDashboardApiClient>.Instance),
+            new YetkiliServisPanelApiClient(client, options, tokens, NullLogger<YetkiliServisPanelApiClient>.Instance));
+        Http.Items["fixture.panel-filter"] = new PanelKimlikActionFilter(session,
+            new PanelKimlikService(new ConfigurationBuilder().Build(), new AktifSirketService(accessor, session, companies), companies),
+            new AktifSirketService(accessor, session, companies), companies, PanelPresentation);
+        PersonnelController = new PersonelPanelController(session, new AktifSirketService(accessor, session, companies),
+            PanelPresentation,
+            new PersonelPanelApiClient(client, options, tokens, NullLogger<PersonelPanelApiClient>.Instance),
+            null!, null!, null!, new DagitimSirketApiClient(client, options, tokens, NullLogger<DagitimSirketApiClient>.Instance),
+            null!, new AdminYetkiliServisApiClient(client, options, tokens, NullLogger<AdminYetkiliServisApiClient>.Instance))
+        {
+            ControllerContext = new ControllerContext { HttpContext = Http },
+            TempData = new TempDataDictionary(Http, new MemoryTempData())
+        };
         Calendar = new YkcRandevuOzetiViewComponent(session, companies, api,
             new AktifSirketService(accessor, session, companies), NullLogger<YkcRandevuOzetiViewComponent>.Instance)
         {
@@ -522,9 +805,25 @@ sealed class NavigationFixture : IDisposable
 
 sealed class FixtureHandler(string role) : HttpMessageHandler
 {
-    public AdminYetkiListeSonuc PermissionList { get; } = new();
+    public List<string> Paths { get; } = new();
+    public Dictionary<int, List<string>> PersonnelPermissions { get; } = new();
+    public bool PermissionFailure { get; set; }
+    public int? NotificationScope { get; private set; }
+    public JsonElement LastServicePayload { get; private set; }
+    public PersonelDashboardDto PersonnelSummary { get; } = new();
+    public PersonelRaporDto PersonnelReport { get; } = new();
+    public PersonelRaporFiltreDto? PersonnelReportFilter { get; private set; }
+    public HttpStatusCode PersonnelReportStatus { get; set; } = HttpStatusCode.OK;
+    public JsonElement PersonnelCreatePayload { get; private set; }
+    public AdminYetkiDuzenleDto PermissionEditor { get; } = new();
+    public YsPanelDashboardDto ServiceSummary { get; } = new();
+    public YsPanelDashboardFiltreDto? ServiceFilter { get; private set; }
+    public List<AdminKullaniciListeDto> UserList { get; } = [];
+    public AdminKullaniciListeFiltreDto? UserFilter { get; private set; }
+    public AdminYetkiListeDto PermissionList { get; } = new();
     public int PermissionListCalls { get; private set; }
     public int? PermissionScope { get; private set; }
+    public AdminYetkiListeFiltreDto? PermissionFilter { get; private set; }
     public HashSet<int> CalendarCompanies { get; } = [];
     public List<YkcTakvimFiltre> CalendarFilters { get; } = [];
     public int CalendarPermissionCalls { get; private set; }
@@ -545,19 +844,121 @@ sealed class FixtureHandler(string role) : HttpMessageHandler
     public YkcCihazKarsilastirmaIstek? LastComparison { get; private set; }
     public YkcRaporSonuc ReportResult { get; } = new();
     public YkcTalepListeFiltre? LastReportFilter { get; private set; }
+    public JsonElement LastCommissioningFilter { get; private set; }
+    public HttpStatusCode FileStatus { get; set; } = HttpStatusCode.OK;
+    public string FileBody { get; set; } = "{}";
+    public string? TransportFailure { get; set; }
+    public HttpStatusCode BrandStatus { get; set; } = HttpStatusCode.OK;
+    public string BrandBody { get; set; } = "[]";
+    public JsonElement LastBrandPayload { get; private set; }
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var path = request.RequestUri!.AbsolutePath;
+        Paths.Add(path);
+        if (path == "/api/admin-panel/personel-rapor")
+        {
+            PersonnelReportFilter = await request.Content!.ReadFromJsonAsync<PersonelRaporFiltreDto>(cancellationToken);
+            return new(PersonnelReportStatus) { Content = JsonContent.Create(PersonnelReport) };
+        }
+        if (path == "/api/admin-panel/personeller/ekle")
+        {
+            PersonnelCreatePayload = await request.Content!.ReadFromJsonAsync<JsonElement>(cancellationToken);
+            return new(HttpStatusCode.OK) { Content = JsonContent.Create(new ApiIslemSonuc { Mesaj = "API password policy" }) };
+        }
+        if (path == "/api/admin-panel/kullanicilar/sirket-secenekleri")
+            return new(HttpStatusCode.OK) { Content = JsonContent.Create(new List<AdminSirketSecenekDto> { new() { Id = 7, SirketAdi = "Company" } }) };
+        if (path == "/api/admin-panel/yetkiler/getir")
+            return new(HttpStatusCode.OK) { Content = JsonContent.Create(PermissionEditor) };
+        if (path == "/api/ys-panel/dashboard")
+        {
+            ServiceFilter = await request.Content!.ReadFromJsonAsync<YsPanelDashboardFiltreDto>(cancellationToken);
+            return new(HttpStatusCode.OK) { Content = JsonContent.Create(ServiceSummary) };
+        }
+        if (path == "/api/admin-panel/kullanicilar/liste")
+        {
+            UserFilter = await request.Content!.ReadFromJsonAsync<AdminKullaniciListeFiltreDto>(cancellationToken);
+            return new(HttpStatusCode.OK) { Content = JsonContent.Create(UserList) };
+        }
+        if (path == "/api/admin-panel/personel-dashboard")
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(PersonnelSummary) };
+        if (path == "/api/ykc/talepler/getir")
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new YkcTalepDetayDto
+                { Id = 42, Ekran = new() { IcOperasyonGorsun = true, ImzayaGonderebilir = false } }) };
         object result;
+        if (path.StartsWith("/api/marka/", StringComparison.Ordinal))
+        {
+            LastBrandPayload = await request.Content!.ReadFromJsonAsync<JsonElement>(cancellationToken);
+            if (path != "/api/marka/liste" && request.Headers.Authorization?.Parameter != "fixture-token")
+                throw new InvalidOperationException("Brand writes require the session token");
+            return new HttpResponseMessage(BrandStatus)
+            {
+                Content = new StringContent(BrandBody, System.Text.Encoding.UTF8, "application/json")
+            };
+        }
+        if (path == "/api/admin-panel/devreye-almalar/liste")
+        {
+            LastCommissioningFilter = await request.Content!.ReadFromJsonAsync<JsonElement>(cancellationToken);
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new AdminDevreyeAlmaListeDto()) };
+        }
+        if (path == "/api/ys-panel/subeler/liste")
+            return new(HttpStatusCode.OK) { Content = JsonContent.Create(new List<AdminSubeDto>
+                { new() { Id = 8, FirmaId = 10, SubeAdi = "Fixture branch", AktifMi = true } }) };
+        if (path == "/api/ys-panel/subeler/getir")
+        {
+            LastBranchPayload = await request.Content!.ReadFromJsonAsync<JsonElement>(cancellationToken);
+            var found = BranchAvailable && LastBranchPayload.GetProperty("id").GetInt32() == 8;
+            return new HttpResponseMessage(found ? HttpStatusCode.OK : HttpStatusCode.NotFound)
+            {
+                Content = JsonContent.Create(found ? new AdminSubeDto { Id = 8, FirmaId = 10, SubeAdi = "Fixture branch" } : null)
+            };
+        }
+        if (path == "/api/ys-panel/subeler/kaydet")
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new { Basarili = BranchAvailable }) };
         if (path == "/api/admin-panel/dashboard")
-            return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new { OnayBekleyen = 0 }) };
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new { OnayBekleyen = 9 }) };
+        if (path == "/api/admin-panel/bildirim-ozeti")
+        {
+            NotificationScope = (await request.Content!.ReadFromJsonAsync<AdminDashboardFiltreDto>(cancellationToken))!.SirketId;
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new PanelBildirimOzeti { OnayBekleyen = 3, SuresiBitecek = 2 }) };
+        }
+
+        if (path == "/api/personel-panel/yetkilerim")
+        {
+            if (PermissionFailure) return new(HttpStatusCode.ServiceUnavailable);
+            var company = (await request.Content!.ReadFromJsonAsync<PersonelYetkilerimIstek>(cancellationToken))!.SirketId ?? 0;
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new PersonelYetkilerimCevap
+                { Yetkiler = PersonnelPermissions.GetValueOrDefault(company) ?? [] }) };
+        }
+        if (path == "/api/dagitim-sirket/getir")
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new { Id = 7, SirketAdi = "Company" }) };
+        if (path == "/api/admin-panel/yetkili-servisler/editor")
+        {
+            LastServicePayload = await request.Content!.ReadFromJsonAsync<JsonElement>(cancellationToken);
+            return new(HttpStatusCode.OK) { Content = JsonContent.Create(new AdminYetkiliServisEditorDto
+            {
+                Servis = new() { Id = 12, FirmaAdi = "Editor firm", AktifMi = true },
+                Markalar = [new() { Id = 3, MarkaAdi = "Preserved brand", AktifMi = false }],
+                Kategoriler = [new() { Id = 4, Ad = "Kombi" }],
+                SeciliMarkaIds = [3], SeciliKategoriIds = [4]
+            }) };
+        }
+        if (path.StartsWith("/api/admin-panel/yetkili-servisler/", StringComparison.Ordinal))
+        {
+            LastServicePayload = await request.Content!.ReadFromJsonAsync<JsonElement>(cancellationToken);
+            if (path.EndsWith("/ekle", StringComparison.Ordinal))
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new ApiIslemSonuc { Mesaj = "Invalid category" }) };
+            var response = new HttpResponseMessage(FileStatus) { Content = new ByteArrayContent([1, 2, 3]) };
+            var pdf = path.EndsWith("/pdf", StringComparison.Ordinal);
+            response.Content.Headers.ContentType = new(pdf ? "application/pdf" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.Content.Headers.ContentDisposition = new("attachment") { FileNameStar = pdf ? "api-export.pdf" : "api-export.xlsx" };
+            return response;
+        }
         if (path == "/api/admin-panel/yetkiler/liste")
         {
             PermissionListCalls++;
-            var scope = await request.Content!.ReadFromJsonAsync<JsonElement>(cancellationToken);
-            var company = scope.GetProperty("sirketId");
-            PermissionScope = company.ValueKind == JsonValueKind.Null ? null : company.GetInt32();
+            PermissionFilter = await request.Content!.ReadFromJsonAsync<AdminYetkiListeFiltreDto>(cancellationToken);
+            PermissionScope = PermissionFilter?.SirketId;
             return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(PermissionList) };
         }
         if (path == "/api/admin-panel/yetkiler/guncelle")
@@ -567,7 +968,7 @@ sealed class FixtureHandler(string role) : HttpMessageHandler
             CalendarPermissionCalls++;
             if (CalendarPermissionUnavailable) throw new HttpRequestException("Fixture permissions unavailable");
             var scope = await request.Content!.ReadFromJsonAsync<JsonElement>(cancellationToken);
-            var company = scope.GetProperty("aktifSirketId").GetInt32();
+            var company = scope.GetProperty("aktifSirketId").ValueKind == JsonValueKind.Null ? 0 : scope.GetProperty("aktifSirketId").GetInt32();
             return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new YkcYetkiOzeti
             {
                 TalepleriGorebilir = CalendarCompanies.Contains(company)
@@ -639,13 +1040,25 @@ sealed class FixtureHandler(string role) : HttpMessageHandler
                     "SertifikaliFirma" => KullaniciTipiDegerleri.SertifikaliFirma,
                     _ => KullaniciTipiDegerleri.Personel
                 }, null, 7, [role]) };
+        else if (path == "/api/panel-kapsam/kimlik")
+            result = new { SirketAdi = "Fixture company", FirmaKodu = "CORUMGAZ" };
         else if (path == "/api/panel-kapsam/sirketler")
             result = new[] { new { Id = 7, SirketAdi = "Fixture company" }, new { Id = 8, SirketAdi = "Second company" } };
         else if (path.StartsWith("/api/ykc/talepler/rapor", StringComparison.Ordinal))
         {
             LastReportFilter = await request.Content!.ReadFromJsonAsync<YkcTalepListeFiltre>(cancellationToken);
             if (path.EndsWith("/pdf", StringComparison.Ordinal) || path.EndsWith("/excel", StringComparison.Ordinal))
-                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent([1]) };
+            {
+                if (TransportFailure == "timeout") throw new TaskCanceledException("Fixture timeout");
+                if (TransportFailure == "network") throw new HttpRequestException("Fixture network failure");
+                if (request.Headers.Authorization?.Parameter != "fixture-token")
+                    throw new InvalidOperationException("File requests require the session token");
+                return new HttpResponseMessage(FileStatus)
+                {
+                    Content = FileStatus == HttpStatusCode.OK ? new ByteArrayContent([1])
+                        : new StringContent(FileBody, System.Text.Encoding.UTF8, "application/json")
+                };
+            }
             result = ReportResult;
         }
         else if (path == "/api/ykc/cihaz-karsilastir")

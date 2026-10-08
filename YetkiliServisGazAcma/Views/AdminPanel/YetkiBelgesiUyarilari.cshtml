@@ -5,8 +5,8 @@
     ViewData["ActiveMenu"] = "YetkiBelgesiUyarilari";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
-    var yaklasan = ViewBag.Yaklasan as List<YetkiliServisGazAcma.Entities.Ys_YetkiBelgesi> ?? new();
-    var gecmis = ViewBag.Gecmis as List<YetkiliServisGazAcma.Entities.Ys_YetkiBelgesi> ?? new();
+    var yaklasan = ViewBag.Yaklasan as List<AdminYetkiBelgesiOnayDto> ?? new();
+    var gecmis = ViewBag.Gecmis as List<AdminYetkiBelgesiOnayDto> ?? new();
 }
 
 <div class="df-admin-workspace df-warning-workspace">
@@ -51,11 +51,11 @@
                     <tbody>
                     @foreach (var s in yaklasan)
                     {
-                        var kalanGun = (s.YetkiBelgesiBitisTarihi.Date - DateTime.Now.Date).Days;
+                        var kalanGun = (s.YetkiBelgesiBitisTarihi.GetValueOrDefault().Date - DateTime.Now.Date).Days;
                         <tr class="@(kalanGun <= 7 ? "df-warning-row-critical" : "")">
-                            <td><div class="df-cell-main">@(s.Firma?.FirmaAdi ?? "-")</div></td>
-                            <td><div class="df-cell-sub">@(s.Firma?.Sirket?.SirketAdi ?? "-")</div></td>
-                            <td>@s.YetkiBelgesiBitisTarihi.ToString("dd.MM.yyyy")</td>
+                            <td><div class="df-cell-main">@(s.FirmaAdi ?? "-")</div></td>
+                            <td><div class="df-cell-sub">@(s.SirketAdi ?? "-")</div></td>
+                            <td>@s.YetkiBelgesiBitisTarihi.GetValueOrDefault().ToString("dd.MM.yyyy")</td>
                             <td><span class="df-pill df-pill-warning">@kalanGun gün</span></td>
                         </tr>
                     }
@@ -87,9 +87,9 @@
                     @foreach (var s in gecmis)
                     {
                         <tr>
-                            <td><div class="df-cell-main">@(s.Firma?.FirmaAdi ?? "-")</div></td>
-                            <td><div class="df-cell-sub">@(s.Firma?.Sirket?.SirketAdi ?? "-")</div></td>
-                            <td>@s.YetkiBelgesiBitisTarihi.ToString("dd.MM.yyyy")</td>
+                            <td><div class="df-cell-main">@(s.FirmaAdi ?? "-")</div></td>
+                            <td><div class="df-cell-sub">@(s.SirketAdi ?? "-")</div></td>
+                            <td>@s.YetkiBelgesiBitisTarihi.GetValueOrDefault().ToString("dd.MM.yyyy")</td>
                             <td><span class="df-pill df-pill-danger">Süresi Doldu</span></td>
                         </tr>
                     }

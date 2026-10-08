@@ -144,7 +144,7 @@
             </div>
         }
         <dl class="ykc-inline-overview" aria-label="Talep özeti">
-            <div><dt>@(sertifikaliFirmaMi ? "Firmanızın talep sayısı" : "Erişebildiğiniz talep sayısı")</dt><dd>@ozet.Toplam</dd></div>
+            <div><dt>@(sertifikaliFirmaMi ? "Firmanızın talep sayısı" : "Toplam talep sayısı")</dt><dd>@ozet.Toplam</dd></div>
             <div><dt>İnceleme / atama bekleyen talep</dt><dd>@ozet.Incelemede</dd></div>
             <div><dt>Kontrol sürecindeki talep</dt><dd>@ozet.RandevuSaha</dd></div>
             <div><dt>Tamamlanan talep</dt><dd>@ozet.Tamamlanan</dd></div>
@@ -339,7 +339,7 @@
                                         <span class="ykc-process-state @DurumClass(talep.Durum)" title="@DurumYazi(talep.Durum)" aria-label="@DurumYazi(talep.Durum)">
                                             <i class="@SurecIkonu(talep.Durum, talep.SiradakiKontrolNo)" aria-hidden="true"></i>
                                         </span>
-                                        <a class="ykc-next-action" href="@Url.Action("Detay", "Ykc", new { id = talep.Id })" title="@gerekenIslem">
+                                        <a class="ykc-next-action" href="@Url.Action("Detay", "Ykc", new { id = talep.Id, geri = SayfaUrl(filtre, aktifSayfa) })" title="@gerekenIslem">
                                             <span>@gerekenIslem</span><i class="bi bi-arrow-right" aria-hidden="true"></i>
                                         </a>
                                     </div>

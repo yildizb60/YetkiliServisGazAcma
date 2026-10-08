@@ -76,7 +76,11 @@ internal static class SchemaMigrationSqlScenario
             {
                 await using var sqlConnection = new SqlConnection(connection);
                 await sqlConnection.OpenAsync();
-                foreach (var batch in Regex.Split(sql, @"^\s*GO\s*$", RegexOptions.Multiline | RegexOptions.IgnoreCase))
+                foreach (var batch in Regex.Split(
+                    sql,
+                    @"^\s*GO\s*$",
+                    RegexOptions.Multiline | RegexOptions.IgnoreCase,
+                    TimeSpan.FromSeconds(2)))
                 {
                     if (string.IsNullOrWhiteSpace(batch)) continue;
                     await using var command = new SqlCommand(batch, sqlConnection);
@@ -106,6 +110,58 @@ internal static class SchemaMigrationSqlScenario
                 WHERE parent_object_id = OBJECT_ID('dbo.Ys_Dag_PersonelYetkiler')
                 AND referenced_object_id = OBJECT_ID('dbo.Ys_AspNetUsers') AND delete_referential_action <> 0
                 """).AnyAsync(x => x != 0), "Legacy cascading permission deletion is removed");
+            await db.Database.ExecuteSqlRawAsync("""
+                ALTER TABLE dbo.Ykc_Talepler ADD RandevuId nvarchar(64) NULL,
+                    IsEmriNo nvarchar(64) NULL, Aufnr nvarchar(64) NULL,
+                    CallCenterTetiklendiMi bit NOT NULL CONSTRAINT DF_Test_CallCenterTetiklendiMi DEFAULT (0);
+                """);
+            var cleanup = await File.ReadAllTextAsync(Path.Combine(Directory.GetCurrentDirectory(),
+                "DatabaseScripts", "2026-10-08_ykc_kullanilmayan_entegrasyon_alanlari.sql"));
+            var protectedValues = new[]
+            {
+                (Name: "RandevuId", Set: "UPDATE dbo.Ykc_Talepler SET RandevuId=N'APPOINTMENT-123' WHERE Id={0}",
+                    Clear: "UPDATE dbo.Ykc_Talepler SET RandevuId=NULL WHERE Id={0}"),
+                (Name: "IsEmriNo", Set: "UPDATE dbo.Ykc_Talepler SET IsEmriNo=N'ORDER-123' WHERE Id={0}",
+                    Clear: "UPDATE dbo.Ykc_Talepler SET IsEmriNo=NULL WHERE Id={0}"),
+                (Name: "CallCenterTetiklendiMi", Set: "UPDATE dbo.Ykc_Talepler SET CallCenterTetiklendiMi=1 WHERE Id={0}",
+                    Clear: "UPDATE dbo.Ykc_Talepler SET CallCenterTetiklendiMi=0 WHERE Id={0}"),
+                (Name: "Aufnr", Set: "UPDATE dbo.Ykc_Talepler SET Aufnr=N'000000123456' WHERE Id={0}",
+                    Clear: "UPDATE dbo.Ykc_Talepler SET Aufnr=NULL WHERE Id={0}")
+            };
+            const string remainingColumnsSql = """
+                SELECT COUNT(*) AS [Value] FROM sys.columns WHERE object_id=OBJECT_ID(N'dbo.Ykc_Talepler')
+                    AND name IN (N'RandevuId',N'IsEmriNo',N'Aufnr',N'CallCenterTetiklendiMi')
+                """;
+            foreach (var value in protectedValues)
+            {
+                await db.Database.ExecuteSqlRawAsync(value.Set, good.Id);
+                try
+                {
+                    await db.Database.ExecuteSqlRawAsync(cleanup);
+                    throw new InvalidOperationException("Cleanup discarded an external identifier or dispatch record.");
+                }
+                catch (SqlException ex) when (ex.Number == 51020)
+                {
+                    Check(await db.Database.SqlQueryRaw<int>(remainingColumnsSql).SingleAsync() == 4,
+                        "Cleanup rolls back every column removal when populated: " + value.Name);
+                }
+                await db.Database.ExecuteSqlRawAsync(value.Clear, good.Id);
+            }
+            await db.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE dbo.Ykc_Talepler SET Aufnr={"string"} WHERE Id={good.Id}");
+            await db.Database.ExecuteSqlRawAsync(cleanup);
+            await db.Database.ExecuteSqlRawAsync(cleanup);
+            db.ChangeTracker.Clear();
+            Check(await db.Database.SqlQueryRaw<int>(remainingColumnsSql).SingleAsync() == 0,
+                "Unused integration columns can be removed repeatedly, including the literal Swagger example");
+            Check(await db.Ykc_Talepler.CountAsync() == 3 && await db.Ykc_Fr265Kontroller.CountAsync() == 20
+                && await db.Ykc_IslemGecmisi.CountAsync() == 1 && await db.Ykc_Atamalar.CountAsync() == 5
+                && await db.Ykc_ImzaSurecleri.AnyAsync(x => x.TalepId == signed.Id && x.ProviderDocumentId == "TEST-SIGNED"),
+                "Cleanup preserves requests, appointment history, controls and active signature references");
+            Check(protectedValues.All(value => db.Model.FindEntityType(typeof(Ykc_Talep))!.FindProperty(value.Name) is null
+                    && typeof(YkcTalepKaydetDto).GetProperty(value.Name) is null
+                    && typeof(YkcTalepDetayDto).GetProperty(value.Name) is null),
+                "Removed integration placeholders no longer exist in the entity or public request contracts");
             Console.WriteLine($"{passed} migration SQL checks passed.");
         }
         finally

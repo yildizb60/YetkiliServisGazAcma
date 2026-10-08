@@ -30,7 +30,7 @@ void Check(bool ok, string name)
     Console.WriteLine("PASS: " + name);
     passed++;
 }
-var normalizeMarka = typeof(YetkiliServisDevreyeAlmaApiController).GetMethod(
+var normalizeMarka = typeof(DevreyeAlmaYetkiDogrulamaService).GetMethod(
     "NormalizeMarka", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
 string NormalizeMarka(string? value) => (string)normalizeMarka.Invoke(null, [value])!;
 Check(NormalizeMarka("Vaillant") == NormalizeMarka("VAILLANT"), "Service brand matches uppercase source spelling");
@@ -47,6 +47,20 @@ Check(commissioningIndexes.Any(x => x.IsUnique && x.Properties.Any(p => p.Name =
     "Commissioning duplicate keys have database uniqueness constraints");
 if (args.Contains("--brand-only", StringComparer.Ordinal))
     return;
+await PublicDirectoryApiRegression.RunAsync();
+await ReferenceApiRegression.RunAsync();
+await CityOptionsApiRegression.RunAsync();
+await ApiApplicationBoundaryRegression.RunAsync();
+if (args.Contains("--api-boundary-only", StringComparer.Ordinal))
+{
+    await MvcApiBoundarySqlScenario.RunAsync();
+    return;
+}
+if (args.Contains("--integrity-only", StringComparer.Ordinal))
+{
+    await IntegritySqlScenario.RunAsync();
+    return;
+}
 if (args.Contains("--commissioning-only", StringComparer.Ordinal))
 {
     await CommissioningSqlScenario.RunAsync();
@@ -67,10 +81,15 @@ if (args.Contains("--service-scope-only", StringComparer.Ordinal))
     await ServiceScopeSqlScenario.RunAsync();
     return;
 }
+await CoreBoundarySqlScenario.RunAsync();
 try
 {
     databaseCreated = await db.Database.EnsureCreatedAsync();
-    var emptyHome = (HomeOzetDto)((OkObjectResult)await new HomeApiController(db).Ozet()).Value!;
+    var emptyHomeController = new HomeApiController(new HomeOzetApiService(db))
+    {
+        ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
+    };
+    var emptyHome = (HomeOzetCevap)((OkObjectResult)await emptyHomeController.Ozet()).Value!;
     Check(emptyHome.TamamlanmaOrani == 0, "An empty system does not report one hundred percent completion");
     var company = new Dag_Sirket { SirketAdi = "Workflow fixture" };
     var otherCompany = new Dag_Sirket { SirketAdi = "Other scope" };
@@ -90,6 +109,7 @@ try
     var id = request.Id;
     db.ChangeTracker.Clear();
     var service = new YkcTalepService(db);
+    var talepReader = new YkcTalepOkumaService(db);
     var directPlan = await service.DurumGuncelleAsync(new() { TalepId = id, Durum = YkcDurumDegerleri.Atandi }, admin, true);
     Check(!directPlan.Basarili && await db.Ykc_Atamalar.CountAsync(x => x.TalepId == id) == 0
         && (await db.Ykc_Talepler.FindAsync(id))!.Durum == YkcDurumDegerleri.AtamaBekliyor,
@@ -120,10 +140,10 @@ try
         Check(appointed.Basarili, $"Appointment before control {no}: {appointed.Mesaj}");
         db.ChangeTracker.Clear();
         var expectedCycle = YkcKontrolAkisKurali.DonemNo(no);
-        var detail = await service.GetirAsync(id, admin, true);
+        var detail = await talepReader.GetirAsync(id, admin, true);
         Check(detail!.KontrolDonemi == expectedCycle && detail.AktifKontroller.Count == 5,
             $"Control {no} has the correct five-slot cycle");
-        Check((await service.ListeAsync(new() { KontrolNo = YkcKontrolAkisKurali.FormKontrolNo(no) }, admin, true)).Toplam == 1,
+        Check((await talepReader.ListeAsync(new() { KontrolNo = YkcKontrolAkisKurali.FormKontrolNo(no) }, admin, true)).Toplam == 1,
             $"List filter finds active control {no}");
         if (no is 6 or 11)
         {
@@ -170,7 +190,7 @@ try
     }
 
     db.ChangeTracker.Clear();
-    var final = (await service.GetirAsync(id, admin, true))!;
+    var final = (await talepReader.GetirAsync(id, admin, true))!;
     Check(final.KontrolDonemi == 3 && final.Kontroller.Count(x => x.Sonuc == YkcFr265KontrolSonucDegerleri.UygunDegil) == 10,
         "Ten previous unsuccessful results are preserved in the third cycle");
     Check(final.AktifKontroller[0].Sonuc == YkcFr265KontrolSonucDegerleri.Uygun && final.AktifKontroller[0].FormKontrolNo == 1,
@@ -194,18 +214,17 @@ try
             && !controlTable.Value.Contains("İmzalandı"),
             "SQL-backed preview uses the saved control date without marking unsigned fields as signed");
     }
-    var gate = typeof(YkcImzaAkisService).GetMethod("ImzaGonderimineHazirMi", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
-    Check((bool)gate.Invoke(null, [final, null])!, "Third-cycle successful form is eligible for signature");
+    Check(YkcTalepIslemKurali.ImzaGonderimineHazirMi(final, DateTime.Now, out _), "Third-cycle successful form is eligible for signature");
     final.AktifKontroller[0].Sonuc = YkcFr265KontrolSonucDegerleri.UygunDegil;
-    Check(!(bool)gate.Invoke(null, [final, null])!, "Unsuccessful current cycle cannot be signed");
+    Check(!YkcTalepIslemKurali.ImzaGonderimineHazirMi(final, DateTime.Now, out _), "Unsuccessful current cycle cannot be signed");
     db.ChangeTracker.Clear();
     var signing = new RecordingSignatureProvider();
-    var signatureFlow = new YkcImzaAkisService(db, service, new YkcFr265FormService(), signing,
+    var signatureFlow = new YkcImzaAkisService(db, talepReader, new YkcFr265FormService(), signing,
         new TestEnvironment { ContentRootPath = documentRoot }, NullLogger<YkcImzaAkisService>.Instance);
-    var oldAssignment = (await service.GetirAsync(id, admin, true))!.AktifAtamaId;
+    var oldAssignment = (await talepReader.GetirAsync(id, admin, true))!.AktifAtamaId;
     Check((await service.AtamaYapAsync(Appointment(), admin, true)).Basarili, "Successful control may be followed by a new appointment before signature");
     db.ChangeTracker.Clear();
-    var rescheduled = (await service.GetirAsync(id, admin, true))!;
+    var rescheduled = (await talepReader.GetirAsync(id, admin, true))!;
     Check(rescheduled.Durum == YkcDurumDegerleri.Atandi && rescheduled.KontrolDonemi == 4
         && rescheduled.Kontroller.Single(x => x.KontrolNo == 11).AtamaId == oldAssignment,
         "Rescheduling returns to planned state and preserves the previous successful control with its appointment");
@@ -221,11 +240,11 @@ try
     Check((await service.KontrolleriKaydetAsync(Control(16, YkcFr265KontrolSonucDegerleri.Uygun), admin, true)).Basarili,
         "New appointment accepts its own control result");
     db.ChangeTracker.Clear();
-    var current = (await service.GetirAsync(id, admin, true))!;
+    var current = (await talepReader.GetirAsync(id, admin, true))!;
     Check(current.AktifKontroller[0].AtamaId == current.AktifAtamaId && current.AktifAtamaId != oldAssignment,
         "Control result is bound to the current assignment");
     current.AktifKontroller[0].AtamaId = oldAssignment;
-    Check(!(bool)gate.Invoke(null, [current, null])!, "Signature gate rejects another appointment's successful result");
+    Check(!YkcTalepIslemKurali.ImzaGonderimineHazirMi(current, DateTime.Now, out _), "Signature gate rejects another appointment's successful result");
     var providerEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
     var providerRelease = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
     signing.BeforeSend = async () =>
@@ -258,7 +277,7 @@ try
         Durum = YkcImzaDurumDegerleri.Tamamlandi,
         NihaiBelgeAdi = $"FR265_Imzali_{id}.pdf",
         NihaiBelgeIcerikTipi = "application/pdf",
-        NihaiBelgeBytes = YkcFr265PdfService.Olustur((await service.GetirAsync(id, admin, true))!).Bytes,
+        NihaiBelgeBytes = YkcFr265PdfService.Olustur((await talepReader.GetirAsync(id, admin, true))!).Bytes,
         Imzacilar = signing.Request!.Imzacilar.Select(x => new YkcImzaProviderImzaciDurumu
         {
             SiraNo = x.SiraNo, Durum = YkcImzaciDurumDegerleri.Imzaladi, ImzaTarihi = DateTime.Now
@@ -273,7 +292,7 @@ try
     };
     var firstPoll = signatureFlow.ImzaDurumunuSorgulaAsync(id, admin, true);
     await using var pollDb = new AppDbContext(options);
-    var secondFlow = new YkcImzaAkisService(pollDb, new YkcTalepService(pollDb), new YkcFr265FormService(), signing,
+    var secondFlow = new YkcImzaAkisService(pollDb, new YkcTalepOkumaService(pollDb), new YkcFr265FormService(), signing,
         new TestEnvironment { ContentRootPath = documentRoot }, NullLogger<YkcImzaAkisService>.Instance);
     Task<YkcIslemSonuc>? secondPoll = null;
     try
@@ -295,7 +314,7 @@ try
     Check(finalFiles.Count == 1 && await db.Ykc_IslemGecmisi.CountAsync(x => x.TalepId == id
         && x.IslemTipi == "FR265ImzaliNihaiBelgeAlindi") == 1,
         "Concurrent signature polls persist one final PDF and one history event");
-    var reportRecord = (await service.RaporAsync(new() { KayitIdleri = [id] }, admin, true)).Kayitlar.Single();
+    var reportRecord = (await talepReader.RaporAsync(new() { KayitIdleri = [id] }, admin, true)).Kayitlar.Single();
     Check(reportRecord.ImzaliNihaiBelgeVar && reportRecord.ImzaliNihaiDosyaId == finalFiles[0].Id,
         "Report record exposes the authorized final PDF reference");
 
@@ -311,6 +330,52 @@ try
         NullLogger<UserManager<AppKullanici>>.Instance);
     var authorization = new YkcYetkiService(db, manager);
     Check(await authorization.YetkiliMiAsync(staff, YetkiTipleri.YKC_TALEP_GOR, company.Id), "Granted right authorizes the selected company");
+    YkcApiController DetailApi(AppKullanici user, string path = "/api/ykc/talepler/getir") => new(
+        service, talepReader, manager, new TestEnvironment { ContentRootPath = documentRoot }, db,
+        signatureFlow, authorization, null!, new YkcPlanlamaOkumaService(db),
+        new YkcBelgeYuklemeApiService(service, new TestEnvironment { ContentRootPath = documentRoot }))
+    {
+        ControllerContext = new()
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, user.Id)], "Fixture")),
+                Request = { Path = path }
+            }
+        }
+    };
+    var apiDetail = (YkcTalepDetayDto)((OkObjectResult)await DetailApi(staff).TalepGetir(new() { Id = id })).Value!;
+    Check(apiDetail.Ekran.IcOperasyonGorsun && apiDetail.Ekran.Yetkiler.TalepleriGorebilir
+        && !apiDetail.Ekran.Yetkiler.Fr265ImzaIslemiYapabilir && !apiDetail.Ekran.TamamlamayaHazir,
+        "Detail API returns capabilities from the actual request company's read-only grant");
+    Check(apiDetail.Ekran.KontrolDonemi == 4 && apiDetail.Ekran.TumSonucluKontroller.Count == 12,
+        "Detail API preserves all control periods while preparing current screen state");
+    var apiForeignRequest = new Ykc_Talep { SirketId = otherCompany.Id, Durum = YkcDurumDegerleri.TalepAlindi };
+    db.Ykc_Talepler.Add(apiForeignRequest);
+    await db.SaveChangesAsync();
+    Check(await DetailApi(staff).TalepGetir(new() { Id = apiForeignRequest.Id }) is ObjectResult { StatusCode: 403 },
+        "Detail API does not return screen capabilities or data from another company");
+    var apiFirm = new Ys_Firma { FirmaAdi = "API certified fixture", SirketId = company.Id };
+    db.Ys_Firmalar.Add(apiFirm);
+    await db.SaveChangesAsync();
+    var apiFirmUser = new AppKullanici { UserName = "api-certified-fixture", FirmaId = apiFirm.Id,
+        SirketId = company.Id, KullaniciTipi = KullaniciTipiDegerleri.SertifikaliFirma };
+    var apiFirmRequest = new Ykc_Talep { FirmaId = apiFirm.Id, SirketId = company.Id,
+        Durum = YkcDurumDegerleri.TalepAlindi, ProjeNo = "PRIVATE-PROJECT", EskiMarka = "PRIVATE-BRAND",
+        EskiKapasite = "12345", YeniKapasite = "23456", EskiCihazTipi = "Kombi", YeniCihazTipi = "Kombi" };
+    db.AddRange(apiFirmUser, apiFirmRequest);
+    await db.SaveChangesAsync();
+    var firmApiDetail = (YkcTalepDetayDto)((OkObjectResult)await DetailApi(apiFirmUser).TalepGetir(new() { Id = apiFirmRequest.Id })).Value!;
+    var firmJson = System.Text.Json.JsonSerializer.Serialize(firmApiDetail);
+    Check(!firmJson.Contains("PRIVATE-PROJECT") && !firmJson.Contains("PRIVATE-BRAND") && !firmJson.Contains("12345")
+        && firmApiDetail.Ekran.CihazUyarilari.Count == 0 && firmApiDetail.Ekran.Ekipler.Count == 0 && !firmApiDetail.Ekran.IcOperasyonGorsun,
+        "Firm detail is privacy-filtered before screen state is generated, including legacy type-only accounts");
+    var formApiDetail = (YkcTalepDetayDto)((OkObjectResult)await DetailApi(apiFirmUser, "/api/ykc/talepler/form-verisi")
+        .TalepGetir(new() { Id = apiFirmRequest.Id })).Value!;
+    Check(formApiDetail.EskiKapasite == "12345" && formApiDetail.ProjeNo == "PRIVATE-PROJECT",
+        "Official FR265 data remains intact when normal screen preparation changes");
+    Check(await DetailApi(apiFirmUser).TalepGetir(new() { Id = id }) is NotFoundObjectResult,
+        "A firm cannot retrieve another firm's request through the new detail response");
     var grant = await db.Dag_PersonelYetkiler.AsNoTracking().SingleAsync();
     db.ChangeTracker.Clear();
     Check((await permissions.GuncelleAsync(Rights(YetkiTipleri.YKC_TALEP_GOR), admin, null, true)).Basarili
@@ -385,7 +450,7 @@ try
         new() { FirmaId = approvalFirm.Id, Durum = DevreyeAlmaDurumDegerleri.Bekliyor, DevreyeAlmaTarihi = DateTime.Today },
         new() { FirmaId = approvalFirm.Id, Durum = DevreyeAlmaDurumDegerleri.Tamamlandi, DevreyeAlmaTarihi = DateTime.Today, SilindiMi = true });
     await db.SaveChangesAsync();
-    var home = (HomeOzetDto)((OkObjectResult)await new HomeApiController(db).Ozet()).Value!;
+    var home = (HomeOzetCevap)((OkObjectResult)await emptyHomeController.Ozet()).Value!;
     Check(home.DevreyeCount == 1 && home.TamamlanmaOrani == 50,
         "Completion percentage counts completed records and excludes archived records");
 
@@ -403,22 +468,22 @@ try
     db.Ykc_Talepler.Add(otherReportRequest);
     await db.SaveChangesAsync();
     var targetId = reportRequests[8].Id;
-    var scopedReport = await service.RaporAsync(new() { DetayTalepId = targetId, SayfaBoyutu = 10 }, staff, false, company.Id);
+    var scopedReport = await talepReader.RaporAsync(new() { DetayTalepId = targetId, SayfaBoyutu = 10 }, staff, false, company.Id);
     Check(scopedReport.Sayfa == 2 && scopedReport.Kayitlar.Count == 10
         && scopedReport.Kayitlar.Any(x => x.Id == targetId) && scopedReport.Toplam > 24,
         "Report focus finds the correct page without filtering out neighbouring records");
-    var ordinaryReport = await service.RaporAsync(new() { Sayfa = 2, SayfaBoyutu = 10 }, staff, false, company.Id);
+    var ordinaryReport = await talepReader.RaporAsync(new() { Sayfa = 2, SayfaBoyutu = 10 }, staff, false, company.Id);
     Check(scopedReport.Kayitlar.Select(x => x.Id).SequenceEqual(ordinaryReport.Kayitlar.Select(x => x.Id))
         && scopedReport.Toplam == ordinaryReport.Toplam,
         "Report focus preserves date/ID sorting and the ordinary report totals");
-    var otherScopedReport = await service.RaporAsync(new() { DetayTalepId = otherReportRequest.Id }, staff, false, company.Id);
+    var otherScopedReport = await talepReader.RaporAsync(new() { DetayTalepId = otherReportRequest.Id }, staff, false, company.Id);
     Check(otherScopedReport.Sayfa == 1 && otherScopedReport.Kayitlar.All(x => x.Id != otherReportRequest.Id),
         "A detail target outside the active company cannot affect the report page or expose its record");
-    var missingReport = await service.RaporAsync(new() { DetayTalepId = int.MaxValue, Sayfa = 2 }, staff, false, company.Id);
+    var missingReport = await talepReader.RaporAsync(new() { DetayTalepId = int.MaxValue, Sayfa = 2 }, staff, false, company.Id);
     Check(missingReport.Sayfa == 2 && missingReport.Toplam == scopedReport.Toplam,
         "A missing target preserves the requested page and report scope");
     var firmUser = new AppKullanici { KullaniciTipi = KullaniciTipiDegerleri.SertifikaliFirma, FirmaId = approvalFirm.Id, SirketId = company.Id };
-    var firmReport = await service.RaporAsync(new() { DetayTalepId = targetId }, firmUser, false, company.Id);
+    var firmReport = await talepReader.RaporAsync(new() { DetayTalepId = targetId }, firmUser, false, company.Id);
     Check(firmReport.Sayfa == 2 && firmReport.Toplam == 24 && firmReport.Kayitlar.Any(x => x.Id == targetId),
         "Certified-company detail navigation retains the full authorized report list");
 
@@ -436,7 +501,7 @@ try
     await db.SaveChangesAsync();
     foreach (var monthView in new[] { false, true })
     {
-        var calendar = await service.TakvimAsync(new()
+        var calendar = await new YkcPlanlamaOkumaService(db).TakvimAsync(new()
         {
             Baslangic = monthView ? new DateTime(calendarDate.Year, calendarDate.Month, 1) : calendarDate,
             Bitis = monthView ? new DateTime(calendarDate.Year, calendarDate.Month, 1).AddMonths(1).AddDays(-1) : calendarDate,
@@ -459,7 +524,8 @@ try
         WebRootPath = Path.Combine(documentRoot, "wwwroot")
     };
     YetkiBelgesiApiController DocumentApi(string role, string userId) => new(
-        db, new YetkiBelgesiService(db, documentEnvironment), NullLogger<YetkiBelgesiApiController>.Instance, documentEnvironment)
+        db, new YetkiBelgesiService(db, documentEnvironment), NullLogger<YetkiBelgesiApiController>.Instance, documentEnvironment,
+        new YetkiBelgesiOkumaApiService(db, new YetkiBelgesiService(db, documentEnvironment)), new YetkiBelgesiSilmeApiService(db))
     {
         ControllerContext = new ControllerContext
         {
@@ -533,8 +599,9 @@ try
         IzinliYeniCihazTipleri = new() { ["Kombi"] = "1" }
     });
     YkcApiController ComparisonApi(AppKullanici user) => new(
-        new YkcTalepService(db, comparisonSnapshots), manager, documentEnvironment, db,
-        null!, null!, null!, authorization, comparisonSnapshots)
+        new YkcTalepService(db, comparisonSnapshots), new YkcTalepOkumaService(db), manager, documentEnvironment, db,
+        null!, authorization, new YkcTesisatApiService(db, manager, null!, null!, comparisonSnapshots),
+        new YkcPlanlamaOkumaService(db), new YkcBelgeYuklemeApiService(new YkcTalepService(db), documentEnvironment))
     {
         ControllerContext = DocumentApi("SertifikaliFirma", user.Id).ControllerContext
     };

@@ -9,10 +9,12 @@ namespace YetkiliServisGazAcma.API.Services
     public class AdminRaporApiService
     {
         private readonly AppDbContext _context;
+        private readonly SehirFirmaKoduService? _sehirFirmaKoduService;
 
-        public AdminRaporApiService(AppDbContext context)
+        public AdminRaporApiService(AppDbContext context, SehirFirmaKoduService? sehirFirmaKoduService = null)
         {
             _context = context;
+            _sehirFirmaKoduService = sehirFirmaKoduService;
         }
 
         public async Task<AdminDevreyeAlmaListeDto> DevreyeAlmalarAsync(AdminDevreyeAlmaListeFiltreDto? dto, int? sirketId)
@@ -21,6 +23,14 @@ namespace YetkiliServisGazAcma.API.Services
 
             if (!string.IsNullOrWhiteSpace(dto?.TesisatNo))
                 query = query.Where(x => x.TesistatNo != null && x.TesistatNo.Contains(dto.TesisatNo));
+            if (!string.IsNullOrWhiteSpace(dto?.Musteri))
+            {
+                var musteri = dto.Musteri.Trim();
+                query = query.Where(x =>
+                    (x.MusteriAdi != null && EF.Functions.Collate(x.MusteriAdi, "Turkish_CI_AS").Contains(musteri)) ||
+                    (x.AboneNo != null && x.AboneNo.Contains(musteri)) ||
+                    (x.MusteriTelefon != null && x.MusteriTelefon.Contains(musteri)));
+            }
             if (!string.IsNullOrWhiteSpace(dto?.Marka))
                 query = query.Where(x =>
                     (x.CihazMarka != null && x.CihazMarka.Contains(dto.Marka)) ||
@@ -63,6 +73,7 @@ namespace YetkiliServisGazAcma.API.Services
             return new AdminDevreyeAlmaListeDto
             {
                 Islemler = islemler.Select(AdminDevreyeAlmaDto.FromEntity).ToList(),
+                Sehirler = _sehirFirmaKoduService?.Sehirler() ?? new List<string>(),
                 Markalar = markalar,
                 FirmaIlceleri = subeler
                     .GroupBy(x => x.FirmaId)

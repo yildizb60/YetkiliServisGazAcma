@@ -57,6 +57,15 @@ namespace YetkiliServisGazAcma.Business.Services
             List<int> kategoriIdleri,
             string? ilce = null)
         {
+            var secilenMarkaIds = markaIdleri?.Distinct().ToList() ?? new List<int>();
+            if (secilenMarkaIds.Count > 0)
+            {
+                var gecerliMarkaSayisi = await _context.Ys_Markalar
+                    .CountAsync(x => secilenMarkaIds.Contains(x.Id) && !x.SilindiMi && x.AktifMi);
+                if (gecerliMarkaSayisi != secilenMarkaIds.Count)
+                    return (false, "Geçersiz marka seçildi.");
+            }
+
             var secilenKategoriIds = kategoriIdleri?.Distinct().ToList() ?? new List<int>();
             if (secilenKategoriIds.Count > 0)
             {
@@ -66,96 +75,111 @@ namespace YetkiliServisGazAcma.Business.Services
                     return (false, "Geçersiz hizmet türü seçildi.");
             }
 
+            firma.VergiNo = new string((firma.VergiNo ?? "").Where(char.IsAsciiDigit).ToArray());
+            if (firma.VergiNo.Length is not (10 or 11))
+                return (false, "VKN/TCKN 10 veya 11 haneli olmalidir");
+
             // VKN kontrolü — aynı VKN ile kayıt var mı?
             var mevcutFirma = await VknIleGetir(firma.VergiNo!);
             if (mevcutFirma != null)
                 return (false, "Bu VKN ile zaten kayıt bulunmaktadır.");
 
-            // Firma kaydı
-            firma.OlusturmaTarihi = DateTime.Now;
-            firma.OlusturanKullanici = firma.VergiNo;
-            firma.OlusturmaTipi = YetkiliServisOlusturmaTipleri.Kayit;
-            firma.SilindiMi = false;
-            firma.AktifMi = true;
-
-            _context.Ys_Firmalar.Add(firma);
-            await _context.SaveChangesAsync();
-
-            // Kullanici hesabı oluştur (VKN = Kullanici adı)
-            var kullanici = new AppKullanici
+            var oncekiVarliklar = _context.ChangeTracker.Entries()
+                .Select(x => x.Entity).ToHashSet(ReferenceEqualityComparer.Instance);
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            var tamamlandi = false;
+            try
             {
-                UserName = firma.VergiNo,
-                Email = firma.Email,
-                PhoneNumber = firma.Telefon?.Trim(),
-                AdSoyad = firma.YetkiliKisi,
-                KullaniciTipi = KullaniciTipiDegerleri.YetkiliServis, // Yetkili Servis
-                FirmaId = firma.Id,
-                SirketId = firma.SirketId,
-                AktifMi = true,
-                EmailConfirmed = true
-            };
+                var simdi = DateTime.Now;
+                firma.OlusturmaTarihi = simdi;
+                firma.OlusturanKullanici = firma.VergiNo;
+                firma.OlusturmaTipi = YetkiliServisOlusturmaTipleri.Kayit;
+                firma.SilindiMi = false;
+                firma.AktifMi = true;
 
-            var sonuc = await _userManager.CreateAsync(kullanici, sifre);
-            if (!sonuc.Succeeded)
-            {
-                // Kullanici oluşturulamazsa firmayı da sil
-                _context.Ys_Firmalar.Remove(firma);
+                _context.Ys_Firmalar.Add(firma);
                 await _context.SaveChangesAsync();
-                return (false, string.Join(", ", sonuc.Errors.Select(x => x.Description)));
-            }
 
-            await _userManager.AddToRoleAsync(kullanici, "YetkiliServis");
-
-            // Markaları ata
-            foreach (var markaId in markaIdleri)
-            {
-                _context.Ys_FirmaMarkalar.Add(new Ys_FirmaMarka
+                var kullanici = new AppKullanici
                 {
+                    UserName = firma.VergiNo,
+                    Email = firma.Email,
+                    PhoneNumber = firma.Telefon?.Trim(),
+                    AdSoyad = firma.YetkiliKisi,
+                    KullaniciTipi = KullaniciTipiDegerleri.YetkiliServis,
                     FirmaId = firma.Id,
-                    MarkaId = markaId,
-                    YetkiBitisTarihi = DateTime.Now.AddYears(1),
-                    OlusturmaTarihi = DateTime.Now,
-                    OlusturanKullanici = firma.VergiNo,
-                    SilindiMi = false
-                });
-            }
+                    SirketId = firma.SirketId,
+                    AktifMi = true,
+                    EmailConfirmed = true
+                };
 
-            // Kategorileri ata
-            if (secilenKategoriIds.Count > 0)
-            {
+                var sonuc = await _userManager.CreateAsync(kullanici, sifre);
+                if (!sonuc.Succeeded)
+                    return (false, string.Join(", ", sonuc.Errors.Select(x => x.Description)));
+
+                var rolSonucu = await _userManager.AddToRoleAsync(kullanici, "YetkiliServis");
+                if (!rolSonucu.Succeeded)
+                    return (false, string.Join(", ", rolSonucu.Errors.Select(x => x.Description)));
+
+                foreach (var markaId in secilenMarkaIds)
+                {
+                    _context.Ys_FirmaMarkalar.Add(new Ys_FirmaMarka
+                    {
+                        FirmaId = firma.Id,
+                        MarkaId = markaId,
+                        YetkiBitisTarihi = simdi.AddYears(1),
+                        OlusturmaTarihi = simdi,
+                        OlusturanKullanici = firma.VergiNo,
+                        SilindiMi = false
+                    });
+                }
+
                 foreach (var kategoriId in secilenKategoriIds)
                 {
                     _context.Ys_FirmaKategoriler.Add(new Ys_FirmaKategori
                     {
                         FirmaId = firma.Id,
                         KategoriId = kategoriId,
-                        YetkiBitisTarihi = DateTime.Now.AddYears(1),
-                        OlusturmaTarihi = DateTime.Now,
+                        YetkiBitisTarihi = simdi.AddYears(1),
+                        OlusturmaTarihi = simdi,
                         OlusturanKullanici = firma.VergiNo,
                         SilindiMi = false
                     });
                 }
-            }
 
-            if (!string.IsNullOrWhiteSpace(ilce))
-            {
-                _context.Ys_Subeler.Add(new Ys_Sube
+                if (!string.IsNullOrWhiteSpace(ilce))
                 {
-                    FirmaId = firma.Id,
-                    SubeAdi = "Merkez",
-                    Il = firma.FaaliyetIli,
-                    Ilce = ilce.Trim(),
-                    Telefon = firma.Telefon,
-                    Adres = firma.Adres,
-                    AktifMi = true,
-                    OlusturmaTarihi = DateTime.Now,
-                    OlusturanKullanici = firma.VergiNo,
-                    SilindiMi = false
-                });
-            }
+                    _context.Ys_Subeler.Add(new Ys_Sube
+                    {
+                        FirmaId = firma.Id,
+                        SubeAdi = "Merkez",
+                        Il = firma.FaaliyetIli,
+                        Ilce = ilce.Trim(),
+                        Telefon = firma.Telefon,
+                        Adres = firma.Adres,
+                        AktifMi = true,
+                        OlusturmaTarihi = simdi,
+                        OlusturanKullanici = firma.VergiNo,
+                        SilindiMi = false
+                    });
+                }
 
-            await _context.SaveChangesAsync();
-            return (true, "Kayıt başarıyla tamamlandı.");
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                tamamlandi = true;
+                return (true, "Kayıt başarıyla tamamlandı.");
+            }
+            finally
+            {
+                if (!tamamlandi)
+                {
+                    await transaction.RollbackAsync();
+                    // Rol ve iliski kayitlari sonraki SaveChanges ile yeniden yazilmamali.
+                    foreach (var entry in _context.ChangeTracker.Entries()
+                        .Where(x => !oncekiVarliklar.Contains(x.Entity)).ToList())
+                        entry.State = EntityState.Detached;
+                }
+            }
         }
     }
 }

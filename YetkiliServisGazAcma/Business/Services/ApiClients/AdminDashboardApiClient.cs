@@ -1,5 +1,3 @@
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
 using Microsoft.Extensions.Options;
 using YetkiliServisGazAcma.Entities;
 
@@ -7,10 +5,7 @@ namespace YetkiliServisGazAcma.Business.Services
 {
     public class AdminDashboardApiClient
     {
-        private readonly HttpClient _httpClient;
-        private readonly ApiIntegrationOptions _options;
-        private readonly ApiJwtTokenService _tokenService;
-        private readonly ILogger<AdminDashboardApiClient> _logger;
+        private readonly ApiHttpClient _api;
 
         public AdminDashboardApiClient(
             HttpClient httpClient,
@@ -18,147 +13,15 @@ namespace YetkiliServisGazAcma.Business.Services
             ApiJwtTokenService tokenService,
             ILogger<AdminDashboardApiClient> logger)
         {
-            _httpClient = httpClient;
-            _options = options.Value;
-            _tokenService = tokenService;
-            _logger = logger;
+            _api = new ApiHttpClient(httpClient, options.Value, tokenService, logger);
         }
 
-        public async Task<AdminDashboardOzet?> GetirAsync(AppKullanici kullanici, int? sirketId)
-        {
-            if (!_options.Enabled)
-            {
-                ApiClientFallback.EnsureAllowed(_options, "Admin dashboard");
-                return null;
-            }
+        public Task<AdminDashboardApiDto?> GetirAsync(AppKullanici kullanici, int? sirketId)
+            => _api.PostAsync<AdminDashboardFiltreDto, AdminDashboardApiDto>(kullanici,
+                "api/admin-panel/dashboard", new() { SirketId = sirketId }, "Admin dashboard");
 
-            try
-            {
-                var token = await _tokenService.OlusturAsync(kullanici);
-                if (string.IsNullOrWhiteSpace(token))
-                {
-                    ApiClientFallback.EnsureAllowed(_options, "Admin dashboard token");
-                    return null;
-                }
-
-                using var request = new HttpRequestMessage(HttpMethod.Post, "api/admin-panel/dashboard");
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-                request.Content = JsonContent.Create(new AdminDashboardFiltreIstek { SirketId = sirketId });
-
-                using var response = await _httpClient.SendAsync(request);
-                if (!response.IsSuccessStatusCode)
-                {
-                    _logger.LogWarning("Admin dashboard API cagrisinda basarisiz yanit dondu. StatusCode: {StatusCode}", response.StatusCode);
-                    ApiClientFallback.EnsureAllowed(_options, "Admin dashboard");
-                    return null;
-                }
-
-                var dashboard = await response.Content.ReadFromJsonAsync<AdminDashboardApiCevap>();
-                return dashboard?.ToOzet();
-            }
-            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
-            {
-                _logger.LogWarning(ex, "Admin dashboard API cagrisina ulasilamadi.");
-                ApiClientFallback.EnsureAllowed(_options, "Admin dashboard");
-                return null;
-            }
-        }
-
-        private class AdminDashboardFiltreIstek
-        {
-            public int? SirketId { get; set; }
-        }
-
-        private class AdminDashboardApiCevap
-        {
-            public int ToplamDevreyeAlma { get; set; }
-            public int ToplamFirma { get; set; }
-            public int OnayBekleyen { get; set; }
-            public int SuresiBitecek { get; set; }
-            public int ToplamSirket { get; set; }
-            public int BuAyDevreyeAlma { get; set; }
-            public List<AdminYetkiBelgesiOzetCevap> SonYetkiBelgeleri { get; set; } = new();
-            public List<AdminDevreyeAlmaOzetCevap> SonDevreyeAlmalar { get; set; } = new();
-
-            public AdminDashboardOzet ToOzet()
-            {
-                return new AdminDashboardOzet
-                {
-                    ToplamDevreyeAlma = ToplamDevreyeAlma,
-                    ToplamFirma = ToplamFirma,
-                    OnayBekleyen = OnayBekleyen,
-                    SuresiBitecek = SuresiBitecek,
-                    ToplamSirket = ToplamSirket,
-                    BuAyDevreyeAlma = BuAyDevreyeAlma,
-                    SonYetkiBelgeleri = SonYetkiBelgeleri.Select(x => x.ToEntity()).ToList(),
-                    SonDevreyeAlmalar = SonDevreyeAlmalar.Select(x => x.ToEntity()).ToList()
-                };
-            }
-        }
-
-        private class AdminYetkiBelgesiOzetCevap
-        {
-            public int Id { get; set; }
-            public int FirmaId { get; set; }
-            public string? FirmaAdi { get; set; }
-            public string? SirketAdi { get; set; }
-            public int Durum { get; set; }
-            public DateTime OlusturmaTarihi { get; set; }
-            public DateTime YetkiBelgesiBitisTarihi { get; set; }
-
-            public Ys_YetkiBelgesi ToEntity()
-            {
-                return new Ys_YetkiBelgesi
-                {
-                    Id = Id,
-                    FirmaId = FirmaId,
-                    Durum = Durum,
-                    OlusturmaTarihi = OlusturmaTarihi,
-                    YetkiBelgesiBitisTarihi = YetkiBelgesiBitisTarihi,
-                    Firma = new Ys_Firma
-                    {
-                        Id = FirmaId,
-                        FirmaAdi = FirmaAdi,
-                        Sirket = new Dag_Sirket { SirketAdi = SirketAdi }
-                    }
-                };
-            }
-        }
-
-        private class AdminDevreyeAlmaOzetCevap
-        {
-            public string? MusteriAdi { get; set; }
-            public DateTime DevreyeAlmaTarihi { get; set; }
-            public int Id { get; set; }
-            public int FirmaId { get; set; }
-            public string? FirmaAdi { get; set; }
-            public string? MarkaAdi { get; set; }
-            public string? TesistatNo { get; set; }
-            public int Durum { get; set; }
-            public DateTime OlusturmaTarihi { get; set; }
-
-            public Ys_DevreyeAlma ToEntity()
-            {
-                return new Ys_DevreyeAlma
-                {
-                    MusteriAdi = MusteriAdi,
-                    DevreyeAlmaTarihi = DevreyeAlmaTarihi,
-                    Id = Id,
-                    FirmaId = FirmaId,
-                    TesistatNo = TesistatNo,
-                    Durum = Durum,
-                    OlusturmaTarihi = OlusturmaTarihi,
-                    Firma = new Ys_Firma
-                    {
-                        Id = FirmaId,
-                        FirmaAdi = FirmaAdi
-                    },
-                    Marka = new Ys_Marka
-                    {
-                        MarkaAdi = MarkaAdi
-                    }
-                };
-            }
-        }
+        public Task<PanelBildirimOzeti?> BildirimOzetiAsync(AppKullanici kullanici, int? sirketId)
+            => _api.PostAsync<AdminDashboardFiltreDto, PanelBildirimOzeti>(kullanici,
+                "api/admin-panel/bildirim-ozeti", new() { SirketId = sirketId }, "Panel bildirim ozeti");
     }
 }

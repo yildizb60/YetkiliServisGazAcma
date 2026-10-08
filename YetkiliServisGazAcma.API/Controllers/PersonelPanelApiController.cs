@@ -75,13 +75,4 @@ namespace YetkiliServisGazAcma.API.Controllers
         }
     }
 
-    public class PersonelYetkilerimIstek
-    {
-        public int? SirketId { get; set; }
-    }
-
-    public class PersonelYetkilerimCevap
-    {
-        public List<string> Yetkiler { get; set; } = new();
-    }
 }

@@ -2,7 +2,7 @@
     Layout = "_AuthLayout";
     ViewData["Title"] = "İşlem Yapacağınız Şirketi Seçin";
     var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
-    var sirketler = ViewBag.Sirketler as List<YetkiliServisGazAcma.Entities.Dag_Sirket> ?? new();
+    var sirketler = ViewBag.Sirketler as List<YetkiliServisGazAcma.Business.Services.PanelSirketDto> ?? new();
     var genelSistemAdminMi = ViewBag.GenelSistemAdminMi as bool? ?? false;
     string returnUrl = ViewBag.ReturnUrl as string ?? "/personel-panel";
 }

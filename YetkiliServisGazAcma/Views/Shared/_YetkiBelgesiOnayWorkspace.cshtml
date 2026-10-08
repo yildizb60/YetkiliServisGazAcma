@@ -1,0 +1,89 @@
+@using Microsoft.AspNetCore.WebUtilities
+@model Tuple<IReadOnlyList<YetkiBelgesiKayitDto>, YetkiBelgesiOnaySayfalamaDto, string>
+@{
+    var sayfalama = Model.Item2;
+    var filtre = sayfalama.Filtre;
+    var personel = Model.Item3 == "personel";
+    var action = Context.Request.PathBase + Context.Request.Path;
+    var sekmeler = new[] {
+        new { Kod = "bekleyen", Ad = "Onay Bekleyen", Ikon = "bi-hourglass-split", Sinif = "is-waiting", Sayi = sayfalama.Bekleyen },
+        new { Kod = "onaylanan", Ad = "Onaylanan", Ikon = "bi-check-circle", Sinif = "is-approved", Sayi = sayfalama.Onaylanan },
+        new { Kod = "reddedilen", Ad = "Reddedilen", Ikon = "bi-x-circle", Sinif = "is-rejected", Sayi = sayfalama.Reddedilen },
+        new { Kod = "suresi-dolan", Ad = "Süresi Dolan", Ikon = "bi-calendar-x", Sinif = "is-expired", Sayi = sayfalama.SuresiDolan }
+    };
+    string Link(string durum, int sayfa) => QueryHelpers.AddQueryString(action, new Dictionary<string, string?> {
+        ["durum"] = durum, ["sayfa"] = sayfa.ToString(), ["sayfaBoyutu"] = sayfalama.SayfaBoyutu.ToString(),
+        ["firma"] = filtre.Firma, ["sirket"] = filtre.Sirket, ["adres"] = filtre.Adres,
+        ["yukleme"] = filtre.Yukleme?.ToString("yyyy-MM-dd"), ["baslangic"] = filtre.Baslangic?.ToString("yyyy-MM-dd"),
+        ["bitis"] = filtre.Bitis?.ToString("yyyy-MM-dd")
+    });
+    var filtreli = !string.IsNullOrWhiteSpace(filtre.Firma) || !string.IsNullOrWhiteSpace(filtre.Sirket)
+        || !string.IsNullOrWhiteSpace(filtre.Adres) || filtre.Yukleme.HasValue || filtre.Baslangic.HasValue || filtre.Bitis.HasValue;
+    var ilk = sayfalama.Toplam == 0 ? 0 : (sayfalama.Sayfa - 1) * sayfalama.SayfaBoyutu + 1;
+    var son = Math.Min(sayfalama.Sayfa * (long)sayfalama.SayfaBoyutu, sayfalama.Toplam);
+}
+<div class="approval-board df-approval-workspace">
+    <section class="df-page-panel approval-panels is-admin-approval">
+        <div class="df-approval-list-total"><span>@(filtreli ? "Filtrelenen yetki belgesi" : "Toplam yetki belgesi")</span><strong>@sekmeler.Sum(x => x.Sayi)</strong></div>
+        <nav class="df-approval-status-bar" aria-label="Yetki belgesi durumu">
+            @foreach (var sekme in sekmeler)
+            {
+                <a href="@Link(sekme.Kod, 1)" class="approval-tab approval-metric @sekme.Sinif @(sayfalama.Durum == sekme.Kod ? "active" : "")"
+                   aria-current="@(sayfalama.Durum == sekme.Kod ? "page" : null)"><i class="bi @sekme.Ikon" aria-hidden="true"></i><span>@sekme.Ad</span><strong>@sekme.Sayi</strong></a>
+            }
+        </nav>
+        <details class="df-approval-filter" open="@filtreli">
+            <summary><span><i class="bi bi-funnel" aria-hidden="true"></i><strong>Filtreler</strong></span><span>Aç <i class="bi bi-chevron-down" aria-hidden="true"></i></span></summary>
+            <form method="get" action="@action" class="df-approval-filter-body">
+                <input type="hidden" name="durum" value="@sayfalama.Durum" />
+                <input type="hidden" name="sayfaBoyutu" value="@sayfalama.SayfaBoyutu" />
+                <div class="df-approval-filter-grid">
+                    <div class="filtre-alan"><label for="filterFirma">Firma</label><input id="filterFirma" name="firma" value="@filtre.Firma" placeholder="Firma adı veya vergi no" autocomplete="off" /></div>
+                    @if (personel)
+                    {
+                        <div class="filtre-alan"><label for="filterAdres">Adres / İl</label><input id="filterAdres" name="adres" value="@filtre.Adres" placeholder="Adres veya il bilgisi" autocomplete="off" /></div>
+                    }
+                    else
+                    {
+                        <div class="filtre-alan"><label for="filterSirket">Şirket</label><input id="filterSirket" name="sirket" value="@filtre.Sirket" placeholder="Şirket adı" autocomplete="off" /></div>
+                    }
+                    <div class="filtre-alan"><label for="filterYukleme">Belge Yükleme Tarihi</label><input type="date" id="filterYukleme" name="yukleme" value="@filtre.Yukleme?.ToString("yyyy-MM-dd")" /></div>
+                    <div class="filtre-alan"><label for="filterBaslangic">Geçerlilik Başlangıcı</label><input type="date" id="filterBaslangic" name="baslangic" value="@filtre.Baslangic?.ToString("yyyy-MM-dd")" /></div>
+                    <div class="filtre-alan"><label for="filterBitis">Yetki Belgesi Bitiş Tarihi</label><input type="date" id="filterBitis" name="bitis" value="@filtre.Bitis?.ToString("yyyy-MM-dd")" /></div>
+                </div>
+                <div class="df-approval-filter-actions">
+                    <button type="submit" class="df-btn df-btn-primary df-btn-sm" id="approvalFilterApply"><i class="bi bi-funnel-fill" aria-hidden="true"></i> Filtrele</button>
+                    <a class="df-btn df-btn-secondary df-btn-sm" id="approvalFilterClear" href="@QueryHelpers.AddQueryString(action, "durum", sayfalama.Durum)"><i class="bi bi-x-lg" aria-hidden="true"></i> Temizle</a>
+                </div>
+            </form>
+        </details>
+        <div data-panel="@sayfalama.Durum" class="active">
+            @await Html.PartialAsync("_YetkiBelgesiOnayTable", new Tuple<IReadOnlyList<YetkiBelgesiKayitDto>, string, string>(Model.Item1, sayfalama.Durum, Model.Item3))
+        </div>
+        <footer class="df-permission-pager df-approval-pager">
+            <span>@ilk-@son / @sayfalama.Toplam belge</span>
+            @if (sayfalama.ToplamSayfa > 1)
+            {
+                <nav aria-label="Yetki belgesi sayfaları">
+                    @if (sayfalama.Sayfa > 1)
+                    {
+                        <a href="@Link(sayfalama.Durum, sayfalama.Sayfa - 1)" aria-label="Önceki sayfa" title="Önceki sayfa"><i class="bi bi-chevron-left" aria-hidden="true"></i></a>
+                    }
+                    else
+                    {
+                        <span class="is-disabled" aria-disabled="true"><i class="bi bi-chevron-left" aria-hidden="true"></i></span>
+                    }
+                    <span class="df-permission-page-number">@sayfalama.Sayfa / @sayfalama.ToplamSayfa</span>
+                    @if (sayfalama.Sayfa < sayfalama.ToplamSayfa)
+                    {
+                        <a href="@Link(sayfalama.Durum, sayfalama.Sayfa + 1)" aria-label="Sonraki sayfa" title="Sonraki sayfa"><i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+                    }
+                    else
+                    {
+                        <span class="is-disabled" aria-disabled="true"><i class="bi bi-chevron-right" aria-hidden="true"></i></span>
+                    }
+                </nav>
+            }
+        </footer>
+    </section>
+</div>

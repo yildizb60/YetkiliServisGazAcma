@@ -67,7 +67,7 @@ internal static class PanelReportSqlScenario
                 new Ys_Sube { FirmaId = certifiedFirm.Id, SubeAdi = "Certified branch", Il = "CertifiedCity", Ilce = "CertifiedDistrict" });
             await db.SaveChangesAsync();
 
-            DagitimSirketApiController CompanyController(AppKullanici user) => new(db)
+            DagitimSirketApiController CompanyController(AppKullanici user) => new(new DagitimSirketApiService(db))
             {
                 ControllerContext = new ControllerContext
                 {
@@ -104,7 +104,7 @@ internal static class PanelReportSqlScenario
             Check(await companyController.Getir(new() { Id = secondary.Id }) is ForbidResult,
                 "Archived personnel cannot use an existing company grant");
 
-            var directory = new YetkiliServislerController(db, null!, null!);
+            var directory = new YetkiliServislerController(new YetkiliServisRehberApiService(db), null!, null!);
             var directoryResult = (YetkiliServisSayfaliDto)((OkObjectResult)await directory.Liste(new() { PageSize = 100 })).Value!;
             Check(directoryResult.TotalCount == 2
                 && directoryResult.Items.Select(x => x.Id).Order().SequenceEqual(new[] { serviceFirm.Id, foreignFirm.Id }.Order()),
@@ -262,8 +262,8 @@ internal static class PanelReportSqlScenario
                 Options.Create(new IdentityOptions()), new PasswordHasher<AppKullanici>(), [], [],
                 new UpperInvariantLookupNormalizer(), new IdentityErrorDescriber(), null!,
                 NullLogger<UserManager<AppKullanici>>.Instance);
-            var historyController = new YetkiliServisDevreyeAlmaApiController(db, manager, null!, null!,
-                exports, new YetkiliServisIlkKurulumService(db))
+            var historyController = new YetkiliServisDevreyeAlmaApiController(manager, null!, exports,
+                new DevreyeAlmaOkumaApiService(db, new YetkiliServisIlkKurulumService(db), new DevreyeAlmaYetkiDogrulamaService(db)), null!)
             {
                 ControllerContext = CompanyController(serviceUser).ControllerContext
             };
@@ -279,8 +279,11 @@ internal static class PanelReportSqlScenario
             })).Value!;
             Check(reversedHistory.Islemler.Select(x => x.Id).SequenceEqual(new[] { lastMinute.Id, current.Id, previous.Id }),
                 "Reversed service history dates agree with the download without including another firm's records");
-            var serviceReports = new YetkiliServisPanelApiController(db, manager, null!, exports,
-                new YetkiliServisIlkKurulumService(db))
+            var serviceReports = new YetkiliServisPanelApiController(manager, null!, exports,
+                new YetkiliServisRaporApiService(db),
+                new YetkiliServisPanelOkumaApiService(db, new YetkiliServisIlkKurulumService(db),
+                    NullLogger<YetkiliServisPanelOkumaApiService>.Instance),
+                new YetkiliServisProfilApiService(db, manager))
             {
                 ControllerContext = CompanyController(serviceUser).ControllerContext
             };
@@ -323,8 +326,8 @@ internal static class PanelReportSqlScenario
                 && brandSummary.SonIslemler.Count == 1,
                 "Brand groups use the catalog first, trim source brands and retain missing brands without applying the display limit");
 
-            AdminPanelApiController ReportController(AppKullanici user) => new(db, null!, null!, null!, null!, null!,
-                reports, null!, null!, exports, Microsoft.Extensions.Logging.Abstractions.NullLogger<AdminPanelApiController>.Instance)
+            AdminPanelApiController ReportController(AppKullanici user) => new(db, null!, null!, null!, null!,
+                reports, new AdminYetkiBelgesiOnayApiService(db), null!, exports, new AdminKullaniciOkumaApiService(db), null!)
             {
                 ControllerContext = CompanyController(user).ControllerContext
             };
@@ -358,6 +361,19 @@ internal static class PanelReportSqlScenario
             var adminSummary = (AdminRaporOzetDto)((OkObjectResult)await ReportController(admin).RaporlarOzet(Filter("operasyon"))).Value!;
             Check(adminSummary.OperasyonTalepSayisi == 1 && adminSummary.YetkiBelgesiBekleyen == 2,
                 "System administrators retain complete authorized report summaries");
+            foreach (var excel in new[] { false, true })
+            {
+                var certificateController = ReportController(admin);
+                var filter = new YetkiBelgesiRaporFiltre
+                { SirketId = primary.Id, Tip = "bekleyen", BaslangicTarihi = today, BitisTarihi = today };
+                var document = excel ? await certificateController.YetkiBelgesiRaporExcel(filter)
+                    : await certificateController.YetkiBelgesiRaporPdf(filter);
+                Check(document is FileContentResult { FileContents.Length: > 0 }
+                    && certificateController.Response.Headers.CacheControl == "private, no-store"
+                    && certificateController.Response.Headers.Pragma == "no-cache"
+                    && certificateController.Response.Headers.Expires == "0",
+                    "Certificate report returns intact private non-cacheable file: Excel=" + excel);
+            }
 
             var bulk = Enumerable.Range(1, 5001).Select(i => Commissioning($"bulk-{i}", today, today)).ToList();
             db.Ys_DevreyeAlmalar.AddRange(bulk);
@@ -384,7 +400,7 @@ internal static class PanelReportSqlScenario
             var foreignExport = await exports.AdminRaporExcelAsync(secondary.Id, today, today, null);
             Check(ExcelColumn(foreignExport.Bytes, "Tesisat No").SequenceEqual(new[] { "foreign" }),
                 "Another company's large report cannot block an otherwise small scoped download");
-            var pendingService = new YkcTalepService(db);
+            var pendingService = new YkcTalepOkumaService(db);
             var pendingCases = new List<Ykc_Talep>();
             for (var i = 0; i < 17; i++)
             {
