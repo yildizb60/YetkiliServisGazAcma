@@ -94,7 +94,7 @@ internal sealed class ApiHttpClient(HttpClient http, ApiIntegrationOptions optio
             return default;
         }
         // Only explicitly marked read operations may be retried. Writes and uploads run once.
-        var denemeSayisi = retryTransient ? 10 : 1;
+        var denemeSayisi = retryTransient ? 3 : 1;
         try
         {
             var token = kullanici == null ? bearerToken : await (tokens
@@ -118,7 +118,7 @@ internal sealed class ApiHttpClient(HttpClient http, ApiIntegrationOptions optio
                     {
                         logger.LogWarning("{Operation} API yaniti: {StatusCode}", operasyon, response.StatusCode);
                         if (deneme < denemeSayisi && ((int)response.StatusCode >= 500
-                            || response.StatusCode is HttpStatusCode.RequestTimeout or HttpStatusCode.TooManyRequests))
+                            || response.StatusCode == HttpStatusCode.RequestTimeout))
                         {
                             await Task.Delay(TimeSpan.FromMilliseconds(Math.Min(500 * deneme, 2000)), cancellationToken);
                             continue;

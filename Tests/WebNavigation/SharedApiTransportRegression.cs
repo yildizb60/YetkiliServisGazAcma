@@ -199,6 +199,28 @@ internal static class SharedApiTransportRegression
         var before = handler.Calls;
         Check(await Client<YetkiliServisPanelApiClient>().ProfilAsync(user) is { Id: 15 }
             && handler.Calls == before + 2, "Explicit read operation retries a temporary network failure");
+        handler.TransientFailures = 10;
+        before = handler.Calls;
+        try { await Client<YetkiliServisPanelApiClient>().ProfilAsync(user); throw new InvalidOperationException("Expected exhausted retries"); }
+        catch (ApiIntegrationException ex)
+        {
+            Check(ex.StatusCode == 503 && handler.Calls == before + 3,
+                "Persistent read network failures stop after three attempts");
+        }
+        handler.TransientFailures = 0;
+        foreach (var status in new[] { HttpStatusCode.ServiceUnavailable, HttpStatusCode.RequestTimeout, HttpStatusCode.TooManyRequests })
+        {
+            handler.Status = status;
+            before = handler.Calls;
+            try { await Client<YetkiliServisPanelApiClient>().ProfilAsync(user); throw new InvalidOperationException("Expected read rejection"); }
+            catch (ApiIntegrationException ex)
+            {
+                Check(ex.StatusCode == (int)status && handler.Disposed
+                    && handler.Calls == before + (status == HttpStatusCode.TooManyRequests ? 1 : 3),
+                    "Read retries are bounded and never replay a rate-limited request: " + status);
+            }
+        }
+        handler.Status = HttpStatusCode.OK;
         foreach (var call in new Func<Task>[]
         {
             () => brands.EkleAsync(user, new()),
@@ -251,13 +273,14 @@ internal static class SharedApiTransportRegression
         }
         handler.FileResponse = false;
         handler.Body = "{\"mesaj\":\"Private server detail\"}";
-        foreach (var status in new[] { HttpStatusCode.NotFound, HttpStatusCode.Forbidden, HttpStatusCode.Unauthorized, HttpStatusCode.ServiceUnavailable })
+        foreach (var status in new[] { HttpStatusCode.NotFound, HttpStatusCode.Forbidden, HttpStatusCode.Unauthorized, HttpStatusCode.ServiceUnavailable, HttpStatusCode.TooManyRequests })
         {
             handler.Status = status;
+            before = handler.Calls;
             try { await serviceFiles.DosyaAsync(user, 12, 7, true); throw new InvalidOperationException("Expected file rejection"); }
             catch (ApiIntegrationException ex)
             {
-                Check(ex.StatusCode == (int)status && !ex.Message.Contains("Private server detail")
+                Check(ex.StatusCode == (int)status && handler.Calls == before + 1 && !ex.Message.Contains("Private server detail")
                     && (status != HttpStatusCode.NotFound || ex.Message.Contains("bulunamadı")),
                     "Service-record export retains the actual file failure status: " + status);
             }
