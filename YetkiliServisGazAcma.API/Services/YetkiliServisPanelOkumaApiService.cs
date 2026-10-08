@@ -61,7 +61,8 @@ public sealed class YetkiliServisPanelOkumaApiService(AppDbContext context, Yetk
             Firma = firma == null ? null : YsPanelFirmaDto.FromEntity(firma),
             BuAy = buAy,
             GecerliBelgeSayisi = firma?.YetkiBelgeleri?.Count(x => YetkiBelgesiService.GecerliMi(x, bugun)) ?? 0,
-            BekleyenBelgeSayisi = firma?.YetkiBelgeleri?.Count(x => !x.SilindiMi && x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor) ?? 0,
+            BekleyenBelgeSayisi = firma?.YetkiBelgeleri?.Count(x => !x.SilindiMi
+                && x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor && x.YetkiBelgesiBitisTarihi >= bugun) ?? 0,
             AktifMarkaSayisi = firma?.FirmaMarkalar?.Count(x => !x.SilindiMi && x.YetkiBitisTarihi.Date >= bugun
                 && x.Marka is { AktifMi: true, SilindiMi: false }) ?? 0,
             AktifSubeSayisi = firma?.Subeler?.Count(x => !x.SilindiMi && x.AktifMi) ?? 0,

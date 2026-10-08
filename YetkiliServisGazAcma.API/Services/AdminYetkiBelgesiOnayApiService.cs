@@ -61,17 +61,22 @@ namespace YetkiliServisGazAcma.API.Services
             if (filtre.Yukleme.HasValue)
             {
                 var tarih = filtre.Yukleme.Value.Date;
-                query = query.Where(x => x.OlusturmaTarihi.Date == tarih);
+                query = query.Where(x => x.OlusturmaTarihi >= tarih);
+                if (tarih < DateTime.MaxValue.Date)
+                {
+                    var ertesiGun = tarih.AddDays(1);
+                    query = query.Where(x => x.OlusturmaTarihi < ertesiGun);
+                }
             }
             if (filtre.Baslangic.HasValue)
             {
                 var tarih = filtre.Baslangic.Value.Date;
                 query = query.Where(x => (x.YetkiBelgesiBaslangicTarihi ?? x.OlusturmaTarihi) >= tarih);
             }
-            if (filtre.Bitis.HasValue)
+            if (filtre.Bitis.HasValue && filtre.Bitis.Value.Date < DateTime.MaxValue.Date)
             {
-                var tarih = filtre.Bitis.Value.Date;
-                query = query.Where(x => x.YetkiBelgesiBitisTarihi.Date <= tarih);
+                var ertesiGun = filtre.Bitis.Value.Date.AddDays(1);
+                query = query.Where(x => x.YetkiBelgesiBitisTarihi < ertesiGun);
             }
 
             var gruplar = await query.GroupBy(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
