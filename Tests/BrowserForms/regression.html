@@ -7,7 +7,7 @@
 <ol id="results"></ol>
 <script type="module">
     const assert = (condition, message) => { if (!condition) throw new Error(message); };
-    const scripts = Object.fromEntries(await Promise.all(['toast', 'drawer', 'branch', 'permission', 'appointment', 'report', 'dropdown', 'commissioning', 'request', 'login'].map(async name =>
+    const scripts = Object.fromEntries(await Promise.all(['toast', 'drawer', 'branch', 'permission', 'appointment', 'report', 'dropdown', 'commissioning', 'approval', 'request', 'login'].map(async name =>
         [name, await (await fetch(`/${name}.js`)).text()])));
     const reportCss = await (await fetch('/report.css')).text();
     const requestCss = await (await fetch('/request.css')).text();
@@ -1067,25 +1067,31 @@
             }
         });
     }
-    for (const width of [880, 960, 1000, 1180, 1400]) {
-        await test(`Approval actions stay inline and firm names remain readable at ${width}px`, async (doc, win) => {
+    for (const width of [390, 880, 960, 1000, 1180, 1400]) {
+        await test(`Approval actions stay inline and firm names remain readable at ${width}px`, async (doc, win, load) => {
             win.frameElement.style.width = '1536px';
             const style = doc.createElement('style');
             style.textContent = panelCss + '\n' + operationsCss;
             doc.head.append(style);
             doc.body.innerHTML = `<main class="df-approval-workspace" style="width:${width}px"><div class="df-table-wrap df-approval-table-wrap">
                 <table class="df-table df-approval-table is-compact-approval"><thead><tr>${['Yetkili Servis', 'Bağlı Şirket', 'Yetki Belgesi Bitiş Tarihi', 'Belge Yükleme Tarihi', 'Durum', 'Belge', 'Onay İşlemleri'].map(label => `<th>${label}</th>`).join('')}</tr></thead>
-                <tbody><tr data-approval-row="true"><td><div class="df-approval-service-name"><span class="df-cell-main">Ahlatcı Yetkili Teknik Servis A.Ş</span></div></td>
+                <tbody><tr data-approval-row="true" data-firma="Test servisi"><td><div class="df-approval-service-name"><span class="df-cell-main">Ahlatcı Yetkili Teknik Servis A.Ş</span></div></td>
                 <td><span class="df-approval-company-name">Çorumgaz Doğalgaz A.Ş.</span></td><td><time>27.11.2026</time></td><td><time>25.09.2026</time></td>
                 <td><span class="df-certificate-status is-waiting">Onay bekliyor</span></td><td><a class="df-document-link is-icon" href="#" aria-label="Belgeyi incele">PDF</a></td>
                 <td><div class="df-approval-row-actions"><div class="df-approval-primary-actions"><form><button class="df-approval-action is-approve" type="button"><i></i><span>Onayla</span></button></form>
-                <details class="df-approval-reject"><summary class="df-approval-action is-reject"><i></i><span>Reddet</span></summary>
-                <form><label for="reason">Red gerekçesi</label><input id="reason" class="df-control" required maxlength="500"><button class="df-approval-action is-reject is-confirm" type="button">Reddi Kaydet</button></form></details></div>
-                <button class="df-approval-expand" type="button" aria-label="Ayrıntıları aç">+</button></div></td></tr></tbody></table></div></main>`;
+                <button type="button" class="df-approval-action is-reject" data-approval-reject-toggle aria-controls="reject-1" aria-expanded="false"><i></i><span>Reddet</span></button></div>
+                <button class="df-approval-expand" type="button" data-approval-expand aria-controls="detail-1" aria-expanded="false" aria-label="Ayrıntıları aç">+</button></div></td></tr>
+                <tr id="reject-1" class="df-approval-reject-row" data-approval-reject-panel hidden><td colspan="7"><form class="df-approval-reject-form">
+                <label for="reason">Red gerekçesi:</label><input id="reason" name="gerekce" class="df-control" required maxlength="500">
+                <button class="df-approval-action is-reject is-confirm" type="submit">Reddi Kaydet</button>
+                <button class="df-approval-expand" type="button" data-approval-reject-close aria-label="Red işlemini kapat">×</button></form></td></tr>
+                <tr id="detail-1" class="df-approval-detail-row" data-approval-detail hidden><td colspan="7"><div class="df-approval-detail-grid"><div><span>Vergi No</span><strong>1234567890</strong></div></div></td></tr>
+                </tbody></table></div></main>`;
+            load('approval');
             await doc.fonts.ready;
             await new Promise(resolve => win.requestAnimationFrame(resolve));
             const row = doc.querySelector('[data-approval-row]'), wrap = doc.querySelector('.df-approval-table-wrap');
-            const approve = doc.querySelector('.is-approve'), reject = doc.querySelector('summary.is-reject');
+            const approve = doc.querySelector('.is-approve'), reject = doc.querySelector('[data-approval-reject-toggle]');
             const approveRect = approve.getBoundingClientRect(), rejectRect = reject.getBoundingClientRect();
             assert(Math.abs(approveRect.top - rejectRect.top) < 1, 'Approve and reject wrap onto separate rows');
             assert(approveRect.right <= rejectRect.left && rejectRect.right <= doc.querySelector('.df-approval-expand').getBoundingClientRect().left, 'Action buttons overlap');
@@ -1093,15 +1099,56 @@
             const name = doc.querySelector('.df-cell-main');
             assert(win.getComputedStyle(name).whiteSpace === 'normal' && win.getComputedStyle(name).textOverflow !== 'ellipsis', 'Firm name is truncated');
             assert(name.scrollHeight <= name.clientHeight + 1 && name.scrollWidth <= name.clientWidth + 1, 'Firm name is clipped');
-            assert(wrap.scrollWidth <= wrap.clientWidth + 1, 'Approval table scrolls horizontally');
+            if (width >= 880) assert(wrap.scrollWidth <= wrap.clientWidth + 1, 'Approval table scrolls horizontally');
+            doc.querySelector('[data-approval-expand]').click();
+            assert(row.classList.contains('is-expanded') && !doc.querySelector('#detail-1').hidden, 'Row detail did not open');
+            const originalHeight = row.getBoundingClientRect().height, originalScrollWidth = wrap.scrollWidth;
             reject.click();
             await new Promise(resolve => win.requestAnimationFrame(resolve));
-            const details = doc.querySelector('details'), input = doc.querySelector('#reason');
-            assert(details.open && input.getBoundingClientRect().width > 80, 'Rejection reason cannot be entered');
-            assert(wrap.scrollWidth <= wrap.clientWidth + 1, 'Rejection form overflows the table');
+            const panel = doc.querySelector('#reject-1'), input = doc.querySelector('#reason'), form = input.form;
+            assert(!panel.hidden && reject.getAttribute('aria-expanded') === 'true' && input.getBoundingClientRect().width > 80, 'Rejection reason cannot be entered');
+            assert(doc.activeElement === input, 'Reason input is not focused');
+            const luminance = color => color.match(/[\d.]+/g).slice(0, 3).map(Number).map(value => {
+                const channel = value / 255;
+                return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+            }).reduce((sum, value, index) => sum + value * [0.2126, 0.7152, 0.0722][index], 0);
+            const contrast = (foreground, background) => {
+                const a = luminance(foreground), b = luminance(background);
+                return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+            };
+            assert(contrast(win.getComputedStyle(form.querySelector('label')).color, win.getComputedStyle(form).backgroundColor) >= 4.5, 'Rejection label inherits white expanded-row text');
+            assert(contrast(win.getComputedStyle(input).color, win.getComputedStyle(input).backgroundColor) >= 4.5, 'Reason text is not readable');
+            assert(Math.abs(row.getBoundingClientRect().height - originalHeight) < 1, 'Rejection makes the data row taller');
+            assert(form.getBoundingClientRect().height <= (width < 620 ? 90 : 60), 'Rejection form is unnecessarily tall');
+            const inputRect = input.getBoundingClientRect(), saveRect = form.querySelector('[type="submit"]').getBoundingClientRect();
+            assert(Math.abs((inputRect.top + inputRect.bottom) - (saveRect.top + saveRect.bottom)) < 2, 'Reason and save button are not vertically aligned');
+            assert(form.scrollWidth <= form.clientWidth + 1 && form.clientWidth <= width + 1, 'Rejection form overflows its viewport');
+            assert(wrap.scrollWidth <= originalScrollWidth + 1, 'Rejection introduces horizontal overflow');
+            assert(!input.checkValidity(), 'An empty rejection reason is accepted');
+            input.value = 'Belge tarihi okunmuyor.';
+            assert(input.required && input.maxLength === 500 && input.checkValidity(), 'Reason validation changed');
+            doc.querySelector('[data-approval-reject-close]').click();
+            assert(panel.hidden && doc.activeElement === reject && !doc.querySelector('#detail-1').hidden, 'Cancel fails to preserve detail and restore focus');
+            reject.click();
+            assert(input.value === 'Belge tarihi okunmuyor.', 'Closing the form loses the typed reason');
+            input.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+            assert(panel.hidden && reject.getAttribute('aria-expanded') === 'false' && doc.activeElement === reject, 'Escape fails to close and restore focus');
+            reject.click();
+            doc.querySelector('[data-approval-expand]').click();
+            assert(doc.querySelector('#detail-1').hidden && !panel.hidden, 'Detail toggle changes rejection state');
             reject.click();
             await new Promise(resolve => win.requestAnimationFrame(resolve));
-            assert(row.getBoundingClientRect().height <= 60, 'Closing rejection leaves an oversized row');
+            assert(panel.hidden && row.getBoundingClientRect().height <= 60, 'Closing rejection leaves an oversized row');
+            const second = row.cloneNode(true), secondPanel = panel.cloneNode(true);
+            second.querySelector('[data-approval-reject-toggle]').setAttribute('aria-controls', 'reject-2');
+            secondPanel.id = 'reject-2';
+            secondPanel.querySelector('input').id = 'reason-2';
+            secondPanel.querySelector('label').htmlFor = 'reason-2';
+            row.parentElement.append(second, secondPanel);
+            reject.click();
+            second.querySelector('[data-approval-reject-toggle]').click();
+            assert(panel.hidden && !secondPanel.hidden && reject.getAttribute('aria-expanded') === 'false', 'Multiple rejection forms stay open');
+            secondPanel.querySelector('[data-approval-reject-close]').click();
         });
     }
     for (const role of ['internal', 'firm']) {
@@ -1328,7 +1375,13 @@
                 }
                 const status = row.querySelector('.df-pill').getBoundingClientRect();
                 const type = row.querySelector('.df-device-type-tag').getBoundingClientRect();
-                assert(status.width === 90 && status.height === 24 && type.width === 90 && type.height === 24, 'Status and device type must both measure 90 by 24 pixels');
+                assert(status.width === 80 && status.height === 24 && type.width === 80 && type.height === 24, 'Status and device type must both measure 80 by 24 pixels');
+                for (const badge of row.querySelectorAll('.df-pill, .df-device-type-tag')) {
+                    const range = doc.createRange();
+                    range.selectNodeContents(badge);
+                    const lines = [...range.getClientRects()], rect = badge.getBoundingClientRect();
+                    assert(lines.length === 1 && lines[0].left >= rect.left + 7 && lines[0].right <= rect.right - 7, 'Badge text wraps or loses its inner spacing');
+                }
                 for (const header of headers.filter(header => !header.classList.contains('df-commissioning-col-select'))) {
                     const range = doc.createRange();
                     range.selectNodeContents(header);
@@ -1353,7 +1406,7 @@
                 status.textContent = label;
                 status.className = `df-pill ${css}`;
                 row.classList.toggle('is-expanded');
-                assert(status.getBoundingClientRect().width === 90 && status.getBoundingClientRect().height === 24, 'Status changes or expansion resize the badge');
+                assert(status.getBoundingClientRect().width === 80 && status.getBoundingClientRect().height === 24, 'Status changes or expansion resize the badge');
             }
         });
     }
@@ -1403,11 +1456,15 @@
             field.dispatchEvent(new win.PointerEvent('pointerenter', { pointerType: 'mouse' }));
             doc.dispatchEvent(new win.Event('scroll'));
             assert(tooltip.hidden, 'Scrolling leaves tooltip floating');
+            const detailToggle = doc.querySelector('[data-commissioning-expand]');
+            detailToggle.setAttribute('aria-label', `Test customer${' '.repeat(100000)}işlem ayrıntılarını görüntüle`);
             field.click();
             assert(!doc.querySelector('#test-model-detail').hidden && tooltip.hidden, 'Model click does not open full inline detail');
+            assert(detailToggle.getAttribute('aria-label') === 'Test customer işlem ayrıntılarını kapat', 'Long label whitespace changes the record name');
             assert(doc.querySelector('.df-commissioning-extra-facts dd').textContent === model, 'Inline model is incomplete');
             doc.querySelector('[data-commissioning-expand]').click();
             assert(doc.querySelector('#test-model-detail').hidden, 'Detail cannot close');
+            assert(detailToggle.getAttribute('aria-label') === 'Test customer işlem ayrıntılarını görüntüle', 'Closing a detail duplicates its action label');
             field.textContent = 'VE 9';
             win.dispatchEvent(new win.Event('resize'));
             field.dispatchEvent(new win.PointerEvent('pointerenter', { pointerType: 'mouse' }));

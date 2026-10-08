@@ -21,7 +21,8 @@ public sealed class DevreyeAlmaSorguApiService(AppDbContext context, OnlineCihaz
 
     public async Task<YsTesisatSorguSonucDto> SorgulaAsync(YsTesisatSorguDto? dto, AppKullanici kullanici, CancellationToken cancellationToken)
     {
-        var kurulum = await _ilkKurulumService.GetirAsync(kullanici.FirmaId!.Value);
+        cancellationToken.ThrowIfCancellationRequested();
+        var kurulum = await _ilkKurulumService.GetirAsync(kullanici.FirmaId!.Value, cancellationToken);
         if (kurulum.zorunluMu && !kurulum.tamamlandiMi)
         {
             return new YsTesisatSorguSonucDto
@@ -44,11 +45,13 @@ public sealed class DevreyeAlmaSorguApiService(AppDbContext context, OnlineCihaz
             return new YsTesisatSorguSonucDto { Basarili = false, Mesaj = "Sozlesme no sayisal olmalidir." };
 
         var firma = await FirmaQuery()
-            .FirstOrDefaultAsync(x => x.Id == kullanici.FirmaId!.Value);
+            .FirstOrDefaultAsync(x => x.Id == kullanici.FirmaId!.Value, cancellationToken);
         if (firma == null)
             return new YsTesisatSorguSonucDto { Basarili = false, Mesaj = "Yetkili servis firma kaydı bulunamadı." };
         if (!firma.AktifMi)
             return new YsTesisatSorguSonucDto { Basarili = false, Mesaj = "Firma kaydınız pasif olduğu için cihaz sorgulanamaz." };
+        if (!await _yetki.GecerliYetkiBelgesiVarAsync(firma.Id, cancellationToken))
+            return new YsTesisatSorguSonucDto { Basarili = false, Mesaj = "Cihaz sorgulamak için geçerli, onaylı yetki belgeniz bulunmalıdır." };
 
         var firmaKodu = OnlineFirmaKodu(firma);
         var servisSonuc = await _onlineCihazBilgileriClient.YSCihazBilgileriGetirAsync(
@@ -122,18 +125,19 @@ public sealed class DevreyeAlmaSorguApiService(AppDbContext context, OnlineCihaz
         }
 
         await _context.Database.ExecuteSqlRawAsync(
-            "DELETE TOP (200) FROM dbo.Ys_DevreyeAlmaSorguKayitlari WHERE GecerlilikTarihi <= SYSUTCDATETIME() AND DevreyeAlmaId IS NULL");
+            "DELETE TOP (200) FROM dbo.Ys_DevreyeAlmaSorguKayitlari WHERE GecerlilikTarihi <= SYSUTCDATETIME() AND DevreyeAlmaId IS NULL",
+            cancellationToken);
 
         var tamamlananAnahtarlar = await _context.Ys_DevreyeAlmalar
             .Where(x => !x.SilindiMi
                 && x.TesistatNo == kaynakTesisatNo && x.KaynakCihazAnahtari != null)
             .Select(x => x.KaynakCihazAnahtari!)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
         var tamamlananlar = tamamlananAnahtarlar.ToHashSet(StringComparer.Ordinal);
         for (var index = 0; index < cihazlar.Count; index++)
             cihazlar[index].KaydedildiMi = tamamlananlar.Contains(kaynakAnahtarlari[index]);
 
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(cancellationToken);
         return new YsTesisatSorguSonucDto
         {
             Basarili = true,

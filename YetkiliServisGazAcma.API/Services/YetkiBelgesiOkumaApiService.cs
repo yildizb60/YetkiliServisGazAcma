@@ -31,14 +31,14 @@ public sealed class YetkiBelgesiOkumaApiService(AppDbContext context, YetkiBelge
 
     public async Task<YetkiBelgesiFirmaEkraniDto?> FirmaEkraniAsync(int firmaId)
     {
-        var firma = await _context.Ys_Firmalar
-            .Include(x => x.YetkiBelgeleri)
+        var firma = await _context.Ys_Firmalar.AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == firmaId && !x.SilindiMi);
 
         if (firma == null)
             return null;
 
         var belgeler = await _service.FirmaninYetkiBelgeleri(firmaId);
+        firma.YetkiBelgeleri = belgeler;
         var bildirimler = await FirmaBildirimleriAsync(firmaId, firma);
 
         return new YetkiBelgesiFirmaEkraniDto
@@ -63,47 +63,20 @@ public sealed class YetkiBelgesiOkumaApiService(AppDbContext context, YetkiBelge
         return yetkiBelgeleri.Select(MapYetkiBelgesi);
     }
 
-    public async Task<YetkiBelgesiOnayEkraniDto> OnayEkraniAsync(int? sirketId)
+    public async Task<YetkiBelgesiOnayEkraniDto> OnayEkraniAsync(
+        int? sirketId, YetkiBelgesiOnayFiltreDto? filtre = null, CancellationToken cancellationToken = default)
     {
-        var sorgu = _context.Ys_YetkiBelgeleri
-            .Include(x => x.Firma)
-                .ThenInclude(x => x!.Sirket)
-            .Where(x => !x.SilindiMi
-                && x.Firma != null
-                && !x.Firma.SilindiMi
-                && (sirketId == null || x.Firma.SirketId == sirketId));
-
-        var bugun = DateTime.Today;
-        var bekleyenler = await sorgu
-            .Where(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
-                && x.YetkiBelgesiBitisTarihi >= bugun)
-            .OrderByDescending(x => x.OlusturmaTarihi)
-            .ToListAsync();
-
-        var suresiDolanlar = await sorgu
-            .Where(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
-                && x.YetkiBelgesiBitisTarihi < bugun)
-            .OrderByDescending(x => x.YetkiBelgesiBitisTarihi)
-            .ToListAsync();
-
-        var onaylananlar = await sorgu
-            .Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi)
-            .OrderByDescending(x => x.OnayTarihi ?? x.OlusturmaTarihi)
-            .Take(100)
-            .ToListAsync();
-
-        var reddedilenler = await sorgu
-            .Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Reddedildi)
-            .OrderByDescending(x => x.OnayTarihi ?? x.OlusturmaTarihi)
-            .Take(100)
-            .ToListAsync();
+        var (kayitlar, sayfalama) = await AdminYetkiBelgesiOnayApiService.OnaySayfasiAsync(
+            _context, sirketId, filtre, cancellationToken);
+        var belgeler = kayitlar.Select(MapYetkiBelgesi).ToList();
 
         return new YetkiBelgesiOnayEkraniDto
         {
-            Bekleyenler = bekleyenler.Select(MapYetkiBelgesi).ToList(),
-            SuresiDolanlar = suresiDolanlar.Select(MapYetkiBelgesi).ToList(),
-            Onaylananlar = onaylananlar.Select(MapYetkiBelgesi).ToList(),
-            Reddedilenler = reddedilenler.Select(MapYetkiBelgesi).ToList()
+            Sayfalama = sayfalama,
+            Bekleyenler = sayfalama.Durum == "bekleyen" ? belgeler : [],
+            SuresiDolanlar = sayfalama.Durum == "suresi-dolan" ? belgeler : [],
+            Onaylananlar = sayfalama.Durum == "onaylanan" ? belgeler : [],
+            Reddedilenler = sayfalama.Durum == "reddedilen" ? belgeler : []
         };
     }
 
@@ -115,6 +88,11 @@ public sealed class YetkiBelgesiOkumaApiService(AppDbContext context, YetkiBelge
             Id = x.Id,
             FirmaId = x.FirmaId,
             FirmaAdi = x.Firma?.FirmaAdi,
+            VergiNo = x.Firma?.VergiNo,
+            FirmaYetkiliKisi = x.Firma?.YetkiliKisi,
+            FirmaTelefon = x.Firma?.Telefon,
+            FirmaAdres = x.Firma?.Adres,
+            FirmaFaaliyetIli = x.Firma?.FaaliyetIli,
             SirketId = x.Firma?.SirketId,
             SirketAdi = x.Firma?.Sirket?.SirketAdi,
             DosyaYolu = string.IsNullOrWhiteSpace(x.DosyaYolu) ? null : YetkiBelgesiService.GuvenliDosyaLinki(x.Id),
@@ -131,6 +109,11 @@ public sealed class YetkiBelgesiOkumaApiService(AppDbContext context, YetkiBelge
     private async Task<List<string>> FirmaBildirimleriAsync(int firmaId, Ys_Firma firma)
     {
         var bildirimler = new List<string>();
+        var bugun = DateTime.Today;
+        var gecerli = firma.YetkiBelgeleri?
+            .Where(x => YetkiBelgesiService.GecerliMi(x, bugun))
+            .OrderByDescending(x => x.YetkiBelgesiBitisTarihi)
+            .FirstOrDefault();
         var onayli = firma.YetkiBelgeleri?
             .Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi && !x.SilindiMi)
             .OrderByDescending(x => x.OlusturmaTarihi)
@@ -138,16 +121,26 @@ public sealed class YetkiBelgesiOkumaApiService(AppDbContext context, YetkiBelge
 
         var bekleyenVar = firma.YetkiBelgeleri?.Any(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
             && x.YetkiBelgesiBitisTarihi.Date >= DateTime.Today && !x.SilindiMi) ?? false;
-        if (onayli != null)
+        if (gecerli != null)
         {
             bildirimler.Add("Yetki belgeniz onaylandı. Cihaz devreye alabilirsiniz.");
-            var kalan = (onayli.YetkiBelgesiBitisTarihi.Date - DateTime.Now.Date).Days;
+            var kalan = (gecerli.YetkiBelgesiBitisTarihi.Date - bugun).Days;
             if (kalan <= 30)
                 bildirimler.Add($"Yetki belgenizin bitmesine {kalan} gün kaldı. Lütfen yenileyin.");
         }
+        else if (onayli?.YetkiBelgesiBaslangicTarihi?.Date > bugun)
+        {
+            bildirimler.Add($"Yetki belgenizin geçerliliği {onayli.YetkiBelgesiBaslangicTarihi:dd.MM.yyyy} tarihinde başlayacak.");
+        }
+        else if (onayli != null)
+        {
+            bildirimler.Add("Yetki belgenizin süresi doldu. Lütfen yenileyin.");
+        }
 
         if (bekleyenVar)
-            bildirimler.Add("Yetki belgeniz onay bekliyor. Yetkili onayladıktan sonra işlem yapabilirsiniz.");
+            bildirimler.Add(gecerli != null
+                ? "Yeni yetki belgeniz onay bekliyor. Mevcut geçerli belgenizle işlem yapabilirsiniz."
+                : "Yetki belgeniz onay bekliyor. Yetkili onayladıktan sonra işlem yapabilirsiniz.");
 
         var son7Gun = DateTime.Now.AddDays(-7);
         var sonDevreye = await _context.Ys_DevreyeAlmalar

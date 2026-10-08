@@ -20,6 +20,7 @@ public sealed class YkcTesisatApiService(AppDbContext context, UserManager<AppKu
 
     public async Task<YkcTesisatSorguSonuc> SorgulaAsync(YkcTesisatSorguIstek? istek, AppKullanici kullanici, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(istek?.TesisatNo))
             return YkcTesisatSorguSonuc.Basarisiz("Tesisat no zorunludur.");
 
@@ -35,12 +36,12 @@ public sealed class YkcTesisatApiService(AppDbContext context, UserManager<AppKu
         var firma = kullanici.FirmaId.HasValue
             ? await _context.Ys_Firmalar
                 .Include(x => x.Sirket)
-                .FirstOrDefaultAsync(x => x.Id == kullanici.FirmaId.Value && !x.SilindiMi)
+                .FirstOrDefaultAsync(x => x.Id == kullanici.FirmaId.Value && !x.SilindiMi, cancellationToken)
             : null;
 
         var sirket = kullanici.SirketId.HasValue
             ? await _context.Dag_Sirketler
-                .FirstOrDefaultAsync(x => x.Id == kullanici.SirketId.Value && !x.SilindiMi)
+                .FirstOrDefaultAsync(x => x.Id == kullanici.SirketId.Value && !x.SilindiMi, cancellationToken)
             : firma?.Sirket;
 
         var roller = await _userManager.GetRolesAsync(kullanici);
@@ -121,7 +122,6 @@ public sealed class YkcTesisatApiService(AppDbContext context, UserManager<AppKu
             {
                 FirmaId = firma?.Id,
                 SirketId = sirket?.Id,
-                Vkn = firma?.VergiNo,
                 FirmaKodu = kullanilanFirmaKodu,
                 TesisatNo = tesisatNo.ToString(CultureInfo.InvariantCulture),
                 SozlesmeNo = sozlesmeNo.ToString(CultureInfo.InvariantCulture),
@@ -137,7 +137,7 @@ public sealed class YkcTesisatApiService(AppDbContext context, UserManager<AppKu
                 EskiMarka = cihaz.CihazMarka,
                 EskiKapasite = cihaz.CihazKapasite,
                 IzinliYeniCihazTipleri = new Dictionary<string, string?>(izinliYeniCihazTipleri, StringComparer.OrdinalIgnoreCase)
-            });
+            }, cancellationToken);
             if (roller.Contains("SertifikaliFirma"))
             {
                 cihaz.CihazMarka = null;
@@ -182,7 +182,7 @@ public sealed class YkcTesisatApiService(AppDbContext context, UserManager<AppKu
             YeniBacaTipi = istek.YeniBacaTipi,
             YeniKapasite = istek.YeniKapasite
         };
-        if (!await _sorguKayitlari.UygulaAsync(kullanici.Id, cihaz)
+        if (!await _sorguKayitlari.UygulaAsync(kullanici.Id, cihaz, cancellationToken)
             || cihaz.FirmaId != kullanici.FirmaId
             || (kullanici.SirketId.HasValue && cihaz.SirketId != kullanici.SirketId)
             || !await _context.Ys_Firmalar.AnyAsync(x => x.Id == cihaz.FirmaId && !x.SilindiMi

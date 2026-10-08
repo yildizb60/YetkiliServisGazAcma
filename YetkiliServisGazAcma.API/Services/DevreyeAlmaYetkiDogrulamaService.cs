@@ -11,7 +11,7 @@ public sealed class DevreyeAlmaYetkiDogrulamaService(AppDbContext context)
 {
     private readonly AppDbContext _context = context;
 
-    public async Task<bool> GecerliYetkiBelgesiVarAsync(int firmaId)
+    public async Task<bool> GecerliYetkiBelgesiVarAsync(int firmaId, CancellationToken cancellationToken = default)
     {
         var bugun = DateTime.Now.Date;
         return await _context.Ys_YetkiBelgeleri
@@ -19,7 +19,7 @@ public sealed class DevreyeAlmaYetkiDogrulamaService(AppDbContext context)
                 && !x.SilindiMi
                 && x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi
                 && (!x.YetkiBelgesiBaslangicTarihi.HasValue || x.YetkiBelgesiBaslangicTarihi.Value.Date <= bugun)
-                && x.YetkiBelgesiBitisTarihi.Date >= bugun);
+                && x.YetkiBelgesiBitisTarihi.Date >= bugun, cancellationToken);
     }
 
     public async Task<bool> OnayliYetkiBelgesiVarAsync(int firmaId)

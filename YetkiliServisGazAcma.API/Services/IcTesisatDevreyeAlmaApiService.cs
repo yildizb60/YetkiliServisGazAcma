@@ -77,8 +77,9 @@ public sealed class IcTesisatDevreyeAlmaApiService(AppDbContext context)
             query = query.Where(x => x.DevreyeAlmaTarihi < dto.BitisTarihi.Value.Date.AddDays(1));
 
         var toplam = await query.CountAsync();
-        var sayfa = Math.Max(dto.Sayfa, 1);
         var sayfaBoyutu = Math.Clamp(dto.SayfaBoyutu <= 0 ? 100 : dto.SayfaBoyutu, 1, 500);
+        var toplamSayfa = Math.Max(1, (int)Math.Ceiling(toplam / (double)sayfaBoyutu));
+        var sayfa = Math.Clamp(dto.Sayfa, 1, toplamSayfa);
 
         var islemler = await query
             .OrderByDescending(x => x.DevreyeAlmaTarihi)

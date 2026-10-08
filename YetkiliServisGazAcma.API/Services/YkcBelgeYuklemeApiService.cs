@@ -36,15 +36,19 @@ public sealed class YkcBelgeYuklemeApiService(YkcTalepService talepService, IWeb
     }
 
     public async Task<YkcIslemSonuc> YukleAsync(int talepId, string? istenenDosyaTuru, IFormFile? dosya,
-        AppKullanici kullanici, bool genelYetkili, int? sirketId)
+        AppKullanici kullanici, bool genelYetkili, int? sirketId, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (talepId <= 0)
+            return YkcIslemSonuc.HataliSonuc("Form yükleme için talep id zorunludur.");
+
         if (dosya == null || dosya.Length == 0)
             return YkcIslemSonuc.HataliSonuc("Yüklenecek form dosyası zorunludur.");
 
         if (!YkcFormDosyasiGecerliMi(dosya.FileName, dosya.ContentType, icerikTipiZorunlu: true))
             return YkcIslemSonuc.HataliSonuc("Sadece PDF, JPG veya PNG form dosyasi yuklenebilir.");
 
-        if (!await YkcFormDosyaIcerigiGecerliMiAsync(dosya))
+        if (!await YkcFormDosyaIcerigiGecerliMiAsync(dosya, cancellationToken))
             return YkcIslemSonuc.HataliSonuc("Dosya içeriği seçilen PDF veya görsel türüyle uyuşmuyor.");
 
         var dosyaTuru = string.IsNullOrWhiteSpace(istenenDosyaTuru)
@@ -59,18 +63,31 @@ public sealed class YkcBelgeYuklemeApiService(YkcTalepService talepService, IWeb
         Directory.CreateDirectory(klasor);
 
         var dosyaAdi = GuvenliDosyaAdi(dosya.FileName);
-        var kayitAdi = $"{Guid.NewGuid():N}_{dosyaAdi}";
+        // The original name is display metadata only, never part of the storage path.
+        var uzanti = dosya.ContentType.Trim().ToLowerInvariant() switch
+        {
+            "application/pdf" => ".pdf",
+            "image/jpeg" => ".jpg",
+            "image/png" => ".png",
+            _ => throw new InvalidOperationException("Doğrulanmamış dosya türü.")
+        };
+        var kayitAdi = $"{Guid.NewGuid():N}{uzanti}";
         var fizikselYol = Path.Combine(klasor, kayitAdi);
 
         var tamamlandi = false;
+        var dosyaOlusturuldu = false;
         try
         {
-            await using (var stream = System.IO.File.Create(fizikselYol))
+            string belgeHash;
+            await using (var stream = new FileStream(fizikselYol, FileMode.CreateNew, FileAccess.ReadWrite,
+                FileShare.None, 81920, FileOptions.Asynchronous))
             {
-                await dosya.CopyToAsync(stream);
+                dosyaOlusturuldu = true;
+                await dosya.CopyToAsync(stream, cancellationToken);
+                stream.Position = 0;
+                belgeHash = Convert.ToHexString(await SHA256.HashDataAsync(stream, cancellationToken));
             }
 
-            var belgeHash = await DosyaHashAsync(fizikselYol);
             var depolamaAnahtari = $"ykc/{talepId}/{kayitAdi}";
             var sonuc = await _ykcTalepService.DosyaEkleAsync(new YkcDosyaKaydetDto
             {
@@ -82,14 +99,14 @@ public sealed class YkcBelgeYuklemeApiService(YkcTalepService talepService, IWeb
                 DosyaBoyutu = dosya.Length,
                 DepolamaTuru = YkcDepolamaTuruDegerleri.Private,
                 BelgeHash = belgeHash
-            }, kullanici, genelYetkili, sirketId);
+            }, kullanici, genelYetkili, sirketId, cancellationToken);
 
             tamamlandi = sonuc.Basarili;
             return sonuc;
         }
         finally
         {
-            if (!tamamlandi && PrivateDocumentStorage.IsInRoot(fizikselYol, kok)
+            if (dosyaOlusturuldu && !tamamlandi && PrivateDocumentStorage.IsInRoot(fizikselYol, kok)
                 && File.Exists(fizikselYol))
                 File.Delete(fizikselYol);
         }
@@ -97,7 +114,7 @@ public sealed class YkcBelgeYuklemeApiService(YkcTalepService talepService, IWeb
 
     private static string GuvenliDosyaAdi(string dosyaAdi)
     {
-        var sadeceAd = Path.GetFileName(dosyaAdi);
+        var sadeceAd = Path.GetFileName(dosyaAdi.Replace('\\', '/'));
         foreach (var karakter in Path.GetInvalidFileNameChars())
             sadeceAd = sadeceAd.Replace(karakter, '_');
 
@@ -105,13 +122,6 @@ public sealed class YkcBelgeYuklemeApiService(YkcTalepService talepService, IWeb
     }
 
     private string PrivateYkcBelgeRoot() => PrivateDocumentStorage.Root(_environment, _configuration, "ykc-belgeler");
-
-    private static async Task<string> DosyaHashAsync(string fizikselYol)
-    {
-        await using var stream = System.IO.File.OpenRead(fizikselYol);
-        var bytes = await SHA256.HashDataAsync(stream);
-        return Convert.ToHexString(bytes);
-    }
 
     private static bool ElleYuklenebilirBelgeTuruMu(string dosyaTuru)
     {
@@ -146,12 +156,13 @@ public sealed class YkcBelgeYuklemeApiService(YkcTalepService talepService, IWeb
         return izinliTipler.Contains(icerikTipi.Trim(), StringComparer.OrdinalIgnoreCase);
     }
 
-    private static async Task<bool> YkcFormDosyaIcerigiGecerliMiAsync(IFormFile dosya)
+    private static async Task<bool> YkcFormDosyaIcerigiGecerliMiAsync(IFormFile dosya, CancellationToken cancellationToken)
     {
         var uzanti = Path.GetExtension(dosya.FileName).ToLowerInvariant();
         var header = new byte[8];
         await using var stream = dosya.OpenReadStream();
-        var okunan = await stream.ReadAsync(header.AsMemory(0, header.Length));
+        var okunan = await stream.ReadAtLeastAsync(header, header.Length, throwOnEndOfStream: false,
+            cancellationToken: cancellationToken);
 
         return uzanti switch
         {

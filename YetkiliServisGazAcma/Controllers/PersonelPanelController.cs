@@ -321,7 +321,7 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpGet("onay-bekleyenler")]
-        public async Task<IActionResult> OnayBekleyenler()
+        public async Task<IActionResult> OnayBekleyenler([FromQuery] YetkiBelgesiOnayFiltreDto? filtre = null)
         {
             var yetkiResult = await YetkiKontrol(YetkiTipleri.YETKI_BELGESI_ONAY);
             if (yetkiResult != null) return yetkiResult;
@@ -333,7 +333,7 @@ namespace YetkiliServisGazAcma.Controllers
             AdminYetkiBelgesiOnayListeDto sonuc;
             try
             {
-                sonuc = await _yetkiBelgesiOnayApiClient.ListeleAsync(kullanici, sirketId)
+                sonuc = await _yetkiBelgesiOnayApiClient.ListeleAsync(kullanici, sirketId, filtre)
                     ?? new AdminYetkiBelgesiOnayListeDto();
             }
             catch (ApiIntegrationException ex)
@@ -346,7 +346,8 @@ namespace YetkiliServisGazAcma.Controllers
             var onaylananlar = sonuc.Onaylananlar;
             var reddedilenler = sonuc.Reddedilenler;
 
-            ViewBag.OnayBekleyen = bekleyenler.Count;
+            ViewBag.OnayBekleyen = sonuc.Sayfalama.Bekleyen;
+            ViewBag.Sayfalama = sonuc.Sayfalama;
             ViewBag.Kullanici = kullanici;
             ViewBag.Onaylananlar = onaylananlar;
             ViewBag.Reddedilenler = reddedilenler;
@@ -362,7 +363,7 @@ namespace YetkiliServisGazAcma.Controllers
 
         [HttpPost("onayla")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Onayla(int id)
+        public async Task<IActionResult> Onayla(int id, string? returnUrl = null)
         {
             var yetkiResult = await YetkiKontrol(YetkiTipleri.YETKI_BELGESI_ONAY);
             if (yetkiResult != null) return yetkiResult;
@@ -383,12 +384,12 @@ namespace YetkiliServisGazAcma.Controllers
                 TempData["Hata"] = ex.Message;
             }
 
-            return Redirect("/personel-panel/onay-bekleyenler");
+            return Url.IsLocalUrl(returnUrl) ? LocalRedirect(returnUrl!) : Redirect("/personel-panel/onay-bekleyenler");
         }
 
         [HttpPost("reddet")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Reddet(int id, string? gerekce)
+        public async Task<IActionResult> Reddet(int id, string? gerekce, string? returnUrl = null)
         {
             var yetkiResult = await YetkiKontrol(YetkiTipleri.YETKI_BELGESI_ONAY);
             if (yetkiResult != null) return yetkiResult;
@@ -409,7 +410,7 @@ namespace YetkiliServisGazAcma.Controllers
                 TempData["Hata"] = ex.Message;
             }
 
-            return Redirect("/personel-panel/onay-bekleyenler");
+            return Url.IsLocalUrl(returnUrl) ? LocalRedirect(returnUrl!) : Redirect("/personel-panel/onay-bekleyenler");
         }
 
         [HttpGet("onay-gecmisi")]
