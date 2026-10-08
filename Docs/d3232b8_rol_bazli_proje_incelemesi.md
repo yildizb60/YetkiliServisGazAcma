@@ -45,9 +45,9 @@ Diğer somut sorunlar: YKC dosya hatasının bağlantı kesintisi gibi sunulmas�
 
 Örnek korunan davranışlar:
 
-![YKC yetkisi bulunmayan personelde sade takvim](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/Docs/d3232b8_inceleme_kanitlari/personel-yetkisiz-takvim.jpg)
+![YKC yetkisi bulunmayan personelde sade takvim](d3232b8_inceleme_kanitlari/personel-yetkisiz-takvim.jpg)
 
-![Cihaz seçiminde servis yetki engeli](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/Docs/d3232b8_inceleme_kanitlari/servis-cihaz-yetki-engeli.jpg)
+![Cihaz seçiminde servis yetki engeli](d3232b8_inceleme_kanitlari/servis-cihaz-yetki-engeli.jpg)
 
 ## 3. Sayfa × Rol × İşlem Kapsamı
 
@@ -107,9 +107,9 @@ URL'ler route yollarıdır; gerçek tarayıcı gezisi güvenli test MVC adresind
 
 **Firma akışında görülen:** Uygunsuzluk gerekçesi yeni randevu beklerken görünür; uzun açıklama native `details/summary` ile açılır. Kaynak cihaz adı/kapasitesi yeni talep ekranında gösterilmez; karşılaştırma sunucuda yapılır. Bu doğru davranış, B04'teki normal detay JSON açığını ortadan kaldırmıyor.
 
-![Firma ekranında uyarı varken işlem devam edebilir](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/Docs/d3232b8_inceleme_kanitlari/firma-kapasite-uyarisi.jpg)
+![Firma ekranında uyarı varken işlem devam edebilir](d3232b8_inceleme_kanitlari/firma-kapasite-uyarisi.jpg)
 
-![Yeni randevu beklerken uzun son gerekçe](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/Docs/d3232b8_inceleme_kanitlari/firma-uzun-uygunsuzluk-gerekcesi.jpg)
+![Yeni randevu beklerken uzun son gerekçe](d3232b8_inceleme_kanitlari/firma-uzun-uygunsuzluk-gerekcesi.jpg)
 
 ### 3.4. Personel ve Yönetim
 
@@ -156,11 +156,11 @@ URL'ler route yollarıdır; gerçek tarayıcı gezisi güvenli test MVC adresind
 | Yetkili servis | Gerçek sorgu/kayıt/geçmiş/şube, yabancı kayıt HTTP | Doğrudan devreye alma tamamlanıyor; başka firma kaydı 404. |
 | Sertifikalı firma | Gerçek oluşturma/takip/randevu/önizleme, yabancı kayıt HTTP | Başka firma 404 / başka şirket 403; kendi normal JSON'unda kaynak alan sorunu B04. |
 
-**Admin testi sınırı:** [AuthController.cs:226](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AuthController.cs:226), 236-243, normal girişte birincil/uyumluluk rollerini tamamlıyor. Dolayısıyla bu iki browser yolculuğu farklı başlangıç rol kümeleriyle giriş uyumluluğunu kanıtlar; giriş sonrasında token'ın yalnız tek admin rolü taşıdığını kanıtlamaz. Yalnız tek rol claim'i içeren token ile tüm yönetim yolları için ayrı HTTP matrisi bu çalışmada yapılmadı. Şirket TAM_YETKI ile sistem admini ayrımı ayrıca yetki/kapsam testlerinde korunuyor.
+**Admin testi sınırı:** [AuthController.cs:226](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma.API/Controllers/AuthController.cs#L226), 236-243, normal girişte birincil/uyumluluk rollerini tamamlıyor. Dolayısıyla bu iki browser yolculuğu farklı başlangıç rol kümeleriyle giriş uyumluluğunu kanıtlar; giriş sonrasında token'ın yalnız tek admin rolü taşıdığını kanıtlamaz. Yalnız tek rol claim'i içeren token ile tüm yönetim yolları için ayrı HTTP matrisi bu çalışmada yapılmadı. Şirket TAM_YETKI ile sistem admini ayrımı ayrıca yetki/kapsam testlerinde korunuyor.
 
 ### 3.5. Menü Dışı İşlem ve API Envanteri
 
-Tam yöntem/URL/controller/rol metadata dizini: [d3232b8_route_envanteri.json](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/Docs/d3232b8_route_envanteri.json).
+Tam yöntem/URL/controller/rol metadata dizini: [d3232b8_route_envanteri.json](d3232b8_route_envanteri.json).
 
 Envanter 289 attribute-route işlem satırı (163 MVC, 126 API) ve 9 konvansiyonel action yolu içerir. **298 bağımsız sayfa veya 298 başarılı test demek değildir.** Aynı sayfanın alias ve POST işlemleri ayrı satırdır. Konvansiyonel route'un bütün eşdeğer URL'leri çoğaltılmadı. Reflection taramasındaki templatesiz Marka action'ları yanlışlıkla `/` sayfası sayılmadı; health endpoint'inin `/api/health` ve `/health` yolları kaynak koddan tamamlandı.
 
@@ -184,7 +184,7 @@ Etiketler: **Çalıştırılarak doğrulanmış hata**, **Koddan doğrulanan sor
 
 **Etiket:** Çalıştırılarak doğrulanmış hata. **Rol:** Yetkili Servis; etki diğer firma ve şirketler. **URL:** `/ys-panel/markalar`; API `/api/ys-panel/markalar/duzenle`.
 
-**Kod:** [YetkiliServisPanelYonetimApiService.cs:184](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Services/YetkiliServisPanelYonetimApiService.cs:184), özellikle 193-197.
+**Kod:** [YetkiliServisPanelYonetimApiService.cs:184](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma.API/Services/YetkiliServisPanelYonetimApiService.cs#L184), özellikle 193-197.
 
 - **Beklenen:** Kendi marka ilişkisinin bulunması, ortak marka kataloğunu değiştirme yetkisi sayılmamalı. Ortak katalog yazımı ayrı yönetim yetkisinde olmalı.
 - **Mevcut:** FirmaId ile kendi ilişkisinin varlığı kontrol ediliyor; sonra `bag.Marka.MarkaAdi` ve açıklama güncelleniyor. Değişen entity firmaya ait ilişki değil, ortak marka.
@@ -197,7 +197,7 @@ Etiketler: **Çalıştırılarak doğrulanmış hata**, **Koddan doğrulanan sor
 
 **Etiket:** Çalıştırılarak doğrulanmış hata; diğer yazma yolları koddan doğrulandı. **Rol:** Firma düzenleyen yönetici/yetkili personel ve marka seçimini kaydeden servis. **URL:** `/AdminPanel/yetkiliservisler/duzenle/{id}`, personel eşdeğeri, `/ys-panel/markalar`.
 
-**Kod:** [AdminYetkiliServisYonetimApiService.cs:196](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Services/AdminYetkiliServisYonetimApiService.cs:196), 223-236; [YetkiliServislerController.cs:396](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiliServislerController.cs:396), 418-426; [YetkiliServisPanelYonetimApiService.cs:104](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Services/YetkiliServisPanelYonetimApiService.cs:104).
+**Kod:** [AdminYetkiliServisYonetimApiService.cs:196](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma.API/Services/AdminYetkiliServisYonetimApiService.cs#L196), 223-236; [YetkiliServislerController.cs:396](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma.API/Controllers/YetkiliServislerController.cs#L396), 418-426; [YetkiliServisPanelYonetimApiService.cs:104](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma.API/Services/YetkiliServisPanelYonetimApiService.cs#L104).
 
 - **Beklenen:** Firma iletişimi veya aynı seçimlerle kayıt, değişmeyen marka/kategori yetkilerinin kimliğini, ilk tarihini ve süresini değiştirmemeli.
 - **Mevcut:** `RemoveRange` ardından yeni ilişkiler oluşturuluyor. Yönetim/servis yolu yeni bitişi 5 yıl, eski API 1 yıl belirliyor.
@@ -210,7 +210,7 @@ Etiketler: **Çalıştırılarak doğrulanmış hata**, **Koddan doğrulanan sor
 
 **Etiket:** Çalıştırılarak doğrulanmış hata. **Rol:** Sertifikalı Firma. **URL:** `/ykc/yeni`; API `/api/ykc/talepler/olustur`.
 
-**Kod:** [YkcTalepService.cs:253](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.Core/Business/Services/Domain/YkcTalepService.cs:253), 269-314.
+**Kod:** [YkcTalepService.cs:253](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma.Core/Business/Services/Domain/YkcTalepService.cs#L253), 269-314.
 
 - **Beklenen:** Aynı oluşturma işleminin tekrar iletilmesi ikinci bir operasyon kaydı oluşturmamalı. İlk kaydın sonucuna dönmeli veya tekrar olarak açıklamalı reddedilmeli.
 - **Mevcut:** Kaynak referansı kullanıcı/şirket/tesisat açısından doğrulanıyor; oluşturulan taleple atomik tek-kullanımlık bağ kurulmadan yeni entity ekleniyor.
@@ -223,7 +223,7 @@ Etiketler: **Çalıştırılarak doğrulanmış hata**, **Koddan doğrulanan sor
 
 **Etiket:** Çalıştırılarak doğrulanmış hata. **Rol:** Sertifikalı Firma. **URL:** `/ykc/detay/{id}`; API `/api/ykc/talepler/getir`.
 
-**Kod:** [YkcFirmaSunumu.cs:5](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.Core/Business/Services/Domain/YkcFirmaSunumu.cs:5); [YkcApiController.cs:534](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YkcApiController.cs:534); liste/rapor eşlemeleri [YkcTalepService.cs:1191](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.Core/Business/Services/Domain/YkcTalepService.cs:1191).
+**Kod:** [YkcFirmaSunumu.cs:5](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma.Core/Business/Services/Domain/YkcFirmaSunumu.cs#L5); [YkcApiController.cs:534](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma.API/Controllers/YkcApiController.cs#L534); liste/rapor eşlemeleri [YkcTalepService.cs:1191](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma.Core/Business/Services/Domain/YkcTalepService.cs#L1191).
 
 - **Beklenen:** Personele özel kaynak proje bilgileri firma için yalnız Razor'da değil API sözleşmesinde de dışlanmalı.
 - **Mevcut:** Normal detayda eski marka/kapasite temizleniyor, `ProjeNo` temizlenmiyor. Sentetik özel proje numarası firmanın kendi detay JSON'unda döndü.
@@ -238,7 +238,7 @@ Etiketler: **Çalıştırılarak doğrulanmış hata**, **Koddan doğrulanan sor
 
 **Etiket:** Çalıştırılarak doğrulanmış hata. **Rol:** YKC dosyasına erişen kullanıcı. **URL:** `/ykc/dosya/{id}` ve ortak YKC çıktı istemcisi.
 
-**Kod:** [YkcApiClient.cs:402](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Business/Services/ApiClients/YkcApiClient.cs:402), 403-407; [ApiClientFallback.cs:23](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Business/Services/ApiClients/ApiClientFallback.cs:23).
+**Kod:** [YkcApiClient.cs:402](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma/Business/Services/ApiClients/YkcApiClient.cs#L402), 403-407; [ApiClientFallback.cs:23](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma/Business/Services/ApiClients/ApiClientFallback.cs#L23).
 
 - **Beklenen:** 404 dosya bulunamadı, 403 erişim reddi, 400 geçersiz istek ile gerçekten ulaşılmayan API ayrılmalı.
 - **Mevcut:** Başarısız HTTP yanıtı genel fallback hatasına dönüşüyor. Olmayan dosya ID'sinde çalışan API 404 verdiği halde MVC "Veri servisine şu anda ulaşılamıyor" dedi.
@@ -247,13 +247,13 @@ Etiketler: **Çalıştırılarak doğrulanmış hata**, **Koddan doğrulanan sor
 - **Çözüm:** Diğer çıktı istemcilerindeki yapılandırılmış hata ayrımını burada da uygula. Kullanıcıya güvenli durum mesajı ver; yabancı kaydın varlığını gereksiz ifşa etme.
 - **Kabul:** 400/403/404/timeout/503 ayrı test edilir; yalnız gerçek bağlantı kesintisi kesinti mesajı verir. İzinli binary indirme bozulmaz.
 
-![Olmayan dosya için yanlış bağlantı mesajı](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/Docs/d3232b8_inceleme_kanitlari/olmayan-dosya-hata-mesaji.jpg)
+![Olmayan dosya için yanlış bağlantı mesajı](d3232b8_inceleme_kanitlari/olmayan-dosya-hata-mesaji.jpg)
 
 ### B06. P2 - Detaydan Dönüşte İş Listesi Bağlamı Kayboluyor
 
 **Etiket:** Çalıştırılarak doğrulanmış hata. **Rol:** Özellikle personel, ayrıca filtre kullanan firma. **URL:** `/ykc/talepler?bekleyenIs=inceleme&sayfa=2` -> detay -> dönüş.
 
-**Kod:** [Detay.cshtml:15](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Views/Ykc/Detay.cshtml:15); firma dönüşü [_FirmaTalepDetay.cshtml:56](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Views/Ykc/_FirmaTalepDetay.cshtml:56).
+**Kod:** [Detay.cshtml:15](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma/Views/Ykc/Detay.cshtml#L15); firma dönüşü [_FirmaTalepDetay.cshtml:56](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma/Views/Ykc/_FirmaTalepDetay.cshtml#L56).
 
 - **Beklenen:** İncelenen iş listesinin filtre, sayfa ve şirket bağlamına dönmek.
 - **Mevcut:** Kaynak türü rapor/takvim kısmen korunuyor; talep listesine dönüş düz `/ykc/talepler`. Gerçek UI turunda `bekleyenIs` ve `sayfa=2` kayboldu.
@@ -266,7 +266,7 @@ Etiketler: **Çalıştırılarak doğrulanmış hata**, **Koddan doğrulanan sor
 
 **Etiket:** Çalıştırılarak doğrulanmış hata (kullanılabilirlik). **Rol:** Personel/admin/servis. **URL:** `/personel-panel/devreyealmalar`, `/AdminPanel/devreyealmalar`, `/ys-devreyeal/gecmis`.
 
-**Kod:** [operations-directory.css:60](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/wwwroot/css/operations-directory.css:60); servis minimumu 390; ortak [_DevreyeAlmaTable.cshtml](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Views/Shared/_DevreyeAlmaTable.cshtml).
+**Kod:** [operations-directory.css:60](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma/wwwroot/css/operations-directory.css#L60); servis minimumu 390; ortak [_DevreyeAlmaTable.cshtml](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma/Views/Shared/_DevreyeAlmaTable.cshtml).
 
 - **Beklenen:** Kullanıcının dar ekranda ana kayıt ve işlem düğmesine yatay kaydırma olmadan erişebilmesi; masaüstü yerleşiminin korunması.
 - **Mevcut:** Ortak tablo minimum 960 px; servis geçmişi 900 px. 375 px personel ekranında içerik kutusu 334 px, tablo 960 px, sayfa genişliği 360 px. Sayfanın tamamı taşmıyor; tablo içinde sağdaki bilgi/işlem için kaydırma gerekiyor. 320/768/1024 + açık sidebar ölçümlerinde de minimum genişlik etkisi görüldü.
@@ -275,13 +275,13 @@ Etiketler: **Çalıştırılarak doğrulanmış hata**, **Koddan doğrulanan sor
 - **Çözüm:** Yalnız dar container için mevcut kaydın ana bilgilerini ve işlem düğmesini görünür tutan responsive sunum uygula; ikincil alanları mevcut satır detayında göster. Desktop sütunlarını, ayrı tesisat/sözleşmeyi ve tam veri erişimini koru. Veriyi `overflow:hidden` ile kesme.
 - **Kabul:** 320/375/768 ve sidebar açık dar dizüstünde ana kayıt/işlem yatay kaydırmasız kullanılabilir. Uzun model/adres detaydan tam okunur. Seçim sayacı yalnız ana satırları sayar; bütün rol sütunları ve PDF/Excel kapsamı korunur.
 
-![375 px personel tablosunda sağ sütunlar ilk görünümde yok](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/Docs/d3232b8_inceleme_kanitlari/personel-devreye-alma-mobil-375.jpg)
+![375 px personel tablosunda sağ sütunlar ilk görünümde yok](d3232b8_inceleme_kanitlari/personel-devreye-alma-mobil-375.jpg)
 
 ### B08. P2 - Görüntüleme Yetkili Personelde "Yönet" İfadesi
 
 **Etiket:** Çalıştırılarak doğrulanmış hata (metin/yetki sunumu). **Rol:** Yalnız YKC görüntüleme izni. **URL:** `/personel-panel`.
 
-**Kod:** [Index.cshtml:52](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Views/PersonelPanel/Index.cshtml:52).
+**Kod:** [Index.cshtml:52](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma/Views/PersonelPanel/Index.cshtml#L52).
 
 - **Beklenen:** Kart ifadesi kullanılabilir işlemi anlatmalı.
 - **Mevcut:** İşlem kısayolları doğru gizlenirken kart alt metni sabit "Talep ve randevuları yönet". Gerçek yetki backend'de genişlemiyor.
@@ -294,7 +294,7 @@ Etiketler: **Çalıştırılarak doğrulanmış hata**, **Koddan doğrulanan sor
 
 **Etiket:** Çalıştırılarak doğrulanmış hata (içerik). **Rol:** Anonim başvuru sahibi. **URL:** `/Home/Privacy`.
 
-**Kod:** [Privacy.cshtml:2](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Views/Home/Privacy.cshtml:2), 6.
+**Kod:** [Privacy.cshtml:2](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma/Views/Home/Privacy.cshtml#L2), 6.
 
 - **Beklenen:** Gerçek kurum tarafından onaylanmış, Türkçe ve kayıt/giriş süreçleriyle uyumlu içerik.
 - **Mevcut:** "Privacy Policy" ve "Use this page to detail your site's privacy policy." varsayılan metni gerçek sayfada duruyor.
@@ -303,13 +303,13 @@ Etiketler: **Çalıştırılarak doğrulanmış hata**, **Koddan doğrulanan sor
 - **Çözüm:** Kurumun onayladığı metni yerleştir; giriş/kayıt sayfasından erişim ihtiyacını kurumla netleştir. Rastgele mevzuat metni veya yeni zorunlu onay akışı uydurma.
 - **Kabul:** Şablon İngilizce metin kalmaz; onaylı Türkçe içerik masaüstü/mobil okunur ve kimlik verisi ifşa etmez.
 
-![Varsayılan gizlilik içeriği](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/Docs/d3232b8_inceleme_kanitlari/gizlilik-sablon-metni.jpg)
+![Varsayılan gizlilik içeriği](d3232b8_inceleme_kanitlari/gizlilik-sablon-metni.jpg)
 
 ### B10. P2 - Şube Kaydı Başarısızsa Form Bilgisi Korunmuyor
 
 **Etiket:** Koddan doğrulanan sorun. **Rol:** Yetkili Servis; ortak yönetim yolları için eşdeğer kontrol gerekir. **URL:** POST `/ys-panel/subeler/ekle`, `/subeler/duzenle/{id}`.
 
-**Kod:** [YetkiliServisPanelController.cs:274](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YetkiliServisPanelController.cs:274), 305-310.
+**Kod:** [YetkiliServisPanelController.cs:274](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma/Controllers/YetkiliServisPanelController.cs#L274), 305-310.
 
 - **Beklenen:** Sunucu iş doğrulaması başarısız olduğunda girilen alanlarla aynı panelde düzeltme yapılabilmesi.
 - **Mevcut:** Başarı ve başarısızlıkta aynı liste redirect'i var; hata TempData'ya yazılıyor, gönderilen alanlarla yeniden form hazırlanıp gösterilmiyor.
@@ -322,7 +322,7 @@ Etiketler: **Çalıştırılarak doğrulanmış hata**, **Koddan doğrulanan sor
 
 **Etiket:** Çalıştırılarak doğrulanmış hata (test beklentisi); doküman farkı koddan doğrulandı. **Rol:** Bakım/test ekibi. **URL:** Firma `/ykc/takvim` akışı ve test rehberi.
 
-**Kod:** [Verify-FormCalendar.ps1:39](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/Tests/YkcRules/Verify-FormCalendar.ps1:39); [yetki-test-kullanicilari.md:14](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/Docs/yetki-test-kullanicilari.md:14); hedef sürüm [TestDataSeed.cs:20](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Infrastructure/TestDataSeed.cs:20).
+**Kod:** [Verify-FormCalendar.ps1:39](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/Tests/YkcRules/Verify-FormCalendar.ps1#L39); [yetki-test-kullanicilari.md:14](yetki-test-kullanicilari.md#L14); hedef sürüm [TestDataSeed.cs:20](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma.API/Infrastructure/TestDataSeed.cs#L20).
 
 - **Beklenen:** Firma kendi takvimini görebilir, iç ekip/personel verisini göremez; test bu ayrımı doğrulamalı. Demo şirket açıklaması seed ile uyumlu olmalı.
 - **Mevcut:** HTTP script'i firmaya 403 beklediği için 200'de durdu. Ayrıca doküman demo personeli Kargaz'da tam yetkili anlatırken hedef seed Çorumgaz tam/Kargaz rapor/Sürmeli belge onay oluşturuyor.
@@ -337,15 +337,15 @@ Bu tablo gerçek üretim arızası iddiası değildir. Riskin gerçekleşme koş
 
 | ID / öncelik / etiket | Rol, URL ve kod | Beklenen -> mevcut / etki | Doğrulama, çözüm ve kabul |
 |---|---|---|---|
-| R01 / P1 / Koşula bağlı risk | Servis/firma sorgusu; `/ys-devreyeal`, `/ykc/yeni`; [OnlineCihazBilgileriClient.cs:37](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.Core/Business/Services/Online/OnlineCihazBilgileriClient.cs:37) | Canlı dış sorgu güvenli taşıma kullanmalı -> istemci http ve https kabul ediyor; istemcide ortama göre HTTPS zorunluluğu yok. Production'da HTTP ayarlanırsa kaynak veri şifresiz taşınabilir. İncelemenin loopback HTTP'si üretim kanıtı değildir. | İzole Production ayarında HTTP endpoint denemesi ve yayın ayar denetimi; canlı için HTTPS startup doğrulaması, local fixture için development istisnası. Kabul: Production HTTP reddedilir, geçerli HTTPS çalışır; gerçek sertifika/TLS kabulü kurum ortamında yapılır. |
-| R02 / P2 / Koşula bağlı risk | Teknik belge yükleyen personel; `/ykc/form-yukle`; [YkcApiController.cs:742](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YkcApiController.cs:742) | Dosya/DB tutarlılığı -> fiziksel yazım sonra DB/hash çağrısı; sadece `sonuc.Basarili=false` yolunda silme var. İstisna halinde sahipsiz dosya kalabilir. Böyle bir arıza enjekte edilmedi. | Copy/hash/DB kaydı arızalarını izole testte üret; temp dosya + başarılı kayıt sonrası finalize ve başarısızlık telafisi önerilir. Kabul: başarısız yüklemede orphan kalmaz, eski/imzalı dosya değişmez; iptal/yeniden deneme güvenli. |
-| R03 / P2 / Koşula bağlı risk | Dış servis kullanan roller; sorgu endpoint'leri; [OnlineCihazBilgileriClient.cs:61](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.Core/Business/Services/Online/OnlineCihazBilgileriClient.cs:61) | Kişisel verisiz teşhis -> hata response body bütünü loglanıyor. Sağlayıcı hata gövdesinde müşteri bilgisi döndürürse logda kalabilir. Gerçek sağlayıcı gövdesi görülmedi. | Sentetik kişisel alanlı 500 SOAP yanıtı ver; ham gövde yerine güvenli hata kodu/correlation ve sınırlandırılmış alanlar. Kabul: kimlik/telefon/adres/credential loga yazılmaz; BT hata kökenini yine bulabilir. |
-| R04 / P2 / Koşula bağlı veri minimizasyonu kararı | Devreye alma çıktısı gören roller; tek/rapor Excel; [DevreyeAlmaExcelService.cs:11](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.Core/Business/Services/Export/DevreyeAlmaExcelService.cs:11), 23 | Standart çıktı yalnız gerekli alanları taşımalı -> T.C. kimlik no sütunu ve eski kayıttaki `MusteriTcNo` aktarılıyor. Başka firma sızıntısı doğrulanmadı; alanın gerekliliği kararlaştırılmamış. | Kurum standart raporun ihtiyaç duyduğu alanları onaylasın; gerekmiyorsa standart çıktıda çıkar/maskele, gerçekten gerekli ayrı yetkili çıktıda açıkça sınırla. Kabul: eski dolu/boş kayıt, bütün rol çıktıları ve sütun/değer hizası test edilir. |
-| R05 / P3 / Ölçeklenme riski, şu an yavaşlık iddiası değil | Admin/personel devreye alma listesi; [AdminRaporApiService.cs:45](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Services/AdminRaporApiService.cs:45) | Sayfa için sınırlı yükleme -> bütün eşleşmeler `ToListAsync`. 33/34 sentetik kayıtta hata yok; büyük veri yük testi yapılmadı. Ayrıca çalışma logunda EF birden çok collection include uyarısı vardı; bu N+1 kanıtı değildir. | Kullanıcının belirttiği gibi büyük veri işi sonraya bırakılabilir. Önce süre/sorgu planı/bellek ölç; gerekirse sunucu sayfalama/projection. Kabul: toplam sayı, filtre, seçili çıktı ve gizli detay satırları aynı kalır; karşılaştırmalı ölçüm kaydedilir. |
-| R06 / P2 / Platform doğrulaması gerekiyor | PDF kullanıcıları; [DevreyeAlmaPdfService.cs:20](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.Core/Business/Services/Export/DevreyeAlmaPdfService.cs:20), diğer rapor PDF servisleri | Hedef ortamda aynı okunabilir PDF -> bazı üreticiler Arial'a bağlı; FR265'te font fallback var. Windows PDF testleri geçti, Linux yayın ortamı test edilmedi. "Fontlar bozuk" diye raporlanamaz. | Gerçek yayın OS/container'ında Türkçe, uzun içerik ve çok sayfa PDF üret; gerekiyorsa lisansı uygun paketli font/fallback. Kabul: eksik glif, taşma, boş sayfa yok; mevcut FR265 ve imzalı snapshot değişmez. |
-| R07 / P1 / Harici kabul gerekiyor | YKC imza ve giriş/sorgu; [Onur-Mobil-Imza-Sozlesmesi.md:94](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/Docs/Onur-Mobil-Imza-Sozlesmesi.md:94) | Gerçek imza/OTP/kaynak dönüşleriyle uçtan uca kanıt -> sözleşme ve demo testleri var, gerçek sağlayıcılar kullanılmadı. PDF tür/hash kontrolü kriptografik imza geçerliliği değildir. | Yetkili test ortamında sağlayıcıyla resmi form koordinatı, imzacı/sürüm/hash, tekrar callback, gecikme, TLS ve doğrulama kararı kabul edilir. SMS gerçek test alıcısı ancak ayrıca onayla. Kabul: demo üretimde kapalı, hatalı/tekrar callback kontrollü, nihai dosya ve signer kanıtı doğru. |
+| R01 / P1 / Koşula bağlı risk | Servis/firma sorgusu; `/ys-devreyeal`, `/ykc/yeni`; [OnlineCihazBilgileriClient.cs:37](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma.Core/Business/Services/Online/OnlineCihazBilgileriClient.cs#L37) | Canlı dış sorgu güvenli taşıma kullanmalı -> istemci http ve https kabul ediyor; istemcide ortama göre HTTPS zorunluluğu yok. Production'da HTTP ayarlanırsa kaynak veri şifresiz taşınabilir. İncelemenin loopback HTTP'si üretim kanıtı değildir. | İzole Production ayarında HTTP endpoint denemesi ve yayın ayar denetimi; canlı için HTTPS startup doğrulaması, local fixture için development istisnası. Kabul: Production HTTP reddedilir, geçerli HTTPS çalışır; gerçek sertifika/TLS kabulü kurum ortamında yapılır. |
+| R02 / P2 / Koşula bağlı risk | Teknik belge yükleyen personel; `/ykc/form-yukle`; [YkcApiController.cs:742](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma.API/Controllers/YkcApiController.cs#L742) | Dosya/DB tutarlılığı -> fiziksel yazım sonra DB/hash çağrısı; sadece `sonuc.Basarili=false` yolunda silme var. İstisna halinde sahipsiz dosya kalabilir. Böyle bir arıza enjekte edilmedi. | Copy/hash/DB kaydı arızalarını izole testte üret; temp dosya + başarılı kayıt sonrası finalize ve başarısızlık telafisi önerilir. Kabul: başarısız yüklemede orphan kalmaz, eski/imzalı dosya değişmez; iptal/yeniden deneme güvenli. |
+| R03 / P2 / Koşula bağlı risk | Dış servis kullanan roller; sorgu endpoint'leri; [OnlineCihazBilgileriClient.cs:61](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma.Core/Business/Services/Online/OnlineCihazBilgileriClient.cs#L61) | Kişisel verisiz teşhis -> hata response body bütünü loglanıyor. Sağlayıcı hata gövdesinde müşteri bilgisi döndürürse logda kalabilir. Gerçek sağlayıcı gövdesi görülmedi. | Sentetik kişisel alanlı 500 SOAP yanıtı ver; ham gövde yerine güvenli hata kodu/correlation ve sınırlandırılmış alanlar. Kabul: kimlik/telefon/adres/credential loga yazılmaz; BT hata kökenini yine bulabilir. |
+| R04 / P2 / Koşula bağlı veri minimizasyonu kararı | Devreye alma çıktısı gören roller; tek/rapor Excel; [DevreyeAlmaExcelService.cs:11](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma.Core/Business/Services/Export/DevreyeAlmaExcelService.cs#L11), 23 | Standart çıktı yalnız gerekli alanları taşımalı -> T.C. kimlik no sütunu ve eski kayıttaki `MusteriTcNo` aktarılıyor. Başka firma sızıntısı doğrulanmadı; alanın gerekliliği kararlaştırılmamış. | Kurum standart raporun ihtiyaç duyduğu alanları onaylasın; gerekmiyorsa standart çıktıda çıkar/maskele, gerçekten gerekli ayrı yetkili çıktıda açıkça sınırla. Kabul: eski dolu/boş kayıt, bütün rol çıktıları ve sütun/değer hizası test edilir. |
+| R05 / P3 / Ölçeklenme riski, şu an yavaşlık iddiası değil | Admin/personel devreye alma listesi; [AdminRaporApiService.cs:45](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma.API/Services/AdminRaporApiService.cs#L45) | Sayfa için sınırlı yükleme -> bütün eşleşmeler `ToListAsync`. 33/34 sentetik kayıtta hata yok; büyük veri yük testi yapılmadı. Ayrıca çalışma logunda EF birden çok collection include uyarısı vardı; bu N+1 kanıtı değildir. | Kullanıcının belirttiği gibi büyük veri işi sonraya bırakılabilir. Önce süre/sorgu planı/bellek ölç; gerekirse sunucu sayfalama/projection. Kabul: toplam sayı, filtre, seçili çıktı ve gizli detay satırları aynı kalır; karşılaştırmalı ölçüm kaydedilir. |
+| R06 / P2 / Platform doğrulaması gerekiyor | PDF kullanıcıları; [DevreyeAlmaPdfService.cs:20](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma.Core/Business/Services/Export/DevreyeAlmaPdfService.cs#L20), diğer rapor PDF servisleri | Hedef ortamda aynı okunabilir PDF -> bazı üreticiler Arial'a bağlı; FR265'te font fallback var. Windows PDF testleri geçti, Linux yayın ortamı test edilmedi. "Fontlar bozuk" diye raporlanamaz. | Gerçek yayın OS/container'ında Türkçe, uzun içerik ve çok sayfa PDF üret; gerekiyorsa lisansı uygun paketli font/fallback. Kabul: eksik glif, taşma, boş sayfa yok; mevcut FR265 ve imzalı snapshot değişmez. |
+| R07 / P1 / Harici kabul gerekiyor | YKC imza ve giriş/sorgu; [Onur-Mobil-Imza-Sozlesmesi.md:94](Onur-Mobil-Imza-Sozlesmesi.md#L94) | Gerçek imza/OTP/kaynak dönüşleriyle uçtan uca kanıt -> sözleşme ve demo testleri var, gerçek sağlayıcılar kullanılmadı. PDF tür/hash kontrolü kriptografik imza geçerliliği değildir. | Yetkili test ortamında sağlayıcıyla resmi form koordinatı, imzacı/sürüm/hash, tekrar callback, gecikme, TLS ve doğrulama kararı kabul edilir. SMS gerçek test alıcısı ancak ayrıca onayla. Kabul: demo üretimde kapalı, hatalı/tekrar callback kontrollü, nihai dosya ve signer kanıtı doğru. |
 
-**FR265 kaynak alanları:** DTO eşlemesinde tüketim noktası gibi bazı alanlar boş varsayılanlarla geliyor ([YkcTalepService.cs:1873](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.Core/Business/Services/Domain/YkcTalepService.cs:1873)). Dış servis bunları henüz sağlamıyorsa değer uydurulmamalı. Kurum hangi alanları hangi aşamada zorunlu gördüğünü ve kaynak sözleşmesini doğrulamalı. Bu inceleme yeni imza/uygunluk engeli önermiyor.
+**FR265 kaynak alanları:** DTO eşlemesinde tüketim noktası gibi bazı alanlar boş varsayılanlarla geliyor ([YkcTalepService.cs:1873](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma.Core/Business/Services/Domain/YkcTalepService.cs#L1873)). Dış servis bunları henüz sağlamıyorsa değer uydurulmamalı. Kurum hangi alanları hangi aşamada zorunlu gördüğünü ve kaynak sözleşmesini doğrulamalı. Bu inceleme yeni imza/uygunluk engeli önermiyor.
 
 ## 5. Rol Bazında Kullanım İyileştirmeleri
 
@@ -354,10 +354,10 @@ Bu bölüm **Kullanım veya ürün geliştirme önerisi** niteliğindedir; doğr
 | ID / öncelik / rol | Ekran ve kod dayanağı | Somut ihtiyaç, mevcut durum ve etkisi | Öneri, gözlem yolu ve kabul |
 |---|---|---|---|
 | U01 / P2 / Personel | Bekleyen iş listesi ve detay; B06 kodları | Kısayollar ve doğru sayılar zaten var; detaydan sonra listeyi yeniden kurmak gerekir. | Yeni "bekleyen işler" sayfası ekleme; B06 ile bağlamı koru. Kabul: aynı listede art arda 5 kayıt incelenirken filtre yeniden girilmez. |
-| U02 / P2 / Firma | `/ykc/detay`; [YkcDurumSunumu.cs](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Models/YkcDurumSunumu.cs) | Aşama ve son gerekçe görünür; yeni başlayan kullanıcının kendisinden mi şirketten mi adım beklendiğini anlaması önemli. | Var olan durum ifadesini kurumun süreç adlarıyla kısa ve tutarlı tut; fazladan yardım paragrafı/kutu ekleme. Gözlem: yeni kullanıcıyla mevcut örnek durumları okut. Kabul: sorumlu taraf ve mevcut sonraki adımı kullanıcı doğru söyler; yeni durum üretilmez. |
-| U03 / P2 / Servis | `/ys-devreyeal`; [Index.cshtml](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Views/DevreyeAlma/Index.cshtml) | Yetki engeli zamanında, başarılı kayıt bağlantısı doğru. Tablet kullanımında form ve sonuç/çıktı erişimini aynı kalitede tutmak gerekir. | Yeni randevu/approval adımı ekleme; B07 ve B10'u uygula. Kabul: cihaz geçişi alan karıştırmaz, form aç/kapat veriyi korur, başarı kaydı tek hareketle açılır. |
-| U04 / P2 / Şirket yöneticisi | `/AdminPanel/raporlar`; [Raporlar.cshtml:113](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Views/AdminPanel/Raporlar.cshtml:113) | Ortalama tamamlanma, tekrar randevu oranı, süreç/tamamlanma dağılımı zaten mevcut; sadece Excel'e dayanılıyor demek yanlış. Yaşlı bekleyen kayıtları önce görmek ayrı bir karar ihtiyacı olabilir. | İhtiyaç onaylanırsa mevcut bekleyen listeye yaşa göre sıralama/filtre ekle; ayrı KPI kartı veya yeni rapor sayfası şart değil. Kaynak TalepTarihi/durum/geçmiş; eşik kurumca belirlenir. Kabul: şirket ve tarih kapsamı sabit, tamamlanan kayıt bekleyen yaşına girmez, boş veri "0 saat" gibi yanıltılmaz. |
-| U05 / P2 / Genel admin | Şirket bağlamı, kullanıcı/yetki ekranı; [Yetkiler.cshtml](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Views/AdminPanel/Yetkiler.cshtml) | Kompakt liste ve arama artık var; 51 personelde tüm yetkileri her satıra dökmek gerekmiyor. Kurulum/kesinti etkisini kurum bazında bilmek henüz kullanıcı ekranının görevi değil. | Kompakt liste/drawer'ı koru; entegrasyon durumu için C01'i ancak işletme ihtiyacı varsa ekle. Kabul: şirket seçimi ve satır bağlamı açık, genel admin ile seçili şirket TAM_YETKI ayrı kalır. |
+| U02 / P2 / Firma | `/ykc/detay`; [YkcDurumSunumu.cs](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma/Models/YkcDurumSunumu.cs) | Aşama ve son gerekçe görünür; yeni başlayan kullanıcının kendisinden mi şirketten mi adım beklendiğini anlaması önemli. | Var olan durum ifadesini kurumun süreç adlarıyla kısa ve tutarlı tut; fazladan yardım paragrafı/kutu ekleme. Gözlem: yeni kullanıcıyla mevcut örnek durumları okut. Kabul: sorumlu taraf ve mevcut sonraki adımı kullanıcı doğru söyler; yeni durum üretilmez. |
+| U03 / P2 / Servis | `/ys-devreyeal`; [Index.cshtml](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma/Views/DevreyeAlma/Index.cshtml) | Yetki engeli zamanında, başarılı kayıt bağlantısı doğru. Tablet kullanımında form ve sonuç/çıktı erişimini aynı kalitede tutmak gerekir. | Yeni randevu/approval adımı ekleme; B07 ve B10'u uygula. Kabul: cihaz geçişi alan karıştırmaz, form aç/kapat veriyi korur, başarı kaydı tek hareketle açılır. |
+| U04 / P2 / Şirket yöneticisi | `/AdminPanel/raporlar`; [Raporlar.cshtml:113](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma/Views/AdminPanel/Raporlar.cshtml#L113) | Ortalama tamamlanma, tekrar randevu oranı, süreç/tamamlanma dağılımı zaten mevcut; sadece Excel'e dayanılıyor demek yanlış. Yaşlı bekleyen kayıtları önce görmek ayrı bir karar ihtiyacı olabilir. | İhtiyaç onaylanırsa mevcut bekleyen listeye yaşa göre sıralama/filtre ekle; ayrı KPI kartı veya yeni rapor sayfası şart değil. Kaynak TalepTarihi/durum/geçmiş; eşik kurumca belirlenir. Kabul: şirket ve tarih kapsamı sabit, tamamlanan kayıt bekleyen yaşına girmez, boş veri "0 saat" gibi yanıltılmaz. |
+| U05 / P2 / Genel admin | Şirket bağlamı, kullanıcı/yetki ekranı; [Yetkiler.cshtml](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma/Views/AdminPanel/Yetkiler.cshtml) | Kompakt liste ve arama artık var; 51 personelde tüm yetkileri her satıra dökmek gerekmiyor. Kurulum/kesinti etkisini kurum bazında bilmek henüz kullanıcı ekranının görevi değil. | Kompakt liste/drawer'ı koru; entegrasyon durumu için C01'i ancak işletme ihtiyacı varsa ekle. Kabul: şirket seçimi ve satır bağlamı açık, genel admin ile seçili şirket TAM_YETKI ayrı kalır. |
 
 **Raporların güncelliği:** Bu sürüm istek anında DB'den özet alıyor; canlı push ile sürekli yenileme görülmedi. "Gerçek zamanlı" ifadesini otomatik refresh garantisi gibi kullanmamak gerekir. İşlemden sonraki yeni okumada sayaçlar güncelleniyor; SQL testleri bunu doğruladı. Sürekli ekran izleme ihtiyacı yoksa SignalR eklemek zorunlu değil.
 
@@ -367,7 +367,7 @@ Bu bölüm **Kullanım veya ürün geliştirme önerisi** niteliğindedir; doğr
 
 **Etiket:** Kullanım veya ürün geliştirme önerisi. **Rol:** Genel admin; gerekirse kendi şirketiyle sınırlı şirket admini. **Önerilen URL:** Kurum kabul ederse yönetim altında tek bir sağlık/durum görünümü; mevcut bir URL'nin çalıştığı iddia edilmiyor.
 
-**Dayanak:** [SystemHealthApiController.cs:32](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/SystemHealthApiController.cs:32), 78-104. Endpoint var; DB bağlantısını gerçekten kontrol ediyor, SMS/online service için çoğunlukla ayar varlığını raporluyor. Bu, sağlayıcıya ulaşılabildiğinin veya SMS'in teslim edildiğinin kanıtı değil.
+**Dayanak:** [SystemHealthApiController.cs:32](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma.API/Controllers/SystemHealthApiController.cs#L32), 78-104. Endpoint var; DB bağlantısını gerçekten kontrol ediyor, SMS/online service için çoğunlukla ayar varlığını raporluyor. Bu, sağlayıcıya ulaşılabildiğinin veya SMS'in teslim edildiğinin kanıtı değil.
 
 - **İhtiyaç:** BT, "hangi şirketin tesisat sorgusu/OTP/imza işlemi etkileniyor?" sorusunu kayıt ekranında tekrar deneyerek araştırmamalı.
 - **Neden mevcut ekranda değil:** Operasyon ekranları kullanıcının kaydını bitirmeye odaklı. Ayrıntılı altyapı teşhisi firma/personel ekranını kalabalıklaştırır ve gereksiz teknik bilgi açabilir. İlk aşamada yeni sayfa yerine kurumun mevcut izleme aracına `/health` bağlamak daha küçük çözüm olabilir.
@@ -390,7 +390,7 @@ Bu bölüm **Kullanım veya ürün geliştirme önerisi** / bakım sadeleştirme
 | D02 / P2 | Çıktı istemcileri; B05 | YKC'de farklı hata ayrımı bakımda tutarsızlık üretiyor. Küçük ortak HTTP hata dönüştürücüsü, var olan istemci örüntüsüyle uyumlu olmalı; dev bir API abstraction kurulmasın. Kabul: dosya status/binary testleri tüm istemcilerde doğru. |
 | D03 / P3 | Aynı tablo/şube ekranına ait eski düzenleme görünümleri; `_BranchEditor`, `_BranchSheet` ve `SubeDuzenle.cshtml` | Yeni ortak bileşenler doğru; doğrudan URL için kullanılan eski view dosyaları hâlâ işlevsel olabilir. Reachability ve route kullanımını kanıtlamadan silme. Kabul: doğrudan link, JS'siz fallback, drawer aç/kapat ve her role ait endpoint çalışır. |
 | D04 / P2 | Tests ve Docs; B11 | Test script'i, fixture ve seed ayrı ayrı süreç anlatıyor. Tek çalıştırma rehberi, ortam önkoşulları ve katmanlı test raporu oluştur; eski test expectation'larını düzelt. Kabul: temiz makine/DB'de aynı adımlar çalışır, test sayıları fixture ile gerçek UI'yı karıştırmaz. |
-| D05 / P3 | Büyük MVC controller/inline JS alanları; [YkcController.cs](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YkcController.cs), [Detay.cshtml:769](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Views/Ykc/Detay.cshtml:769) | Akış/redirect/form taşıma bilgisi birçok yerde. Yalnız B06/B05 gibi ihtiyaç doğuran parçayı ayır; geniş refactor canlıya hazırlık şartı değil. Kabul: aynı route, izin ve iş davranışı; mevcut gezinme/iş akışı testleri geçer. |
+| D05 / P3 | Büyük MVC controller/inline JS alanları; [YkcController.cs](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma/Controllers/YkcController.cs), [Detay.cshtml:769](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma/Views/Ykc/Detay.cshtml#L769) | Akış/redirect/form taşıma bilgisi birçok yerde. Yalnız B06/B05 gibi ihtiyaç doğuran parçayı ayır; geniş refactor canlıya hazırlık şartı değil. Kabul: aynı route, izin ve iş davranışı; mevcut gezinme/iş akışı testleri geçer. |
 
 Yetki kartlarında tekrar açıklama, aynı anda birkaç seçili/tüm çıktı düğmesi veya "özellikleri anlatan" uzun metinleri geri eklemek önerilmez. Mevcut kompakt düzen ve kullanıcı tercihleri korunmalı.
 
@@ -402,14 +402,14 @@ Yetki kartlarında tekrar açıklama, aynı anda birkaç seçili/tüm çıktı d
 4. **Devreye alma doğrudan tamamlanıyor.** Servis cihazı sorguluyor, yetkisini öğreniyor ve kaydediyor. Personel onayı yeni bir süreç olarak eklenmemeli.
 5. **Devreye alma kaynak referansı ve tekrar koruması güçlü.** Sunucu kaynak alanlarını client'tan kabul etmek yerine referans üzerinden tamamlıyor; süresi dolmuş, başkasına ait ve tüketilmiş referanslar SQL testlerinde reddedildi. YKC oluşturmadaki B03 ile karıştırılmamalı.
 6. **Beşli teknik kontrol dönemi ve tarihçe korunuyor.** SQL senaryosu 11. kontrole/üçüncü döneme kadar ilerledi; dönem yeniden planlaması ikinci beşliyi çoğaltmadı, resmi form slotları 1-5 kaldı. Önceki kayıtlar silinmedi.
-7. **Randevu 30 dakikalık kuralı mevcut.** 00/30 slot doğrulaması ve aynı ekip/personel için aralık kuralı iş kurallarında test edildi. Ekip atama akışı [YkcTalepService.cs:344](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.Core/Business/Services/Domain/YkcTalepService.cs:344) gibi SQL transaction/UPDLOCK sınırları kullanıyor. RowVersion görmemek tek başına "eşzamanlılık yok" kanıtı değildir; yüksek yükte deadlock/yeniden deneme ayrıca ölçülmeli.
+7. **Randevu 30 dakikalık kuralı mevcut.** 00/30 slot doğrulaması ve aynı ekip/personel için aralık kuralı iş kurallarında test edildi. Ekip atama akışı [YkcTalepService.cs:344](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma.Core/Business/Services/Domain/YkcTalepService.cs#L344) gibi SQL transaction/UPDLOCK sınırları kullanıyor. RowVersion görmemek tek başına "eşzamanlılık yok" kanıtı değildir; yüksek yükte deadlock/yeniden deneme ayrıca ölçülmeli.
 8. **Kapasite karşılaştırması uyarıdır.** Yeni > eski ise tadilat uyarısı; eşit/düşükte bu uyarı yok. Marka/baca farkı ayrı değerlendirilir. Uyarı varken sentetik talep oluşturuldu. Kaynak baca null/eksik olduğunda çökme veya sahte fark oluşmadı; müdürden gelecek veri uydurulmadı.
 9. **Belge geçerliliği ayrılıyor.** Geçerli eski belge varken bekleyen yenileme kaydı yanlış engel oluşturmadı; gelecekte başlayan/süresi biten belge koşulları SQL/iş kuralı testlerinde ayrı.
 10. **İmzalı nihai belge snapshot/hash yaklaşımı korunmalı.** Eşzamanlı imza sorgularında tek nihai PDF ve geçmiş olayı test edildi. Önizlemeyi güncellemek, geçmiş imzalı PDF'yi yeniden üretme yetkisi değildir. Önizlemede kişi/tarih bulunması kişinin imzalamış sayılması demek değil; imza işaretleri ayrı tutuluyor.
 11. **Ortak bileşenler yararlı.** `_DevreyeAlmaTable`, `_BranchEditor`, `_BranchSheet` ve yetki listesi ortaklaştırması rol varyantlarındaki görsel ayrışmayı azaltıyor. B07/B10 ortak bileşen sınırında düzeltilebilir; ayrı rol kopyaları üretmek gereksiz.
 12. **Excel gerçek veri türleri kullanıyor.** Tarih ve kapasite native türler; tesisat/sözleşme gibi baştaki sıfırı önemli numaralar metin olarak korunuyor. Formül benzeri serbest metin güvenli yazılıyor. Tek bir "bütün değerleri string yap" yaklaşımına dönülmemeli.
 13. **Rapor sayaç/filtre tutarlılığı düzeltilmiş.** Belge durum/tarih/şirket sayaçları ve çıktıları için yeni SQL kontrolleri geçti. "Onay bekleyen 2, onaylanan 3" eski bulgusu bu sürümde tekrar doğrulanmadı; açık hata gibi listelenmedi.
-14. **5000 çıktı sınırı sessiz kesme değil.** YKC API fazla kaydı kullanıcıya açıklayarak reddediyor ([YkcApiController.cs:329](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YkcApiController.cs:329)). Büyük veri geliştirmesi ertelenebilir; mevcut davranış mükerrer talep veya eksik çıktı hatasıyla karıştırılmamalı.
+14. **5000 çıktı sınırı sessiz kesme değil.** YKC API fazla kaydı kullanıcıya açıklayarak reddediyor ([YkcApiController.cs:329](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma.API/Controllers/YkcApiController.cs#L329)). Büyük veri geliştirmesi ertelenebilir; mevcut davranış mükerrer talep veya eksik çıktı hatasıyla karıştırılmamalı.
 15. **Takvimde 25 sınırı otomatik kayıp kanıtı değil.** Sayfalı yakın randevu listesi ile ay/gün verisinin ayrı alınması korunuyor; SQL/gezinme testleri mevcut. Eski "yalnız 25 randevu var" iddiasını bu sürüm için doğrulanmış hata saymadım.
 16. **Injection kontrolünde somut açık saptanmadı.** İncelenen Razor görünümlerinde `Html.Raw` kullanımı bulunmadı; SQL kilit sorguları parametreli `FromSqlInterpolated` veya parametreli işlemler. Dinamik kullanıcı girdisiyle birleştirilmiş SQL bulunmaması bütün uygulama için tam penetrasyon testi sertifikası değildir.
 17. **MVC'nin API'ye bağımlılığı görünür.** Testte DB fallback kapalıydı; API hatası gizlice web DB yazımına dönmedi. Şirket değişimi ve oturum sonlanması mevcut testlerde korundu.
@@ -461,7 +461,7 @@ Commit sahibinin beyanı kopyalanmadı; aşağıdakiler hedef sürümün izole k
 ### 9.3. Kanıtların Yeri
 
 - Kalıcı sentetik ekran görüntüleri: `Docs/d3232b8_inceleme_kanitlari/`.
-- Ayrıntılı geçici test logları ve izole kaynak: `C:/Users/byildiz/AppData/Local/Temp/ysga-review-d3232b8-20261006-d92b5640/`. `test-*.log`, `http-*.log`, `http-review-results.json`, `rights-before.json`, `rights-after.json`, `shared-brand-review.json` bu çalışmaya aittir. Temp klasör kalıcı arşiv garantisi vermez; önemli sonuçlar bu belgede yer alır.
+- Ayrıntılı geçici test logları ve izole kaynak: inceleme sırasında kullanılan geçici test klasörü. `test-*.log`, `http-*.log`, `http-review-results.json`, `rights-before.json`, `rights-after.json`, `shared-brand-review.json` bu çalışmaya aittir. Temp klasör kalıcı arşiv garantisi vermez; önemli sonuçlar bu belgede yer alır.
 - İnceleme sırasında açılmış test sunucuları ve tarayıcı sekmeleri iş bitiminde kapatılır; kullanıcının kendi sunucusu/sekmeleri kapatılmaz. İzole DB ve temp test çıktıları, kullanıcı dosyalarını silmeme sınırı nedeniyle otomatik toplu temizlemeye alınmaz.
 
 ## 10. Uygulama Sırası, Bağımlılıklar ve Kabul Testleri

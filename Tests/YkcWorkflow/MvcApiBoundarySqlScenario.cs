@@ -672,6 +672,7 @@ internal static class MvcApiBoundarySqlScenario
         }
         var excessive = await certificates.ListeleAsync(company.Id, new() { Sayfa = int.MaxValue, SayfaBoyutu = int.MaxValue });
         check(excessive.Sayfalama.Sayfa == 2 && excessive.Bekleyenler.Count == 5, "Extreme certificate page/size cannot overflow or read an unbounded list");
+        commands.Sql.Clear();
         var filtered = await certificates.ListeleAsync(company.Id, new()
         {
             Firma = "1234567890", Sirket = "Performance", Adres = "Test city", Yukleme = today,
@@ -680,12 +681,48 @@ internal static class MvcApiBoundarySqlScenario
         check(filtered.Sayfalama.Toplam == 105 && filtered.Bekleyenler.Count == 25
             && !filtered.Bekleyenler.Select(x => x.Id).Intersect(first.Bekleyenler.Select(x => x.Id)).Any(),
             "All approval filters execute before SQL pagination, including tax number and address");
+        check(commands.Sql.All(x => !x.Contains("CONVERT(date", StringComparison.OrdinalIgnoreCase)),
+            "Certificate date filters compare indexed columns directly without truncating SQL dates");
+        var dateIds = documents.Take(3).Select(x => x.Id).ToArray();
+        var expiry = today.AddMonths(1);
+        var dateValues = new[] { today.AddTicks(-1), today.AddDays(1).AddTicks(-1), today.AddDays(1) };
+        var expiryValues = new[] { expiry, expiry.AddDays(1).AddTicks(-1), expiry.AddDays(1) };
+        for (var i = 0; i < dateIds.Length; i++)
+        {
+            var id = dateIds[i];
+            await db.Ys_YetkiBelgeleri.Where(x => x.Id == id).ExecuteUpdateAsync(s => s
+                .SetProperty(x => x.OlusturmaTarihi, dateValues[i])
+                .SetProperty(x => x.YetkiBelgesiBitisTarihi, expiryValues[i]));
+        }
+        var uploadDay = await certificates.ListeleAsync(company.Id, new() { Yukleme = today });
+        var endDay = await certificates.ListeleAsync(company.Id, new() { Bitis = expiry });
+        check(uploadDay.Sayfalama.Toplam == 103 && endDay.Sayfalama.Toplam == 104,
+            "Upload and expiry filters include the end of the selected day but exclude the next midnight");
+        check((await certificates.ListeleAsync(company.Id, new() { Bitis = DateTime.MaxValue })).Sayfalama.Toplam == 105
+            && (await certificates.ListeleAsync(company.Id, new() { Yukleme = DateTime.MaxValue })).Sayfalama.Toplam == 0,
+            "Maximum date filters cannot overflow while preserving their meaning");
+        await db.Ys_YetkiBelgeleri.Where(x => dateIds.Contains(x.Id)).ExecuteUpdateAsync(s => s
+            .SetProperty(x => x.OlusturmaTarihi, today).SetProperty(x => x.YetkiBelgesiBitisTarihi, expiry));
         var empty = await certificates.ListeleAsync(company.Id, new() { Firma = "Other paging", Sayfa = 5 });
         check(empty.Sayfalama.Toplam == 0 && empty.Sayfalama.Sayfa == 1 && empty.Bekleyenler.Count == 0,
             "Certificate filtering never escapes company scope");
         var legacy = await new YetkiBelgesiOkumaApiService(db, null!).OnayEkraniAsync(company.Id, new() { Durum = "onayli", Sayfa = 5 });
         check(legacy.Onaylananlar.Count == 5 && legacy.Sayfalama.Toplam == 105,
             "Legacy certificate route shares the same complete paging and status aliases");
+        foreach (var status in new[] { "bekleyen", "onaylanan", "reddedilen", "suresi-dolan" })
+        {
+            var screen = await new YetkiBelgesiOkumaApiService(db, null!).OnayEkraniAsync(company.Id,
+                new() { Durum = status, Sayfa = 5 });
+            var counts = new Dictionary<string, int>
+            {
+                ["bekleyen"] = screen.Bekleyenler.Count, ["onaylanan"] = screen.Onaylananlar.Count,
+                ["reddedilen"] = screen.Reddedilenler.Count, ["suresi-dolan"] = screen.SuresiDolanlar.Count
+            };
+            check(counts[status] == 5 && counts.Values.Sum() == 5 && screen.Sayfalama.Sayfa == 5
+                && screen.Sayfalama.Bekleyen == 105 && screen.Sayfalama.Onaylanan == 105
+                && screen.Sayfalama.Reddedilen == 105 && screen.Sayfalama.SuresiDolan == 105,
+                "Certificate tab loads only its selected page and preserves all status counters: " + status);
+        }
         commands.Sql.Clear();
         var reportService = new YetkiliServisRaporApiService(db);
         var summary = await reportService.GetirAsync(firm.Id, new() { Bas = today, Bit = today });
@@ -693,6 +730,18 @@ internal static class MvcApiBoundarySqlScenario
             && summary.Tamamlanan == 120 && summary.ChartAylikData.Sum() == 120 && summary.ChartMarkaData.Sum() == 120,
             "Service summary uses six reads instead of eleven and limits only recent rows, never counters/charts");
         check(!db.ChangeTracker.Entries().Any(), "Service report reads do not populate the change tracker");
+        await db.Ys_YetkiBelgeleri.Where(x => x.Id == dateIds[0]).ExecuteUpdateAsync(s => s
+            .SetProperty(x => x.YetkiBelgesiBitisTarihi, today));
+        await db.Ys_YetkiBelgeleri.Where(x => x.Id == dateIds[1]).ExecuteUpdateAsync(s => s
+            .SetProperty(x => x.YetkiBelgesiBitisTarihi, today.AddTicks(-1)));
+        await db.Ys_YetkiBelgeleri.Where(x => x.Id == dateIds[2]).ExecuteUpdateAsync(s => s.SetProperty(x => x.SilindiMi, true));
+        var dashboard = await new YetkiliServisPanelOkumaApiService(db, new YetkiliServisIlkKurulumService(db),
+            NullLogger<YetkiliServisPanelOkumaApiService>.Instance).DashboardAsync(firm.Id);
+        var documentSummary = await reportService.GetirAsync(firm.Id, new() { Bas = today, Bit = today });
+        var approvals = await certificates.ListeleAsync(company.Id);
+        check(dashboard.BekleyenBelgeSayisi == 103 && documentSummary.YetkiBelgesiBekleyen == 103
+            && approvals.Sayfalama.Bekleyen == 103 && approvals.Sayfalama.SuresiDolan == 106,
+            "Dashboard, report and approval queue agree: today remains pending; expired, deleted and other-company documents do not");
         var selectedIds = await db.Ys_DevreyeAlmalar.Where(x => x.FirmaId == firm.Id).Select(x => x.Id).ToListAsync();
         var selectedSummary = await reportService.GetirAsync(firm.Id, new() { Ids = selectedIds, Limit = int.MaxValue });
         check(selectedSummary.SonIslemler.Count == 100 && selectedSummary.DevreyeSayisi == 120

@@ -2,7 +2,7 @@
 
 **Teslim tarihi:** 07.10.2026. **İncelenen sürüm:** `d3232b812f205402b9d3a8c9151b1fa66388b72a`.
 
-Bu belge, [ilk inceleme raporunun](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/Docs/d3232b8_rol_bazli_proje_incelemesi.md) ekidir. İlk rapor değiştirilmedi. Yarım kalan gezinin devamında gerçekleştirilen işlemler, kullanıcı açısından sonuçları ve yeni bulgular burada teslim ediliyor. İlk rapordaki teknik testler bu turda yeniden çalıştırılmış gibi gösterilmemiştir.
+Bu belge, [ilk inceleme raporunun](d3232b8_rol_bazli_proje_incelemesi.md) ekidir. İlk rapor değiştirilmedi. Yarım kalan gezinin devamında gerçekleştirilen işlemler, kullanıcı açısından sonuçları ve yeni bulgular burada teslim ediliyor. İlk rapordaki teknik testler bu turda yeniden çalıştırılmış gibi gösterilmemiştir.
 
 ## 1. Yönetici Özeti
 
@@ -73,9 +73,9 @@ Olumlu sonuçlar da gerçek işlemle doğrulandı: gerekçesiz uygunsuz kontrol 
 
 Aşağıdaki görüntü, personelin bu testte kaydettiği gerekçenin firma hesabında okunabildiğini gösterir. Veriler sentetiktir.
 
-![Yeni kaydedilen uygunsuzluk gerekçesinin firma görünümü](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/Docs/d3232b8_inceleme_kanitlari/firma-kaydedilen-uygunsuzluk.jpg)
+![Yeni kaydedilen uygunsuzluk gerekçesinin firma görünümü](d3232b8_inceleme_kanitlari/firma-kaydedilen-uygunsuzluk.jpg)
 
-Diğer kanıtlar: [personelde ikinci kontrol adımı](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/Docs/d3232b8_inceleme_kanitlari/personel-uygunsuzluk-sonrasi.jpg), [belge ret sonucu](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/Docs/d3232b8_inceleme_kanitlari/personel-belge-ret-sonucu.jpg), [serviste ret gerekçesi](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/Docs/d3232b8_inceleme_kanitlari/servis-belge-ret-gerekcesi.jpg).
+Diğer kanıtlar: [personelde ikinci kontrol adımı](d3232b8_inceleme_kanitlari/personel-uygunsuzluk-sonrasi.jpg), [belge ret sonucu](d3232b8_inceleme_kanitlari/personel-belge-ret-sonucu.jpg), [serviste ret gerekçesi](d3232b8_inceleme_kanitlari/servis-belge-ret-gerekcesi.jpg).
 
 ## 4. Yeni Öncelikli Hatalar
 
@@ -83,7 +83,7 @@ Diğer kanıtlar: [personelde ikinci kontrol adımı](C:/Users/byildiz/source/re
 
 **Sınıf:** Çalıştırılarak doğrulanmış hata. **Roller:** Genel admin, şirket admini. **Sayfa:** `/AdminPanel/raporlar`, Rapor Çıktıları.
 
-**Kod:** [YKC kayıt bağlantısı](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Views/AdminPanel/Raporlar.cshtml:247) tarihleri taşıyor, şirketi taşımıyor. [Devreye alma bağlantısı](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Views/AdminPanel/Raporlar.cshtml:255) tarih ve şirket parametrelerini taşımıyor. Aynı bölümdeki PDF/Excel bağlantılarında bu parametreler mevcut.
+**Kod:** [YKC kayıt bağlantısı](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma/Views/AdminPanel/Raporlar.cshtml#L247) tarihleri taşıyor, şirketi taşımıyor. [Devreye alma bağlantısı](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma/Views/AdminPanel/Raporlar.cshtml#L255) tarih ve şirket parametrelerini taşımıyor. Aynı bölümdeki PDF/Excel bağlantılarında bu parametreler mevcut.
 
 **Beklenen:** Rapordaki sayıdan açılan liste aynı izinli şirket ve dönem kapsamını kullanmalı.
 
@@ -97,13 +97,13 @@ Diğer kanıtlar: [personelde ikinci kontrol adımı](C:/Users/byildiz/source/re
 
 **Kabul testi:** Veri değişmiyorken gösterge toplamı ile açılan listenin filtreli toplamı eşleşmeli. Genel admin/şirket admini/personel varyantları ayrı test edilmeli; yabancı şirket parametresi erişim genişletememeli. Başlangıç/bitiş filtreleri, PDF ve Excel de aynı kümeyi kullanmalı.
 
-Kanıt: [Kargaz'dan 45 kayıtlık listeye geçiş](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/Docs/d3232b8_inceleme_kanitlari/yonetici-rapordan-listeye-45.jpg), [raporda 6 kayıt](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/Docs/d3232b8_inceleme_kanitlari/yonetici-donem-6-kayit.jpg), [bağlantıda 33 kayıt](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/Docs/d3232b8_inceleme_kanitlari/yonetici-donemsiz-33-kayit.jpg).
+Kanıt: [Kargaz'dan 45 kayıtlık listeye geçiş](d3232b8_inceleme_kanitlari/yonetici-rapordan-listeye-45.jpg), [raporda 6 kayıt](d3232b8_inceleme_kanitlari/yonetici-donem-6-kayit.jpg), [bağlantıda 33 kayıt](d3232b8_inceleme_kanitlari/yonetici-donemsiz-33-kayit.jpg).
 
 ### D02 — P2: Rapor Personeline Erişemediği Detay Düğmesi Sunulması
 
 **Sınıf:** Çalıştırılarak doğrulanmış hata. **Rol:** `RAPOR_GOR` ve `YKC_RAPOR_GOR` bulunan, talep görüntüleme yetkisi bulunmayan personel. **Sayfa:** `/ykc/raporlar` kayıt özeti.
 
-**Kod:** [Koşulsuz detay bağlantısı](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Views/Ykc/Raporlar.cshtml:550). [Detay action'ındaki yetki kontrolü](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YkcController.cs:413), `TalepleriGorebilir` yokken erişimi reddediyor.
+**Kod:** [Koşulsuz detay bağlantısı](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma/Views/Ykc/Raporlar.cshtml#L550). [Detay action'ındaki yetki kontrolü](https://github.com/yildizb60/YetkiliServisGazAcma/blob/d3232b812f205402b9d3a8c9151b1fa66388b72a/YetkiliServisGazAcma/Controllers/YkcController.cs#L413), `TalepleriGorebilir` yokken erişimi reddediyor.
 
 **Beklenen:** Rapor okuyabilen ama talep yönetim detayına giremeyen kişiye çalışmayacak bir işlem sunulmamalı.
 
@@ -117,7 +117,7 @@ Kanıt: [Kargaz'dan 45 kayıtlık listeye geçiş](C:/Users/byildiz/source/repos
 
 **Kabul testi:** Rapor-only hesap dört sekmeyi okuyabilmeli, erişemeyeceği detay bağlantısını görmemeli. Talep görüntüleme + rapor yetkili hesap bağlantıyı kullanabilmeli. Doğrudan yetkisiz detay URL'si engellenmeye devam etmeli.
 
-Kanıt: [Rapor bağlantısının yetki engeline götürmesi](C:/Users/byildiz/source/repos/YetkiliServisGazAcma/Docs/d3232b8_inceleme_kanitlari/rapor-personeli-detay-yetki-engeli.jpg).
+Kanıt: [Rapor bağlantısının yetki engeline götürmesi](d3232b8_inceleme_kanitlari/rapor-personeli-detay-yetki-engeli.jpg).
 
 ## 5. Rol Bazında Kullanım Sonuçları
 

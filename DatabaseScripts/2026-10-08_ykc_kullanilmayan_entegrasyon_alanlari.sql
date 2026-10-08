@@ -22,7 +22,7 @@ INSERT @columns VALUES
 BEGIN TRY
     BEGIN TRANSACTION;
     DECLARE @name sysname, @predicate nvarchar(500), @default sysname,
-        @sql nvarchar(max), @message nvarchar(2048);
+        @sql nvarchar(max), @message nvarchar(2048), @dropSql nvarchar(max) = N'';
     DECLARE unused_columns CURSOR LOCAL FAST_FORWARD FOR
         SELECT Name,HasData FROM @columns ORDER BY Position;
     OPEN unused_columns;
@@ -41,17 +41,15 @@ BEGIN TRY
             JOIN sys.columns c ON c.object_id=dc.parent_object_id AND c.column_id=dc.parent_column_id
             WHERE dc.parent_object_id=OBJECT_ID(N'dbo.Ykc_Talepler') AND c.name=@name;
             IF @default IS NOT NULL
-            BEGIN
-                SET @sql=N'ALTER TABLE dbo.Ykc_Talepler DROP CONSTRAINT '+QUOTENAME(@default)+N';';
-                EXEC sys.sp_executesql @sql;
-            END;
-            SET @sql=N'ALTER TABLE dbo.Ykc_Talepler DROP COLUMN '+QUOTENAME(@name)+N';';
-            EXEC sys.sp_executesql @sql;
+                SET @dropSql += N'ALTER TABLE dbo.Ykc_Talepler DROP CONSTRAINT '+QUOTENAME(@default)+N';';
+            SET @dropSql += N'ALTER TABLE dbo.Ykc_Talepler DROP COLUMN '+QUOTENAME(@name)+N';';
         END;
         FETCH NEXT FROM unused_columns INTO @name,@predicate;
     END;
     CLOSE unused_columns;
     DEALLOCATE unused_columns;
+    -- Validate every column before issuing any destructive DDL.
+    IF @dropSql <> N'' EXEC sys.sp_executesql @dropSql;
     COMMIT TRANSACTION;
 END TRY
 BEGIN CATCH
