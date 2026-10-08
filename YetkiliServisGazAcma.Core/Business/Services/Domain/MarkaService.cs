@@ -51,7 +51,6 @@ namespace YetkiliServisGazAcma.Business.Services
             marka.OlusturmaTarihi = DateTime.Now;
             marka.OlusturanKullanici = kullanici ?? "sistem";
             marka.SilindiMi = false;
-            marka.AktifMi = true;
 
             _context.Ys_Markalar.Add(marka);
             await _context.SaveChangesAsync();

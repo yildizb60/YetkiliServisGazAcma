@@ -179,7 +179,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (kayitlar.Count == 0)
                 return BadRequest(new { basarili = false, mesaj = "Filtrelere uygun rapor kaydı bulunamadı." });
 
-            var icOperasyon = kullanici.KullaniciTipi != KullaniciTipiDegerleri.SertifikaliFirma;
+            var icOperasyon = !User.IsInRole("SertifikaliFirma") && !YkcFirmaSunumu.FirmaKullanicisiMi(kullanici);
             var zaman = DateTime.Now.ToString("yyyyMMdd_HHmm");
             if (excelMi)
             {
@@ -357,7 +357,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return NotFound(new { basarili = false, mesaj = "Cihaz değişim talebi bulunamadı." });
 
             var firma = User.IsInRole("SertifikaliFirma")
-                || kullanici.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma;
+                || YkcFirmaSunumu.FirmaKullanicisiMi(kullanici);
             var formVerisi = Request.Path.Value?.EndsWith("/form-verisi", StringComparison.Ordinal) == true;
             if (firma)
             {
@@ -407,7 +407,14 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (kullanici == null) return Unauthorized();
             if (!await OkumaSirketineYetkiliMiAsync(kullanici, filtre?.AktifSirketId))
                 return YkcYetkisiz("Randevu takvimini görüntüleme yetkiniz bulunmuyor.");
-            return Ok(await _planlamaOkuma.TakvimAsync(filtre ?? new(), kullanici, await GenelYetkiliMiAsync(kullanici)));
+            try
+            {
+                return Ok(await _planlamaOkuma.TakvimAsync(filtre ?? new(), kullanici, await GenelYetkiliMiAsync(kullanici)));
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(YkcIslemSonuc.HataliSonuc(ex.Message));
+            }
         }
 
         [HttpPost("talepler/ekipler")]
@@ -532,7 +539,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return YkcYetkisiz("YKC teknik belge işlemi yetkiniz bulunmuyor.");
 
             var sonuc = await _belgeYukleme.YukleAsync(istek.TalepId, istek.DosyaTuru, istek.Dosya,
-                kullanici, await GenelYetkiliMiAsync(kullanici), sirketId);
+                kullanici, await GenelYetkiliMiAsync(kullanici), sirketId, HttpContext.RequestAborted);
             return sonuc.Basarili ? Ok(sonuc) : BadRequest(sonuc);
         }
 

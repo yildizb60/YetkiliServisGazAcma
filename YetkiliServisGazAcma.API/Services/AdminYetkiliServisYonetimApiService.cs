@@ -35,7 +35,8 @@ namespace YetkiliServisGazAcma.API.Services
 
             var markaIds = firma?.FirmaMarkalar?.Where(x => !x.SilindiMi && x.Marka is { SilindiMi: false })
                 .Select(x => x.MarkaId).Distinct().ToList() ?? new List<int>();
-            var kategoriIds = firma?.FirmaKategoriler?.Where(x => !x.SilindiMi)
+            var kategoriIds = firma?.FirmaKategoriler?.Where(x => !x.SilindiMi
+                    && x.Kategori is { SilindiMi: false, AktifMi: true })
                 .Select(x => x.KategoriId).Distinct().ToList() ?? new List<int>();
             return new AdminYetkiliServisEditorDto
             {

@@ -111,6 +111,20 @@ public static class ApiApplicationBoundaryRegression
             "Internal-installation personnel queries reject missing scope without querying data");
         Check(await internalQuery.ListeleAsync(new(), new AppKullanici(), ["SirketAdmin"]) == null,
             "Company administrators without company scope do not get global records");
+        foreach (var dates in new[]
+        {
+            (DateTime.MaxValue, DateTime.MaxValue), (today, DateTime.MaxValue), (DateTime.MaxValue, today)
+        })
+        {
+            var rejectedDates = false;
+            try
+            {
+                await new YkcPlanlamaOkumaService(null!).TakvimAsync(
+                    new() { Baslangic = dates.Item1, Bitis = dates.Item2 }, actor, false);
+            }
+            catch (ArgumentException ex) when (ex is not ArgumentOutOfRangeException) { rejectedDates = true; }
+            Check(rejectedDates, "Out-of-range calendar input is rejected before arithmetic and SQL: " + dates);
+        }
         Check(await new YetkiBelgesiSilmeApiService(null!).SilAsync(
             Certificate(1, null, today, YetkiBelgesiDurumDegerleri.Onaylandi), "actor") != null,
             "Approved certificate deletion is rejected before its conditional update");
@@ -140,6 +154,24 @@ public static class ApiApplicationBoundaryRegression
             "Rejected advisory comparison does not mutate the source snapshot");
 
         await using var db = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>().Options);
+        using var cancelled = new CancellationTokenSource();
+        cancelled.Cancel();
+        async Task CheckCancelled(Func<Task> action, string label)
+        {
+            var stopped = false;
+            try { await action(); }
+            catch (OperationCanceledException ex) when (ex.CancellationToken == cancelled.Token) { stopped = true; }
+            Check(stopped, label);
+        }
+        await CheckCancelled(() => installations.SorgulaAsync(new() { TesisatNo = "1", SozlesmeNo = "2" }, actor, cancelled.Token),
+            "Cancelled YKC query stops before database or external I/O");
+        await CheckCancelled(() => installations.KarsilastirAsync(comparison, actor, cancelled.Token),
+            "Cancelled comparison stops before applying its source reference");
+        await CheckCancelled(() => new DevreyeAlmaSorguApiService(db, null!, null!,
+            new YetkiliServisIlkKurulumService(db), null!).SorgulaAsync(new(), actor, cancelled.Token),
+            "Cancelled commissioning query stops before setup or external I/O");
+        await CheckCancelled(() => snapshots.EkleAsync(actor.Id, source, cancelled.Token),
+            "Cancelled source query does not create a new reference");
         using var users = new ProbeUsers(db, new AppKullanici { Id = "inactive", AktifMi = false });
         var flow = new OturumAkisApiService(users, null!, null!, null!,
             Options.Create(new SertifikaliFirmaKimlikOptions()), Options.Create(new SmsOptions()),
@@ -169,6 +201,9 @@ public static class ApiApplicationBoundaryRegression
             var uploads = new YkcBelgeYuklemeApiService(new YkcTalepService(db), new TestEnvironment(root));
             var rejected = await uploads.YukleAsync(1, null, null, actor, false, 10);
             Check(!rejected.Basarili && !Directory.Exists(root), "Missing upload cannot create a storage directory");
+            await CheckCancelled(() => uploads.YukleAsync(1, null, new ProbeUpload(false), actor, false, 10, cancelled.Token),
+                "Cancelled upload stops before creating a storage directory");
+            Check(!Directory.Exists(root), "Cancelled upload leaves no storage directory");
             rejected = await uploads.KaydetAsync(new()
             {
                 TalepId = 1, DosyaAdi = "form.pdf", IcerikTipi = "application/pdf",
@@ -187,7 +222,7 @@ public static class ApiApplicationBoundaryRegression
             catch (IOException ex) when (ex.Message == "fixture copy failure") { }
             Check(copy.Copied && !Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories).Any(),
                 "Partial upload is removed after CopyToAsync throws");
-            var metadata = new ProbeUpload(false);
+            var metadata = new ProbeUpload(false, @"..\..\..\outside.pdf");
             try
             {
                 await uploads.YukleAsync(1, null, metadata, actor, false, 10);
@@ -196,6 +231,16 @@ public static class ApiApplicationBoundaryRegression
             catch (InvalidOperationException) { }
             Check(metadata.Copied && !Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories).Any(),
                 "Completed upload is removed when metadata persistence throws without a database provider");
+            Check(metadata.StoredPath != null && PrivateDocumentStorage.IsInRoot(metadata.StoredPath, Path.Combine(root, "App_Data", "ykc-belgeler", "1"))
+                && Guid.TryParseExact(Path.GetFileNameWithoutExtension(metadata.StoredPath), "N", out _),
+                "Untrusted upload name is not part of the generated private storage path");
+            using var interrupt = new CancellationTokenSource();
+            var interrupted = new ProbeUpload(false, cancelDuringCopy: interrupt);
+            var copyCancelled = false;
+            try { await uploads.YukleAsync(1, null, interrupted, actor, false, 10, interrupt.Token); }
+            catch (OperationCanceledException ex) when (ex.CancellationToken == interrupt.Token) { copyCancelled = true; }
+            Check(copyCancelled && interrupted.Copied && !Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories).Any(),
+                "Cancellation during copying removes the partial upload and propagates to the caller");
         }
         finally
         {
@@ -232,22 +277,26 @@ public static class ApiApplicationBoundaryRegression
         public override Task<AppKullanici?> GetUserAsync(ClaimsPrincipal principal) => Task.FromResult<AppKullanici?>(user);
     }
 
-    private sealed class ProbeUpload(bool failCopy) : IFormFile
+    private sealed class ProbeUpload(bool failCopy, string fileName = "fixture.pdf", CancellationTokenSource? cancelDuringCopy = null) : IFormFile
     {
         private static readonly byte[] Bytes = "%PDF-1.4\n%%EOF"u8.ToArray();
         public bool Copied { get; private set; }
+        public string? StoredPath { get; private set; }
         public string ContentType => "application/pdf";
         public string ContentDisposition => "";
         public IHeaderDictionary Headers { get; set; } = new HeaderDictionary();
         public long Length => Bytes.Length;
         public string Name => "Dosya";
-        public string FileName => "fixture.pdf";
+        public string FileName => fileName;
         public Stream OpenReadStream() => new MemoryStream(Bytes, false);
         public void CopyTo(Stream target) => throw new NotSupportedException();
         public async Task CopyToAsync(Stream target, CancellationToken cancellationToken = default)
         {
+            StoredPath = (target as FileStream)?.Name;
             await target.WriteAsync(Bytes, cancellationToken);
             Copied = true;
+            cancelDuringCopy?.Cancel();
+            cancellationToken.ThrowIfCancellationRequested();
             if (failCopy) throw new IOException("fixture copy failure");
         }
     }

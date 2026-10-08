@@ -36,10 +36,14 @@ public sealed class YkcPlanlamaOkumaService
 
     public async Task<YkcTakvimSonuc> TakvimAsync(YkcTakvimFiltre filtre, AppKullanici kullanici, bool genelYetkili)
     {
-        var firmaGorunumu = kullanici.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma || kullanici.FirmaId.HasValue;
+        var firmaGorunumu = YkcFirmaSunumu.FirmaKullanicisiMi(kullanici);
+        if (filtre.Baslangic.Date == DateTime.MaxValue.Date || filtre.Bitis.Date == DateTime.MaxValue.Date)
+            throw new ArgumentException("Takvim tarih aralığı geçersiz.");
         filtre.Baslangic = filtre.Baslangic.Date;
-        filtre.Bitis = filtre.Bitis.Date < filtre.Baslangic ? filtre.Baslangic.AddDays(6) : filtre.Bitis.Date;
-        if (filtre.Bitis > filtre.Baslangic.AddDays(31)) filtre.Bitis = filtre.Baslangic.AddDays(31);
+        var azamiBitis = filtre.Baslangic.AddDays(Math.Min(31, (DateTime.MaxValue.Date.AddDays(-1) - filtre.Baslangic).Days));
+        filtre.Bitis = filtre.Bitis.Date < filtre.Baslangic
+            ? filtre.Baslangic.AddDays(Math.Min(6, (azamiBitis - filtre.Baslangic).Days)) : filtre.Bitis.Date;
+        if (filtre.Bitis > azamiBitis) filtre.Bitis = azamiBitis;
         var son = filtre.Bitis.AddDays(1);
         filtre.Il = filtre.Il?.Trim();
         filtre.Bolge = filtre.Bolge?.Trim();

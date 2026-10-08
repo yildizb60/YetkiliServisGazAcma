@@ -76,7 +76,7 @@
             modelFields.forEach(field => modelResizeObserver.observe(field));
         }
         refreshModelFields();
-        document.fonts?.ready.then(refreshModelFields);
+        document.fonts?.ready.then(refreshModelFields).catch(error => console.warn('Model tooltip font refresh failed.', error));
     }
 
     const setRecordState = (record, expanded) => {
@@ -91,7 +91,7 @@
         toggle.setAttribute("title", expanded ? "İşlem ayrıntılarını kapat" : "İşlem ayrıntılarını görüntüle");
         if (!toggle.dataset.recordLabel) {
             toggle.dataset.recordLabel = (toggle.getAttribute("aria-label") || "")
-                .replace(/\s*işlem ayrıntılarını (görüntüle|kapat)$/i, "")
+                .replace(/işlem ayrıntılarını (görüntüle|kapat)$/i, "")
                 .trim();
         }
         const action = expanded ? "kapat" : "görüntüle";

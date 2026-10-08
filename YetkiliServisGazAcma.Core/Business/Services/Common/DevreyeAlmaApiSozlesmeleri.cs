@@ -159,7 +159,6 @@ public class DevreyeAlmaKayitDto
     public DateTime DevreyeAlmaTarihi { get; set; }
     public string? Notlar { get; set; }
     public int Durum { get; set; }
-    public string? PdfYolu { get; set; }
     public DateTime OlusturmaTarihi { get; set; }
     public string? FirmaAdi { get; set; }
     public string? FirmaFaaliyetIli { get; set; }
@@ -203,7 +202,6 @@ public class YsDevreyeAlmaDto : DevreyeAlmaKayitDto
             DevreyeAlmaTarihi = islem.DevreyeAlmaTarihi,
             Notlar = islem.Notlar,
             Durum = islem.Durum,
-            PdfYolu = islem.PdfYolu,
             OlusturmaTarihi = islem.OlusturmaTarihi,
             FirmaAdi = islem.Firma?.FirmaAdi,
             FirmaYetkiliKisi = islem.Firma?.YetkiliKisi,

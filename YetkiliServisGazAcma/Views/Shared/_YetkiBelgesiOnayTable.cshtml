@@ -59,6 +59,7 @@
                     var baslangicFiltre = baslangic.ToString("yyyy-MM-dd");
                     var bitisFiltre = s.YetkiBelgesiBitisTarihi.GetValueOrDefault().ToString("yyyy-MM-dd");
                     var detailId = $"approval-detail-{panel}-{durum}-{s.Id}";
+                    var rejectId = $"approval-reject-{panel}-{durum}-{s.Id}";
 
                     <tr data-approval-row="true"
                         data-firma="@firmaAdi"
@@ -102,19 +103,11 @@
                                             <form method="post" action="@onayUrl">
                                                 @Html.AntiForgeryToken()
                                                 <input type="hidden" name="id" value="@s.Id" />
+                                                <input type="hidden" name="returnUrl" value="@(Context.Request.PathBase + Context.Request.Path + Context.Request.QueryString)" />
                                                 <button type="submit" class="df-approval-action is-approve"><i class="bi bi-check2" aria-hidden="true"></i><span>Onayla</span></button>
                                             </form>
                                         }
-                                        <details class="df-approval-reject">
-                                            <summary class="df-approval-action is-reject"><i class="bi bi-x-lg" aria-hidden="true"></i><span>Reddet</span></summary>
-                                            <form method="post" action="@redUrl">
-                                                @Html.AntiForgeryToken()
-                                                <input type="hidden" name="id" value="@s.Id" />
-                                                <label for="red-gerekce-@(panel)-@(durum)-@(s.Id)">Red gerekçesi</label>
-                                                <input class="df-control" id="red-gerekce-@(panel)-@(durum)-@(s.Id)" type="text" name="gerekce" required maxlength="500" />
-                                                <button type="submit" class="df-approval-action is-reject is-confirm"><i class="bi bi-check2" aria-hidden="true"></i><span>Reddi Kaydet</span></button>
-                                            </form>
-                                        </details>
+                                        <button type="button" class="df-approval-action is-reject" data-approval-reject-toggle aria-controls="@rejectId" aria-expanded="false"><i class="bi bi-x-lg" aria-hidden="true"></i><span>Reddet</span></button>
                                     }
                                     else if (durum == "suresi-dolan")
                                     {
@@ -129,6 +122,22 @@
                             </div>
                         </td>
                     </tr>
+                    @if (bekleyen)
+                    {
+                        <tr id="@rejectId" class="df-approval-reject-row" data-approval-reject-panel hidden>
+                            <td colspan="7">
+                                <form method="post" action="@redUrl" class="df-approval-reject-form" aria-label="@firmaAdi belge reddi">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@s.Id" />
+                                    <input type="hidden" name="returnUrl" value="@(Context.Request.PathBase + Context.Request.Path + Context.Request.QueryString)" />
+                                    <label for="red-gerekce-@(panel)-@(durum)-@(s.Id)">Red gerekçesi:</label>
+                                    <input class="df-control" id="red-gerekce-@(panel)-@(durum)-@(s.Id)" type="text" name="gerekce" required maxlength="500" />
+                                    <button type="submit" class="df-approval-action is-reject is-confirm"><i class="bi bi-check2" aria-hidden="true"></i><span>Reddi Kaydet</span></button>
+                                    <button type="button" class="df-approval-expand" data-approval-reject-close aria-label="Red işlemini kapat" title="Red işlemini kapat"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
                     <tr id="@detailId" class="df-approval-detail-row" data-approval-detail hidden>
                             <td colspan="7">
                                 <div class="df-approval-detail-grid">

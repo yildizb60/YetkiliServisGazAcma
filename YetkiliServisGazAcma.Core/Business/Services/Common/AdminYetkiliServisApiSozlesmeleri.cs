@@ -100,7 +100,7 @@ namespace YetkiliServisGazAcma.Business.Services
                     .Select(x => x.First())
                     .ToList() ?? new List<AdminYetkiliServisKategoriDto>(),
                 Markalar = servis.FirmaMarkalar?
-                    .Where(x => !x.SilindiMi && x.Marka != null)
+                    .Where(x => !x.SilindiMi && x.Marka is { SilindiMi: false })
                     .Select(x => new AdminYetkiliServisMarkaDto
                     {
                         Id = x.Marka!.Id,

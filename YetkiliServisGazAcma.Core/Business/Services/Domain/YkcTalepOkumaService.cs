@@ -14,7 +14,7 @@ public sealed class YkcTalepOkumaService(AppDbContext context)
         bool genelYetkili,
         int? dogrulanmisSirketId = null)
     {
-        var query = TalepOkumaQuery();
+        var query = ListeQuery();
         query = await FiltreleriUygulaAsync(query, filtre, kullanici, genelYetkili, dogrulanmisSirketId);
 
         var toplam = await query.CountAsync();
@@ -45,7 +45,7 @@ public sealed class YkcTalepOkumaService(AppDbContext context)
         bool genelYetkili,
         int? dogrulanmisSirketId = null)
     {
-        var query = await FiltreleriUygulaAsync(TalepOkumaQuery(), filtre, kullanici, genelYetkili, dogrulanmisSirketId);
+        var query = await FiltreleriUygulaAsync(RaporQuery(), filtre, kullanici, genelYetkili, dogrulanmisSirketId);
 
         var toplam = await query.CountAsync();
         var durumOzetleri = await query
@@ -53,12 +53,13 @@ public sealed class YkcTalepOkumaService(AppDbContext context)
             .Select(x => new YkcRaporDurumOzetDto { Durum = x.Key, Sayi = x.Count() })
             .ToListAsync();
 
-        var hedefOzetleri = await query
+        var firmaGorunumu = YkcFirmaSunumu.FirmaKullanicisiMi(kullanici);
+        var hedefOzetleri = firmaGorunumu ? new List<YkcRaporMetinOzetDto>() : await query
             .GroupBy(x => x.HedefUygulama ?? "")
             .Select(x => new YkcRaporMetinOzetDto { Ad = x.Key, Sayi = x.Count() })
             .ToListAsync();
 
-        var ekipOzetleri = await query
+        var ekipOzetleri = firmaGorunumu ? new List<YkcRaporMetinOzetDto>() : await query
             .Where(x => x.AtananEkip != null && x.AtananEkip != "")
             .GroupBy(x => x.AtananEkip!)
             .Select(x => new YkcRaporMetinOzetDto { Ad = x.Key, Sayi = x.Count() })
@@ -121,7 +122,7 @@ public sealed class YkcTalepOkumaService(AppDbContext context)
         int? dogrulanmisSirketId = null)
     {
         var limit = Math.Clamp(kayitLimiti, 1, 5001);
-        var query = await FiltreleriUygulaAsync(TalepOkumaQuery(), filtre, kullanici, genelYetkili, dogrulanmisSirketId);
+        var query = await FiltreleriUygulaAsync(RaporQuery(), filtre, kullanici, genelYetkili, dogrulanmisSirketId);
         var kayitlar = await query
             .OrderByDescending(x => x.TalepTarihi)
             .ThenByDescending(x => x.Id)
@@ -133,7 +134,7 @@ public sealed class YkcTalepOkumaService(AppDbContext context)
 
     public async Task<YkcDashboardOzetDto> DashboardOzetAsync(AppKullanici kullanici, bool genelYetkili, int? aktifSirketId = null)
     {
-        var query = YkcTalepKapsami.Uygula(TalepOkumaQuery(), kullanici, genelYetkili, aktifSirketId);
+        var query = YkcTalepKapsami.Uygula(ListeQuery(), kullanici, genelYetkili, aktifSirketId);
 
         var toplam = await query.CountAsync();
         var incelemeBekleyen = await (await BekleyenIsFiltresiAsync(query, YkcBekleyenIsDegerleri.Inceleme)).CountAsync();
@@ -237,30 +238,37 @@ public sealed class YkcTalepOkumaService(AppDbContext context)
         return dto;
     }
 
-    private IQueryable<Ykc_Talep> TalepQuery()
+    private IQueryable<Ykc_Talep> ListeQuery()
     {
         return _context.Ykc_Talepler
+            .AsNoTracking()
             .AsSplitQuery()
             .Include(x => x.Firma)
-                .ThenInclude(x => x!.YetkiBelgeleri)
             .Include(x => x.Sirket)
-            .Include(x => x.FormDosyalari.Where(d => !d.SilindiMi))
-            .Include(x => x.Atamalar.Where(a => !a.SilindiMi))
-            .Include(x => x.IslemGecmisi.Where(g => !g.SilindiMi))
             .Include(x => x.Kontroller.Where(k => !k.SilindiMi))
-            .Include(x => x.ImzaSurecleri.Where(s => !s.SilindiMi))
-                .ThenInclude(x => x.Imzacilar.Where(i => !i.SilindiMi))
-            .Include(x => x.ImzaSurecleri.Where(s => !s.SilindiMi))
-                .ThenInclude(x => x.NihaiDosya)
             .Where(x => !x.SilindiMi)
             .Where(x =>
                 (x.TesisatNo == null || x.TesisatNo != "string") &&
                 (x.MusteriAdi == null || x.MusteriAdi != "string"));
     }
 
+    private IQueryable<Ykc_Talep> RaporQuery()
+    {
+        return ListeQuery()
+            .Include(x => x.FormDosyalari.Where(d => !d.SilindiMi))
+            .Include(x => x.ImzaSurecleri.Where(s => !s.SilindiMi));
+    }
+
     private IQueryable<Ykc_Talep> TalepOkumaQuery()
     {
-        return TalepQuery().AsNoTracking();
+        return RaporQuery()
+            .Include(x => x.Firma).ThenInclude(x => x!.YetkiBelgeleri)
+            .Include(x => x.Atamalar.Where(a => !a.SilindiMi))
+            .Include(x => x.IslemGecmisi.Where(g => !g.SilindiMi))
+            .Include(x => x.ImzaSurecleri.Where(s => !s.SilindiMi))
+                .ThenInclude(x => x.Imzacilar.Where(i => !i.SilindiMi))
+            .Include(x => x.ImzaSurecleri.Where(s => !s.SilindiMi))
+                .ThenInclude(x => x.NihaiDosya);
     }
 
     private static async Task<IQueryable<Ykc_Talep>> FiltreleriUygulaAsync(
@@ -432,7 +440,7 @@ public sealed class YkcTalepOkumaService(AppDbContext context)
     private static YkcTalepDto ListeGorunumu(Ykc_Talep talep, AppKullanici kullanici)
     {
         var dto = YkcTalepDto.FromEntity(talep);
-        if (kullanici.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma)
+        if (YkcFirmaSunumu.FirmaKullanicisiMi(kullanici))
         {
             dto.ProjeNo = null;
             dto.EskiCihaz = null;
@@ -446,7 +454,7 @@ public sealed class YkcTalepOkumaService(AppDbContext context)
     private static YkcRaporKayitDto RaporGorunumu(Ykc_Talep talep, AppKullanici kullanici)
     {
         var dto = YkcRaporKayitDto.FromEntity(talep);
-        if (kullanici.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma)
+        if (YkcFirmaSunumu.FirmaKullanicisiMi(kullanici))
         {
             dto.ProjeNo = null;
             dto.EskiCihazTipi = null;

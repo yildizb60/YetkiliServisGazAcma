@@ -58,7 +58,6 @@ namespace YetkiliServisGazAcma.Business.Services
             {
                 FirmaId = kullanici.FirmaId ?? dto.FirmaId,
                 SirketId = kullanici.SirketId ?? firma?.SirketId ?? dto.SirketId,
-                Vkn = firma?.VergiNo ?? dto.Vkn,
                 FirmaKodu = dto.FirmaKodu,
                 KaynakTipi = string.IsNullOrWhiteSpace(dto.KaynakTipi) ? "Manuel" : dto.KaynakTipi.Trim(),
                 SorguReferansi = dto.SorguReferansi,
@@ -91,7 +90,6 @@ namespace YetkiliServisGazAcma.Business.Services
                 YeniSeriNo = dto.YeniSeriNo?.Trim(),
                 IkinciElCihazMi = dto.IkinciElCihazMi,
                 Fr265BelgeVersiyonNo = 1,
-                Aufnr = dto.Aufnr?.Trim(),
                 Durum = YkcDurumDegerleri.TalepAlindi,
                 TalepTarihi = simdi,
                 HedefUygulama = YkcHedefUygulamaDegerleri.YonetimPaneli,
@@ -507,9 +505,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 talep.HedefUygulama = null;
                 talep.RandevuTarihi = null;
                 talep.RandevuSaati = null;
-                talep.RandevuId = null;
                 talep.CallCenterTetiklenecekMi = false;
-                talep.CallCenterTetiklendiMi = false;
             }
 
             if (imzaSureci != null
@@ -553,10 +549,11 @@ namespace YetkiliServisGazAcma.Business.Services
             YkcDosyaKaydetDto dto,
             AppKullanici kullanici,
             bool genelYetkili,
-            int? dogrulanmisSirketId = null)
+            int? dogrulanmisSirketId = null,
+            CancellationToken cancellationToken = default)
         {
             var talep = await YkcTalepKapsami.Uygula(_context.Ykc_Talepler.Where(x => !x.SilindiMi), kullanici, genelYetkili, dogrulanmisSirketId)
-                .FirstOrDefaultAsync(x => x.Id == dto.TalepId);
+                .FirstOrDefaultAsync(x => x.Id == dto.TalepId, cancellationToken);
 
             if (talep == null)
                 return YkcIslemSonuc.HataliSonuc("Cihaz değişim talebi bulunamadı.");
@@ -597,7 +594,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 OlusturanKullanici = kullanici.UserName
             });
 
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(cancellationToken);
 
             return YkcIslemSonuc.BasariliSonuc("Cihaz değişim belge kaydı oluşturuldu.", talep.Id);
         }

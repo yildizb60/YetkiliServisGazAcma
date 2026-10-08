@@ -91,7 +91,7 @@ namespace YetkiliServisGazAcma.API.Services
             if (string.IsNullOrWhiteSpace(dto.VergiNo))
                 return "VKN zorunludur";
 
-            var vergiNoDigits = new string(dto.VergiNo.Where(char.IsDigit).ToArray());
+            var vergiNoDigits = new string(dto.VergiNo.Where(char.IsAsciiDigit).ToArray());
             if (vergiNoDigits.Length is not (10 or 11))
                 return "VKN/TCKN 10 veya 11 haneli olmalidir";
 
