@@ -243,13 +243,13 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpGet("onay-bekleyenler")]
-        public async Task<IActionResult> OnayBekleyenler()
+        public async Task<IActionResult> OnayBekleyenler([FromQuery] YetkiBelgesiOnayFiltreDto? filtre = null)
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
 
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            var onayListesi = await _adminYetkiBelgesiOnayApiClient.ListeleAsync(kullanici, aktifSirketId);
+            var onayListesi = await _adminYetkiBelgesiOnayApiClient.ListeleAsync(kullanici, aktifSirketId, filtre);
             ViewBag.AdminYetkiBelgesiOnayVeriKaynagi = "API";
 
             if (onayListesi == null)
@@ -259,7 +259,8 @@ namespace YetkiliServisGazAcma.Controllers
             }
 
             ViewBag.Kullanici = kullanici;
-            ViewBag.OnayBekleyen = onayListesi.Bekleyenler.Count;
+            ViewBag.OnayBekleyen = onayListesi.Sayfalama.Bekleyen;
+            ViewBag.Sayfalama = onayListesi.Sayfalama;
             ViewBag.Bekleyenler = onayListesi.Bekleyenler;
             ViewBag.SuresiDolanlar = onayListesi.SuresiDolanlar;
             ViewBag.Onaylananlar = onayListesi.Onaylananlar;

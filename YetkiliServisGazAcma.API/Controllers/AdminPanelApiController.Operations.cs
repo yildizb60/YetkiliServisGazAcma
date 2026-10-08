@@ -195,7 +195,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (!await YetkiBelgesiOnaylayabilirMi(kapsam.sirketId))
                 return Forbid();
 
-            return Ok(await _adminYetkiBelgesiOnayApiService.ListeleAsync(kapsam.sirketId));
+            return Ok(await _adminYetkiBelgesiOnayApiService.ListeleAsync(kapsam.sirketId, dto, HttpContext.RequestAborted));
         }
 
         [HttpPost("yetki-belgeleri/onay-gecmisi")]
@@ -227,7 +227,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             {
                 var dosya = await _adminYetkiBelgesiOnayApiService.RaporAsync(dto ?? new(), kapsam.sirketId, excelMi);
                 if (dosya == null) return NotFound(new ApiIslemSonuc { Mesaj = "Seçilen dönemde dışa aktarılacak yetki belgesi bulunamadı." });
-                return File(dosya.Value.Bytes, dosya.Value.ContentType, dosya.Value.DosyaAdi);
+                return this.HassasDosya(dosya.Value.Bytes, dosya.Value.ContentType, dosya.Value.DosyaAdi);
             }
             catch (ArgumentException ex)
             {

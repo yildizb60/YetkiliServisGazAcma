@@ -105,7 +105,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (sirketId.gecersiz)
                 return Forbid();
 
-            return Ok(await _okuma.OnayEkraniAsync(sirketId.sirketId));
+            return Ok(await _okuma.OnayEkraniAsync(sirketId.sirketId, dto, HttpContext.RequestAborted));
         }
 
         [HttpPost("sil")]

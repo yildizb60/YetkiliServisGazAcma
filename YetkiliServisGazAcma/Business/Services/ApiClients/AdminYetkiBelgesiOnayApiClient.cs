@@ -16,10 +16,12 @@ namespace YetkiliServisGazAcma.Business.Services
             _api = new ApiHttpClient(httpClient, options.Value, tokenService, logger);
         }
 
-        public Task<AdminYetkiBelgesiOnayListeDto?> ListeleAsync(AppKullanici kullanici, int? sirketId)
+        public Task<AdminYetkiBelgesiOnayListeDto?> ListeleAsync(AppKullanici kullanici, int? sirketId, YetkiBelgesiOnayFiltreDto? filtre = null)
         {
+            filtre ??= new();
+            filtre.SirketId = sirketId;
             return _api.PostAsync<object, AdminYetkiBelgesiOnayListeDto>(kullanici,
-                "api/admin-panel/yetki-belgeleri/onay-listesi", new AdminYetkiBelgesiOnayFiltreDto { SirketId = sirketId }, "Admin yetki belgesi onay listesi");
+                "api/admin-panel/yetki-belgeleri/onay-listesi", filtre, "Admin yetki belgesi onay listesi");
         }
 
         public async Task<List<AdminYetkiBelgesiOnayDto>?> OnayGecmisiAsync(

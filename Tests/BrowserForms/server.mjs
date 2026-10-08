@@ -4,6 +4,12 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 
 const app = new URL('../../YetkiliServisGazAcma/', import.meta.url);
+function inlineScript(source) {
+    const start = source.indexOf('<script>');
+    const end = source.indexOf('</script>', start + 8);
+    return start >= 0 && end >= 0 ? source.slice(start + 8, end).trimStart() : null;
+}
+
 const files = new Map([
     ['/toast.js', 'wwwroot/js/operation-toast.js'],
     ['/toast.css', 'wwwroot/css/operation-toast.css'],
@@ -22,6 +28,7 @@ const files = new Map([
     ['/request.css', 'wwwroot/css/ykc-request.css'],
     ['/dropdown.js', 'wwwroot/js/notification-panel.js'],
     ['/commissioning.js', 'wwwroot/js/commissioning-row-details.js'],
+    ['/approval.js', 'wwwroot/js/approval-row-details.js'],
     ['/panel-layout.css', 'wwwroot/css/panel-layout.css'],
     ['/panel-unify.css', 'wwwroot/css/panel-unify.css'],
     ['/service-editor.css', 'wwwroot/css/service-editor.css'],
@@ -67,7 +74,7 @@ createServer(async (request, response) => {
             const markup = view.match(/<div class="ykc-request ys-commissioning-request">[\s\S]*?(?=@section Scripts)/)?.[0]
                 .replace('@Url.Action("Kaydet", "DevreyeAlma")', '#')
                 .replace('@Html.AntiForgeryToken()', '<input type="hidden" name="__RequestVerificationToken" value="test-token">');
-            const script = view.match(/<script>\s*([\s\S]*?)<\/script>/)?.[1];
+            const script = inlineScript(view);
             if (!markup || !script) throw new Error('Commissioning entry fixture source changed');
             response.setHeader('Content-Type', 'application/json');
             response.end(JSON.stringify({ markup, script }));
@@ -98,7 +105,7 @@ createServer(async (request, response) => {
         } else if (files.has(path)) {
             let source = await readFile(new URL(files.get(path), app), 'utf8');
             if (path === '/permission.js' || path === '/appointment.js' || path === '/report.js') {
-                source = source.match(/<script>\s*([\s\S]*?)<\/script>/)?.[1];
+                source = inlineScript(source);
                 if (!source) throw new Error(`Inline script missing: ${path}`);
             }
             if (path === '/report.js') source = source.replace('@icOperasyonGorsun.ToString().ToLowerInvariant()', 'true');

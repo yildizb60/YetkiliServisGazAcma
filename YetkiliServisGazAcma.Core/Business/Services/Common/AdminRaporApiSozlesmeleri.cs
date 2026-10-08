@@ -137,7 +137,6 @@ public class AdminDevreyeAlmaDto : DevreyeAlmaKayitDto
             DevreyeAlmaTarihi = devreyeAlma.DevreyeAlmaTarihi,
             Notlar = devreyeAlma.Notlar,
             Durum = devreyeAlma.Durum,
-            PdfYolu = devreyeAlma.PdfYolu,
             OlusturmaTarihi = devreyeAlma.OlusturmaTarihi,
             FirmaAdi = devreyeAlma.Firma?.FirmaAdi,
             FirmaFaaliyetIli = devreyeAlma.Firma?.FaaliyetIli,

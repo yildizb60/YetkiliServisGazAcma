@@ -316,7 +316,21 @@ public sealed class AdminKullaniciYonetimApiService(AppDbContext context, UserMa
         }
 
         if (rol == "GenelSistemAdmin")
-            await _userManager.AddToRoleAsync(yeni, KullaniciRolAdlari.EskiSuperAdmin);
+        {
+            var eskiRolAdi = _userManager.NormalizeName(KullaniciRolAdlari.EskiSuperAdmin);
+            var eskiRolVar = await _context.Roles.AnyAsync(x => x.NormalizedName == eskiRolAdi);
+            if (eskiRolVar)
+            {
+                var eskiRolSonuc = await _userManager.AddToRoleAsync(yeni, KullaniciRolAdlari.EskiSuperAdmin);
+                if (!eskiRolSonuc.Succeeded)
+                    _logger.LogWarning("EskiSuperAdmin rolu atanamadi. KullaniciId: {KullaniciId}, Hatalar: {Hatalar}",
+                        yeni.Id, string.Join(", ", eskiRolSonuc.Errors.Select(x => x.Code)));
+            }
+            else
+            {
+                _logger.LogWarning("EskiSuperAdmin rolu bulunamadi. GenelSistemAdmin rolu atandi. KullaniciId: {KullaniciId}", yeni.Id);
+            }
+        }
 
         _logger.LogInformation("Admin kullanici olusturdu. YapanId: {YapanId}, YeniKullaniciId: {YeniKullaniciId}, Rol: {Rol}", kullanici.Id, yeni.Id, rol);
         return (false, ApiIslemSonuc.BasariliSonuc("Kullanici basariyla olusturuldu."));

@@ -75,6 +75,10 @@ namespace YetkiliServisGazAcma.Business.Services
                     return (false, "Geçersiz hizmet türü seçildi.");
             }
 
+            firma.VergiNo = new string((firma.VergiNo ?? "").Where(char.IsAsciiDigit).ToArray());
+            if (firma.VergiNo.Length is not (10 or 11))
+                return (false, "VKN/TCKN 10 veya 11 haneli olmalidir");
+
             // VKN kontrolü — aynı VKN ile kayıt var mı?
             var mevcutFirma = await VknIleGetir(firma.VergiNo!);
             if (mevcutFirma != null)

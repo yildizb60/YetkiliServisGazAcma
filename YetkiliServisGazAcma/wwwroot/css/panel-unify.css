@@ -7064,10 +7064,6 @@ body.df-modal-open {
     flex-wrap: wrap;
 }
 
-.df-approval-workspace .df-approval-table tr:has(.df-approval-reject[open]) td {
-    vertical-align: top;
-}
-
 .df-approval-filter-empty {
     padding: 18px;
     color: #5f7185;
@@ -7082,45 +7078,6 @@ body.df-modal-open {
     gap: 4px;
     font-size: 12px !important;
     white-space: nowrap;
-}
-
-.df-approval-reject {
-    width: 100%;
-}
-
-.df-approval-reject:not([open]) {
-    width: auto;
-}
-
-.df-approval-reject > summary {
-    width: max-content;
-    cursor: pointer;
-    list-style: none;
-}
-
-.df-approval-reject > summary::-webkit-details-marker {
-    display: none;
-}
-
-.df-approval-reject > form {
-    display: grid;
-    gap: 6px;
-    width: 100%;
-    margin: 8px 0 0;
-    padding: 9px;
-    border: 1px solid #efcfd5;
-    border-radius: 5px;
-    background: #fff8f9;
-}
-
-.df-approval-reject label {
-    font-size: 11px;
-    font-weight: 650;
-}
-
-.df-approval-reject input {
-    width: 100%;
-    min-width: 0;
 }
 
 .df-approval-decision {

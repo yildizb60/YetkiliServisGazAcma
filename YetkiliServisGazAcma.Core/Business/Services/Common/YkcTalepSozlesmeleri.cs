@@ -83,7 +83,6 @@ public class YkcTalepKaydetDto
     public string? SorguReferansi { get; set; }
     public int? FirmaId { get; set; }
     public int? SirketId { get; set; }
-    public string? Vkn { get; set; }
     public string? FirmaKodu { get; set; }
     public string? KaynakTipi { get; set; }
     public string? TesisatNo { get; set; }
@@ -114,7 +113,6 @@ public class YkcTalepKaydetDto
     public string? YeniModel { get; set; }
     public string? YeniSeriNo { get; set; }
     public bool? IkinciElCihazMi { get; set; }
-    public string? Aufnr { get; set; }
 
     [JsonIgnore]
     public Dictionary<string, string?> IzinliYeniCihazTipleri { get; set; } = new(StringComparer.OrdinalIgnoreCase);
@@ -447,7 +445,6 @@ public class YkcTalepDetayDto : YkcTalepDto
     public string? SayacNo { get; set; }
     public string? MusteriTelefon { get; set; }
     public string? Adres { get; set; }
-    public string? Vkn { get; set; }
     public string? FirmaYetkiliKisi { get; set; }
     public string? YetkiBelgesiNo { get; set; }
     public string? TuketimNoktasi { get; set; }
@@ -479,11 +476,7 @@ public class YkcTalepDetayDto : YkcTalepDto
     public DateTime? IptalTarihi { get; set; }
     public string? IptalEdenKullaniciId { get; set; }
     public string? IptalAciklama { get; set; }
-    public string? RandevuId { get; set; }
-    public string? IsEmriNo { get; set; }
-    public string? Aufnr { get; set; }
     public bool CallCenterTetiklenecekMi { get; set; }
-    public bool CallCenterTetiklendiMi { get; set; }
     public List<YkcDosyaDto> Dosyalar { get; set; } = new();
     public List<YkcAtamaDto> Atamalar { get; set; } = new();
     [JsonIgnore]
@@ -531,7 +524,6 @@ public class YkcTalepDetayDto : YkcTalepDto
             SayacNo = talep.SayacNo,
             MusteriTelefon = talep.MusteriTelefon,
             Adres = talep.Adres,
-            Vkn = talep.Vkn,
             FirmaYetkiliKisi = talep.Firma?.YetkiliKisi,
             YetkiBelgesiNo = YetkiBelgesiNoBul(talep),
             TuketimNoktasi = "",
@@ -564,11 +556,7 @@ public class YkcTalepDetayDto : YkcTalepDto
             IptalAciklama = talep.IptalAciklama,
             RandevuSaati = talep.RandevuSaati,
             RandevuTarihi = talep.RandevuTarihi,
-            RandevuId = talep.RandevuId,
-            IsEmriNo = talep.IsEmriNo,
-            Aufnr = talep.Aufnr,
             CallCenterTetiklenecekMi = talep.CallCenterTetiklenecekMi,
-            CallCenterTetiklendiMi = talep.CallCenterTetiklendiMi,
             Dosyalar = talep.FormDosyalari.OrderByDescending(x => x.OlusturmaTarihi).Select(YkcDosyaDto.FromEntity).ToList(),
             Atamalar = talep.Atamalar.Where(x => !x.SilindiMi).OrderByDescending(x => x.Id).Select(YkcAtamaDto.FromEntity).ToList(),
             Kontroller = talep.Kontroller.Where(x => !x.SilindiMi).OrderBy(x => x.KontrolNo).Select(YkcFr265KontrolDto.FromEntity).ToList(),

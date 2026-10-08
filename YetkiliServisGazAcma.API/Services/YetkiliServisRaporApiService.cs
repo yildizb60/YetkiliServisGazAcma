@@ -17,19 +17,24 @@ public sealed class YetkiliServisRaporApiService(AppDbContext context)
         DateTime basTarih;
         DateTime bitTarih;
         List<Ys_DevreyeAlma> islemler;
+        var limit = Math.Clamp(dto?.Limit is > 0 ? dto.Limit.Value : 10, 1, 100);
 
         if (dto?.Ids?.Count > 0)
         {
-            islemler = await _context.Ys_DevreyeAlmalar
+            var secilenler = _context.Ys_DevreyeAlmalar.AsNoTracking()
+                .Where(x => x.FirmaId == firmaId && !x.SilindiMi && dto.Ids.Contains(x.Id));
+            var aralik = await secilenler.GroupBy(_ => 1)
+                .Select(g => new { Bas = g.Min(x => x.DevreyeAlmaTarihi), Bit = g.Max(x => x.DevreyeAlmaTarihi) })
+                .FirstOrDefaultAsync();
+            basTarih = aralik?.Bas.Date ?? DateTime.Today;
+            bitTarih = aralik?.Bit.Date ?? DateTime.Today;
+            islemler = await secilenler
                 .Include(x => x.Marka)
                 .Include(x => x.Firma)
                     .ThenInclude(x => x!.Sirket)
-                .Where(x => x.FirmaId == firmaId && !x.SilindiMi && dto.Ids.Contains(x.Id))
                 .OrderByDescending(x => x.DevreyeAlmaTarihi).ThenByDescending(x => x.Id)
+                .Take(limit)
                 .ToListAsync();
-
-            basTarih = islemler.Count > 0 ? islemler.Min(x => x.DevreyeAlmaTarihi).Date : DateTime.Now.Date;
-            bitTarih = islemler.Count > 0 ? islemler.Max(x => x.DevreyeAlmaTarihi).Date : DateTime.Now.Date;
         }
         else
         {
@@ -38,7 +43,7 @@ public sealed class YetkiliServisRaporApiService(AppDbContext context)
             bitTarih = tarihAraligi.Bit;
             var bitSonrasi = bitTarih.AddDays(1);
 
-            var query = _context.Ys_DevreyeAlmalar
+            var query = _context.Ys_DevreyeAlmalar.AsNoTracking()
                 .Include(x => x.Marka)
                 .Include(x => x.Firma)
                     .ThenInclude(x => x!.Sirket)
@@ -48,9 +53,7 @@ public sealed class YetkiliServisRaporApiService(AppDbContext context)
                     && x.DevreyeAlmaTarihi < bitSonrasi)
                 .OrderByDescending(x => x.DevreyeAlmaTarihi).ThenByDescending(x => x.Id);
 
-            islemler = dto?.Limit is > 0
-                ? await query.Take(dto.Limit.Value).ToListAsync()
-                : await query.ToListAsync();
+            islemler = await query.Take(limit).ToListAsync();
         }
 
         var bitSonrasiRapor = bitTarih.AddDays(1);
@@ -69,15 +72,21 @@ public sealed class YetkiliServisRaporApiService(AppDbContext context)
                 && x.OlusturmaTarihi >= basTarih
                 && x.OlusturmaTarihi < bitSonrasiRapor);
 
-        var devreyeSayisi = await devreyeTemelQuery.CountAsync();
-        var tamamlanan = await devreyeTemelQuery.Where(x => x.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi).CountAsync();
-        var bekleyen = await devreyeTemelQuery.Where(x => x.Durum == DevreyeAlmaDurumDegerleri.Bekliyor).CountAsync();
-        var iptal = await devreyeTemelQuery.Where(x => x.Durum == DevreyeAlmaDurumDegerleri.Iptal).CountAsync();
+        var durumlar = await devreyeTemelQuery.GroupBy(x => x.Durum)
+            .Select(g => new { Durum = g.Key, Sayi = g.Count() }).ToDictionaryAsync(x => x.Durum, x => x.Sayi);
+        var devreyeSayisi = durumlar.Values.Sum();
+        var tamamlanan = durumlar.GetValueOrDefault(DevreyeAlmaDurumDegerleri.Tamamlandi);
+        var bekleyen = durumlar.GetValueOrDefault(DevreyeAlmaDurumDegerleri.Bekliyor);
+        var iptal = durumlar.GetValueOrDefault(DevreyeAlmaDurumDegerleri.Iptal);
 
-        var yetkiBelgesiOnayli = await yetkiBelgesiTemelQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi).CountAsync();
-        var yetkiBelgesiBekleyen = await yetkiBelgesiTemelQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
-            && x.YetkiBelgesiBitisTarihi >= DateTime.Today).CountAsync();
-        var yetkiBelgesiReddedilen = await yetkiBelgesiTemelQuery.Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Reddedildi).CountAsync();
+        var bugun = DateTime.Today;
+        var belgeDurumlari = await yetkiBelgesiTemelQuery
+            .Where(x => x.Durum != YetkiBelgesiDurumDegerleri.OnaydaBekliyor || x.YetkiBelgesiBitisTarihi >= bugun)
+            .GroupBy(x => x.Durum)
+            .Select(g => new { Durum = g.Key, Sayi = g.Count() }).ToDictionaryAsync(x => x.Durum, x => x.Sayi);
+        var yetkiBelgesiOnayli = belgeDurumlari.GetValueOrDefault(YetkiBelgesiDurumDegerleri.Onaylandi);
+        var yetkiBelgesiBekleyen = belgeDurumlari.GetValueOrDefault(YetkiBelgesiDurumDegerleri.OnaydaBekliyor);
+        var yetkiBelgesiReddedilen = belgeDurumlari.GetValueOrDefault(YetkiBelgesiDurumDegerleri.Reddedildi);
 
         var aylikBaslangic = new DateTime(basTarih.Year, basTarih.Month, 1);
         var aylikBitis = new DateTime(bitTarih.Year, bitTarih.Month, 1);

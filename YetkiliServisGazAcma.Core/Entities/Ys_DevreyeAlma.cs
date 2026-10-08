@@ -41,7 +41,6 @@ namespace YetkiliServisGazAcma.Entities
         public string? Notlar { get; set; }
         public int Durum { get; set; } = DevreyeAlmaDurumDegerleri.Bekliyor;
         // 0=Bekliyor, 1=Tamamlandı, 2=İptal
-        public string? PdfYolu { get; set; }
 
         // Navigation
         public Ys_Firma? Firma { get; set; }

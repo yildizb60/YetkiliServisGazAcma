@@ -327,7 +327,7 @@ internal static class PanelReportSqlScenario
                 "Brand groups use the catalog first, trim source brands and retain missing brands without applying the display limit");
 
             AdminPanelApiController ReportController(AppKullanici user) => new(db, null!, null!, null!, null!,
-                reports, null!, null!, exports, new AdminKullaniciOkumaApiService(db), null!)
+                reports, new AdminYetkiBelgesiOnayApiService(db), null!, exports, new AdminKullaniciOkumaApiService(db), null!)
             {
                 ControllerContext = CompanyController(user).ControllerContext
             };
@@ -361,6 +361,19 @@ internal static class PanelReportSqlScenario
             var adminSummary = (AdminRaporOzetDto)((OkObjectResult)await ReportController(admin).RaporlarOzet(Filter("operasyon"))).Value!;
             Check(adminSummary.OperasyonTalepSayisi == 1 && adminSummary.YetkiBelgesiBekleyen == 2,
                 "System administrators retain complete authorized report summaries");
+            foreach (var excel in new[] { false, true })
+            {
+                var certificateController = ReportController(admin);
+                var filter = new YetkiBelgesiRaporFiltre
+                { SirketId = primary.Id, Tip = "bekleyen", BaslangicTarihi = today, BitisTarihi = today };
+                var document = excel ? await certificateController.YetkiBelgesiRaporExcel(filter)
+                    : await certificateController.YetkiBelgesiRaporPdf(filter);
+                Check(document is FileContentResult { FileContents.Length: > 0 }
+                    && certificateController.Response.Headers.CacheControl == "private, no-store"
+                    && certificateController.Response.Headers.Pragma == "no-cache"
+                    && certificateController.Response.Headers.Expires == "0",
+                    "Certificate report returns intact private non-cacheable file: Excel=" + excel);
+            }
 
             var bulk = Enumerable.Range(1, 5001).Select(i => Commissioning($"bulk-{i}", today, today)).ToList();
             db.Ys_DevreyeAlmalar.AddRange(bulk);
