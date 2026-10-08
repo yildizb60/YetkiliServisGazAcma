@@ -32,10 +32,23 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             return Ok(new AdminYetkiliServisListeDto
             {
-                Servisler = sonuc.Servisler.Select(MapYetkiliServis).ToList(),
+                Servisler = sonuc.Servisler.Select(AdminYetkiliServisDto.FromEntity).ToList(),
                 DevreyeSayilari = sonuc.DevreyeSayilari,
+                Sehirler = sonuc.Sehirler,
                 Ilceler = sonuc.Ilceler
             });
+        }
+
+        [HttpPost("yetkili-servisler/editor")]
+        public async Task<IActionResult> YetkiliServisEditor([FromBody] AdminYetkiliServisGetirFiltreDto? dto)
+        {
+            if (dto == null || dto.Id < 0) return BadRequest();
+            var kullanici = await AktifKullaniciAsync();
+            if (kullanici == null) return Unauthorized();
+            var kapsam = await KapsamSirketIdAsync(dto.SirketId);
+            if (kapsam.gecersiz || !await KullaniciYonetebilirMi(kullanici, kapsam.sirketId)) return Forbid();
+            var editor = await _adminYetkiliServisYonetimApiService.EditorAsync(dto.Id, kapsam.sirketId);
+            return editor == null ? NotFound() : Ok(editor);
         }
 
         [HttpPost("yetkili-servisler/getir")]
@@ -61,7 +74,7 @@ namespace YetkiliServisGazAcma.API.Controllers
 
             return Ok(new AdminYetkiliServisDetayDto
             {
-                Servis = MapYetkiliServis(sonuc.Servis),
+                Servis = AdminYetkiliServisDto.FromEntity(sonuc.Servis),
                 YetkiBelgeleri = sonuc.YetkiBelgeleri.Select(x => new AdminYetkiliServisYetkiBelgesiDto
                 {
                     Id = x.Id,
@@ -92,45 +105,35 @@ namespace YetkiliServisGazAcma.API.Controllers
             });
         }
 
-        private static AdminYetkiliServisDto MapYetkiliServis(Ys_Firma servis)
+        [HttpPost("yetkili-servisler/pdf")]
+        public Task<IActionResult> YetkiliServisPdf([FromBody] AdminYetkiliServisGetirFiltreDto? dto)
+            => YetkiliServisDosyasi(dto, true);
+
+        [HttpPost("yetkili-servisler/excel")]
+        public Task<IActionResult> YetkiliServisExcel([FromBody] AdminYetkiliServisGetirFiltreDto? dto)
+            => YetkiliServisDosyasi(dto, false);
+
+        private async Task<IActionResult> YetkiliServisDosyasi(AdminYetkiliServisGetirFiltreDto? dto, bool pdf)
         {
-            return new AdminYetkiliServisDto
-            {
-                Id = servis.Id,
-                FirmaAdi = servis.FirmaAdi,
-                YetkiliKisi = servis.YetkiliKisi,
-                VergiNo = servis.VergiNo,
-                VergiDairesi = servis.VergiDairesi,
-                Telefon = servis.Telefon,
-                Email = servis.Email,
-                Adres = servis.Adres,
-                FaaliyetIli = servis.FaaliyetIli,
-                AktifMi = servis.AktifMi,
-                SirketId = servis.SirketId,
-                SirketAdi = servis.Sirket?.SirketAdi,
-                Kategoriler = servis.FirmaKategoriler?
-                    .Where(x => !x.SilindiMi && x.Kategori != null && !x.Kategori.SilindiMi && x.Kategori.AktifMi)
-                    .Select(x => new AdminYetkiliServisKategoriDto
-                    {
-                        Id = x.Kategori!.Id,
-                        Ad = x.Kategori.Ad,
-                        IconUrl = x.Kategori.IconUrl
-                    })
-                    .GroupBy(x => x.Id)
-                    .Select(x => x.First())
-                    .ToList() ?? new List<AdminYetkiliServisKategoriDto>(),
-                Markalar = servis.FirmaMarkalar?
-                    .Where(x => !x.SilindiMi && x.Marka != null)
-                    .Select(x => new AdminYetkiliServisMarkaDto
-                    {
-                        Id = x.Marka!.Id,
-                        MarkaAdi = x.Marka.MarkaAdi
-                    })
-                    .GroupBy(x => x.Id)
-                    .Select(x => x.First())
-                    .ToList() ?? new List<AdminYetkiliServisMarkaDto>()
-            };
+            var kullanici = await AktifKullaniciAsync();
+            if (kullanici == null)
+                return Unauthorized();
+            if (dto == null || dto.Id <= 0)
+                return BadRequest(new ApiIslemSonuc { Mesaj = "Yetkili servis id zorunludur." });
+
+            var kapsam = await KapsamSirketIdAsync(dto.SirketId);
+            if (kapsam.gecersiz || !await KullaniciYonetebilirMi(kullanici, kapsam.sirketId))
+                return Forbid();
+
+            var detay = await _yetkiliServisListeService.GetirAsync(dto.Id, kapsam.sirketId);
+            if (detay.Servis == null)
+                return NotFound(new ApiIslemSonuc { Mesaj = "Yetkili servis kaydı bulunamadı." });
+
+            var icerik = pdf ? YetkiliServisKayitDosyasi.PdfOlustur(detay) : YetkiliServisKayitDosyasi.ExcelOlustur(detay);
+            var tur = pdf ? "application/pdf" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            return this.HassasDosya(icerik, tur, $"Yetkili_Servis_{dto.Id}.{(pdf ? "pdf" : "xlsx")}");
         }
+
 
         [HttpPost("yetkili-servisler/ekle")]
         public async Task<IActionResult> YetkiliServisEkle([FromBody] AdminYetkiliServisKaydetDto? dto)
@@ -192,7 +195,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (!await YetkiBelgesiOnaylayabilirMi(kapsam.sirketId))
                 return Forbid();
 
-            return Ok(await _adminYetkiBelgesiOnayApiService.ListeleAsync(kapsam.sirketId));
+            return Ok(await _adminYetkiBelgesiOnayApiService.ListeleAsync(kapsam.sirketId, dto, HttpContext.RequestAborted));
         }
 
         [HttpPost("yetki-belgeleri/onay-gecmisi")]
@@ -205,6 +208,31 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return Forbid();
 
             return Ok(await _adminYetkiBelgesiOnayApiService.GecmisAsync(dto, kapsam.sirketId));
+        }
+
+        [HttpPost("yetki-belgeleri/rapor/pdf")]
+        public Task<IActionResult> YetkiBelgesiRaporPdf([FromBody] YetkiBelgesiRaporFiltre? dto)
+            => YetkiBelgesiRaporDosyasi(dto, false);
+
+        [HttpPost("yetki-belgeleri/rapor/excel")]
+        public Task<IActionResult> YetkiBelgesiRaporExcel([FromBody] YetkiBelgesiRaporFiltre? dto)
+            => YetkiBelgesiRaporDosyasi(dto, true);
+
+        private async Task<IActionResult> YetkiBelgesiRaporDosyasi(YetkiBelgesiRaporFiltre? dto, bool excelMi)
+        {
+            var kapsam = await KapsamSirketIdAsync(dto?.SirketId);
+            if (kapsam.gecersiz || !await RaporGorebilirMi(kapsam.sirketId)
+                || !await YetkiBelgesiOnaylayabilirMi(kapsam.sirketId)) return Forbid();
+            try
+            {
+                var dosya = await _adminYetkiBelgesiOnayApiService.RaporAsync(dto ?? new(), kapsam.sirketId, excelMi);
+                if (dosya == null) return NotFound(new ApiIslemSonuc { Mesaj = "Seçilen dönemde dışa aktarılacak yetki belgesi bulunamadı." });
+                return this.HassasDosya(dosya.Value.Bytes, dosya.Value.ContentType, dosya.Value.DosyaAdi);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiIslemSonuc { Mesaj = ex.Message });
+            }
         }
 
         [HttpPost("subeler/liste")]
@@ -422,6 +450,23 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return Forbid();
 
             return Ok(await _adminRaporApiService.YetkiBelgesiUyarilariAsync(kapsam.sirketId));
+        }
+
+        [HttpPost("personel-rapor")]
+        public async Task<IActionResult> PersonelRapor(
+            [FromBody] PersonelRaporFiltreDto? dto,
+            [FromServices] PersonelRaporApiService service)
+        {
+            var kullanici = await AktifKullaniciAsync();
+            if (kullanici == null)
+                return Unauthorized();
+            var kapsam = await KapsamSirketIdAsync(dto?.SirketId);
+            if (kapsam.gecersiz)
+                return Forbid();
+            var yonetici = GenelSistemAdminMi(kullanici) || User.IsInRole("SirketAdmin")
+                || kullanici.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin;
+            var rapor = await service.GetirAsync(kullanici, kapsam.sirketId, yonetici, dto);
+            return rapor == null ? Forbid() : Ok(rapor);
         }
 
         [HttpPost("raporlar/ozet")]

@@ -1,5 +1,3 @@
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
 using Microsoft.Extensions.Options;
 using YetkiliServisGazAcma.Entities;
 
@@ -7,10 +5,7 @@ namespace YetkiliServisGazAcma.Business.Services
 {
     public class YetkiliServisDevreyeAlmaApiClient
     {
-        private readonly HttpClient _httpClient;
-        private readonly ApiIntegrationOptions _options;
-        private readonly ApiJwtTokenService _tokenService;
-        private readonly ILogger<YetkiliServisDevreyeAlmaApiClient> _logger;
+        private readonly ApiHttpClient _api;
 
         public YetkiliServisDevreyeAlmaApiClient(
             HttpClient httpClient,
@@ -18,13 +13,10 @@ namespace YetkiliServisGazAcma.Business.Services
             ApiJwtTokenService tokenService,
             ILogger<YetkiliServisDevreyeAlmaApiClient> logger)
         {
-            _httpClient = httpClient;
-            _options = options.Value;
-            _tokenService = tokenService;
-            _logger = logger;
+            _api = new ApiHttpClient(httpClient, options.Value, tokenService, logger);
         }
 
-        public async Task<YsDevreyeAlmaGecmisSonuc?> GecmisAsync(
+        public Task<YsDevreyeAlmaGecmisDto?> GecmisAsync(
             AppKullanici kullanici,
             string? marka,
             DateTime? bas,
@@ -33,10 +25,10 @@ namespace YetkiliServisGazAcma.Business.Services
             string? durum,
             string? tesisat = null)
         {
-            var cevap = await PostAsync<YsDevreyeAlmaGecmisIstek, YsDevreyeAlmaGecmisCevap>(
+            return _api.PostAsync<YsDevreyeAlmaGecmisFiltreDto, YsDevreyeAlmaGecmisDto>(
                 kullanici,
                 "api/ys-devreyeal/gecmis",
-                new YsDevreyeAlmaGecmisIstek
+                new YsDevreyeAlmaGecmisFiltreDto
                 {
                     Marka = marka,
                     BaslangicTarihi = bas,
@@ -46,67 +38,61 @@ namespace YetkiliServisGazAcma.Business.Services
                     Durum = durum
                 },
                 "Yetkili servis devreye alma gecmis");
-
-            return cevap?.ToSonuc();
         }
 
-        public async Task<Ys_DevreyeAlma?> DetayAsync(AppKullanici kullanici, int id)
+        public Task<YsDevreyeAlmaDto?> DetayAsync(AppKullanici kullanici, int id)
         {
-            var cevap = await PostAsync<YsDevreyeAlmaGetirIstek, YsDevreyeAlmaCevap>(
+            return _api.PostAsync<YsDevreyeAlmaGetirDto, YsDevreyeAlmaDto>(
                 kullanici,
                 "api/ys-devreyeal/getir",
-                new YsDevreyeAlmaGetirIstek { Id = id },
+                new YsDevreyeAlmaGetirDto { Id = id },
                 "Yetkili servis devreye alma detay");
-
-            return cevap?.ToEntity();
         }
 
         public Task<ApiDosyaSonuc?> PdfAsync(AppKullanici kullanici, int id)
         {
-            return PostFileAsync(
+            return _api.PostFileAsync(
                 kullanici,
                 "api/ys-devreyeal/pdf",
-                new YsDevreyeAlmaGetirIstek { Id = id },
+                new YsDevreyeAlmaGetirDto { Id = id },
                 $"DevreyeAlma_{id}.pdf",
                 "Yetkili servis devreye alma PDF");
         }
 
         public Task<ApiDosyaSonuc?> ExcelAsync(AppKullanici kullanici, int id)
         {
-            return PostFileAsync(
+            return _api.PostFileAsync(
                 kullanici,
                 "api/ys-devreyeal/excel",
-                new YsDevreyeAlmaGetirIstek { Id = id },
+                new YsDevreyeAlmaGetirDto { Id = id },
                 $"DevreyeAlma_{id}.xlsx",
                 "Yetkili servis devreye alma Excel");
         }
 
-        public async Task<YsDevreyeAlmaEkranSonuc?> EkranAsync(AppKullanici kullanici)
+        public Task<YsDevreyeAlmaEkranDto?> EkranAsync(AppKullanici kullanici)
         {
-            var cevap = await PostAsync<YsDevreyeAlmaBosIstek, YsDevreyeAlmaEkranCevap>(
+            return _api.PostAsync<object, YsDevreyeAlmaEkranDto>(
                 kullanici,
                 "api/ys-devreyeal/ekran",
-                new YsDevreyeAlmaBosIstek(),
+                new object(),
                 "Yetkili servis devreye alma ekran");
-
-            return cevap?.ToSonuc();
         }
 
-        public Task<YsDevreyeAlmaBildirimSonuc?> BildirimlerAsync(AppKullanici kullanici)
+        public Task<YsDevreyeAlmaBildirimDto?> BildirimlerAsync(AppKullanici kullanici)
         {
-            return PostAsync<YsDevreyeAlmaBosIstek, YsDevreyeAlmaBildirimSonuc>(
+            return _api.PostAsync<object, YsDevreyeAlmaBildirimDto>(
                 kullanici,
                 "api/ys-devreyeal/bildirimler",
-                new YsDevreyeAlmaBosIstek(),
+                new object(),
                 "Yetkili servis devreye alma bildirimler");
         }
 
-        public Task<YsTesisatSorguSonuc?> TesisatSorgulaAsync(AppKullanici kullanici, string? tesisatNo, string? sozlesmeNo)
+        public Task<YsTesisatSorguSonucDto?> TesisatSorgulaAsync(AppKullanici kullanici, string? tesisatNo, string? sozlesmeNo)
         {
-            return PostAsync<YsTesisatSorguIstek, YsTesisatSorguSonuc>(
+            return _api.PostAsync<YsTesisatSorguDto, YsTesisatSorguSonucDto>(
                 kullanici,
                 "api/ys-devreyeal/tesisat-sorgula",
-                new YsTesisatSorguIstek
+                new YsTesisatSorguDto
                 {
                     TesistatNo = tesisatNo,
                     SozlesmeNo = sozlesmeNo
@@ -114,407 +100,24 @@ namespace YetkiliServisGazAcma.Business.Services
                 "Yetkili servis tesisat sorgula");
         }
 
-        public Task<YsMarkaKontrolSonuc?> MarkaKontrolAsync(AppKullanici kullanici, string? sorguReferansi)
+        public Task<YsMarkaKontrolSonucDto?> MarkaKontrolAsync(AppKullanici kullanici, string? sorguReferansi)
         {
-            return PostAsync<YsMarkaKontrolIstek, YsMarkaKontrolSonuc>(
+            return _api.PostAsync<YsMarkaKontrolDto, YsMarkaKontrolSonucDto>(
                 kullanici,
                 "api/ys-devreyeal/marka-kontrol",
-                new YsMarkaKontrolIstek { SorguReferansi = sorguReferansi },
+                new YsMarkaKontrolDto { SorguReferansi = sorguReferansi },
                 "Yetkili servis marka kontrol");
         }
 
-        public Task<YsDevreyeAlmaIslemSonuc?> KaydetAsync(AppKullanici kullanici, YsDevreyeAlmaKaydetIstek model)
+        public Task<YsDevreyeAlmaIslemSonucDto?> KaydetAsync(AppKullanici kullanici, YsDevreyeAlmaKaydetDto model)
         {
-            return PostAsync<YsDevreyeAlmaKaydetIstek, YsDevreyeAlmaIslemSonuc>(
+            return _api.PostAsync<YsDevreyeAlmaKaydetDto, YsDevreyeAlmaIslemSonucDto>(
                 kullanici,
                 "api/ys-devreyeal/kaydet",
                 model,
                 "Yetkili servis devreye alma kaydet");
         }
 
-        private async Task<TResponse?> PostAsync<TRequest, TResponse>(
-            AppKullanici kullanici,
-            string url,
-            TRequest istek,
-            string operasyon)
-        {
-            if (!_options.Enabled)
-            {
-                ApiClientFallback.EnsureAllowed(_options, operasyon);
-                return default;
-            }
-
-            try
-            {
-                var token = await _tokenService.OlusturAsync(kullanici);
-                if (string.IsNullOrWhiteSpace(token))
-                {
-                    ApiClientFallback.EnsureAllowed(_options, $"{operasyon} token");
-                    return default;
-                }
-
-                using var request = new HttpRequestMessage(HttpMethod.Post, url);
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-                request.Content = JsonContent.Create(istek);
-
-                using var response = await _httpClient.SendAsync(request);
-                if (!response.IsSuccessStatusCode)
-                {
-                    _logger.LogWarning("{Operasyon} API cagrisinda basarisiz yanit dondu. Url: {Url}, StatusCode: {StatusCode}", operasyon, url, response.StatusCode);
-                    ApiClientFallback.EnsureAllowed(_options, operasyon);
-                    return default;
-                }
-
-                return await response.Content.ReadFromJsonAsync<TResponse>();
-            }
-            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
-            {
-                _logger.LogWarning(ex, "{Operasyon} API cagrisina ulasilamadi. Url: {Url}", operasyon, url);
-                ApiClientFallback.EnsureAllowed(_options, operasyon);
-                return default;
-            }
-        }
-
-        private async Task<ApiDosyaSonuc?> PostFileAsync<TRequest>(
-            AppKullanici kullanici,
-            string url,
-            TRequest istek,
-            string varsayilanDosyaAdi,
-            string operasyon)
-        {
-            if (!_options.Enabled)
-            {
-                ApiClientFallback.EnsureAllowed(_options, operasyon);
-                return default;
-            }
-
-            try
-            {
-                var token = await _tokenService.OlusturAsync(kullanici);
-                if (string.IsNullOrWhiteSpace(token))
-                {
-                    ApiClientFallback.EnsureAllowed(_options, $"{operasyon} token");
-                    return default;
-                }
-
-                using var request = new HttpRequestMessage(HttpMethod.Post, url);
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-                request.Content = JsonContent.Create(istek);
-
-                using var response = await _httpClient.SendAsync(request);
-                if (!response.IsSuccessStatusCode)
-                {
-                    _logger.LogWarning("{Operasyon} API cagrisinda basarisiz yanit dondu. Url: {Url}, StatusCode: {StatusCode}", operasyon, url, response.StatusCode);
-                    ApiClientFallback.EnsureAllowed(_options, operasyon);
-                    return default;
-                }
-
-                return await ApiDosyaSonuc.FromResponseAsync(response, varsayilanDosyaAdi);
-            }
-            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
-            {
-                _logger.LogWarning(ex, "{Operasyon} API cagrisina ulasilamadi. Url: {Url}", operasyon, url);
-                ApiClientFallback.EnsureAllowed(_options, operasyon);
-                return default;
-            }
-        }
-
-        private class YsDevreyeAlmaGecmisIstek
-        {
-            public string? Marka { get; set; }
-            public DateTime? BaslangicTarihi { get; set; }
-            public DateTime? BitisTarihi { get; set; }
-            public string? Musteri { get; set; }
-            public string? TesisatNo { get; set; }
-            public string? Durum { get; set; }
-        }
-
-        private class YsDevreyeAlmaGetirIstek
-        {
-            public int Id { get; set; }
-        }
-
-        private class YsDevreyeAlmaBosIstek
-        {
-        }
-
-        private class YsMarkaKontrolIstek
-        {
-            public string? SorguReferansi { get; set; }
-        }
-
-        private class YsTesisatSorguIstek
-        {
-            public string? TesistatNo { get; set; }
-            public string? SozlesmeNo { get; set; }
-        }
-
-        private class YsDevreyeAlmaGecmisCevap
-        {
-            public List<YsDevreyeAlmaCevap> Islemler { get; set; } = new();
-            public YsFirmaCevap? Firma { get; set; }
-            public List<string> MarkaList { get; set; } = new();
-            public int Toplam { get; set; }
-            public int Tamamlanan { get; set; }
-            public int Bekleyen { get; set; }
-            public int Iptal { get; set; }
-
-            public YsDevreyeAlmaGecmisSonuc ToSonuc()
-            {
-                return new YsDevreyeAlmaGecmisSonuc
-                {
-                    Islemler = Islemler.Select(x => x.ToEntity()).ToList(),
-                    Firma = Firma?.ToEntity(),
-                    MarkaList = MarkaList,
-                    Toplam = Toplam,
-                    Tamamlanan = Tamamlanan,
-                    Bekleyen = Bekleyen,
-                    Iptal = Iptal
-                };
-            }
-        }
-
-        private class YsDevreyeAlmaEkranCevap
-        {
-            public bool Erisilebilir { get; set; }
-            public string? Hata { get; set; }
-            public string? RedirectUrl { get; set; }
-            public YsFirmaCevap? Firma { get; set; }
-            public List<YsMarkaCevap> Markalar { get; set; } = new();
-
-            public YsDevreyeAlmaEkranSonuc ToSonuc()
-            {
-                return new YsDevreyeAlmaEkranSonuc
-                {
-                    Erisilebilir = Erisilebilir,
-                    Hata = Hata,
-                    RedirectUrl = RedirectUrl,
-                    Firma = Firma?.ToEntity(),
-                    Markalar = Markalar.Select(x => x.ToEntity()).ToList()
-                };
-            }
-        }
-
-        private class YsFirmaCevap
-        {
-            public int Id { get; set; }
-            public string? FirmaAdi { get; set; }
-            public string? YetkiliKisi { get; set; }
-            public string? Telefon { get; set; }
-            public string? Email { get; set; }
-            public string? Adres { get; set; }
-            public string? FaaliyetIli { get; set; }
-            public int SirketId { get; set; }
-            public string? SirketAdi { get; set; }
-            public string? SirketIl { get; set; }
-
-            public Ys_Firma ToEntity()
-            {
-                return new Ys_Firma
-                {
-                    Id = Id,
-                    FirmaAdi = FirmaAdi,
-                    YetkiliKisi = YetkiliKisi,
-                    Telefon = Telefon,
-                    Email = Email,
-                    Adres = Adres,
-                    FaaliyetIli = FaaliyetIli,
-                    SirketId = SirketId,
-                    Sirket = new Dag_Sirket
-                    {
-                        Id = SirketId,
-                        SirketAdi = SirketAdi,
-                        Il = SirketIl
-                    }
-                };
-            }
-        }
-
-        private class YsMarkaCevap
-        {
-            public int Id { get; set; }
-            public string? MarkaAdi { get; set; }
-            public string? Aciklama { get; set; }
-            public bool AktifMi { get; set; }
-
-            public Ys_Marka ToEntity()
-            {
-                return new Ys_Marka
-                {
-                    Id = Id,
-                    MarkaAdi = MarkaAdi,
-                    Aciklama = Aciklama,
-                    AktifMi = AktifMi
-                };
-            }
-        }
-
-        private class YsDevreyeAlmaCevap
-        {
-            public int Id { get; set; }
-            public int FirmaId { get; set; }
-            public int? MarkaId { get; set; }
-            public string? TesistatNo { get; set; }
-            public string? AboneNo { get; set; }
-            public string? SozlesmeNo { get; set; }
-            public string? UygunlukBelgeNo { get; set; }
-            public DateTime? UygunlukTarihi { get; set; }
-            public string? MusteriAdi { get; set; }
-            public string? MusteriTcNo { get; set; }
-            public string? MusteriTelefon { get; set; }
-            public string? Adres { get; set; }
-            public string? CihazTipi { get; set; }
-            public string? CihazMarka { get; set; }
-            public string? CihazModeli { get; set; }
-            public string? CihazKapasite { get; set; }
-            public string? SeriNo { get; set; }
-            public string? TeknisyenAdi { get; set; }
-            public string? TeknisyenYetkiBelgesiNo { get; set; }
-            public DateTime DevreyeAlmaTarihi { get; set; }
-            public string? Notlar { get; set; }
-            public int Durum { get; set; }
-            public string? PdfYolu { get; set; }
-            public DateTime OlusturmaTarihi { get; set; }
-            public string? FirmaAdi { get; set; }
-            public string? FirmaYetkiliKisi { get; set; }
-            public string? FirmaTelefon { get; set; }
-            public string? FirmaEmail { get; set; }
-            public string? FirmaAdres { get; set; }
-            public string? FirmaFaaliyetIli { get; set; }
-            public int FirmaSirketId { get; set; }
-            public string? SirketAdi { get; set; }
-            public string? SirketIl { get; set; }
-            public string? MarkaAdi { get; set; }
-
-            public Ys_DevreyeAlma ToEntity()
-            {
-                return new Ys_DevreyeAlma
-                {
-                    Id = Id,
-                    FirmaId = FirmaId,
-                    MarkaId = MarkaId,
-                    TesistatNo = TesistatNo,
-                    AboneNo = AboneNo,
-                    SozlesmeNo = SozlesmeNo,
-                    UygunlukBelgeNo = UygunlukBelgeNo,
-                    UygunlukTarihi = UygunlukTarihi,
-                    MusteriAdi = MusteriAdi,
-                    MusteriTcNo = MusteriTcNo,
-                    MusteriTelefon = MusteriTelefon,
-                    Adres = Adres,
-                    CihazTipi = CihazTipi,
-                    CihazMarka = CihazMarka,
-                    CihazModeli = CihazModeli,
-                    CihazKapasite = CihazKapasite,
-                    SeriNo = SeriNo,
-                    TeknisyenAdi = TeknisyenAdi,
-                    TeknisyenYetkiBelgesiNo = TeknisyenYetkiBelgesiNo,
-                    DevreyeAlmaTarihi = DevreyeAlmaTarihi,
-                    Notlar = Notlar,
-                    Durum = Durum,
-                    PdfYolu = PdfYolu,
-                    OlusturmaTarihi = OlusturmaTarihi,
-                    Firma = new Ys_Firma
-                    {
-                        Id = FirmaId,
-                        FirmaAdi = FirmaAdi,
-                        YetkiliKisi = FirmaYetkiliKisi,
-                        Telefon = FirmaTelefon,
-                        Email = FirmaEmail,
-                        Adres = FirmaAdres,
-                        FaaliyetIli = FirmaFaaliyetIli,
-                        SirketId = FirmaSirketId,
-                        Sirket = new Dag_Sirket
-                        {
-                            Id = FirmaSirketId,
-                            SirketAdi = SirketAdi,
-                            Il = SirketIl
-                        }
-                    },
-                    Marka = MarkaId.HasValue
-                        ? new Ys_Marka { Id = MarkaId.Value, MarkaAdi = MarkaAdi }
-                        : null
-                };
-            }
-        }
     }
 
-    public class YsDevreyeAlmaGecmisSonuc
-    {
-        public List<Ys_DevreyeAlma> Islemler { get; set; } = new();
-        public Ys_Firma? Firma { get; set; }
-        public List<string> MarkaList { get; set; } = new();
-        public int Toplam { get; set; }
-        public int Tamamlanan { get; set; }
-        public int Bekleyen { get; set; }
-        public int Iptal { get; set; }
-    }
-
-    public class YsDevreyeAlmaEkranSonuc
-    {
-        public bool Erisilebilir { get; set; }
-        public string? Hata { get; set; }
-        public string? RedirectUrl { get; set; }
-        public Ys_Firma? Firma { get; set; }
-        public List<Ys_Marka> Markalar { get; set; } = new();
-    }
-
-    public class YsDevreyeAlmaBildirimSonuc
-    {
-        public List<string> Bildirimler { get; set; } = new();
-        public int BildirimSayisi { get; set; }
-    }
-
-    public class YsMarkaKontrolSonuc
-    {
-        public bool Yetkili { get; set; }
-        public string? Mesaj { get; set; }
-        public int? MarkaId { get; set; }
-        public string? MarkaAdi { get; set; }
-    }
-
-    public class YsTesisatSorguSonuc
-    {
-        public bool Basarili { get; set; }
-        public string? Mesaj { get; set; }
-        public string? TesistatNo { get; set; }
-        public string? SozlesmeNo { get; set; }
-        public string? AboneNo { get; set; }
-        public string? SayacNo { get; set; }
-        public string? MusteriAdi { get; set; }
-        public string? MusteriTcNo { get; set; }
-        public string? MusteriTelefon { get; set; }
-        public string? Adres { get; set; }
-        public string? UygunlukBelgeNo { get; set; }
-        public string? UygunlukTarihi { get; set; }
-        public string? Durum { get; set; }
-        public List<YsTesisatCihazSonuc> Cihazlar { get; set; } = new();
-    }
-
-    public class YsTesisatCihazSonuc
-    {
-        public string? SorguReferansi { get; set; }
-        public bool KaydedildiMi { get; set; }
-        public string? CihazMarka { get; set; }
-        public string? CihazTipi { get; set; }
-        public string? CihazKapasite { get; set; }
-    }
-
-    public class YsDevreyeAlmaKaydetIstek
-    {
-        public string? SorguReferansi { get; set; }
-        public string? CihazModeli { get; set; }
-        public string? SeriNo { get; set; }
-        public string? TeknisyenAdi { get; set; }
-        public string? TeknisyenYetkiBelgesiNo { get; set; }
-        public string? Notlar { get; set; }
-    }
-
-    public class YsDevreyeAlmaIslemSonuc
-    {
-        public bool Basarili { get; set; }
-        public string? Mesaj { get; set; }
-        public int? Id { get; set; }
-        public string? RedirectUrl { get; set; }
-    }
 }

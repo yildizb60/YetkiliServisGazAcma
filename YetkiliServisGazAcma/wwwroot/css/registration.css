@@ -10,22 +10,8 @@
     --reg-amber-soft: #fff7e9;
 }
 
-.registration-shell.login-shell--panel {
-    width: min(1180px, calc(100% - 32px));
-    height: min(680px, calc(100dvh - 80px));
-    margin: 10px auto;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.registration-shell .login-visual { min-height: 0; }
-.registration-shell .login-showcase__stage {
-    /* Match the sign-in panel's inner bounds without shrinking the registration form. */
-    width: min(528px, calc(100% - 8px));
-    height: min(584px, calc(100% - 16px));
-    margin: auto;
-}
 .registration-side { min-height: 0; padding: 16px 28px; overflow: hidden; }
-.registration-shell .registration-card { max-width: none; height: auto; margin-block: auto; display: flex; flex-direction: column; min-height: 0; }
+.registration-shell .registration-card { max-width: none; max-height: 100%; height: auto; margin-block: auto; display: flex; flex-direction: column; min-height: 0; }
 
 .registration-card-head { min-height: 40px; display: flex; align-items: center; margin-bottom: 10px; }
 .registration-title-icon {
@@ -164,16 +150,15 @@
 @media (min-width: 981px) {
     .registration-shell .registration-side {
         align-items: stretch;
-        padding-top: clamp(14px, calc(50dvh - 285px), 95px);
+        padding: 18px 24px;
     }
 
-    .registration-shell .registration-card { height: 100%; margin-block: 0; }
-    .registration-step-panel:not([hidden]) { flex: 1; overflow: hidden; }
+    .registration-step-panel:not([hidden]) { flex: 0 1 auto; overflow: hidden; }
     .registration-step-panel[data-registration-step="1"] .registration-field-grid {
-        flex: 1;
+        flex: 0 1 auto;
         min-height: 0;
         overflow-y: auto;
-        align-content: space-between;
+        align-content: start;
         grid-auto-rows: max-content;
     }
     .registration-step-panel[data-registration-step="2"] .registration-selection-grid {
@@ -204,7 +189,6 @@
 }
 
 @media (max-width: 980px) {
-    .registration-shell.login-shell--panel { width: min(660px, calc(100% - 24px)); height: auto; min-height: calc(100dvh - 84px); margin: 12px auto; grid-template-columns: 1fr; }
     .registration-side { min-height: calc(100dvh - 84px); padding: 24px; overflow: visible; }
     .registration-shell .registration-card { height: auto; }
 }

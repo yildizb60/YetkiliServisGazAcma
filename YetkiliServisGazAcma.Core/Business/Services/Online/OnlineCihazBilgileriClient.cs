@@ -31,6 +31,7 @@ namespace YetkiliServisGazAcma.Business.Services.Online
             long sozlesmeNo,
             CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!_options.Enabled)
                 return OnlineCihazBilgileriSonuc.Basarisiz("Online cihaz servisi kapali.");
 
@@ -71,6 +72,10 @@ namespace YetkiliServisGazAcma.Business.Services.Online
             catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
                 return OnlineCihazBilgileriSonuc.Basarisiz("Online cihaz servisi zaman asimina ugradi.");
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception ex)
             {

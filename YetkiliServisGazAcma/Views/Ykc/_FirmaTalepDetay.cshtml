@@ -1,14 +1,13 @@
 @model YkcTalepDetayDto
 @{
     string Deger(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
-    var kontroller = Model.Kontroller.Where(x => x.Sonuc is YkcFr265KontrolSonucDegerleri.Uygun or YkcFr265KontrolSonucDegerleri.UygunDegil).OrderBy(x => x.KontrolNo).ToList();
-    var sonKontrol = Model.AktifKontroller.LastOrDefault(x => x.Sonuc is YkcFr265KontrolSonucDegerleri.Uygun or YkcFr265KontrolSonucDegerleri.UygunDegil);
-    var sonUygunsuzKontrol = YkcDurumSunumu.SonUygunsuzKontrol(Model);
+    var kontroller = Model.Ekran.TumSonucluKontroller;
+    var sonKontrol = Model.Ekran.SonKontrol;
+    var sonUygunsuzKontrol = Model.Ekran.SonUygunsuzKontrol;
     var uygunsuzlukGerekcesi = sonUygunsuzKontrol?.Aciklama?.Trim();
     var uzunGerekce = uygunsuzlukGerekcesi?.Length > 160;
-    var nihai = Model.ImzaSureci?.Durum == YkcImzaDurumDegerleri.Tamamlandi
-        ? Model.Dosyalar.FirstOrDefault(x => x.Id == Model.ImzaSureci.NihaiDosyaId && x.DosyaTuru == YkcFormDosyaTuruDegerleri.Fr265ImzaliNihai) : null;
-    var demoBelge = nihai != null && Model.ImzaSureci?.ProviderDocumentId?.StartsWith("DEMO-YKC-", StringComparison.Ordinal) == true;
+    var nihai = Model.Ekran.ImzaliBelgeHazir ? Model.Ekran.ImzaliBelge : null;
+    var demoBelge = Model.Ekran.ImzaliBelgeDemoMu;
     var durum = YkcDurumSunumu.Etiket(Model.Durum);
     var kontrolBaslik = Model.Durum switch
     {
@@ -53,8 +52,8 @@
             {
                 <span class="df-pill @YkcDurumSunumu.CssSinifi(Model.Durum)">@durum</span>
             }
-            <a class="df-btn df-btn-sm ykc-detail-back" href="@Url.Action("Talepler", "Ykc")"><i class="bi bi-arrow-left" aria-hidden="true"></i>Taleplere Dön</a>
-            @if (Model.Durum == YkcDurumDegerleri.Tamamlandi && (ViewBag.YkcYetkileri as YkcYetkiOzeti)?.RaporlariGorebilir == true)
+            <a class="df-btn df-btn-sm ykc-detail-back" href="@(ViewData["YkcGeriUrl"] ?? Url.Action("Talepler", "Ykc"))"><i class="bi bi-arrow-left" aria-hidden="true"></i>Taleplere Dön</a>
+            @if (Model.Durum == YkcDurumDegerleri.Tamamlandi && Model.Ekran.Yetkiler.RaporlariGorebilir)
             {
                 <a class="df-btn df-btn-sm df-btn-secondary" href="@Url.Action("Raporlar", "Ykc", new { detayTalepId = Model.Id })"><i class="bi bi-bar-chart-line" aria-hidden="true"></i>Raporlarda Gör</a>
             }

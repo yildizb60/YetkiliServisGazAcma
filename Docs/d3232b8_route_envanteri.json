@@ -1,0 +1,4467 @@
+{
+  "commit": "d3232b812f205402b9d3a8c9151b1fa66388b72a",
+  "description": "Route/işlem envanteri. Satır sayısı sayfa veya başarılı test sayısı değildir. Authorize rol metadata'sı tek başına şirket/işlem yetkisini kanıtlamaz. Controller action içi kontroller ayrıca geçerlidir. Tarayıcı/işlem doğrulama durumu ana inceleme raporunun 3. ve 9. bölümlerindedir. Aynı sayfanın alias'ları birden çok satır olabilir. Konvansiyonel route'ların tüm eşdeğer URL varyantları genişletilmemiştir.",
+  "defaultStatus": "Koddan route envanteri çıkarıldı; ayrıntılı test statüsü ana raporda.",
+  "controllers": {
+    "YetkiliServisGazAcma/AdminPanelController": {
+      "purpose": "Yönetim, kullanıcı, yetki, belge, şube ve rapor işlemleri",
+      "dependencies": "AdminDashboardApiClient, AdminKullaniciApiClient, AdminSubeApiClient, AdminRaporApiClient ve ilgili yönetim istemcileri"
+    },
+    "YetkiliServisGazAcma/DevreyeAlmaController": {
+      "purpose": "Yetkili servisin cihaz sorgulama, devreye alma, geçmiş ve çıktı işlemleri",
+      "dependencies": "YetkiliServisDevreyeAlmaApiClient -> YetkiliServisDevreyeAlmaApiController"
+    },
+    "YetkiliServisGazAcma/GirisController": {
+      "purpose": "Giriş, SMS doğrulama, şifre yenileme ve çıkış",
+      "dependencies": "AuthApiClient -> AuthController"
+    },
+    "YetkiliServisGazAcma/HomeController": {
+      "purpose": "Herkese açık ana sayfa ve hata/bilgilendirme ekranları",
+      "dependencies": "HomeOzetApiClient / ortak hata görünümleri"
+    },
+    "YetkiliServisGazAcma/KayitController": {
+      "purpose": "Herkese açık yetkili servis başvurusu",
+      "dependencies": "YetkiliServisler API -> kayıt/kapsam doğrulaması"
+    },
+    "YetkiliServisGazAcma/PanelSirketController": {
+      "purpose": "İşlem yapılacak şirket bağlamını seçme",
+      "dependencies": "AktifSirketService / PanelKapsamApiClient"
+    },
+    "YetkiliServisGazAcma/PersonelPanelController": {
+      "purpose": "Şirket kapsamlı personel operasyonları",
+      "dependencies": "PersonelPanelApiClient, AdminDashboardApiClient, AdminRaporApiClient, YetkiBelgesiApiClient, YkcApiClient"
+    },
+    "YetkiliServisGazAcma/YetkiBelgesiController": {
+      "purpose": "Yetki belgesi yükleme, görüntüleme ve karar işlemleri",
+      "dependencies": "YetkiBelgesiApiClient -> YetkiBelgesiApiController"
+    },
+    "YetkiliServisGazAcma/YetkiliServislerController": {
+      "purpose": "Servis rehberi veya firma kayıt API işlemleri; katman ayrımına bakınız",
+      "dependencies": "İlgili controller içindeki servis bağımlılıkları; rapor kapsam tablosuna bakınız"
+    },
+    "YetkiliServisGazAcma/YetkiliServisPanelController": {
+      "purpose": "Servisin kendi firma, marka ilişkisi, şube, profil ve rapor işlemleri",
+      "dependencies": "YetkiliServisPanelApiClient -> YetkiliServisPanelApiController"
+    },
+    "YetkiliServisGazAcma/YkcController": {
+      "purpose": "Cihaz değişim talebi, randevu, kontrol, belge ve rapor işlemleri",
+      "dependencies": "YkcApiClient -> YkcApiController -> YkcTalepService"
+    },
+    "YetkiliServisGazAcma.API/AdminPanelApiController": {
+      "purpose": "Yönetim API sınırı",
+      "dependencies": "Yönetim API servisleri"
+    },
+    "YetkiliServisGazAcma.API/AuthController": {
+      "purpose": "API kimlik doğrulama ve oturum işlemleri",
+      "dependencies": "İlgili controller içindeki servis bağımlılıkları; rapor kapsam tablosuna bakınız"
+    },
+    "YetkiliServisGazAcma.API/DagitimSirketApiController": {
+      "purpose": "Dağıtım şirketi liste ve profil bilgisi",
+      "dependencies": "İlgili controller içindeki servis bağımlılıkları; rapor kapsam tablosuna bakınız"
+    },
+    "YetkiliServisGazAcma.API/HomeApiController": {
+      "purpose": "Herkese açık özet",
+      "dependencies": "İlgili controller içindeki servis bağımlılıkları; rapor kapsam tablosuna bakınız"
+    },
+    "YetkiliServisGazAcma.API/IcTesisatApiController": {
+      "purpose": "İç tesisat entegrasyonuna ait devreye alma listesi",
+      "dependencies": "İlgili controller içindeki servis bağımlılıkları; rapor kapsam tablosuna bakınız"
+    },
+    "YetkiliServisGazAcma.API/MarkaApiController": {
+      "purpose": "Ortak marka katalog API işlemleri",
+      "dependencies": "İlgili controller içindeki servis bağımlılıkları; rapor kapsam tablosuna bakınız"
+    },
+    "YetkiliServisGazAcma.API/MobilImzaController": {
+      "purpose": "Şirket kapsamlı imza entegrasyon sözleşmesi",
+      "dependencies": "İlgili controller içindeki servis bağımlılıkları; rapor kapsam tablosuna bakınız"
+    },
+    "YetkiliServisGazAcma.API/PanelKapsamApiController": {
+      "purpose": "Kimlik, şirket seçenekleri ve YKC izin kapsamı",
+      "dependencies": "İlgili controller içindeki servis bağımlılıkları; rapor kapsam tablosuna bakınız"
+    },
+    "YetkiliServisGazAcma.API/PersonelPanelApiController": {
+      "purpose": "Personelin işlem izinleri",
+      "dependencies": "İlgili controller içindeki servis bağımlılıkları; rapor kapsam tablosuna bakınız"
+    },
+    "YetkiliServisGazAcma.API/SystemHealthApiController": {
+      "purpose": "API ve veritabanı sağlığı; SMS/online servis yapılandırma durumu",
+      "dependencies": "İlgili controller içindeki servis bağımlılıkları; rapor kapsam tablosuna bakınız"
+    },
+    "YetkiliServisGazAcma.API/UrunKategorilerController": {
+      "purpose": "Cihaz/hizmet türleri",
+      "dependencies": "İlgili controller içindeki servis bağımlılıkları; rapor kapsam tablosuna bakınız"
+    },
+    "YetkiliServisGazAcma.API/YetkiBelgesiApiController": {
+      "purpose": "Yetki belgesi API işlemleri",
+      "dependencies": "İlgili controller içindeki servis bağımlılıkları; rapor kapsam tablosuna bakınız"
+    },
+    "YetkiliServisGazAcma.API/YetkiliServisDevreyeAlmaApiController": {
+      "purpose": "Servis kapsamlı kaynak doğrulama ve devreye alma",
+      "dependencies": "İlgili controller içindeki servis bağımlılıkları; rapor kapsam tablosuna bakınız"
+    },
+    "YetkiliServisGazAcma.API/YetkiliServislerController": {
+      "purpose": "Servis rehberi veya firma kayıt API işlemleri; katman ayrımına bakınız",
+      "dependencies": "İlgili controller içindeki servis bağımlılıkları; rapor kapsam tablosuna bakınız"
+    },
+    "YetkiliServisGazAcma.API/YetkiliServisPanelApiController": {
+      "purpose": "Servisin kendi panel API işlemleri",
+      "dependencies": "YetkiliServisPanelYonetimApiService / firma kapsamı"
+    },
+    "YetkiliServisGazAcma.API/YkcApiController": {
+      "purpose": "YKC HTTP sınırı, şirket/firma kapsamı ve iş servisi",
+      "dependencies": "YkcTalepService, YkcYetkiService, kaynak sorgu kayıtları ve imza sağlayıcısı"
+    },
+    "YetkiliServisGazAcma/MarkaController": {
+      "purpose": "Ortak marka kataloğu yönetimi",
+      "dependencies": "MarkaApiClient -> MarkaApiController"
+    }
+  },
+  "routes": [
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "Index",
+      "url": "/AdminPanel",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "Index",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.KullaniciYonetimi.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "Index",
+      "url": "/AdminPanel/index",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "Index",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.KullaniciYonetimi.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "Profil",
+      "url": "/AdminPanel/profil",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "Profil",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.KullaniciYonetimi.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "ProfilGuncelle",
+      "url": "/AdminPanel/profil-guncelle",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "ProfilGuncelle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.KullaniciYonetimi.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "SifreDegistir",
+      "url": "/AdminPanel/sifre-degistir",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "SifreDegistir",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.KullaniciYonetimi.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "Personeller",
+      "url": "/AdminPanel/personeller",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "Personeller",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.KullaniciYonetimi.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "PersonelEkle",
+      "url": "/AdminPanel/personeller/ekle",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "PersonelEkle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.KullaniciYonetimi.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "PersonelEkle",
+      "url": "/AdminPanel/personeller/ekle",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "PersonelEkle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.KullaniciYonetimi.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "Kullanicilar",
+      "url": "/AdminPanel/kullanicilar",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "Kullanicilar",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.KullaniciYonetimi.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "KullaniciEkle",
+      "url": "/AdminPanel/kullanicilar/ekle",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "KullaniciEkle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.KullaniciYonetimi.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "KullaniciEkle",
+      "url": "/AdminPanel/kullanicilar/ekle",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "KullaniciEkle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.KullaniciYonetimi.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "KullaniciDuzenle",
+      "url": "/AdminPanel/kullanicilar/duzenle/{id}",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "KullaniciDuzenle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.KullaniciYonetimi.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "KullaniciDuzenle",
+      "url": "/AdminPanel/kullanicilar/Düzenle/{id}",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "KullaniciDuzenle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.KullaniciYonetimi.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "KullaniciDuzenle",
+      "url": "/AdminPanel/kullanicilar/duzenle/{id}",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "KullaniciDuzenle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.KullaniciYonetimi.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "KullaniciDuzenle",
+      "url": "/AdminPanel/kullanicilar/Düzenle/{id}",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "KullaniciDuzenle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.KullaniciYonetimi.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "PersonelDurum",
+      "url": "/AdminPanel/personeller/durum/{id}",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "PersonelDurum",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.KullaniciYonetimi.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "PersonelSil",
+      "url": "/AdminPanel/personeller/sil/{id}",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "PersonelSil",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.KullaniciYonetimi.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "KullaniciDurum",
+      "url": "/AdminPanel/kullanicilar/durum/{id}",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "KullaniciDurum",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.KullaniciYonetimi.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "KullaniciSil",
+      "url": "/AdminPanel/kullanicilar/sil/{id}",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "KullaniciSil",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.KullaniciYonetimi.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "Yetkiler",
+      "url": "/AdminPanel/yetkiler",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "Yetkiler",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.KullaniciYonetimi.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "YetkiDuzenle",
+      "url": "/AdminPanel/yetkiler/duzenle/{id}",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "YetkiDuzenle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.KullaniciYonetimi.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "YetkiDuzenle",
+      "url": "/AdminPanel/yetkiler/Düzenle/{id}",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "YetkiDuzenle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.KullaniciYonetimi.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "YetkiDuzenle",
+      "url": "/AdminPanel/yetkiler/duzenle/{id}",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "YetkiDuzenle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.KullaniciYonetimi.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "YetkiDuzenle",
+      "url": "/AdminPanel/yetkiler/Düzenle/{id}",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "YetkiDuzenle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.KullaniciYonetimi.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "DevreyeAlmalar",
+      "url": "/AdminPanel/devreyealmalar",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "DevreyeAlmalar",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.Raporlar.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "DevreyeAlmaDetay",
+      "url": "/AdminPanel/devreyealmalar/detay/{id:int}",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "DevreyeAlmaDetay",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.Raporlar.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "DevreyeAlmaPdf",
+      "url": "/AdminPanel/devreyealmalar/pdf/{id:int}",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "DevreyeAlmaPdf",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.Raporlar.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "DevreyeAlmaExcel",
+      "url": "/AdminPanel/devreyealmalar/excel/{id:int}",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "DevreyeAlmaExcel",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.Raporlar.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "Raporlar",
+      "url": "/AdminPanel/raporlar",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "Raporlar",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.Raporlar.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "RaporlarPdf",
+      "url": "/AdminPanel/raporlar/pdf",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "RaporlarPdf",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.Raporlar.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "RaporlarPdfToplu",
+      "url": "/AdminPanel/raporlar/pdf-toplu",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "RaporlarPdfToplu",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.Raporlar.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "RaporlarExcel",
+      "url": "/AdminPanel/raporlar/excel",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "RaporlarExcel",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.Raporlar.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "RaporlarExcelToplu",
+      "url": "/AdminPanel/raporlar/excel-toplu",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "RaporlarExcelToplu",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.Raporlar.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "OperasyonRaporPdf",
+      "url": "/AdminPanel/raporlar/operasyon/pdf",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "OperasyonRaporPdf",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.Raporlar.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "OperasyonRaporExcel",
+      "url": "/AdminPanel/raporlar/operasyon/excel",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "OperasyonRaporExcel",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.Raporlar.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "OnayBekleyenler",
+      "url": "/AdminPanel/onay-bekleyenler",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "OnayBekleyenler",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.Raporlar.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "YetkiBelgesiUyarilari",
+      "url": "/AdminPanel/yetki-belgesi-uyarilari",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "YetkiBelgesiUyarilari",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.Raporlar.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "Subeler",
+      "url": "/AdminPanel/subeler",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "Subeler",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.Subeler.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "SubeEkle",
+      "url": "/AdminPanel/subeler/ekle",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "SubeEkle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.Subeler.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "SubeDuzenle",
+      "url": "/AdminPanel/subeler/duzenle/{id:int}",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "SubeDuzenle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.Subeler.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "SubeDuzenle",
+      "url": "/AdminPanel/subeler/duzenle/{id:int}",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "SubeDuzenle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.Subeler.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "SubeDurum",
+      "url": "/AdminPanel/subeler/durum",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "SubeDurum",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.Subeler.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "SubeSil",
+      "url": "/AdminPanel/subeler/sil",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "SubeSil",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.Subeler.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "YetkiliServisler",
+      "url": "/AdminPanel/yetkiliservisler",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "YetkiliServisler",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.YetkiliServisler.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "YetkiliServisEkle",
+      "url": "/AdminPanel/yetkiliservisler/ekle",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "YetkiliServisEkle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.YetkiliServisler.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "YetkiliServisEkle",
+      "url": "/AdminPanel/yetkiliservisler/ekle",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "YetkiliServisEkle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.YetkiliServisler.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "YetkiliServisDetay",
+      "url": "/AdminPanel/yetkiliservisler/detay/{id}",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "YetkiliServisDetay",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.YetkiliServisler.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "YetkiliServisPdf",
+      "url": "/AdminPanel/yetkiliservisler/pdf/{id:int}",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "YetkiliServisPdf",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.YetkiliServisler.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "YetkiliServisExcel",
+      "url": "/AdminPanel/yetkiliservisler/excel/{id:int}",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "YetkiliServisExcel",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.YetkiliServisler.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "YetkiliServisDuzenle",
+      "url": "/AdminPanel/yetkiliservis-duzenle/{id}",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "YetkiliServisDuzenle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.YetkiliServisler.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "YetkiliServisDuzenle",
+      "url": "/AdminPanel/yetkiliservisler/duzenle/{id}",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "YetkiliServisDuzenle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.YetkiliServisler.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "YetkiliServisDuzenle",
+      "url": "/AdminPanel/yetkiliservis-duzenle/{id}",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "YetkiliServisDuzenle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.YetkiliServisler.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "YetkiliServisDuzenle",
+      "url": "/AdminPanel/yetkiliservisler/duzenle/{id}",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "YetkiliServisDuzenle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.YetkiliServisler.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "AdminPanelController",
+      "action": "YetkiliServisSil",
+      "url": "/AdminPanel/yetkiliservisler/sil/{id}",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "YetkiliServisSil",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/AdminPanelController.YetkiliServisler.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "DevreyeAlmaController",
+      "action": "Index",
+      "url": "/ys-devreyeal",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "YetkiliServis"
+      ],
+      "anonymous": false,
+      "operation": "Index",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/DevreyeAlmaController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "DevreyeAlmaController",
+      "action": "TesistatSorgula",
+      "url": "/ys-devreyeal/tesisat-sorgula",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "YetkiliServis"
+      ],
+      "anonymous": false,
+      "operation": "TesistatSorgula",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/DevreyeAlmaController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "DevreyeAlmaController",
+      "action": "MarkaKontrol",
+      "url": "/ys-devreyeal/marka-kontrol",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "YetkiliServis"
+      ],
+      "anonymous": false,
+      "operation": "MarkaKontrol",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/DevreyeAlmaController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "DevreyeAlmaController",
+      "action": "Detay",
+      "url": "/ys-devreyeal/detay/{id}",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "YetkiliServis"
+      ],
+      "anonymous": false,
+      "operation": "Detay",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/DevreyeAlmaController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "DevreyeAlmaController",
+      "action": "PdfIndir",
+      "url": "/ys-devreyeal/pdf/{id}",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "YetkiliServis"
+      ],
+      "anonymous": false,
+      "operation": "PdfIndir",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/DevreyeAlmaController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "DevreyeAlmaController",
+      "action": "ExcelIndir",
+      "url": "/ys-devreyeal/excel/{id}",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "YetkiliServis"
+      ],
+      "anonymous": false,
+      "operation": "ExcelIndir",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/DevreyeAlmaController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "DevreyeAlmaController",
+      "action": "Kaydet",
+      "url": "/ys-devreyeal/kaydet",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "YetkiliServis"
+      ],
+      "anonymous": false,
+      "operation": "Kaydet",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/DevreyeAlmaController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "DevreyeAlmaController",
+      "action": "KaydetJson",
+      "url": "/ys-devreyeal/kaydet-json",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "YetkiliServis"
+      ],
+      "anonymous": false,
+      "operation": "KaydetJson",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/DevreyeAlmaController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "DevreyeAlmaController",
+      "action": "Gecmis",
+      "url": "/ys-devreyeal/gecmis",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "YetkiliServis"
+      ],
+      "anonymous": false,
+      "operation": "Gecmis",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/DevreyeAlmaController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "GirisController",
+      "action": "Index",
+      "url": "/giris",
+      "methods": [
+        "GET"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "Index",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/GirisController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "GirisController",
+      "action": "Index",
+      "url": "/giris",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "Index",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/GirisController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "GirisController",
+      "action": "SmsDogrula",
+      "url": "/giris/sms-dogrula",
+      "methods": [
+        "GET"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "SmsDogrula",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/GirisController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "GirisController",
+      "action": "SmsDogrula",
+      "url": "/giris/sms-dogrula",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "SmsDogrula",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/GirisController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "GirisController",
+      "action": "SifreUnuttum",
+      "url": "/giris/sifre-unuttum",
+      "methods": [
+        "GET"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "SifreUnuttum",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/GirisController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "GirisController",
+      "action": "SifreUnuttum",
+      "url": "/giris/sifre-unuttum",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "SifreUnuttum",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/GirisController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "GirisController",
+      "action": "SifreYenile",
+      "url": "/giris/sifre-yenile",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "SifreYenile",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/GirisController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "GirisController",
+      "action": "Cikis",
+      "url": "/cikis",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "Cikis",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/GirisController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "HomeController",
+      "action": "YetkisizErisim",
+      "url": "/yetkisiz-erisim",
+      "methods": [
+        "GET"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "YetkisizErisim",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/HomeController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "KayitController",
+      "action": "YetkiliServis",
+      "url": "/kayit/yetkili-servis",
+      "methods": [
+        "GET"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "YetkiliServis",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/KayitController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "KayitController",
+      "action": "YetkiliServis",
+      "url": "/kayit/yetkili-servis",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "YetkiliServis",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/KayitController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "PanelSirketController",
+      "action": "SirketSec",
+      "url": "/panel/sirket-sec",
+      "methods": [
+        "GET"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "SirketSec",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/PanelSirketController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "PanelSirketController",
+      "action": "SirketSec",
+      "url": "/panel/sirket-sec",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "SirketSec",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/PanelSirketController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "PersonelPanelController",
+      "action": "Index",
+      "url": "/personel-panel",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "operation": "Index",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/PersonelPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "PersonelPanelController",
+      "action": "Index",
+      "url": "/personel-panel/index",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "operation": "Index",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/PersonelPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "PersonelPanelController",
+      "action": "Profil",
+      "url": "/personel-panel/profil",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "operation": "Profil",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/PersonelPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "PersonelPanelController",
+      "action": "ProfilGuncelle",
+      "url": "/personel-panel/profil-guncelle",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "operation": "ProfilGuncelle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/PersonelPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "PersonelPanelController",
+      "action": "SifreDegistir",
+      "url": "/personel-panel/sifre-degistir",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "operation": "SifreDegistir",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/PersonelPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "PersonelPanelController",
+      "action": "DevreyeAlmalar",
+      "url": "/personel-panel/devreyealmalar",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "operation": "DevreyeAlmalar",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/PersonelPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "PersonelPanelController",
+      "action": "DevreyeAlmaDetay",
+      "url": "/personel-panel/devreyealmalar/detay/{id}",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "operation": "DevreyeAlmaDetay",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/PersonelPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "PersonelPanelController",
+      "action": "DevreyeAlmaPdf",
+      "url": "/personel-panel/devreyealma-pdf/{id}",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "operation": "DevreyeAlmaPdf",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/PersonelPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "PersonelPanelController",
+      "action": "DevreyeAlmaExcel",
+      "url": "/personel-panel/devreyealma-excel/{id}",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "operation": "DevreyeAlmaExcel",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/PersonelPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "PersonelPanelController",
+      "action": "DevreyeAlmalarPdf",
+      "url": "/personel-panel/devreyealmalar/pdf",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "operation": "DevreyeAlmalarPdf",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/PersonelPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "PersonelPanelController",
+      "action": "DevreyeAlmalarExcel",
+      "url": "/personel-panel/devreyealmalar/excel",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "operation": "DevreyeAlmalarExcel",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/PersonelPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "PersonelPanelController",
+      "action": "OnayBekleyenler",
+      "url": "/personel-panel/onay-bekleyenler",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "operation": "OnayBekleyenler",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/PersonelPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "PersonelPanelController",
+      "action": "OnaylaGet",
+      "url": "/personel-panel/onayla",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "operation": "OnaylaGet",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/PersonelPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "PersonelPanelController",
+      "action": "Onayla",
+      "url": "/personel-panel/onayla",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "operation": "Onayla",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/PersonelPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "PersonelPanelController",
+      "action": "Reddet",
+      "url": "/personel-panel/reddet",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "operation": "Reddet",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/PersonelPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "PersonelPanelController",
+      "action": "OnayGecmisi",
+      "url": "/personel-panel/onay-gecmisi",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "operation": "OnayGecmisi",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/PersonelPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "PersonelPanelController",
+      "action": "Markalar",
+      "url": "/personel-panel/markalar",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "operation": "Markalar",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/PersonelPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "PersonelPanelController",
+      "action": "MarkaEkle",
+      "url": "/personel-panel/markalar/ekle",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "operation": "MarkaEkle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/PersonelPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "PersonelPanelController",
+      "action": "MarkaEkle",
+      "url": "/personel-panel/markalar/ekle",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "operation": "MarkaEkle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/PersonelPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "PersonelPanelController",
+      "action": "MarkaDuzenle",
+      "url": "/personel-panel/markalar/duzenle/{id}",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "operation": "MarkaDuzenle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/PersonelPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "PersonelPanelController",
+      "action": "MarkaDuzenle",
+      "url": "/personel-panel/markalar/duzenle/{id}",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "operation": "MarkaDuzenle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/PersonelPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "PersonelPanelController",
+      "action": "MarkaSil",
+      "url": "/personel-panel/markalar/sil/{id}",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "operation": "MarkaSil",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/PersonelPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "PersonelPanelController",
+      "action": "YetkiliServisler",
+      "url": "/personel-panel/yetkiliservisler",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "operation": "YetkiliServisler",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/PersonelPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "PersonelPanelController",
+      "action": "YetkiliServisDetay",
+      "url": "/personel-panel/yetkiliservisler/detay/{id}",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "operation": "YetkiliServisDetay",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/PersonelPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "PersonelPanelController",
+      "action": "YetkiliServisEkle",
+      "url": "/personel-panel/yetkiliservisler/ekle",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "operation": "YetkiliServisEkle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/PersonelPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "PersonelPanelController",
+      "action": "YetkiliServisEkle",
+      "url": "/personel-panel/yetkiliservisler/ekle",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "operation": "YetkiliServisEkle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/PersonelPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "PersonelPanelController",
+      "action": "YetkiliServisDuzenle",
+      "url": "/personel-panel/yetkiliservisler/duzenle/{id}",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "operation": "YetkiliServisDuzenle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/PersonelPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "PersonelPanelController",
+      "action": "YetkiliServisDuzenle",
+      "url": "/personel-panel/yetkiliservisler/duzenle/{id}",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "operation": "YetkiliServisDuzenle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/PersonelPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "PersonelPanelController",
+      "action": "YetkiliServisSil",
+      "url": "/personel-panel/yetkiliservisler/sil/{id}",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "operation": "YetkiliServisSil",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/PersonelPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "PersonelPanelController",
+      "action": "Raporlar",
+      "url": "/personel-panel/raporlar",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "operation": "Raporlar",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/PersonelPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "PersonelPanelController",
+      "action": "RaporlarPdf",
+      "url": "/personel-panel/raporlar/pdf",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "operation": "RaporlarPdf",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/PersonelPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "PersonelPanelController",
+      "action": "RaporlarExcel",
+      "url": "/personel-panel/raporlar/excel",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "operation": "RaporlarExcel",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/PersonelPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YetkiBelgesiController",
+      "action": "Index",
+      "url": "/ys-yetki-belgesi",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "YetkiliServis"
+      ],
+      "anonymous": false,
+      "operation": "Index",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YetkiBelgesiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YetkiBelgesiController",
+      "action": "Index",
+      "url": "/ys-yetki-belgesi/index",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "YetkiliServis"
+      ],
+      "anonymous": false,
+      "operation": "Index",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YetkiBelgesiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YetkiBelgesiController",
+      "action": "Yukle",
+      "url": "/ys-yetki-belgesi/yukle",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "YetkiliServis"
+      ],
+      "anonymous": false,
+      "operation": "Yukle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YetkiBelgesiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YetkiBelgesiController",
+      "action": "Sil",
+      "url": "/ys-yetki-belgesi/sil",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "YetkiliServis"
+      ],
+      "anonymous": false,
+      "operation": "Sil",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YetkiBelgesiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YetkiBelgesiController",
+      "action": "Dosya",
+      "url": "/ys-yetki-belgesi/dosya/{id:int}",
+      "methods": [
+        "GET"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "Dosya",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YetkiBelgesiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YetkiBelgesiController",
+      "action": "OnayBekleyenler",
+      "url": "/ys-yetki-belgesi/onay-bekleyenler",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "operation": "OnayBekleyenler",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YetkiBelgesiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YetkiBelgesiController",
+      "action": "Onayla",
+      "url": "/ys-yetki-belgesi/onayla",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "operation": "Onayla",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YetkiBelgesiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YetkiBelgesiController",
+      "action": "Reddet",
+      "url": "/ys-yetki-belgesi/reddet",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "operation": "Reddet",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YetkiBelgesiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YetkiliServislerController",
+      "action": "Index",
+      "url": "/yetkili-servisler",
+      "methods": [
+        "GET"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "Index",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YetkiliServislerController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YetkiliServislerController",
+      "action": "Index",
+      "url": "/yetkili-servisler/index",
+      "methods": [
+        "GET"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "Index",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YetkiliServislerController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YetkiliServisPanelController",
+      "action": "Index",
+      "url": "/ys-panel",
+      "methods": [
+        "GET"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "Index",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YetkiliServisPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YetkiliServisPanelController",
+      "action": "Index",
+      "url": "/ys-panel/index",
+      "methods": [
+        "GET"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "Index",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YetkiliServisPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YetkiliServisPanelController",
+      "action": "IlkKurulum",
+      "url": "/ys-panel/ilk-kurulum",
+      "methods": [
+        "GET"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "IlkKurulum",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YetkiliServisPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YetkiliServisPanelController",
+      "action": "Subeler",
+      "url": "/ys-panel/subeler",
+      "methods": [
+        "GET"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "Subeler",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YetkiliServisPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YetkiliServisPanelController",
+      "action": "SubeDuzenle",
+      "url": "/ys-panel/subeler/duzenle/{id:int}",
+      "methods": [
+        "GET"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "SubeDuzenle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YetkiliServisPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YetkiliServisPanelController",
+      "action": "Markalar",
+      "url": "/ys-panel/markalar",
+      "methods": [
+        "GET"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "Markalar",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YetkiliServisPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YetkiliServisPanelController",
+      "action": "Profil",
+      "url": "/ys-panel/profil",
+      "methods": [
+        "GET"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "Profil",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YetkiliServisPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YetkiliServisPanelController",
+      "action": "SubeDuzenleKaydet",
+      "url": "/ys-panel/subeler/duzenle/{id:int}",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "SubeDuzenleKaydet",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YetkiliServisPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YetkiliServisPanelController",
+      "action": "SubeEkle",
+      "url": "/ys-panel/subeler/ekle",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "SubeEkle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YetkiliServisPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YetkiliServisPanelController",
+      "action": "SubeDurum",
+      "url": "/ys-panel/subeler/durum",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "SubeDurum",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YetkiliServisPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YetkiliServisPanelController",
+      "action": "SubeSil",
+      "url": "/ys-panel/subeler/sil",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "SubeSil",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YetkiliServisPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YetkiliServisPanelController",
+      "action": "MarkaGuncelle",
+      "url": "/ys-panel/marka-guncelle",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "MarkaGuncelle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YetkiliServisPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YetkiliServisPanelController",
+      "action": "MarkaEkle",
+      "url": "/ys-panel/marka-ekle",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "MarkaEkle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YetkiliServisPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YetkiliServisPanelController",
+      "action": "MarkaDuzenle",
+      "url": "/ys-panel/marka-duzenle",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "MarkaDuzenle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YetkiliServisPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YetkiliServisPanelController",
+      "action": "MarkaSil",
+      "url": "/ys-panel/marka-sil",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "MarkaSil",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YetkiliServisPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YetkiliServisPanelController",
+      "action": "ProfilGuncelle",
+      "url": "/ys-panel/profil-guncelle",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "ProfilGuncelle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YetkiliServisPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YetkiliServisPanelController",
+      "action": "SifreDegistir",
+      "url": "/ys-panel/sifre-degistir",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "SifreDegistir",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YetkiliServisPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YetkiliServisPanelController",
+      "action": "Raporlar",
+      "url": "/ys-panel/raporlar",
+      "methods": [
+        "GET"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "Raporlar",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YetkiliServisPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YetkiliServisPanelController",
+      "action": "RaporlarPdf",
+      "url": "/ys-panel/raporlar/pdf",
+      "methods": [
+        "GET"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "RaporlarPdf",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YetkiliServisPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YetkiliServisPanelController",
+      "action": "RaporlarPdfToplu",
+      "url": "/ys-panel/raporlar/pdf-toplu",
+      "methods": [
+        "GET"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "RaporlarPdfToplu",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YetkiliServisPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YetkiliServisPanelController",
+      "action": "RaporlarExcel",
+      "url": "/ys-panel/raporlar/excel",
+      "methods": [
+        "GET"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "RaporlarExcel",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YetkiliServisPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YetkiliServisPanelController",
+      "action": "RaporlarExcelToplu",
+      "url": "/ys-panel/raporlar/excel-toplu",
+      "methods": [
+        "GET"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "RaporlarExcelToplu",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YetkiliServisPanelController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YkcController",
+      "action": "Index",
+      "url": "/ykc",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma"
+      ],
+      "anonymous": false,
+      "operation": "Index",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YkcController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YkcController",
+      "action": "Profil",
+      "url": "/ykc/profil",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma",
+        "SertifikaliFirma"
+      ],
+      "anonymous": false,
+      "operation": "Profil",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YkcController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YkcController",
+      "action": "ProfilGuncelle",
+      "url": "/ykc/profil-guncelle",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma",
+        "SertifikaliFirma"
+      ],
+      "anonymous": false,
+      "operation": "ProfilGuncelle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YkcController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YkcController",
+      "action": "SifreDegistir",
+      "url": "/ykc/sifre-degistir",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma",
+        "SertifikaliFirma"
+      ],
+      "anonymous": false,
+      "operation": "SifreDegistir",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YkcController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YkcController",
+      "action": "Talepler",
+      "url": "/ykc/talepler",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma"
+      ],
+      "anonymous": false,
+      "operation": "Talepler",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YkcController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YkcController",
+      "action": "Raporlar",
+      "url": "/ykc/raporlar",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma"
+      ],
+      "anonymous": false,
+      "operation": "Raporlar",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YkcController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YkcController",
+      "action": "RaporPdf",
+      "url": "/ykc/raporlar/pdf",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma"
+      ],
+      "anonymous": false,
+      "operation": "RaporPdf",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YkcController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YkcController",
+      "action": "RaporExcel",
+      "url": "/ykc/raporlar/excel",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma"
+      ],
+      "anonymous": false,
+      "operation": "RaporExcel",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YkcController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YkcController",
+      "action": "Yeni",
+      "url": "/ykc/yeni",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma"
+      ],
+      "anonymous": false,
+      "operation": "Yeni",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YkcController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YkcController",
+      "action": "Yeni",
+      "url": "/ykc/yeni",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma"
+      ],
+      "anonymous": false,
+      "operation": "Yeni",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YkcController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YkcController",
+      "action": "TesisatSorgula",
+      "url": "/ykc/tesisat-sorgula",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma"
+      ],
+      "anonymous": false,
+      "operation": "TesisatSorgula",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YkcController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YkcController",
+      "action": "CihazKarsilastir",
+      "url": "/ykc/cihaz-karsilastir",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma"
+      ],
+      "anonymous": false,
+      "operation": "CihazKarsilastir",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YkcController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YkcController",
+      "action": "Detay",
+      "url": "/ykc/detay/{id:int}",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma"
+      ],
+      "anonymous": false,
+      "operation": "Detay",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YkcController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YkcController",
+      "action": "Fr265Onizle",
+      "url": "/ykc/fr265/onizle/{id:int}",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma"
+      ],
+      "anonymous": false,
+      "operation": "Fr265Onizle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YkcController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YkcController",
+      "action": "FormPdf",
+      "url": "/ykc/fr265/pdf/{id:int}",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma"
+      ],
+      "anonymous": false,
+      "operation": "FormPdf",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YkcController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YkcController",
+      "action": "Takvim",
+      "url": "/ykc/takvim",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma",
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma"
+      ],
+      "anonymous": false,
+      "operation": "Takvim",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YkcController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YkcController",
+      "action": "ImzayaGonder",
+      "url": "/ykc/imzaya-gonder",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma",
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "ImzayaGonder",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YkcController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YkcController",
+      "action": "ImzaDurumSorgula",
+      "url": "/ykc/imza-durum-sorgula",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma",
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "ImzaDurumSorgula",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YkcController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YkcController",
+      "action": "DosyaAc",
+      "url": "/ykc/dosya/{id:int}",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma"
+      ],
+      "anonymous": false,
+      "operation": "DosyaAc",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YkcController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YkcController",
+      "action": "AtamaYap",
+      "url": "/ykc/atama-yap",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma",
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "AtamaYap",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YkcController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YkcController",
+      "action": "DurumGuncelle",
+      "url": "/ykc/durum-guncelle",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma",
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "DurumGuncelle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YkcController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YkcController",
+      "action": "KontrollerKaydet",
+      "url": "/ykc/kontroller-kaydet",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma",
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "KontrollerKaydet",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YkcController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "YkcController",
+      "action": "FormYukle",
+      "url": "/ykc/form-yukle",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma"
+      ],
+      "anonymous": false,
+      "operation": "FormYukle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/YkcController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AdminPanelApiController",
+      "action": "Dashboard",
+      "url": "/api/admin-panel/dashboard",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "Dashboard",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AdminPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AdminPanelApiController",
+      "action": "YetkiliServisler",
+      "url": "/api/admin-panel/yetkili-servisler/liste",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "YetkiliServisler",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AdminPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AdminPanelApiController",
+      "action": "YetkiliServisGetir",
+      "url": "/api/admin-panel/yetkili-servisler/getir",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "YetkiliServisGetir",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AdminPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AdminPanelApiController",
+      "action": "YetkiliServisEkle",
+      "url": "/api/admin-panel/yetkili-servisler/ekle",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "YetkiliServisEkle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AdminPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AdminPanelApiController",
+      "action": "YetkiliServisGuncelle",
+      "url": "/api/admin-panel/yetkili-servisler/guncelle",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "YetkiliServisGuncelle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AdminPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AdminPanelApiController",
+      "action": "YetkiliServisSil",
+      "url": "/api/admin-panel/yetkili-servisler/sil",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "YetkiliServisSil",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AdminPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AdminPanelApiController",
+      "action": "YetkiBelgesiOnayListesi",
+      "url": "/api/admin-panel/yetki-belgeleri/onay-listesi",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "YetkiBelgesiOnayListesi",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AdminPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AdminPanelApiController",
+      "action": "YetkiBelgesiOnayGecmisi",
+      "url": "/api/admin-panel/yetki-belgeleri/onay-gecmisi",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "YetkiBelgesiOnayGecmisi",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AdminPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AdminPanelApiController",
+      "action": "Subeler",
+      "url": "/api/admin-panel/subeler/liste",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "Subeler",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AdminPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AdminPanelApiController",
+      "action": "SubeGetir",
+      "url": "/api/admin-panel/subeler/getir",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "SubeGetir",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AdminPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AdminPanelApiController",
+      "action": "SubeEkle",
+      "url": "/api/admin-panel/subeler/ekle",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "SubeEkle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AdminPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AdminPanelApiController",
+      "action": "SubeGuncelle",
+      "url": "/api/admin-panel/subeler/guncelle",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "SubeGuncelle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AdminPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AdminPanelApiController",
+      "action": "SubeDurum",
+      "url": "/api/admin-panel/subeler/durum",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "SubeDurum",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AdminPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AdminPanelApiController",
+      "action": "SubeSil",
+      "url": "/api/admin-panel/subeler/sil",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "SubeSil",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AdminPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AdminPanelApiController",
+      "action": "DevreyeAlmalar",
+      "url": "/api/admin-panel/devreye-almalar/liste",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "DevreyeAlmalar",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AdminPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AdminPanelApiController",
+      "action": "DevreyeAlmaGetir",
+      "url": "/api/admin-panel/devreye-almalar/getir",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "DevreyeAlmaGetir",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AdminPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AdminPanelApiController",
+      "action": "DevreyeAlmaPdf",
+      "url": "/api/admin-panel/devreye-almalar/pdf",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "DevreyeAlmaPdf",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AdminPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AdminPanelApiController",
+      "action": "DevreyeAlmaExcel",
+      "url": "/api/admin-panel/devreye-almalar/excel",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "DevreyeAlmaExcel",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AdminPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AdminPanelApiController",
+      "action": "DevreyeAlmaRaporPdf",
+      "url": "/api/admin-panel/devreye-almalar/rapor/pdf",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "DevreyeAlmaRaporPdf",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AdminPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AdminPanelApiController",
+      "action": "DevreyeAlmaRaporExcel",
+      "url": "/api/admin-panel/devreye-almalar/rapor/excel",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "DevreyeAlmaRaporExcel",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AdminPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AdminPanelApiController",
+      "action": "YetkiBelgesiUyarilari",
+      "url": "/api/admin-panel/yetki-belgeleri/uyarilar",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "YetkiBelgesiUyarilari",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AdminPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AdminPanelApiController",
+      "action": "RaporlarOzet",
+      "url": "/api/admin-panel/raporlar/ozet",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "RaporlarOzet",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AdminPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AdminPanelApiController",
+      "action": "YetkilerListe",
+      "url": "/api/admin-panel/yetkiler/liste",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "YetkilerListe",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AdminPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AdminPanelApiController",
+      "action": "YetkiGetir",
+      "url": "/api/admin-panel/yetkiler/getir",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "YetkiGetir",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AdminPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AdminPanelApiController",
+      "action": "YetkiGuncelle",
+      "url": "/api/admin-panel/yetkiler/guncelle",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "YetkiGuncelle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AdminPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AdminPanelApiController",
+      "action": "PersonelEkle",
+      "url": "/api/admin-panel/personeller/ekle",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "PersonelEkle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AdminPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AdminPanelApiController",
+      "action": "Kullanicilar",
+      "url": "/api/admin-panel/kullanicilar/liste",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "Kullanicilar",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AdminPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AdminPanelApiController",
+      "action": "KullaniciSirketSecenekleri",
+      "url": "/api/admin-panel/kullanicilar/sirket-secenekleri",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "KullaniciSirketSecenekleri",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AdminPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AdminPanelApiController",
+      "action": "KullaniciFirmaSecenekleri",
+      "url": "/api/admin-panel/kullanicilar/firma-secenekleri",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "KullaniciFirmaSecenekleri",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AdminPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AdminPanelApiController",
+      "action": "KullaniciYonetimYetkisi",
+      "url": "/api/admin-panel/kullanicilar/yonetim-yetkisi",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "KullaniciYonetimYetkisi",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AdminPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AdminPanelApiController",
+      "action": "KullaniciGetir",
+      "url": "/api/admin-panel/kullanicilar/getir",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "KullaniciGetir",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AdminPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AdminPanelApiController",
+      "action": "KullaniciGuncelle",
+      "url": "/api/admin-panel/kullanicilar/guncelle",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "KullaniciGuncelle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AdminPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AdminPanelApiController",
+      "action": "KullaniciEkle",
+      "url": "/api/admin-panel/kullanicilar/ekle",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "KullaniciEkle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AdminPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AdminPanelApiController",
+      "action": "KullaniciDurum",
+      "url": "/api/admin-panel/kullanicilar/durum",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "KullaniciDurum",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AdminPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AdminPanelApiController",
+      "action": "KullaniciSil",
+      "url": "/api/admin-panel/kullanicilar/sil",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "KullaniciSil",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AdminPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AuthController",
+      "action": "Token",
+      "url": "/api/auth/token",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "Token",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AuthController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AuthController",
+      "action": "Verify",
+      "url": "/api/auth/sms-dogrula",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "Verify",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AuthController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AuthController",
+      "action": "Forgot",
+      "url": "/api/auth/sifre-unuttum",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "Forgot",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AuthController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AuthController",
+      "action": "Reset",
+      "url": "/api/auth/sifre-yenile",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "Reset",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AuthController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AuthController",
+      "action": "Me",
+      "url": "/api/auth/me",
+      "methods": [
+        "GET"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "Me",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AuthController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AuthController",
+      "action": "Profile",
+      "url": "/api/auth/profil",
+      "methods": [
+        "PUT"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "Profile",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AuthController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "AuthController",
+      "action": "Password",
+      "url": "/api/auth/sifre-degistir",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "Password",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/AuthController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "DagitimSirketApiController",
+      "action": "Tumunu",
+      "url": "/api/dagitim-sirket/liste",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": true,
+      "operation": "Tumunu",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/DagitimSirketApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "DagitimSirketApiController",
+      "action": "Getir",
+      "url": "/api/dagitim-sirket/getir",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "Getir",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/DagitimSirketApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "HomeApiController",
+      "action": "Ozet",
+      "url": "/api/home/ozet",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": true,
+      "operation": "Ozet",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/HomeApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "IcTesisatApiController",
+      "action": "DevreyeAlmaListesi",
+      "url": "/api/ic-tesisat/devreye-almalar/liste",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "DevreyeAlmaListesi",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/IcTesisatApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "MarkaApiController",
+      "action": "Liste",
+      "url": "/api/marka/liste",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": true,
+      "operation": "Liste",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/MarkaApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "MarkaApiController",
+      "action": "Getir",
+      "url": "/api/marka/getir",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "Getir",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/MarkaApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "MarkaApiController",
+      "action": "Ekle",
+      "url": "/api/marka/ekle",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "Ekle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/MarkaApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "MarkaApiController",
+      "action": "Guncelle",
+      "url": "/api/marka/guncelle",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "Guncelle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/MarkaApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "MarkaApiController",
+      "action": "Sil",
+      "url": "/api/marka/sil",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "Sil",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/MarkaApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "MobilImzaController",
+      "action": "Bekleyenler",
+      "url": "/api/entegrasyon/imza/bekleyenler",
+      "methods": [
+        "GET"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "Bekleyenler",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/MobilImzaController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "MobilImzaController",
+      "action": "Paket",
+      "url": "/api/entegrasyon/imza/belgeler/{belgeId:int}/paket",
+      "methods": [
+        "GET"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "Paket",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/MobilImzaController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "MobilImzaController",
+      "action": "Imzalandi",
+      "url": "/api/entegrasyon/imza/belgeler/{belgeId:int}/imzalandi",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "Imzalandi",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/MobilImzaController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "PanelKapsamApiController",
+      "action": "KullaniciSirketleri",
+      "url": "/api/panel-kapsam/sirketler",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "KullaniciSirketleri",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/PanelKapsamApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "PanelKapsamApiController",
+      "action": "PanelKimlik",
+      "url": "/api/panel-kapsam/kimlik",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "PanelKimlik",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/PanelKapsamApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "PanelKapsamApiController",
+      "action": "YkcYetkileri",
+      "url": "/api/panel-kapsam/ykc-yetkileri",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "YkcYetkileri",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/PanelKapsamApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "PersonelPanelApiController",
+      "action": "Yetkilerim",
+      "url": "/api/personel-panel/yetkilerim",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "Personel,GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "operation": "Yetkilerim",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/PersonelPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "SystemHealthApiController",
+      "action": "Get",
+      "url": "/health",
+      "methods": [
+        "GET"
+      ],
+      "roles": [],
+      "anonymous": true,
+      "operation": "Get",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/SystemHealthApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "UrunKategorilerController",
+      "action": "Liste",
+      "url": "/api/urun-kategorileri/liste",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "Liste",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/UrunKategorilerController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiBelgesiApiController",
+      "action": "FirmaListe",
+      "url": "/api/yetki-belgesi/firma-liste",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "FirmaListe",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiBelgesiApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiBelgesiApiController",
+      "action": "FirmaEkrani",
+      "url": "/api/yetki-belgesi/firma-ekrani",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "FirmaEkrani",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiBelgesiApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiBelgesiApiController",
+      "action": "Yukle",
+      "url": "/api/yetki-belgesi/yukle",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "Yukle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiBelgesiApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiBelgesiApiController",
+      "action": "OnayBekleyenler",
+      "url": "/api/yetki-belgesi/onay-bekleyenler",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "OnayBekleyenler",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiBelgesiApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiBelgesiApiController",
+      "action": "OnayEkrani",
+      "url": "/api/yetki-belgesi/onay-ekrani",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "OnayEkrani",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiBelgesiApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiBelgesiApiController",
+      "action": "Sil",
+      "url": "/api/yetki-belgesi/sil",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "Sil",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiBelgesiApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiBelgesiApiController",
+      "action": "DosyaIndir",
+      "url": "/api/yetki-belgesi/dosya-indir",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "DosyaIndir",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiBelgesiApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiBelgesiApiController",
+      "action": "Onayla",
+      "url": "/api/yetki-belgesi/onayla",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "Onayla",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiBelgesiApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiBelgesiApiController",
+      "action": "Reddet",
+      "url": "/api/yetki-belgesi/reddet",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "Reddet",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiBelgesiApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiliServisDevreyeAlmaApiController",
+      "action": "Gecmis",
+      "url": "/api/ys-devreyeal/gecmis",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "YetkiliServis"
+      ],
+      "anonymous": false,
+      "operation": "Gecmis",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiliServisDevreyeAlmaApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiliServisDevreyeAlmaApiController",
+      "action": "Getir",
+      "url": "/api/ys-devreyeal/getir",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "YetkiliServis"
+      ],
+      "anonymous": false,
+      "operation": "Getir",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiliServisDevreyeAlmaApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiliServisDevreyeAlmaApiController",
+      "action": "Pdf",
+      "url": "/api/ys-devreyeal/pdf",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "YetkiliServis"
+      ],
+      "anonymous": false,
+      "operation": "Pdf",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiliServisDevreyeAlmaApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiliServisDevreyeAlmaApiController",
+      "action": "Excel",
+      "url": "/api/ys-devreyeal/excel",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "YetkiliServis"
+      ],
+      "anonymous": false,
+      "operation": "Excel",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiliServisDevreyeAlmaApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiliServisDevreyeAlmaApiController",
+      "action": "Ekran",
+      "url": "/api/ys-devreyeal/ekran",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "YetkiliServis"
+      ],
+      "anonymous": false,
+      "operation": "Ekran",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiliServisDevreyeAlmaApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiliServisDevreyeAlmaApiController",
+      "action": "TesisatSorgula",
+      "url": "/api/ys-devreyeal/tesisat-sorgula",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "YetkiliServis"
+      ],
+      "anonymous": false,
+      "operation": "TesisatSorgula",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiliServisDevreyeAlmaApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiliServisDevreyeAlmaApiController",
+      "action": "Bildirimler",
+      "url": "/api/ys-devreyeal/bildirimler",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "YetkiliServis"
+      ],
+      "anonymous": false,
+      "operation": "Bildirimler",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiliServisDevreyeAlmaApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiliServisDevreyeAlmaApiController",
+      "action": "MarkaKontrol",
+      "url": "/api/ys-devreyeal/marka-kontrol",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "YetkiliServis"
+      ],
+      "anonymous": false,
+      "operation": "MarkaKontrol",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiliServisDevreyeAlmaApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiliServisDevreyeAlmaApiController",
+      "action": "Kaydet",
+      "url": "/api/ys-devreyeal/kaydet",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "YetkiliServis"
+      ],
+      "anonymous": false,
+      "operation": "Kaydet",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiliServisDevreyeAlmaApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiliServislerController",
+      "action": "Liste",
+      "url": "/api/yetkili-servisler/liste",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": true,
+      "operation": "Liste",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiliServislerController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiliServislerController",
+      "action": "ListeGet",
+      "url": "/api/yetkili-servisler",
+      "methods": [
+        "GET"
+      ],
+      "roles": [],
+      "anonymous": true,
+      "operation": "ListeGet",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiliServislerController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiliServislerController",
+      "action": "FiltreSecenekleri",
+      "url": "/api/yetkili-servisler/filtre-secenekleri",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": true,
+      "operation": "FiltreSecenekleri",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiliServislerController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiliServislerController",
+      "action": "Kayit",
+      "url": "/api/yetkili-servisler/kayit",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": true,
+      "operation": "Kayit",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiliServislerController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiliServislerController",
+      "action": "Getir",
+      "url": "/api/yetkili-servisler/getir",
+      "methods": [
+        "POST"
+      ],
+      "roles": [],
+      "anonymous": false,
+      "operation": "Getir",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiliServislerController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiliServislerController",
+      "action": "Guncelle",
+      "url": "/api/yetkili-servisler/guncelle",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin"
+      ],
+      "anonymous": false,
+      "operation": "Guncelle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiliServislerController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiliServislerController",
+      "action": "Sil",
+      "url": "/api/yetkili-servisler/sil",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin"
+      ],
+      "anonymous": false,
+      "operation": "Sil",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiliServislerController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiliServisPanelApiController",
+      "action": "Dashboard",
+      "url": "/api/ys-panel/dashboard",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "YetkiliServis"
+      ],
+      "anonymous": false,
+      "operation": "Dashboard",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiliServisPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiliServisPanelApiController",
+      "action": "Bildirimler",
+      "url": "/api/ys-panel/bildirimler",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "YetkiliServis"
+      ],
+      "anonymous": false,
+      "operation": "Bildirimler",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiliServisPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiliServisPanelApiController",
+      "action": "Profil",
+      "url": "/api/ys-panel/profil",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "YetkiliServis"
+      ],
+      "anonymous": false,
+      "operation": "Profil",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiliServisPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiliServisPanelApiController",
+      "action": "ProfilGuncelle",
+      "url": "/api/ys-panel/profil/guncelle",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "YetkiliServis"
+      ],
+      "anonymous": false,
+      "operation": "ProfilGuncelle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiliServisPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiliServisPanelApiController",
+      "action": "IlkKurulum",
+      "url": "/api/ys-panel/ilk-kurulum",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "YetkiliServis"
+      ],
+      "anonymous": false,
+      "operation": "IlkKurulum",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiliServisPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiliServisPanelApiController",
+      "action": "Markalar",
+      "url": "/api/ys-panel/markalar",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "YetkiliServis"
+      ],
+      "anonymous": false,
+      "operation": "Markalar",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiliServisPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiliServisPanelApiController",
+      "action": "Raporlar",
+      "url": "/api/ys-panel/raporlar",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "YetkiliServis"
+      ],
+      "anonymous": false,
+      "operation": "Raporlar",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiliServisPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiliServisPanelApiController",
+      "action": "RaporlarPdf",
+      "url": "/api/ys-panel/raporlar/pdf",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "YetkiliServis"
+      ],
+      "anonymous": false,
+      "operation": "RaporlarPdf",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiliServisPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiliServisPanelApiController",
+      "action": "RaporlarExcel",
+      "url": "/api/ys-panel/raporlar/excel",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "YetkiliServis"
+      ],
+      "anonymous": false,
+      "operation": "RaporlarExcel",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiliServisPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiliServisPanelApiController",
+      "action": "SubeKaydet",
+      "url": "/api/ys-panel/subeler/kaydet",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "YetkiliServis"
+      ],
+      "anonymous": false,
+      "operation": "SubeKaydet",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiliServisPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiliServisPanelApiController",
+      "action": "SubeDurum",
+      "url": "/api/ys-panel/subeler/durum",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "YetkiliServis"
+      ],
+      "anonymous": false,
+      "operation": "SubeDurum",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiliServisPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiliServisPanelApiController",
+      "action": "SubeSil",
+      "url": "/api/ys-panel/subeler/sil",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "YetkiliServis"
+      ],
+      "anonymous": false,
+      "operation": "SubeSil",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiliServisPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiliServisPanelApiController",
+      "action": "MarkaGuncelle",
+      "url": "/api/ys-panel/markalar/guncelle",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "YetkiliServis"
+      ],
+      "anonymous": false,
+      "operation": "MarkaGuncelle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiliServisPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiliServisPanelApiController",
+      "action": "MarkaEkle",
+      "url": "/api/ys-panel/markalar/ekle",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "YetkiliServis"
+      ],
+      "anonymous": false,
+      "operation": "MarkaEkle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiliServisPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiliServisPanelApiController",
+      "action": "MarkaDuzenle",
+      "url": "/api/ys-panel/markalar/duzenle",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "YetkiliServis"
+      ],
+      "anonymous": false,
+      "operation": "MarkaDuzenle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiliServisPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YetkiliServisPanelApiController",
+      "action": "MarkaSil",
+      "url": "/api/ys-panel/markalar/sil",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "YetkiliServis"
+      ],
+      "anonymous": false,
+      "operation": "MarkaSil",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YetkiliServisPanelApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YkcApiController",
+      "action": "TesisatSorgula",
+      "url": "/api/ykc/tesisat-sorgula",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma"
+      ],
+      "anonymous": false,
+      "operation": "TesisatSorgula",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YkcApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YkcApiController",
+      "action": "CihazKarsilastir",
+      "url": "/api/ykc/cihaz-karsilastir",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma"
+      ],
+      "anonymous": false,
+      "operation": "CihazKarsilastir",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YkcApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YkcApiController",
+      "action": "TaleplerListe",
+      "url": "/api/ykc/talepler/liste",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma"
+      ],
+      "anonymous": false,
+      "operation": "TaleplerListe",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YkcApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YkcApiController",
+      "action": "DashboardOzet",
+      "url": "/api/ykc/dashboard/ozet",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma"
+      ],
+      "anonymous": false,
+      "operation": "DashboardOzet",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YkcApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YkcApiController",
+      "action": "TaleplerRapor",
+      "url": "/api/ykc/talepler/rapor",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma"
+      ],
+      "anonymous": false,
+      "operation": "TaleplerRapor",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YkcApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YkcApiController",
+      "action": "TaleplerRaporPdf",
+      "url": "/api/ykc/talepler/rapor/pdf",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma"
+      ],
+      "anonymous": false,
+      "operation": "TaleplerRaporPdf",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YkcApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YkcApiController",
+      "action": "TaleplerRaporExcel",
+      "url": "/api/ykc/talepler/rapor/excel",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma"
+      ],
+      "anonymous": false,
+      "operation": "TaleplerRaporExcel",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YkcApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YkcApiController",
+      "action": "ImzaEntegrasyonBilgisi",
+      "url": "/api/ykc/imza/entegrasyon",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma"
+      ],
+      "anonymous": false,
+      "operation": "ImzaEntegrasyonBilgisi",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YkcApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YkcApiController",
+      "action": "ImzayaGonder",
+      "url": "/api/ykc/talepler/imzaya-gonder",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma",
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "ImzayaGonder",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YkcApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YkcApiController",
+      "action": "ImzaDurumSorgula",
+      "url": "/api/ykc/talepler/imza-durum-sorgula",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma",
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "ImzaDurumSorgula",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YkcApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YkcApiController",
+      "action": "DosyaIndir",
+      "url": "/api/ykc/talepler/dosya-indir",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma"
+      ],
+      "anonymous": false,
+      "operation": "DosyaIndir",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YkcApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YkcApiController",
+      "action": "DogalgazMobileTaleplerListe",
+      "url": "/api/ykc/dogalgaz-mobile/talepler/liste",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma",
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "DogalgazMobileTaleplerListe",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YkcApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YkcApiController",
+      "action": "Crm187TaleplerListe",
+      "url": "/api/ykc/crm187/talepler/liste",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma",
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "Crm187TaleplerListe",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YkcApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YkcApiController",
+      "action": "TalepGetir",
+      "url": "/api/ykc/talepler/getir",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma"
+      ],
+      "anonymous": false,
+      "operation": "TalepGetir",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YkcApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YkcApiController",
+      "action": "TalepGetir",
+      "url": "/api/ykc/talepler/form-verisi",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma"
+      ],
+      "anonymous": false,
+      "operation": "TalepGetir",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YkcApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YkcApiController",
+      "action": "FormPdf",
+      "url": "/api/ykc/talepler/form-pdf",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma"
+      ],
+      "anonymous": false,
+      "operation": "FormPdf",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YkcApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YkcApiController",
+      "action": "Takvim",
+      "url": "/api/ykc/takvim",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma",
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma"
+      ],
+      "anonymous": false,
+      "operation": "Takvim",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YkcApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YkcApiController",
+      "action": "Ekipler",
+      "url": "/api/ykc/talepler/ekipler",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma",
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "Ekipler",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YkcApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YkcApiController",
+      "action": "TalepOlustur",
+      "url": "/api/ykc/talepler/olustur",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma"
+      ],
+      "anonymous": false,
+      "operation": "TalepOlustur",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YkcApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YkcApiController",
+      "action": "AtamaYap",
+      "url": "/api/ykc/talepler/atama-yap",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma",
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "AtamaYap",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YkcApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YkcApiController",
+      "action": "DurumGuncelle",
+      "url": "/api/ykc/talepler/durum-guncelle",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma",
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "DurumGuncelle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YkcApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YkcApiController",
+      "action": "KontrollerKaydet",
+      "url": "/api/ykc/talepler/kontroller-kaydet",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma",
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel"
+      ],
+      "anonymous": false,
+      "operation": "KontrollerKaydet",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YkcApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YkcApiController",
+      "action": "DosyaKaydet",
+      "url": "/api/ykc/talepler/dosya-kaydet",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma"
+      ],
+      "anonymous": false,
+      "operation": "DosyaKaydet",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YkcApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "YkcApiController",
+      "action": "FormYukle",
+      "url": "/api/ykc/talepler/form-yukle",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel,SertifikaliFirma"
+      ],
+      "anonymous": false,
+      "operation": "FormYukle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/YkcApiController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "HomeController",
+      "action": "Index",
+      "url": "/",
+      "methods": [
+        "GET"
+      ],
+      "roles": [],
+      "anonymous": true,
+      "routing": "conventional",
+      "operation": "Index",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/HomeController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "HomeController",
+      "action": "Privacy",
+      "url": "/Home/Privacy",
+      "methods": [
+        "GET"
+      ],
+      "roles": [],
+      "anonymous": true,
+      "routing": "conventional",
+      "operation": "Privacy",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/HomeController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "HomeController",
+      "action": "Error",
+      "url": "/Home/Error",
+      "methods": [
+        "GET"
+      ],
+      "roles": [],
+      "anonymous": true,
+      "routing": "conventional",
+      "operation": "Error",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/HomeController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "MarkaController",
+      "action": "Index",
+      "url": "/Marka",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "routing": "conventional",
+      "operation": "Index",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/MarkaController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "MarkaController",
+      "action": "Ekle",
+      "url": "/Marka/Ekle",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "routing": "conventional",
+      "operation": "Ekle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/MarkaController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "MarkaController",
+      "action": "Ekle",
+      "url": "/Marka/Ekle",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "routing": "conventional",
+      "operation": "Ekle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/MarkaController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "MarkaController",
+      "action": "Duzenle",
+      "url": "/Marka/Duzenle/{id?}",
+      "methods": [
+        "GET"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "routing": "conventional",
+      "operation": "Duzenle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/MarkaController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "MarkaController",
+      "action": "Duzenle",
+      "url": "/Marka/Duzenle/{id?}",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "routing": "conventional",
+      "operation": "Duzenle",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/MarkaController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma",
+      "controller": "MarkaController",
+      "action": "Sil",
+      "url": "/Marka/Sil/{id?}",
+      "methods": [
+        "POST"
+      ],
+      "roles": [
+        "GenelSistemAdmin,SirketAdmin,SuperAdmin"
+      ],
+      "anonymous": false,
+      "routing": "conventional",
+      "operation": "Sil",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma/Controllers/MarkaController.cs"
+    },
+    {
+      "layer": "YetkiliServisGazAcma.API",
+      "controller": "SystemHealthApiController",
+      "action": "Get",
+      "url": "/api/health",
+      "methods": [
+        "GET"
+      ],
+      "roles": [],
+      "anonymous": true,
+      "operation": "Get",
+      "sourceFile": "C:/Users/byildiz/source/repos/YetkiliServisGazAcma/YetkiliServisGazAcma.API/Controllers/SystemHealthApiController.cs"
+    }
+  ]
+}

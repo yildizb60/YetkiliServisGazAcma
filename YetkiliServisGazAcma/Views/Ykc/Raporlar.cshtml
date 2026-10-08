@@ -19,6 +19,7 @@
     var aktifFiltreler = new List<(string Etiket, string Deger)>();
     var disAktarimDegerleri = new
     {
+        sirketId = filtre.SirketId,
         talepId,
         tesisatNo = filtre.TesisatNo,
         firma = filtre.Firma,
@@ -55,6 +56,7 @@
         };
         return Url.Action("Raporlar", "Ykc", new
         {
+            sirketId = filtre.SirketId,
             talepId,
             tesisatNo = degerler["tesisatNo"],
             firma = degerler["firma"],
@@ -253,6 +255,7 @@
                 <span class="ykc-filter-chevron"><i class="bi bi-chevron-down"></i></span>
         </summary>
         <form method="get" action="@Url.Action("Raporlar", "Ykc")" class="ykc-filter-form">
+            <input type="hidden" name="sirketId" value="@filtre.SirketId" />
             @if (talepId.HasValue)
             {
                 <input type="hidden" name="talepId" value="@talepId" />
@@ -319,7 +322,7 @@
             </div>
             <div class="ykc-filter-actions">
                 <button class="df-btn df-btn-primary" type="submit"><i class="bi bi-funnel"></i> Uygula</button>
-                <a class="df-btn df-btn-secondary" href="@Url.Action("Raporlar", "Ykc")"><i class="bi bi-x-lg"></i> Temizle</a>
+                <a class="df-btn df-btn-secondary" href="@Url.Action("Raporlar", "Ykc", new { sirketId = filtre.SirketId })"><i class="bi bi-x-lg"></i> Temizle</a>
             </div>
         </form>
     </details>
@@ -336,7 +339,7 @@
                 <label class="ykc-report-mobile-select"><input type="checkbox" data-ykc-select-all aria-label="Bu sayfadaki tüm rapor kayıtlarını seç" disabled="@(Model.Kayitlar.Count == 0)" /> Sayfadakileri seç</label>
                 @if (talepId.HasValue)
                 {
-                    <a class="df-btn df-btn-secondary df-btn-sm" href="@Url.Action("Raporlar", "Ykc")"><i class="bi bi-list-ul" aria-hidden="true"></i> Tüm Raporlar</a>
+                    <a class="df-btn df-btn-secondary df-btn-sm" href="@Url.Action("Raporlar", "Ykc", new { sirketId = filtre.SirketId })"><i class="bi bi-list-ul" aria-hidden="true"></i> Tüm Raporlar</a>
                 }
                 <div class="ykc-selection-actions" data-ykc-selection-actions hidden>
                     <span class="ykc-selected-count" data-ykc-selected-count aria-live="polite" aria-atomic="true"></span>
@@ -547,7 +550,10 @@
         </div>
         <div class="ykc-report-modal-footer">
             <button class="df-btn df-btn-secondary" type="button" data-ykc-modal-close>Kapat</button>
-            <a class="df-btn df-btn-primary" id="ykcModalDetailLink" href="#"><i class="bi bi-arrow-right-circle"></i> Talep Detayını Aç</a>
+            @if ((ViewBag.YkcYetkileri as YkcYetkiOzeti)?.TalepleriGorebilir == true)
+            {
+                <a class="df-btn df-btn-primary" id="ykcModalDetailLink" href="#"><i class="bi bi-arrow-right-circle"></i> Talep Detayını Aç</a>
+            }
         </div>
     </div>
 </div>

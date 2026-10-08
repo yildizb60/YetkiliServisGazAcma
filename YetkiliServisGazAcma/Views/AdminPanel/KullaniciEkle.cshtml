@@ -16,8 +16,8 @@
     }
     int formSirketId = ViewBag.FormSirketId is int s ? s : 0;
     int formFirmaId = ViewBag.FormFirmaId is int f ? f : 0;
-    var sirketler = ViewBag.Sirketler as List<YetkiliServisGazAcma.Entities.Dag_Sirket> ?? new();
-    var firmalar = ViewBag.Firmalar as List<YetkiliServisGazAcma.Entities.Ys_Firma> ?? new();
+    var sirketler = ViewBag.Sirketler as List<AdminSirketSecenekDto> ?? new();
+    var firmalar = ViewBag.Firmalar as List<AdminFirmaSecenekDto> ?? new();
 }
 
 <div class="df-admin-workspace df-admin-editor df-user-create-workspace df-management-form">

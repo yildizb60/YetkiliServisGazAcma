@@ -6,7 +6,7 @@
     ViewData["ActiveMenu"] = "YetkiliServisler";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
-    var servisler = ViewBag.YetkiliServisler as List<Ys_Firma> ?? new List<Ys_Firma>();
+    var servisler = ViewBag.YetkiliServisler as List<AdminYetkiliServisDto> ?? new List<AdminYetkiliServisDto>();
     var sehirler = ViewBag.Sehirler as List<string> ?? new List<string>();
     var seciliQ = ViewBag.SeciliQ as string ?? "";
     var seciliIl = ViewBag.SeciliIl as string ?? "";

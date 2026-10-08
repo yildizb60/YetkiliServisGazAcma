@@ -3,7 +3,7 @@
     ViewData["ActiveMenu"] = "Profil";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
     var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
-    var sirket = ViewBag.Sirket as YetkiliServisGazAcma.Entities.Dag_Sirket;
+    var sirket = ViewBag.Sirket as YetkiliServisGazAcma.Business.Services.DagitimSirketApiDto;
     var yetkilerim = ViewBag.Yetkilerim as List<string> ?? new();
     var adSoyad = kullanici?.AdSoyad ?? "";
     var basHarf = string.IsNullOrWhiteSpace(adSoyad) ? "" : adSoyad[..1].ToUpper(System.Globalization.CultureInfo.GetCultureInfo("tr-TR"));

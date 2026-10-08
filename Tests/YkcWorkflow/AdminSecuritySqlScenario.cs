@@ -23,8 +23,9 @@ internal static class AdminSecuritySqlScenario
         {
             Id = staff.Id, SirketIds = [companyId], Yetkiler = new() { [companyId] = [right] }
         };
-        AdminPanelApiController Controller(AppKullanici actor) => new(db, manager, null!, null!, null!, null!, null!,
-            null!, permissions, null!, NullLogger<AdminPanelApiController>.Instance)
+        AdminPanelApiController Controller(AppKullanici actor) => new(db, null!, null!, null!, null!, null!,
+            null!, permissions, null!, new AdminKullaniciOkumaApiService(db),
+            new AdminKullaniciYonetimApiService(db, manager, NullLogger<AdminPanelApiController>.Instance))
         {
             ControllerContext = new ControllerContext
             {
@@ -34,7 +35,7 @@ internal static class AdminSecuritySqlScenario
                 }
             }
         };
-        static AdminIslemSonucDto Body(IActionResult result) => (AdminIslemSonucDto)((OkObjectResult)result).Value!;
+        static ApiIslemSonuc Body(IActionResult result) => (ApiIslemSonuc)((OkObjectResult)result).Value!;
 
         check((await permissions.GuncelleAsync(Rights(YetkiTipleri.KULLANICI_YONET), admin, companyId, true)).Basarili,
             "Administrator can grant service-management permission");
@@ -158,11 +159,14 @@ internal static class AdminSecuritySqlScenario
             && await manager.IsInRoleAsync(replacement, "YetkiliServis"),
             "Replacement has a distinct identity and retains the existing firm and service role");
 
-        var auth = new AuthController(manager, null!, null!, null!,
+        var authFlow = new OturumAkisApiService(manager, null!, null!, null!,
             Options.Create(new SertifikaliFirmaKimlikOptions()), Options.Create(new SmsOptions()),
             new EphemeralDataProtectionProvider(), null!, db);
-        var find = typeof(AuthController).GetMethod("FindAsync", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
-        Task<AppKullanici?> Find(string login) => (Task<AppKullanici?>)find.Invoke(auth, [login])!;
+        var auth = new AuthController(manager, null!, authFlow)
+        {
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
+        };
+        Task<AppKullanici?> Find(string login) => authFlow.FindAsync(login);
         check((await Find(firm.VergiNo))?.Id == replacement.Id
             && (await Find(firm.TcKimlikNo))?.Id == replacement.Id
             && (await Find(" REPLACEMENT@example.test "))?.Id == replacement.Id,

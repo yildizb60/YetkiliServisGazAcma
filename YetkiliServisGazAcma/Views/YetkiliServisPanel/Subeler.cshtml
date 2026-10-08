@@ -5,8 +5,8 @@
     ViewData["PanelSubtitle"] = "Yetkili Servis";
     ViewData["ActiveMenu"] = "Subeler";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
-    var subeler = ViewBag.Subeler as List<YetkiliServisGazAcma.Entities.Ys_Sube>
-        ?? new List<YetkiliServisGazAcma.Entities.Ys_Sube>();
+    var subeler = ViewBag.Subeler as List<AdminSubeDto>
+        ?? new List<AdminSubeDto>();
     int aktifSube = subeler.Count(x => x.AktifMi);
 }
 
