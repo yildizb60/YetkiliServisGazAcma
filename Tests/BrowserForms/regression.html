@@ -496,6 +496,61 @@
             });
         }
     }
+    for (const [role, admin] of [['system-admin', true], ['company-admin', true], ['authorized-service', false]]) {
+        for (const phase of ['open', 'closed-before-response', 'closed-before-json']) {
+            await test(`Successful branch save refreshes the list for ${role}, ${phase}`, async (doc, win, load) => {
+                const frame = win.frameElement;
+                const dialog = branchFixture(doc, admin);
+                win.history.replaceState({}, '', '/frame.html?q=branch&firmaId=10#list');
+                let completeResponse, completeJson, saves = 0;
+                win.fetch = (url, options) => {
+                    if (options.method !== 'POST')
+                        return Promise.resolve({ ok:true, redirected:false, text:async () => branchForm(admin, true) });
+                    saves++;
+                    return new Promise(resolve => { completeResponse = resolve; });
+                };
+                load('branch');
+                doc.querySelector(phase === 'closed-before-json' ? '.js-branch-sheet-trigger' : '[data-branch-add]').click();
+                await new Promise(resolve => win.setTimeout(resolve, 0));
+                const form = dialog.querySelector('form');
+                form.elements.subeAdi.value = 'Saved branch';
+                const reloaded = new Promise(resolve => frame.addEventListener('load', () => resolve(true), { once:true }));
+                form.requestSubmit();
+                if (phase === 'closed-before-response') dialog.querySelector('[data-branch-sheet-close]').click();
+                completeResponse({ ok:true, redirected:false, headers:new win.Headers({'content-type':'application/json'}),
+                    json:() => new Promise(resolve => { completeJson = resolve; }) });
+                await new Promise(resolve => win.setTimeout(resolve, 0));
+                assert(completeJson, 'Save response was discarded after the drawer closed');
+                if (phase === 'closed-before-json') dialog.querySelector('[data-branch-sheet-close]').click();
+                completeJson({ basarili:true });
+                let timeout;
+                try {
+                    const refreshed = await Promise.race([reloaded, new Promise(resolve => { timeout = setTimeout(() => resolve(false), 3000); })]);
+                    assert(refreshed && saves === 1, 'Successful save did not refresh the list exactly once');
+                    assert(frame.contentWindow.location.search === '?q=branch&firmaId=10'
+                        && frame.contentWindow.location.hash === '#list', 'Successful refresh lost list filters or position');
+                } finally { clearTimeout(timeout); }
+            });
+        }
+        await test(`Late branch save error does not overwrite another draft for ${role}`, async (doc, win, load) => {
+            const dialog = branchFixture(doc, admin);
+            let complete;
+            win.fetch = () => new Promise(resolve => { complete = resolve; });
+            load('branch');
+            doc.querySelector('[data-branch-add]').click();
+            dialog.querySelector('[name=subeAdi]').value = 'Old draft';
+            dialog.querySelector('form').requestSubmit();
+            dialog.querySelector('[data-branch-sheet-close]').click();
+            doc.querySelector('[data-branch-add]').click();
+            dialog.querySelector('[name=subeAdi]').value = 'New draft';
+            complete({ ok:false, redirected:false, headers:new win.Headers({'content-type':'application/json'}),
+                json:async () => ({ basarili:false, mesaj:'Old validation error' }) });
+            await new Promise(resolve => win.setTimeout(resolve, 220));
+            assert(dialog.open && dialog.querySelector('[name=subeAdi]').value === 'New draft'
+                && !dialog.querySelector('[role=alert]') && !dialog.querySelector('[type=submit]').disabled,
+                'Old save failure changed the new draft or displayed a stale error');
+        });
+    }
     await test('Branch drawer ignores stale responses and supports retry without losing list filters', async (doc, win, load) => {
         const dialog = branchFixture(doc, true);
         win.history.replaceState({}, '', '/?q=branch&firmaId=10&duzenle=8#list');

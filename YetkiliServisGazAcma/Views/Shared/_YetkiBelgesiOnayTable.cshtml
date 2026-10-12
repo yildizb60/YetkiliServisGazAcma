@@ -44,10 +44,12 @@
                 foreach (var s in kayitlar)
                 {
                     var baslangic = s.YetkiBelgesiBaslangicTarihi ?? s.OlusturmaTarihi;
-                    var kalanGun = (s.YetkiBelgesiBitisTarihi.GetValueOrDefault().Date - DateTime.Now.Date).Days;
+                    int? kalanGun = s.YetkiBelgesiBitisTarihi.HasValue
+                        ? (s.YetkiBelgesiBitisTarihi.Value.Date - DateTime.Today).Days : null;
                     var suresiDolmus = kalanGun < 0;
                     var onaylanabilir = s.Onaylanabilir;
-                    var kalanYazi = kalanGun < 0 ? $"{Math.Abs(kalanGun)} gün geçti" : $"{kalanGun} gün kaldı";
+                    var kalanYazi = kalanGun is not int gun ? "Tanımlı değil"
+                        : gun < 0 ? $"{Math.Abs(gun)} gün geçti" : $"{gun} gün kaldı";
                     var durumClass = s.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "is-approved" : s.Durum == YetkiBelgesiDurumDegerleri.Reddedildi ? "is-rejected" : suresiDolmus ? "is-expired" : "is-waiting";
                     var durumIcon = s.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "bi-check-circle" : s.Durum == YetkiBelgesiDurumDegerleri.Reddedildi ? "bi-x-circle" : suresiDolmus ? "bi-calendar-x" : "bi-hourglass-split";
                     var durumYazi = s.Durum == YetkiBelgesiDurumDegerleri.Onaylandi ? "Onaylandı" : s.Durum == YetkiBelgesiDurumDegerleri.Reddedildi ? "Reddedildi" : suresiDolmus ? "Süresi doldu" : "Onay bekliyor";
@@ -57,7 +59,7 @@
                     var vergiNo = s.VergiNo ?? "";
                     var yukleme = s.OlusturmaTarihi.ToString("yyyy-MM-dd");
                     var baslangicFiltre = baslangic.ToString("yyyy-MM-dd");
-                    var bitisFiltre = s.YetkiBelgesiBitisTarihi.GetValueOrDefault().ToString("yyyy-MM-dd");
+                    var bitisFiltre = s.YetkiBelgesiBitisTarihi?.ToString("yyyy-MM-dd") ?? "";
                     var detailId = $"approval-detail-{panel}-{durum}-{s.Id}";
                     var rejectId = $"approval-reject-{panel}-{durum}-{s.Id}";
 
@@ -78,7 +80,16 @@
                         <td>
                             <span class="df-approval-company-name">@(string.IsNullOrWhiteSpace(sirketAdi) ? "-" : sirketAdi)</span>
                         </td>
-                        <td><time datetime="@bitisFiltre">@s.YetkiBelgesiBitisTarihi.GetValueOrDefault().ToString("dd.MM.yyyy")</time></td>
+                        <td>
+                            @if (s.YetkiBelgesiBitisTarihi.HasValue)
+                            {
+                                <time datetime="@bitisFiltre">@s.YetkiBelgesiBitisTarihi.Value.ToString("dd.MM.yyyy")</time>
+                            }
+                            else
+                            {
+                                <span>Tanımlı değil</span>
+                            }
+                        </td>
                         <td><time datetime="@yukleme">@s.OlusturmaTarihi.ToString("dd.MM.yyyy")</time></td>
                         <td>
                             <span class="df-certificate-status @durumClass"><i class="bi @durumIcon" aria-hidden="true"></i>@durumYazi</span>
@@ -145,7 +156,7 @@
                                     <div><span>Yetkili Kişi</span><strong>@(string.IsNullOrWhiteSpace(s.FirmaYetkiliKisi) ? "Tanımlı değil" : s.FirmaYetkiliKisi)</strong></div>
                                     <div><span>Telefon</span><strong>@(string.IsNullOrWhiteSpace(s.FirmaTelefon) ? "Tanımlı değil" : s.FirmaTelefon)</strong></div>
                                     <div><span>İl</span><strong>@(string.IsNullOrWhiteSpace(s.FirmaFaaliyetIli) ? "Tanımlı değil" : s.FirmaFaaliyetIli)</strong></div>
-                                    <div class="@(suresiDolmus ? "is-expired" : "is-valid")"><span>Bitiş Durumu</span><strong>@kalanYazi</strong></div>
+                                    <div class="@(kalanGun.HasValue ? (suresiDolmus ? "is-expired" : "is-valid") : "")"><span>Bitiş Durumu</span><strong>@kalanYazi</strong></div>
                                     <div class="is-wide"><span>Firma Adresi</span><strong>@(string.IsNullOrWhiteSpace(firmaAdres) ? "Tanımlı değil" : firmaAdres)</strong></div>
                                     @if (s.OnayTarihi.HasValue)
                                     {
