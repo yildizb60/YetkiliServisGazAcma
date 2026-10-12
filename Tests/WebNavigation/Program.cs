@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Tests.WebNavigation;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;

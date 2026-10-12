@@ -12,6 +12,8 @@ using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
 
+namespace Tests.YkcWorkflow;
+
 internal static class CoreBoundarySqlScenario
 {
     public static async Task RunAsync()
@@ -85,7 +87,7 @@ internal static class CoreBoundarySqlScenario
             FirmaAdi = "Applicant", VergiNo = (++sequence).ToString(), SirketId = company.Id,
             Email = $"fixture-{sequence}@example.invalid", Telefon = " 05550000000 ", FaaliyetIli = "Test city"
         };
-        const string password = "FixtureOnly123!";
+        var password = $"Fixture-{Guid.NewGuid():N}1!";
 
         foreach (var invalidId in new[] { 0, int.MaxValue, inactiveBrand.Id, deletedBrand.Id })
         {

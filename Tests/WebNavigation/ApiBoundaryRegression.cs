@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using YetkiliServisGazAcma.Business.Services;
 
+namespace Tests.WebNavigation;
+
 internal static class ApiBoundaryRegression
 {
     public static void Run()

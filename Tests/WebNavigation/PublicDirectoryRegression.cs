@@ -9,6 +9,8 @@ using Microsoft.Extensions.Options;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Controllers;
 
+namespace Tests.WebNavigation;
+
 internal static class PublicDirectoryRegression
 {
     public static async Task RunAsync()
@@ -22,7 +24,7 @@ internal static class PublicDirectoryRegression
         }
 
         using var handler = new PublicHandler();
-        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://fixture.invalid/") };
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("https://fixture.invalid/") };
         var client = new YetkiliServisApiClient(http,
             Options.Create(new ApiIntegrationOptions { Enabled = true }),
             NullLogger<YetkiliServisApiClient>.Instance);
