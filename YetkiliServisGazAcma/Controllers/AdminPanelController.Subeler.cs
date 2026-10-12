@@ -35,7 +35,8 @@ namespace YetkiliServisGazAcma.Controllers
 
         [HttpPost("subeler/ekle")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> SubeEkle(int firmaId, string subeAdi, string? il, string? ilce, string? telefon, string? adres, bool aktifMi)
+        public async Task<IActionResult> SubeEkle(int firmaId, string subeAdi, string? il, string? ilce, string? telefon, string? adres, bool aktifMi,
+            [FromHeader(Name = "X-Requested-With")] string? requestedWith = null)
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
@@ -44,7 +45,7 @@ namespace YetkiliServisGazAcma.Controllers
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
             var sonuc = await _adminSubeApiClient.EkleAsync(kullanici, aktifSirketId, firmaId, subeAdi, il, ilce, telefon, adres, aktifMi);
 
-            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            if (requestedWith == "XMLHttpRequest")
             {
                 if (sonuc?.Basarili == true) SetSubeIslemMesaji(sonuc, "Şube kaydı eklendi.");
                 return Json(new { basarili = sonuc?.Basarili == true, mesaj = sonuc?.Mesaj ?? "Şube kaydedilemedi." });
@@ -55,7 +56,8 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpGet("subeler/duzenle/{id:int}")]
-        public async Task<IActionResult> SubeDuzenle(int id)
+        public async Task<IActionResult> SubeDuzenle(int id,
+            [FromHeader(Name = "X-Requested-With")] string? requestedWith = null)
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
@@ -69,7 +71,7 @@ namespace YetkiliServisGazAcma.Controllers
                 return Redirect("/AdminPanel/subeler");
             }
 
-            if (Request.Headers["X-Requested-With"] != "XMLHttpRequest")
+            if (requestedWith != "XMLHttpRequest")
                 return RedirectToAction(nameof(Subeler), new { duzenle = id });
 
             ViewBag.Kullanici = kullanici;
@@ -80,7 +82,8 @@ namespace YetkiliServisGazAcma.Controllers
 
         [HttpPost("subeler/duzenle/{id:int}")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> SubeDuzenle(int id, int firmaId, string subeAdi, string? il, string? ilce, string? telefon, string? adres, bool aktifMi)
+        public async Task<IActionResult> SubeDuzenle(int id, int firmaId, string subeAdi, string? il, string? ilce, string? telefon, string? adres, bool aktifMi,
+            [FromHeader(Name = "X-Requested-With")] string? requestedWith = null)
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
@@ -89,7 +92,7 @@ namespace YetkiliServisGazAcma.Controllers
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
             var sonuc = await _adminSubeApiClient.GuncelleAsync(kullanici, id, aktifSirketId, firmaId, subeAdi, il, ilce, telefon, adres, aktifMi);
 
-            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            if (requestedWith == "XMLHttpRequest")
             {
                 if (sonuc?.Basarili == true) SetSubeIslemMesaji(sonuc, "Şube güncellendi.");
                 return Json(new { basarili = sonuc?.Basarili == true, mesaj = sonuc?.Mesaj ?? "Şube kaydedilemedi." });
