@@ -2,6 +2,8 @@ using Microsoft.Extensions.Configuration;
 using YetkiliServisGazAcma.API.Services;
 using YetkiliServisGazAcma.Business.Services;
 
+namespace Tests.YkcWorkflow;
+
 internal static class PublicDirectoryApiRegression
 {
     public static async Task RunAsync()

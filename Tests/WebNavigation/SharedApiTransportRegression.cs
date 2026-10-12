@@ -9,6 +9,8 @@ using Microsoft.Extensions.Options;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
 
+namespace Tests.WebNavigation;
+
 internal static class SharedApiTransportRegression
 {
     public static async Task RunAsync()

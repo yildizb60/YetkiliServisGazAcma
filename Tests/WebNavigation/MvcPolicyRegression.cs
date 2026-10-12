@@ -22,6 +22,8 @@ using YetkiliServisGazAcma.Controllers;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
 
+namespace Tests.WebNavigation;
+
 internal static class MvcPolicyRegression
 {
     public static async Task RunAsync()

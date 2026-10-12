@@ -4,6 +4,8 @@ using System.Text;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Models;
 
+namespace Tests.WebNavigation;
+
 internal static class AuthTransportRegression
 {
     public static async Task RunAsync()

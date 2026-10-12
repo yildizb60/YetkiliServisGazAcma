@@ -49,14 +49,7 @@ namespace YetkiliServisGazAcma.API.Services
             var page = Math.Max(dto?.Page ?? 1, 1);
             var pageSize = Math.Clamp(dto?.PageSize ?? 20, 1, 100);
 
-            var query = RehberServisleri()
-                .Include(x => x.FirmaMarkalar!)
-                    .ThenInclude(x => x.Marka)
-                .Include(x => x.FirmaKategoriler!)
-                    .ThenInclude(x => x.Kategori)
-                .Include(x => x.Subeler!)
-                .Include(x => x.Sirket)
-                .AsQueryable();
+            var query = RehberServisleri().AsSplitQuery();
 
             if (!string.IsNullOrWhiteSpace(il))
                 query = query.Where(x =>

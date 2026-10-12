@@ -13,6 +13,8 @@ using YetkiliServisGazAcma.Controllers;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
 
+namespace Tests.WebNavigation;
+
 internal static class CityOptionsRegression
 {
     public static async Task RunAsync()

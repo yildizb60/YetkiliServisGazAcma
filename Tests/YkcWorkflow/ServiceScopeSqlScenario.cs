@@ -14,6 +14,8 @@ using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
 
+namespace Tests.YkcWorkflow;
+
 internal static class ServiceScopeSqlScenario
 {
     public static async Task RunAsync()
@@ -91,6 +93,27 @@ internal static class ServiceScopeSqlScenario
                 Id = firm.Id, FirmaAdi = "Updated service", FaaliyetIli = city, AktifMi = true, VergiNo = firm.VergiNo
             };
             var companyApi = Controller(admin);
+            var brands = new[] { new Ys_Marka { MarkaAdi = "Fixture A" }, new Ys_Marka { MarkaAdi = "Fixture B" } };
+            var categories = new[] { new UrunKategori { Ad = "Fixture A" }, new UrunKategori { Ad = "Fixture B" },
+                new UrunKategori { Ad = "Inactive fixture", AktifMi = false } };
+            db.AddRange(brands);
+            db.AddRange(categories);
+            await db.SaveChangesAsync();
+            db.Ys_FirmaMarkalar.AddRange(brands.Select(x => new Ys_FirmaMarka
+                { FirmaId = ownFirm.Id, MarkaId = x.Id, YetkiBitisTarihi = DateTime.Today.AddYears(1) }));
+            db.Ys_FirmaKategoriler.AddRange(categories.Select(x => new Ys_FirmaKategori
+                { FirmaId = ownFirm.Id, KategoriId = x.Id, YetkiBitisTarihi = DateTime.Today.AddYears(1) }));
+            await db.SaveChangesAsync();
+            var detail = await new YetkiliServisKayitYonetimApiService(db, cities).GetirAsync(companyApi.User, ownFirm.Id);
+            Check(detail.Servis!.MarkaIds.Order().SequenceEqual(brands.Select(x => x.Id).Order())
+                && detail.Servis.KategoriIds.Order().SequenceEqual(categories.Take(2).Select(x => x.Id).Order())
+                && detail.Servis.SirketAdi == primary.SirketAdi,
+                "Split service projection preserves all brand/category IDs and company data without inactive categories");
+            var directory = await new YetkiliServisRehberApiService(db).ListeleAsync(new() { Q = "Own service", PageSize = 1 });
+            Check(directory.TotalCount == 1 && directory.Items.Count == 1
+                && directory.Items[0].Markalar.Order().SequenceEqual(brands.Select(x => x.MarkaAdi!).Order())
+                && directory.Items[0].Kategoriler.Select(x => x.Id).Order().SequenceEqual(categories.Take(2).Select(x => x.Id).Order()),
+                "Split public directory projection preserves complete device choices on a bounded page");
             Check(await companyApi.Getir(new() { Id = ownFirm.Id }) is OkObjectResult, "Company admin reads its own service");
             Check(await companyApi.Getir(new() { Id = foreignFirm.Id }) is NotFoundObjectResult, "Company admin cannot read another company's private service details");
             Check(await companyApi.Guncelle(Update(foreignFirm, "InjectedCity")) is NotFoundObjectResult, "Cross-company update is rejected before city resolution");

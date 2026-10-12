@@ -53,7 +53,7 @@ public sealed class OturumAkisApiService(UserManager<AppKullanici> users, SignIn
                 var firmPhone = await context.Ys_Firmalar.AsNoTracking()
                     .Where(f => f.Id == user.FirmaId.Value && !f.SilindiMi)
                     .Select(f => f.Telefon)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(cancellationToken);
                 if (CepTelefonuKurali.GecerliMi(firmPhone))
                     phone = firmPhone;
             }
