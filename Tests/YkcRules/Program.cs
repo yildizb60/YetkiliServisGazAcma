@@ -137,7 +137,7 @@ Check(onlineHandler.Calls == 1 && onlineHandler.LastUri?.AbsoluteUri == "https:/
     "Configured online service uses its explicit endpoint");
 using (var cancelledOnline = new CancellationTokenSource())
 {
-    cancelledOnline.Cancel();
+    await cancelledOnline.CancelAsync();
     var cancelled = false;
     try { await configuredOnline.YSCihazBilgileriGetirAsync("CORUMGAZ", 1000132, 432237, cancelledOnline.Token); }
     catch (OperationCanceledException) { cancelled = true; }

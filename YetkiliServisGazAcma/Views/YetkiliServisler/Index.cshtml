@@ -136,7 +136,7 @@
         .service-address strong { display:block; color:var(--c-muted); font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0; margin-bottom:2px; }
         .service-detail { padding:12px 16px; display:grid; gap:6px; align-content:center; background:#fff; }
         .info-line { display:grid; grid-template-columns:76px minmax(0,1fr); gap:8px; font-size:13px; line-height:1.35; }
-        .info-line label { color:var(--c-muted); font-weight:800; text-transform:uppercase; letter-spacing:0; font-size:11px; }
+        .info-line .info-label { color:var(--c-muted); font-weight:800; text-transform:uppercase; letter-spacing:0; font-size:11px; }
         .service-side { padding:10px 12px; background:var(--c-surface); border-left:1px solid var(--c-border); display:flex; flex-direction:column; justify-content:flex-start; gap:8px; }
         .side-block { min-width:0; }
         .side-title { color:var(--c-muted); font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0; margin-bottom:4px; }
@@ -256,8 +256,8 @@
             <form method="get" action="/yetkili-servisler">
                 <div class="filter-grid">
                     <div class="field">
-                        <label>İl</label>
-                        <select name="il">
+                        <label for="serviceCity">İl</label>
+                        <select id="serviceCity" name="il">
                             <option value="">Tüm iller</option>
                             @foreach (var il in iller)
                             {
@@ -267,8 +267,8 @@
                         </select>
                     </div>
                     <div class="field">
-                        <label>İlçe</label>
-                        <select name="ilce">
+                        <label for="serviceDistrict">İlçe</label>
+                        <select id="serviceDistrict" name="ilce">
                             <option value="">Tüm ilçeler</option>
                             @foreach (var ilce in ilceler)
                             {
@@ -278,12 +278,12 @@
                         </select>
                     </div>
                     <div class="field">
-                        <label>Servis veya yetkili kişi</label>
-                        <input type="text" name="q" value="@q" placeholder="Servis adı, yetkili kişi" />
+                        <label for="serviceQuery">Servis veya yetkili kişi</label>
+                        <input id="serviceQuery" type="text" name="q" value="@q" placeholder="Servis adı, yetkili kişi" />
                     </div>
                     <div class="field">
-                        <label>Marka</label>
-                        <select name="markaId">
+                        <label for="serviceBrand">Marka</label>
+                        <select id="serviceBrand" name="markaId">
                             <option value="">Tüm markalar</option>
                             @foreach (var marka in markalar)
                             {
@@ -368,10 +368,10 @@
                                 </div>
                             </div>
                             <div class="service-detail">
-                                <div class="info-line"><label>Telefon</label><div>@(f.Telefon ?? "-")</div></div>
-                                <div class="info-line"><label>Yetkili</label><div>@(f.YetkiliKisi ?? "-")</div></div>
-                                <div class="info-line"><label>Bölge</label><div>@(f.FaaliyetIli ?? "-")@(!string.IsNullOrWhiteSpace(ilce) ? $" / {ilce}" : "")</div></div>
-                                <div class="info-line"><label>Firma</label><div>@(f.SirketAdi ?? "-")</div></div>
+                                <div class="info-line"><span class="info-label">Telefon</span><div>@(f.Telefon ?? "-")</div></div>
+                                <div class="info-line"><span class="info-label">Yetkili</span><div>@(f.YetkiliKisi ?? "-")</div></div>
+                                <div class="info-line"><span class="info-label">Bölge</span><div>@(f.FaaliyetIli ?? "-")@(!string.IsNullOrWhiteSpace(ilce) ? $" / {ilce}" : "")</div></div>
+                                <div class="info-line"><span class="info-label">Dağıtım Şirketi</span><div>@(f.SirketAdi ?? "-")</div></div>
                             </div>
                             <div class="service-side">
                                 <div class="side-block">
