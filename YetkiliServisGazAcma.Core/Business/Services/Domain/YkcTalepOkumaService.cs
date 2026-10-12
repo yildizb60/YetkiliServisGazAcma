@@ -255,6 +255,7 @@ public sealed class YkcTalepOkumaService(AppDbContext context)
     private IQueryable<Ykc_Talep> RaporQuery()
     {
         return ListeQuery()
+            .AsSplitQuery()
             .Include(x => x.FormDosyalari.Where(d => !d.SilindiMi))
             .Include(x => x.ImzaSurecleri.Where(s => !s.SilindiMi));
     }
@@ -262,6 +263,7 @@ public sealed class YkcTalepOkumaService(AppDbContext context)
     private IQueryable<Ykc_Talep> TalepOkumaQuery()
     {
         return RaporQuery()
+            .AsSplitQuery()
             .Include(x => x.Firma).ThenInclude(x => x!.YetkiBelgeleri)
             .Include(x => x.Atamalar.Where(a => !a.SilindiMi))
             .Include(x => x.IslemGecmisi.Where(g => !g.SilindiMi))

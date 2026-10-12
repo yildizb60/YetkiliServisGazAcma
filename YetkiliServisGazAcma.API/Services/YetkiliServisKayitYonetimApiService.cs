@@ -20,11 +20,7 @@ namespace YetkiliServisGazAcma.API.Services
                 return new(YetkiliServisKayitYonetimDurumu.OturumGecersiz);
 
             var servis = await YetkiliServisKapsami(kullanici, principal, yonetim: false)
-                .Include(x => x.Sirket)
-                .Include(x => x.FirmaMarkalar!)
-                    .ThenInclude(x => x.Marka)
-                .Include(x => x.FirmaKategoriler!)
-                    .ThenInclude(x => x.Kategori)
+                .AsSplitQuery()
                 .Where(x => x.Id == id && !x.SilindiMi)
                 .Select(x => new YetkiliServisDetayDto
                 {

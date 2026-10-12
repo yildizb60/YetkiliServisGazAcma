@@ -18,6 +18,8 @@ using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models.ViewModels;
 using YetkiliServisGazAcma.ViewComponents;
 
+namespace Tests.WebNavigation;
+
 internal static class PanelChromeRegression
 {
     public static async Task RunAsync()

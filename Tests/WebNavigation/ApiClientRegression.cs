@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
 
+namespace Tests.WebNavigation;
+
 internal static class ApiClientRegression
 {
     public static async Task RunAsync()

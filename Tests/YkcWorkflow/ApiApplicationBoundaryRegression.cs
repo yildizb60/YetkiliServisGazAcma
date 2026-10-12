@@ -17,6 +17,8 @@ using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
 
+namespace Tests.YkcWorkflow;
+
 public static class ApiApplicationBoundaryRegression
 {
     // No provider, application configuration, SQL connection, or database fixture is used.

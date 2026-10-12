@@ -17,6 +17,8 @@ using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
 
+namespace Tests.YkcWorkflow;
+
 internal static class ReferenceApiRegression
 {
     public static async Task RunAsync()
