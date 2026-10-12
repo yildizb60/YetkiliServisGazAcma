@@ -295,8 +295,7 @@ foreach (var role in new[] { "GenelSistemAdmin", "SirketAdmin" })
     var direct = (RedirectToActionResult)await fixture.AdminPanelController.SubeDuzenle(8);
     Check(direct.ActionName == nameof(AdminPanelController.Subeler) && direct.RouteValues!["duzenle"] is 8,
         role + ": direct branch edit links return to the list and open the correct drawer");
-    fixture.Http.Request.Headers["X-Requested-With"] = "XMLHttpRequest";
-    var edit = (ViewResult)await fixture.AdminPanelController.SubeDuzenle(8);
+    var edit = (ViewResult)await fixture.AdminPanelController.SubeDuzenle(8, "XMLHttpRequest");
     Check(edit.ViewName == "~/Views/AdminPanel/SubeDuzenle.cshtml"
         && ((AdminSubeDto)edit.ViewData["Sube"]!).Id == 8,
         role + ": AJAX branch editing returns the form for the scoped record");
@@ -304,7 +303,7 @@ foreach (var role in new[] { "GenelSistemAdmin", "SirketAdmin" })
         && (role != "SirketAdmin" || fixture.Handler.LastBranchPayload.GetProperty("sirketId").GetInt32() == 7),
         role + ": drawer lookup retains record and company scope");
     fixture.Handler.BranchAvailable = false;
-    Check(await fixture.AdminPanelController.SubeDuzenle(8) is RedirectResult
+    Check(await fixture.AdminPanelController.SubeDuzenle(8, "XMLHttpRequest") is RedirectResult
         && fixture.AdminPanelController.TempData.ContainsKey("Hata"),
         role + ": an unavailable branch never returns an editable form");
     fixture.Handler.BranchAvailable = true;
@@ -321,8 +320,7 @@ foreach (var role in new[] { "GenelSistemAdmin", "SirketAdmin" })
 }
 using (var fixture = new NavigationFixture("Personel"))
 {
-    fixture.Http.Request.Headers["X-Requested-With"] = "XMLHttpRequest";
-    Check(await fixture.AdminPanelController.SubeDuzenle(8) is ForbidResult && fixture.Handler.BranchCalls == 0,
+    Check(await fixture.AdminPanelController.SubeDuzenle(8, "XMLHttpRequest") is ForbidResult && fixture.Handler.BranchCalls == 0,
         "A drawer request does not grant personnel branch management permission");
 }
 using (var fixture = new NavigationFixture("YetkiliServis"))
@@ -330,10 +328,9 @@ using (var fixture = new NavigationFixture("YetkiliServis"))
     var direct = (RedirectToActionResult)await fixture.ServicePanelController.SubeDuzenle(8);
     Check(direct.ActionName == nameof(YetkiliServisPanelController.Subeler) && direct.RouteValues!["duzenle"] is 8,
         "Service branch links retain the same drawer navigation");
-    fixture.Http.Request.Headers["X-Requested-With"] = "XMLHttpRequest";
-    Check(await fixture.ServicePanelController.SubeDuzenle(8) is ViewResult,
+    Check(await fixture.ServicePanelController.SubeDuzenle(8, "XMLHttpRequest") is ViewResult,
         "Service branch editing still loads the firm's own branch");
-    Check(await fixture.ServicePanelController.SubeDuzenle(9) is RedirectResult,
+    Check(await fixture.ServicePanelController.SubeDuzenle(9, "XMLHttpRequest") is RedirectResult,
         "Service branch editing cannot load an inaccessible branch");
     Check(!fixture.Handler.Paths.Contains("/api/ys-panel/profil")
         && fixture.Handler.Paths.Count(x => x == "/api/ys-panel/subeler/getir") == 2,

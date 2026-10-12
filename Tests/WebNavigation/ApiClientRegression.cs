@@ -93,14 +93,26 @@ internal static class ApiClientRegression
         }
         foreach (var role in new[] { "GenelSistemAdmin", "SirketAdmin", "YetkiliServis" })
         {
-            using var fixture = new NavigationFixture(role);
-            fixture.Http.Request.Headers["X-Requested-With"] = "XMLHttpRequest";
-            fixture.Handler.BranchAvailable = false;
-            var result = role == "YetkiliServis"
-                ? await fixture.ServicePanelController.SubeEkle("Branch", "City", "District", "Phone", "Address", true)
-                : await fixture.AdminPanelController.SubeEkle(10, "Branch", "City", "District", "Phone", "Address", true);
-            Check(result is JsonResult json && JsonSerializer.SerializeToElement(json.Value).GetProperty("basarili").GetBoolean() == false,
-                role + ": rejected drawer save returns JSON without redirecting away from entered data");
+            foreach (var success in new[] { true, false })
+            foreach (var requestedWith in new string?[] { null, "XMLHttpRequest" })
+            foreach (var edit in new[] { true, false })
+            {
+                using var fixture = new NavigationFixture(role);
+                fixture.Handler.BranchAvailable = success;
+                var result = role == "YetkiliServis"
+                    ? edit
+                        ? await fixture.ServicePanelController.SubeDuzenleKaydet(8, "Branch", "City", "District", "Phone", "Address", false, requestedWith)
+                        : await fixture.ServicePanelController.SubeEkle("Branch", "City", "District", "Phone", "Address", true, requestedWith)
+                    : edit
+                        ? await fixture.AdminPanelController.SubeDuzenle(8, 10, "Branch", "City", "District", "Phone", "Address", false, requestedWith)
+                        : await fixture.AdminPanelController.SubeEkle(10, "Branch", "City", "District", "Phone", "Address", true, requestedWith);
+                var tempData = role == "YetkiliServis" ? fixture.ServicePanelController.TempData : fixture.AdminPanelController.TempData;
+                Check(requestedWith == "XMLHttpRequest"
+                    ? result is JsonResult json && JsonSerializer.SerializeToElement(json.Value).GetProperty("basarili").GetBoolean() == success
+                    : result is RedirectResult redirect && redirect.Url == (role == "YetkiliServis" ? "/ys-panel/subeler" : "/AdminPanel/subeler")
+                        && tempData.ContainsKey(success ? "Basarili" : "Hata"),
+                    $"{role}: branch add/edit keeps JSON or form return and API outcome: success={success}, ajax={requestedWith != null}, edit={edit}");
+            }
         }
         Console.WriteLine($"{passed} API client regression checks passed.");
     }

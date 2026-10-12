@@ -157,7 +157,7 @@ public static class ApiApplicationBoundaryRegression
 
         await using var db = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>().Options);
         using var cancelled = new CancellationTokenSource();
-        cancelled.Cancel();
+        await cancelled.CancelAsync();
         async Task CheckCancelled(Func<Task> action, string label)
         {
             var stopped = false;
@@ -297,7 +297,7 @@ public static class ApiApplicationBoundaryRegression
             StoredPath = (target as FileStream)?.Name;
             await target.WriteAsync(Bytes, cancellationToken);
             Copied = true;
-            cancelDuringCopy?.Cancel();
+            if (cancelDuringCopy != null) await cancelDuringCopy.CancelAsync();
             cancellationToken.ThrowIfCancellationRequested();
             if (failCopy) throw new IOException("fixture copy failure");
         }

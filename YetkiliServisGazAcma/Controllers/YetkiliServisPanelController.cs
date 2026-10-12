@@ -132,9 +132,10 @@ namespace YetkiliServisGazAcma.Controllers
 
         [HttpGet]
         [Route("subeler/duzenle/{id:int}")]
-        public async Task<IActionResult> SubeDuzenle(int id)
+        public async Task<IActionResult> SubeDuzenle(int id,
+            [FromHeader(Name = "X-Requested-With")] string? requestedWith = null)
         {
-            if (Request.Headers["X-Requested-With"] != "XMLHttpRequest")
+            if (requestedWith != "XMLHttpRequest")
                 return RedirectToAction(nameof(Subeler), new { duzenle = id });
 
             var kullanici = await GetYetkiliServisKullanici();
@@ -215,7 +216,8 @@ namespace YetkiliServisGazAcma.Controllers
             string? ilce,
             string? telefon,
             string? adres,
-            bool aktifMi)
+            bool aktifMi,
+            [FromHeader(Name = "X-Requested-With")] string? requestedWith = null)
         {
             var kullanici = await GetYetkiliServisKullanici();
             if (kullanici == null) return Redirect("/giris");
@@ -232,12 +234,12 @@ namespace YetkiliServisGazAcma.Controllers
 
             if (sonuc?.Basarili == true)
                 TempData["Basarili"] = sonuc.Mesaj ?? "Sube guncellendi.";
-            else if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            else if (requestedWith == "XMLHttpRequest")
                 return Json(new { basarili = false, mesaj = sonuc?.Mesaj ?? "Şube kaydedilemedi." });
             else
                 TempData["Hata"] = sonuc?.Mesaj ?? "Sube API uzerinden guncellenemedi.";
 
-            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            if (requestedWith == "XMLHttpRequest")
                 return Json(new { basarili = true });
             return Redirect("/ys-panel/subeler");
         }
@@ -250,7 +252,8 @@ namespace YetkiliServisGazAcma.Controllers
             string? ilce,
             string? telefon,
             string? adres,
-            bool aktifMi)
+            bool aktifMi,
+            [FromHeader(Name = "X-Requested-With")] string? requestedWith = null)
         {
             var kullanici = await GetYetkiliServisKullanici();
             if (kullanici == null) return Redirect("/giris");
@@ -267,12 +270,12 @@ namespace YetkiliServisGazAcma.Controllers
 
             if (sonuc?.Basarili == true)
                 TempData["Basarili"] = sonuc.Mesaj ?? "Sube kaydi eklendi.";
-            else if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            else if (requestedWith == "XMLHttpRequest")
                 return Json(new { basarili = false, mesaj = sonuc?.Mesaj ?? "Şube kaydedilemedi." });
             else
                 TempData["Hata"] = sonuc?.Mesaj ?? "Sube API uzerinden eklenemedi.";
 
-            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            if (requestedWith == "XMLHttpRequest")
                 return Json(new { basarili = true });
             return Redirect("/ys-panel/subeler");
         }
