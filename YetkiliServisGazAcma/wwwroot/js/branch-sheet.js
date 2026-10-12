@@ -105,11 +105,9 @@
                 method: "POST", credentials: "same-origin", body: data,
                 headers: { "X-Requested-With": "XMLHttpRequest" }
             });
-            if (currentRequest !== requestId) return;
             if (response.redirected || !(response.headers.get("content-type") || "").includes("application/json"))
                 throw new Error("Şube kaydedilemedi. Oturumunuzu ve bağlantınızı kontrol edip yeniden deneyin.");
             const result = await response.json();
-            if (currentRequest !== requestId) return;
             if (!response.ok || !result.basarili)
                 throw new Error(result.mesaj || "Şube kaydedilemedi.");
             window.location.reload();
