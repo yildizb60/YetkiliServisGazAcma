@@ -292,6 +292,32 @@ internal static class PanelChromeRegression
             }
         }
 
+        foreach (var panel in new[] { "admin", "personel", "yetki" })
+        {
+            foreach (var days in new int?[] { null, -1, 0, 1 })
+            {
+                var certificate = new YetkiBelgesiDto
+                {
+                    Id = 35, FirmaAdi = "Expiry fixture", OlusturmaTarihi = DateTime.Today,
+                    YetkiBelgesiBitisTarihi = days.HasValue ? DateTime.Today.AddDays(days.Value) : null,
+                    Onaylanabilir = days >= 0
+                };
+                var html = await RenderAsync(scope.ServiceProvider, personnel, "/Views/Shared/_YetkiBelgesiOnayTable.cshtml",
+                    Tuple.Create<IReadOnlyList<YetkiBelgesiKayitDto>, string, string>([certificate], "bekleyen", panel));
+                var text = System.Net.WebUtility.HtmlDecode(html);
+                Check(!text.Contains("01.01.0001") && !text.Contains("0001-01-01")
+                    && text.Contains("df-certificate-status is-expired") == (days < 0)
+                    && text.Contains("df-approval-action is-approve") == certificate.Onaylanabilir,
+                    $"Certificate date display preserves API eligibility and never invents expiry: {panel}/{days}");
+                Check(days.HasValue
+                    ? text.Contains(days < 0 ? "1 gün geçti" : $"{days} gün kaldı")
+                        && text.Contains($"data-bitis=\"{certificate.YetkiBelgesiBitisTarihi:yyyy-MM-dd}\"")
+                    : text.Contains("data-bitis=\"\"") && text.Contains("<span>Tanımlı değil</span>")
+                        && text.Contains("<strong>Tanımlı değil</strong>") && !text.Contains("is-valid"),
+                    $"Certificate date, filter and remaining-days text handle absent/today/expired dates: {panel}/{days}");
+            }
+        }
+
         var managedFirm = new AdminYetkiliServisDto
         {
             Id = 12, FirmaAdi = "Editor <script>firm</script>", SirketAdi = "Editor Company", Telefon = "05559876543",
