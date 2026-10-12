@@ -16,6 +16,8 @@ using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
 
+namespace Tests.YkcWorkflow;
+
 internal static class IntegritySqlScenario
 {
     public static async Task RunAsync()

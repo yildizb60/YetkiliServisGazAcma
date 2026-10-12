@@ -394,9 +394,9 @@
                             </div>
                         </div>
                         <div class="ykc-assignment-fields">
-                            <div class="ykc-field"><label>Randevu Tarihi</label><div class="ykc-picker"><input id="randevuTarihi" type="date" name="RandevuTarihi" value="@(randevuYenidenPlanlanacak ? null : Model.RandevuTarihi?.ToString("yyyy-MM-dd"))" min="@ekran.Bugun.ToString("yyyy-MM-dd")" required /><button type="button" data-picker="#randevuTarihi" title="Takvimi aç"><i class="bi bi-calendar3"></i></button></div></div>
-                            <div class="ykc-field"><label>Randevu Saati</label><div class="ykc-picker"><input id="randevuSaati" type="time" name="RandevuSaati" value="@(randevuYenidenPlanlanacak ? null : Model.RandevuSaati)" min="08:00" max="17:30" step="1800" required /><button type="button" data-picker="#randevuSaati" title="Saati seç"><i class="bi bi-clock"></i></button></div></div>
-                            <div class="ykc-field ykc-field-wide"><label>Not</label><textarea name="Aciklama" placeholder="Atama ve yönlendirme notu"></textarea></div>
+                            <div class="ykc-field"><label for="randevuTarihi">Randevu Tarihi</label><div class="ykc-picker"><input id="randevuTarihi" type="date" name="RandevuTarihi" value="@(randevuYenidenPlanlanacak ? null : Model.RandevuTarihi?.ToString("yyyy-MM-dd"))" min="@ekran.Bugun.ToString("yyyy-MM-dd")" required /><button type="button" data-picker="#randevuTarihi" title="Takvimi aç"><i class="bi bi-calendar3"></i></button></div></div>
+                            <div class="ykc-field"><label for="randevuSaati">Randevu Saati</label><div class="ykc-picker"><input id="randevuSaati" type="time" name="RandevuSaati" value="@(randevuYenidenPlanlanacak ? null : Model.RandevuSaati)" min="08:00" max="17:30" step="1800" required /><button type="button" data-picker="#randevuSaati" title="Saati seç"><i class="bi bi-clock"></i></button></div></div>
+                            <div class="ykc-field ykc-field-wide"><label for="ykcAssignmentNote">Not</label><textarea id="ykcAssignmentNote" name="Aciklama" placeholder="Atama ve yönlendirme notu"></textarea></div>
                         </div>
                         <div class="ykc-form-actions"><button class="df-btn df-btn-primary" type="submit"><i class="bi bi-calendar2-check"></i> @(Model.Durum == YkcDurumDegerleri.AtamaBekliyor ? "Randevuyu Kaydet" : "Randevuyu Yeniden Planla")</button></div>
                     </form>
