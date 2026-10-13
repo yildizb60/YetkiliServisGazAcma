@@ -6,6 +6,9 @@ namespace YetkiliServisGazAcma.Business.Services;
 
 public class YkcTalepListeFiltre
 {
+    public string? Q { get; set; }
+    public string? Sirala { get; set; }
+    public string? CihazTipi { get; set; }
     public string? BekleyenIs { get; set; }
     public int? SirketId { get; set; }
     public int? FirmaId { get; set; }
@@ -22,10 +25,13 @@ public class YkcTalepListeFiltre
     public string? HedefUygulama { get; set; }
     public int? Durum { get; set; }
     public int? KontrolNo { get; set; }
+    public int? TalepId { get; set; }
     public List<int>? KayitIdleri { get; set; }
     public int? DetayTalepId { get; set; }
     public DateTime? BaslangicTarihi { get; set; }
     public DateTime? BitisTarihi { get; set; }
+    public DateTime? RandevuBaslangicTarihi { get; set; }
+    public DateTime? RandevuBitisTarihi { get; set; }
     public int Sayfa { get; set; } = 1;
     public int SayfaBoyutu { get; set; } = 10;
 }

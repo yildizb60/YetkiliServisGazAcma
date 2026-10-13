@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
@@ -8,6 +9,38 @@ namespace YetkiliServisGazAcma.API.Services;
 
 public static class DevreyeAlmaKaynakBilgisi
 {
+    public static IOrderedQueryable<Ys_DevreyeAlma> Sirala(IQueryable<Ys_DevreyeAlma> query, string? siralama)
+    {
+        return siralama switch
+        {
+            "tarih-artan" => query.OrderBy(x => x.DevreyeAlmaTarihi).ThenBy(x => x.Id),
+            "abone-artan" => query.OrderBy(x => EF.Functions.Collate(x.MusteriAdi ?? "", "Turkish_CI_AS")).ThenBy(x => x.Id),
+            "abone-azalan" => query.OrderByDescending(x => EF.Functions.Collate(x.MusteriAdi ?? "", "Turkish_CI_AS")).ThenBy(x => x.Id),
+            _ => query.OrderByDescending(x => x.DevreyeAlmaTarihi).ThenByDescending(x => x.Id)
+        };
+    }
+
+    public static async Task<List<Ys_DevreyeAlma>> ListeleAsync(
+        AppDbContext context, IQueryable<Ys_DevreyeAlma> query, string? sozlesmeNo, string? arama = null)
+    {
+        var kayitlar = await query.ToListAsync();
+        await TamamlaAsync(context, kayitlar);
+        // Contract numbers come from validated sources, not a mapped record column.
+        if (!string.IsNullOrWhiteSpace(sozlesmeNo))
+        {
+            var aranacak = sozlesmeNo.Trim();
+            kayitlar.RemoveAll(x => x.SozlesmeNo?.Contains(aranacak, StringComparison.Ordinal) != true);
+        }
+        if (!string.IsNullOrWhiteSpace(arama))
+        {
+            var aranacak = arama.Trim();
+            var karsilastirma = CultureInfo.GetCultureInfo("tr-TR").CompareInfo;
+            bool Icerir(string? deger) => deger != null && karsilastirma.IndexOf(deger, aranacak, CompareOptions.IgnoreCase) >= 0;
+            kayitlar.RemoveAll(x => !Icerir(x.MusteriAdi) && !Icerir(x.TesistatNo) && !Icerir(x.SozlesmeNo));
+        }
+        return kayitlar;
+    }
+
     public static async Task TamamlaAsync(AppDbContext context, IReadOnlyCollection<Ys_DevreyeAlma> kayitlar)
     {
         if (kayitlar.Count == 0) return;

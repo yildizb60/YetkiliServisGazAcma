@@ -7,13 +7,16 @@ namespace YetkiliServisGazAcma.Controllers
     public partial class AdminPanelController
     {
         [HttpGet("devreyealmalar")]
-        public async Task<IActionResult> DevreyeAlmalar(string? marka, string? servis, string? il, DateTime? bas, DateTime? bit, int? sirketId = null)
+        public async Task<IActionResult> DevreyeAlmalar(string? marka, string? servis, string? il, DateTime? bas, DateTime? bit,
+            int? sirketId = null, string? sozlesme = null, string? tesisat = null, string? musteri = null,
+            string? ilce = null, string? durum = null, string? q = null, string? sirala = null, string? cihazTipi = null)
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
 
             var aktifSirketId = await RaporKapsamSirketIdAsync(kullanici, sirketId);
-            var sonuc = await _adminRaporApiClient.DevreyeAlmalarAsync(kullanici, aktifSirketId, marka, servis, il, null, bas, bit);
+            var sonuc = await _adminRaporApiClient.DevreyeAlmalarAsync(kullanici, aktifSirketId, marka, servis, il, durum, bas, bit,
+                tesisatNo: tesisat, ilce: ilce, musteri: musteri, sozlesmeNo: sozlesme, arama: q, siralama: sirala, cihazTipi: cihazTipi);
             if (sonuc == null)
             {
                 TempData["Hata"] = "Devreye alma listesi API uzerinden alinamadi.";
@@ -22,6 +25,7 @@ namespace YetkiliServisGazAcma.Controllers
 
             ViewBag.Kullanici = kullanici;
             ViewBag.Markalar = sonuc.Markalar;
+            ViewBag.CihazTipleri = sonuc.CihazTipleri;
             ViewBag.Sehirler = sonuc.Sehirler;
             ViewBag.SeciliIl = il ?? "";
             ViewBag.SeciliSirketId = aktifSirketId;
@@ -47,12 +51,12 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpGet("devreyealmalar/pdf/{id:int}")]
-        public async Task<IActionResult> DevreyeAlmaPdf(int id)
+        public async Task<IActionResult> DevreyeAlmaPdf(int id, int? sirketId = null)
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
 
-            var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
+            var aktifSirketId = await RaporKapsamSirketIdAsync(kullanici, sirketId);
             var dosya = await _adminRaporApiClient.DevreyeAlmaPdfAsync(kullanici, id, aktifSirketId);
             if (dosya == null) return NotFound();
 
@@ -60,12 +64,12 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpGet("devreyealmalar/excel/{id:int}")]
-        public async Task<IActionResult> DevreyeAlmaExcel(int id)
+        public async Task<IActionResult> DevreyeAlmaExcel(int id, int? sirketId = null)
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
 
-            var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
+            var aktifSirketId = await RaporKapsamSirketIdAsync(kullanici, sirketId);
             var dosya = await _adminRaporApiClient.DevreyeAlmaExcelAsync(kullanici, id, aktifSirketId);
             if (dosya == null) return NotFound();
 
@@ -144,6 +148,9 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpGet("raporlar/pdf")]
+        [HttpPost("raporlar/pdf")]
+        [AutoValidateAntiforgeryToken]
+        [RequestFormLimits(ValueCountLimit = 6000)]
         public Task<IActionResult> RaporlarPdf(DateTime? bas, DateTime? bit, List<int>? ids, int? sirketId)
             => DevreyeAlmaRaporDosyasi(bas, bit, ids, sirketId, excelMi: false);
 
@@ -156,6 +163,9 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpGet("raporlar/excel")]
+        [HttpPost("raporlar/excel")]
+        [AutoValidateAntiforgeryToken]
+        [RequestFormLimits(ValueCountLimit = 6000)]
         public Task<IActionResult> RaporlarExcel(DateTime? bas, DateTime? bit, List<int>? ids, int? sirketId)
             => DevreyeAlmaRaporDosyasi(bas, bit, ids, sirketId, excelMi: true);
 

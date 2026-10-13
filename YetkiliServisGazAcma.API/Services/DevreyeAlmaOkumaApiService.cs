@@ -55,10 +55,17 @@ public sealed class DevreyeAlmaOkumaApiService(AppDbContext context, YetkiliServ
                 (x.MusteriTelefon != null && x.MusteriTelefon.Contains(aranacak)));
         }
 
-        var durumOzet = await query
+        if (!string.IsNullOrWhiteSpace(dto?.CihazTipi))
+        {
+            var cihazTipi = dto.CihazTipi.Trim();
+            query = query.Where(x => x.CihazTipi == cihazTipi);
+        }
+        var siraliQuery = DevreyeAlmaKaynakBilgisi.Sirala(query, dto?.Siralama);
+        var islemler = await DevreyeAlmaKaynakBilgisi.ListeleAsync(_context, siraliQuery, dto?.SozlesmeNo, dto?.Arama);
+        var durumOzet = islemler
             .GroupBy(x => x.Durum)
             .Select(g => new { Durum = g.Key, Sayi = g.Count() })
-            .ToListAsync();
+            .ToList();
         var tamamlanan = durumOzet.FirstOrDefault(x => x.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi)?.Sayi ?? 0;
         var bekleyen = durumOzet.FirstOrDefault(x => x.Durum == DevreyeAlmaDurumDegerleri.Bekliyor)?.Sayi ?? 0;
         var iptal = durumOzet.FirstOrDefault(x => x.Durum == DevreyeAlmaDurumDegerleri.Iptal)?.Sayi ?? 0;
@@ -67,32 +74,26 @@ public sealed class DevreyeAlmaOkumaApiService(AppDbContext context, YetkiliServ
         {
             var durum = dto.Durum.Trim();
             if (string.Equals(durum, "tamamlandi", StringComparison.OrdinalIgnoreCase) || durum == "1")
-                query = query.Where(x => x.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi);
+                islemler.RemoveAll(x => x.Durum != DevreyeAlmaDurumDegerleri.Tamamlandi);
             else if (string.Equals(durum, "bekliyor", StringComparison.OrdinalIgnoreCase) || durum == "0")
-                query = query.Where(x => x.Durum == DevreyeAlmaDurumDegerleri.Bekliyor);
+                islemler.RemoveAll(x => x.Durum != DevreyeAlmaDurumDegerleri.Bekliyor);
             else if (string.Equals(durum, "iptal", StringComparison.OrdinalIgnoreCase) || durum == "2")
-                query = query.Where(x => x.Durum == DevreyeAlmaDurumDegerleri.Iptal);
+                islemler.RemoveAll(x => x.Durum != DevreyeAlmaDurumDegerleri.Iptal);
         }
 
-        var islemler = await query
-            .OrderByDescending(x => x.DevreyeAlmaTarihi).ThenByDescending(x => x.Id)
-            .ToListAsync();
-        await DevreyeAlmaKaynakBilgisi.TamamlaAsync(_context, islemler);
-
         var firma = await FirmaQuery().FirstOrDefaultAsync(x => x.Id == firmaId);
-        var markaList = await _context.Ys_DevreyeAlmalar
+        var secenekler = await _context.Ys_DevreyeAlmalar
             .Where(x => x.FirmaId == firmaId && !x.SilindiMi)
-            .Select(x => x.Marka != null && x.Marka.MarkaAdi != null ? x.Marka.MarkaAdi : x.CihazMarka)
-            .Where(x => x != null && x != "")
+            .Select(x => new { Marka = x.Marka != null && x.Marka.MarkaAdi != null ? x.Marka.MarkaAdi : x.CihazMarka, x.CihazTipi })
             .Distinct()
-            .OrderBy(x => x)
             .ToListAsync();
 
         return new YsDevreyeAlmaGecmisDto
         {
             Islemler = islemler.Select(YsDevreyeAlmaDto.FromEntity).ToList(),
             Firma = firma == null ? null : YsFirmaDto.FromEntity(firma),
-            MarkaList = markaList!,
+            MarkaList = secenekler.Select(x => x.Marka).Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x!).Distinct().OrderBy(x => x).ToList(),
+            CihazTipleri = secenekler.Select(x => x.CihazTipi).Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x!).Distinct().OrderBy(x => x).ToList(),
             Toplam = durumOzet.Sum(x => x.Sayi),
             Tamamlanan = tamamlanan,
             Bekleyen = bekleyen,

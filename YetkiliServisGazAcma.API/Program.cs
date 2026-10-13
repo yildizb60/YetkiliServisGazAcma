@@ -174,6 +174,8 @@ else
     builder.Services.AddSingleton<IYkcImzaProvider, YapilandirilmamisYkcImzaProvider>();
 }
 builder.Services.AddSmsServices(builder.Configuration);
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddHostedService<SmsDogrulamaTemizlikService>();
 builder.Services.AddSertifikaliFirmaKimlikServices(builder.Configuration);
 builder.Services.AddDataProtection();
 builder.Services.AddScoped<OturumTokenService>();
@@ -181,6 +183,10 @@ builder.Services.AddScoped<OturumAkisApiService>();
 builder.Services.AddOptions<SmsOptions>()
     .Validate(options => builder.Environment.IsDevelopment() || !options.TestMode,
         "SMS TestMode yalnızca Development ortamında kullanılabilir.")
+    .Validate(options => options.ExpiredCodeRetentionDays is >= 0 and <= 3650,
+        "Sms:ExpiredCodeRetentionDays 0-3650 araliginda olmalidir.")
+    .Validate(options => options.CodeCleanupIntervalHours is >= 1 and <= 168,
+        "Sms:CodeCleanupIntervalHours 1-168 araliginda olmalidir.")
     .ValidateOnStart();
 builder.Services.Configure<OnlineServiceOptions>(builder.Configuration.GetSection("OnlineService"));
 builder.Services.AddHttpClient<OnlineCihazBilgileriClient>((serviceProvider, client) =>

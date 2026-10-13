@@ -161,7 +161,8 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpGet("devreyealmalar")]
-        public async Task<IActionResult> DevreyeAlmalar(string? tesisat, string? musteri, string? marka, string? servis, string? il, string? ilce, DateTime? bas, DateTime? bit)
+        public async Task<IActionResult> DevreyeAlmalar(string? tesisat, string? musteri, string? marka, string? servis, string? il, string? ilce, DateTime? bas, DateTime? bit,
+            string? sozlesme = null, string? durum = null, string? q = null, string? sirala = null, string? cihazTipi = null)
         {
             var yetkiResult = await YetkiKontrol(YetkiTipleri.RAPOR_GOR);
             if (yetkiResult != null) return yetkiResult;
@@ -179,12 +180,16 @@ namespace YetkiliServisGazAcma.Controllers
                         marka,
                         servis,
                         il,
-                        null,
+                        durum,
                         bas,
                         bit,
                         tesisatNo: tesisat,
                         ilce: ilce,
-                        musteri: musteri)
+                        musteri: musteri,
+                        sozlesmeNo: sozlesme,
+                        arama: q,
+                        siralama: sirala,
+                        cihazTipi: cihazTipi)
                     ?? new AdminDevreyeAlmaListeDto();
             }
             catch (ApiIntegrationException ex)
@@ -194,6 +199,7 @@ namespace YetkiliServisGazAcma.Controllers
             }
 
             ViewBag.Markalar = sonuc.Markalar;
+            ViewBag.CihazTipleri = sonuc.CihazTipleri;
             ViewBag.FirmaIlceleri = sonuc.FirmaIlceleri;
             ViewBag.Musteri = musteri ?? "";
             ViewBag.Sehirler = sonuc.Sehirler;
@@ -277,13 +283,19 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpGet("devreyealmalar/pdf")]
-        public async Task<IActionResult> DevreyeAlmalarPdf([FromQuery] List<int>? ids)
+        [HttpPost("devreyealmalar/pdf")]
+        [AutoValidateAntiforgeryToken]
+        [RequestFormLimits(ValueCountLimit = 6000)]
+        public async Task<IActionResult> DevreyeAlmalarPdf(List<int>? ids)
         {
             return await DevreyeAlmaListeDosyasi(ids, excelMi: false);
         }
 
         [HttpGet("devreyealmalar/excel")]
-        public async Task<IActionResult> DevreyeAlmalarExcel([FromQuery] List<int>? ids)
+        [HttpPost("devreyealmalar/excel")]
+        [AutoValidateAntiforgeryToken]
+        [RequestFormLimits(ValueCountLimit = 6000)]
+        public async Task<IActionResult> DevreyeAlmalarExcel(List<int>? ids)
         {
             return await DevreyeAlmaListeDosyasi(ids, excelMi: true);
         }
