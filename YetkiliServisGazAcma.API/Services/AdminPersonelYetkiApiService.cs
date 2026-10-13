@@ -155,7 +155,7 @@ namespace YetkiliServisGazAcma.API.Services
                 .Include(x => x.Sirket)
                 .FirstOrDefaultAsync(x => x.Id == dto.Id && x.KullaniciTipi == KullaniciTipiDegerleri.Personel && x.ArsivlemeTarihi == null);
 
-            if (personel == null || !await KullaniciKapsamindaMi(kullanici, personel, sirketId, genelSistemAdminMi))
+            if (personel == null || !await AdminKullaniciKapsami.IceriyorAsync(_context, kullanici, personel, sirketId, genelSistemAdminMi))
                 return new AdminYetkiDuzenleDto();
 
             var sirketler = await YonetilebilirSirketlerAsync(kullanici, sirketId, genelSistemAdminMi);
@@ -207,7 +207,7 @@ namespace YetkiliServisGazAcma.API.Services
             if (personel == null)
                 return ApiIslemSonuc.Basarisiz("Personel bulunamadi.");
 
-            if (!await KullaniciKapsamindaMi(kullanici, personel, sirketId, genelSistemAdminMi))
+            if (!await AdminKullaniciKapsami.IceriyorAsync(_context, kullanici, personel, sirketId, genelSistemAdminMi))
                 return ApiIslemSonuc.Basarisiz("Personel bu kapsamda yonetilemez.");
 
             var yonetilebilirSirketIds = (await YonetilebilirSirketlerAsync(kullanici, sirketId, genelSistemAdminMi))
@@ -305,28 +305,6 @@ namespace YetkiliServisGazAcma.API.Services
                     SirketAdi = x.SirketAdi
                 })
                 .ToListAsync();
-        }
-
-        private async Task<bool> KullaniciKapsamindaMi(AppKullanici yapan, AppKullanici hedef, int? sirketId, bool genelSistemAdminMi)
-        {
-            if (yapan.Id == hedef.Id)
-                return true;
-
-            if (genelSistemAdminMi && !sirketId.HasValue)
-                return true;
-
-            if (!sirketId.HasValue)
-                return false;
-
-            if (hedef.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis && hedef.FirmaId.HasValue)
-            {
-                return await _context.Ys_Firmalar.AnyAsync(x =>
-                    x.Id == hedef.FirmaId.Value &&
-                    !x.SilindiMi &&
-                    x.SirketId == sirketId.Value);
-            }
-
-            return (hedef.KullaniciTipi == KullaniciTipiDegerleri.Personel || hedef.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin) && hedef.SirketId == sirketId.Value;
         }
 
         private static List<string> NormalizeYetkiListesi(IEnumerable<string?> yetkiler)

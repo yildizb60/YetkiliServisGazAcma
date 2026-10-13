@@ -60,6 +60,39 @@ internal static class ServiceScopeSqlScenario
             var certified = new AppKullanici { UserName = "certified", KullaniciTipi = KullaniciTipiDegerleri.SertifikaliFirma, FirmaId = ownFirm.Id, SirketId = primary.Id };
             db.Users.AddRange(admin, general, legacyGeneral, staff, service, certified);
             await db.SaveChangesAsync();
+            foreach (var (label, target, allowed) in new[]
+            {
+                ("own personnel", staff, true),
+                ("own company admin", new AppKullanici { KullaniciTipi = KullaniciTipiDegerleri.SirketAdmin, SirketId = primary.Id }, true),
+                ("unassigned company admin", legacyGeneral, false),
+                ("own service", service, true), ("own certified firm", certified, true),
+                ("foreign personnel", new AppKullanici { KullaniciTipi = KullaniciTipiDegerleri.Personel, SirketId = secondary.Id }, false),
+                ("foreign company admin", new AppKullanici { KullaniciTipi = KullaniciTipiDegerleri.SirketAdmin, SirketId = secondary.Id }, false),
+                ("foreign service", new AppKullanici { KullaniciTipi = KullaniciTipiDegerleri.YetkiliServis, FirmaId = foreignFirm.Id, SirketId = primary.Id }, false),
+                ("foreign certified firm", new AppKullanici { KullaniciTipi = KullaniciTipiDegerleri.SertifikaliFirma, FirmaId = foreignFirm.Id, SirketId = primary.Id }, false),
+                ("unlinked service", new AppKullanici { KullaniciTipi = KullaniciTipiDegerleri.YetkiliServis, SirketId = primary.Id }, false),
+                ("missing firm", new AppKullanici { KullaniciTipi = KullaniciTipiDegerleri.SertifikaliFirma, FirmaId = int.MaxValue, SirketId = primary.Id }, false),
+                ("system admin target", general, false)
+            })
+            {
+                Check(await AdminKullaniciKapsami.IceriyorAsync(db, admin, target, primary.Id, false) == allowed,
+                    "Shared account scope preserves company isolation: " + label);
+                Check(await AdminKullaniciKapsami.IceriyorAsync(db, general, target, primary.Id, true) == (allowed || general.Id == target.Id),
+                    "Selecting a company still constrains a system admin: " + label);
+                Check(await AdminKullaniciKapsami.IceriyorAsync(db, general, target, null, true),
+                    "Unfiltered system administration retains its existing scope: " + label);
+            }
+            Check(await AdminKullaniciKapsami.IceriyorAsync(db, admin, admin, null, false)
+                && !await AdminKullaniciKapsami.IceriyorAsync(db, admin, staff, null, false),
+                "Self access remains available but missing company scope denies other accounts");
+            var personnelPermissions = new AdminPersonelYetkiApiService(db);
+            Check((await personnelPermissions.GetirAsync(new() { Id = staff.Id }, admin, primary.Id, false)).Personel?.Id == staff.Id
+                && (await personnelPermissions.GetirAsync(new() { Id = staff.Id }, admin, secondary.Id, false)).Personel == null,
+                "Personnel permission details retain their target-company restriction");
+            foreach (var firmUser in new[] { service, certified })
+                Check((await personnelPermissions.GetirAsync(new() { Id = firmUser.Id }, admin, primary.Id, false)).Personel == null
+                    && !(await personnelPermissions.GuncelleAsync(new() { Id = firmUser.Id }, admin, primary.Id, false)).Basarili,
+                    "Shared scope cannot turn a firm account into an editable personnel target: " + firmUser.KullaniciTipi);
             using var users = new UserManager<AppKullanici>(new UserStore<AppKullanici>(db), Options.Create(new IdentityOptions()),
                 new PasswordHasher<AppKullanici>(), [new UserValidator<AppKullanici>()], [new PasswordValidator<AppKullanici>()],
                 new UpperInvariantLookupNormalizer(), new IdentityErrorDescriber(), null!, NullLogger<UserManager<AppKullanici>>.Instance);
@@ -125,6 +158,9 @@ internal static class ServiceScopeSqlScenario
                 && !await db.Dag_Sirketler.AsNoTracking().AnyAsync(c => c.Id == inactive.Id && c.AktifMi),
                 "Changing the city neither transfers company ownership nor reactivates the target company");
             Check(await companyApi.Sil(new() { Id = deletableFirm.Id }) is OkObjectResult, "Company admin retains own-service deletion");
+            Check(!await AdminKullaniciKapsami.IceriyorAsync(db, admin,
+                new AppKullanici { KullaniciTipi = KullaniciTipiDegerleri.YetkiliServis, FirmaId = deletableFirm.Id }, primary.Id, false),
+                "Deleted firms cannot grant account-management scope");
             Check(await Controller(general).Getir(new() { Id = foreignFirm.Id }) is OkObjectResult
                 && await Controller(general).Guncelle(Update(foreignFirm, "CityB")) is OkObjectResult,
                 "System admin retains cross-company read and update access");

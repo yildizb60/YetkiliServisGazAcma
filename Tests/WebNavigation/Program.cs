@@ -30,6 +30,13 @@ void Check(bool condition, string name)
     passed++;
 }
 
+if (args.Contains("--export-contract-only", StringComparer.Ordinal))
+{
+    await ExportContractRegression.RunAsync();
+    await PanelChromeRegression.RunAsync();
+    return;
+}
+
 var firmDetail = new YkcTalepDetayDto
 {
     Durum = YkcDurumDegerleri.AtamaBekliyor,
@@ -422,6 +429,26 @@ using (var fixture = new NavigationFixture("Personel"))
         && fixture.Controller.TempData.ContainsKey("Hata"), "Failed completion stays on detail with its error and source");
 }
 
+foreach (var role in new[] { "GenelSistemAdmin", "SirketAdmin", "Personel", "SertifikaliFirma" })
+{
+    using var fixture = new NavigationFixture(role);
+    var start = new DateTime(2026, 10, 1);
+    var end = new DateTime(2026, 10, 12);
+    var result = (ViewResult)await fixture.Controller.Talepler(
+        tesisatNo: "1319851", musteriAdi: " Abone ", sozlesmeNo: "000943", aboneNo: null,
+        firma: "Firma", il: null, ilce: null, bolge: null, hedefUygulama: null, durum: 1, kontrolNo: null,
+        bas: start, bit: end, sayfa: 2, q: "000943", sirala: "abone-artan", cihazTipi: "Ocak",
+        talepId: 75, randevuBas: start.AddDays(2), randevuBit: end.AddDays(2), sirketId: 8, marka: "Bosch");
+    var filter = fixture.Handler.LastRequestFilter;
+    Check(filter is { Q: "000943", Sirala: "abone-artan", CihazTipi: "Ocak", TalepId: 75, Marka: "Bosch", SozlesmeNo: "000943", Sayfa: 2 }
+        && filter.RandevuBaslangicTarihi == start.AddDays(2) && filter.RandevuBitisTarihi == end.AddDays(2)
+        && filter.BaslangicTarihi == start && filter.BitisTarihi == end,
+        role + ": shared directory search, sort, brand, identifiers and separate date ranges are forwarded to the API");
+    Check(filter?.SirketId == (role == "GenelSistemAdmin" ? 8 : 7)
+        && result.Model is YkcTalepListeSonuc { Toplam: 23, Sayfa: 2 },
+        role + ": MVC keeps API pagination and the authorized company without local list processing");
+}
+
 using (var fixture = new NavigationFixture("Personel", reportPermission: false))
 {
     var result = (RedirectToActionResult)await fixture.Controller.DurumGuncelle(
@@ -614,6 +641,7 @@ Check(typeof(YkcController).GetMethod(nameof(YkcController.CihazKarsilastir))!
     .IsDefined(typeof(ValidateAntiForgeryTokenAttribute), inherit: true),
     "New comparison endpoint requires an antiforgery token");
 await ApiClientRegression.RunAsync();
+await ExportContractRegression.RunAsync();
 await SharedApiTransportRegression.RunAsync();
 await AuthTransportRegression.RunAsync();
 await PublicDirectoryRegression.RunAsync();
@@ -764,7 +792,8 @@ sealed class NavigationFixture : IDisposable
         PersonnelController = new PersonelPanelController(session, new AktifSirketService(accessor, session, companies),
             PanelPresentation,
             new PersonelPanelApiClient(client, options, tokens, NullLogger<PersonelPanelApiClient>.Instance),
-            null!, null!, null!, new DagitimSirketApiClient(client, options, tokens, NullLogger<DagitimSirketApiClient>.Instance),
+            null!, new AdminRaporApiClient(client, options, tokens, NullLogger<AdminRaporApiClient>.Instance), null!,
+            new DagitimSirketApiClient(client, options, tokens, NullLogger<DagitimSirketApiClient>.Instance),
             null!, new AdminYetkiliServisApiClient(client, options, tokens, NullLogger<AdminYetkiliServisApiClient>.Instance))
         {
             ControllerContext = new ControllerContext { HttpContext = Http },
@@ -842,7 +871,9 @@ sealed class FixtureHandler(string role) : HttpMessageHandler
     public YkcCihazKarsilastirmaIstek? LastComparison { get; private set; }
     public YkcRaporSonuc ReportResult { get; } = new();
     public YkcTalepListeFiltre? LastReportFilter { get; private set; }
+    public YkcTalepListeFiltre? LastRequestFilter { get; private set; }
     public JsonElement LastCommissioningFilter { get; private set; }
+    public JsonElement LastCommissioningExportFilter { get; private set; }
     public HttpStatusCode FileStatus { get; set; } = HttpStatusCode.OK;
     public string FileBody { get; set; } = "{}";
     public string? TransportFailure { get; set; }
@@ -1006,10 +1037,14 @@ sealed class FixtureHandler(string role) : HttpMessageHandler
             }) };
         if (path == "/api/ys-panel/bildirimler")
             return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new { Bildirimler = Array.Empty<string>(), BildirimSayisi = 0 }) };
-        if (path.StartsWith("/api/admin-panel/devreye-almalar/rapor/", StringComparison.Ordinal)
+        if (path is "/api/admin-panel/devreye-almalar/pdf" or "/api/admin-panel/devreye-almalar/excel"
+            || path.StartsWith("/api/admin-panel/devreye-almalar/rapor/", StringComparison.Ordinal)
             || path.StartsWith("/api/ys-panel/raporlar/", StringComparison.Ordinal))
         {
             CommissioningCalls++;
+            if (request.Method != HttpMethod.Post || request.RequestUri!.Query.Length != 0)
+                throw new InvalidOperationException("Export filters and IDs must use an API POST body");
+            LastCommissioningExportFilter = await request.Content!.ReadFromJsonAsync<JsonElement>(cancellationToken);
             if (request.Headers.Authorization?.Parameter != "fixture-token")
                 throw new InvalidOperationException("Report download must forward the authenticated token");
             return new HttpResponseMessage(CommissioningStatus)
@@ -1042,6 +1077,13 @@ sealed class FixtureHandler(string role) : HttpMessageHandler
             result = new { SirketAdi = "Fixture company", FirmaKodu = "CORUMGAZ" };
         else if (path == "/api/panel-kapsam/sirketler")
             result = new[] { new { Id = 7, SirketAdi = "Fixture company" }, new { Id = 8, SirketAdi = "Second company" } };
+        else if (path == "/api/ykc/dashboard/ozet")
+            result = new YkcDashboardOzetDto { Toplam = 23 };
+        else if (path == "/api/ykc/talepler/liste")
+        {
+            LastRequestFilter = await request.Content!.ReadFromJsonAsync<YkcTalepListeFiltre>(cancellationToken);
+            result = new YkcTalepListeSonuc { Toplam = 23, Sayfa = 2, SayfaBoyutu = 10 };
+        }
         else if (path.StartsWith("/api/ykc/talepler/rapor", StringComparison.Ordinal))
         {
             LastReportFilter = await request.Content!.ReadFromJsonAsync<YkcTalepListeFiltre>(cancellationToken);

@@ -17,6 +17,12 @@ using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
 
+if (args.Contains("--export-contract-only", StringComparer.Ordinal))
+{
+    await ExportApiContractRegression.RunAsync();
+    return;
+}
+
 // Isolated LocalDB database: never reads the application's connection string or records.
 var databaseName = "YkcWorkflowTest_" + Guid.NewGuid().ToString("N");
 var connection = $@"Server=(localdb)\MSSQLLocalDB;Database={databaseName};Integrated Security=true;TrustServerCertificate=true";
@@ -46,10 +52,16 @@ var commissioningIndexes = db.Model.FindEntityType(typeof(Ys_DevreyeAlma))!.GetI
 Check(commissioningIndexes.Any(x => x.IsUnique && x.Properties.Any(p => p.Name == "KaynakCihazAnahtari"))
     && commissioningIndexes.Any(x => x.IsUnique && x.Properties.Any(p => p.Name == "SeriAnahtari")),
     "Commissioning duplicate keys have database uniqueness constraints");
+if (args.Contains("--sms-cleanup-only", StringComparer.Ordinal))
+{
+    await SmsCleanupSqlScenario.RunAsync();
+    return;
+}
 if (args.Contains("--brand-only", StringComparer.Ordinal))
     return;
 await PublicDirectoryApiRegression.RunAsync();
 await ReferenceApiRegression.RunAsync();
+await ExportApiContractRegression.RunAsync();
 await CityOptionsApiRegression.RunAsync();
 await ApiApplicationBoundaryRegression.RunAsync();
 if (args.Contains("--api-boundary-only", StringComparer.Ordinal))

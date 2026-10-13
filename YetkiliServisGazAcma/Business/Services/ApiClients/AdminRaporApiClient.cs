@@ -27,7 +27,11 @@ namespace YetkiliServisGazAcma.Business.Services
             DateTime? bit,
             string? tesisatNo = null,
             string? ilce = null,
-            string? musteri = null)
+            string? musteri = null,
+            string? sozlesmeNo = null,
+            string? arama = null,
+            string? siralama = null,
+            string? cihazTipi = null)
         {
             return _api.PostAsync<AdminDevreyeAlmaListeFiltreDto, AdminDevreyeAlmaListeDto>(kullanici,
                 "api/admin-panel/devreye-almalar/liste", new AdminDevreyeAlmaListeFiltreDto
@@ -38,7 +42,11 @@ namespace YetkiliServisGazAcma.Business.Services
                 Il = il,
                 Ilce = ilce,
                 TesisatNo = tesisatNo,
+                SozlesmeNo = sozlesmeNo,
                 Musteri = musteri,
+                Arama = arama,
+                Siralama = siralama,
+                CihazTipi = cihazTipi,
                 Durum = int.TryParse(durum, out var durumNo) ? durumNo : null,
                 BaslangicTarihi = bas,
                 BitisTarihi = bit

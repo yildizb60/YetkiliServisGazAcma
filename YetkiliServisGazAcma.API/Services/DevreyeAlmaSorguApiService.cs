@@ -4,7 +4,6 @@ using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
 using System.Globalization;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using YetkiliServisGazAcma.Business.Services.Online;
 
@@ -223,39 +222,7 @@ public sealed class DevreyeAlmaSorguApiService(AppDbContext context, OnlineCihaz
     {
         return _sehirFirmaKoduService.FirmaKodu(firma?.FaaliyetIli)
             ?? _sehirFirmaKoduService.FirmaKodu(firma?.Sirket?.Il)
-            ?? FirmaKoduFromSirketAdi(firma?.Sirket?.SirketAdi);
-    }
-
-    private static string? FirmaKoduFromSirketAdi(string? sirketAdi)
-    {
-        if (string.IsNullOrWhiteSpace(sirketAdi))
-            return null;
-
-        var normalized = NormalizeFirmaText(sirketAdi);
-        if (normalized.Contains("CORUM") || normalized.Contains("CORUMGAZ"))
-            return "CORUMGAZ";
-        if (normalized.Contains("KARGAZ") || normalized.Contains("KASTAMONU") || normalized.Contains("KARABUK"))
-            return "KARGAZ";
-        if (normalized.Contains("SURMELI") || normalized.Contains("SURMELIGAZ") || normalized.Contains("YOZGAT"))
-            return "SURMELIGAZ";
-        if (normalized.Contains("YALOVA"))
-            return "MARMARAGAZ_YALOVA";
-        if (normalized.Contains("CORLU") || normalized.Contains("TEKIRDAG"))
-            return "MARMARAGAZ_CORLU";
-
-        return normalized;
-    }
-
-    private static string NormalizeFirmaText(string value)
-    {
-        var normalized = value.Normalize(NormalizationForm.FormD);
-        var chars = normalized
-            .Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark)
-            .Select(c => char.IsLetterOrDigit(c) ? char.ToUpperInvariant(c) : '_')
-            .ToArray();
-
-        return new string(chars)
-            .Normalize(NormalizationForm.FormC)
-            .Trim('_');
+            ?? SehirFirmaKodlari.SirketAdindanFirmaKodu(firma?.Sirket?.SirketAdi,
+                FirmaKoduNormalizasyonu.AyiraclariAltCizgiYap);
     }
 }

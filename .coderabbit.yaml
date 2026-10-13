@@ -7,7 +7,9 @@ reviews:
   path_filters:
     - ".coderabbit.yaml"
     - ".gitignore"
+    - "DatabaseScripts/**"
     - "Docs/**"
+    - "!Docs/d3232b8_inceleme_kanitlari/**"
     - "Tests/**"
     - "YetkiliServisGazAcma/Business/**"
     - "YetkiliServisGazAcma/Controllers/**"

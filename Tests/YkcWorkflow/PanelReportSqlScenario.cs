@@ -475,6 +475,8 @@ internal static class PanelReportSqlScenario
             await db.SaveChangesAsync();
             Check((await pendingService.DashboardOzetAsync(staff, false, primary.Id)).TamamlamaBekleyen == 1,
                 "Completed requests leave the pending count on the next read");
+            await VerifyYkcDirectoryAsync(db, primary, secondary, certifiedFirm, serviceFirm, foreignFirm,
+                admin, Check, ExcelColumn);
             Console.WriteLine($"{passed} panel/report SQL checks passed. Application records were not used.");
         }
         finally
@@ -484,6 +486,304 @@ internal static class PanelReportSqlScenario
                 await db.Database.CloseConnectionAsync();
                 SqlConnection.ClearAllPools();
                 await db.Database.EnsureDeletedAsync();
+            }
+        }
+    }
+
+    private static async Task VerifyYkcDirectoryAsync(AppDbContext db, Dag_Sirket primary, Dag_Sirket secondary,
+        Ys_Firma firm, Ys_Firma siblingFirm, Ys_Firma foreignFirm, AppKullanici admin, Action<bool, string> check,
+        Func<byte[], string, List<string>> excelColumn)
+    {
+        const string prefix = "YKC-TOOLBAR-";
+        const string rawType = "legacy/type-42";
+        var date = new DateTime(2026, 1, 10);
+        var names = new string?[] { null, "", "Hale", "I\u015f\u0131k", "ipek", "Zeki" };
+        var ownRecords = Enumerable.Range(0, 24).Select(index => new Ykc_Talep
+        {
+            FirmaId = firm.Id, SirketId = primary.Id, TesisatNo = prefix + index.ToString("D3"),
+            SozlesmeNo = "toolbar-contract-" + index.ToString("D3"), AboneNo = "private-subscriber",
+            MusteriAdi = index == 9 ? "\u0131\u015f\u0131k" : names[index % names.Length],
+            TalepTarihi = date.AddMinutes(index % 4), YeniCihazTipi = index % 2 == 0 ? rawType : "Toolbar stove",
+            EskiCihazTipi = "private-old-type", ProjeNo = "private-project", AtananEkip = "private-team",
+            HedefUygulama = "private-routing", Durum = index % 3 == 0 ? YkcDurumDegerleri.Iptal : YkcDurumDegerleri.TalepAlindi
+        }).ToArray();
+        var sibling = new Ykc_Talep
+        {
+            FirmaId = siblingFirm.Id, SirketId = primary.Id, TesisatNo = prefix + "sibling",
+            MusteriAdi = "Aylin", TalepTarihi = date, YeniCihazTipi = rawType
+        };
+        var foreign = new Ykc_Talep
+        {
+            FirmaId = foreignFirm.Id, SirketId = secondary.Id, TesisatNo = ownRecords[^1].TesisatNo,
+            SozlesmeNo = ownRecords[^1].SozlesmeNo, MusteriAdi = names[3], YeniCihazTipi = rawType,
+            TalepTarihi = date.AddDays(1)
+        };
+        var deleted = new Ykc_Talep
+        {
+            FirmaId = firm.Id, SirketId = primary.Id, TesisatNo = prefix + "deleted", SilindiMi = true,
+            MusteriAdi = names[3], YeniCihazTipi = rawType, TalepTarihi = date.AddDays(1)
+        };
+        db.AddRange(ownRecords);
+        db.AddRange(sibling, foreign, deleted);
+        await db.SaveChangesAsync();
+        var reader = new YkcTalepOkumaService(db);
+        var personnel = new AppKullanici { KullaniciTipi = KullaniciTipiDegerleri.Personel, SirketId = secondary.Id };
+        var companyRecords = ownRecords.Append(sibling).ToArray();
+        var turkish = StringComparer.Create(System.Globalization.CultureInfo.GetCultureInfo("tr-TR"), true);
+        foreach (var sort in new string?[] { null, "", "tarih-artan", "abone-artan", "abone-azalan", "unsupported-sort" })
+        {
+            var expected = (sort switch
+            {
+                "tarih-artan" => companyRecords.OrderBy(x => x.TalepTarihi).ThenBy(x => x.Id),
+                "abone-artan" => companyRecords.OrderBy(x => x.MusteriAdi ?? "", turkish).ThenByDescending(x => x.Id),
+                "abone-azalan" => companyRecords.OrderByDescending(x => x.MusteriAdi ?? "", turkish).ThenByDescending(x => x.Id),
+                _ => companyRecords.OrderByDescending(x => x.TalepTarihi).ThenByDescending(x => x.Id)
+            }).ToArray();
+            foreach (var (actor, privileged) in new[] { (personnel, false), (admin, true) })
+            {
+                var filter = new YkcTalepListeFiltre { Q = prefix, Sirala = sort, Sayfa = 2, SayfaBoyutu = 10 };
+                var list = await reader.ListeAsync(filter, actor, privileged, primary.Id);
+                var report = await reader.RaporAsync(filter, actor, privileged, primary.Id);
+                var exported = await reader.RaporKayitlariAsync(filter, actor, privileged, 100, primary.Id);
+                var pageIds = expected.Skip(10).Take(10).Select(x => x.Id).ToArray();
+                check(list.Toplam == expected.Length && report.Toplam == expected.Length
+                    && report.DurumOzetleri.Sum(x => x.Sayi) == expected.Length && list.Sayfa == 2 && report.Sayfa == 2
+                    && list.Talepler.Select(x => x.Id).SequenceEqual(pageIds) && report.Kayitlar.Select(x => x.Id).SequenceEqual(pageIds)
+                    && exported.Select(x => x.Id).SequenceEqual(expected.Select(x => x.Id)),
+                    $"YKC SQL sorting, pagination, totals and full export share company scope: {sort}, admin={privileged}");
+                check(excelColumn(YkcRaporExcelService.Olustur(exported, true), "Talep No")
+                    .SequenceEqual(expected.Select(x => x.Id.ToString())),
+                    $"YKC Excel preserves the API's complete filtered sort order: {sort}, admin={privileged}");
+            }
+            foreach (var targetIndex in new[] { 0, 9, 10, expected.Length - 1 })
+            {
+                var focused = await reader.RaporAsync(new()
+                {
+                    Q = prefix, Sirala = sort, Sayfa = 99, SayfaBoyutu = 10, DetayTalepId = expected[targetIndex].Id
+                }, personnel, false, primary.Id);
+                var page = targetIndex / 10 + 1;
+                check(focused.Sayfa == page && focused.Toplam == expected.Length
+                    && focused.Kayitlar.Select(x => x.Id).SequenceEqual(expected.Skip((page - 1) * 10).Take(10).Select(x => x.Id)),
+                    $"Detail focus follows SQL date/name ordering, null names and descending name-ID ties: {sort}, index={targetIndex}");
+            }
+            foreach (var outsideId in new[] { foreign.Id, deleted.Id, int.MaxValue })
+            {
+                var focused = await reader.RaporAsync(new()
+                {
+                    Q = prefix, Sirala = sort, Sayfa = 2, SayfaBoyutu = 10, DetayTalepId = outsideId
+                }, personnel, false, primary.Id);
+                check(focused.Sayfa == 2 && focused.Toplam == expected.Length
+                    && focused.Kayitlar.Select(x => x.Id).SequenceEqual(expected.Skip(10).Take(10).Select(x => x.Id)),
+                    $"Inaccessible or missing detail targets cannot move the selected sorted page: {sort}, id={outsideId}");
+            }
+        }
+
+        var qCases = new (string Q, int[] Ids)[]
+        {
+            (" \u0131\u015f\u0131k ", ownRecords.Where(x => turkish.Equals(x.MusteriAdi, names[3])).Select(x => x.Id).ToArray()),
+            (ownRecords[^1].TesisatNo!, [ownRecords[^1].Id]),
+            (ownRecords[^1].SozlesmeNo!, [ownRecords[^1].Id]),
+            (firm.FirmaAdi!, ownRecords.Select(x => x.Id).ToArray()),
+            (ownRecords[^1].Id.ToString(), [ownRecords[^1].Id]),
+            ("#" + ownRecords[^1].Id, [ownRecords[^1].Id])
+        };
+        foreach (var (q, ids) in qCases)
+        {
+            var filter = new YkcTalepListeFiltre { Q = q, TesisatNo = prefix, SayfaBoyutu = 100 };
+            var list = await reader.ListeAsync(filter, personnel, false, primary.Id);
+            var report = await reader.RaporAsync(filter, personnel, false, primary.Id);
+            var exported = await reader.RaporKayitlariAsync(filter, personnel, false, 100, primary.Id);
+            check(list.Toplam == ids.Length && report.Toplam == ids.Length
+                && list.Talepler.Select(x => x.Id).Order().SequenceEqual(ids.Order())
+                && report.Kayitlar.Select(x => x.Id).Order().SequenceEqual(ids.Order())
+                && exported.Select(x => x.Id).Order().SequenceEqual(ids.Order()),
+                "YKC q searches customer, installation, contract, exact request ID and firm only inside the resolved scope: " + q);
+        }
+        var columnFilter = new YkcTalepListeFiltre
+        {
+            Q = prefix, Sirala = "abone-azalan", CihazTipi = " " + rawType + " ", TalepId = ownRecords[2].Id,
+            MusteriAdi = ownRecords[2].MusteriAdi, TesisatNo = ownRecords[2].TesisatNo,
+            SozlesmeNo = ownRecords[2].SozlesmeNo, Durum = ownRecords[2].Durum,
+            BaslangicTarihi = date, BitisTarihi = date
+        };
+        check((await reader.ListeAsync(columnFilter, personnel, false, primary.Id)).Talepler.Single().Id == ownRecords[2].Id
+            && (await reader.RaporAsync(columnFilter, personnel, false, primary.Id)).Kayitlar.Single().Id == ownRecords[2].Id
+            && (await reader.RaporKayitlariAsync(columnFilter, personnel, false, 100, primary.Id)).Single().Id == ownRecords[2].Id,
+            "TalepId and toolbar/device filters combine with existing customer, contract, installation, integer status and date filters");
+        columnFilter.KayitIdleri = [sibling.Id, foreign.Id];
+        check((await reader.RaporKayitlariAsync(columnFilter, personnel, false, 100, primary.Id)).Count == 0,
+            "Request-ID and selected-export filters intersect; they never replace each other or broaden scope");
+        var typeFilter = new YkcTalepListeFiltre { Q = prefix, CihazTipi = rawType, Sirala = "abone-artan", SayfaBoyutu = 100 };
+        var typedReport = await reader.RaporAsync(typeFilter, personnel, false, primary.Id);
+        var typedList = await reader.ListeAsync(typeFilter, personnel, false, primary.Id);
+        var typedExport = await reader.RaporKayitlariAsync(typeFilter, personnel, false, 100, primary.Id);
+        var typedIds = companyRecords.Where(x => x.YeniCihazTipi == rawType).Select(x => x.Id).Order().ToArray();
+        check(typedReport.Toplam == typedIds.Length && typedList.Toplam == typedIds.Length
+            && typedReport.DurumOzetleri.Sum(x => x.Sayi) == typedIds.Length
+            && typedList.Talepler.Select(x => x.Id).SequenceEqual(typedExport.Select(x => x.Id))
+            && typedReport.Kayitlar.Select(x => x.Id).Order().SequenceEqual(typedIds),
+            "New-device-type filtering happens before counting, ordering and pagination without catalog normalization");
+        typeFilter.Sayfa = 2;
+        typeFilter.SayfaBoyutu = 10;
+        typeFilter.DetayTalepId = ownRecords[1].Id;
+        check((await reader.RaporAsync(typeFilter, personnel, false, primary.Id)).Sayfa == 2,
+            "A detail target excluded by the selected device filter cannot override the requested page");
+
+        foreach (var q in new[] { "unmatched-toolbar", "%", "_", "private-old-type", "private-project", "private-team" })
+        {
+            var filter = new YkcTalepListeFiltre { Q = q, TesisatNo = prefix, Sirala = "abone-artan" };
+            check((await reader.ListeAsync(filter, personnel, false, primary.Id)).Toplam == 0
+                && (await reader.RaporAsync(filter, personnel, false, primary.Id)).Toplam == 0
+                && (await reader.RaporKayitlariAsync(filter, personnel, false, 100, primary.Id)).Count == 0,
+                "Unmatched, literal wildcard and hidden operational fields cannot leak through q: " + q);
+        }
+        var firmUser = new AppKullanici
+        {
+            KullaniciTipi = KullaniciTipiDegerleri.Personel, FirmaId = firm.Id, SirketId = secondary.Id
+        };
+        var privateFilter = new YkcTalepListeFiltre { Q = prefix, Sirala = "abone-artan", CihazTipi = rawType, SayfaBoyutu = 100 };
+        var privateList = await reader.ListeAsync(privateFilter, firmUser, true, primary.Id);
+        var privateReport = await reader.RaporAsync(privateFilter, firmUser, true, primary.Id);
+        var privateExport = await reader.RaporKayitlariAsync(privateFilter, firmUser, true, 100, primary.Id);
+        var ownTypeIds = ownRecords.Where(x => x.YeniCihazTipi == rawType).Select(x => x.Id).Order().ToArray();
+        check(privateList.Toplam == ownTypeIds.Length && privateReport.Toplam == ownTypeIds.Length
+            && privateList.Talepler.Select(x => x.Id).Order().SequenceEqual(ownTypeIds)
+            && privateReport.Kayitlar.Select(x => x.Id).Order().SequenceEqual(ownTypeIds)
+            && privateExport.Select(x => x.Id).Order().SequenceEqual(ownTypeIds)
+            && privateList.Talepler.All(x => x.ProjeNo == null && x.AtananEkip == null && x.ProjedekiCihazBilgisi == null)
+            && privateReport.HedefOzetleri.Count == 0 && privateReport.EkipOzetleri.Count == 0
+            && privateReport.Kayitlar.Concat(privateExport).All(x => x.ProjeNo == null && x.EskiCihazTipi == null
+                && x.AtananEkip == null && x.HedefUygulama == null),
+            "Sorted/filtered firm-bound list, report and export retain firm privacy despite stale privilege and account type");
+        privateFilter.TalepId = sibling.Id;
+        check((await reader.ListeAsync(privateFilter, firmUser, true, primary.Id)).Toplam == 0
+            && (await reader.RaporKayitlariAsync(privateFilter, firmUser, true, 100, primary.Id)).Count == 0,
+            "Even same-company sibling requests cannot be reached using the exact request-ID column filter");
+        privateFilter.TalepId = null;
+        privateFilter.CihazTipi = "private-old-type";
+        check((await reader.ListeAsync(privateFilter, firmUser, true, primary.Id)).Toplam == 0,
+            "Device filtering cannot infer the hidden project-side device type of a firm request");
+        await VerifyYkcFilterPrivacyAndDatesAsync(db, primary, secondary, firm, siblingFirm, foreignFirm, admin, check);
+    }
+
+    private static async Task VerifyYkcFilterPrivacyAndDatesAsync(AppDbContext db, Dag_Sirket primary, Dag_Sirket secondary,
+        Ys_Firma firm, Ys_Firma siblingFirm, Ys_Firma foreignFirm, AppKullanici admin, Action<bool, string> check)
+    {
+        const string prefix = "YKC-FILTER-INTEGRITY-";
+        const string oldBrand = "private-source-brand";
+        const string newBrand = "visible-new-brand";
+        var requestDay = new DateTime(2026, 1, 10);
+        var appointmentDay = new DateTime(2026, 2, 20);
+        var types = new string?[] { "Sofben", "\u015eofben", "Kombi", "Ocak", "Diger", "Di\u011fer", "legacy/type-42", null };
+        var records = types.Select((type, index) => new Ykc_Talep
+        {
+            FirmaId = firm.Id, SirketId = primary.Id, TesisatNo = prefix + index,
+            MusteriAdi = "Filter integrity " + index, YeniCihazTipi = type, EskiCihazTipi = "Sofben",
+            EskiMarka = oldBrand, YeniMarka = newBrand, TalepTarihi = requestDay.AddDays(index),
+            RandevuTarihi = appointmentDay.AddHours(12), Durum = YkcDurumDegerleri.TalepAlindi
+        }).ToArray();
+        records[0].RandevuTarihi = appointmentDay;
+        records[1].RandevuTarihi = appointmentDay.AddDays(1).AddTicks(-1);
+        records[2].RandevuTarihi = appointmentDay.AddDays(1);
+        records[3].RandevuTarihi = appointmentDay.AddDays(-1);
+        records[4].RandevuTarihi = null;
+        foreach (var index in new[] { 2, 3, 4 }) records[index].TalepTarihi = appointmentDay;
+        Ykc_Talep Extra(Ys_Firma owner, int companyId, string suffix, bool deleted = false) => new()
+        {
+            FirmaId = owner.Id, SirketId = companyId, TesisatNo = prefix + suffix,
+            MusteriAdi = "Filter integrity " + suffix, YeniCihazTipi = "Sofben", EskiCihazTipi = "Sofben",
+            EskiMarka = oldBrand, YeniMarka = newBrand, TalepTarihi = requestDay,
+            RandevuTarihi = appointmentDay, SilindiMi = deleted, Durum = YkcDurumDegerleri.TalepAlindi
+        };
+        var sibling = Extra(siblingFirm, primary.Id, "sibling");
+        var foreign = Extra(foreignFirm, secondary.Id, "foreign");
+        var deleted = Extra(firm, primary.Id, "deleted", true);
+        db.AddRange(records);
+        db.AddRange(sibling, foreign, deleted);
+        await db.SaveChangesAsync();
+        var reader = new YkcTalepOkumaService(db);
+        var personnel = new AppKullanici { KullaniciTipi = KullaniciTipiDegerleri.Personel, SirketId = secondary.Id };
+        var certified = new AppKullanici { KullaniciTipi = KullaniciTipiDegerleri.SertifikaliFirma, FirmaId = firm.Id };
+        var driftedFirm = new AppKullanici { KullaniciTipi = KullaniciTipiDegerleri.Personel, FirmaId = firm.Id };
+
+        async Task Matches(YkcTalepListeFiltre filter, AppKullanici actor, bool privileged, int[] ids, string label)
+        {
+            filter.TesisatNo = prefix;
+            filter.SayfaBoyutu = 100;
+            filter.Sirala = "abone-artan";
+            var list = await reader.ListeAsync(filter, actor, privileged, primary.Id);
+            var report = await reader.RaporAsync(filter, actor, privileged, primary.Id);
+            var exported = await reader.RaporKayitlariAsync(filter, actor, privileged, 100, primary.Id);
+            check(list.Toplam == ids.Length && report.Toplam == ids.Length
+                && report.DurumOzetleri.Sum(x => x.Sayi) == ids.Length
+                && list.Talepler.Select(x => x.Id).Order().SequenceEqual(ids.Order())
+                && report.Kayitlar.Select(x => x.Id).SequenceEqual(list.Talepler.Select(x => x.Id))
+                && exported.Select(x => x.Id).SequenceEqual(list.Talepler.Select(x => x.Id)), label);
+        }
+
+        var selectedIds = records.Select(x => x.Id).Concat([sibling.Id, foreign.Id, deleted.Id]).ToList();
+        foreach (var (actor, privileged, privateView) in new[]
+        {
+            (personnel, false, false), (admin, true, false), (certified, false, true), (driftedFirm, true, true)
+        })
+        {
+            foreach (var brand in new[] { oldBrand, newBrand, "unmatched-brand" })
+            {
+                var ids = brand == "unmatched-brand" || (brand == oldBrand && privateView)
+                    ? Array.Empty<int>()
+                    : records.Select(x => x.Id).Concat(privateView ? Array.Empty<int>() : [sibling.Id]).ToArray();
+                await Matches(new() { Marka = brand, Q = prefix, KayitIdleri = selectedIds, DetayTalepId = records[0].Id },
+                    actor, privileged, ids,
+                    $"Brand filtering hides old source brands from firm counters/list/report/export while retaining internal old/new search: {brand}, firm={privateView}, admin={privileged}");
+            }
+        }
+
+        var typeCases = new (string? Token, int[] OwnIds, bool IncludesSibling)[]
+        {
+            ("\u015eofben", [records[0].Id, records[1].Id], true),
+            ("Sofben", [records[0].Id, records[1].Id], true),
+            (" SOFBEN ", [records[0].Id, records[1].Id], true),
+            ("Di\u011fer", [records[4].Id, records[5].Id], false),
+            ("DIGER", [records[4].Id, records[5].Id], false),
+            ("Kombi", [records[2].Id], false),
+            ("Ocak", [records[3].Id], false),
+            ("legacy/type-42", [records[6].Id], false),
+            ("unmatched-raw-type", [], false),
+            (null, records.Select(x => x.Id).ToArray(), true)
+        };
+        foreach (var (actor, privateView) in new[] { (personnel, false), (certified, true) })
+        {
+            foreach (var (token, ownIds, includesSibling) in typeCases)
+            {
+                var ids = ownIds.Concat(!privateView && includesSibling ? [sibling.Id] : Array.Empty<int>()).ToArray();
+                await Matches(new() { CihazTipi = token }, actor, false, ids,
+                    $"Device display/source aliases match in scoped SQL without whitelisting Kombi/Ocak/unknown/null types or searching hidden old types: {token}, firm={privateView}");
+            }
+        }
+
+        var dateCases = new (YkcTalepListeFiltre Filter, int[] OwnIndexes, bool IncludesSibling, string Label)[]
+        {
+            (new() { RandevuBaslangicTarihi = appointmentDay.AddHours(15), RandevuBitisTarihi = appointmentDay.AddHours(8) },
+                [0, 1, 5, 6, 7], true, "Appointment range includes midnight/day-end, excludes next-day and unscheduled records regardless of request date"),
+            (new() { RandevuBaslangicTarihi = appointmentDay }, [0, 1, 2, 5, 6, 7], true,
+                "Appointment start alone filters the appointment field and excludes null/before-start dates"),
+            (new() { RandevuBitisTarihi = appointmentDay }, [0, 1, 3, 5, 6, 7], true,
+                "Appointment end alone is inclusive through day-end and excludes null/next-day dates"),
+            (new() { RandevuBaslangicTarihi = appointmentDay.AddDays(1), RandevuBitisTarihi = appointmentDay.AddDays(1) }, [2], false,
+                "A next-day appointment is selected by its own date, not the request creation date"),
+            (new() { BaslangicTarihi = appointmentDay, BitisTarihi = appointmentDay }, [2, 3, 4], false,
+                "Existing bas/bit still filter request dates, including unscheduled requests when no appointment filter is set"),
+            (new() { BaslangicTarihi = requestDay, BitisTarihi = requestDay.AddDays(1),
+                RandevuBaslangicTarihi = appointmentDay, RandevuBitisTarihi = appointmentDay }, [0, 1], true,
+                "Request and appointment date ranges intersect rather than replacing each other's semantics")
+        };
+        foreach (var (actor, privateView) in new[] { (personnel, false), (certified, true) })
+        {
+            foreach (var (filter, ownIndexes, includesSibling, label) in dateCases)
+            {
+                var ids = ownIndexes.Select(x => records[x].Id)
+                    .Concat(!privateView && includesSibling ? [sibling.Id] : Array.Empty<int>()).ToArray();
+                await Matches(filter, actor, false, ids, label + ": firm=" + privateView);
             }
         }
     }
