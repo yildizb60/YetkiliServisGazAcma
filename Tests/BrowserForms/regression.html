@@ -509,6 +509,23 @@
                 assert([...records].every(row => row.getBoundingClientRect().right <= listContainer.getBoundingClientRect().right + 1),
                     `A record extends outside the list at ${width}px`);
                 if (width >= 1280) {
+                    const numberCell = records[0].querySelector('[data-label="Talep No"]');
+                    const customerCell = records[0].querySelector('[data-label="Abone Adı Soyadı"]');
+                    const customer = customerCell.querySelector('.ykc-primary-cell,.ykc-cell-main');
+                    assert(numberCell.getBoundingClientRect().width <= 65 &&
+                        customerCell.getBoundingClientRect().width >= (fixture.page === 'requests' ? 128 : 120),
+                        'Request number takes space reserved for the customer name');
+                    const customerText = customer.textContent;
+                    customer.textContent = 'ABDURRAHMAN MEHMET ALI YILMAZ';
+                    const nameStyle = win.getComputedStyle(customer);
+                    assert(nameStyle.whiteSpace === 'normal' && nameStyle.textOverflow === 'clip' &&
+                        customer.scrollHeight <= customer.clientHeight + 1 && customer.scrollWidth <= customer.clientWidth + 1,
+                        'Long customer names must remain fully readable without clipping');
+                    assert(records[0].getBoundingClientRect().height <= 70, 'Readable customer name unnecessarily stretches the row');
+                    customer.textContent = customerText;
+                    assert([...root.querySelectorAll('[data-label="Kontrol Randevusu"] .ykc-primary-cell')].every(appointment =>
+                        parseFloat(win.getComputedStyle(appointment).fontSize) <= 10.5 &&
+                        Number(win.getComputedStyle(appointment).fontWeight) <= 400), 'Appointment text dominates the request row');
                     assert([...root.querySelectorAll('.ys-history-column-heading')].every(heading => heading.scrollWidth <= heading.clientWidth + 1), 'Column filters overlap their headers');
                     const scroller = root.querySelector('.ykc-table-scroll');
                     assert(scroller.scrollWidth <= scroller.clientWidth + 1, 'Desktop directory has horizontal scrolling');
@@ -576,6 +593,18 @@
                     assert([...record.querySelectorAll('td[data-label]')].every(cell => cell.getBoundingClientRect().bottom <= bounds.bottom - 5), 'Square YKC card clips its facts');
                     const footer = record.querySelector('.ykc-action-cell,.ykc-report-status-cell');
                     assert(record.getBoundingClientRect().bottom - footer.getBoundingClientRect().bottom <= 18, 'YKC footer leaves an empty lower card region');
+                }
+                if (fixture.page === 'requests') {
+                    const pending = root.querySelector('.is-pending-appointment');
+                    assert(pending, 'Request fixture needs an unplanned appointment');
+                    pending.textContent = '2. kontrol randevusu planlanacak';
+                    pending.title = pending.textContent;
+                    const pendingBounds = pending.getBoundingClientRect();
+                    const cellBounds = pending.closest('td').getBoundingClientRect();
+                    assert(pendingBounds.right <= cellBounds.right + 1 && pendingBounds.left >= cellBounds.left,
+                        'Long pending appointment spills outside its card');
+                    assert(win.getComputedStyle(pending).textOverflow === 'ellipsis'
+                        && pending.title === pending.textContent, 'Truncated appointment needs its full-text tooltip');
                 }
                 if (fixture.page === 'requests' && fixture.role !== 'SertifikaliFirma') {
                     const appointment = records[0].querySelector('[data-label="Kontrol Randevusu"]');

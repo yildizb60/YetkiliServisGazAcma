@@ -17,6 +17,13 @@ using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
 
+if (args.Contains("--vkn-only", StringComparer.Ordinal))
+{
+    await VknNormalizationRegression.RunAsync();
+    await PublicDirectoryApiRegression.RunAsync();
+    return;
+}
+
 if (args.Contains("--export-contract-only", StringComparer.Ordinal))
 {
     await ExportApiContractRegression.RunAsync();
@@ -59,6 +66,7 @@ if (args.Contains("--sms-cleanup-only", StringComparer.Ordinal))
 }
 if (args.Contains("--brand-only", StringComparer.Ordinal))
     return;
+await VknNormalizationRegression.RunAsync();
 await PublicDirectoryApiRegression.RunAsync();
 await ReferenceApiRegression.RunAsync();
 await ExportApiContractRegression.RunAsync();

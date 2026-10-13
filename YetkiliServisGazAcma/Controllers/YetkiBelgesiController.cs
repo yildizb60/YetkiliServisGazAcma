@@ -87,7 +87,7 @@ namespace YetkiliServisGazAcma.Controllers
             {
                 var sonuc = await _yetkiBelgesiApiClient.YukleAsync(
                     kullanici, firmaId, dosya, bitisTarihi, baslangicTarihi);
-                SetYetkiBelgesiIslemMesaji(sonuc, "Yetki belgesi yüklendi. Onay bekleniyor.", "Basarili");
+                SetYetkiBelgesiIslemMesaji(sonuc, "Yetki belgesi yüklendi. Onay bekleniyor.");
             }
             catch (ApiIntegrationException ex)
             {
@@ -110,7 +110,7 @@ namespace YetkiliServisGazAcma.Controllers
             try
             {
                 var sonuc = await _yetkiBelgesiApiClient.SilAsync(kullanici, id);
-                SetYetkiBelgesiIslemMesaji(sonuc, "Yetki belgesi silindi.", basariKey: "Basarili");
+                SetYetkiBelgesiIslemMesaji(sonuc, "Yetki belgesi silindi.");
             }
             catch (ApiIntegrationException ex)
             {
@@ -191,7 +191,7 @@ namespace YetkiliServisGazAcma.Controllers
             try
             {
                 var sonuc = await _yetkiBelgesiApiClient.OnaylaAsync(kullanici, id);
-                SetYetkiBelgesiIslemMesaji(sonuc, "Yetki belgesi onaylandi.", basariKey: "Basarili");
+                SetYetkiBelgesiIslemMesaji(sonuc, "Yetki belgesi onaylandi.");
             }
             catch (ApiIntegrationException ex)
             {
@@ -213,7 +213,7 @@ namespace YetkiliServisGazAcma.Controllers
             try
             {
                 var sonuc = await _yetkiBelgesiApiClient.ReddetAsync(kullanici, id, gerekce);
-                SetYetkiBelgesiIslemMesaji(sonuc, "Yetki belgesi reddedildi.", basariKey: "Hata");
+                SetYetkiBelgesiIslemMesaji(sonuc, "Yetki belgesi reddedildi.");
             }
             catch (ApiIntegrationException ex)
             {
@@ -223,11 +223,11 @@ namespace YetkiliServisGazAcma.Controllers
             return Url.IsLocalUrl(returnUrl) ? LocalRedirect(returnUrl!) : Redirect("/ys-yetki-belgesi/onay-bekleyenler");
         }
 
-        private void SetYetkiBelgesiIslemMesaji(ApiIslemSonuc? sonuc, string varsayilanBasari, string basariKey)
+        private void SetYetkiBelgesiIslemMesaji(ApiIslemSonuc? sonuc, string varsayilanBasari)
         {
             if (sonuc?.Basarili == true)
             {
-                TempData[basariKey] = sonuc.Mesaj ?? varsayilanBasari;
+                TempData["Basarili"] = sonuc.Mesaj ?? varsayilanBasari;
                 return;
             }
 

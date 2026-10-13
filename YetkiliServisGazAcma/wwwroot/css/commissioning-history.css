@@ -124,22 +124,22 @@
     .df-record-directory:not([data-view="cards"]) .ykc-data-table { --ykc-extra:max(0px,calc(100cqw - 978px)); }
     .df-record-directory:not([data-view="cards"]) .ykc-data-table.is-firm { --ykc-extra:max(0px,calc(100cqw - 818px)); }
     .df-record-directory .ykc-col-select { width:24px; }
-    .df-record-directory .ykc-col-record { width:70px; }
-    .df-record-directory .ykc-col-customer { width:calc(114px + var(--ykc-extra) * .15); }
+    .df-record-directory .ykc-col-record { width:64px; }
+    .df-record-directory .ykc-col-customer { width:calc(128px + var(--ykc-extra) * .35); }
     .df-record-directory .ykc-col-company { width:calc(56px + var(--ykc-extra) * .15); }
     .df-record-directory .ykc-col-installation { width:calc(82px + var(--ykc-extra) * .05); }
     .df-record-directory .ykc-col-contract { width:calc(96px + var(--ykc-extra) * .05); }
     .df-record-directory .ykc-col-type { width:106px; }
     .df-record-directory .ykc-col-project { width:calc(104px + var(--ykc-extra) * .15); }
-    .df-record-directory .ykc-col-new { width:calc(130px + var(--ykc-extra) * .25); }
-    .df-record-directory .ykc-col-date { width:calc(130px + var(--ykc-extra) * .20); }
+    .df-record-directory .ykc-col-new { width:calc(130px + var(--ykc-extra) * .15); }
+    .df-record-directory .ykc-col-date { width:calc(122px + var(--ykc-extra) * .10); }
     .df-record-directory .ykc-col-status { width:66px; }
-    .df-record-directory .is-firm .ykc-col-customer { width:calc(114px + var(--ykc-extra) * .25); }
-    .df-record-directory .is-firm .ykc-col-new { width:calc(130px + var(--ykc-extra) * .35); }
-    .df-record-directory .is-firm .ykc-col-date { width:calc(130px + var(--ykc-extra) * .30); }
+    .df-record-directory .is-firm .ykc-col-customer { width:calc(128px + var(--ykc-extra) * .50); }
+    .df-record-directory .is-firm .ykc-col-new { width:calc(130px + var(--ykc-extra) * .20); }
+    .df-record-directory .is-firm .ykc-col-date { width:calc(122px + var(--ykc-extra) * .20); }
     .df-record-directory:not([data-view="cards"]) .ykc-report-table { --ykc-extra:max(0px,calc(100cqw - 980px)); }
     .df-record-directory:not([data-view="cards"]) .ykc-report-table.is-firm { --ykc-extra:max(0px,calc(100cqw - 752px)); }
-    .df-record-directory .ykc-report-table .ykc-col-customer { width:calc(114px + var(--ykc-extra) * .14); }
+    .df-record-directory .ykc-report-table .ykc-col-customer { width:calc(120px + var(--ykc-extra) * .14); }
     .df-record-directory .ykc-report-table .ykc-col-installation { width:calc(82px + var(--ykc-extra) * .075); }
     .df-record-directory .ykc-report-table .ykc-col-contract { width:calc(96px + var(--ykc-extra) * .075); }
     .df-record-directory .ykc-report-table .ykc-col-company { width:calc(64px + var(--ykc-extra) * .14); }
@@ -148,13 +148,15 @@
     .df-record-directory .ykc-report-table .ykc-col-team { width:calc(58px + var(--ykc-extra) * .10); }
     .df-record-directory .ykc-report-table .ykc-col-status { width:calc(96px + var(--ykc-extra) * .13); }
     .df-record-directory .ykc-report-table .ykc-col-detail { width:34px; }
-    .df-record-directory .ykc-report-table.is-firm .ykc-col-customer { width:calc(114px + var(--ykc-extra) * .24); }
+    .df-record-directory .ykc-report-table.is-firm .ykc-col-customer { width:calc(120px + var(--ykc-extra) * .24); }
     .df-record-directory .ykc-report-table.is-firm .ykc-col-installation { width:calc(82px + var(--ykc-extra) * .14); }
     .df-record-directory .ykc-report-table.is-firm .ykc-col-contract { width:calc(96px + var(--ykc-extra) * .14); }
     .df-record-directory .ykc-report-table.is-firm .ykc-col-new { width:calc(130px + var(--ykc-extra) * .28); }
     .df-record-directory .ykc-report-table.is-firm .ykc-col-status { width:calc(96px + var(--ykc-extra) * .20); }
     .df-record-directory:not([data-view="cards"]) .df-record-table :is(th,td) { padding-inline:4px; }
     .df-record-directory:not([data-view="cards"]) .ys-history-column-trigger { width:14px; flex-basis:14px; }
+    .df-record-directory:not([data-view="cards"]) .df-record-table th[data-directory-column="record"] { padding-inline:2px; }
+    .df-record-directory:not([data-view="cards"]) th[data-directory-column="record"] .ys-history-column-heading { gap:0; }
     .df-record-directory:not([data-view="cards"]) .ykc-directory-select { padding-inline:4px !important; }
     .df-record-directory:not([data-view="cards"]) .df-record-table tbody td { padding-top:4px; padding-bottom:4px; }
     .df-record-directory:not([data-view="cards"]) .ykc-device-summary { gap:2px; }
@@ -209,6 +211,9 @@
     .df-record-directory:not([data-view="cards"]) .ykc-list-process { display:flex; align-items:center; gap:6px; }
     .df-record-directory:not([data-view="cards"]) .ykc-primary-cell.is-pending-appointment { font-size:10.5px; line-height:14px; }
 }
+.df-record-directory:not([data-view="cards"]) .df-record-table :is(.ykc-directory-customer,.ykc-report-customer-cell) :is(.ykc-primary-cell,.ykc-cell-main) { overflow:visible; text-overflow:clip; white-space:normal; overflow-wrap:anywhere; line-height:15px; }
+.df-record-directory:not([data-view="cards"]) .df-record-table td[data-label="Kontrol Randevusu"] .ykc-primary-cell { font-size:10.5px; font-weight:400; line-height:14px; }
+.df-record-directory:not([data-view="cards"]) .df-record-table td[data-label="Kontrol Randevusu"] .ykc-cell-meta { font-size:10px; font-weight:400; line-height:14px; }
 :is(.df-commissioning-directory,.df-record-directory)[data-view="cards"] { --directory-card-background:#f2f5f9; --directory-card-border:#dce3ed; --directory-card-label:#52677c; --directory-card-ink:#283e54; --directory-card-label-size:10px; --directory-card-value-size:11px; --directory-card-line:14px; --directory-card-inset:14px; }
 :is(.df-commissioning-directory,.df-record-directory)[data-view="cards"] .df-device-type-icon { width:10px; height:10px; flex-basis:10px; }
 :is(.df-commissioning-directory,.df-record-directory)[data-view="cards"] .df-device-type-fallback { font-size:10px; }
@@ -270,7 +275,7 @@
 .df-record-directory[data-view="cards"] .df-record-table td[data-label="Kontrol Randevusu"] { position:relative; display:grid; grid-template-columns:max-content minmax(0,1fr); align-items:baseline; gap:2px 6px; }
 .df-record-directory[data-view="cards"] td[data-label="Kontrol Randevusu"]::before { margin:0; }
 .df-record-directory[data-view="cards"] td[data-label="Kontrol Randevusu"] .ykc-primary-cell { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.df-record-directory[data-view="cards"] .df-record-table .is-pending-appointment { justify-self:start; padding:0; border:0; background:transparent; color:#315fca; font-size:10px; font-weight:400; line-height:14px; }
+.df-record-directory[data-view="cards"] .df-record-table .is-pending-appointment { display:block; justify-self:stretch; max-width:100%; padding:0; border:0; background:transparent; color:#315fca; font-size:10px; font-weight:400; line-height:14px; }
 .df-record-directory[data-view="cards"] td[data-label="Kontrol Randevusu"] .ykc-cell-meta { grid-column:1 / -1; margin:0; line-height:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .df-record-directory[data-view="cards"] .ykc-control-limit-note { position:absolute; top:1px; right:0; margin:0; line-height:14px; }
 .df-record-directory[data-view="cards"] .ykc-control-limit-note > span { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }

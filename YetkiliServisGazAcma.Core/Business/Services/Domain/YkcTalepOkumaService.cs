@@ -302,7 +302,6 @@ public sealed class YkcTalepOkumaService(AppDbContext context)
         var kayitIdleri = filtre.KayitIdleri?
             .Where(x => x > 0)
             .Distinct()
-            .Take(5000)
             .ToList();
         if (kayitIdleri is not null)
             query = query.Where(x => kayitIdleri.Contains(x.Id));

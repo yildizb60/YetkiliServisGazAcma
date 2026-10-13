@@ -36,6 +36,8 @@ internal static class MvcPolicyRegression
             passed++;
         }
 
+        await CheckDetailFailuresAsync(Check);
+
         // Compile/render MVC views without the application host, a server or a database.
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions
         {
@@ -135,6 +137,68 @@ internal static class MvcPolicyRegression
         Console.WriteLine($"{passed} MVC policy checks passed. No server or application data used.");
     }
 
+    private static async Task CheckDetailFailuresAsync(Action<bool, string> check)
+    {
+        const string unavailable = "Veri servisine şu anda ulaşılamıyor. Lütfen kısa bir süre sonra yeniden deneyin.";
+        (string Name, Func<HttpResponseMessage> Response, string Message, int Attempts)[] cases =
+        [
+            ("foreign company (403)", () => Error(HttpStatusCode.Forbidden),
+                "Bu işlem veya dosya için erişim yetkiniz yok.", 1),
+            ("missing/scoped-out request (404)", () => Error(HttpStatusCode.NotFound),
+                "İstenen kayıt veya dosya bulunamadı.", 1),
+            ("expired session (401)", () => Error(HttpStatusCode.Unauthorized),
+                "Oturumunuzun süresi doldu. Lütfen yeniden giriş yapın.", 1),
+            ("rate limit (429)", () => Error(HttpStatusCode.TooManyRequests),
+                "Çok fazla istek gönderildi. Kısa bir süre sonra tekrar deneyin.", 1),
+            ("service failure (503)", () => Error(HttpStatusCode.ServiceUnavailable), unavailable, 3),
+            ("malformed response", () => Error(HttpStatusCode.OK),
+                "Veri servisinden geçerli yanıt alınamadı.", 1),
+            ("connection failure", () => throw new HttpRequestException("PRIVATE-API-DIAGNOSTIC"), unavailable, 3),
+            ("timeout", () => throw new TaskCanceledException("PRIVATE-API-DIAGNOSTIC"), unavailable, 3)
+        ];
+
+        foreach (var scenario in cases)
+        foreach (var preview in new[] { false, true })
+        {
+            using var fixture = new PolicyFixture("SertifikaliFirma");
+            fixture.Handler.DetailResponse = scenario.Response;
+            fixture.Http.Request.Path = preview ? "/ykc/fr265/onizle/40" : "/ykc/detay/40";
+            fixture.Http.Request.QueryString = new QueryString("?geri=%2Fykc%2Ftalepler%3FsirketId%3D2%26sayfa%3D1");
+            var result = preview ? await fixture.Ykc.Fr265Onizle(40) : await fixture.Ykc.Detay(40);
+            var name = (preview ? "Preview: " : "Detail: ") + scenario.Name;
+            check(result is RedirectToActionResult { ActionName: nameof(YkcController.Talepler) } redirect
+                && redirect.RouteValues?.Count is null or 0,
+                name + " returns to the request list without foreign-company filters");
+            check(fixture.Ykc.TempData["Hata"] is string message && message == scenario.Message
+                && !message.Contains("yeniden kurul", StringComparison.Ordinal)
+                && !message.Contains("PRIVATE-API-DIAGNOSTIC", StringComparison.Ordinal),
+                name + " retains the safe API error classification without claiming reconnection");
+            check(fixture.Handler.Paths.Where(x => x.StartsWith("/api/ykc/", StringComparison.Ordinal))
+                .SequenceEqual(Enumerable.Repeat("/api/ykc/talepler/getir", scenario.Attempts)),
+                name + " preserves the detail client's retry policy without fetching other data");
+        }
+
+        foreach (var status in new[] { HttpStatusCode.Forbidden, HttpStatusCode.NotFound })
+        foreach (var (source, action) in new[]
+        {
+            ("rapor", nameof(YkcController.Raporlar)),
+            ("takvim", nameof(YkcController.Takvim)),
+            ("https://untrusted.invalid/", nameof(YkcController.Talepler))
+        })
+        {
+            using var fixture = new PolicyFixture("SertifikaliFirma");
+            fixture.Handler.DetailResponse = () => Error(status);
+            check(await fixture.Ykc.Detay(40, source) is RedirectToActionResult redirect
+                && redirect.ActionName == action,
+                $"Detail {status} preserves the allowlisted source redirect: {source}");
+        }
+
+        static HttpResponseMessage Error(HttpStatusCode status) => new(status)
+        {
+            Content = new StringContent("<html>PRIVATE-API-DIAGNOSTIC</html>", System.Text.Encoding.UTF8, "text/html")
+        };
+    }
+
     private static async Task<string> RenderAsync(IServiceProvider services, PolicyFixture fixture, YkcTalepDetayDto model)
     {
         fixture.Http.RequestServices = services;
@@ -216,6 +280,7 @@ internal static class MvcPolicyRegression
         public static readonly byte[] PdfBytes = [37, 80, 68, 70, 45, 49, 46, 55];
         public List<string> Paths { get; } = [];
         public AdminYetkiGuncelleDto? Permissions { get; private set; }
+        public Func<HttpResponseMessage>? DetailResponse { get; set; }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
@@ -237,6 +302,7 @@ internal static class MvcPolicyRegression
                 response = new[] { new PanelSirketDto { Id = 7, SirketAdi = "Fixture Company" } };
             else if (path == "/api/ykc/talepler/getir")
             {
+                if (DetailResponse != null) return DetailResponse();
                 var detail = new YkcTalepDetayDto
                 {
                     Id = 42, Durum = YkcDurumDegerleri.SahaIsleminde,
