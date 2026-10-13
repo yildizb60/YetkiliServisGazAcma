@@ -122,16 +122,36 @@
         body.querySelectorAll('input, select').forEach(control => { control.value = ''; });
         form.requestSubmit();
     });
+    const menus = Array.from(root.querySelectorAll('.ys-history-menu'));
+    menus.forEach(menu => menu.addEventListener('toggle', () => {
+        if (!menu.open) return;
+        menus.filter(other => other !== menu).forEach(other => { other.open = false; });
+        const content = menu.querySelector('.ys-history-menu-body');
+        content.style.transform = '';
+        const bounds = content.getBoundingClientRect();
+        const viewportWidth = document.documentElement.clientWidth;
+        const offset = bounds.left < 12 ? 12 - bounds.left : Math.min(0, viewportWidth - 12 - bounds.right);
+        if (offset) content.style.transform = `translateX(${offset}px)`;
+    }));
     document.addEventListener('keydown', event => {
-        if (event.key === 'Escape' && currentButton) { event.preventDefault(); closeColumnFilter(true); }
+        if (event.key !== 'Escape') return;
+        if (currentButton) { event.preventDefault(); closeColumnFilter(true); }
+        menus.filter(menu => menu.open).forEach(menu => {
+            event.preventDefault();
+            menu.open = false;
+            menu.querySelector('summary').focus({ preventScroll: true });
+        });
     });
     document.addEventListener('click', event => {
         if (currentButton && !popover.contains(event.target) && !currentButton.contains(event.target)) closeColumnFilter();
-        root.querySelectorAll('.ys-history-menu[open]').forEach(menu => {
+        menus.filter(menu => menu.open).forEach(menu => {
             if (!menu.contains(event.target)) menu.open = false;
         });
     });
-    window.addEventListener('resize', () => closeColumnFilter());
+    window.addEventListener('resize', () => {
+        closeColumnFilter();
+        menus.forEach(menu => { menu.open = false; });
+    });
     document.addEventListener('scroll', event => {
         if (!popover.contains(event.target)) closeColumnFilter();
     }, true);

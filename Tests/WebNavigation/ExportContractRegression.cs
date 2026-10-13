@@ -120,6 +120,51 @@ internal static class ExportContractRegression
                 count + " repeated form IDs bind intact without raising the global MVC collection limit");
         }
 
+        foreach (var verb in new[] { "GET", "POST" })
+        foreach (var excel in new[] { false, true })
+        foreach (var selection in new string?[] { null, "", "54" })
+        {
+            using var fixture = new NavigationFixture("GenelSistemAdmin");
+            fixture.Http.Request.Method = verb;
+            var values = new Dictionary<string, StringValues> { ["sozlesmeNo"] = "000943" };
+            if (selection != null) values["ids"] = selection;
+            IValueProvider valueProvider;
+            if (verb == "POST")
+            {
+                fixture.Http.Request.ContentType = "application/x-www-form-urlencoded";
+                fixture.Http.Request.Form = new FormCollection(values);
+                valueProvider = new FormValueProvider(BindingSource.Form, fixture.Http.Request.Form,
+                    System.Globalization.CultureInfo.InvariantCulture);
+            }
+            else
+            {
+                fixture.Http.Request.Query = new QueryCollection(values);
+                valueProvider = new QueryStringValueProvider(BindingSource.Query, fixture.Http.Request.Query,
+                    System.Globalization.CultureInfo.InvariantCulture);
+            }
+            var binding = DefaultModelBindingContext.CreateBindingContext(
+                new ActionContext(fixture.Http, new RouteData(), new ActionDescriptor()), valueProvider,
+                new EmptyModelMetadataProvider().GetMetadataForType(typeof(List<int>)), bindingInfo: null, modelName: "ids");
+            var binder = new CollectionModelBinder<int>(
+                new SimpleTypeModelBinder(typeof(int), NullLoggerFactory.Instance), NullLoggerFactory.Instance);
+            await binder.BindModelAsync(binding);
+            var boundIds = (List<int>?)binding.Result.Model;
+            if (selection == null)
+                Check(boundIds is { Count: 0 },
+                    $"YKC {verb}, Excel={excel}: MVC supplies an empty top-level collection when IDs are absent");
+            _ = excel
+                ? await fixture.Controller.RaporExcel(null, null, null, null, null, null, null, null, null, null, null,
+                    boundIds, sozlesmeNo: "000943", sirala: "abone-artan", sayfa: 3)
+                : await fixture.Controller.RaporPdf(null, null, null, null, null, null, null, null, null, null, null,
+                    boundIds, sozlesmeNo: "000943", sirala: "abone-artan", sayfa: 3);
+            var filter = fixture.Handler.LastReportFilter!;
+            Check((selection == null ? filter.KayitIdleri == null
+                    : selection == "" ? filter.KayitIdleri is { Count: 0 }
+                    : filter.KayitIdleri!.SequenceEqual([54]))
+                && filter.SozlesmeNo == "000943" && filter.Sirala == "abone-artan" && filter.Sayfa == 3,
+                $"YKC {verb}, Excel={excel}, IDs={selection ?? "absent"}: bound export distinguishes filtered-all from explicit selection");
+        }
+
         foreach (var role in new[] { "GenelSistemAdmin", "SirketAdmin", "Personel", "YetkiliServis" })
         foreach (var excel in new[] { false, true })
         {

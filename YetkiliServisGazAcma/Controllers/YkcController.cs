@@ -297,7 +297,7 @@ namespace YetkiliServisGazAcma.Controllers
         {
             return await RaporDosyasi(
                 RaporFiltresi(tesisatNo, firma, il, ilce, bolge, ekip, marka, hedefUygulama, durum, bas, bit,
-                    sayfa, sayfaBoyutu, kayitIdleri: ids != null || Request.Query.ContainsKey("ids")
+                    sayfa, sayfaBoyutu, kayitIdleri: ids is { Count: > 0 } || Request.Query.ContainsKey("ids")
                         || (Request.HasFormContentType && Request.Form.ContainsKey("ids")) ? ids ?? new List<int>() : null,
                     talepId: talepId, sirketId: sirketId, q: q, sirala: sirala, musteriAdi: musteriAdi,
                     sozlesmeNo: sozlesmeNo, cihazTipi: cihazTipi, aboneNo: aboneNo, kontrolNo: kontrolNo, bekleyenIs: bekleyenIs,
@@ -320,7 +320,7 @@ namespace YetkiliServisGazAcma.Controllers
         {
             return await RaporDosyasi(
                 RaporFiltresi(tesisatNo, firma, il, ilce, bolge, ekip, marka, hedefUygulama, durum, bas, bit,
-                    sayfa, sayfaBoyutu, kayitIdleri: ids != null || Request.Query.ContainsKey("ids")
+                    sayfa, sayfaBoyutu, kayitIdleri: ids is { Count: > 0 } || Request.Query.ContainsKey("ids")
                         || (Request.HasFormContentType && Request.Form.ContainsKey("ids")) ? ids ?? new List<int>() : null,
                     talepId: talepId, sirketId: sirketId, q: q, sirala: sirala, musteriAdi: musteriAdi,
                     sozlesmeNo: sozlesmeNo, cihazTipi: cihazTipi, aboneNo: aboneNo, kontrolNo: kontrolNo, bekleyenIs: bekleyenIs,

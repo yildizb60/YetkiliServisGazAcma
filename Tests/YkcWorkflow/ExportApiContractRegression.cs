@@ -80,6 +80,69 @@ internal static class ExportApiContractRegression
             new AppKullanici { FirmaId = 9, KullaniciTipi = KullaniciTipiDegerleri.SertifikaliFirma }, true, 5001, 7));
         Check(firmQuery.Contains("x.FirmaId ==") && firmQuery.Contains("x.SirketId ==")
             && firmQuery.Contains(".Contains(x.Id)"), "Privileged role flags never bypass firm and company scope in selected YKC export");
+
+        foreach (var sort in new[] { "tarih-artan", "tarih-azalan", "abone-artan", "abone-azalan" })
+        {
+            var sortedQuery = await CaptureAsync(db => new YkcTalepOkumaService(db).RaporKayitlariAsync(new()
+            {
+                Q = "000943", Sirala = sort, CihazTipi = "\u015eofben", TalepId = 42,
+                Sayfa = 3, SayfaBoyutu = 10
+            }, admin, true, 5001, 7));
+            var expectedOrder = sort switch
+            {
+                "tarih-artan" => "OrderBy(x => x.TalepTarihi).ThenBy(x => x.Id)",
+                "abone-artan" => "OrderBy(x =>",
+                "abone-azalan" => "OrderByDescending(x =>",
+                _ => "OrderByDescending(x => x.TalepTarihi).ThenByDescending(x => x.Id)"
+            };
+            Check(sortedQuery.Contains(expectedOrder) && sortedQuery.Contains("x.Id ==")
+                && sortedQuery.Contains("x.SirketId ==") && sortedQuery.Contains("Turkish_CI_AS")
+                && !sortedQuery.Contains("Skip("),
+                $"YKC {sort}: free text, device alias and request ID compile to scoped SQL without export pagination");
+        }
+
+        // Execute the actual filter predicates on fixtures without a database or provider emulation.
+        var records = new[]
+        {
+            new Ykc_Talep { Id = 42, SirketId = 7, FirmaId = 9, TesisatNo = "000123", SozlesmeNo = "000943",
+                EskiMarka = "OldBrand", YeniMarka = "NewBrand", TalepTarihi = new(2026, 9, 1), RandevuTarihi = new(2026, 10, 31, 23, 59, 59) },
+            new Ykc_Talep { Id = 43, SirketId = 7, FirmaId = 10, TesisatNo = "000943", SozlesmeNo = "000123",
+                TalepTarihi = new(2026, 9, 2), RandevuTarihi = new(2026, 11, 1) },
+            new Ykc_Talep { Id = 44, SirketId = 8, FirmaId = 9, TesisatNo = "000123", SozlesmeNo = "000943" },
+            new Ykc_Talep { Id = 45, SirketId = 8, FirmaId = 11, TesisatNo = "000943", SozlesmeNo = "000123" }
+        }.AsQueryable();
+        var apply = typeof(YkcTalepOkumaService).GetMethod("FiltreleriUygulaAsync", BindingFlags.NonPublic | BindingFlags.Static)!;
+        async Task<int[]> FilterIds(YkcTalepListeFiltre criteria, AppKullanici user, bool privileged, int? company = null)
+        {
+            var filtered = await (Task<IQueryable<Ykc_Talep>>)apply.Invoke(null, [records, criteria, user, privileged, company])!;
+            return filtered.Select(x => x.Id).ToArray();
+        }
+        Check((await FilterIds(new() { SozlesmeNo = "000943" }, admin, true, 7)).SequenceEqual([42]),
+            "Contract search preserves leading zeros and does not match the installation-number field");
+        Check((await FilterIds(new() { TesisatNo = "000943" }, admin, true, 7)).SequenceEqual([43]),
+            "Installation search is independent of contract search");
+        Check((await FilterIds(new() { KayitIdleri = [42, 43, 44, 45], SozlesmeNo = "000943" }, admin, true, 7)).SequenceEqual([42]),
+            "Selected IDs remain intersected with both company scope and report filters");
+        Check((await FilterIds(new() { KayitIdleri = [] }, admin, true)).Length == 0,
+            "Explicit empty API selection never becomes filtered-all");
+        var firm = new AppKullanici { FirmaId = 9, KullaniciTipi = KullaniciTipiDegerleri.SertifikaliFirma };
+        Check((await FilterIds(new() { KayitIdleri = [42, 43, 44, 45] }, firm, true, 7)).SequenceEqual([42]),
+            "A privileged flag cannot expand selected records beyond firm and company intersection");
+        Check((await FilterIds(new(), new() { KullaniciTipi = KullaniciTipiDegerleri.SertifikaliFirma }, true)).Length == 0,
+            "A firm account without a firm ID remains fail-closed even with a privileged flag");
+        Check((await FilterIds(new() { SirketId = 8 }, new() { SirketId = 7, KullaniciTipi = KullaniciTipiDegerleri.Personel }, false)).SequenceEqual([42, 43]),
+            "An unverified filter company cannot expand personnel scope");
+        Check((await FilterIds(new() { Marka = "OldBrand" }, firm, false, 7)).Length == 0
+            && (await FilterIds(new() { Marka = "NewBrand" }, firm, false, 7)).SequenceEqual([42])
+            && (await FilterIds(new() { Marka = "OldBrand" }, admin, true, 7)).SequenceEqual([42]),
+            "Firm brand search uses only its visible new device; internal search also includes the old device");
+        Check((await FilterIds(new()
+        {
+            RandevuBaslangicTarihi = new(2026, 10, 31), RandevuBitisTarihi = new(2026, 10, 31)
+        }, admin, true)).SequenceEqual([42]),
+            "Appointment date range includes the final day's last second and excludes the following midnight and null dates");
+        Check((await FilterIds(new() { TalepId = 43, KayitIdleri = [42] }, admin, true, 7)).Length == 0,
+            "Request-ID and selected-row filters cannot replace one another");
         Console.WriteLine($"{passed} no-database export API contract checks passed.");
     }
 

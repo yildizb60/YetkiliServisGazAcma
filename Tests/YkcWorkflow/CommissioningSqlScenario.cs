@@ -1,4 +1,6 @@
 using System.Net;
+using System.Data;
+using System.Data.Common;
 using System.Security.Claims;
 using System.Text.Json;
 using System.Xml.Linq;
@@ -8,6 +10,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -20,8 +23,90 @@ using YetkiliServisGazAcma.Models;
 
 internal static class CommissioningSqlScenario
 {
+    public static async Task RunNoDatabaseAsync()
+    {
+        var passed = 0;
+        void Check(bool condition, string label)
+        {
+            if (!condition) throw new InvalidOperationException("FAIL: " + label);
+            Console.WriteLine("PASS: " + label);
+            passed++;
+        }
+
+        foreach (var (status, expected) in new[] { ("bekliyor", 0), ("0", 0), ("tamamlandi", 1),
+            ("1", 1), ("iptal", 2), ("2", 2), (" TAMAMLANDI ", 1) })
+        {
+            var probe = new HistoryQueryProbe();
+            await using var db = HistoryProbeContext(probe);
+            var history = await new DevreyeAlmaOkumaApiService(db, null!, null!).GecmisAsync(73,
+                new() { Durum = status, SozlesmeNo = " ", Arama = "\t", CihazTipi = "Kombi" });
+            var summary = probe.Commands[0];
+            var rows = probe.Commands[1];
+            Check(summary.Sql.Contains("GROUP BY") && summary.Sql.Contains("COUNT(*)")
+                && !summary.Sql.Contains(".[Durum] ="), "History counts all statuses in SQL: " + status);
+            Check(rows.Sql.Contains(".[Durum] =") && rows.Parameters.Any(x => x.Key.Contains("seciliDurum")
+                && Equals(x.Value, expected)), "History filters status before loading and source enrichment: " + status);
+            Check(rows.Sql.Contains(".[FirmaId] =") && rows.Parameters.Values.Contains(73)
+                && rows.Sql.Contains(".[SilindiMi] = CAST(0 AS bit)") && rows.Parameters.Values.Contains("Kombi"),
+                "History status fast path retains firm, deletion and device filters: " + status);
+            Check(history.Toplam == 12 && history.Bekleyen == 3 && history.Tamamlanan == 4 && history.Iptal == 5,
+                "History retains pre-status counters: " + status);
+        }
+
+        foreach (var filter in new YsDevreyeAlmaGecmisFiltreDto[]
+        {
+            new() { Durum = "1", SozlesmeNo = "123" }, new() { Durum = "1", Arama = "123" },
+            new() { Durum = "unknown" }, new()
+        })
+        {
+            var probe = new HistoryQueryProbe();
+            await using var db = HistoryProbeContext(probe);
+            await new DevreyeAlmaOkumaApiService(db, null!, null!).GecmisAsync(73, filter);
+            Check(!probe.Commands[0].Sql.Contains("GROUP BY") && !probe.Commands[0].Sql.Contains(".[Durum] ="),
+                "Enriched searches and unfiltered history retain the full pre-status record set");
+        }
+        Console.WriteLine($"{passed} no-database commissioning history checks passed.");
+    }
+
+    private static AppDbContext HistoryProbeContext(HistoryQueryProbe probe) => new(
+        new DbContextOptionsBuilder<AppDbContext>()
+            .UseSqlServer("Server=unused;Database=HistoryProbe;Integrated Security=true;TrustServerCertificate=true")
+            .AddInterceptors(probe, new HistoryConnectionSuppression()).Options);
+
+    // Suppress every connection and reader; only provider translation and service control flow execute.
+    private sealed class HistoryConnectionSuppression : DbConnectionInterceptor
+    {
+        public override InterceptionResult ConnectionOpening(DbConnection connection, ConnectionEventData eventData,
+            InterceptionResult result) => InterceptionResult.Suppress();
+        public override ValueTask<InterceptionResult> ConnectionOpeningAsync(DbConnection connection, ConnectionEventData eventData,
+            InterceptionResult result, CancellationToken cancellationToken = default) => new(InterceptionResult.Suppress());
+    }
+
+    private sealed class HistoryQueryProbe : DbCommandInterceptor
+    {
+        public List<(string Sql, Dictionary<string, object?> Parameters)> Commands { get; } = [];
+
+        public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(DbCommand command,
+            CommandEventData eventData, InterceptionResult<DbDataReader> result, CancellationToken cancellationToken = default)
+        {
+            Commands.Add((command.CommandText, command.Parameters.Cast<DbParameter>()
+                .ToDictionary(x => x.ParameterName, x => (object?)x.Value)));
+            var table = new DataTable();
+            if (command.CommandText.Contains("GROUP BY"))
+            {
+                table.Columns.Add("Durum", typeof(int));
+                table.Columns.Add("Sayi", typeof(int));
+                table.Rows.Add(0, 3);
+                table.Rows.Add(1, 4);
+                table.Rows.Add(2, 5);
+            }
+            return new(InterceptionResult<DbDataReader>.SuppressWithResult(table.CreateDataReader()));
+        }
+    }
+
     public static async Task RunAsync()
     {
+        await RunNoDatabaseAsync();
         var databaseName = "YsCommissioningSqlTest_" + Guid.NewGuid().ToString("N");
         var connection = $@"Server=(localdb)\MSSQLLocalDB;Database={databaseName};Integrated Security=true;TrustServerCertificate=true";
         var options = new DbContextOptionsBuilder<AppDbContext>().UseSqlServer(connection).Options;

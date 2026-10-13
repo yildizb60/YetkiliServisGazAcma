@@ -38,7 +38,7 @@
 
     async function test(name, run) {
         if (previewTest && name !== previewTest) return;
-        if (directoryGroup && !/^(Commissioning contract filter fits|History column filters|Commissioning column boundaries|Commissioning card facts|Commissioning .* shares selection|Commissioning .* uses balanced shared columns|Commissioning bulk export|Saved card view|Empty commissioning directories|Commissioning type badge)/.test(name)) return;
+        if (directoryGroup && !/^(Commissioning contract filter fits|History column filters|History toolbar menus|Commissioning column boundaries|Commissioning card facts|Commissioning .* shares selection|Commissioning .* uses balanced shared columns|Commissioning bulk export|Saved card view|Empty commissioning directories|Commissioning type badge)/.test(name)) return;
         if (ykcDirectoryGroup && !name.startsWith('YKC directory')) return;
         const frame = document.createElement('iframe');
         frame.title = name;
@@ -611,6 +611,33 @@
         }
     }
 
+    for (const width of [320, 390, 768, 1280]) {
+        await test(`History toolbar menus stay inside the screen and close with Escape at ${width}px`, async (doc, win, load) => {
+            const fixture = ykcDirectories.find(item => item.role === 'Personel' && item.page === 'requests');
+            assert(fixture, 'Compiled shared toolbar fixture is required');
+            const parsed = new win.DOMParser().parseFromString(fixture.html, 'text/html');
+            doc.body.innerHTML = parsed.querySelector('[data-history-directory]').outerHTML;
+            const style = doc.createElement('style');
+            style.textContent = panelCss + '\n' + reportCss + '\n' + historyCss;
+            doc.head.append(style);
+            win.frameElement.style.width = `${width}px`;
+            doc.body.style.margin = '12px';
+            load('history');
+            for (let frame = 0; frame < 3; frame++) await new Promise(resolve => win.requestAnimationFrame(resolve));
+            const menus = [...doc.querySelectorAll('.ys-history-menu')];
+            for (const menu of menus) {
+                menu.querySelector('summary').click();
+                for (let frame = 0; frame < 2; frame++) await new Promise(resolve => win.requestAnimationFrame(resolve));
+                const bounds = menu.querySelector('.ys-history-menu-body').getBoundingClientRect();
+                assert(bounds.left >= 11 && bounds.right <= width - 11, 'Toolbar menu is clipped by a screen edge');
+                assert(menus.filter(item => item.open).length === 1, 'Toolbar menus overlap');
+            }
+            const lastMenu = menus.at(-1);
+            doc.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+            assert(menus.every(menu => !menu.open), 'Escape leaves a toolbar menu open');
+            assert(doc.activeElement === lastMenu.querySelector('summary'), 'Escape does not restore menu focus');
+        });
+    }
     for (const width of [1280, 1024, 768, 390]) {
         for (const view of commissioningFilters) {
             await test(`Commissioning card facts stay compact and readable for ${view.name} at ${width}px`, async (doc, win, load) => {
@@ -1736,17 +1763,17 @@
         win.frameElement.style.width = '1536px';
         const headings = ['Select', 'ID', 'Customer', 'Installation', 'Contract', 'Company', 'Type', 'Project', 'New', 'Team', 'Status', 'Detail'];
         const columnNames = ['select', 'record', 'customer', 'installation', 'contract', 'company', 'type', 'project', 'new', 'team', 'status', 'detail'];
-        const devices = `<td class="ykc-report-project-cell" data-label="Project"><div class="ykc-device-column is-project">
+        const devices = `<td class="ykc-report-project-cell" data-label="Projedeki Cihaz"><div class="ykc-device-column is-project">
             <strong data-device-field="brand" title="Long project device brand with multiple words">Long project device brand with multiple words</strong>
             <small data-device-field="capacity">Capacity: 21070</small><small data-device-field="flue">Flue: -</small></div></td>
-            <td class="ykc-report-new-cell" data-label="New"><div class="ykc-device-column is-new">
+            <td class="ykc-report-new-cell" data-label="Yeni Kullanılan Cihaz"><div class="ykc-device-column is-new">
             <strong data-device-field="brand">Brand</strong>
             <small data-device-field="capacity">Capacity: 2600 with a longer source unit description</small>
             <small data-device-field="flue">Flue: A long description that must remain fully visible</small>
             <small>Model: Additional model information remains below the shared fields</small></div></td>`;
         doc.body.innerHTML = `<main class="ykc-report-page ykc-results df-record-directory"><div class="ykc-table-scroll" style="width:1400px">
             <table class="ykc-report-table df-record-table is-internal"><colgroup>${columnNames.map(name => `<col class="ykc-col-${name}">`).join('')}</colgroup><thead><tr>${headings.map(text => `<th>${text}</th>`).join('')}</tr></thead>
-            <tbody><tr>${'<td></td>'.repeat(7)}${devices}${'<td></td>'.repeat(3)}</tr></tbody></table></div></main>`;
+            <tbody><tr>${columnNames.slice(0, 7).map(name => `<td class="ykc-report-${name}-cell"${name === 'type' ? ' data-label="Yakıcı Cihaz Tipi"' : ''}></td>`).join('')}${devices}${columnNames.slice(9).map(name => `<td class="ykc-report-${name}-cell"></td>`).join('')}</tr></tbody></table></div></main>`;
         load('report');
         const container = doc.querySelector('.ykc-table-scroll');
         const fields = [...doc.querySelectorAll('[data-device-field]')];
@@ -1774,6 +1801,33 @@
                 const heights = fields.map(field => field.getBoundingClientRect().height);
                 if (initialHeights) assert(heights.every((height, index) => Math.abs(height - initialHeights[index]) < 1), 'Resizing accumulated empty space');
                 initialHeights = heights;
+            }
+        }
+    });
+    await test('Report device alignment refreshes when switching list and cards without resizing', async (doc, win, load) => {
+        const fixture = ykcDirectories.find(item => item.role === 'Personel' && item.page === 'reports');
+        assert(fixture, 'Compiled report fixture is required');
+        const parsed = new win.DOMParser().parseFromString(fixture.html, 'text/html');
+        doc.body.innerHTML = parsed.querySelector('[data-history-directory]').outerHTML;
+        const style = doc.createElement('style');
+        style.textContent = panelCss + '\n' + reportCss + '\n' + historyCss;
+        doc.head.append(style);
+        win.frameElement.style.width = '1280px';
+        const root = doc.querySelector('[data-history-directory]');
+        root.style.width = '1000px';
+        const record = root.querySelector('[data-directory-record]');
+        record.querySelector('.is-new [data-device-field="capacity"]').textContent = '20000 kcal/h nominal capacity';
+        record.querySelector('.is-new [data-device-field="flue"]').textContent = 'Hermetik';
+        win.localStorage.removeItem(`${root.dataset.storageKey}:view`);
+        load('history');
+        load('report');
+        for (const view of ['list', 'cards', 'list']) {
+            root.querySelector(`[data-history-view="${view}"]`).click();
+            for (let frame = 0; frame < 3; frame++) await new Promise(resolve => win.requestAnimationFrame(resolve));
+            for (const field of ['brand', 'capacity', 'flue']) {
+                const pair = [...record.querySelectorAll(`[data-device-field="${field}"]`)];
+                assert(Math.abs(pair[0].getBoundingClientRect().top - pair[1].getBoundingClientRect().top) < 1,
+                    `${field} is misaligned after switching to ${view}`);
             }
         }
     });

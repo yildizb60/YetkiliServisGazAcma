@@ -1,6 +1,8 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Data.Common;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -14,8 +16,149 @@ namespace Tests.YkcWorkflow;
 
 internal static class SmsCleanupSqlScenario
 {
+    public static async Task RunNoDatabaseAsync()
+    {
+        var passed = 0;
+        void Check(bool condition, string label)
+        {
+            if (!condition) throw new InvalidOperationException("FAIL: " + label);
+            Console.WriteLine("PASS: " + label);
+            passed++;
+        }
+
+        var probe = new CleanupCommandProbe();
+        var services = new ServiceCollection();
+        services.AddDbContext<AppDbContext>(builder => builder
+            .UseSqlServer("Server=unused;Database=CleanupProbe;Integrated Security=true;TrustServerCertificate=true")
+            .AddInterceptors(probe, new CleanupConnectionSuppression()));
+        await using var provider = services.BuildServiceProvider();
+        var settings = new SmsOptions { CodeCleanupEnabled = false };
+        var clock = new CleanupClock();
+        using var cleanup = new SmsDogrulamaTemizlikService(provider.GetRequiredService<IServiceScopeFactory>(),
+            Options.Create(settings), clock, NullLogger<SmsDogrulamaTemizlikService>.Instance);
+        Check(await cleanup.TemizleAsync() == 0 && probe.Commands.Count == 0,
+            "Disabled cleanup issues no database command");
+        settings.CodeCleanupEnabled = true;
+        probe.Deleted = 500;
+        Check(await cleanup.TemizleAsync() == 5000 && probe.Commands.Count == 10,
+            "Cleanup translates and stops after ten full batches without a database");
+        Check(probe.Commands.All(x => x.Sql.Contains("DELETE") && x.Sql.Contains("[Ys_SmsDogrulamaKodlari]")
+            && x.Sql.Contains("TOP(") && x.Sql.Contains(".[GecerlilikTarihi] <") && x.Sql.Contains("ORDER BY")
+            && !x.Sql.Contains("[Ys_AspNetUsers]") && !x.Sql.Contains("SmsGonderim")),
+            "Generated cleanup SQL is a bounded ordered expiry-only verification-code delete");
+        Check(probe.Commands.All(x => x.Parameters.Contains(500)
+            && x.Parameters.Contains(clock.GetLocalNow().DateTime.AddDays(-30))),
+            "Every cleanup batch uses 500 rows and the same local-time retention cutoff");
+        probe.Commands.Clear();
+        probe.Deleted = 7;
+        Check(await cleanup.TemizleAsync() == 7 && probe.Commands.Count == 1,
+            "A partial cleanup batch stops immediately");
+        probe.Commands.Clear();
+        probe.Deleted = 0;
+        settings.ExpiredCodeRetentionDays = 0;
+        Check(await cleanup.TemizleAsync() == 0 && probe.Commands.Single().Parameters.Contains(clock.GetLocalNow().DateTime),
+            "Zero retention still uses strict expiry before local now");
+        using (var cancelled = new CancellationTokenSource())
+        {
+            cancelled.Cancel();
+            var before = probe.Commands.Count;
+            try
+            {
+                await cleanup.TemizleAsync(cancelled.Token);
+                throw new InvalidOperationException("Cancelled cleanup unexpectedly completed.");
+            }
+            catch (OperationCanceledException)
+            {
+                Check(probe.Commands.Count == before, "Cancellation reaches cleanup before command execution");
+            }
+        }
+
+        probe.Failure = new InvalidOperationException("Simulated command failure");
+        probe.Attempted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        await cleanup.StartAsync(CancellationToken.None);
+        try
+        {
+            await probe.Attempted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            Check(clock.DueTime == TimeSpan.FromHours(24) && clock.Period == TimeSpan.FromHours(24),
+                "Cleanup starts immediately and schedules the configured daily interval");
+            probe.Failure = null;
+            probe.Attempted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            clock.Tick();
+            await probe.Attempted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            Check(cleanup.ExecuteTask?.IsCompleted == false,
+                "A failed cleanup is retried on the next tick without terminating the worker");
+        }
+        finally
+        {
+            await cleanup.StopAsync(CancellationToken.None);
+        }
+        Check(cleanup.ExecuteTask?.IsCompletedSuccessfully == true && clock.Disposed,
+            "Shutdown cancels the cleanup timer and completes the worker normally");
+        Console.WriteLine($"{passed} no-database SMS cleanup checks passed.");
+    }
+
+    // No real connection or command can execute in the no-database checks.
+    private sealed class CleanupConnectionSuppression : DbConnectionInterceptor
+    {
+        public override InterceptionResult ConnectionOpening(DbConnection connection, ConnectionEventData eventData,
+            InterceptionResult result) => InterceptionResult.Suppress();
+        public override ValueTask<InterceptionResult> ConnectionOpeningAsync(DbConnection connection, ConnectionEventData eventData,
+            InterceptionResult result, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return new(InterceptionResult.Suppress());
+        }
+    }
+
+    private sealed class CleanupCommandProbe : DbCommandInterceptor
+    {
+        public List<(string Sql, List<object?> Parameters)> Commands { get; } = [];
+        public int Deleted { get; set; }
+        public Exception? Failure { get; set; }
+        public TaskCompletionSource Attempted { get; set; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public override ValueTask<InterceptionResult<int>> NonQueryExecutingAsync(DbCommand command,
+            CommandEventData eventData, InterceptionResult<int> result, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Commands.Add((command.CommandText, command.Parameters.Cast<DbParameter>().Select(x => (object?)x.Value).ToList()));
+            var failure = Failure;
+            Attempted.TrySetResult();
+            if (failure != null) throw failure;
+            return new(InterceptionResult<int>.SuppressWithResult(Deleted));
+        }
+    }
+
+    private sealed class CleanupClock : TimeProvider, ITimer
+    {
+        private TimerCallback? _callback;
+        private object? _state;
+        public TimeSpan DueTime { get; private set; }
+        public TimeSpan Period { get; private set; }
+        public bool Disposed { get; private set; }
+        public override DateTimeOffset GetUtcNow() => new(2026, 10, 13, 10, 0, 0, TimeSpan.Zero);
+        public override TimeZoneInfo LocalTimeZone => TimeZoneInfo.CreateCustomTimeZone("Fixture", TimeSpan.FromHours(3), "Fixture", "Fixture");
+        public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
+        {
+            _callback = callback;
+            _state = state;
+            Change(dueTime, period);
+            return this;
+        }
+        public bool Change(TimeSpan dueTime, TimeSpan period)
+        {
+            DueTime = dueTime;
+            Period = period;
+            return true;
+        }
+        public void Tick() => _callback!(_state);
+        public void Dispose() => Disposed = true;
+        public ValueTask DisposeAsync() { Dispose(); return ValueTask.CompletedTask; }
+    }
+
     public static async Task RunAsync()
     {
+        await RunNoDatabaseAsync();
         var name = "YsSmsCleanupTest_" + Guid.NewGuid().ToString("N");
         var connection = $@"Server=(localdb)\MSSQLLocalDB;Database={name};Integrated Security=true;TrustServerCertificate=true";
         var dbOptions = new DbContextOptionsBuilder<AppDbContext>().UseSqlServer(connection).Options;

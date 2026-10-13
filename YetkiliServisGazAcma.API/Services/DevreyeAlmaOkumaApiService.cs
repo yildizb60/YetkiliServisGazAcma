@@ -60,26 +60,29 @@ public sealed class DevreyeAlmaOkumaApiService(AppDbContext context, YetkiliServ
             var cihazTipi = dto.CihazTipi.Trim();
             query = query.Where(x => x.CihazTipi == cihazTipi);
         }
+        int? seciliDurum = dto?.Durum?.Trim().ToLowerInvariant() switch
+        {
+            "tamamlandi" or "1" => DevreyeAlmaDurumDegerleri.Tamamlandi,
+            "bekliyor" or "0" => DevreyeAlmaDurumDegerleri.Bekliyor,
+            "iptal" or "2" => DevreyeAlmaDurumDegerleri.Iptal,
+            _ => null
+        };
+        Dictionary<int, int>? durumOzet = null;
+        if (seciliDurum.HasValue && string.IsNullOrWhiteSpace(dto?.SozlesmeNo)
+            && string.IsNullOrWhiteSpace(dto?.Arama))
+        {
+            // Keep pre-status counters without loading and enriching the other statuses.
+            durumOzet = await query.GroupBy(x => x.Durum)
+                .Select(g => new { Durum = g.Key, Sayi = g.Count() })
+                .ToDictionaryAsync(x => x.Durum, x => x.Sayi);
+            query = query.Where(x => x.Durum == seciliDurum.Value);
+        }
+
         var siraliQuery = DevreyeAlmaKaynakBilgisi.Sirala(query, dto?.Siralama);
         var islemler = await DevreyeAlmaKaynakBilgisi.ListeleAsync(_context, siraliQuery, dto?.SozlesmeNo, dto?.Arama);
-        var durumOzet = islemler
-            .GroupBy(x => x.Durum)
-            .Select(g => new { Durum = g.Key, Sayi = g.Count() })
-            .ToList();
-        var tamamlanan = durumOzet.FirstOrDefault(x => x.Durum == DevreyeAlmaDurumDegerleri.Tamamlandi)?.Sayi ?? 0;
-        var bekleyen = durumOzet.FirstOrDefault(x => x.Durum == DevreyeAlmaDurumDegerleri.Bekliyor)?.Sayi ?? 0;
-        var iptal = durumOzet.FirstOrDefault(x => x.Durum == DevreyeAlmaDurumDegerleri.Iptal)?.Sayi ?? 0;
-
-        if (!string.IsNullOrWhiteSpace(dto?.Durum))
-        {
-            var durum = dto.Durum.Trim();
-            if (string.Equals(durum, "tamamlandi", StringComparison.OrdinalIgnoreCase) || durum == "1")
-                islemler.RemoveAll(x => x.Durum != DevreyeAlmaDurumDegerleri.Tamamlandi);
-            else if (string.Equals(durum, "bekliyor", StringComparison.OrdinalIgnoreCase) || durum == "0")
-                islemler.RemoveAll(x => x.Durum != DevreyeAlmaDurumDegerleri.Bekliyor);
-            else if (string.Equals(durum, "iptal", StringComparison.OrdinalIgnoreCase) || durum == "2")
-                islemler.RemoveAll(x => x.Durum != DevreyeAlmaDurumDegerleri.Iptal);
-        }
+        durumOzet ??= islemler.GroupBy(x => x.Durum).ToDictionary(g => g.Key, g => g.Count());
+        if (seciliDurum.HasValue)
+            islemler.RemoveAll(x => x.Durum != seciliDurum.Value);
 
         var firma = await FirmaQuery().FirstOrDefaultAsync(x => x.Id == firmaId);
         var secenekler = await _context.Ys_DevreyeAlmalar
@@ -94,10 +97,10 @@ public sealed class DevreyeAlmaOkumaApiService(AppDbContext context, YetkiliServ
             Firma = firma == null ? null : YsFirmaDto.FromEntity(firma),
             MarkaList = secenekler.Select(x => x.Marka).Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x!).Distinct().OrderBy(x => x).ToList(),
             CihazTipleri = secenekler.Select(x => x.CihazTipi).Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x!).Distinct().OrderBy(x => x).ToList(),
-            Toplam = durumOzet.Sum(x => x.Sayi),
-            Tamamlanan = tamamlanan,
-            Bekleyen = bekleyen,
-            Iptal = iptal
+            Toplam = durumOzet.Values.Sum(),
+            Tamamlanan = durumOzet.GetValueOrDefault(DevreyeAlmaDurumDegerleri.Tamamlandi),
+            Bekleyen = durumOzet.GetValueOrDefault(DevreyeAlmaDurumDegerleri.Bekliyor),
+            Iptal = durumOzet.GetValueOrDefault(DevreyeAlmaDurumDegerleri.Iptal)
         };
     }
 
