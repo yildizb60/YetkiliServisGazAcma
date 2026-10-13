@@ -745,10 +745,12 @@ sealed class NavigationFixture : IDisposable
         var options = Options.Create(new ApiIntegrationOptions { Enabled = true });
         var tokens = new ApiJwtTokenService(accessor);
         Brands = new MarkaApiClient(client, options, tokens, NullLogger<MarkaApiClient>.Instance);
+        var certificates = new YetkiBelgesiApiClient(client, options, tokens, NullLogger<YetkiBelgesiApiClient>.Instance);
         CertificateController = new YetkiBelgesiController(
-            new YetkiBelgesiApiClient(client, options, tokens, NullLogger<YetkiBelgesiApiClient>.Instance), session, null!)
+            certificates, session, null!)
         {
-            ControllerContext = new ControllerContext { HttpContext = Http }
+            ControllerContext = new ControllerContext { HttpContext = Http },
+            TempData = new TempDataDictionary(Http, new MemoryTempData())
         };
         var companies = new PanelKapsamApiClient(client, options, tokens, NullLogger<PanelKapsamApiClient>.Instance);
         BrandController = new MarkaController(Brands,
@@ -792,7 +794,7 @@ sealed class NavigationFixture : IDisposable
         PersonnelController = new PersonelPanelController(session, new AktifSirketService(accessor, session, companies),
             PanelPresentation,
             new PersonelPanelApiClient(client, options, tokens, NullLogger<PersonelPanelApiClient>.Instance),
-            null!, new AdminRaporApiClient(client, options, tokens, NullLogger<AdminRaporApiClient>.Instance), null!,
+            null!, new AdminRaporApiClient(client, options, tokens, NullLogger<AdminRaporApiClient>.Instance), certificates,
             new DagitimSirketApiClient(client, options, tokens, NullLogger<DagitimSirketApiClient>.Instance),
             null!, new AdminYetkiliServisApiClient(client, options, tokens, NullLogger<AdminYetkiliServisApiClient>.Instance))
         {
@@ -862,6 +864,7 @@ sealed class FixtureHandler(string role) : HttpMessageHandler
     public bool Success { get; set; } = true;
     public HttpStatusCode CertificateStatus { get; set; } = HttpStatusCode.OK;
     public bool CertificateUnavailable { get; set; }
+    public string? CertificateMessage { get; set; }
     public HttpStatusCode CommissioningStatus { get; set; } = HttpStatusCode.OK;
     public string CommissioningBody { get; set; } = "{}";
     public int CommissioningCalls { get; private set; }
@@ -1052,6 +1055,14 @@ sealed class FixtureHandler(string role) : HttpMessageHandler
                 Content = CommissioningStatus == HttpStatusCode.OK
                     ? new ByteArrayContent([37, 80, 68, 70])
                     : new StringContent(CommissioningBody, System.Text.Encoding.UTF8, "application/json")
+            };
+        }
+        if (path is "/api/yetki-belgesi/onayla" or "/api/yetki-belgesi/reddet")
+        {
+            if (CertificateUnavailable) throw new HttpRequestException("Fixture network failure");
+            return new HttpResponseMessage(CertificateStatus)
+            {
+                Content = JsonContent.Create(new ApiIslemSonuc { Basarili = Success, Mesaj = CertificateMessage })
             };
         }
         if (path == "/api/yetki-belgesi/dosya-indir")

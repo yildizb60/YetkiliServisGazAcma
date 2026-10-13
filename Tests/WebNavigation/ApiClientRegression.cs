@@ -1,6 +1,9 @@
 using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Abstractions;
+using Microsoft.AspNetCore.Mvc.Routing;
+using Microsoft.AspNetCore.Routing;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
 
@@ -113,6 +116,41 @@ internal static class ApiClientRegression
                         && tempData.ContainsKey(success ? "Basarili" : "Hata"),
                     $"{role}: branch add/edit keeps JSON or form return and API outcome: success={success}, ajax={requestedWith != null}, edit={edit}");
             }
+        }
+        foreach (var role in new[] { "GenelSistemAdmin", "SirketAdmin", "Personel" })
+        foreach (var personnelRoute in new[] { false, true })
+        foreach (var reject in new[] { true, false })
+        foreach (var outcome in new[] { "success", "fallback", "failure", "validation", "forbidden", "unavailable", "network" })
+        {
+            using var fixture = new NavigationFixture(role);
+            var success = outcome is "success" or "fallback";
+            fixture.Handler.Success = success;
+            fixture.Handler.CertificateMessage = outcome == "fallback" ? null
+                : success ? reject ? "Yetki belgesi reddedildi." : "Yetki belgesi onaylandı."
+                : "Belge kararı kaydedilemedi.";
+            fixture.Handler.CertificateStatus = outcome switch
+            {
+                "validation" => HttpStatusCode.BadRequest,
+                "forbidden" => HttpStatusCode.Forbidden,
+                "unavailable" => HttpStatusCode.ServiceUnavailable,
+                _ => HttpStatusCode.OK
+            };
+            fixture.Handler.CertificateUnavailable = outcome == "network";
+            fixture.Handler.PersonnelPermissions[7] = [YetkiTipleri.YETKI_BELGESI_ONAY];
+            var controller = personnelRoute ? (Controller)fixture.PersonnelController : fixture.CertificateController;
+            controller.Url = new UrlHelper(new ActionContext(fixture.Http, new RouteData(), new ActionDescriptor()));
+            var returnUrl = personnelRoute ? "/personel-panel/onay-bekleyenler" : "/AdminPanel/onay-bekleyenler";
+            var result = personnelRoute
+                ? reject ? await fixture.PersonnelController.Reddet(3, "Fixture reason", returnUrl)
+                    : await fixture.PersonnelController.Onayla(3, returnUrl)
+                : reject ? await fixture.CertificateController.Reddet(3, "Fixture reason", returnUrl)
+                    : await fixture.CertificateController.Onayla(3, returnUrl);
+            var message = controller.TempData.Peek(success ? "Basarili" : "Hata") as string;
+            Check(result is LocalRedirectResult redirect && redirect.Url == returnUrl
+                && !string.IsNullOrWhiteSpace(message) && !controller.TempData.ContainsKey(success ? "Hata" : "Basarili")
+                && (!success || !reject || message == "Yetki belgesi reddedildi.")
+                && (outcome != "validation" || message == fixture.Handler.CertificateMessage),
+                $"{role}: certificate decision toast follows API success, retains genuine errors and returns to its list: personnel={personnelRoute}, reject={reject}, outcome={outcome}");
         }
         Console.WriteLine($"{passed} API client regression checks passed.");
     }

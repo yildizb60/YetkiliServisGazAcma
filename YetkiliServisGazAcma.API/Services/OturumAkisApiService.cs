@@ -161,6 +161,18 @@ public sealed class OturumAkisApiService(UserManager<AppKullanici> users, SignIn
             return user;
 
         user = await users.FindByNameAsync(value);
+        // Exact email/usernames win; only formatted numeric identifiers get a VKN fallback.
+        if (user == null && value.All(ch => char.IsAsciiDigit(ch) || char.IsWhiteSpace(ch)
+            || ch is '-' or '.' or '/' or '(' or ')'))
+        {
+            var vergiNo = VergiNoKurali.Normalize(value);
+            if (vergiNo.Length is 10 or 11 && vergiNo != value)
+            {
+                value = vergiNo;
+                user = await users.FindByNameAsync(value);
+            }
+        }
+
         int firmId;
         // Arsivde kalan VKN kullanici adi, ayni firmanin yeni hesabini engellememeli.
         if (user?.ArsivlemeTarihi != null && user.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis
@@ -171,7 +183,7 @@ public sealed class OturumAkisApiService(UserManager<AppKullanici> users, SignIn
         }
         else
         {
-            if (user != null || value.Length != 11 || !value.All(char.IsDigit))
+            if (user != null || value.Length != 11 || !value.All(char.IsAsciiDigit))
                 return user;
 
             var firmIds = await context.Ys_Firmalar.AsNoTracking()

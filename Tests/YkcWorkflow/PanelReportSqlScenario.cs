@@ -477,6 +477,7 @@ internal static class PanelReportSqlScenario
                 "Completed requests leave the pending count on the next read");
             await VerifyYkcDirectoryAsync(db, primary, secondary, certifiedFirm, serviceFirm, foreignFirm,
                 admin, Check, ExcelColumn);
+            await VerifyServiceDashboardRecentOrderAsync(db, primary, serviceFirm, foreignFirm, Check);
             Console.WriteLine($"{passed} panel/report SQL checks passed. Application records were not used.");
         }
         finally
@@ -488,6 +489,40 @@ internal static class PanelReportSqlScenario
                 await db.Database.EnsureDeletedAsync();
             }
         }
+    }
+
+    private static async Task VerifyServiceDashboardRecentOrderAsync(AppDbContext db, Dag_Sirket company,
+        Ys_Firma siblingFirm, Ys_Firma foreignFirm, Action<bool, string> check)
+    {
+        var firm = new Ys_Firma { FirmaAdi = "Dashboard recent order", SirketId = company.Id };
+        db.Ys_Firmalar.Add(firm);
+        await db.SaveChangesAsync();
+        var date = new DateTime(2026, 10, 13, 10, 0, 0);
+        var records = new[] { -30, -5, -1, 0, 0, -10, -20 }.Select((days, index) => new Ys_DevreyeAlma
+        {
+            FirmaId = firm.Id, TesistatNo = "DASHBOARD-ORDER-" + index,
+            DevreyeAlmaTarihi = date.AddDays(days), OlusturmaTarihi = date.AddDays(10 - index),
+            Durum = DevreyeAlmaDurumDegerleri.Tamamlandi
+        }).ToArray();
+        db.Ys_DevreyeAlmalar.AddRange(records);
+        db.Ys_DevreyeAlmalar.AddRange(
+            new Ys_DevreyeAlma { FirmaId = siblingFirm.Id, DevreyeAlmaTarihi = date.AddDays(1) },
+            new Ys_DevreyeAlma { FirmaId = foreignFirm.Id, DevreyeAlmaTarihi = date.AddDays(2) },
+            new Ys_DevreyeAlma { FirmaId = firm.Id, DevreyeAlmaTarihi = date.AddDays(3), SilindiMi = true });
+        await db.SaveChangesAsync();
+
+        var setup = new YetkiliServisIlkKurulumService(db);
+        var dashboard = await new YetkiliServisPanelOkumaApiService(db, setup,
+            NullLogger<YetkiliServisPanelOkumaApiService>.Instance).DashboardAsync(firm.Id);
+        var expectedIds = new[] { records[3].Id, records[4].Id }.OrderDescending()
+            .Concat(new[] { records[2].Id, records[1].Id, records[5].Id }).ToArray();
+        check(dashboard.SonIslemler.Select(x => x.Id).SequenceEqual(expectedIds),
+            "Service dashboard takes the latest five commissioning dates, breaks ties by descending ID, and excludes deleted/other-firm records regardless of creation date");
+        var history = await new DevreyeAlmaOkumaApiService(db, setup,
+            new DevreyeAlmaYetkiDogrulamaService(db)).GecmisAsync(firm.Id, null);
+        check(dashboard.Toplam == records.Length
+            && dashboard.SonIslemler.Select(x => x.Id).SequenceEqual(history.Islemler.Take(5).Select(x => x.Id)),
+            "Service dashboard recent records match default history ordering without limiting the total count");
     }
 
     private static async Task VerifyYkcDirectoryAsync(AppDbContext db, Dag_Sirket primary, Dag_Sirket secondary,
