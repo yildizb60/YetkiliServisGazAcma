@@ -1,5 +1,6 @@
 using System.Net;
 using System.Security.Claims;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -30,6 +31,83 @@ internal static class PanelChromeRegression
             if (!condition) throw new InvalidOperationException("FAIL: " + name);
             Console.WriteLine("PASS: " + name);
             passed++;
+        }
+
+        static string Attribute(string tag, string name)
+            => WebUtility.HtmlDecode(Regex.Match(tag, $"(?:^|\\s){Regex.Escape(name)}=\"([^\"]*)\"").Groups[1].Value);
+
+        static bool HasAttribute(string tag, string name)
+            => Regex.IsMatch(tag, $"\\s{Regex.Escape(name)}(?=\\s|=|>)");
+
+        static bool HasClass(string tag, string cssClass)
+            => Attribute(tag, "class")
+                .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Contains(cssClass);
+
+        static string[] Tags(string html, string tag)
+            => Regex.Matches(html, $"<{Regex.Escape(tag)}\\b[^>]*>").Cast<Match>().Select(match => match.Value).ToArray();
+
+        static string Table(string html, string cssClass)
+            => Regex.Matches(html, @"<table\b[^>]*>[\s\S]*?</table>").Cast<Match>()
+                .Single(match => HasClass(Tags(match.Value, "table")[0], cssClass)).Value;
+
+        void CheckDirectory(string html, string storageKey, string tableClass, int[] recordIds, string name)
+        {
+            var tags = Regex.Matches(html, @"<[a-zA-Z][\w-]*\b[^>]*>").Cast<Match>().Select(match => match.Value).ToArray();
+            var roots = tags.Where(tag => HasAttribute(tag, "data-history-directory")).ToArray();
+            Check(roots.Length == 1 && Attribute(roots[0], "data-storage-key") == storageKey
+                && HasClass(roots[0], "df-record-directory")
+                && Tags(html, "table").Count(tag => HasClass(tag, tableClass)) == 1
+                && Attribute(roots[0], "data-directory-form") == "#ykcFilters"
+                && Attribute(roots[0], "data-directory-panel") == "#ykcFiltersPanel"
+                && HasAttribute(roots[0], "data-directory-export-all"),
+                name + ": shared directory retains its table, canonical form, panel and isolated view-storage selectors");
+            Check(Tags(html, "form").Count(tag => Attribute(tag, "id") == "ykcFilters" && Attribute(tag, "method") == "get") == 1
+                && Tags(html, "details").Count(tag => Attribute(tag, "id") == "ykcFiltersPanel") == 1
+                && tags.Count(tag => HasAttribute(tag, "data-history-view-group")) == 1
+                && Tags(html, "button").Count(tag => Attribute(tag, "data-history-view") == "list") == 1
+                && Tags(html, "button").Count(tag => Attribute(tag, "data-history-view") == "cards") == 1
+                && tags.Count(tag => HasAttribute(tag, "data-history-column-popover")) == 1
+                && tags.Count(tag => HasAttribute(tag, "data-history-column-body")) == 1
+                && Tags(html, "input").Count(tag => Attribute(tag, "name") == "q" && Attribute(tag, "form") == "ykcFilters") == 1
+                && Tags(html, "select").Count(tag => Attribute(tag, "name") == "sirala" && Attribute(tag, "form") == "ykcFilters") == 1
+                && Tags(html, "button").Any(tag => HasAttribute(tag, "data-history-filter-toggle") && Attribute(tag, "aria-controls") == "ykcFiltersPanel"),
+                name + ": shared toolbar and column popup render once with one GET filter form");
+            var records = Tags(html, "tr").Where(tag => HasAttribute(tag, "data-directory-record")).ToArray();
+            Check(records.Select(tag => Attribute(tag, "data-export-id")).SequenceEqual(recordIds.Select(id => id.ToString())),
+                name + ": list/cards share one DOM row and export identity per scoped record");
+            if (recordIds.Length == 0) return;
+            var columnFields = Tags(html, "th").Where(tag => HasAttribute(tag, "data-directory-fields")).ToArray();
+            var form = Regex.Matches(html, @"<form\b[^>]*>[\s\S]*?</form>").Cast<Match>()
+                .Single(match => Attribute(Tags(match.Value, "form")[0], "id") == "ykcFilters").Value;
+            var controlNames = Tags(form, "input").Concat(Tags(form, "select"))
+                .Select(tag => Attribute(tag, "name")).Where(control => !string.IsNullOrWhiteSpace(control)).ToHashSet();
+            Check(columnFields.Length > 0 && columnFields.All(tag => !string.IsNullOrWhiteSpace(Attribute(tag, "data-directory-column"))
+                && !string.IsNullOrWhiteSpace(Attribute(tag, "data-directory-fields"))
+                && Attribute(tag, "data-directory-fields").Split(' ', StringSplitOptions.RemoveEmptyEntries).All(controlNames.Contains)),
+                name + ": column filter hooks reference rendered canonical controls");
+        }
+
+        void CheckSeparatedColumns(string html, string tableClass, string[] labels, int recordCount, string name)
+        {
+            var table = Table(html, tableClass);
+            var head = Regex.Match(table, @"<thead\b[^>]*>([\s\S]*?)</thead>").Groups[1].Value;
+            var headers = Regex.Matches(head, @"<th\b[^>]*>([\s\S]*?)</th>").Cast<Match>().ToArray();
+            var separated = headers.Select((header, index) => (header, index))
+                .Where(item => HasClass(item.header.Value, "ykc-column-separated")).ToArray();
+            var headingLabels = separated.Select(item => WebUtility.HtmlDecode(
+                Regex.Replace(item.header.Groups[1].Value, "<[^>]*>", "")).Trim()).ToArray();
+            Check(headingLabels.SequenceEqual(labels), name + ": separator hooks cover the intended column headings");
+            var body = Regex.Match(table, @"<tbody\b[^>]*>([\s\S]*?)</tbody>").Groups[1].Value;
+            var rows = Regex.Matches(body, @"<tr\b[^>]*>([\s\S]*?)</tr>").Cast<Match>().ToArray();
+            Check(rows.Length == recordCount, name + ": column separation retains one row per record");
+            foreach (var row in rows)
+            {
+                var cells = Tags(row.Groups[1].Value, "td");
+                var indices = cells.Select((cell, index) => (cell, index))
+                    .Where(item => HasClass(item.cell, "ykc-column-separated")).Select(item => item.index);
+                Check(cells.Length == headers.Length && indices.SequenceEqual(separated.Select(item => item.index)),
+                    name + ": each record has matching header/cell separator hooks");
+            }
         }
 
         // Only MVC rendering services are registered: no API, database or running web server.
@@ -189,6 +267,229 @@ internal static class PanelChromeRegression
         Check(firmHtml.Contains("ykc-firm-data-section") && !firmHtml.Contains("ykc-assignment-form"),
             "Firm detail retains its layout classes without internal assignment controls");
 
+        // Render-only role fixtures do not bypass or exercise controller authorization.
+        foreach (var (role, type) in new[]
+        {
+            ("GenelSistemAdmin", 4), ("SirketAdmin", 3), ("Personel", 2),
+            ("YetkiliServis", 1), ("SertifikaliFirma", 5)
+        })
+        {
+            var context = Context(role, type, "", scope.ServiceProvider);
+            var reportPermission = type is 2 or 3 or 4;
+            context.ViewData["YkcYetkileri"] = new YkcYetkiOzeti { TalepleriGorebilir = true, RaporlariGorebilir = reportPermission };
+            var requests = new YkcTalepListeSonuc
+            {
+                Toplam = 2, Sayfa = 1, SayfaBoyutu = 10,
+                Talepler = [new()
+                {
+                    Id = 75, MusteriAdi = "HALIME KALINSAZLIOGLU", FirmaAdi = "Fixture firm",
+                    TesisatNo = "1319851", SozlesmeNo = "000943", Durum = YkcDurumDegerleri.TalepAlindi,
+                    ProjedekiCihazBilgisi = new() { Marka = "Private source brand", BacaTipi = "Bacali", Kapasite = "20000" },
+                    YeniCihazBilgisi = new() { Tip = "Kombi", Marka = "Bosch", BacaTipi = "Hermetik", Kapasite = "18834" }
+                }, new() { Id = 76, TesisatNo = "<script>fixture</script>", SozlesmeNo = null }]
+            };
+            context.ViewData["Ozet"] = new YkcDashboardOzetDto { Toplam = requests.Toplam, Incelemede = 1 };
+            var html = await RenderAsync(scope.ServiceProvider, context, "/Views/Ykc/Talepler.cshtml", requests);
+            var decoded = WebUtility.HtmlDecode(html);
+            var requestHeaders = Regex.Matches(Table(html, "ykc-data-table"), @"<th\b[^>]*>([\s\S]*?)</th>").Cast<Match>().ToArray();
+            Check(requestHeaders.Any(header => HasClass(Tags(header.Value, "th")[0], "ykc-list-installation-cell")
+                    && WebUtility.HtmlDecode(header.Groups[1].Value).Trim() == "Tesisat No")
+                && requestHeaders.Any(header => HasClass(Tags(header.Value, "th")[0], "ykc-list-contract-cell")
+                    && WebUtility.HtmlDecode(header.Groups[1].Value).Trim() == "Sözleşme No")
+                && !decoded.Contains("Tesisat ve Sözleşme Bilgileri"), role + ": request identifiers have separate column headings");
+            Check(decoded.Contains("data-label=\"Tesisat No\"") && decoded.Contains("data-label=\"Sözleşme No\"")
+                && decoded.Contains("title=\"1319851\">1319851</div>")
+                && decoded.Contains("title=\"000943\">000943</div>")
+                && decoded.Contains("title=\"-\">-</div>") && !html.Contains("<script>fixture</script>"),
+                role + ": separate cells preserve identifiers, leading zeroes, missing values and HTML encoding");
+            var deviceText = WebUtility.HtmlDecode(Regex.Replace(Table(html, "ykc-data-table"), "<[^>]*>", "",
+                RegexOptions.None, TimeSpan.FromSeconds(1)));
+            Check(decoded.Contains("Private source brand") == (role != "SertifikaliFirma")
+                && decoded.Contains("20000 kcal/h") == (role != "SertifikaliFirma")
+                && deviceText.Contains("Baca: Bacali") == (role != "SertifikaliFirma")
+                && decoded.Contains("18834 kcal/h") && deviceText.Contains("Baca: Hermetik"),
+                role + ": device facts and existing source-data visibility are unchanged");
+            CheckSeparatedColumns(html, "ykc-data-table", role == "SertifikaliFirma"
+                ? ["Yakıcı Cihaz Tipi", "Yeni Kullanılan Cihaz", "Kontrol Randevusu", "Süreç"]
+                : ["Yakıcı Cihaz Tipi", "Projedeki Cihaz", "Yeni Kullanılan Cihaz", "Kontrol Randevusu", "Süreç"],
+                requests.Talepler.Count, role + " requests");
+            CheckDirectory(html, "ykc-requests-view", "ykc-data-table", requests.Talepler.Select(record => record.Id).ToArray(), role + " requests");
+            var requestColumnCount = requestHeaders.Length;
+            Check(requestColumnCount == (role == "SertifikaliFirma" ? 9 : 11),
+                role + ": final request column count includes the shared selection column");
+            Check(Tags(Table(html, "ykc-data-table"), "i").Count(tag => HasClass(tag, "ykc-device-change-arrow"))
+                    == (role == "SertifikaliFirma" ? 0 : requests.Talepler.Count)
+                && !html.Contains("ykc-device-change-heading-arrow") && !html.Contains("ykc-device-arrow-cell"),
+                role + ": device transition arrows belong to product facts, not headings or separate columns");
+            var requestChecks = Tags(html, "input").Where(tag => HasAttribute(tag, "data-directory-select")).ToArray();
+            var requestExports = Tags(html, "button").Where(tag => HasAttribute(tag, "data-directory-export")).ToArray();
+            Check(requestChecks.Select(tag => Attribute(tag, "value")).SequenceEqual(new[] { "75", "76" })
+                && Tags(html, "input").Any(tag => HasAttribute(tag, "data-directory-select-all"))
+                && Tags(html, "a").Count(tag => HasClass(tag, "ykc-next-action") && HasAttribute(tag, "data-directory-open")) == requests.Talepler.Count,
+                role + ": request rows retain scoped selection in both list and cards");
+            Check(reportPermission
+                ? requestExports.Length == 2 && requestExports.All(tag => !HasAttribute(tag, "disabled"))
+                    && requestExports.Any(tag => Attribute(tag, "data-export-url") == "/Ykc/RaporPdf")
+                    && requestExports.Any(tag => Attribute(tag, "data-export-url") == "/Ykc/RaporExcel")
+                : requestExports.Length == 0 && !Tags(html, "div").Any(tag => HasClass(tag, "ys-history-export")),
+                role + ": request toolbar exports retain PDF/Excel endpoints without widening report permission");
+            var fixtureDirectory = Environment.GetEnvironmentVariable("YSGA_RAZOR_FIXTURE_DIR");
+            if (!string.IsNullOrWhiteSpace(fixtureDirectory))
+            {
+                Directory.CreateDirectory(fixtureDirectory);
+                await File.WriteAllTextAsync(Path.Combine(fixtureDirectory, role + "-requests.html"), html);
+            }
+            html = await RenderAsync(scope.ServiceProvider, context, "/Views/Ykc/Talepler.cshtml", new YkcTalepListeSonuc());
+            Check(html.Contains($"colspan=\"{requestColumnCount}\"")
+                && !Tags(html, "input").Any(tag => HasAttribute(tag, "data-directory-select"))
+                && Tags(html, "input").Count(tag => HasAttribute(tag, "data-directory-select-all") && HasAttribute(tag, "disabled")) == 1
+                && Tags(html, "button").Count(tag => HasAttribute(tag, "data-directory-export")) == (reportPermission ? 2 : 0)
+                && Tags(html, "button").Where(tag => HasAttribute(tag, "data-directory-export")).All(tag => HasAttribute(tag, "disabled")),
+                role + ": empty requests span the updated columns and disable selection/export");
+            CheckDirectory(html, "ykc-requests-view", "ykc-data-table", [], role + " empty requests");
+
+            if (reportPermission)
+            {
+                context.ViewData["YkcYetkileri"] = new YkcYetkiOzeti { TalepleriGorebilir = true, RaporlariGorebilir = false };
+                var withoutReportPermission = await RenderAsync(scope.ServiceProvider, context, "/Views/Ykc/Talepler.cshtml", requests);
+                Check(!Tags(withoutReportPermission, "button").Any(tag => HasAttribute(tag, "data-directory-export"))
+                    && !Tags(withoutReportPermission, "div").Any(tag => HasClass(tag, "ys-history-export"))
+                    && Tags(Table(withoutReportPermission, "ykc-data-table"), "th").Length == requestColumnCount,
+                    role + ": disabling report permission removes only the request export menu");
+                CheckDirectory(withoutReportPermission, "ykc-requests-view", "ykc-data-table",
+                    requests.Talepler.Select(record => record.Id).ToArray(), role + " requests without report permission");
+                context.ViewData["YkcYetkileri"] = new YkcYetkiOzeti { TalepleriGorebilir = true, RaporlariGorebilir = true };
+            }
+
+            var internalRole = type is 2 or 3 or 4;
+            var detail = new YkcTalepDetayDto
+            {
+                Id = 71, MusteriAdi = "Örnek Abone", Durum = YkcDurumDegerleri.Atandi,
+                RandevuTarihi = new DateTime(2026, 10, 7), RandevuSaati = "09:00", AtananEkip = "Örnek ekip",
+                TesisatNo = "1000132", SozlesmeNo = "432237", AboneNo = "34760217156",
+                Adres = "Örnek Mahallesi, Örnek Sokak No: 4/0", FirmaAdi = "Örnek Firma", SirketAdi = "Örnek Dağıtım Şirketi",
+                YeniCihazTipi = "Ocak", YeniMarka = "Bosch", YeniKapasite = "2750", YeniBacaTipi = "Hermetik",
+                IkinciElCihazMi = false, TalepTarihi = new DateTime(2026, 10, 5, 9, 18, 0)
+            };
+            detail.Ekran = YkcTalepIslemKurali.EkranHazirla(detail,
+                new() { TalepleriGorebilir = true, AtamaYapabilir = internalRole },
+                internalRole, new(), [], new DateTime(2026, 10, 6));
+            context.RouteData.Values["controller"] = "Ykc";
+            context.RouteData.Values["action"] = "Detay";
+            context.ViewData["PanelTitle"] = "Cihaz Değişim Talebi Detayı";
+            context.ViewData["ActiveMenu"] = "YkcTalepler";
+            html = await RenderAsync(scope.ServiceProvider, context, "/Views/Ykc/Detay.cshtml", detail);
+            decoded = WebUtility.HtmlDecode(html);
+            Check(decoded.Contains("class=\"ykc-appointment-focus\"") && decoded.Contains("datetime=\"2026-10-07\"")
+                && decoded.Contains("07.10.2026") && decoded.Contains("<b>09:00</b>"),
+                role + ": detail prominently displays the unchanged appointment date and time");
+            Check(internalRole
+                ? decoded.IndexOf("ykc-appointment-focus", StringComparison.Ordinal) < decoded.IndexOf("ykc-staff-record-body", StringComparison.Ordinal)
+                    && decoded.Contains("data-appointment-transition")
+                : decoded.Contains("ykc-control-heading") && !decoded.Contains("ykc-assignment-form"),
+                role + ": appointment appears in the primary heading without changing operation permissions");
+            if (!string.IsNullOrWhiteSpace(fixtureDirectory))
+                await File.WriteAllTextAsync(Path.Combine(fixtureDirectory, role + "-detail.html"), html);
+            detail.RandevuTarihi = null;
+            detail.RandevuSaati = null;
+            detail.Durum = YkcDurumDegerleri.TalepAlindi;
+            detail.Ekran = YkcTalepIslemKurali.EkranHazirla(detail, new() { TalepleriGorebilir = true },
+                internalRole, new(), [], new DateTime(2026, 10, 6));
+            html = await RenderAsync(scope.ServiceProvider, context, "/Views/Ykc/Detay.cshtml", detail);
+            Check(!html.Contains("class=\"ykc-appointment-focus\""), role + ": unplanned requests do not acquire an empty appointment label");
+        }
+
+        foreach (var (role, type) in new[]
+        {
+            ("GenelSistemAdmin", 4), ("SirketAdmin", 3), ("Personel", 2), ("SertifikaliFirma", 5)
+        })
+        {
+            var context = Context(role, type, "", scope.ServiceProvider);
+            context.ViewData["YkcYetkileri"] = new YkcYetkiOzeti { TalepleriGorebilir = true, RaporlariGorebilir = true };
+            context.ViewData["Filtre"] = new YkcTalepListeFiltre
+            {
+                SirketId = 7, BaslangicTarihi = new DateTime(2026, 10, 1), BitisTarihi = new DateTime(2026, 10, 12)
+            };
+            context.ViewData["OtomatikDetayTalepId"] = 75;
+            var reports = new YkcRaporSonuc
+            {
+                Toplam = 2, Sayfa = 1, SayfaBoyutu = 10,
+                Kayitlar = [new()
+                {
+                    Id = 75, MusteriAdi = "Fixture subscriber", FirmaAdi = "Fixture certified firm",
+                    TesisatNo = "1319851", SozlesmeNo = "000943", AboneNo = "fixture-subscriber-75",
+                    FirmaVergiNo = "fixture-tax-75", FirmaFaaliyetIli = "Fixture city", SirketAdi = "Fixture company",
+                    EskiCihazTipi = "Kombi", EskiMarka = "Private report source brand", EskiKapasite = "20000", EskiBacaTipi = "Bacali",
+                    YeniCihazTipi = "Ocak", YeniMarka = "Bosch", YeniModel = "Fixture complete device model",
+                    YeniKapasite = "2750", YeniBacaTipi = "Hermetik", IkinciElCihazMi = false,
+                    AtananEkip = "Fixture team", Bolge = "Fixture zone", Durum = YkcDurumDegerleri.Tamamlandi,
+                    TalepTarihi = new DateTime(2026, 10, 5, 9, 18, 0), RandevuTarihi = new DateTime(2026, 10, 7), RandevuSaati = "09:00",
+                    ImzaliNihaiBelgeVar = true, ImzaliNihaiDosyaId = 91, ImzaDurumu = YkcImzaDurumDegerleri.Tamamlandi
+                }, new() { Id = 76, MusteriAdi = "<script>fixture</script>", Durum = YkcDurumDegerleri.TalepAlindi }]
+            };
+            var html = await RenderAsync(scope.ServiceProvider, context, "/Views/Ykc/Raporlar.cshtml", reports);
+            var decoded = WebUtility.HtmlDecode(html);
+            var firm = role == "SertifikaliFirma";
+            CheckSeparatedColumns(html, "ykc-report-table", firm
+                ? ["Yakıcı Cihaz Tipi", "Yeni Kullanılan Cihaz", "Durum"]
+                : ["Firma", "Yakıcı Cihaz Tipi", "Projedeki Cihaz", "Yeni Kullanılan Cihaz", "Ekip", "Durum"],
+                reports.Kayitlar.Count, role + " reports");
+            CheckDirectory(html, "ykc-reports-view", "ykc-report-table", reports.Kayitlar.Select(record => record.Id).ToArray(), role + " reports");
+            var reportColumnCount = Tags(Table(html, "ykc-report-table"), "th").Length;
+            Check(reportColumnCount == (firm ? 9 : 12), role + ": final report column count retains separate identifiers and role-specific device fields");
+            Check(decoded.Contains("data-directory-column=\"installation\" data-directory-fields=\"tesisatNo\">Tesisat No")
+                && decoded.Contains("data-directory-column=\"contract\" data-directory-fields=\"sozlesmeNo\">Sözleşme No"),
+                role + ": report identifier headings have independent filters");
+            Check(decoded.Contains("Private report source brand") == !firm
+                && decoded.Contains($"data-eski-marka=\"{(firm ? "-" : "Private report source brand")}\"")
+                && decoded.Contains($"data-eski-kapasite=\"{(firm ? "-" : "20000")}\"")
+                && decoded.Contains($"data-eski-baca=\"{(firm ? "-" : "Bacali")}\""),
+                role + ": report table and modal retain role-specific source-device privacy");
+            var deviceText = WebUtility.HtmlDecode(Regex.Replace(Table(html, "ykc-report-table"), "<[^>]*>", "",
+                RegexOptions.None, TimeSpan.FromSeconds(1)));
+            Check(deviceText.Contains("Kapasite: 2750") && deviceText.Contains("Baca tipi: Hermetik")
+                && decoded.Contains("Fixture complete device model") && decoded.Contains("000943")
+                && decoded.Contains("data-yeni-kapasite=\"2750\"") && decoded.Contains("data-yeni-baca=\"Hermetik\"")
+                && decoded.Contains("data-yeni-model=\"Fixture complete device model\"") && !html.Contains("<script>fixture</script>"),
+                role + ": reports preserve device facts, leading zeroes and encoded subscriber text");
+
+            var rowChecks = Tags(html, "input").Where(tag => HasClass(tag, "ykc-report-row-check")).ToArray();
+            Check(rowChecks.Length == 2 && rowChecks.Any(tag => tag.Contains("value=\"75\""))
+                && rowChecks.Any(tag => tag.Contains("value=\"76\""))
+                && rowChecks.All(tag => HasAttribute(tag, "data-directory-select") && !HasAttribute(tag, "disabled"))
+                && Tags(html, "input").Any(tag => HasAttribute(tag, "data-directory-select-all") && !HasAttribute(tag, "disabled"))
+                && Tags(html, "span").Any(tag => HasAttribute(tag, "data-directory-selection-count")),
+                role + ": reports retain scoped row selection, select-all and the shared toolbar selection summary");
+            var exports = Tags(html, "button").Where(tag => HasAttribute(tag, "data-directory-export")).ToArray();
+            Check(exports.Length == 2 && exports.All(tag => !HasAttribute(tag, "disabled"))
+                && exports.Any(tag => Attribute(tag, "data-export-url") == "/Ykc/RaporPdf")
+                && exports.Any(tag => Attribute(tag, "data-export-url") == "/Ykc/RaporExcel"),
+                role + ": shared selected-or-filtered exports retain both PDF/Excel endpoints");
+            var detailButtons = Tags(html, "button").Where(tag => HasClass(tag, "ykc-row-view-details")).ToArray();
+            Check(detailButtons.Length == 2 && detailButtons.Any(tag => tag.Contains("data-id=\"75\""))
+                && detailButtons.Any(tag => tag.Contains("data-id=\"76\""))
+                && detailButtons.All(tag => HasAttribute(tag, "data-directory-open"))
+                && detailButtons.All(tag => tag.Contains("data-detail-url=\"/Ykc/Detay\""))
+                && detailButtons.Any(tag => tag.Contains("data-signed-file-url=\"/Ykc/DosyaAc\""))
+                && html.Contains("id=\"ykcReportDetailModal\"") && html.Contains("data-open-request-id=\"75\"")
+                && html.Contains("data-ykc-modal-close") && html.Contains("id=\"ykcModalSignedFile\"")
+                && html.Contains("id=\"ykcModalYeniKapasite\"") && html.Contains("id=\"ykcModalYeniBaca\""),
+                role + ": report detail modal, auto-open target and signed-document hooks are preserved");
+            var fixtureDirectory = Environment.GetEnvironmentVariable("YSGA_RAZOR_FIXTURE_DIR");
+            if (!string.IsNullOrWhiteSpace(fixtureDirectory))
+            {
+                Directory.CreateDirectory(fixtureDirectory);
+                await File.WriteAllTextAsync(Path.Combine(fixtureDirectory, role + "-reports.html"), html);
+            }
+            context.ViewData["OtomatikDetayTalepId"] = null;
+            html = await RenderAsync(scope.ServiceProvider, context, "/Views/Ykc/Raporlar.cshtml", new YkcRaporSonuc());
+            Check(html.Contains($"colspan=\"{reportColumnCount}\"")
+                && !Tags(html, "input").Any(tag => HasClass(tag, "ykc-report-row-check"))
+                && Tags(html, "input").Where(tag => HasAttribute(tag, "data-directory-select-all")).All(tag => HasAttribute(tag, "disabled"))
+                && Tags(html, "button").Where(tag => HasAttribute(tag, "data-directory-export")).Count(tag => HasAttribute(tag, "disabled")) == 2,
+                role + ": empty reports retain column span and disabled export/selection controls");
+            CheckDirectory(html, "ykc-reports-view", "ykc-report-table", [], role + " empty reports");
+        }
 
         foreach (var area in new[] { "/AdminPanel", "/personel-panel", "/ys-devreyeal" })
         {
@@ -199,14 +500,14 @@ internal static class PanelChromeRegression
                 ? new List<YsDevreyeAlmaDto> { new()
                 {
                     Id = 42, FirmaId = 7, FirmaAdi = "Test firm", FirmaFaaliyetIli = "Çorum",
-                    MusteriAdi = "<script>customer</script>", TesistatNo = "123456", SozlesmeNo = "000943",
+                    MusteriAdi = "<script>customer</script>", MusteriTelefon = "05551112233", TesistatNo = "123456", SozlesmeNo = "000943",
                     MarkaAdi = "Vaillant", CihazModeli = "Long device model", CihazKapasite = "20000",
                     Adres = "Test address", Durum = DevreyeAlmaDurumDegerleri.Tamamlandi
                 } }
                 : new List<AdminDevreyeAlmaDto> { new()
                 {
                     Id = 42, FirmaId = 7, FirmaAdi = "Test firm", FirmaFaaliyetIli = "Çorum",
-                    MusteriAdi = "<script>customer</script>", TesistatNo = "123456", SozlesmeNo = "000943",
+                    MusteriAdi = "<script>customer</script>", MusteriTelefon = "05551112233", TesistatNo = "123456", SozlesmeNo = "000943",
                     MarkaAdi = "Vaillant", CihazModeli = "Long device model", CihazKapasite = "20000",
                     Adres = "Test address", Durum = DevreyeAlmaDurumDegerleri.Tamamlandi
                 } };
@@ -216,8 +517,122 @@ internal static class PanelChromeRegression
                 && html.Contains("Merkez") && !html.Contains("<script>customer</script>"),
                 area + ": shared DTO table keeps identifiers, device facts, address and HTML encoding");
             Check(html.Contains("df-commissioning-record-row") && html.Contains("df-commissioning-detail-row")
-                && html.Contains(area == "/ys-devreyeal" ? "colspan=\"8\"" : "colspan=\"10\""),
+                && html.Contains(area == "/ys-devreyeal" ? "colspan=\"9\"" : "colspan=\"10\""),
                 area + ": shared DTO table preserves the existing layout and detail column count");
+            Check(html.Contains("<dt>Telefon:</dt><dd>05551112233</dd>") && Tags(html, "div").Any(tag => HasAttribute(tag, "title")),
+                area + ": compact cards preserve customer phone in details and full names in titles");
+        }
+        foreach (var (role, type, view) in new[]
+        {
+            ("YetkiliServis", 1, "DevreyeAlma/Gecmis"), ("Personel", 2, "PersonelPanel/DevreyeAlmalar"),
+            ("SirketAdmin", 3, "AdminPanel/DevreyeAlmalar"), ("GenelSistemAdmin", 4, "AdminPanel/DevreyeAlmalar")
+        })
+        {
+            var context = Context(role, type, "", scope.ServiceProvider);
+            context.HttpContext.Request.QueryString = new QueryString("?sozlesme=000943");
+            context.ViewData["SeciliSozlesme"] = "000943";
+            context.RouteData.Values["controller"] = view.Split('/')[0];
+            object records = type == 1 ? new List<YsDevreyeAlmaDto>() : new List<AdminDevreyeAlmaDto>();
+            var html = WebUtility.HtmlDecode(await RenderAsync(scope.ServiceProvider, context, "/Views/" + view + ".cshtml", records));
+            Check(html.Contains("<label for=\"sozlesme\">Sözleşme No</label>")
+                && html.Contains("name=\"sozlesme\" value=\"000943\"")
+                && html.Contains("open=\"open\"") && html.Contains("Filtre uygulandı"),
+                role + ": compiled commissioning filters retain the contract number and open when it is the only filter");
+            Check(html.Contains("method=\"get\"") && html.Contains("Temizle")
+                && html.Contains("data-export-url="), role + ": contract search preserves list GET, reset and export controls");
+            Check(html.Contains("data-history-directory") && html.Contains("data-history-view=\"cards\"")
+                && html.Contains("commissioning-history.js") && html.Contains("commissioning-history.css"),
+                role + ": commissioning list, grid and filters use the shared directory");
+            var historyFixtureDirectory = Environment.GetEnvironmentVariable("YSGA_RAZOR_FIXTURE_DIR");
+            if (!string.IsNullOrWhiteSpace(historyFixtureDirectory))
+            {
+                context.HttpContext.Request.Path = type == 1 ? "/ys-devreyeal/gecmis" : type == 2 ? "/personel-panel/devreyealmalar" : "/AdminPanel/devreyealmalar";
+                context.HttpContext.Request.QueryString = QueryString.Empty;
+                context.ViewData["SeciliSozlesme"] = null;
+                context.ViewData["PanelSirketAdi"] = "Çorumgaz Doğalgaz A.Ş.";
+                context.ViewData["Kullanici"] = new AppKullanici { AdSoyad = type == 1 ? "Örnek Yetkili Servis" : type == 2 ? "Örnek Personel" : "Örnek Yönetici", KullaniciTipi = type };
+                context.ViewData["MarkaList"] = new List<string> { "Alarko", "Bosch", "DemirDöküm", "Vaillant" };
+                context.ViewData["Markalar"] = new List<AdminMarkaSecenekDto> { new() { MarkaAdi = "Alarko" }, new() { MarkaAdi = "Bosch" }, new() { MarkaAdi = "DemirDöküm" }, new() { MarkaAdi = "Vaillant" } };
+                context.ViewData["CihazTipleri"] = new List<string> { "Kombi", "Ocak" };
+                context.ViewData["Sehirler"] = new List<string> { "Çorum" };
+                context.ViewData["FirmaIlceleri"] = new Dictionary<int, string> { [7] = "Merkez" };
+                var names = new[] { "AHMET YILMAZ", "AYŞE DEMİR", "MEHMET KAYA", "ELİF ÇELİK", "MUSTAFA AKSOY", "ZEYNEP ŞAHİN", "ALİ YILDIZ", "FATMA ARSLAN", "HASAN KOÇ", "ESRA AYDIN", "EMRE KILIÇ", "DENİZ YALÇIN" };
+                var previewRecords = names.Select((name, i) =>
+                {
+                    DevreyeAlmaKayitDto kayit = type == 1 ? new YsDevreyeAlmaDto() : new AdminDevreyeAlmaDto();
+                    kayit.Id = 100 + i;
+                    kayit.FirmaId = 7;
+                    kayit.MusteriAdi = name;
+                    kayit.TesistatNo = (1319854 - i).ToString();
+                    kayit.SozlesmeNo = (461344 - i).ToString();
+                    kayit.FirmaAdi = "Örnek Yetkili Servis";
+                    kayit.FirmaFaaliyetIli = "Çorum";
+                    kayit.CihazTipi = i % 4 == 2 ? "Ocak" : "Kombi";
+                    kayit.CihazMarka = new[] { "Bosch", "Vaillant", "DemirDöküm", "Alarko" }[i % 4];
+                    kayit.CihazModeli = i % 4 == 0 ? "Bosch Dijital Yoğuşmalı Kombi Condens 2500 W" : i % 4 == 1 ? "ecoTEC Plus VUW 24 kW" : i % 4 == 2 ? "Ankastre ocak" : "Seradens Super";
+                    kayit.DevreyeAlmaTarihi = new DateTime(2026, 10, 12).AddDays(-i);
+                    kayit.Durum = DevreyeAlmaDurumDegerleri.Tamamlandi;
+                    kayit.Adres = "Örnek Mahallesi, Örnek Sokak No: 10/2 Çorum";
+                    kayit.SeriNo = "ORNEK-" + i;
+                    kayit.CihazKapasite = "20000";
+                    kayit.TeknisyenAdi = "Örnek Teknisyen";
+                    kayit.TeknisyenYetkiBelgesiNo = "YS-100";
+                    return kayit;
+                }).ToList();
+                object previewModel = type == 1 ? previewRecords.Cast<YsDevreyeAlmaDto>().ToList() : previewRecords.Cast<AdminDevreyeAlmaDto>().ToList();
+                Directory.CreateDirectory(historyFixtureDirectory);
+                var dosya = type switch { 1 => "commissioning-history.html", 2 => "commissioning-personnel.html", 3 => "commissioning-company-admin.html", _ => "commissioning-admin.html" };
+                var previewHtml = await RenderAsync(scope.ServiceProvider, context, "/Views/" + view + ".cshtml", previewModel);
+                Check(previewHtml.Contains("data-commissioning-select") && previewHtml.Contains("data-record-id=\"100\"")
+                    && previewHtml.Contains("df-commissioning-detail-panel") && previewHtml.Contains("name=\"q\""),
+                    role + ": shared row selection, card identity, detail panel and API search remain available");
+                await File.WriteAllTextAsync(Path.Combine(historyFixtureDirectory, dosya), previewHtml);
+            }
+        }
+        {
+            var context = Context("GenelSistemAdmin", 4, "Admin", scope.ServiceProvider);
+            context.HttpContext.Items["fixture.url-values"] = true;
+            context.HttpContext.Request.QueryString = new QueryString("?kontrolNo=2&sayfa=999");
+            context.ViewData["YkcYetkileri"] = new YkcYetkiOzeti { TalepleriGorebilir = true, RaporlariGorebilir = true };
+            context.ViewData["Filtre"] = new YkcTalepListeFiltre
+            {
+                SirketId = 7, KontrolNo = 2, AboneNo = "00077", BekleyenIs = "randevu",
+                SozlesmeNo = "000943", Sirala = "abone-artan", Sayfa = 999, SayfaBoyutu = 10
+            };
+            var html = await RenderAsync(scope.ServiceProvider, context, "/Views/Ykc/Talepler.cshtml",
+                new YkcTalepListeSonuc { Toplam = 23, Sayfa = 3, SayfaBoyutu = 10, Talepler = [new() { Id = 75 }] });
+            var exports = Tags(html, "button").Where(tag => HasAttribute(tag, "data-directory-export")).ToArray();
+            Check(exports.Length == 2 && exports.All(tag =>
+            {
+                var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(new Uri("https://fixture.test" + Attribute(tag, "data-export-url")).Query);
+                return query["sirketId"] == "7" && query["kaynak"] == "talepler" && query["sayfa"] == "3"
+                    && query["sayfaBoyutu"] == "10" && query["kontrolNo"] == "2" && query["aboneNo"] == "00077"
+                    && query["bekleyenIs"] == "randevu" && query["sozlesmeNo"] == "000943" && query["sirala"] == "abone-artan";
+            }), "YKC exports use the effective company/filter and clamped return page rather than the raw GET query");
+            Check(Tags(html, "form").Count(tag => HasAttribute(tag, "data-directory-export-form") && Attribute(tag, "method") == "post") == 1
+                && Tags(html, "input").Count(tag => Attribute(tag, "name") == "__RequestVerificationToken") == 1
+                && Tags(html, "div").Count(tag => HasAttribute(tag, "data-directory-export-fields")) == 1,
+                "Compiled directory renders one hidden POST export form with one antiforgery token and body-fields container");
+
+            context.ViewData["Filtre"] = new YkcTalepListeFiltre { Sayfa = 2, SayfaBoyutu = 25 };
+            html = await RenderAsync(scope.ServiceProvider, context, "/Views/Ykc/Raporlar.cshtml",
+                new YkcRaporSonuc { Toplam = 80, Sayfa = 2, SayfaBoyutu = 25, Kayitlar = [new() { Id = 75 }] });
+            Check(Tags(html, "button").Where(tag => HasAttribute(tag, "data-directory-export")).All(tag =>
+            {
+                var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(new Uri("https://fixture.test" + Attribute(tag, "data-export-url")).Query);
+                return !query.ContainsKey("sirketId") && query["kaynak"] == "rapor" && query["sayfa"] == "2" && query["sayfaBoyutu"] == "25";
+            }), "All-company report export preserves intentional empty scope and return-page size");
+
+            context.ViewData["DevreyeAlmaAlan"] = "/AdminPanel";
+            context.ViewData["SeciliSirketId"] = 8;
+            html = await RenderAsync(scope.ServiceProvider, context, "/Views/Shared/_DevreyeAlmaInlineDetails.cshtml", new AdminDevreyeAlmaDto { Id = 42 });
+            var links = Tags(html, "a").Where(tag => HasClass(tag, "df-commissioning-export")).ToArray();
+            Check(links.Length == 2 && links.All(tag => Attribute(tag, "href").Contains("sirketId=8", StringComparison.Ordinal)),
+                "Compiled per-row PDF and Excel GET links carry the directory's explicit company scope");
+            context.ViewData["SeciliSirketId"] = null;
+            html = await RenderAsync(scope.ServiceProvider, context, "/Views/Shared/_DevreyeAlmaInlineDetails.cshtml", new AdminDevreyeAlmaDto { Id = 42 });
+            Check(Tags(html, "a").Where(tag => HasClass(tag, "df-commissioning-export")).All(tag => !Attribute(tag, "href").Contains("sirketId", StringComparison.Ordinal)),
+                "Compiled all-company per-row links do not invent session company scope");
         }
         foreach (var adminBranch in new[] { true, false })
         {
@@ -493,7 +908,14 @@ internal static class PanelChromeRegression
     private sealed class FixtureUrlHelper(ActionContext context) : IUrlHelper
     {
         public ActionContext ActionContext => context;
-        public string? Action(UrlActionContext action) => $"/{action.Controller}/{action.Action}";
+        public string? Action(UrlActionContext action)
+        {
+            var path = $"/{action.Controller}/{action.Action}";
+            if (!context.HttpContext.Items.ContainsKey("fixture.url-values")) return path;
+            var values = new RouteValueDictionary(action.Values).Where(x => x.Value != null)
+                .ToDictionary(x => x.Key, x => (string?)Convert.ToString(x.Value, System.Globalization.CultureInfo.InvariantCulture));
+            return Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString(path, values);
+        }
         public string? Content(string? path) => path?.Replace("~/", "/", StringComparison.Ordinal);
         public bool IsLocalUrl(string? url) => url?.StartsWith('/') == true && !url.StartsWith("//", StringComparison.Ordinal);
         public string? Link(string? name, object? values) => throw new NotSupportedException();

@@ -5,9 +5,13 @@ namespace YetkiliServisGazAcma.Business.Services;
 public class AdminDevreyeAlmaListeFiltreDto
 {
     public int? SirketId { get; set; }
+    public string? Arama { get; set; }
+    public string? Siralama { get; set; }
     public string? TesisatNo { get; set; }
+    public string? SozlesmeNo { get; set; }
     public string? Musteri { get; set; }
     public string? Marka { get; set; }
+    public string? CihazTipi { get; set; }
     public string? Servis { get; set; }
     public string? Il { get; set; }
     public string? Ilce { get; set; }
@@ -46,6 +50,7 @@ public class AdminRaporOzetFiltreDto
 public class AdminDevreyeAlmaListeDto
 {
     public List<AdminDevreyeAlmaDto> Islemler { get; set; } = new();
+    public List<string> CihazTipleri { get; set; } = new();
     public List<string> Sehirler { get; set; } = new();
     public List<AdminMarkaSecenekDto> Markalar { get; set; } = new();
     public Dictionary<int, string> FirmaIlceleri { get; set; } = new();

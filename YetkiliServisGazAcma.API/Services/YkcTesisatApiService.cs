@@ -4,7 +4,6 @@ using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
 using Microsoft.AspNetCore.Identity;
 using System.Globalization;
-using System.Text;
 using YetkiliServisGazAcma.Business.Services.Online;
 
 namespace YetkiliServisGazAcma.API.Services;
@@ -207,8 +206,8 @@ public sealed class YkcTesisatApiService(AppDbContext context, UserManager<AppKu
         return _sehirFirmaKoduService.FirmaKodu(firma?.FaaliyetIli)
             ?? _sehirFirmaKoduService.FirmaKodu(firma?.Sirket?.Il)
             ?? _sehirFirmaKoduService.FirmaKodu(sirket?.Il)
-            ?? FirmaKoduFromSirketAdi(firma?.Sirket?.SirketAdi)
-            ?? FirmaKoduFromSirketAdi(sirket?.SirketAdi);
+            ?? SehirFirmaKodlari.SirketAdindanFirmaKodu(firma?.Sirket?.SirketAdi)
+            ?? SehirFirmaKodlari.SirketAdindanFirmaKodu(sirket?.SirketAdi);
     }
 
     private List<string> FirmaKoduAdaylari(string? tercihliFirmaKodu, bool genelYetkili)
@@ -243,42 +242,4 @@ public sealed class YkcTesisatApiService(AppDbContext context, UserManager<AppKu
             .Key;
     }
 
-    private static string? FirmaKoduFromSirketAdi(string? sirketAdi)
-    {
-        if (string.IsNullOrWhiteSpace(sirketAdi))
-            return null;
-
-        var normalized = NormalizeFirmaText(sirketAdi);
-        if (normalized.Contains("CORUM") || normalized.Contains("CORUMGAZ"))
-            return "CORUMGAZ";
-        if (normalized.Contains("KARGAZ") || normalized.Contains("KASTAMONU") || normalized.Contains("KARABUK"))
-            return "KARGAZ";
-        if (normalized.Contains("SURMELI") || normalized.Contains("SURMELIGAZ") || normalized.Contains("YOZGAT"))
-            return "SURMELIGAZ";
-        if (normalized.Contains("YALOVA"))
-            return "MARMARAGAZ_YALOVA";
-        if (normalized.Contains("CORLU") || normalized.Contains("TEKIRDAG"))
-            return "MARMARAGAZ_CORLU";
-
-        return normalized;
-    }
-
-    private static string NormalizeFirmaText(string value)
-    {
-        var normalized = value.Normalize(NormalizationForm.FormD);
-        var chars = normalized
-            .Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark)
-            .ToArray();
-
-        return new string(chars)
-            .Normalize(NormalizationForm.FormC)
-            .ToUpperInvariant()
-            .Replace('İ', 'I')
-            .Replace('Ğ', 'G')
-            .Replace('Ü', 'U')
-            .Replace('Ş', 'S')
-            .Replace('Ö', 'O')
-            .Replace('Ç', 'C')
-            .Replace(" ", "");
-    }
 }

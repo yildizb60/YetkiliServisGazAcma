@@ -9,7 +9,11 @@ public class YsDevreyeAlmaGecmisFiltreDto
     public DateTime? BitisTarihi { get; set; }
     public string? Musteri { get; set; }
     public string? TesisatNo { get; set; }
+    public string? SozlesmeNo { get; set; }
     public string? Durum { get; set; }
+    public string? Arama { get; set; }
+    public string? Siralama { get; set; }
+    public string? CihazTipi { get; set; }
 }
 
 public class YsDevreyeAlmaGetirDto
@@ -98,6 +102,7 @@ public class YsDevreyeAlmaGecmisDto
     public List<YsDevreyeAlmaDto> Islemler { get; set; } = new();
     public YsFirmaDto? Firma { get; set; }
     public List<string> MarkaList { get; set; } = new();
+    public List<string> CihazTipleri { get; set; } = new();
     public int Toplam { get; set; }
     public int Tamamlanan { get; set; }
     public int Bekleyen { get; set; }

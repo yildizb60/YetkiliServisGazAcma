@@ -182,33 +182,15 @@ namespace YetkiliServisGazAcma.API.Controllers
                 && (x.YetkiTipi == YetkiTipleri.TAM_YETKI || x.YetkiTipi == yetkiTipi));
         }
 
-        private async Task<bool> KullaniciKapsamindaMi(AppKullanici yapan, AppKullanici hedef, int? sirketId)
+        private Task<bool> KullaniciKapsamindaMi(AppKullanici yapan, AppKullanici hedef, int? sirketId)
         {
-            if (yapan.Id == hedef.Id)
-                return true;
-
             var genelSistemAdminMi = User.IsInRole("GenelSistemAdmin")
                 || User.IsInRole("SuperAdmin")
                 || yapan.KullaniciTipi == KullaniciTipiDegerleri.GenelSistemAdmin
                 || (yapan.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin && !yapan.SirketId.HasValue);
 
-            if (genelSistemAdminMi && !sirketId.HasValue)
-                return true;
-
-            if (!sirketId.HasValue)
-                return false;
-
-            if ((hedef.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis ||
-                 hedef.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma) &&
-                hedef.FirmaId.HasValue)
-            {
-                return await _context.Ys_Firmalar.AnyAsync(x =>
-                    x.Id == hedef.FirmaId.Value &&
-                    !x.SilindiMi &&
-                    x.SirketId == sirketId.Value);
-            }
-
-            return (hedef.KullaniciTipi == KullaniciTipiDegerleri.Personel || hedef.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin) && hedef.SirketId == sirketId.Value;
+            return AdminKullaniciKapsami.IceriyorAsync(_context, yapan, hedef, sirketId,
+                genelSistemAdminMi, HttpContext.RequestAborted);
         }
 
 

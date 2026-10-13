@@ -175,6 +175,30 @@ internal static class SharedApiTransportRegression
             Check(await verify(), name + ": extracted contracts deserialize and preserve view data");
         }
         var brands = Client<MarkaApiClient>();
+        handler.Body = "{}";
+        await Client<YetkiliServisDevreyeAlmaApiClient>().GecmisAsync(user, "Bosch", new DateTime(2026, 10, 1),
+            new DateTime(2026, 10, 12), "Customer", "tamamlandi", "00123", "000943", "Abone", "abone-artan", "Kombi");
+        using (var payload = System.Text.Json.JsonDocument.Parse(handler.LastBody))
+            Check(payload.RootElement.GetProperty("sozlesmeNo").GetString() == "000943"
+                && payload.RootElement.GetProperty("tesisatNo").GetString() == "00123"
+                && payload.RootElement.GetProperty("musteri").GetString() == "Customer"
+                && payload.RootElement.GetProperty("arama").GetString() == "Abone"
+                && payload.RootElement.GetProperty("siralama").GetString() == "abone-artan"
+                && payload.RootElement.GetProperty("cihazTipi").GetString() == "Kombi"
+                && payload.RootElement.GetProperty("durum").GetString() == "tamamlandi",
+                "Service client sends separate contract/installation filters without dropping leading zeroes");
+        await Client<AdminRaporApiClient>().DevreyeAlmalarAsync(user, 7, null, null, null, DevreyeAlmaDurumDegerleri.Tamamlandi.ToString(), null, null,
+            tesisatNo: "00123", musteri: "Customer", sozlesmeNo: "000943", arama: "Abone", siralama: "abone-artan", cihazTipi: "Kombi");
+        using (var payload = System.Text.Json.JsonDocument.Parse(handler.LastBody))
+            Check(payload.RootElement.GetProperty("sozlesmeNo").GetString() == "000943"
+                && payload.RootElement.GetProperty("sirketId").GetInt32() == 7
+                && payload.RootElement.GetProperty("tesisatNo").GetString() == "00123"
+                && payload.RootElement.GetProperty("musteri").GetString() == "Customer"
+                && payload.RootElement.GetProperty("arama").GetString() == "Abone"
+                && payload.RootElement.GetProperty("siralama").GetString() == "abone-artan"
+                && payload.RootElement.GetProperty("cihazTipi").GetString() == "Kombi"
+                && payload.RootElement.GetProperty("durum").GetInt32() == DevreyeAlmaDurumDegerleri.Tamamlandi,
+                "Admin/personnel client forwards contract search with its existing company scope");
         foreach (var status in new[] { HttpStatusCode.BadRequest, HttpStatusCode.Conflict, HttpStatusCode.UnprocessableEntity })
         {
             handler.Status = status;
@@ -309,11 +333,13 @@ internal static class SharedApiTransportRegression
         public bool FileResponse { get; set; }
         public string? UploadType { get; private set; }
         public string UploadBody { get; private set; } = "";
+        public string LastBody { get; private set; } = "";
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             Calls++;
             LastToken = request.Headers.Authorization?.Parameter;
             Disposed = false;
+            LastBody = request.Content == null ? "" : await request.Content.ReadAsStringAsync(cancellationToken);
             if (TransientFailures > 0) { TransientFailures--; throw new HttpRequestException("Fixture lost response"); }
             if (request.Content is MultipartFormDataContent form)
             {

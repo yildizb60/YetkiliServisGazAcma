@@ -25,6 +25,30 @@ string ExcelParcasi(byte[] bytes, string path)
     return reader.ReadToEnd();
 }
 
+foreach (var (name, expected) in new[]
+{
+    ("Çorumgaz Doğalgaz A.Ş.", "CORUMGAZ"), (" corum ", "CORUMGAZ"),
+    ("Kargaz", "KARGAZ"), ("Kastamonu", "KARGAZ"), ("Karabük", "KARGAZ"),
+    ("SürmeliGAZ", "SURMELIGAZ"), ("Yozgat", "SURMELIGAZ"),
+    ("MarmaraGaz Yalova", "MARMARAGAZ_YALOVA"),
+    ("MarmaraGaz Çorlu", "MARMARAGAZ_CORLU"), ("Tekirdağ", "MARMARAGAZ_CORLU")
+})
+{
+    foreach (var mode in Enum.GetValues<FirmaKoduNormalizasyonu>())
+        Check(SehirFirmaKodlari.SirketAdindanFirmaKodu(name, mode) == expected,
+            $"Shared company code retains its existing alias: {name}, {mode}");
+}
+foreach (var mode in Enum.GetValues<FirmaKoduNormalizasyonu>())
+    Check(SehirFirmaKodlari.SirketAdindanFirmaKodu(null, mode) == null
+        && SehirFirmaKodlari.SirketAdindanFirmaKodu(" \t ", mode) == null,
+        $"Missing company name cannot invent a company code: {mode}");
+Check(SehirFirmaKodlari.SirketAdindanFirmaKodu("Özel Gaz A.Ş.") == "OZELGAZA.S."
+    && SehirFirmaKodlari.SirketAdindanFirmaKodu("Özel Gaz A.Ş.", FirmaKoduNormalizasyonu.AyiraclariAltCizgiYap)
+        == "OZEL_GAZ_A_S", "Unknown company codes retain the distinct YKC and commissioning formats");
+Check(SehirFirmaKodlari.SirketAdindanFirmaKodu("Özel\tGaz") == "OZEL\tGAZ"
+    && SehirFirmaKodlari.SirketAdindanFirmaKodu("Özel\tGaz", FirmaKoduNormalizasyonu.AyiraclariAltCizgiYap)
+        == "OZEL_GAZ", "Shared normalization preserves module-specific separator handling");
+
 XElement ExcelHucresi(byte[] bytes, string baslik, int satir = 2)
 {
     XNamespace ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
