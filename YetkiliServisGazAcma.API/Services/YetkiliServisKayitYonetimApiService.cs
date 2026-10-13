@@ -70,13 +70,21 @@ namespace YetkiliServisGazAcma.API.Services
             if (!await FirmaYetkiIliskileri.GecerliMiAsync(_context, dto.KategoriIds, dto.MarkaIds))
                 return new(YetkiliServisKayitYonetimDurumu.GecersizIstek, "Geçersiz marka veya hizmet türü seçildi.");
 
+            var vergiNo = VergiNoKurali.Normalize(dto.VergiNo);
+            if (!string.IsNullOrWhiteSpace(dto.VergiNo) && vergiNo.Length is not (10 or 11))
+                return new(YetkiliServisKayitYonetimDurumu.GecersizIstek, "VKN/TCKN 10 veya 11 haneli olmalidir");
+
+            if (vergiNo.Length > 0 && await _context.Ys_Firmalar.AnyAsync(x =>
+                x.Id != servis.Id && !x.SilindiMi && x.VergiNo == vergiNo))
+                return new(YetkiliServisKayitYonetimDurumu.GecersizIstek, "Bu VKN ile kayitli baska bir yetkili servis var.");
+
             servis.FirmaAdi = dto.FirmaAdi;
             servis.YetkiliKisi = dto.YetkiliKisi;
             servis.Telefon = dto.Telefon;
             servis.Email = dto.Email;
             servis.Adres = dto.Adres;
             servis.FaaliyetIli = dto.FaaliyetIli;
-            servis.VergiNo = dto.VergiNo;
+            servis.VergiNo = vergiNo.Length == 0 ? null : vergiNo;
             servis.VergiDairesi = dto.VergiDairesi;
             if (GenelSistemAdminMi(kullanici, principal))
                 servis.SirketId = await _sehirFirmaKoduService.SirketIdBulVeyaOlustur(

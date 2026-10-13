@@ -497,7 +497,7 @@ namespace YetkiliServisGazAcma.Controllers
             catch (ApiIntegrationException ex)
             {
                 _logger.LogWarning(ex, "YKC talep detayı alınamadı. TalepId: {TalepId}", id);
-                TempData["Hata"] = "Talep detayı şu anda alınamadı. Yerel API bağlantısı yeniden kuruluyor; lütfen kısa bir süre sonra tekrar deneyin.";
+                TempData["Hata"] = ex.Message;
                 return KaynakListesineDon(kaynak);
             }
 
@@ -530,7 +530,7 @@ namespace YetkiliServisGazAcma.Controllers
             catch (ApiIntegrationException ex)
             {
                 _logger.LogWarning(ex, "YKC form önizleme verisi alınamadı. TalepId: {TalepId}", id);
-                TempData["Hata"] = "Form önizlemesi şu anda açılamadı. Veri bağlantısı yeniden kurulurken kısa bir süre sonra tekrar deneyin.";
+                TempData["Hata"] = ex.Message;
                 return RedirectToAction(nameof(Talepler));
             }
             if (detay == null)
@@ -792,7 +792,7 @@ namespace YetkiliServisGazAcma.Controllers
                 Durum = durum,
                 KayitIdleri = talepId.HasValue
                     ? new[] { talepId.Value }.Where(x => x > 0 && (kayitIdleri == null || kayitIdleri.Contains(x))).ToList()
-                    : kayitIdleri?.Where(x => x > 0).Distinct().Take(5000).ToList(),
+                    : kayitIdleri?.Where(x => x > 0).Distinct().ToList(),
                 BaslangicTarihi = bas,
                 BitisTarihi = bit,
                 Sayfa = Math.Max(sayfa, 1),

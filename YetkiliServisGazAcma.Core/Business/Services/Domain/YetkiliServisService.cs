@@ -45,6 +45,10 @@ namespace YetkiliServisGazAcma.Business.Services
         // VKN ile getir
         public async Task<Ys_Firma?> VknIleGetir(string vkn)
         {
+            vkn = VergiNoKurali.Normalize(vkn);
+            if (vkn.Length is not (10 or 11))
+                return null;
+
             return await _context.Ys_Firmalar
                 .FirstOrDefaultAsync(x => x.VergiNo == vkn && !x.SilindiMi);
         }
@@ -75,7 +79,7 @@ namespace YetkiliServisGazAcma.Business.Services
                     return (false, "Geçersiz hizmet türü seçildi.");
             }
 
-            firma.VergiNo = new string((firma.VergiNo ?? "").Where(char.IsAsciiDigit).ToArray());
+            firma.VergiNo = VergiNoKurali.Normalize(firma.VergiNo);
             if (firma.VergiNo.Length is not (10 or 11))
                 return (false, "VKN/TCKN 10 veya 11 haneli olmalidir");
 

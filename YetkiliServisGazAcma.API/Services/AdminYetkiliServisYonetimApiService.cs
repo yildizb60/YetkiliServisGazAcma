@@ -68,11 +68,15 @@ namespace YetkiliServisGazAcma.API.Services
             if (!await FirmaYetkiIliskileri.GecerliMiAsync(_context, dto.KategoriIds, dto.MarkaIds))
                 return ApiIslemSonuc.Basarisiz("Geçersiz marka veya hizmet türü seçildi.");
 
-            if (!string.IsNullOrWhiteSpace(dto.VergiNo))
+            var vergiNo = VergiNoKurali.Normalize(dto.VergiNo);
+            if (!string.IsNullOrWhiteSpace(dto.VergiNo) && vergiNo.Length is not (10 or 11))
+                return ApiIslemSonuc.Basarisiz("VKN/TCKN 10 veya 11 haneli olmalidir");
+
+            if (vergiNo.Length > 0)
             {
                 var vknVar = await _context.Ys_Firmalar.AnyAsync(x =>
                     !x.SilindiMi &&
-                    x.VergiNo == dto.VergiNo.Trim());
+                    x.VergiNo == vergiNo);
 
                 if (vknVar)
                     return ApiIslemSonuc.Basarisiz("Bu VKN ile kayitli bir yetkili servis zaten var.");
@@ -92,7 +96,7 @@ namespace YetkiliServisGazAcma.API.Services
                 Email = dto.Email,
                 Adres = dto.Adres,
                 FaaliyetIli = dto.FaaliyetIli,
-                VergiNo = dto.VergiNo,
+                VergiNo = vergiNo.Length == 0 ? null : vergiNo,
                 VergiDairesi = dto.VergiDairesi,
                 SirketId = hedefSirketId,
                 AktifMi = dto.AktifMi,
@@ -133,12 +137,16 @@ namespace YetkiliServisGazAcma.API.Services
             if (servis == null)
                 return ApiIslemSonuc.Basarisiz("Yetkili servis bulunamadi.");
 
-            if (!string.IsNullOrWhiteSpace(dto.VergiNo))
+            var vergiNo = VergiNoKurali.Normalize(dto.VergiNo);
+            if (!string.IsNullOrWhiteSpace(dto.VergiNo) && vergiNo.Length is not (10 or 11))
+                return ApiIslemSonuc.Basarisiz("VKN/TCKN 10 veya 11 haneli olmalidir");
+
+            if (vergiNo.Length > 0)
             {
                 var vknVar = await _context.Ys_Firmalar.AnyAsync(x =>
                     x.Id != servis.Id &&
                     !x.SilindiMi &&
-                    x.VergiNo == dto.VergiNo.Trim());
+                    x.VergiNo == vergiNo);
 
                 if (vknVar)
                     return ApiIslemSonuc.Basarisiz("Bu VKN ile kayitli baska bir yetkili servis var.");
@@ -156,7 +164,7 @@ namespace YetkiliServisGazAcma.API.Services
             servis.Email = dto.Email;
             servis.Adres = dto.Adres;
             servis.FaaliyetIli = dto.FaaliyetIli;
-            servis.VergiNo = dto.VergiNo;
+            servis.VergiNo = vergiNo.Length == 0 ? null : vergiNo;
             servis.VergiDairesi = dto.VergiDairesi;
             servis.SirketId = hedefSirketId;
             servis.AktifMi = dto.AktifMi;
