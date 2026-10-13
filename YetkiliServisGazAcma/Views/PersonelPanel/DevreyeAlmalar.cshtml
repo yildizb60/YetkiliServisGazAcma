@@ -2,109 +2,28 @@
 @{
     ViewData["Title"] = "Cihaz Devreye Alma Kayıtları";
     ViewData["PanelTitle"] = ViewData["Title"];
-    ViewData["PanelSubtitle"] = "Personel Paneli";
     ViewData["ActiveMenu"] = "DevreyeAlmalar";
     ViewData["PanelArea"] = "Personel";
     ViewData["DevreyeAlmaAlan"] = "/personel-panel";
-    Layout = "~/Views/Shared/_PanelLayout.cshtml";
-
-    var markalar = ViewBag.Markalar as List<AdminMarkaSecenekDto> ?? new();
-    var secilenTesisat = Context.Request.Query["tesisat"].ToString();
-    var secilenMusteri = ViewBag.Musteri as string ?? Context.Request.Query["musteri"].ToString();
-    var secilenMarka = Context.Request.Query["marka"].ToString();
-    var secilenServis = Context.Request.Query["servis"].ToString();
-    var secilenIl = Context.Request.Query["il"].ToString();
-    var secilenIlce = Context.Request.Query["ilce"].ToString();
-    var secilenBas = Context.Request.Query["bas"].ToString();
-    var secilenBit = Context.Request.Query["bit"].ToString();
-    var filtreAktif = !string.IsNullOrWhiteSpace(secilenTesisat)
-        || !string.IsNullOrWhiteSpace(secilenMusteri)
-        || !string.IsNullOrWhiteSpace(secilenMarka)
-        || !string.IsNullOrWhiteSpace(secilenServis)
-        || !string.IsNullOrWhiteSpace(secilenIl)
-        || !string.IsNullOrWhiteSpace(secilenIlce)
-        || !string.IsNullOrWhiteSpace(secilenBas)
-        || !string.IsNullOrWhiteSpace(secilenBit);
+    Layout = "_PanelLayout";
+    var liste = new DevreyeAlmaListeViewModel
+    {
+        Kayitlar = Model,
+        ListeUrl = Url.Action("DevreyeAlmalar", "PersonelPanel")!,
+        TemizleUrl = Url.Action("DevreyeAlmalar", "PersonelPanel")!,
+        PdfUrl = Url.Action("DevreyeAlmalarPdf", "PersonelPanel")!,
+        ExcelUrl = Url.Action("DevreyeAlmalarExcel", "PersonelPanel")!,
+        Markalar = (ViewBag.Markalar as List<AdminMarkaSecenekDto> ?? []).Select(m => m.MarkaAdi ?? "").ToList(),
+        CihazTipleri = ViewBag.CihazTipleri as List<string> ?? [],
+        Sehirler = ViewBag.Sehirler as List<string> ?? []
+    };
 }
-
 @section PageStyles {
-    <link rel="stylesheet" href="~/css/ykc-operations.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/css/ys-operations.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/operations-directory.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/commissioning-history.css" asp-append-version="true" />
 }
-
-<div class="df-admin-workspace df-operations-directory df-personnel-commissioning-workspace">
-    <section class="df-admin-list-card">
-        <div class="df-service-list-head is-operation-toolbar">
-            <div class="df-operation-list-count" aria-label="@Model.Count kayıt görüntüleniyor"><i class="bi bi-list-check" aria-hidden="true"></i><strong>@Model.Count</strong><span>kayıt</span></div>
-            <div class="df-export-actions" aria-label="Dışa aktarma işlemleri">
-                <button type="button" class="df-btn df-btn-sm df-commissioning-export is-pdf" data-list-export="pdf" data-export-url="@Url.Action("DevreyeAlmalarPdf", "PersonelPanel")" disabled="@(!Model.Any())" title="Seçili kayıtları; seçim yoksa listedeki kayıtları PDF olarak indir"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF</button>
-                <button type="button" class="df-btn df-btn-sm df-commissioning-export is-excel" data-list-export="excel" data-export-url="@Url.Action("DevreyeAlmalarExcel", "PersonelPanel")" disabled="@(!Model.Any())" title="Seçili kayıtları; seçim yoksa listedeki kayıtları Excel olarak indir"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel</button>
-            </div>
-        </div>
-    <details class="df-admin-filter df-commissioning-filter" open="@(filtreAktif ? "open" : null)">
-        <summary>
-            <span><i class="bi bi-funnel" aria-hidden="true"></i><strong>Kayıtları Filtrele</strong></span>
-            <span>@(filtreAktif ? "Filtre uygulandı" : "Filtreleri aç") <i class="bi bi-chevron-down" aria-hidden="true"></i></span>
-        </summary>
-        <div class="df-admin-filter-body">
-            <form method="get" action="@Url.Action("DevreyeAlmalar", "PersonelPanel")">
-                <div class="df-admin-filter-grid">
-                    <div class="df-admin-field"><label for="tesisat">Tesisat No</label><input id="tesisat" type="search" name="tesisat" value="@secilenTesisat" placeholder="Tesisat no" /></div>
-                    <div class="df-admin-field"><label for="musteri">Müşteri / Abone</label><input id="musteri" type="search" name="musteri" value="@secilenMusteri" placeholder="Ad, abone no veya telefon" /></div>
-                    <div class="df-admin-field"><label for="servis">Yetkili Servis</label><input id="servis" type="search" name="servis" value="@secilenServis" placeholder="Servis adı" /></div>
-                    <div class="df-admin-field"><label for="il">İl</label><input id="il" type="search" name="il" value="@secilenIl" placeholder="İl" /></div>
-                    <div class="df-admin-field"><label for="ilce">İlçe</label><input id="ilce" type="search" name="ilce" value="@secilenIlce" placeholder="İlçe" /></div>
-                    <div class="df-admin-field"><label for="marka">Marka</label><select id="marka" name="marka"><option value="">Tümü</option>@foreach (var m in markalar) { <option value="@m.MarkaAdi" selected="@(secilenMarka == m.MarkaAdi ? "selected" : null)">@m.MarkaAdi</option> }</select></div>
-                    <div class="df-admin-field is-half"><label for="bas">Başlangıç Tarihi</label><input id="bas" type="date" name="bas" value="@secilenBas" /></div>
-                    <div class="df-admin-field is-half"><label for="bit">Bitiş Tarihi</label><input id="bit" type="date" name="bit" value="@secilenBit" /></div>
-                </div>
-                <div class="df-admin-filter-actions">
-                    <a class="df-btn df-btn-secondary df-btn-sm" href="@Url.Action("DevreyeAlmalar", "PersonelPanel")"><i class="bi bi-x-lg" aria-hidden="true"></i> Temizle</a>
-                    <button class="df-btn df-btn-primary df-btn-sm" type="submit"><i class="bi bi-search" aria-hidden="true"></i> Sonuçları Göster</button>
-                </div>
-            </form>
-        </div>
-    </details>
-
-        @if (!Model.Any())
-        {
-            <div class="df-admin-empty"><i class="bi bi-inbox" aria-hidden="true"></i> Filtrelere uygun kayıt bulunamadı.</div>
-        }
-        else
-        {
-            <partial name="_DevreyeAlmaTable" model="Model" />
-        }
-    </section>
-</div>
-
+<partial name="_DevreyeAlmaDirectory" model="liste" />
 @section Scripts {
-    <script>
-        (function () {
-            const tumunuSec = document.getElementById("tumunuSec");
-            if (tumunuSec) {
-                tumunuSec.addEventListener("change", function () {
-                    document.querySelectorAll(".row-check").forEach(function (input) { input.checked = tumunuSec.checked; });
-                });
-            }
-
-        })();
-
-        function seciliIdler() {
-            return Array.from(document.querySelectorAll(".row-check:checked")).map(function (input) { return input.value; });
-        }
-        function tumIdler() {
-            return Array.from(document.querySelectorAll(".row-check")).map(function (input) { return input.value; });
-        }
-        document.querySelectorAll('[data-list-export]').forEach(function (button) {
-            button.addEventListener('click', function () {
-                const selected = seciliIdler();
-                const ids = selected.length > 0 ? selected : tumIdler();
-                if (ids.length === 0) return;
-                const query = ids.map(function (id) { return 'ids=' + encodeURIComponent(id); }).join('&');
-                window.location.assign(button.dataset.exportUrl + '?' + query);
-            });
-        });
-    </script>
     <script src="~/js/commissioning-row-details.js" asp-append-version="true"></script>
+    <script src="~/js/commissioning-history.js" asp-append-version="true"></script>
 }

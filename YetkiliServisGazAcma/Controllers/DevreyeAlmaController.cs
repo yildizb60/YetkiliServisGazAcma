@@ -187,29 +187,20 @@ namespace YetkiliServisGazAcma.Controllers
 
         [HttpGet]
         [Route("gecmis")]
-        public async Task<IActionResult> Gecmis(string? marka, DateTime? bas, DateTime? bit, string? musteri, string? tesisat)
+        public async Task<IActionResult> Gecmis(string? marka, DateTime? bas, DateTime? bit, string? musteri, string? tesisat,
+            string? sozlesme = null, string? q = null, string? sirala = null, string? cihazTipi = null, string? durum = null)
         {
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
-            var sonuc = await _devreyeAlmaApiClient.GecmisAsync(kullanici, marka, bas, bit, musteri, null, tesisat)
+            var sonuc = await _devreyeAlmaApiClient.GecmisAsync(kullanici, marka, bas, bit, musteri, durum, tesisat, sozlesme, q, sirala, cihazTipi)
                 ?? new YsDevreyeAlmaGecmisDto();
-
-            var islemler = sonuc.Islemler;
 
             ViewBag.Firma = sonuc.Firma;
             ViewBag.MarkaList = sonuc.MarkaList;
-            ViewBag.Toplam = sonuc.Toplam;
-            ViewBag.Tamamlanan = sonuc.Tamamlanan;
-            ViewBag.Bekleyen = sonuc.Bekleyen;
-            ViewBag.Iptal = sonuc.Iptal;
-            ViewBag.SeciliMarka = marka;
-            ViewBag.SeciliBas = bas?.ToString("yyyy-MM-dd");
-            ViewBag.SeciliBit = bit?.ToString("yyyy-MM-dd");
-            ViewBag.SeciliMusteri = musteri;
-            ViewBag.SeciliTesisat = tesisat;
+            ViewBag.CihazTipleri = sonuc.CihazTipleri;
             ViewBag.Kullanici = kullanici;
-            return View("~/Views/DevreyeAlma/Gecmis.cshtml", islemler);
+            return View("~/Views/DevreyeAlma/Gecmis.cshtml", sonuc.Islemler);
         }
     }
 

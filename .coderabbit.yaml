@@ -6,6 +6,5 @@ reviews:
     enabled: false
   path_filters:
     - ".coderabbit.yaml"
-    - "DatabaseScripts/**"
     - "YetkiliServisGazAcma.API/**"
     - "YetkiliServisGazAcma.Core/**"

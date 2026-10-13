@@ -245,6 +245,12 @@
             <span class="ykc-firm-record-number">Cihaz Değişim Talebi #@Model.Id</span>
             <div class="ykc-staff-identity-fields">
                 <h1><span>Müşteri Adı:</span> @Deger(Model.MusteriAdi)</h1>
+                @if (Model.RandevuTarihi.HasValue)
+                {
+                    <time class="ykc-appointment-focus" datetime="@Model.RandevuTarihi.Value.ToString("yyyy-MM-dd")" aria-label="Kontrol randevusu">
+                        <span>Kontrol Randevusu</span><strong>@Model.RandevuTarihi.Value.ToString("dd.MM.yyyy") <b>@Model.RandevuSaati</b></strong>
+                    </time>
+                }
             </div>
         </div>
         <div class="ykc-firm-record-actions">
@@ -274,7 +280,7 @@
         </header>
         @if (Model.RandevuTarihi.HasValue && Model.Durum != YkcDurumDegerleri.Atandi)
         {
-            <dl class="ykc-staff-appointment"><div><dt>Kontrol Randevusu</dt><dd>@RandevuYazi(Model.RandevuTarihi, Model.RandevuSaati)</dd></div><div><dt>Ekip / Personel</dt><dd>@Deger(Model.AtananEkip)</dd></div></dl>
+            <dl class="ykc-staff-appointment"><div><dt>Ekip / Personel</dt><dd>@Deger(Model.AtananEkip)</dd></div></dl>
         }
 
         @if (!icOperasyonGorsun)

@@ -138,7 +138,15 @@ namespace YetkiliServisGazAcma.Controllers
             DateTime? bas,
             DateTime? bit,
             int sayfa = 1,
-            string? bekleyenIs = null)
+            string? bekleyenIs = null,
+            string? q = null,
+            string? sirala = null,
+            string? cihazTipi = null,
+            int? talepId = null,
+            DateTime? randevuBas = null,
+            DateTime? randevuBit = null,
+            int? sirketId = null,
+            string? marka = null)
         {
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null)
@@ -151,6 +159,14 @@ namespace YetkiliServisGazAcma.Controllers
 
             var filtre = new YkcTalepListeFiltre
             {
+                Q = q,
+                Sirala = sirala,
+                CihazTipi = cihazTipi,
+                TalepId = talepId,
+                SirketId = sirketId,
+                Marka = marka,
+                RandevuBaslangicTarihi = randevuBas,
+                RandevuBitisTarihi = randevuBit,
                 BekleyenIs = bekleyenIs,
                 TesisatNo = tesisatNo,
                 MusteriAdi = musteriAdi,
@@ -172,7 +188,11 @@ namespace YetkiliServisGazAcma.Controllers
             YkcTalepListeSonuc sonuc;
             try
             {
-                sonuc = await _ykcApiClient.TaleplerAsync(kullanici, filtre) ?? new YkcTalepListeSonuc();
+                sonuc = await _ykcApiClient.TaleplerAsync(kullanici, filtre) ?? new YkcTalepListeSonuc
+                {
+                    Sayfa = filtre.Sayfa,
+                    SayfaBoyutu = filtre.SayfaBoyutu
+                };
             }
             catch (ApiIntegrationException ex)
             {
@@ -185,7 +205,6 @@ namespace YetkiliServisGazAcma.Controllers
                 };
             }
             ViewBag.Filtre = filtre;
-            ViewBag.Ozet = await DashboardOzetGuvenliAsync(kullanici);
             return View("~/Views/Ykc/Talepler.cshtml", sonuc);
         }
 
@@ -207,7 +226,14 @@ namespace YetkiliServisGazAcma.Controllers
             int? talepId = null,
             bool detayAc = false,
             int? detayTalepId = null,
-            int? sirketId = null)
+            int? sirketId = null,
+            string? q = null,
+            string? sirala = null,
+            string? musteriAdi = null,
+            string? sozlesmeNo = null,
+            string? cihazTipi = null,
+            DateTime? randevuBas = null,
+            DateTime? randevuBit = null)
         {
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null)
@@ -223,19 +249,31 @@ namespace YetkiliServisGazAcma.Controllers
             var acilacakTalepId = detayTalepId ?? (eskiDetayBaglantisi ? talepId : null);
             var filtre = RaporFiltresi(
                 tesisatNo, firma, il, ilce, bolge, ekip, marka, hedefUygulama,
-                durum, bas, bit, sayfa, sayfaBoyutu, talepId: raporTalepId, sirketId: sirketId);
+                durum, bas, bit, sayfa, sayfaBoyutu, talepId: raporTalepId, sirketId: sirketId,
+                q: q, sirala: sirala, musteriAdi: musteriAdi, sozlesmeNo: sozlesmeNo, cihazTipi: cihazTipi,
+                randevuBas: randevuBas, randevuBit: randevuBit);
             filtre.DetayTalepId = acilacakTalepId is > 0 ? acilacakTalepId : null;
 
             YkcRaporSonuc sonuc;
             try
             {
-                sonuc = await _ykcApiClient.RaporAsync(kullanici, filtre) ?? new YkcRaporSonuc();
+                sonuc = await _ykcApiClient.RaporAsync(kullanici, filtre) ?? new YkcRaporSonuc
+                {
+                    Sayfa = filtre.Sayfa,
+                    SayfaBoyutu = filtre.SayfaBoyutu,
+                    KayitLimiti = filtre.SayfaBoyutu
+                };
             }
             catch (ApiIntegrationException ex)
             {
                 _logger.LogWarning(ex, "YKC raporu alınamadı.");
                 TempData["Hata"] = "Rapor verileri şu anda alınamadı. Veri bağlantısı yeniden kurulurken kısa bir süre sonra tekrar deneyin.";
-                sonuc = new YkcRaporSonuc();
+                sonuc = new YkcRaporSonuc
+                {
+                    Sayfa = filtre.Sayfa,
+                    SayfaBoyutu = filtre.SayfaBoyutu,
+                    KayitLimiti = filtre.SayfaBoyutu
+                };
             }
             ViewBag.Filtre = filtre;
             ViewBag.TalepId = raporTalepId;
@@ -245,30 +283,52 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpGet("raporlar/pdf")]
+        [HttpPost("raporlar/pdf")]
+        [AutoValidateAntiforgeryToken]
+        [RequestFormLimits(ValueCountLimit = 6000)]
         public async Task<IActionResult> RaporPdf(
             string? tesisatNo, string? firma, string? il, string? ilce, string? bolge,
             string? ekip, string? marka, string? hedefUygulama, int? durum,
-            DateTime? bas, DateTime? bit, [FromQuery(Name = "ids")] List<int>? ids, int? talepId = null, int? sirketId = null)
+            DateTime? bas, DateTime? bit, List<int>? ids, int? talepId = null, int? sirketId = null,
+            string? q = null, string? sirala = null, string? musteriAdi = null, string? sozlesmeNo = null,
+            string? cihazTipi = null, int sayfa = 1, int sayfaBoyutu = 10, string? kaynak = null,
+            string? aboneNo = null, int? kontrolNo = null, string? bekleyenIs = null,
+            DateTime? randevuBas = null, DateTime? randevuBit = null)
         {
             return await RaporDosyasi(
                 RaporFiltresi(tesisatNo, firma, il, ilce, bolge, ekip, marka, hedefUygulama, durum, bas, bit,
-                    kayitIdleri: Request.Query.ContainsKey("ids") ? ids ?? new List<int>() : null, talepId: talepId, sirketId: sirketId),
-                excelMi: false);
+                    sayfa, sayfaBoyutu, kayitIdleri: ids is { Count: > 0 } || Request.Query.ContainsKey("ids")
+                        || (Request.HasFormContentType && Request.Form.ContainsKey("ids")) ? ids ?? new List<int>() : null,
+                    talepId: talepId, sirketId: sirketId, q: q, sirala: sirala, musteriAdi: musteriAdi,
+                    sozlesmeNo: sozlesmeNo, cihazTipi: cihazTipi, aboneNo: aboneNo, kontrolNo: kontrolNo, bekleyenIs: bekleyenIs,
+                    randevuBas: randevuBas, randevuBit: randevuBit),
+                excelMi: false, kaynak: kaynak);
         }
 
         [HttpGet("raporlar/excel")]
+        [HttpPost("raporlar/excel")]
+        [AutoValidateAntiforgeryToken]
+        [RequestFormLimits(ValueCountLimit = 6000)]
         public async Task<IActionResult> RaporExcel(
             string? tesisatNo, string? firma, string? il, string? ilce, string? bolge,
             string? ekip, string? marka, string? hedefUygulama, int? durum,
-            DateTime? bas, DateTime? bit, [FromQuery(Name = "ids")] List<int>? ids, int? talepId = null, int? sirketId = null)
+            DateTime? bas, DateTime? bit, List<int>? ids, int? talepId = null, int? sirketId = null,
+            string? q = null, string? sirala = null, string? musteriAdi = null, string? sozlesmeNo = null,
+            string? cihazTipi = null, int sayfa = 1, int sayfaBoyutu = 10, string? kaynak = null,
+            string? aboneNo = null, int? kontrolNo = null, string? bekleyenIs = null,
+            DateTime? randevuBas = null, DateTime? randevuBit = null)
         {
             return await RaporDosyasi(
                 RaporFiltresi(tesisatNo, firma, il, ilce, bolge, ekip, marka, hedefUygulama, durum, bas, bit,
-                    kayitIdleri: Request.Query.ContainsKey("ids") ? ids ?? new List<int>() : null, talepId: talepId, sirketId: sirketId),
-                excelMi: true);
+                    sayfa, sayfaBoyutu, kayitIdleri: ids is { Count: > 0 } || Request.Query.ContainsKey("ids")
+                        || (Request.HasFormContentType && Request.Form.ContainsKey("ids")) ? ids ?? new List<int>() : null,
+                    talepId: talepId, sirketId: sirketId, q: q, sirala: sirala, musteriAdi: musteriAdi,
+                    sozlesmeNo: sozlesmeNo, cihazTipi: cihazTipi, aboneNo: aboneNo, kontrolNo: kontrolNo, bekleyenIs: bekleyenIs,
+                    randevuBas: randevuBas, randevuBit: randevuBit),
+                excelMi: true, kaynak: kaynak);
         }
 
-        private async Task<IActionResult> RaporDosyasi(YkcTalepListeFiltre filtre, bool excelMi)
+        private async Task<IActionResult> RaporDosyasi(YkcTalepListeFiltre filtre, bool excelMi, string? kaynak = null)
         {
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null)
@@ -294,11 +354,17 @@ namespace YetkiliServisGazAcma.Controllers
                 TempData["Hata"] = ex.Message;
             }
 
-            return RedirectToAction(nameof(Raporlar), new
+            return RedirectToAction(string.Equals(kaynak, "talepler", StringComparison.OrdinalIgnoreCase) ? nameof(Talepler) : nameof(Raporlar), new
             {
+                q = filtre.Q, sirala = filtre.Sirala, musteriAdi = filtre.MusteriAdi,
+                sozlesmeNo = filtre.SozlesmeNo, cihazTipi = filtre.CihazTipi, talepId = filtre.TalepId,
+                aboneNo = filtre.AboneNo, kontrolNo = filtre.KontrolNo, bekleyenIs = filtre.BekleyenIs,
+                sayfa = filtre.Sayfa, sayfaBoyutu = filtre.SayfaBoyutu,
                 sirketId = filtre.SirketId, tesisatNo = filtre.TesisatNo, firma = filtre.Firma,
                 il = filtre.Il, ilce = filtre.Ilce, bolge = filtre.Bolge, ekip = filtre.Ekip,
                 marka = filtre.Marka, hedefUygulama = filtre.HedefUygulama, durum = filtre.Durum,
+                randevuBas = filtre.RandevuBaslangicTarihi?.ToString("yyyy-MM-dd"),
+                randevuBit = filtre.RandevuBitisTarihi?.ToString("yyyy-MM-dd"),
                 bas = filtre.BaslangicTarihi?.ToString("yyyy-MM-dd"), bit = filtre.BitisTarihi?.ToString("yyyy-MM-dd")
             });
         }
@@ -689,10 +755,31 @@ namespace YetkiliServisGazAcma.Controllers
             int sayfaBoyutu = 10,
             IEnumerable<int>? kayitIdleri = null,
             int? talepId = null,
-            int? sirketId = null)
+            int? sirketId = null,
+            string? q = null,
+            string? sirala = null,
+            string? musteriAdi = null,
+            string? sozlesmeNo = null,
+            string? cihazTipi = null,
+            string? aboneNo = null,
+            int? kontrolNo = null,
+            string? bekleyenIs = null,
+            DateTime? randevuBas = null,
+            DateTime? randevuBit = null)
         {
             return new YkcTalepListeFiltre
             {
+                Q = q,
+                Sirala = sirala,
+                MusteriAdi = musteriAdi,
+                SozlesmeNo = sozlesmeNo,
+                CihazTipi = cihazTipi,
+                TalepId = talepId,
+                AboneNo = aboneNo,
+                KontrolNo = kontrolNo,
+                BekleyenIs = bekleyenIs,
+                RandevuBaslangicTarihi = randevuBas,
+                RandevuBitisTarihi = randevuBit,
                 SirketId = sirketId,
                 TesisatNo = tesisatNo,
                 Firma = firma,

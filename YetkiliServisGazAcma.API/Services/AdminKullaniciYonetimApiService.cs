@@ -23,7 +23,7 @@ public sealed class AdminKullaniciYonetimApiService(AppDbContext context, UserMa
         if (hedef == null)
             return (false, ApiIslemSonuc.Basarisiz("Kullanici bulunamadi."));
 
-        if (!await KullaniciKapsamindaMi(kullanici, hedef, sirketId, genelSistemAdmin))
+        if (!await AdminKullaniciKapsami.IceriyorAsync(_context, kullanici, hedef, sirketId, genelSistemAdmin))
             return (true, null);
 
         if (kullanici.Id == hedef.Id && !dto.AktifMi)
@@ -346,7 +346,7 @@ public sealed class AdminKullaniciYonetimApiService(AppDbContext context, UserMa
         if (hedef == null || (dto.SadecePersonel && hedef.KullaniciTipi != KullaniciTipiDegerleri.Personel))
             return (false, ApiIslemSonuc.Basarisiz(dto.SadecePersonel ? "Personel bulunamadi." : "Kullanici bulunamadi."));
 
-        if (!await KullaniciKapsamindaMi(kullanici, hedef, sirketId, genelSistemAdmin))
+        if (!await AdminKullaniciKapsami.IceriyorAsync(_context, kullanici, hedef, sirketId, genelSistemAdmin))
             return (true, null);
 
         if (!genelSistemAdmin &&
@@ -375,7 +375,7 @@ public sealed class AdminKullaniciYonetimApiService(AppDbContext context, UserMa
         if (hedef == null || (dto.SadecePersonel && hedef.KullaniciTipi != KullaniciTipiDegerleri.Personel))
             return (false, ApiIslemSonuc.Basarisiz(dto.SadecePersonel ? "Personel bulunamadi." : "Kullanici bulunamadi."));
 
-        if (!await KullaniciKapsamindaMi(kullanici, hedef, sirketId, genelSistemAdmin))
+        if (!await AdminKullaniciKapsami.IceriyorAsync(_context, kullanici, hedef, sirketId, genelSistemAdmin))
             return (true, null);
 
         if (!genelSistemAdmin &&
@@ -477,31 +477,6 @@ public sealed class AdminKullaniciYonetimApiService(AppDbContext context, UserMa
         return tumRoller.FirstOrDefault(r =>
             r!.Contains("yetkili", StringComparison.OrdinalIgnoreCase) &&
             r.Contains("servis", StringComparison.OrdinalIgnoreCase));
-    }
-
-    private async Task<bool> KullaniciKapsamindaMi(AppKullanici yapan, AppKullanici hedef, int? sirketId, bool genelSistemAdminMi)
-    {
-        if (yapan.Id == hedef.Id)
-            return true;
-
-
-        if (genelSistemAdminMi && !sirketId.HasValue)
-            return true;
-
-        if (!sirketId.HasValue)
-            return false;
-
-        if ((hedef.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis ||
-             hedef.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma) &&
-            hedef.FirmaId.HasValue)
-        {
-            return await _context.Ys_Firmalar.AnyAsync(x =>
-                x.Id == hedef.FirmaId.Value &&
-                !x.SilindiMi &&
-                x.SirketId == sirketId.Value);
-        }
-
-        return (hedef.KullaniciTipi == KullaniciTipiDegerleri.Personel || hedef.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin) && hedef.SirketId == sirketId.Value;
     }
 
     private async Task<bool> SirketYonetimKapsamindaMi(AppKullanici yapan, int hedefSirketId, int? kapsamSirketId, bool genelSistemAdminMi)

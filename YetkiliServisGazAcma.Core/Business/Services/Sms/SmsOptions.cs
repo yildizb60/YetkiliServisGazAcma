@@ -9,6 +9,9 @@ namespace YetkiliServisGazAcma.Business.Services
         public int CodeLength { get; set; } = 6;
         public int CodeExpireMinutes { get; set; } = 5;
         public int MaxAttempts { get; set; } = 5;
+        public bool CodeCleanupEnabled { get; set; } = true;
+        public int ExpiredCodeRetentionDays { get; set; } = 30;
+        public int CodeCleanupIntervalHours { get; set; } = 24;
         public string BaseUrl { get; set; } = "https://smsnviapi.ahlatci.com.tr";
         public string SendPath { get; set; } = "/api/AhlSmsApi/Send_SMS_BULK";
         public string TokenPath { get; set; } = "/api/Token/oauth/get_token";

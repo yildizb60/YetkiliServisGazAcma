@@ -3,97 +3,28 @@
     ViewData["Title"] = "Cihaz Devreye Alma Geçmişi";
     ViewData["PanelTitle"] = ViewData["Title"];
     ViewData["PanelModule"] = "Cihaz Devreye Alma";
-    Layout = "_PanelLayout";
     ViewData["ActiveMenu"] = "DevreyeGecmis";
     ViewData["PanelArea"] = "YetkiliServis";
     ViewData["DevreyeAlmaAlan"] = "/ys-devreyeal";
-    var markaList = ViewBag.MarkaList as List<string> ?? new List<string>();
-    string seciliMarka = ViewBag.SeciliMarka as string ?? "";
-    string seciliBas = ViewBag.SeciliBas as string ?? "";
-    string seciliBit = ViewBag.SeciliBit as string ?? "";
-    string seciliMusteri = ViewBag.SeciliMusteri as string ?? "";
-    string seciliTesisat = ViewBag.SeciliTesisat as string ?? "";
-    bool filtreAktif = !string.IsNullOrWhiteSpace(seciliMarka)
-        || !string.IsNullOrWhiteSpace(seciliBas)
-        || !string.IsNullOrWhiteSpace(seciliBit)
-        || !string.IsNullOrWhiteSpace(seciliMusteri)
-        || !string.IsNullOrWhiteSpace(seciliTesisat);
+    Layout = "_PanelLayout";
+    var liste = new DevreyeAlmaListeViewModel
+    {
+        Kayitlar = Model, ServisPaneli = true,
+        ListeUrl = Url.Action("Gecmis", "DevreyeAlma")!,
+        TemizleUrl = Url.Action("Gecmis", "DevreyeAlma")!,
+        PdfUrl = Url.Action("RaporlarPdf", "YetkiliServisPanel")!,
+        ExcelUrl = Url.Action("RaporlarExcel", "YetkiliServisPanel")!,
+        YeniKayitUrl = Url.Action("Index", "DevreyeAlma"),
+        Markalar = ViewBag.MarkaList as List<string> ?? [],
+        CihazTipleri = ViewBag.CihazTipleri as List<string> ?? []
+    };
 }
-
-@functions {
-    private static string? Secili(bool kosul) => kosul ? "selected" : null;
-}
-
 @section PageStyles {
-    <link rel="stylesheet" href="~/css/ykc-operations.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/operations-directory.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/commissioning-history.css" asp-append-version="true" />
 }
-
-<div class="df-admin-workspace df-operations-directory">
-    <section class="df-admin-list-card">
-        <div class="df-commissioning-history-toolbar">
-            <span>@Model.Count kayıt</span>
-            <div class="df-export-actions" aria-label="Dışa aktarma işlemleri">
-                <button type="button" class="df-btn df-btn-danger df-btn-sm" data-commissioning-bulk-export data-export-url="@Url.Action("RaporlarPdf", "YetkiliServisPanel")" disabled="@(!Model.Any())" title="Listedeki kayıtları PDF olarak indir"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> PDF İndir</button>
-                <button type="button" class="df-btn df-btn-success df-btn-sm" data-commissioning-bulk-export data-export-url="@Url.Action("RaporlarExcel", "YetkiliServisPanel")" disabled="@(!Model.Any())" title="Listedeki kayıtları Excel olarak indir"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel İndir</button>
-                <a class="df-btn df-btn-primary df-btn-sm" href="@Url.Action("Index", "DevreyeAlma")"><i class="bi bi-plus-lg" aria-hidden="true"></i> Yeni Kayıt</a>
-            </div>
-        </div>
-
-        <details class="df-admin-filter df-commissioning-filter is-firm-history-filter" open="@(filtreAktif ? "open" : null)">
-            <summary>
-                <span><i class="bi bi-funnel" aria-hidden="true"></i><strong>Kayıtları Filtrele</strong></span>
-                <span>@(filtreAktif ? "Filtre uygulandı" : "Filtreleri aç") <i class="bi bi-chevron-down" aria-hidden="true"></i></span>
-            </summary>
-            <div class="df-admin-filter-body">
-                <form method="get" action="@Url.Action("Gecmis", "DevreyeAlma")">
-                    <div class="df-admin-filter-grid">
-                        <div class="df-admin-field"><label for="tesisat">Tesisat No</label><input id="tesisat" type="search" name="tesisat" value="@seciliTesisat" placeholder="Tesisat no" /></div>
-                        <div class="df-admin-field"><label for="musteri">Müşteri / Abone</label><input id="musteri" type="search" name="musteri" value="@seciliMusteri" placeholder="Ad, abone no veya telefon" /></div>
-                        <div class="df-admin-field">
-                            <label for="marka">Marka</label>
-                            <select id="marka" name="marka">
-                                <option value="">Tümü</option>
-                                @foreach (var m in markaList)
-                                {
-                                    <option value="@m" selected="@Secili(string.Equals(seciliMarka, m, StringComparison.OrdinalIgnoreCase))">@m</option>
-                                }
-                            </select>
-                        </div>
-                        <div class="df-admin-field"><label for="bas">Başlangıç Tarihi</label><input id="bas" type="date" name="bas" value="@seciliBas" /></div>
-                        <div class="df-admin-field"><label for="bit">Bitiş Tarihi</label><input id="bit" type="date" name="bit" value="@seciliBit" /></div>
-                    </div>
-                    <div class="df-admin-filter-actions">
-                        <a class="df-btn df-btn-secondary df-btn-sm" href="@Url.Action("Gecmis", "DevreyeAlma")"><i class="bi bi-x-lg" aria-hidden="true"></i> Temizle</a>
-                        <button class="df-btn df-btn-primary df-btn-sm" type="submit"><i class="bi bi-search" aria-hidden="true"></i> Sonuçları Göster</button>
-                    </div>
-                </form>
-            </div>
-        </details>
-
-        @if (!Model.Any())
-        {
-            <div class="df-admin-empty"><i class="bi bi-inbox" aria-hidden="true"></i> Filtrelere uygun kayıt bulunamadı.</div>
-        }
-        else
-        {
-            <partial name="_DevreyeAlmaTable" model="Model" />
-        }
-    </section>
-</div>
-
+<partial name="_DevreyeAlmaDirectory" model="liste" />
 @section Scripts {
     <script src="~/js/commissioning-row-details.js" asp-append-version="true"></script>
-    <script>
-        document.querySelectorAll("[data-commissioning-bulk-export]").forEach(button => {
-            button.addEventListener("click", () => {
-                const ids = Array.from(document.querySelectorAll("[data-commissioning-record][data-export-id]"))
-                    .map(row => row.dataset.exportId).filter(Boolean);
-                if (!ids.length) return;
-                const url = new URL(button.dataset.exportUrl, window.location.origin);
-                ids.forEach(id => url.searchParams.append("ids", id));
-                window.location.assign(url.toString());
-            });
-        });
-    </script>
+    <script src="~/js/commissioning-history.js" asp-append-version="true"></script>
 }

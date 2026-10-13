@@ -7,18 +7,21 @@
 <ol id="results"></ol>
 <script type="module">
     const assert = (condition, message) => { if (!condition) throw new Error(message); };
-    const scripts = Object.fromEntries(await Promise.all(['toast', 'drawer', 'branch', 'permission', 'appointment', 'report', 'dropdown', 'commissioning', 'approval', 'request', 'login'].map(async name =>
+    const scripts = Object.fromEntries(await Promise.all(['toast', 'drawer', 'branch', 'permission', 'appointment', 'report', 'dropdown', 'commissioning', 'history', 'approval', 'request', 'login'].map(async name =>
         [name, await (await fetch(`/${name}.js`)).text()])));
     const reportCss = await (await fetch('/report.css')).text();
     const requestCss = await (await fetch('/request.css')).text();
     const requestView = await (await fetch('/request-view.html')).text();
     const commissioningEntry = await (await fetch('/commissioning-entry.json')).json();
     const commissioningTable = await (await fetch('/commissioning-table.json')).json();
+    const commissioningFilters = await (await fetch('/commissioning-filters.json')).json();
     scripts['commissioning-entry'] = commissioningEntry.script;
     const toastCss = await (await fetch('/toast.css')).text();
     const panelCss = (await Promise.all(['panel-layout', 'panel-unify'].map(async name =>
         await (await fetch(`/${name}.css`)).text()))).join('\n');
     const operationsCss = await (await fetch('/operations-directory.css')).text();
+    const historyCss = await (await fetch('/history.css')).text();
+    const ykcDirectories = await (await fetch('/ykc-directories.json')).json();
     const serviceEditorCss = await (await fetch('/service-editor.css')).text();
     const branchCss = await (await fetch('/branch.css')).text();
     const authCss = (await Promise.all(['login', 'registration'].map(async name =>
@@ -29,10 +32,14 @@
     const permissionFixture = await (await fetch('/permission-fixture.json')).json();
     const loginFixture = await (await fetch('/login-fixture.json')).json();
     const previewTest = new URLSearchParams(location.search).get('preview');
+    const directoryGroup = new URLSearchParams(location.search).get('group') === 'commissioning-directory';
+    const ykcDirectoryGroup = new URLSearchParams(location.search).get('group') === 'ykc-directory';
     let passed = 0, failed = 0;
 
     async function test(name, run) {
         if (previewTest && name !== previewTest) return;
+        if (directoryGroup && !/^(Commissioning contract filter fits|History column filters|History toolbar menus|Commissioning column boundaries|Commissioning card facts|Commissioning .* shares selection|Commissioning .* uses balanced shared columns|Commissioning bulk export|Saved card view|Empty commissioning directories|Commissioning type badge)/.test(name)) return;
+        if (ykcDirectoryGroup && !name.startsWith('YKC directory')) return;
         const frame = document.createElement('iframe');
         frame.title = name;
         const loaded = new Promise(resolve => frame.addEventListener('load', resolve, {once:true}));
@@ -44,9 +51,9 @@
         const errors = [];
         win.addEventListener('error', event => errors.push(event.message));
         win.addEventListener('unhandledrejection', event => errors.push(String(event.reason)));
-        const load = name => {
+        const load = (name, source = scripts[name]) => {
             const script = doc.createElement('script');
-            script.textContent = scripts[name];
+            script.textContent = source;
             doc.body.append(script);
         };
         try {
@@ -266,9 +273,12 @@
         await test(`Commissioning denies unauthorized devices before opening inputs at ${width}px`, async (doc, win, load) => {
             win.frameElement.style.width = `${width}px`;
             win.frameElement.style.height = '850px';
+            const icons = doc.createElement('link');
+            icons.rel = 'stylesheet';
+            icons.href = '/bootstrap-icons.css';
             const style = doc.createElement('style');
             style.textContent = panelCss + '\n' + requestCss;
-            doc.head.append(style);
+            doc.head.append(style, icons);
             doc.body.innerHTML = commissioningEntry.markup;
             win.HTMLElement.prototype.scrollIntoView = () => {};
             const message = 'Ocak cihaz tipinde işlem yetkiniz yok.';
@@ -299,24 +309,753 @@
             doc.querySelector('#sozlesmeNo').value = '20001';
             await win.tesistatSorgula();
             await win.cihazSec(0);
+            await until(() => icons.sheet);
+            await doc.fonts.ready;
             const form = doc.querySelector('#formKart');
             const pending = doc.querySelector('#ysDevicePending');
             assert(form.hidden && form.disabled && !doc.querySelector('.ys-device-work-card'), 'Unauthorized device opens editable fields');
             assert(!pending.hidden && pending.classList.contains('is-warning') && pending.textContent.includes(message), 'Category denial is not visible at selection');
             assert(doc.querySelector('.ys-commissioning-device-option').classList.contains('is-unavailable'), 'Denied device is not marked');
+            const denied = doc.querySelector('.ys-commissioning-device-option');
+            const assertDeniedUnselected = () => {
+                const appearance = win.getComputedStyle(denied);
+                assert(denied.getAttribute('aria-pressed') === 'false' && !denied.classList.contains('is-selected')
+                    && !denied.classList.contains('is-active'), 'Denied device appears selected');
+                assert(appearance.boxShadow === 'none' && appearance.borderColor === 'rgb(211, 222, 232)'
+                    && appearance.backgroundColor === 'rgb(255, 255, 255)', 'Denied device retains a colored selection frame');
+                assert(denied.querySelector('i').classList.contains('bi-lock') && denied.title === message,
+                    'Denied device does not explain the permission restriction');
+            };
+            assertDeniedUnselected();
             assert(checks[0].sorguReferansi === 'stove-source' && !('cihazMarka' in checks[0]), 'Permission check does not use the source reference');
+            await win.cihazSec(0);
+            assertDeniedUnselected();
+            assert(form.hidden && form.disabled && !doc.querySelector('.ys-device-work-card'), 'Repeated denied selection creates a device draft');
             doc.querySelector('#devreyeAlmaForm').dispatchEvent(new win.Event('submit', { bubbles: true, cancelable: true }));
             assert(saves === 0, 'Denied device can still submit');
             await win.cihazSec(1);
             assert(!form.hidden && !form.disabled && doc.querySelector('#cihazTipi').value === 'Kombi', 'An allowed device cannot be entered');
             doc.querySelector('#seriNo').value = 'KEEP-DRAFT';
             await win.cihazSec(0);
+            assertDeniedUnselected();
             assert(errors.includes(message) && doc.querySelectorAll('.ys-device-work-card').length === 1, 'Denial beside an existing draft is missing or creates a card');
             assert(doc.querySelector('#seriNo').value === 'KEEP-DRAFT' && doc.querySelector('#f-sorguReferansi').value === 'boiler-source', 'Denied selection corrupts another device draft');
+            assert(doc.querySelectorAll('.ys-commissioning-device-option')[1].getAttribute('aria-pressed') === 'true', 'Denied selection clears the authorized boiler');
             grantStove = true;
             await win.cihazSec(0);
             assert(doc.querySelectorAll('.ys-device-work-card').length === 2, 'Permission cannot be rechecked after it is granted');
+            assert(!denied.classList.contains('is-unavailable') && !denied.hasAttribute('title')
+                && denied.querySelector('i').classList.contains('bi-chevron-right') && denied.getAttribute('aria-pressed') === 'true',
+                'Granted permission retains the old denial presentation');
+            await win.cihazSec(0);
+            grantStove = false;
+            await win.cihazSec(0);
+            assertDeniedUnselected();
+            assert(doc.querySelectorAll('.ys-device-work-card').length === 1 && doc.querySelector('#seriNo').value === 'KEEP-DRAFT',
+                'Reselecting after permission is revoked retains the denied draft or loses the boiler draft');
             assert(doc.documentElement.scrollWidth <= width + 1, 'Permission warning causes horizontal scrolling');
+        });
+    }
+
+    function commissioningDirectoryMarkup(view, ids = [42, 43]) {
+        const columns = [{ key: 'select', label: '<input type="checkbox" data-commissioning-select-all aria-label="Select all">' },
+            ...commissioningTable.headers.filter(header => !view.firm || header.key !== 'company')];
+        const cells = id => ({
+            select: `<input type="checkbox" class="${view.name.startsWith('AdminPanel/') ? 'admin-row-check' : 'row-check'}" data-commissioning-select value="${id}" aria-label="Select record ${id}">`,
+            customer: `<div class="df-cell-main">Test customer ${id}</div>`,
+            installation: '<span class="df-cell-value">1000378</span>',
+            contract: '<span class="df-cell-value">0000943</span>',
+            company: '<div class="df-cell-value">Test service</div>',
+            type: '<span class="df-device-type-tag">Kombi</span>',
+            device: '<dl class="df-device-facts"><div><dt>Marka:</dt><dd>Vaillant</dd></div><div class="df-device-model"><dt>Model:</dt><dd>Vaillant eloBLOCK VE 9 kW electric heating device with an extended complete model description for commissioning records</dd></div></dl>',
+            date: '<time class="df-cell-value">01.10.2026</time>',
+            status: '<span class="df-pill df-pill-success">Tamamlandı</span>',
+            action: `<div class="df-commissioning-row-actions"><button type="button" class="df-icon-action commissioning-row-action df-commissioning-expand" data-commissioning-expand aria-controls="devreye-alma-detay-${id}" aria-expanded="false" aria-label="Test customer ${id} işlem ayrıntılarını görüntüle"><i class="bi bi-eye" aria-hidden="true"></i></button></div>`
+        });
+        return `<main class="df-commissioning-directory df-admin-workspace df-operations-directory" data-history-directory data-storage-key="commissioning-view">
+            <div class="ys-history-toolbar"><div class="ys-history-heading"><h2>Devreye Alma Kayitlari</h2><span>${ids.length} kayit</span></div><div class="ys-history-tools">
+            <div class="ys-history-search"><input name="q" form="commissioningFilters"><button type="submit" form="commissioningFilters" aria-label="Search"><i class="bi bi-search"></i></button></div>
+            <button type="button" class="ys-history-tool" data-history-filter-toggle hidden>Filtrele<span data-history-filter-count hidden></span></button>
+            <details class="ys-history-menu"><summary class="ys-history-tool">Sirala</summary><select name="sirala" form="commissioningFilters"><option value="">En yeni</option><option value="abone-artan">A-Z</option></select></details>
+            <div class="ys-history-density" role="group" data-history-view-group hidden><button type="button" data-history-view="list" aria-label="List" aria-pressed="true"><i class="bi bi-list"></i></button><button type="button" data-history-view="cards" aria-label="Cards" aria-pressed="false"><i class="bi bi-grid"></i></button></div>
+            <details class="ys-history-menu"><summary class="ys-history-tool">Export</summary><div class="ys-history-menu-body ys-history-export"><button type="button" data-commissioning-bulk-export data-export-url="/export/pdf?sirketId=7&amp;scope=current" ${ids.length ? '' : 'disabled'}>PDF</button><button type="button" data-commissioning-bulk-export data-export-url="/export/excel?sirketId=7&amp;scope=current" ${ids.length ? '' : 'disabled'}>Excel</button></div></details></div></div>
+            <form method="post" data-directory-export-form hidden><input type="hidden" name="__RequestVerificationToken" value="fixture-token"><div data-directory-export-fields></div></form>
+            <section class="df-commissioning-surface"><details id="commissioningFiltersPanel" class="df-admin-filter df-commissioning-filter"><summary>Filtreler</summary><div class="df-admin-filter-body"><form id="commissioningFilters" method="get"><input type="hidden" name="sirketId" value="7"><div class="df-admin-filter-grid">
+            ${view.fields.map(field => `<div class="df-admin-field"><label for="${field.id}">${field.label}</label>${field.tag === 'select'
+                ? `<select id="${field.id}" name="${field.name}"><option value="">Tumu</option><option value="test">Test</option></select>`
+                : `<input id="${field.id}" type="${field.type}" name="${field.name}">`}</div>`).join('')}</div></form></div></details>
+            ${ids.length ? `<div class="df-admin-table-scroll"><table class="df-table df-commissioning-table ${view.firm ? 'is-firm-history' : ''}"><thead><tr>${columns.map(header => `<th class="df-commissioning-col-${header.key}">${header.label}</th>`).join('')}</tr></thead><tbody>
+            ${ids.map(id => `<tr class="df-commissioning-record-row" data-commissioning-record data-export-id="${id}">${columns.map(({ key, label }) => `<td class="df-commissioning-col-${key}" ${key === 'select' ? '' : `data-label="${label}"`} ${key === 'customer' ? `data-record-id="${id}"` : ''}>${cells(id)[key]}</td>`).join('')}</tr>
+            <tr class="df-commissioning-detail-row" id="devreye-alma-detay-${id}" hidden><td colspan="${columns.length}"><div class="df-commissioning-detail-panel"><div class="df-commissioning-detail-grid"><section><span>Device details</span><dl class="df-commissioning-extra-facts"><div><dt>Model</dt><dd>Full model for record ${id}</dd></div></dl></section></div></div></td></tr>`).join('')}
+            </tbody></table></div>` : '<div class="df-admin-empty">No records</div>'}</section>
+            <div id="historyColumnFilter" class="ys-history-column-popover" data-history-column-popover hidden><header><strong></strong><button type="button" data-history-column-close>Close</button></header><div data-history-column-body></div><footer><button type="button" data-history-column-clear>Clear</button><button type="submit" form="commissioningFilters">Apply</button></footer></div></main>`;
+    }
+
+    function captureDirectoryExports(doc, win) {
+        win.__commissioningExports = [];
+        win.__commissioningExportRequests = [];
+        const form = doc.querySelector('[data-directory-export-form]');
+        if (!form) {
+            assert(!doc.querySelector('[data-directory-export],[data-commissioning-bulk-export]'), 'Export buttons are missing their shared POST form');
+            return;
+        }
+        form.addEventListener('submit', event => {
+            event.preventDefault();
+            const body = new win.FormData(form);
+            assert(form.method === 'post' && body.get('__RequestVerificationToken'), 'Bulk export is not an antiforgery-protected POST');
+            const action = new URL(form.action);
+            assert(!action.search, 'Bulk export still puts filters or IDs in the request URL');
+            win.__commissioningExportRequests.push({ action: form.action, body });
+            action.search = new URLSearchParams(body).toString();
+            win.__commissioningExports.push(action.toString());
+        });
+    }
+
+    function contrastRatio(foreground, background) {
+        const luminance = color => {
+            const [r, g, b] = color.match(/[\d.]+/g).slice(0, 3).map(value => {
+                const channel = Number(value) / 255;
+                return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+            });
+            return r * 0.2126 + g * 0.7152 + b * 0.0722;
+        };
+        const first = luminance(foreground), second = luminance(background);
+        return (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05);
+    }
+
+    if (ykcDirectoryGroup) await test('YKC directory has compiled role fixtures', () => {
+        assert(ykcDirectories.length === 8, 'Run WebNavigation and this server with the same YSGA_RAZOR_FIXTURE_DIR first');
+    });
+    for (const fixture of ykcDirectories) {
+        for (const width of [1280, 1024, 768, 390]) {
+            await test(`YKC directory ${fixture.role} ${fixture.page} preserves filters, selection and grid at ${width}px`, async (doc, win, load) => {
+                win.frameElement.style.width = `${width}px`;
+                win.frameElement.style.height = '850px';
+                const style = doc.createElement('style');
+                style.textContent = panelCss + '\n' + operationsCss + '\n' + reportCss + '\n' + historyCss;
+                doc.head.append(style);
+                const icons = doc.createElement('link');
+                icons.rel = 'stylesheet';
+                icons.href = '/bootstrap-icons.css';
+                const iconsReady = new Promise((resolve, reject) => { icons.onload = resolve; icons.onerror = reject; });
+                doc.head.append(icons);
+                await iconsReady;
+                await doc.fonts.load('10px bootstrap-icons');
+                doc.body.style.margin = '0';
+                const parsed = new win.DOMParser().parseFromString(fixture.html, 'text/html');
+                const markup = parsed.querySelector('[data-history-directory]');
+                assert(markup?.classList.contains('df-record-directory'), 'Compiled role does not use the shared directory');
+                doc.body.innerHTML = markup.outerHTML + (parsed.querySelector('#ykcReportDetailModal')?.outerHTML || '');
+                const root = doc.querySelector('[data-history-directory]');
+                root.style.marginLeft = width > 1000 ? '230px' : '12px';
+                root.style.marginRight = '24px';
+                root.style.width = `${width - (width > 1000 ? 254 : 36)}px`;
+                const key = `${root.dataset.storageKey}:view`;
+                win.localStorage.removeItem(key);
+                captureDirectoryExports(doc, win);
+                let requests = 0;
+                win.fetch = async () => { requests++; throw new Error('View toggles must not fetch records'); };
+                load('history');
+                if (fixture.page === 'reports') load('report');
+                await doc.fonts.ready;
+                const form = root.querySelector('#ykcFilters');
+                let submitted;
+                form.addEventListener('submit', event => { event.preventDefault(); submitted = new win.FormData(form); });
+                assert(root.querySelector('[data-history-view-group]')?.hidden === false, 'Grid toggle is missing');
+                const buttons = [...root.querySelectorAll('button[data-history-column]')];
+                assert(buttons.length >= 6 && form, 'Shared column filters or the canonical GET form are missing');
+                for (const button of buttons) {
+                    button.click();
+                    const popup = root.querySelector('[data-history-column-popover]');
+                    assert(!popup.hidden && popup.querySelector('input,select')?.form === form, 'Column filter is not attached to the GET form');
+                    assert(popup.getBoundingClientRect().left >= 0 && popup.getBoundingClientRect().right <= width + 1, 'Column filter leaves the screen');
+                    doc.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+                    assert(popup.hidden && !popup.querySelector('input,select'), 'Closing a column filter does not restore the canonical fields');
+                }
+                root.querySelector('[name="q"]').value = '000943';
+                root.querySelector('[name="sirala"]').value = 'abone-artan';
+                form.requestSubmit();
+                assert(submitted.get('q') === '000943' && submitted.get('sirala') === 'abone-artan', 'Search or sort does not reach the API-bound form');
+                assert([...form.querySelectorAll('input,select')].every(control => submitted.getAll(control.name).length === 1), 'Column filters duplicate submitted fields');
+                const records = [...root.querySelectorAll('[data-directory-record]')];
+                assert(root.querySelector('th[data-directory-column="installation"]').dataset.directoryFields === 'tesisatNo' &&
+                    root.querySelector('th[data-directory-column="contract"]').dataset.directoryFields === 'sozlesmeNo',
+                    'Identifier headings do not have their own filters');
+                if (fixture.page === 'reports') assert([...root.querySelectorAll('.ykc-report-state,.ykc-report-form-state')].every(state =>
+                    parseFloat(win.getComputedStyle(state).fontSize) <= 10.5), 'Report status text is oversized');
+                const checks = [...root.querySelectorAll('[data-directory-select]')];
+                const master = root.querySelector('[data-directory-select-all]');
+                assert(records.length >= 1 && checks.length === records.length, 'IDs and selection do not identify every rendered record');
+                const exportButtons = [...root.querySelectorAll('[data-directory-export]')];
+                exportButtons.forEach(button => button.dataset.exportUrl += '?sirketId=7&q=000943&sirala=abone-artan');
+                exportButtons.forEach(button => {
+                    button.click();
+                    assert(!new URL(win.__commissioningExports.at(-1)).searchParams.has('ids'), 'Unselected report export stops at the visible page');
+                });
+                checks[0].click();
+                exportButtons.forEach(button => {
+                    button.click();
+                    const query = new URL(win.__commissioningExports.at(-1)).searchParams;
+                    assert(query.getAll('ids').join(',') === records[0].dataset.exportId && query.get('sirketId') === '7' && query.get('q') === '000943',
+                        'Selected export loses IDs, scope or search');
+                });
+                master.click();
+                assert(checks.every(input => input.checked) && master.checked, 'Shared select-all cannot select the current page');
+                const listContainer = root.querySelector('.ykc-table-scroll');
+                assert(listContainer.scrollWidth <= listContainer.clientWidth + 1, `Directory scrolls horizontally at ${width}px`);
+                assert(master.getBoundingClientRect().top >= listContainer.getBoundingClientRect().top - 1 &&
+                    root.querySelector('thead').getBoundingClientRect().height >= master.getBoundingClientRect().height,
+                    `Select-all is positioned outside the list header at ${width}px`);
+                assert([...records].every(row => row.getBoundingClientRect().right <= listContainer.getBoundingClientRect().right + 1),
+                    `A record extends outside the list at ${width}px`);
+                if (width >= 1280) {
+                    assert([...root.querySelectorAll('.ys-history-column-heading')].every(heading => heading.scrollWidth <= heading.clientWidth + 1), 'Column filters overlap their headers');
+                    const scroller = root.querySelector('.ykc-table-scroll');
+                    assert(scroller.scrollWidth <= scroller.clientWidth + 1, 'Desktop directory has horizontal scrolling');
+                    assert(root.querySelector('.df-record-table').getBoundingClientRect().width <= scroller.clientWidth + 1,
+                        'Desktop table exceeds the available width');
+                    assert([...root.querySelectorAll('th .ys-history-column-heading > span')].every(caption => {
+                        const range = doc.createRange();
+                        range.selectNodeContents(caption);
+                        return range.getClientRects().length === 1 && caption.scrollWidth <= caption.clientWidth + 1;
+                    }), 'Desktop directory headings wrap onto another line');
+                    assert(records.every(row => [...row.querySelectorAll('td')].every(cell => cell.scrollWidth <= cell.clientWidth + 1)),
+                        'Desktop record facts overflow into the next column');
+                    assert([...root.querySelectorAll('.is-pending-appointment')].every(appointment => {
+                        const range = doc.createRange();
+                        range.selectNodeContents(appointment);
+                        return range.getClientRects().length === 1 && parseFloat(win.getComputedStyle(appointment).fontSize) <= 10.5;
+                    }), 'Pending appointment words break into extra lines');
+                    assert(records.every(row => row.getBoundingClientRect().height <= 70), 'Device descriptions unnecessarily stretch desktop rows');
+                }
+                const originalText = records.map(row => row.textContent);
+                if (fixture.page === 'requests') assert(!root.querySelector('.ykc-inline-overview'), 'Removed request summary strip is still rendered');
+                root.querySelector('[data-history-view="cards"]').click();
+                // The toggle is synchronous; geometry reads below flush the grid layout even in a background tab.
+                await doc.fonts.ready;
+                assert(root.dataset.view === 'cards' && win.getComputedStyle(root.querySelector('tbody')).display === 'grid', 'Grid mode does not make cards');
+                if (width >= 1280) assert(win.getComputedStyle(root.querySelector('tbody')).gridTemplateColumns.split(' ').length === 4, 'Expanded-sidebar desktop must fit four cards');
+                assert(records.every((row, index) => row === root.querySelectorAll('[data-directory-record]')[index] && row.textContent === originalText[index]), 'Grid changes duplicate records or remove device facts');
+                assert(checks.every(input => input.checked) && master.checked && win.localStorage.getItem(key) === 'cards', 'Grid loses selection or saved view');
+                assert(doc.documentElement.scrollWidth <= width + 1, 'Cards create horizontal page scrolling');
+                assert([...root.querySelectorAll('.ykc-device-summary,.ykc-device-column')].every(device => device.scrollWidth <= device.clientWidth + 1), 'Card device facts are clipped');
+                const cardColor = win.getComputedStyle(records[0]).backgroundColor;
+                assert(cardColor !== win.getComputedStyle(root.querySelector('.ykc-data-panel')).backgroundColor, 'Card blends into the work surface');
+                const label = win.getComputedStyle(records[0].querySelector('td[data-label]'), '::before');
+                assert(contrastRatio(label.color, cardColor) >= 4.5 && parseFloat(label.fontSize) <= 11, 'Small card labels need readable contrast');
+                assert(label.content.replaceAll('"', '').trim().endsWith(':'), 'Card fact label is missing its colon');
+                assert(Math.abs(records[0].getBoundingClientRect().height - records[1].getBoundingClientRect().height) < 1, 'Short and long records have unequal grid card heights');
+                assert([...root.querySelectorAll('.ykc-cell-meta')].every(meta => meta.textContent.trim() !== '-'), 'Unassigned appointment renders an empty team dash');
+                assert([...root.querySelectorAll('.df-device-type-tag')].every(badge => win.getComputedStyle(badge).backgroundColor !== cardColor
+                    && badge.scrollWidth <= badge.clientWidth + 1), 'Device badge blends into the card or clips its text');
+                assert([...root.querySelectorAll('.df-device-type-tag')].every(badge => badge.getBoundingClientRect().height <= 19), 'Device badges are oversized for a grid card');
+                assert([...root.querySelectorAll('.ykc-device-summary,.ykc-device-column')].every(device => device.getBoundingClientRect().height <= 82), 'Device comparison unnecessarily extends the card');
+                if (fixture.role !== 'SertifikaliFirma') {
+                    const heading = records[0].querySelector('.ykc-device-change-heading');
+                    assert(heading && win.getComputedStyle(heading).display === 'flex', 'Shared device comparison heading is missing');
+                    const captions = [...heading.querySelectorAll('span')];
+                    assert(captions.map(caption => caption.textContent.trim()).join('|') === 'Projedeki Cihaz|Yeni Kullanılan Cihaz', 'Device comparison captions are abbreviated');
+                    const arrow = records[0].querySelector('.ykc-device-change-arrow');
+                    assert(arrow && win.getComputedStyle(arrow, '::before').content !== 'none', 'Comparison arrow is missing');
+                    assert(captions[0].getBoundingClientRect().right < captions[1].getBoundingClientRect().left
+                        && heading.scrollWidth <= heading.clientWidth + 1, 'Full comparison captions overlap or overflow');
+                    const source = records[0].querySelector('.is-project');
+                    const target = records[0].querySelector('.is-new');
+                    const arrowBox = arrow.getBoundingClientRect();
+                    assert(arrowBox.top >= heading.getBoundingClientRect().bottom + 4
+                        && arrowBox.top >= source.getBoundingClientRect().top && arrowBox.bottom <= target.getBoundingClientRect().bottom + 1
+                        && arrowBox.left >= source.getBoundingClientRect().right - 2 && arrowBox.right <= target.getBoundingClientRect().left + 2,
+                        'Comparison arrow must sit between product facts below their captions');
+                } else {
+                    assert(!root.querySelector('.ykc-device-change-heading'), 'Firm cards reveal a private project device comparison');
+                    assert(win.getComputedStyle(records[0].querySelector('[data-label="Yeni Kullanılan Cihaz"]'), '::before').content.includes('Yeni Kullanılan Cihaz'), 'Firm device caption is abbreviated');
+                }
+                for (const record of records) {
+                    const bounds = record.getBoundingClientRect();
+                    assert(Math.abs(bounds.width - bounds.height) <= 2, 'YKC grid cards must be square');
+                    assert([...record.querySelectorAll('td[data-label]')].every(cell => cell.getBoundingClientRect().bottom <= bounds.bottom - 5), 'Square YKC card clips its facts');
+                    const footer = record.querySelector('.ykc-action-cell,.ykc-report-status-cell');
+                    assert(record.getBoundingClientRect().bottom - footer.getBoundingClientRect().bottom <= 18, 'YKC footer leaves an empty lower card region');
+                }
+                if (fixture.page === 'requests' && fixture.role !== 'SertifikaliFirma') {
+                    const appointment = records[0].querySelector('[data-label="Kontrol Randevusu"]');
+                    appointment.insertAdjacentHTML('beforeend', '<div class="ykc-cell-meta" title="187 Acil / Test region">187 Acil / Long test region name</div><div class="ykc-control-limit-note" title="Five failed controls"><i class="bi bi-exclamation-triangle-fill"></i><span>5 kontrol uygunsuz</span></div>');
+                    const bounds = records[0].getBoundingClientRect();
+                    assert([...records[0].querySelectorAll('td[data-label]')].every(cell => cell.getBoundingClientRect().bottom <= bounds.bottom - 5), 'Assigned team or fifth-control warning overflows the square card');
+                    assert(appointment.querySelector('.ykc-cell-meta').scrollHeight <= appointment.querySelector('.ykc-cell-meta').clientHeight + 1, 'Assigned team unnecessarily wraps in a card');
+                }
+                const fieldLabel = root.querySelector('.ykc-device-fact-label');
+                assert(fieldLabel && win.getComputedStyle(fieldLabel).position === 'absolute', 'Grid repeats full device field labels instead of compact icons');
+                const numbers = fixture.page === 'reports'
+                    ? [...records[0].querySelectorAll('.ykc-report-installation-cell,.ykc-report-contract-cell')]
+                    : [...records[0].querySelectorAll('.ykc-list-installation-cell,.ykc-list-contract-cell')];
+                assert(numbers.length === 2 && Math.abs(numbers[0].getBoundingClientRect().top - numbers[1].getBoundingClientRect().top) < 1
+                    && numbers[0].getBoundingClientRect().right < numbers[1].getBoundingClientRect().left, 'Installation and contract numbers must sit beside each other');
+                if (fixture.role === 'SertifikaliFirma') assert(!root.querySelector('.is-project'), 'Firm cards reveal internal source devices');
+                if (fixture.page === 'reports') {
+                    records[0].querySelector('.ykc-report-new-cell').click();
+                    assert(doc.querySelector('#ykcReportDetailModal').classList.contains('is-open'), 'Card cannot open the existing report detail');
+                    doc.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+                    assert(!doc.querySelector('#ykcReportDetailModal').classList.contains('is-open'), 'Report detail cannot close');
+                }
+                root.querySelector('[data-history-view="list"]').click();
+                assert(root.dataset.view === 'list' && requests === 0, 'Restoring list view fetches records or fails');
+                if (fixture.role !== 'SertifikaliFirma') assert(win.getComputedStyle(records[0].querySelector('.ykc-device-change-heading')).display === 'none', 'Grid comparison heading leaks into the list');
+                const compactList = root.querySelector('.ykc-table-scroll').clientWidth <= 1180;
+                if (compactList) assert(win.getComputedStyle(fieldLabel).position === 'absolute'
+                    && root.querySelector('.ykc-device-summary i,.ykc-device-column small > i').getBoundingClientRect().width >= 9,
+                    'Compact list hides device captions without their explanatory icons');
+                else assert(win.getComputedStyle(fieldLabel).position !== 'absolute' && win.getComputedStyle(fieldLabel).clipPath === 'none'
+                    && fieldLabel.getBoundingClientRect().width > 20 && fieldLabel.getBoundingClientRect().height > 10, 'Wide or stacked list no longer shows device field labels');
+            });
+        }
+    }
+
+    for (const width of [320, 390, 768, 1280]) {
+        await test(`History toolbar menus stay inside the screen and close with Escape at ${width}px`, async (doc, win, load) => {
+            const fixture = ykcDirectories.find(item => item.role === 'Personel' && item.page === 'requests');
+            assert(fixture, 'Compiled shared toolbar fixture is required');
+            const parsed = new win.DOMParser().parseFromString(fixture.html, 'text/html');
+            doc.body.innerHTML = parsed.querySelector('[data-history-directory]').outerHTML;
+            const style = doc.createElement('style');
+            style.textContent = panelCss + '\n' + reportCss + '\n' + historyCss;
+            doc.head.append(style);
+            win.frameElement.style.width = `${width}px`;
+            doc.body.style.margin = '12px';
+            load('history');
+            for (let frame = 0; frame < 3; frame++) await new Promise(resolve => win.requestAnimationFrame(resolve));
+            const menus = [...doc.querySelectorAll('.ys-history-menu')];
+            for (const menu of menus) {
+                menu.querySelector('summary').click();
+                for (let frame = 0; frame < 2; frame++) await new Promise(resolve => win.requestAnimationFrame(resolve));
+                const bounds = menu.querySelector('.ys-history-menu-body').getBoundingClientRect();
+                assert(bounds.left >= 11 && bounds.right <= width - 11, 'Toolbar menu is clipped by a screen edge');
+                assert(menus.filter(item => item.open).length === 1, 'Toolbar menus overlap');
+            }
+            const lastMenu = menus.at(-1);
+            doc.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+            assert(menus.every(menu => !menu.open), 'Escape leaves a toolbar menu open');
+            assert(doc.activeElement === lastMenu.querySelector('summary'), 'Escape does not restore menu focus');
+        });
+    }
+    for (const width of [1280, 1024, 768, 390]) {
+        for (const view of commissioningFilters) {
+            await test(`Commissioning card facts stay compact and readable for ${view.name} at ${width}px`, async (doc, win, load) => {
+                win.frameElement.style.width = `${width}px`;
+                win.frameElement.style.height = '850px';
+                const style = doc.createElement('style');
+                style.textContent = panelCss + '\n' + operationsCss + '\n' + historyCss;
+                doc.head.append(style);
+                doc.body.style.margin = '0';
+                doc.body.innerHTML = commissioningDirectoryMarkup(view);
+                const root = doc.querySelector('[data-history-directory]');
+                root.style.marginLeft = width > 1000 ? '230px' : '12px';
+                root.style.width = `${width - (width > 1000 ? 254 : 36)}px`;
+                win.localStorage.removeItem('commissioning-view:view');
+                load('history');
+                load('commissioning');
+                root.querySelector('[data-history-view="cards"]').click();
+                await doc.fonts.ready;
+                const row = root.querySelector('[data-commissioning-record]');
+                const background = win.getComputedStyle(row).backgroundColor;
+                assert(background !== win.getComputedStyle(root.querySelector('.df-commissioning-surface')).backgroundColor, 'Card blends into the work surface');
+                assert(row.querySelector('.df-cell-main').getBoundingClientRect().left - row.querySelector('[data-commissioning-select]').getBoundingClientRect().right >= 6,
+                    'Selection checkbox touches the record heading');
+                const installation = row.querySelector('.df-commissioning-col-installation');
+                const contract = row.querySelector('.df-commissioning-col-contract');
+                assert(Math.abs(installation.getBoundingClientRect().top - contract.getBoundingClientRect().top) < 1
+                    && installation.getBoundingClientRect().right < contract.getBoundingClientRect().left, 'Installation and contract numbers must sit beside each other');
+                assert([installation, contract].every(cell => cell.getBoundingClientRect().height <= 40 && cell.firstElementChild.scrollWidth <= cell.firstElementChild.clientWidth + 1), 'Paired numbers wrap or clip');
+                const facts = ['type', 'date', 'status'].map(key => row.querySelector(`.df-commissioning-col-${key}`));
+                for (const cell of facts) {
+                    const label = win.getComputedStyle(cell, '::before');
+                    assert(contrastRatio(label.color, background) >= 4.5 && parseFloat(label.fontSize) <= 11, 'Small card labels need readable contrast');
+                    assert(label.content.replaceAll('"', '').trim().endsWith(':'), 'Card fact label is missing its colon');
+                    const canvas = doc.createElement('canvas').getContext('2d');
+                    canvas.font = `${label.fontWeight} ${label.fontSize} ${label.fontFamily}`;
+                    assert(canvas.measureText(label.content.replaceAll('"', '').trim()).width <= parseFloat(label.width) + 1, 'Card label overlaps its value');
+                    assert(cell.getBoundingClientRect().height <= 25, 'Simple fact unnecessarily wraps onto another line');
+                    const value = cell.firstElementChild;
+                    const valueGap = value.getBoundingClientRect().left - cell.getBoundingClientRect().left - parseFloat(label.width);
+                    assert(valueGap >= 5 && valueGap <= 8, 'Short labels leave unnecessary space before their value');
+                    assert(value.scrollWidth <= value.clientWidth + 1, 'Card value is clipped');
+                }
+                const model = row.querySelector('.df-device-model dd');
+                assert(model.getBoundingClientRect().width > 120, 'Model needs room beside its short label');
+                assert(win.getComputedStyle(row.querySelector('.df-device-model dt')).fontWeight === '500', 'Model label is too thin');
+                if (width >= 1280) assert(win.getComputedStyle(root.querySelector('tbody')).gridTemplateColumns.split(' ').length === 4, 'Expanded-sidebar desktop must fit four cards');
+                const bounds = row.getBoundingClientRect();
+                assert(Math.abs(bounds.width - bounds.height) <= 2 && doc.documentElement.scrollWidth <= width + 1, 'Cards must be square without horizontal scrolling');
+                assert([...row.querySelectorAll('td[data-label]')].every(cell => cell.getBoundingClientRect().bottom <= bounds.bottom - 5), 'Square card clips its facts');
+                const statusBottom = row.querySelector('.df-commissioning-col-status').getBoundingClientRect().bottom;
+                assert(bounds.bottom - statusBottom <= 18, 'Status row leaves an empty lower card region');
+                for (const badge of row.querySelectorAll('.df-device-type-tag,.df-pill')) {
+                    const computed = win.getComputedStyle(badge);
+                    assert(computed.backgroundColor !== background && computed.borderTopStyle === 'solid' && parseFloat(computed.borderTopWidth) > 0, 'Badge needs a distinct surface and border');
+                    assert(parseFloat(computed.fontSize) <= 11 && Number(computed.fontWeight) <= 500, 'Badge becomes oversized or overly bold');
+                    assert(badge.getBoundingClientRect().height <= 19, 'Grid badge is oversized');
+                    assert(contrastRatio(computed.color, computed.backgroundColor) >= 4.5, 'Badge text contrast is insufficient');
+                }
+                model.focus();
+                assert(!doc.querySelector('[role="tooltip"]').hidden && doc.querySelector('[role="tooltip"]').textContent === model.textContent, 'Full model tooltip was lost in cards');
+            });
+        }
+    }
+
+    for (const width of [1280, 1000, 760, 390]) {
+        for (const view of commissioningFilters) {
+            await test(`Commissioning contract filter fits ${view.name} at ${width}px`, async (doc, win) => {
+                win.frameElement.style.width = `${width}px`;
+                win.frameElement.style.height = '850px';
+                const style = doc.createElement('style');
+                style.textContent = panelCss + '\n' + operationsCss + '\n' + historyCss;
+                doc.head.append(style);
+                doc.body.style.margin = '0';
+                doc.body.innerHTML = `<main class="df-admin-workspace df-operations-directory df-commissioning-directory" data-history-directory style="margin-left:${width > 1000 ? 230 : 0}px"><details id="commissioningFiltersPanel" class="df-admin-filter df-commissioning-filter" open><summary>Kayıtları Filtrele</summary><div class="df-admin-filter-body"><form method="get"><div class="df-admin-filter-grid">${view.fields.map(field => `<div class="df-admin-field"><label for="${field.id}">${field.label}</label>${field.tag === 'select'
+                    ? `<select id="${field.id}" name="${field.name}"><option value="">Tümü</option></select>`
+                    : `<input id="${field.id}" type="${field.type}" name="${field.name}" value="${field.name === 'sozlesme' ? '000943' : ''}" />`}</div>`).join('')}</div><div class="df-admin-filter-actions"><button type="submit" class="df-btn df-btn-primary df-btn-sm">Sonuçları Göster</button></div></form></div></details></main>`;
+                await doc.fonts.ready;
+                const fields = [...doc.querySelectorAll('.df-admin-field')];
+                assert(fields.length === (view.firm ? 8 : 11), 'Shared role filter fields are missing or duplicated');
+                const contract = doc.querySelector('[name="sozlesme"]');
+                assert(contract?.type === 'search' && contract.value === '000943', 'Contract search loses its value or leading zeroes');
+                assert(fields.every(field => field.scrollWidth <= field.clientWidth + 1
+                    && field.querySelector('label').scrollWidth <= field.querySelector('label').clientWidth + 1), 'Filter controls or labels overflow');
+                assert(doc.documentElement.scrollWidth <= width + 1, 'Contract search creates horizontal page scrolling');
+                if (view.firm && width >= 1200) assert(fields.slice(0,4).every(field => Math.abs(field.getBoundingClientRect().top - fields[0].getBoundingClientRect().top) < 1)
+                    && fields.slice(4).every(field => Math.abs(field.getBoundingClientRect().top - fields[4].getBoundingClientRect().top) < 1),
+                    'Service history filters do not fit two balanced compact rows');
+                let submitted;
+                doc.querySelector('form').addEventListener('submit', event => {
+                    event.preventDefault();
+                    submitted = new win.FormData(event.currentTarget);
+                });
+                doc.querySelector('button[type="submit"]').click();
+                assert(submitted?.get('sozlesme') === '000943', 'GET submission omits the separate contract filter');
+            });
+        }
+    }
+
+    for (const width of [1280, 1000, 390]) {
+        for (const view of commissioningFilters) {
+        await test(`History column filters preserve one GET form for ${view.name} at ${width}px`, async (doc, win, load) => {
+            win.frameElement.style.width = `${width}px`;
+            win.frameElement.style.height = '850px';
+            const style = doc.createElement('style');
+            style.textContent = panelCss + '\n' + operationsCss + '\n' + historyCss;
+            doc.head.append(style);
+            doc.body.style.margin = '0';
+            doc.body.innerHTML = commissioningDirectoryMarkup(view, [42]);
+            win.localStorage.removeItem('commissioning-view:view');
+            let submitted;
+            const form = doc.querySelector('#commissioningFilters');
+            form.addEventListener('submit', event => { event.preventDefault(); submitted = new win.FormData(form); });
+            load('history');
+            await doc.fonts.ready;
+            const root = doc.querySelector('[data-history-directory]');
+            const popup = doc.querySelector('[data-history-column-popover]');
+            assert(doc.querySelectorAll('[data-history-column]').length === (view.firm ? 7 : 8), 'Role column filter buttons are missing or duplicated');
+            const contractButton = doc.querySelector('[data-history-column="contract"]');
+            contractButton.click();
+            const contract = doc.querySelector('#sozlesme');
+            contract.value = '000943';
+            assert(popup.contains(contract) && contract.form === form, 'Column popup loses the canonical form association');
+            assert(popup.getBoundingClientRect().left >= 0 && popup.getBoundingClientRect().right <= width + 1, 'Column popup leaves the viewport');
+            popup.querySelector('button[type="submit"]').click();
+            assert(submitted.getAll('sozlesme').length === 1 && submitted.get('sozlesme') === '000943', 'Column submission duplicates or loses the contract value');
+            doc.dispatchEvent(new win.KeyboardEvent('keydown', {key:'Escape', bubbles:true}));
+            assert(popup.hidden && form.contains(contract) && contract.value === '000943', 'Escape loses the value or fails to restore the filter');
+            const dateButton = doc.querySelector('[data-history-column="date"]');
+            dateButton.click();
+            doc.querySelector('#bas').value = '2026-10-01';
+            doc.querySelector('#bit').value = '2026-10-12';
+            assert(popup.querySelectorAll('input').length === 2, 'Date range is incomplete');
+            popup.querySelector('button[type="submit"]').click();
+            assert(submitted.getAll('bas').length === 1 && submitted.getAll('bit').length === 1, 'Moved date fields appear more than once in FormData');
+            contractButton.click();
+            assert(form.contains(doc.querySelector('#bas')) && form.contains(doc.querySelector('#bit')), 'Switching columns leaves date fields detached');
+            popup.querySelector('[data-history-column-clear]').click();
+            assert(submitted.get('sozlesme') === '' && submitted.get('bas') === '2026-10-01' && submitted.get('bit') === '2026-10-12', 'Clearing one column discards other filters');
+            doc.querySelector('[data-history-filter-toggle]').click();
+            assert(popup.hidden && doc.querySelector('#commissioningFiltersPanel').open && form.contains(contract), 'Toolbar filter toggle does not restore the advanced form');
+            doc.querySelector('[name="q"]').value = 'Abone';
+            doc.querySelector('[name="sirala"]').value = 'abone-artan';
+            form.requestSubmit();
+            assert(submitted.get('q') === 'Abone' && submitted.get('sirala') === 'abone-artan' && submitted.get('sirketId') === '7', 'Toolbar controls or company scope do not reach the same GET form');
+            if (!view.firm) {
+                doc.querySelector('[data-history-column="company"]').click();
+                const service = doc.querySelector('#servis');
+                service.value = 'Test service';
+                assert(popup.contains(service) && service.form === form, 'Company column does not relocate the service filter');
+                popup.querySelector('button[type="submit"]').click();
+                assert(submitted.getAll('servis').length === 1 && submitted.get('servis') === 'Test service', 'Service filter duplicates or loses its value');
+            } else contractButton.click();
+            doc.querySelector('[data-history-view="cards"]').click();
+            assert(root.dataset.view === 'cards' && doc.querySelector('[data-history-view="cards"]').getAttribute('aria-pressed') === 'true', 'Cards view does not activate');
+            assert(popup.hidden && !popup.querySelector('input, select'), 'Changing view leaves canonical fields in the popup');
+            assert(win.localStorage.getItem('commissioning-view:view') === 'cards', 'View is not persisted under the directory storage key');
+            doc.querySelector('[data-history-view="list"]').click();
+            assert(root.dataset.view === 'list' && doc.querySelector('[data-history-view="list"]').getAttribute('aria-pressed') === 'true', 'List view cannot be restored');
+            assert(doc.querySelectorAll('form[method="get"]').length === 1 && doc.querySelectorAll('[data-directory-export-form]').length === 1
+                && doc.querySelectorAll('[data-commissioning-record]').length === 1, 'View changes duplicate the GET filter, POST export form or records');
+            assert(doc.documentElement.scrollWidth <= width + 1, 'History toolbar creates horizontal page overflow');
+        });
+        }
+    }
+
+    for (const width of [960, 1580]) {
+        for (const view of commissioningFilters) {
+            await test(`Commissioning column boundaries stay separated for ${view.name} in ${width}px`, async (doc, win, load) => {
+                win.frameElement.style.width = `${width + 300}px`;
+                win.frameElement.style.height = '850px';
+                const style = doc.createElement('style');
+                style.textContent = panelCss + '\n' + operationsCss + '\n' + historyCss;
+                doc.head.append(style);
+                doc.body.style.margin = '0';
+                doc.body.innerHTML = commissioningDirectoryMarkup(view, [42]);
+                const root = doc.querySelector('[data-history-directory]');
+                root.style.marginLeft = '230px';
+                root.style.width = `${width + 22}px`;
+                win.localStorage.removeItem('commissioning-view:view');
+                load('commissioning');
+                load('history');
+                await doc.fonts.ready;
+                const row = root.querySelector('[data-commissioning-record]');
+                const cell = key => row.querySelector(`.df-commissioning-col-${key}`);
+                const contentLeft = element => element.getBoundingClientRect().left + parseFloat(win.getComputedStyle(element).paddingLeft);
+                const scroller = root.querySelector('.df-admin-table-scroll');
+                assert(scroller.scrollWidth <= scroller.clientWidth + 1, 'Desktop list adds horizontal scrolling');
+                assert([...root.querySelectorAll('.ys-history-column-heading')].every(heading => heading.scrollWidth <= heading.clientWidth + 1),
+                    'Column filter headings overlap their neighbors');
+                const dateCaption = root.querySelector('th.df-commissioning-col-date .ys-history-column-heading > span');
+                const dateRange = doc.createRange();
+                dateRange.selectNodeContents(dateCaption);
+                assert(dateRange.getClientRects().length === 1, 'Commissioning date heading wraps onto another line');
+                for (const key of ['type', 'device', 'date', 'status']) {
+                    const header = root.querySelector(`th.df-commissioning-col-${key}`);
+                    assert(Math.abs(contentLeft(header) - contentLeft(cell(key))) < 1, `${key} header and value have different insets`);
+                    assert(parseFloat(win.getComputedStyle(cell(key)).paddingLeft) >= 12, `${key} loses its separation inset`);
+                }
+                if (!view.firm) assert(contentLeft(cell('type')) - cell('company').querySelector('.df-cell-value').getBoundingClientRect().right >= 16,
+                    'Service name touches the device type');
+                assert(contentLeft(cell('device')) - cell('type').querySelector('.df-device-type-tag').getBoundingClientRect().right >= 16,
+                    'Device type touches the brand and model');
+                assert(contentLeft(cell('date')) - cell('device').querySelector('.df-device-model dd').getBoundingClientRect().right >= 16,
+                    'Model touches the commissioning date');
+                assert(contentLeft(cell('status')) - cell('date').querySelector('time').getBoundingClientRect().right >= 16,
+                    'Commissioning date touches the status');
+                const badge = cell('status').querySelector('.df-pill');
+                assert(badge.getBoundingClientRect().right <= cell('status').getBoundingClientRect().right - 4,
+                    'Turkish completion badge overflows the status column');
+                const model = cell('device').querySelector('.df-device-model dd');
+                model.focus();
+                assert(!doc.querySelector('[role="tooltip"]').hidden && doc.querySelector('[role="tooltip"]').textContent === model.textContent,
+                    'Spacing changes hide the complete model description');
+                root.querySelector('[data-history-view="cards"]').click();
+                await new Promise(resolve => win.setTimeout(resolve, 200));
+                assert(win.getComputedStyle(cell('device')).paddingLeft === '0px' && win.getComputedStyle(cell('device')).boxShadow === 'none',
+                    'List dividers or insets leak into the card layout');
+            });
+        }
+    }
+
+    for (const width of [1280, 390]) {
+        for (const view of commissioningFilters) {
+            await test(`Commissioning ${view.name} shares selection, exports and card details at ${width}px`, async (doc, win, load) => {
+                win.frameElement.style.width = `${width}px`;
+                win.frameElement.style.height = '850px';
+                const style = doc.createElement('style');
+                style.textContent = panelCss + '\n' + operationsCss + '\n' + historyCss;
+                doc.head.append(style);
+                doc.body.style.margin = '0';
+                doc.body.innerHTML = commissioningDirectoryMarkup(view);
+                doc.body.insertAdjacentHTML('beforeend', '<input type="checkbox" data-commissioning-select value="99" aria-label="Unrelated selection">');
+                win.localStorage.removeItem('commissioning-view:view');
+                captureDirectoryExports(doc, win);
+                let requests = 0;
+                win.fetch = async () => { requests++; throw new Error('Directory views must not request additional records'); };
+                load('commissioning');
+                load('history');
+                await doc.fonts.ready;
+                const root = doc.querySelector('[data-history-directory]');
+                const records = [...root.querySelectorAll('[data-commissioning-record]')];
+                const details = [...root.querySelectorAll('.df-commissioning-detail-row')];
+                const checks = [...root.querySelectorAll('[data-commissioning-select]')];
+                const master = root.querySelector('[data-commissioning-select-all]');
+                const exports = [...root.querySelectorAll('[data-commissioning-bulk-export]')];
+                const list = root.querySelector('[data-history-view="list"]');
+                const cards = root.querySelector('[data-history-view="cards"]');
+                if (width >= 1280) assert([...root.querySelectorAll('.ys-history-column-heading')].every(heading => heading.scrollWidth <= heading.clientWidth + 1),
+                    'Column headings and filter buttons overlap neighboring columns');
+                assert(root.dataset.view === 'list' && list.getAttribute('aria-pressed') === 'true'
+                    && !root.querySelector('[data-history-view-group]').hidden, 'List view is not the accessible default');
+                assert(root.querySelectorAll('th').length === (view.firm ? 9 : 10), 'Every role needs the shared selection column');
+                assert(!master.checked && !master.indeterminate && !master.disabled, 'Empty selection has an invalid master state');
+                const assertExport = (button, ids) => {
+                    const before = win.__commissioningExports.length;
+                    button.click();
+                    assert(win.__commissioningExports.length === before + 1, 'Export did not navigate exactly once');
+                    const url = new URL(win.__commissioningExports.at(-1));
+                    assert(url.searchParams.get('sirketId') === '7' && url.searchParams.get('scope') === 'current', 'Export loses its existing route scope');
+                    assert(JSON.stringify(url.searchParams.getAll('ids')) === JSON.stringify(ids), 'Export uses duplicate, unselected or out-of-scope IDs');
+                    assert(url.pathname === new URL(button.dataset.exportUrl, win.location.origin).pathname, 'Export changes the PDF or Excel endpoint');
+                };
+                exports.forEach(button => assertExport(button, ['42', '43']));
+                checks[1].click();
+                assert(master.indeterminate && !master.checked && details.every(detail => detail.hidden), 'Selecting a record opens details or misses the partial-selection state');
+                exports.forEach(button => assertExport(button, ['43']));
+                master.click();
+                assert(checks.every(checkbox => checkbox.checked) && master.checked && !master.indeterminate, 'Select-all does not select every scoped row');
+                assert(!doc.querySelector('[value="99"]').checked, 'Select-all reaches outside the shared directory');
+                checks[0].click();
+                assert(master.indeterminate && !master.checked, 'Deselecting one row does not update the master');
+                cards.click();
+                await doc.fonts.ready;
+                assert(root.dataset.view === 'cards' && win.getComputedStyle(root.querySelector('tbody')).display === 'grid', 'Cards mode is only a row-density change');
+                assert(checks[1].checked && !checks[0].checked && master.indeterminate, 'Changing views loses the current selection');
+                exports.forEach(button => assertExport(button, ['43']));
+                assert(records.every((record, index) => root.querySelectorAll('[data-commissioning-record]')[index] === record)
+                    && root.querySelectorAll('[data-commissioning-record]').length === 2, 'Cards duplicate or reorder the canonical DOM records');
+                assert(records.every(record => record.querySelector('.df-commissioning-col-customer').dataset.recordId === record.dataset.exportId), 'Card IDs do not identify the existing records');
+                assert(doc.documentElement.scrollWidth <= width + 1, 'Cards cause horizontal page overflow');
+                const model = records[0].querySelector('.df-device-model dd');
+                const tooltip = doc.querySelector('[role="tooltip"]');
+                assert(model.scrollWidth > model.clientWidth && model.tabIndex === 0, 'Card model truncation is not keyboard accessible');
+                model.focus();
+                assert(!tooltip.hidden && tooltip.textContent === model.textContent, 'Card mode loses the full model tooltip');
+                model.click();
+                assert(!details[0].hidden && tooltip.hidden, 'Card click does not open the existing detail panel');
+                assert(records[0].querySelector('[data-commissioning-expand]').getAttribute('aria-expanded') === 'true', 'Card detail button is not synchronized');
+                const detailBox = details[0].getBoundingClientRect();
+                assert(detailBox.width > 0 && detailBox.left >= 0 && detailBox.right <= width + 1, 'Expanded card details are blank or leave the viewport');
+                if (width > 520) assert(Math.abs(records[0].getBoundingClientRect().top - records[1].getBoundingClientRect().top) <= 1
+                    && records[1].getBoundingClientRect().bottom <= detailBox.top, 'Opening details leaves unnecessary gaps in the card row');
+                cards.click();
+                assert(!details[0].hidden, 'Clicking the active view closes an unchanged detail');
+                model.click();
+                assert(details[0].hidden, 'A second card click cannot close its detail');
+                records[0].querySelector('[data-commissioning-expand]').click();
+                assert(!details[0].hidden, 'The eye button cannot open card details');
+                records[1].querySelector('[data-commissioning-expand]').click();
+                assert(details[0].hidden && !details[1].hidden, 'Opening another card leaves multiple detail panels open');
+                list.click();
+                assert(details.every(detail => detail.hidden) && records.every(record => !record.classList.contains('is-expanded')), 'View switch leaves stale expanded details');
+                assert(records.every(record => record.querySelector('[data-commissioning-expand]').getAttribute('aria-expanded') === 'false'), 'View switch leaves stale ARIA state');
+                records[0].querySelector('.df-cell-main').click();
+                assert(!details[0].hidden, 'List row click no longer opens details');
+                records[0].querySelector('.df-cell-main').click();
+                assert(details[0].hidden, 'List row click no longer closes details');
+                master.click();
+                master.click();
+                assert(checks.every(checkbox => !checkbox.checked) && !master.indeterminate, 'Select-all cannot clear the scoped selection');
+                exports.forEach(button => assertExport(button, ['42', '43']));
+                assert(requests === 0 && root.querySelectorAll('.df-commissioning-detail-row').length === 2, 'View or selection changes request or duplicate records');
+                assert(win.localStorage.getItem('commissioning-view:view') === 'list', 'Restoring list view does not persist');
+            });
+        }
+    }
+
+    await test('Commissioning bulk export sends large selections in a protected POST body', async (doc, win, load) => {
+        doc.body.innerHTML = commissioningDirectoryMarkup(commissioningFilters[0], [42]);
+        const ids = Array.from({ length: 1000 }, (_, index) => String(1000000 + index));
+        doc.querySelector('tbody').innerHTML = ids.map(id => `<tr data-commissioning-record data-export-id="${id}"><td><input type="checkbox" data-commissioning-select value="${id}"></td></tr>`).join('');
+        captureDirectoryExports(doc, win);
+        load('history');
+        const button = doc.querySelector('[data-commissioning-bulk-export]');
+        button.click();
+        let request = win.__commissioningExportRequests.at(-1);
+        assert(request.body.getAll('ids').join(',') === ids.join(',') && request.body.get('sirketId') === '7',
+            'Large export loses records or company scope');
+        assert(request.action.length < 200, 'Large IDs still expand the download URL');
+        doc.querySelector('[data-commissioning-select]').click();
+        button.click();
+        request = win.__commissioningExportRequests.at(-1);
+        assert(request.body.getAll('ids').join(',') === ids[0] && request.body.getAll('__RequestVerificationToken').length === 1,
+            'A repeated export retains stale IDs or duplicates its antiforgery token');
+    });
+
+    for (const order of [['commissioning', 'history'], ['history', 'commissioning']]) {
+        await test(`Saved card view preserves initial hash details with ${order.join(' then ')}`, async (doc, win, load) => {
+            doc.body.innerHTML = commissioningDirectoryMarkup(commissioningFilters[0]);
+            win.localStorage.setItem('commissioning-view:view', 'cards');
+            win.history.replaceState({}, '', '/frame.html#devreye-alma-detay-42');
+            order.forEach(name => load(name));
+            const root = doc.querySelector('[data-history-directory]');
+            const detail = doc.querySelector('#devreye-alma-detay-42');
+            assert(root.dataset.view === 'cards' && !detail.hidden, 'Initial saved view closes the hash-linked detail');
+            assert(root.querySelector('[data-history-view="cards"]').getAttribute('aria-pressed') === 'true', 'Saved view is not announced');
+            root.querySelector('[data-history-view="list"]').click();
+            assert(detail.hidden && root.dataset.view === 'list', 'A user view switch does not close the hash-linked detail');
+            win.localStorage.removeItem('commissioning-view:view');
+        });
+    }
+
+    for (const storage of ['invalid', 'unavailable']) {
+        await test(`Empty commissioning directories are safe with ${storage} view storage`, (doc, win, load) => {
+            doc.body.innerHTML = commissioningDirectoryMarkup(commissioningFilters[0], []);
+            const root = doc.querySelector('[data-history-directory]');
+            root.dataset.storageKey = 'empty-commissioning';
+            root.insertAdjacentHTML('beforeend', '<input type="checkbox" data-commissioning-select-all aria-label="Select all">');
+            if (storage === 'unavailable') Object.defineProperty(win, 'localStorage', { get() { throw new Error('Storage unavailable'); } });
+            else win.localStorage.setItem('empty-commissioning:view', 'comfortable');
+            captureDirectoryExports(doc, win);
+            load('commissioning');
+            load('history');
+            assert(root.dataset.view === 'list' && root.querySelector('[data-commissioning-select-all]').disabled, 'Empty list or invalid saved view is unsafe');
+            root.querySelector('[data-history-view="cards"]').click();
+            assert(root.dataset.view === 'cards', 'Storage failure prevents changing view');
+            root.querySelectorAll('[data-commissioning-bulk-export]').forEach(button => {
+                assert(button.disabled, 'Empty export is enabled');
+                button.dispatchEvent(new win.MouseEvent('click', { bubbles: true }));
+            });
+            assert(!win.__commissioningExports.length && !root.querySelector('[data-commissioning-record]'), 'Empty directory exports or creates records');
+            if (storage === 'invalid') {
+                assert(win.localStorage.getItem('empty-commissioning:view') === 'cards', 'Custom storage key is ignored');
+                win.localStorage.removeItem('empty-commissioning:view');
+            }
+        });
+    }
+
+    for (const imageState of ['late error', 'already failed', 'loaded']) {
+        await test(`Commissioning type badge preserves label and shape after ${imageState}`, async (doc, win, load) => {
+            const style = doc.createElement('style');
+            style.textContent = panelCss + '\n' + operationsCss + '\n' + historyCss;
+            doc.head.append(style);
+            const icons = doc.createElement('link');
+            icons.rel = 'stylesheet';
+            icons.href = '/bootstrap-icons.css';
+            const iconsLoaded = new Promise(resolve => icons.addEventListener('load', resolve, { once: true }));
+            doc.head.append(icons);
+            await iconsLoaded;
+            doc.body.innerHTML = `<main class="df-commissioning-directory" data-history-directory data-view="list"><table class="df-commissioning-table"><tbody><tr data-commissioning-record><td><span class="df-device-type-tag is-kombi"><img class="df-device-type-icon" alt="" aria-hidden="true"><i class="bi bi-fire df-device-type-fallback" aria-hidden="true" hidden></i><span class="test-type-label">Kombi</span></span></td></tr></tbody></table></main>`;
+            await doc.fonts.load('12px bootstrap-icons');
+            await doc.fonts.ready;
+            const badge = doc.querySelector('.df-device-type-tag');
+            const icon = badge.querySelector('img');
+            const fallback = badge.querySelector('.df-device-type-fallback');
+            const label = badge.querySelector('.test-type-label');
+            Object.defineProperties(icon, {
+                complete: { get: () => imageState !== 'late error' },
+                naturalWidth: { get: () => imageState === 'loaded' ? 12 : 0 }
+            });
+            const before = badge.getBoundingClientRect();
+            const color = win.getComputedStyle(badge).backgroundColor;
+            let requests = 0;
+            win.fetch = async () => { requests++; throw new Error('Icon fallback must not request an API'); };
+            load('history');
+            load('commissioning');
+            if (imageState === 'late error') {
+                assert(!icon.hidden && fallback.hidden, 'A pending icon is hidden before it fails');
+                icon.dispatchEvent(new win.Event('error'));
+            }
+            const failed = imageState !== 'loaded';
+            assert(icon.hidden === failed && fallback.hidden === !failed, 'Image load state does not select the existing adjacent fallback');
+            if (failed) icon.dispatchEvent(new win.Event('error'));
+            const after = badge.getBoundingClientRect();
+            assert(badge.querySelector('.test-type-label') === label && label.textContent === 'Kombi', 'Image failure removes or replaces the type label');
+            assert(Math.abs(before.width - after.width) <= 1 && before.height === after.height && after.height === 20
+                && win.getComputedStyle(badge).borderRadius === '5px', 'Image failure changes badge shape or height');
+            assert(win.getComputedStyle(badge).backgroundColor === color && requests === 0 && !icon.hasAttribute('src'), 'Fallback changes the type color or attempts an extra request');
         });
     }
 
@@ -329,10 +1068,11 @@
             doc.head.append(style);
             const reason = 'Baca bağlantısı ve cihaz montajındaki uygunsuzluk giderilmelidir. '.repeat(20);
             doc.body.innerHTML = `<div class="ykc-detail-page"><section class="ykc-firm-record"><section class="ykc-firm-control-status">
-                <i class="bi bi-calendar2-check" aria-hidden="true"></i><div><h2>Kontrol randevusu planlanacak</h2>
+                <i class="bi bi-calendar2-check" aria-hidden="true"></i><div><div class="ykc-control-heading"><h2>Kontrol randevusu planlanacak</h2>
+                <time class="ykc-appointment-focus"><span>Kontrol Randevusu</span><strong>10.10.2026 <b>09:00</b></strong></time></div>
                 <p class="ykc-firm-last-control">Son kontrol: <strong>Uygun değil</strong></p>
                 <details class="ykc-firm-reason"><summary><span><b>Uygunsuzluk gerekçesi:</b> ${reason.slice(0,160)}…</span><span class="ykc-reason-more">Devamını göster</span><span class="ykc-reason-less">Kısalt</span></summary><p>${reason}</p></details></div>
-                <time><span>Kontrol Randevusu</span><strong>10.10.2026 <b>09:00</b></strong></time></section></section></div>`;
+                </section></section></div>`;
             await doc.fonts.ready;
             const surface = doc.querySelector('.ykc-firm-control-status');
             const details = doc.querySelector('details');
@@ -1018,21 +1758,22 @@
     }
     await test('Report device fields stay aligned with wrapping and model text after resizing', async (doc, win, load) => {
         const style = doc.createElement('style');
-        style.textContent = reportCss;
+        style.textContent = panelCss + '\n' + reportCss + '\n' + historyCss;
         doc.head.append(style);
         win.frameElement.style.width = '1536px';
-        const headings = ['Select', 'ID', 'Customer', 'Installation', 'Company', 'Type', 'Project', 'New', 'Team', 'Status', 'Detail'];
-        const devices = `<td class="ykc-report-project-cell" data-label="Project"><div class="ykc-device-column is-project">
-            <strong data-device-field="brand">Long project device brand with multiple words</strong>
+        const headings = ['Select', 'ID', 'Customer', 'Installation', 'Contract', 'Company', 'Type', 'Project', 'New', 'Team', 'Status', 'Detail'];
+        const columnNames = ['select', 'record', 'customer', 'installation', 'contract', 'company', 'type', 'project', 'new', 'team', 'status', 'detail'];
+        const devices = `<td class="ykc-report-project-cell" data-label="Projedeki Cihaz"><div class="ykc-device-column is-project">
+            <strong data-device-field="brand" title="Long project device brand with multiple words">Long project device brand with multiple words</strong>
             <small data-device-field="capacity">Capacity: 21070</small><small data-device-field="flue">Flue: -</small></div></td>
-            <td class="ykc-report-new-cell" data-label="New"><div class="ykc-device-column is-new">
+            <td class="ykc-report-new-cell" data-label="Yeni Kullanılan Cihaz"><div class="ykc-device-column is-new">
             <strong data-device-field="brand">Brand</strong>
             <small data-device-field="capacity">Capacity: 2600 with a longer source unit description</small>
             <small data-device-field="flue">Flue: A long description that must remain fully visible</small>
             <small>Model: Additional model information remains below the shared fields</small></div></td>`;
-        doc.body.innerHTML = `<main class="ykc-report-page ykc-results"><div class="ykc-table-scroll" style="width:1400px">
-            <table class="ykc-report-table is-internal"><thead><tr>${headings.map(text => `<th>${text}</th>`).join('')}</tr></thead>
-            <tbody><tr>${'<td></td>'.repeat(6)}${devices}${'<td></td>'.repeat(3)}</tr></tbody></table></div></main>`;
+        doc.body.innerHTML = `<main class="ykc-report-page ykc-results df-record-directory"><div class="ykc-table-scroll" style="width:1400px">
+            <table class="ykc-report-table df-record-table is-internal"><colgroup>${columnNames.map(name => `<col class="ykc-col-${name}">`).join('')}</colgroup><thead><tr>${headings.map(text => `<th>${text}</th>`).join('')}</tr></thead>
+            <tbody><tr>${columnNames.slice(0, 7).map(name => `<td class="ykc-report-${name}-cell"${name === 'type' ? ' data-label="Yakıcı Cihaz Tipi"' : ''}></td>`).join('')}${devices}${columnNames.slice(9).map(name => `<td class="ykc-report-${name}-cell"></td>`).join('')}</tr></tbody></table></div></main>`;
         load('report');
         const container = doc.querySelector('.ykc-table-scroll');
         const fields = [...doc.querySelectorAll('[data-device-field]')];
@@ -1049,7 +1790,10 @@
                     `${name} is misaligned at ${width}px`);
             }
             assert(fields.every((field, index) => field.textContent === originalTexts[index]), 'Device information changed');
-            assert(fields.every(field => field.scrollWidth <= field.clientWidth + 1), 'Device text overflows');
+            assert(fields.every(field => field.scrollWidth <= field.clientWidth + 1 ||
+                (field.dataset.deviceField === 'brand' && field.title === field.textContent && win.getComputedStyle(field).textOverflow === 'ellipsis')),
+                'Device text overflows without an accessible full value');
+            assert(container.scrollWidth <= container.clientWidth + 1, `Device comparison scrolls horizontally at ${width}px`);
             const model = doc.querySelector('.is-new small:last-child');
             assert(model.getBoundingClientRect().top >= doc.querySelector('.is-new [data-device-field="flue"]').getBoundingClientRect().bottom,
                 'Model displaced a shared field');
@@ -1060,27 +1804,55 @@
             }
         }
     });
+    await test('Report device alignment refreshes when switching list and cards without resizing', async (doc, win, load) => {
+        const fixture = ykcDirectories.find(item => item.role === 'Personel' && item.page === 'reports');
+        assert(fixture, 'Compiled report fixture is required');
+        const parsed = new win.DOMParser().parseFromString(fixture.html, 'text/html');
+        doc.body.innerHTML = parsed.querySelector('[data-history-directory]').outerHTML;
+        const style = doc.createElement('style');
+        style.textContent = panelCss + '\n' + reportCss + '\n' + historyCss;
+        doc.head.append(style);
+        win.frameElement.style.width = '1280px';
+        const root = doc.querySelector('[data-history-directory]');
+        root.style.width = '1000px';
+        const record = root.querySelector('[data-directory-record]');
+        record.querySelector('.is-new [data-device-field="capacity"]').textContent = '20000 kcal/h nominal capacity';
+        record.querySelector('.is-new [data-device-field="flue"]').textContent = 'Hermetik';
+        win.localStorage.removeItem(`${root.dataset.storageKey}:view`);
+        load('history');
+        load('report');
+        for (const view of ['list', 'cards', 'list']) {
+            root.querySelector(`[data-history-view="${view}"]`).click();
+            for (let frame = 0; frame < 3; frame++) await new Promise(resolve => win.requestAnimationFrame(resolve));
+            for (const field of ['brand', 'capacity', 'flue']) {
+                const pair = [...record.querySelectorAll(`[data-device-field="${field}"]`)];
+                assert(Math.abs(pair[0].getBoundingClientRect().top - pair[1].getBoundingClientRect().top) < 1,
+                    `${field} is misaligned after switching to ${view}`);
+            }
+        }
+    });
     for (const role of ['internal', 'firm']) {
         await test(`Report ${role} keeps desktop column headers and single-row records`, async (doc, win) => {
             const style = doc.createElement('style');
-            style.textContent = panelCss + '\n' + reportCss;
+            style.textContent = panelCss + '\n' + reportCss + '\n' + historyCss;
             doc.head.append(style);
             win.frameElement.style.width = '1536px';
             const columns = [
                 ['select', 'Se&#231;', '<input type="checkbox">'],
                 ['record', 'Talep No', '<span class="ykc-code">#67</span>'],
                 ['customer', 'Abone &#304;smi', '<div class="ykc-report-customer">Multi Word Customer Name</div>'],
-                ['installation', 'Tesisat ve S&#246;zle&#351;me Bilgileri', '<dl class="ykc-id-list"><div><dt>Tesisat No:</dt><dd>1081196</dd></div><div><dt>S&#246;zle&#351;me No:</dt><dd>133178</dd></div></dl>'],
+                ['installation', 'Tesisat No', '<div class="ykc-cell-main ykc-code">1081196</div>'],
+                ['contract', 'S&#246;zle&#351;me No', '<div class="ykc-cell-main ykc-code">133178</div>'],
                 ...(role === 'internal' ? [['company', 'Firma', 'Demo Sertifikal&#305; Firma']] : []),
                 ['type', 'Yak&#305;c&#305; Cihaz Tipi', '<span class="ykc-device-type">Kombi</span>'],
                 ...(role === 'internal' ? [['project', 'Projedeki Cihaz', '<div class="ykc-device-column is-project"><strong>Brand</strong><small>Kapasite: 20000</small><small>Baca tipi: -</small></div>']] : []),
                 ['new', 'Yeni Kullan&#305;lan Cihaz', '<div class="ykc-device-column is-new"><strong>Brand</strong><small>Kapasite: 2600</small><small>Baca tipi: Hermetik</small></div>'],
                 ...(role === 'internal' ? [['team', 'Ekip', '<div class="ykc-cell-main ykc-report-team">Henüz atanmadı</div>']] : []),
-                ['status', 'Talep / &#304;mza Durumu', 'Tamamland&#305;'],
+                ['status', 'Durum', 'Tamamland&#305;'],
                 ['detail', 'Detay', '<button class="ykc-detail-action" aria-label="Details"><i class="bi bi-eye"></i></button>']
             ];
-            doc.body.innerHTML = `<main class="ykc-report-page ykc-results"><div class="ykc-table-scroll" style="width:1400px">
-                <table class="ykc-report-table is-${role}"><thead><tr>${columns.map(([name, label]) => `<th class="ykc-report-${name}-cell ${name === 'type' ? 'ykc-device-type-heading' : ''}">${label}</th>`).join('')}</tr></thead>
+            doc.body.innerHTML = `<main class="ykc-report-page ykc-results df-record-directory"><div class="ykc-table-scroll" style="width:1400px">
+                <table class="ykc-report-table df-record-table is-${role}"><colgroup>${columns.map(([name]) => `<col class="ykc-col-${name}">`).join('')}</colgroup><thead><tr>${columns.map(([name, label]) => `<th class="ykc-report-${name}-cell ${name === 'type' ? 'ykc-device-type-heading' : ''}">${label}</th>`).join('')}</tr></thead>
                 <tbody><tr>${columns.map(([name, label, content]) => `<td class="ykc-report-${name}-cell" data-label="${label}">${content}</td>`).join('')}</tr></tbody></table></div></main>`;
             const container = doc.querySelector('.ykc-table-scroll');
             const row = doc.querySelector('tbody tr');
@@ -1092,7 +1864,7 @@
                 const overflowing = [...container.querySelectorAll('*')].filter(element => element.getBoundingClientRect().right > right + 1 || element.scrollWidth > element.clientWidth + 1)
                     .map(element => `${element.tagName}.${element.className}: width ${element.clientWidth}, scroll ${element.scrollWidth}`);
                 assert(container.scrollWidth <= container.clientWidth + 1, `Horizontal overflow at ${width}px: ${overflowing.join(', ')}`);
-                assert([...doc.querySelectorAll('.ykc-id-list dd')].every(number => number.scrollWidth <= number.clientWidth + 1),
+                assert([...doc.querySelectorAll('.ykc-report-installation-cell .ykc-code,.ykc-report-contract-cell .ykc-code')].every(number => number.scrollWidth <= number.clientWidth + 1),
                     `Installation numbers overflow at ${width}px`);
                 const team = doc.querySelector('.ykc-report-team');
                 if (team) {
@@ -1105,7 +1877,7 @@
                     assert(device.textContent.includes('Kapasite:') && device.textContent.includes('Baca tipi:'), 'Device facts were hidden');
                     assert(device.scrollWidth <= device.clientWidth + 1 && device.scrollHeight <= device.clientHeight + 1, `Device facts are clipped at ${width}px`);
                 }
-                if (width > 740) {
+                if (width >= 980) {
                     const typeHeading = doc.querySelector('.ykc-device-type-heading');
                     assert(win.getComputedStyle(typeHeading).whiteSpace === 'nowrap' && typeHeading.scrollWidth <= typeHeading.clientWidth + 1,
                         `Device type heading does not fit on one line at ${width}px`);
@@ -1296,40 +2068,6 @@
             }
         });
     }
-    await test('Report selection actions appear only for selected records and both select-all controls stay synchronized', async (doc, win, load) => {
-        const style = doc.createElement('style');
-        style.textContent = reportCss;
-        doc.head.append(style);
-        doc.body.innerHTML = `<main class="ykc-report-page"><section class="ykc-results">
-            <div class="ykc-data-toolbar"><div class="ykc-header-actions">
-            <label class="ykc-report-mobile-select"><input type="checkbox" data-ykc-select-all> Select page</label>
-            <div class="ykc-selection-actions" data-ykc-selection-actions hidden>
-            <span data-ykc-selected-count></span><button data-ykc-selected-export disabled>Selected PDF</button>
-            <button data-ykc-selected-export disabled>Selected Excel</button></div></div></div>
-            <div class="ykc-table-scroll"><table class="ykc-report-table is-firm"><thead><tr><th><input type="checkbox" data-ykc-select-all></th></tr></thead>
-            <tbody>${[67, 66].map(id => `<tr><td><input class="ykc-report-row-check" type="checkbox" value="${id}"></td></tr>`).join('')}</tbody></table></div>
-            <nav class="ykc-pager"><span class="ykc-record-count">1-2 / 63 records</span></nav></section></main>`;
-        load('report');
-        const actions = doc.querySelector('[data-ykc-selection-actions]');
-        const controls = [...doc.querySelectorAll('[data-ykc-select-all]')];
-        const rows = [...doc.querySelectorAll('.ykc-report-row-check')];
-        const count = doc.querySelector('[data-ykc-selected-count]');
-        assert(actions.hidden && win.getComputedStyle(actions).display === 'none' && !count.textContent, 'Empty selection clutter remains');
-        rows[0].click();
-        assert(!actions.hidden && count.textContent.startsWith('1 '), 'Selected actions missing');
-        assert(controls.every(input => input.indeterminate && !input.checked), 'Partial selection not synchronized');
-        assert([...actions.querySelectorAll('button')].every(button => !button.disabled), 'Exports remain disabled');
-        controls[0].click();
-        assert(rows.every(input => input.checked) && controls.every(input => input.checked && !input.indeterminate), 'Select-all does not select all rows');
-        controls[1].click();
-        assert(rows.every(input => !input.checked) && actions.hidden && !count.textContent, 'Clearing selection leaves actions visible');
-        for (const width of [1200, 375]) {
-            win.frameElement.style.width = `${width}px`;
-            await new Promise(resolve => win.requestAnimationFrame(resolve));
-            assert((win.getComputedStyle(controls[0].parentElement).display !== 'none') === (width < 740), 'Mobile select-all visibility is wrong');
-        }
-        assert(!doc.querySelector('.ykc-data-toolbar .ykc-record-count') && doc.querySelector('.ykc-pager .ykc-record-count'), 'Record count is not in the pager');
-    });
     for (const width of [1280, 375]) {
         await test(`Company dropdown fits at ${width}px without list scrolling and preserves selection`, async (doc, win, load) => {
             win.frameElement.style.width = `${width}px`;
@@ -1377,12 +2115,20 @@
         await test(`Commissioning ${role} uses balanced shared columns and preserves model tooltips`, async (doc, win, load) => {
             win.frameElement.style.width = '1920px';
             const style = doc.createElement('style');
-            style.textContent = panelCss + '\n' + operationsCss;
+            style.textContent = panelCss + '\n' + operationsCss + '\n' + historyCss;
             doc.head.append(style);
             const firm = role === 'service';
             assert(commissioningTable.sharedViews && commissioningTable.headers.length === 9, 'A role bypasses the shared commissioning table');
             assert(commissioningTable.headers.find(column => column.key === 'customer')?.label === 'Abone Adı Soyadı', 'Subscriber heading must identify the full name for every role');
-            assert(commissioningTable.source.includes('servisPaneli ? 8 : 10'), 'Inline detail colspan does not follow the shared columns');
+            assert(/servisPaneli\s*\?\s*9\s*:\s*10/.test(commissioningTable.source), 'Inline detail colspan does not include selection for every role');
+            assert(commissioningTable.directorySource.includes('df-commissioning-directory')
+                && commissioningTable.directorySource.includes('<partial name="_KayitListeAracCubugu"')
+                && commissioningTable.toolbarSource.includes('data-history-view-group')
+                && commissioningTable.toolbarSource.includes('data-history-view="list"')
+                && commissioningTable.toolbarSource.includes('data-history-view="cards"'), 'Roles do not use the shared list/cards directory and toolbar');
+            assert(/\sdata-commissioning-select(?:\s|=|>)/.test(commissioningTable.source)
+                && commissioningTable.source.includes('data-commissioning-select-all')
+                && commissioningTable.source.includes('data-label=') && commissioningTable.source.includes('data-record-id='), 'Shared records lack selection or card metadata');
             const contents = {
                 customer: '<div class="df-cell-main">CUSTOMER NAME</div>',
                 installation: '<span class="df-cell-value">1000378</span>',
@@ -1395,24 +2141,24 @@
                 action: '<button class="commissioning-row-action" aria-label="View">+</button>'
             };
             const columns = [
-                ...(!firm ? [{ key: 'select', label: '<input type="checkbox" aria-label="Select all">' }] : []),
+                { key: 'select', label: '<input type="checkbox" data-commissioning-select-all aria-label="Select all">' },
                 ...commissioningTable.headers.filter(column => !firm || column.key !== 'company')
             ];
-            doc.body.innerHTML = `<main class="df-admin-workspace df-operations-directory ${role === 'personnel' ? 'df-personnel-commissioning-workspace' : ''}">
+            doc.body.innerHTML = `<main class="df-admin-workspace df-operations-directory df-commissioning-directory ${role === 'personnel' ? 'df-personnel-commissioning-workspace' : ''}" data-history-directory data-view="list">
                 <div class="df-admin-table-scroll" style="width:1400px"><table class="df-table df-commissioning-table ${firm ? 'is-firm-history' : ''}">
                 <thead><tr>${columns.map(({ key, label }) => `<th class="df-commissioning-col-${key}">${label}</th>`).join('')}</tr></thead>
-                <tbody><tr class="df-commissioning-record-row" data-commissioning-record>${columns.map(({ key }) => `<td class="df-commissioning-col-${key}">${contents[key] || '<input type="checkbox" value="42">'}</td>`).join('')}</tr></tbody></table></div></main>`;
+                <tbody><tr class="df-commissioning-record-row" data-commissioning-record>${columns.map(({ key }) => `<td class="df-commissioning-col-${key}">${contents[key] || '<input type="checkbox" data-commissioning-select value="42">'}</td>`).join('')}</tr></tbody></table></div></main>`;
             load('commissioning');
             await doc.fonts.ready;
             const container = doc.querySelector('.df-admin-table-scroll');
             const row = doc.querySelector('tbody tr'), headers = [...doc.querySelectorAll('th')];
             const facts = row.querySelector('.df-device-facts'), time = row.querySelector('time');
-            assert(headers.length === (firm ? 8 : 10), 'Column count differs from the role capabilities');
+            assert(headers.length === (firm ? 9 : 10), 'Column count differs from the shared role capabilities');
             const customerStyle = win.getComputedStyle(row.querySelector('.df-cell-main'));
             assert(customerStyle.fontWeight === '500' && customerStyle.fontSize === '11.5px', 'Subscriber names are larger or bolder than the other table values');
             assert([...facts.querySelectorAll('dd')].every(value => win.getComputedStyle(value).fontWeight === '400'), 'Device values remain unnecessarily bold');
             assert([...facts.querySelectorAll('dt')].every(label => Number(win.getComputedStyle(label).fontWeight) <= 500), 'Device labels overpower the values');
-            for (const width of firm ? [1740, 1400, 1100, 980, 960, 900] : [1740, 1400, 1100, 980, 960]) {
+            for (const width of firm ? [1740, 1400, 1100, 980, 960, 920] : [1740, 1400, 1100, 980, 960]) {
                 container.style.width = `${width}px`;
                 for (let frame = 0; frame < 3; frame++)
                     await new Promise(resolve => win.requestAnimationFrame(resolve));
@@ -1424,7 +2170,7 @@
                     assert(row.querySelector('.df-commissioning-col-contract').getBoundingClientRect().width >= 130, 'Spare width is not shared with contract numbers');
                 }
                 const gap = time.getBoundingClientRect().left - facts.getBoundingClientRect().right;
-                assert(gap >= 28 && gap <= 40, `Device/date gutter is unbalanced at ${width}px: ${gap}`);
+                assert(gap >= 24 && gap <= 40, `Shared list device/date gutter is unbalanced at ${width}px: ${gap}`);
                 assert(row.getBoundingClientRect().height <= 58, 'Compact columns increase ordinary row height');
                 assert(facts.querySelector('.df-device-model dd').getBoundingClientRect().height < 20, 'Model wraps into extra lines');
                 assert(win.getComputedStyle(doc.querySelector('.df-device-model dd')).textOverflow === 'ellipsis', 'Long model truncation was lost');
@@ -1436,21 +2182,22 @@
                 const status = row.querySelector('.df-pill').getBoundingClientRect();
                 const type = row.querySelector('.df-device-type-tag').getBoundingClientRect();
                 const action = row.querySelector('.commissioning-row-action').getBoundingClientRect();
-                const extraWidth = Math.max(0, width - (firm ? 900 : 960));
-                assert(Math.abs(action.left - status.right - ((firm ? 29 : 24) + extraWidth * (firm ? .08 : .06))) <= 1,
-                    `Status/action spacing does not share the available width at ${width}px`);
+                assert(action.left >= status.right + 6, `Status and action overlap in the shared list at ${width}px`);
                 for (const key of ['status', 'action']) {
-                    const header = headers.find(item => item.classList.contains(`df-commissioning-col-${key}`)).getBoundingClientRect();
+                    const heading = headers.find(item => item.classList.contains(`df-commissioning-col-${key}`));
+                    const header = heading.getBoundingClientRect();
                     const content = key === 'status' ? status : action;
-                    assert(Math.abs(header.left + header.width / 2 - content.left - content.width / 2) <= 1,
-                        `${key} is not centered under its header at ${width}px`);
+                    const alignment = key === 'status'
+                        ? Math.abs(header.left + parseFloat(win.getComputedStyle(heading).paddingLeft) - content.left)
+                        : Math.abs(header.left + header.width / 2 - content.left - content.width / 2);
+                    assert(alignment <= 1, `${key} is not aligned under its shared list header at ${width}px`);
                 }
-                assert(status.width === 80 && status.height === 24 && type.width === 80 && type.height === 24, 'Status and device type must both measure 80 by 24 pixels');
+                assert(status.height === 20 && type.height === 20, 'Shared list status and device type are not compact');
                 for (const badge of row.querySelectorAll('.df-pill, .df-device-type-tag')) {
                     const range = doc.createRange();
                     range.selectNodeContents(badge);
                     const lines = [...range.getClientRects()], rect = badge.getBoundingClientRect();
-                    assert(lines.length === 1 && lines[0].left >= rect.left + 7 && lines[0].right <= rect.right - 7, 'Badge text wraps or loses its inner spacing');
+                    assert(lines.length === 1 && lines[0].left >= rect.left + 3 && lines[0].right <= rect.right - 3, 'Badge text wraps or loses its shared list spacing');
                 }
                 for (const header of headers.filter(header => !header.classList.contains('df-commissioning-col-select'))) {
                     const range = doc.createRange();
@@ -1476,7 +2223,7 @@
                 status.textContent = label;
                 status.className = `df-pill ${css}`;
                 row.classList.toggle('is-expanded');
-                assert(status.getBoundingClientRect().width === 80 && status.getBoundingClientRect().height === 24, 'Status changes or expansion resize the badge');
+                assert(status.getBoundingClientRect().height === 20 && status.scrollWidth <= status.clientWidth + 1, 'Status changes or expansion increase height or clip the badge');
             }
         });
     }
@@ -1807,7 +2554,7 @@
         clock.advance(16000);
         assert(!f.notice, 'Warnings do not expire after reading finishes');
     });
-    for (const width of [1280, 900, 701, 700, 390]) {
+    for (const width of [1280, 900, 701, 700, 390, 320]) {
         await test(`Firm data uses white surfaces and aligned section accents at ${width}px`, async (doc, win) => {
             win.frameElement.style.width = `${width}px`;
             win.frameElement.style.height = '950px';
@@ -1823,7 +2570,7 @@
             doc.body.innerHTML = `<main class="ykc-detail-page"><section class="ykc-firm-record">
                 <header class="ykc-firm-record-head"><div><span class="ykc-firm-record-number">Talep No: #73</span><h1>ÖRNEK ABONE</h1></div>
                 <div class="ykc-firm-record-actions"><a class="df-btn df-btn-sm ykc-detail-back" href="#">Taleplere Dön</a><a class="df-btn df-btn-sm ykc-detail-preview" href="#">Formu Önizle</a></div></header>
-                <section class="ykc-firm-control-status"><i class="bi bi-hourglass-split" aria-hidden="true"></i><div><h2>Dağıtım şirketinin incelemesi bekleniyor</h2></div></section>
+                <section class="ykc-firm-control-status"><i class="bi bi-calendar2-check" aria-hidden="true"></i><div><div class="ykc-control-heading"><h2>Kontrol randevusu</h2><time class="ykc-appointment-focus" datetime="2026-10-07" aria-label="Kontrol randevusu"><strong>07.10.2026 <b>09:00</b></strong></time></div></div></section>
                 <div class="ykc-firm-record-grid"><div class="ykc-firm-record-data">
                 ${section('firm-installation-title', 'Tesisat ve Abone', 'bi-house-check', fact('Sözleşme No', '6327') + fact('Tesisat No', '1002619') + fact('Abone No', '41857004278') + fact('Adres', 'Örnek Mahallesi, Örnek Sokak No: 4/3 Çorum Merkez Çorum', true), 'ykc-firm-data-grid')}
                 ${section('firm-device-title', 'Yeni Kullanılan Cihaz', 'bi-fire', fact('Yakıcı Cihaz Tipi', 'Kombi') + fact('Marka', 'Protherm') + fact('Kapasite', '2750 kcal/h') + fact('Baca Tipi', 'Hermetik') + fact('İkinci El', 'Hayır'), 'ykc-firm-data-grid')}
@@ -1834,17 +2581,31 @@
             await doc.fonts.ready;
             await new Promise(resolve => win.requestAnimationFrame(resolve));
             const sections = [...doc.querySelectorAll('.ykc-firm-data-section')];
-            assert(sections.every(x => /0px 2px 0px 0px inset$/.test(win.getComputedStyle(x).boxShadow)), 'Sections need only a thin inset top accent');
+            assert(sections.every(x => win.getComputedStyle(x).boxShadow === 'none'), 'Full-width section accents still merge separate headings');
             assert(sections.every(x => win.getComputedStyle(x).borderLeftWidth === '0px' && win.getComputedStyle(x).borderRightWidth === '0px'), 'Sections are still boxed');
             const separator = win.getComputedStyle(sections[1]);
             assert(separator.borderTopStyle === 'solid' && parseFloat(separator.borderTopWidth) > 0 && parseFloat(separator.borderTopWidth) <= 1, 'Thin section separator is missing');
             assert(sections.every(x => x.scrollWidth <= x.clientWidth + 1), 'Section overflows');
             assert(sections.every(x => win.getComputedStyle(x).backgroundColor === 'rgb(255, 255, 255)'),
                 'Colored fills remain on firm detail sections');
-            assert(new Set(sections.map(x => win.getComputedStyle(x).boxShadow)).size === 4,
-                'Section accents are not distinct');
+            assert(sections.every(x => {
+                const accent = win.getComputedStyle(x.querySelector('h2'), '::before');
+                return accent.backgroundColor === 'rgb(49, 95, 202)' && accent.width === '2px' && accent.height === '20px';
+            }), 'Each heading needs its own short #315fca accent');
+            assert(win.getComputedStyle(doc.querySelector('.ykc-firm-control-status')).boxShadow === 'rgb(49, 95, 202) 2px 0px 0px 0px inset',
+                'The firm status accent must use #315fca');
             assert(new Set(sections.slice(0, 3).map(x => win.getComputedStyle(x.querySelector('h2')).color)).size === 3,
                 'Section headings lack a clear color hierarchy');
+            const heading = doc.querySelector('.ykc-control-heading h2').getBoundingClientRect();
+            const appointment = doc.querySelector('.ykc-appointment-focus');
+            const appointmentBox = appointment.getBoundingClientRect();
+            if (width > 700) assert(appointmentBox.left - heading.right <= 20 && Math.abs(appointmentBox.top - heading.top) < 10,
+                'Appointment is not immediately beside the status heading');
+            else assert(appointmentBox.top >= heading.bottom || appointmentBox.left >= heading.right,
+                'Appointment overlaps the status heading');
+            assert(appointment.scrollWidth <= appointment.clientWidth + 1
+                && parseFloat(win.getComputedStyle(appointment.querySelector('strong')).fontSize) <= 14,
+                'Appointment is clipped or uses oversized text');
             const measure = () => sections.map(x => {
                 const box = x.getBoundingClientRect();
                 return [box.x, box.y, box.width, box.height];
@@ -1891,6 +2652,21 @@
             assertAlignment();
             history.querySelector('summary').click();
             assertAlignment();
+            const staff = doc.createElement('main');
+            staff.className = 'ykc-detail-page is-streamlined';
+            staff.innerHTML = `<section class="ykc-firm-record ykc-staff-record"><header class="ykc-firm-record-head"><div class="ykc-staff-record-identity"><span class="ykc-firm-record-number">Cihaz Değişim Talebi #71</span><div class="ykc-staff-identity-fields"><h1><span>Müşteri Adı:</span> ÖRNEK UZUN ABONE ADI SOYADI</h1><time class="ykc-appointment-focus"><span>Kontrol Randevusu</span><strong>07.10.2026 <b>09:00</b></strong></time></div></div><div class="ykc-firm-record-actions"><a class="df-btn df-btn-sm" href="#">Taleplere Dön</a><a class="df-btn df-btn-sm" href="#">Formu Önizle</a></div></header>${section('staff-installation', 'Abone Bilgileri', 'bi-house-check', fact('Tesisat No', '1002619'))}${section('staff-firm', 'Firma Bilgileri', 'bi-building', fact('Firma', 'Örnek Firma'))}<section class="ykc-focus-section">Kontrol</section></section>`;
+            doc.body.append(staff);
+            assert([...staff.querySelectorAll('.ykc-firm-data-section')].every(x =>
+                win.getComputedStyle(x).boxShadow === 'none'
+                && win.getComputedStyle(x.querySelector('h2'), '::before').backgroundColor === 'rgb(49, 95, 202)'),
+                'Admin and personnel need the same separate heading accents');
+            const staffAppointment = staff.querySelector('.ykc-appointment-focus');
+            assert(staffAppointment.closest('.ykc-firm-record-head') && staffAppointment.scrollWidth <= staffAppointment.clientWidth + 1
+                && doc.documentElement.scrollWidth <= width + 1, 'Staff appointment is not visible in the header or creates horizontal scrolling');
+            const focus = win.getComputedStyle(staff.querySelector('.ykc-focus-section'));
+            assert((width <= 800 ? focus.borderBottomColor : focus.borderLeftColor) === 'rgb(49, 95, 202)',
+                'Admin and personnel status accents must share #315fca');
+            staff.remove();
         });
     }
     for (const width of [1280, 900, 390]) {

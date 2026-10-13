@@ -65,7 +65,16 @@
     <section class="ykc-firm-control-status" aria-label="Kontrol durumu">
         <i class="bi @(Model.RandevuTarihi.HasValue ? "bi-calendar2-check" : "bi-hourglass-split")" aria-hidden="true"></i>
         <div>
-            <h2>@kontrolBaslik</h2>
+            <div class="ykc-control-heading">
+                <h2>@kontrolBaslik</h2>
+                @if (Model.RandevuTarihi.HasValue)
+                {
+                    <time class="ykc-appointment-focus" datetime="@Model.RandevuTarihi.Value.ToString("yyyy-MM-dd")" aria-label="Kontrol randevusu">
+                        @if (Model.Durum != YkcDurumDegerleri.Atandi) { <span>Kontrol Randevusu</span> }
+                        <strong>@Model.RandevuTarihi.Value.ToString("dd.MM.yyyy") <b>@Model.RandevuSaati</b></strong>
+                    </time>
+                }
+            </div>
             @if (sonUygunsuzKontrol != null)
             {
                 <p class="ykc-firm-last-control">Son kontrol: <strong>Uygun değil</strong></p>
@@ -86,10 +95,6 @@
             }
             else if (!string.IsNullOrWhiteSpace(aciklama)) { <p>@aciklama</p> }
         </div>
-        @if (Model.RandevuTarihi.HasValue)
-        {
-            <time datetime="@Model.RandevuTarihi.Value.ToString("yyyy-MM-dd")"><span>Kontrol Randevusu</span><strong>@Model.RandevuTarihi.Value.ToString("dd.MM.yyyy") <b>@Model.RandevuSaati</b></strong></time>
-        }
     </section>
     }
     <div class="ykc-firm-record-grid">

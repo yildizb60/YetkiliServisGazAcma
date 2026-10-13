@@ -23,9 +23,7 @@ public sealed class YkcTalepOkumaService(AppDbContext context)
         var toplamSayfa = Math.Max(1, (int)Math.Ceiling(toplam / (double)sayfaBoyutu));
         sayfa = Math.Min(sayfa, toplamSayfa);
 
-        var talepler = await query
-            .OrderByDescending(x => x.TalepTarihi)
-            .ThenByDescending(x => x.Id)
+        var talepler = await Sirala(query, filtre.Sirala)
             .Skip((sayfa - 1) * sayfaBoyutu)
             .Take(sayfaBoyutu)
             .ToListAsync();
@@ -84,18 +82,28 @@ public sealed class YkcTalepOkumaService(AppDbContext context)
         {
             // Locate the record within the already-authorized result without filtering out its neighbours.
             var detayKaydi = await query.Where(x => x.Id == filtre.DetayTalepId.Value)
-                .Select(x => new { x.Id, x.TalepTarihi }).SingleOrDefaultAsync();
+                .Select(x => new { x.Id, x.TalepTarihi, x.MusteriAdi }).SingleOrDefaultAsync();
             if (detayKaydi != null)
             {
-                var oncekiKayitlar = await query.CountAsync(x => x.TalepTarihi > detayKaydi.TalepTarihi
-                    || (x.TalepTarihi == detayKaydi.TalepTarihi && x.Id > detayKaydi.Id));
+                var musteriAdi = detayKaydi.MusteriAdi ?? "";
+                var oncekiKayitlar = filtre.Sirala switch
+                {
+                    "tarih-artan" => await query.CountAsync(x => x.TalepTarihi < detayKaydi.TalepTarihi
+                        || (x.TalepTarihi == detayKaydi.TalepTarihi && x.Id < detayKaydi.Id)),
+                    "abone-artan" => await query.CountAsync(x =>
+                        string.Compare(EF.Functions.Collate(x.MusteriAdi ?? "", "Turkish_CI_AS"), musteriAdi) < 0
+                        || (EF.Functions.Collate(x.MusteriAdi ?? "", "Turkish_CI_AS") == musteriAdi && x.Id > detayKaydi.Id)),
+                    "abone-azalan" => await query.CountAsync(x =>
+                        string.Compare(EF.Functions.Collate(x.MusteriAdi ?? "", "Turkish_CI_AS"), musteriAdi) > 0
+                        || (EF.Functions.Collate(x.MusteriAdi ?? "", "Turkish_CI_AS") == musteriAdi && x.Id > detayKaydi.Id)),
+                    _ => await query.CountAsync(x => x.TalepTarihi > detayKaydi.TalepTarihi
+                        || (x.TalepTarihi == detayKaydi.TalepTarihi && x.Id > detayKaydi.Id))
+                };
                 sayfa = (oncekiKayitlar / sayfaBoyutu) + 1;
             }
         }
 
-        var kayitlar = await query
-            .OrderByDescending(x => x.TalepTarihi)
-            .ThenByDescending(x => x.Id)
+        var kayitlar = await Sirala(query, filtre.Sirala)
             .Skip((sayfa - 1) * sayfaBoyutu)
             .Take(sayfaBoyutu)
             .ToListAsync();
@@ -123,9 +131,7 @@ public sealed class YkcTalepOkumaService(AppDbContext context)
     {
         var limit = Math.Clamp(kayitLimiti, 1, 5001);
         var query = await FiltreleriUygulaAsync(RaporQuery(), filtre, kullanici, genelYetkili, dogrulanmisSirketId);
-        var kayitlar = await query
-            .OrderByDescending(x => x.TalepTarihi)
-            .ThenByDescending(x => x.Id)
+        var kayitlar = await Sirala(query, filtre.Sirala)
             .Take(limit)
             .ToListAsync();
 
@@ -238,6 +244,17 @@ public sealed class YkcTalepOkumaService(AppDbContext context)
         return dto;
     }
 
+    private static IOrderedQueryable<Ykc_Talep> Sirala(IQueryable<Ykc_Talep> query, string? sirala)
+    {
+        return sirala switch
+        {
+            "tarih-artan" => query.OrderBy(x => x.TalepTarihi).ThenBy(x => x.Id),
+            "abone-artan" => query.OrderBy(x => EF.Functions.Collate(x.MusteriAdi ?? "", "Turkish_CI_AS")).ThenByDescending(x => x.Id),
+            "abone-azalan" => query.OrderByDescending(x => EF.Functions.Collate(x.MusteriAdi ?? "", "Turkish_CI_AS")).ThenByDescending(x => x.Id),
+            _ => query.OrderByDescending(x => x.TalepTarihi).ThenByDescending(x => x.Id)
+        };
+    }
+
     private IQueryable<Ykc_Talep> ListeQuery()
     {
         return _context.Ykc_Talepler
@@ -293,6 +310,9 @@ public sealed class YkcTalepOkumaService(AppDbContext context)
         var swaggerOrnekFiltre = SwaggerOrnekFiltreMi(filtre);
         var sirketId = PozitifId(filtre.SirketId);
         var firmaId = PozitifId(filtre.FirmaId);
+        var talepId = PozitifId(filtre.TalepId);
+        var q = FiltreMetni(filtre.Q);
+        var cihazTipi = FiltreMetni(filtre.CihazTipi);
         var tesisatNo = FiltreMetni(filtre.TesisatNo);
         var musteriAdi = FiltreMetni(filtre.MusteriAdi);
         var sozlesmeNo = FiltreMetni(filtre.SozlesmeNo);
@@ -314,6 +334,33 @@ public sealed class YkcTalepOkumaService(AppDbContext context)
 
         if (firmaId.HasValue && genelYetkili)
             query = query.Where(x => x.FirmaId == firmaId.Value);
+
+        if (talepId.HasValue)
+            query = query.Where(x => x.Id == talepId.Value);
+
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var arananTalepId = int.TryParse(q.TrimStart('#'), out var id) && id > 0 ? id : 0;
+            query = query.Where(x => x.Id == arananTalepId
+                || (x.MusteriAdi != null && EF.Functions.Collate(x.MusteriAdi, "Turkish_CI_AS").Contains(q))
+                || (x.TesisatNo != null && EF.Functions.Collate(x.TesisatNo, "Turkish_CI_AS").Contains(q))
+                || (x.SozlesmeNo != null && EF.Functions.Collate(x.SozlesmeNo, "Turkish_CI_AS").Contains(q))
+                || (x.Firma != null && x.Firma.FirmaAdi != null
+                    && EF.Functions.Collate(x.Firma.FirmaAdi, "Turkish_CI_AS").Contains(q)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(cihazTipi))
+        {
+            (string cihazTipiArama, string? cihazTipiAlias) = cihazTipi.ToLowerInvariant() switch
+            {
+                "sofben" or "\u015fofben" => ("Sofben", "\u015eofben"),
+                "diger" or "di\u011fer" => ("Diger", "Di\u011fer"),
+                _ => (cihazTipi, null)
+            };
+            query = query.Where(x => x.YeniCihazTipi != null
+                && (EF.Functions.Collate(x.YeniCihazTipi, "Turkish_CI_AS").Contains(cihazTipiArama)
+                    || (cihazTipiAlias != null && EF.Functions.Collate(x.YeniCihazTipi, "Turkish_CI_AS").Contains(cihazTipiAlias))));
+        }
 
         if (!string.IsNullOrWhiteSpace(tesisatNo))
             query = query.Where(x => x.TesisatNo != null && x.TesisatNo.Contains(tesisatNo));
@@ -344,8 +391,9 @@ public sealed class YkcTalepOkumaService(AppDbContext context)
 
         if (!string.IsNullOrWhiteSpace(marka))
         {
+            var firmaKullanicisi = YkcFirmaSunumu.FirmaKullanicisiMi(kullanici);
             query = query.Where(x =>
-                (x.EskiMarka != null && x.EskiMarka.Contains(marka)) ||
+                (!firmaKullanicisi && x.EskiMarka != null && x.EskiMarka.Contains(marka)) ||
                 (x.YeniMarka != null && x.YeniMarka.Contains(marka)));
         }
 
@@ -374,6 +422,17 @@ public sealed class YkcTalepOkumaService(AppDbContext context)
 
         if (bitisTarihi.HasValue)
             query = query.Where(x => x.TalepTarihi < bitisTarihi.Value.Date.AddDays(1));
+
+        if (filtre.RandevuBaslangicTarihi.HasValue)
+        {
+            var randevuBaslangic = filtre.RandevuBaslangicTarihi.Value.Date;
+            query = query.Where(x => x.RandevuTarihi.HasValue && x.RandevuTarihi.Value >= randevuBaslangic);
+        }
+        if (filtre.RandevuBitisTarihi.HasValue)
+        {
+            var randevuBitis = filtre.RandevuBitisTarihi.Value.Date.AddDays(1);
+            query = query.Where(x => x.RandevuTarihi.HasValue && x.RandevuTarihi.Value < randevuBitis);
+        }
 
         return await BekleyenIsFiltresiAsync(query, filtre.BekleyenIs);
     }
@@ -418,6 +477,8 @@ public sealed class YkcTalepOkumaService(AppDbContext context)
     {
         var metinlerdeOrnekVar = new[]
         {
+            filtre.Q,
+            filtre.CihazTipi,
             filtre.TesisatNo,
             filtre.MusteriAdi,
             filtre.SozlesmeNo,
@@ -434,6 +495,7 @@ public sealed class YkcTalepOkumaService(AppDbContext context)
         return metinlerdeOrnekVar
             && filtre.SirketId.GetValueOrDefault() <= 0
             && filtre.FirmaId.GetValueOrDefault() <= 0
+            && filtre.TalepId.GetValueOrDefault() <= 0
             && filtre.Durum.GetValueOrDefault() <= 0
             && filtre.Sayfa <= 0
             && filtre.SayfaBoyutu <= 0;

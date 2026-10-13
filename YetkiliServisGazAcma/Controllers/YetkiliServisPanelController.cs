@@ -469,6 +469,9 @@ namespace YetkiliServisGazAcma.Controllers
 
         [HttpGet]
         [Route("raporlar/pdf")]
+        [HttpPost]
+        [AutoValidateAntiforgeryToken]
+        [RequestFormLimits(ValueCountLimit = 6000)]
         public Task<IActionResult> RaporlarPdf(DateTime? bas, DateTime? bit, List<int>? ids)
             => RaporDosyasi(bas, bit, ids, excelMi: false);
 
@@ -483,6 +486,9 @@ namespace YetkiliServisGazAcma.Controllers
 
         [HttpGet]
         [Route("raporlar/excel")]
+        [HttpPost]
+        [AutoValidateAntiforgeryToken]
+        [RequestFormLimits(ValueCountLimit = 6000)]
         public Task<IActionResult> RaporlarExcel(DateTime? bas, DateTime? bit, List<int>? ids)
             => RaporDosyasi(bas, bit, ids, excelMi: true);
 

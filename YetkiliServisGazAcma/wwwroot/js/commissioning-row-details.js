@@ -118,6 +118,13 @@
         });
     });
 
+    const directories = new Set(records.map(record => record.closest('[data-history-directory]')).filter(Boolean));
+    directories.forEach(directory => directory.addEventListener('commissioning:viewchange', () => {
+        records.filter(record => directory.contains(record)).forEach(record => setRecordState(record, false));
+        refreshModelFields();
+        window.requestAnimationFrame(refreshModelFields);
+    }));
+
     const linkedDetail = document.getElementById(window.location.hash.slice(1));
     if (linkedDetail?.matches(".df-commissioning-detail-row")) {
         const record = records.find(item => item.querySelector("[data-commissioning-expand]")?.getAttribute("aria-controls") === linkedDetail.id);
