@@ -37,7 +37,8 @@ public sealed class YetkiliServisPanelOkumaApiService(AppDbContext context, Yetk
         var sonIslemler = await _context.Ys_DevreyeAlmalar
             .Include(x => x.Marka)
             .Where(x => x.FirmaId == firmaId && !x.SilindiMi)
-            .OrderByDescending(x => x.OlusturmaTarihi)
+            .OrderByDescending(x => x.DevreyeAlmaTarihi)
+            .ThenByDescending(x => x.Id)
             .Take(5)
             .ToListAsync();
 
