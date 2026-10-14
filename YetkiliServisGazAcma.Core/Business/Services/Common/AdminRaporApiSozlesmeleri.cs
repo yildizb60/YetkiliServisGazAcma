@@ -4,6 +4,9 @@ namespace YetkiliServisGazAcma.Business.Services;
 
 public class AdminDevreyeAlmaListeFiltreDto
 {
+    public int Sayfa { get; set; } = 1;
+    public int SayfaBoyutu { get; set; } = 20;
+    public int? OdakKayitId { get; set; }
     public int? SirketId { get; set; }
     public string? Arama { get; set; }
     public string? Siralama { get; set; }
@@ -49,6 +52,7 @@ public class AdminRaporOzetFiltreDto
 
 public class AdminDevreyeAlmaListeDto
 {
+    public DevreyeAlmaSayfalamaDto Sayfalama { get; set; } = new();
     public List<AdminDevreyeAlmaDto> Islemler { get; set; } = new();
     public List<string> CihazTipleri { get; set; } = new();
     public List<string> Sehirler { get; set; } = new();

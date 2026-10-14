@@ -7,7 +7,7 @@ namespace YetkiliServisGazAcma.API.Services
 {
     public class DevreyeAlmaExportApiService
     {
-        private const int MaximumExportRows = 5000;
+        private const int MaximumExportRows = DevreyeAlmaSayfalamaDto.AktarimSiniri;
         private readonly AppDbContext _context;
 
         public DevreyeAlmaExportApiService(AppDbContext context)
@@ -115,6 +115,7 @@ namespace YetkiliServisGazAcma.API.Services
             if (ids?.Count > 0)
             {
                 var idListesi = ids.Distinct().ToList();
+                if (idListesi.Count > MaximumExportRows) throw new DevreyeAlmaRaporLimitException(MaximumExportRows);
                 var secilenler = await RaporKayitlariniGetirAsync(query.Where(x => idListesi.Contains(x.Id)));
 
                 if (secilenler.Count > 0)
@@ -145,6 +146,7 @@ namespace YetkiliServisGazAcma.API.Services
             if (ids?.Count > 0)
             {
                 var idListesi = ids.Distinct().ToList();
+                if (idListesi.Count > MaximumExportRows) throw new DevreyeAlmaRaporLimitException(MaximumExportRows);
                 var secilenler = await RaporKayitlariniGetirAsync(query.Where(x => idListesi.Contains(x.Id)));
 
                 basTarih = secilenler.Count > 0 ? secilenler.Min(x => x.DevreyeAlmaTarihi).Date : DateTime.Now.Date;

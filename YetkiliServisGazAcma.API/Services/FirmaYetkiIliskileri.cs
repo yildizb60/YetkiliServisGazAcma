@@ -30,7 +30,7 @@ internal static class FirmaYetkiIliskileri
         if (kategoriIds != null)
         {
             var mevcut = await db.Ys_FirmaKategoriler.Where(x => x.FirmaId == firmaId && !x.SilindiMi).ToListAsync();
-            Uzlastir(mevcut, kategoriIds, x => x.KategoriId, id => new Ys_FirmaKategori
+            Uzlastir(mevcut, kategoriIds, x => x.KategoriId, x => x.YetkiBitisTarihi, id => new Ys_FirmaKategori
             {
                 FirmaId = firmaId, KategoriId = id, YetkiBitisTarihi = simdi.AddYears(1),
                 OlusturmaTarihi = simdi, OlusturanKullanici = kullanici
@@ -39,7 +39,7 @@ internal static class FirmaYetkiIliskileri
         if (markaIds != null)
         {
             var mevcut = await db.Ys_FirmaMarkalar.Where(x => x.FirmaId == firmaId && !x.SilindiMi).ToListAsync();
-            Uzlastir(mevcut, markaIds, x => x.MarkaId, id => new Ys_FirmaMarka
+            Uzlastir(mevcut, markaIds, x => x.MarkaId, x => x.YetkiBitisTarihi, id => new Ys_FirmaMarka
             {
                 FirmaId = firmaId, MarkaId = id, YetkiBitisTarihi = simdi.AddYears(1),
                 OlusturmaTarihi = simdi, OlusturanKullanici = kullanici
@@ -47,18 +47,18 @@ internal static class FirmaYetkiIliskileri
         }
     }
 
-    private static void Uzlastir<T>(List<T> mevcut, List<int> secilen, Func<T, int> anahtar,
+    private static void Uzlastir<T>(List<T> mevcut, List<int> secilen, Func<T, int> anahtar, Func<T, DateTime> bitisTarihi,
         Func<int, T> olustur, Action<T> ekle, string kullanici, DateTime simdi) where T : BaseEntity
     {
         var ids = secilen.ToHashSet();
-        foreach (var kayit in mevcut.Where(x => !ids.Contains(anahtar(x))))
+        foreach (var kayit in mevcut.Where(x => !ids.Contains(anahtar(x)) || bitisTarihi(x) < simdi.Date))
         {
             kayit.SilindiMi = true;
             kayit.SilinmeTarihi = simdi;
             kayit.SilenKullanici = kullanici;
         }
-        // Unchanged grants keep their identifiers, expiry dates and creation history.
-        foreach (var id in ids.Except(mevcut.Select(anahtar)))
+        // Grants valid through today keep their identifiers, expiry dates and creation history.
+        foreach (var id in ids.Except(mevcut.Where(x => !x.SilindiMi).Select(anahtar)))
             ekle(olustur(id));
     }
 }

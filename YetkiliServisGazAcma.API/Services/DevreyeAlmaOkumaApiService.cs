@@ -67,22 +67,10 @@ public sealed class DevreyeAlmaOkumaApiService(AppDbContext context, YetkiliServ
             "iptal" or "2" => DevreyeAlmaDurumDegerleri.Iptal,
             _ => null
         };
-        Dictionary<int, int>? durumOzet = null;
-        if (seciliDurum.HasValue && string.IsNullOrWhiteSpace(dto?.SozlesmeNo)
-            && string.IsNullOrWhiteSpace(dto?.Arama))
-        {
-            // Keep pre-status counters without loading and enriching the other statuses.
-            durumOzet = await query.GroupBy(x => x.Durum)
-                .Select(g => new { Durum = g.Key, Sayi = g.Count() })
-                .ToDictionaryAsync(x => x.Durum, x => x.Sayi);
-            query = query.Where(x => x.Durum == seciliDurum.Value);
-        }
-
-        var siraliQuery = DevreyeAlmaKaynakBilgisi.Sirala(query, dto?.Siralama);
-        var islemler = await DevreyeAlmaKaynakBilgisi.ListeleAsync(_context, siraliQuery, dto?.SozlesmeNo, dto?.Arama);
-        durumOzet ??= islemler.GroupBy(x => x.Durum).ToDictionary(g => g.Key, g => g.Count());
-        if (seciliDurum.HasValue)
-            islemler.RemoveAll(x => x.Durum != seciliDurum.Value);
+        var sonuc = await DevreyeAlmaSayfalama.GetirAsync(_context, query, dto?.Siralama,
+            dto?.SozlesmeNo, dto?.Arama, dto?.Sayfa ?? 1, dto?.SayfaBoyutu ?? 20,
+            seciliDurum, dto?.OdakKayitId);
+        var durumOzet = sonuc.DurumOzet;
 
         var firma = await FirmaQuery().FirstOrDefaultAsync(x => x.Id == firmaId);
         var secenekler = await _context.Ys_DevreyeAlmalar
@@ -93,7 +81,8 @@ public sealed class DevreyeAlmaOkumaApiService(AppDbContext context, YetkiliServ
 
         return new YsDevreyeAlmaGecmisDto
         {
-            Islemler = islemler.Select(YsDevreyeAlmaDto.FromEntity).ToList(),
+            Islemler = sonuc.Kayitlar.Select(YsDevreyeAlmaDto.FromEntity).ToList(),
+            Sayfalama = sonuc.Sayfalama,
             Firma = firma == null ? null : YsFirmaDto.FromEntity(firma),
             MarkaList = secenekler.Select(x => x.Marka).Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x!).Distinct().OrderBy(x => x).ToList(),
             CihazTipleri = secenekler.Select(x => x.CihazTipi).Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x!).Distinct().OrderBy(x => x).ToList(),

@@ -4,7 +4,7 @@ public static class DevreyeAlmaCihazTipiSunumu
 {
     public static string? IkonUrl(string? cihazTipi) => Anahtar(cihazTipi) switch
     {
-        "kombi" => "https://ecaservis.com.tr/assets/images/dealers-icon-9.webp",
+        "kombi" => "/images/icons/category-kombi.webp",
         "ocak" => "/images/icons/category-ocak.svg",
         "gaz kullanıcı cihazlar" or "gaz kullanici cihazlar" => "/images/icons/category-gaz-kullanici-cihazlar.svg",
         _ => null

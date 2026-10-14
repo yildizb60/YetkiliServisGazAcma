@@ -67,6 +67,9 @@ namespace YetkiliServisGazAcma.API.Services
             if (servis == null)
                 return new(YetkiliServisKayitYonetimDurumu.Bulunamadi, "Yetkili servis bulunamadi");
 
+            if (string.IsNullOrWhiteSpace(dto.FirmaAdi))
+                return new(YetkiliServisKayitYonetimDurumu.GecersizIstek, "Firma adi zorunludur.");
+
             if (!await FirmaYetkiIliskileri.GecerliMiAsync(_context, dto.KategoriIds, dto.MarkaIds))
                 return new(YetkiliServisKayitYonetimDurumu.GecersizIstek, "Geçersiz marka veya hizmet türü seçildi.");
 
@@ -78,7 +81,7 @@ namespace YetkiliServisGazAcma.API.Services
                 x.Id != servis.Id && !x.SilindiMi && x.VergiNo == vergiNo))
                 return new(YetkiliServisKayitYonetimDurumu.GecersizIstek, "Bu VKN ile kayitli baska bir yetkili servis var.");
 
-            servis.FirmaAdi = dto.FirmaAdi;
+            servis.FirmaAdi = dto.FirmaAdi.Trim();
             servis.YetkiliKisi = dto.YetkiliKisi;
             servis.Telefon = dto.Telefon;
             servis.Email = dto.Email;

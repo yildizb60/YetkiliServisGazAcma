@@ -60,9 +60,8 @@ namespace YetkiliServisGazAcma.Business.Services.Online
                 if (!response.IsSuccessStatusCode)
                 {
                     _logger.LogWarning(
-                        "Online cihaz servisi HTTP {StatusCode} dondu. Body: {Body}",
-                        (int)response.StatusCode,
-                        responseXml);
+                        "Online cihaz servisi HTTP {StatusCode} dondu.",
+                        (int)response.StatusCode);
 
                     return OnlineCihazBilgileriSonuc.Basarisiz("Online cihaz servisi yanit vermedi.");
                 }

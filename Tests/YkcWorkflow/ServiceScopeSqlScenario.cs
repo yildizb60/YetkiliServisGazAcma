@@ -153,6 +153,7 @@ internal static class ServiceScopeSqlScenario
             Check(await companyApi.Sil(new() { Id = foreignFirm.Id }) is NotFoundObjectResult, "Cross-company deletion is rejected");
             Check(await db.Ys_Firmalar.AsNoTracking().AnyAsync(f => f.Id == foreignFirm.Id && f.FirmaAdi == "Other company service" && !f.SilindiMi)
                 && !await db.Dag_Sirketler.AnyAsync(c => c.Il == "InjectedCity"), "Rejected writes leave the foreign service and company registry unchanged");
+            await GrantAndNameRegressionsAsync(db, companyApi, Controller(general), primary.Id, Check);
             Check(await companyApi.Guncelle(Update(ownFirm, "CityInactive")) is OkObjectResult, "Company admin can update its own service");
             Check(await db.Ys_Firmalar.AsNoTracking().AnyAsync(f => f.Id == ownFirm.Id && f.SirketId == primary.Id)
                 && !await db.Dag_Sirketler.AsNoTracking().AnyAsync(c => c.Id == inactive.Id && c.AktifMi),
@@ -283,6 +284,154 @@ internal static class ServiceScopeSqlScenario
                 && databaseName.StartsWith("ServiceScopeSqlTest_", StringComparison.Ordinal))
                 await db.Database.EnsureDeletedAsync();
         }
+    }
+
+    private static async Task GrantAndNameRegressionsAsync(AppDbContext db, YetkiliServislerController companyApi,
+        YetkiliServislerController systemApi, int companyId, Action<bool, string> check)
+    {
+        var today = DateTime.Today;
+        var firm = new Ys_Firma { FirmaAdi = "Renewal fixture", SirketId = companyId, FaaliyetIli = "CityA" };
+        var labels = new[] { "Expired", "Today", "Future", "Deselected", "Revoked", "New" };
+        var brands = labels.Select(x => new Ys_Marka { MarkaAdi = "Renewal " + x }).ToArray();
+        var categories = labels.Select(x => new UrunKategori { Ad = "Renewal " + x }).ToArray();
+        db.Add(firm);
+        db.AddRange(brands);
+        db.AddRange(categories);
+        await db.SaveChangesAsync();
+        var expiries = new[] { today.AddTicks(-1), today, today.AddYears(5), today.AddYears(1), today.AddYears(1) };
+        for (var i = 0; i < expiries.Length; i++)
+        {
+            var brand = new Ys_FirmaMarka { FirmaId = firm.Id, MarkaId = brands[i].Id, YetkiBitisTarihi = expiries[i] };
+            var category = new Ys_FirmaKategori { FirmaId = firm.Id, KategoriId = categories[i].Id, YetkiBitisTarihi = expiries[i] };
+            foreach (var grant in new BaseEntity[] { brand, category })
+            {
+                grant.OlusturmaTarihi = today.AddYears(-2);
+                grant.OlusturanKullanici = "original-actor";
+                grant.GuncellemeTarihi = today.AddDays(-2);
+                grant.GuncelleyenKullanici = "previous-editor";
+                if (i == 4)
+                {
+                    grant.SilindiMi = true;
+                    grant.SilinmeTarihi = today.AddDays(-1);
+                    grant.SilenKullanici = "previous-revoker";
+                }
+                db.Add(grant);
+            }
+        }
+        await db.SaveChangesAsync();
+        Task<List<Ys_FirmaMarka>> ReadBrands() => db.Ys_FirmaMarkalar.AsNoTracking().Where(x => x.FirmaId == firm.Id).ToListAsync();
+        Task<List<Ys_FirmaKategori>> ReadCategories() => db.Ys_FirmaKategoriler.AsNoTracking().Where(x => x.FirmaId == firm.Id).ToListAsync();
+        var beforeBrands = await ReadBrands();
+        var beforeCategories = await ReadCategories();
+        YetkiliServisKaydetDto Update() => new() { Id = firm.Id, FirmaAdi = firm.FirmaAdi, FaaliyetIli = firm.FaaliyetIli };
+        check(await companyApi.Guncelle(Update()) is OkObjectResult
+            && (await ReadBrands()).All(x => SameGrant(beforeBrands.Single(b => b.Id == x.Id), x))
+            && (await ReadCategories()).All(x => SameGrant(beforeCategories.Single(b => b.Id == x.Id), x)),
+            "Null grant selections leave even expired grants unchanged");
+        var selection = new[] { 0, 1, 2, 4, 5, 0 };
+        var update = Update();
+        update.MarkaIds = selection.Select(i => brands[i].Id).ToList();
+        update.KategoriIds = selection.Select(i => categories[i].Id).ToList();
+        var started = DateTime.Now;
+        check(await companyApi.Guncelle(update) is OkObjectResult, "Selected grants can be reconciled");
+        var finished = DateTime.Now;
+        VerifyGrants(beforeBrands, await ReadBrands(), x => x.MarkaId, x => x.YetkiBitisTarihi,
+            brands.Select(x => x.Id).ToArray(), "Brand");
+        VerifyGrants(beforeCategories, await ReadCategories(), x => x.KategoriId, x => x.YetkiBitisTarihi,
+            categories.Select(x => x.Id).ToArray(), "Category");
+
+        var renewedBrands = await ReadBrands();
+        var renewedCategories = await ReadCategories();
+        check(await companyApi.Guncelle(update) is OkObjectResult
+            && (await ReadBrands()).Count == renewedBrands.Count && (await ReadCategories()).Count == renewedCategories.Count
+            && (await ReadBrands()).All(x => SameGrant(renewedBrands.Single(b => b.Id == x.Id), x))
+            && (await ReadCategories()).All(x => SameGrant(renewedCategories.Single(b => b.Id == x.Id), x)),
+            "Repeated selections preserve renewed IDs, expiry and history without duplicates");
+
+        foreach (var api in new[] { companyApi, systemApi })
+        foreach (var name in new string?[] { null, "", " \t\r\n " })
+        {
+            var original = db.Entry(firm).CurrentValues.Clone();
+            var companyCount = await db.Dag_Sirketler.CountAsync();
+            var invalid = Update();
+            invalid.FirmaAdi = name;
+            invalid.FaaliyetIli = "InvalidNameCity";
+            invalid.Telefon = "Must not change";
+            invalid.AktifMi = false;
+            invalid.MarkaIds = [];
+            invalid.KategoriIds = [];
+            check(await api.Guncelle(invalid) is BadRequestObjectResult,
+                $"Missing or blank company name is rejected: {api.User.Identity!.Name}, '{name ?? "null"}'");
+            var persisted = await db.Ys_Firmalar.AsNoTracking().SingleAsync(x => x.Id == firm.Id);
+            check(!db.ChangeTracker.HasChanges()
+                && original.Properties.All(p => Equals(original[p], db.Entry(firm).CurrentValues[p])
+                    && Equals(original[p], db.Entry(persisted).CurrentValues[p]))
+                && await db.Dag_Sirketler.CountAsync() == companyCount
+                && (await ReadBrands()).All(x => SameGrant(renewedBrands.Single(b => b.Id == x.Id), x))
+                && (await ReadCategories()).All(x => SameGrant(renewedCategories.Single(b => b.Id == x.Id), x)),
+                "Rejected company name leaves tracked and persisted fields, grants and company registry unchanged");
+        }
+        var trimmed = Update();
+        trimmed.FirmaAdi = " \tTrimmed service\r\n ";
+        check(await companyApi.Guncelle(trimmed) is OkObjectResult
+            && firm.FirmaAdi == "Trimmed service"
+            && await db.Ys_Firmalar.AsNoTracking().AnyAsync(x => x.Id == firm.Id && x.FirmaAdi == "Trimmed service"),
+            "A valid company name is trimmed before it is stored");
+        foreach (var invalidField in new[] { "brand", "category", "tax-length", "duplicate-tax" })
+        {
+            var invalid = Update();
+            invalid.FirmaAdi = " Must not persist ";
+            if (invalidField == "brand") invalid.MarkaIds = [int.MaxValue];
+            if (invalidField == "category") invalid.KategoriIds = [int.MaxValue];
+            if (invalidField == "tax-length") invalid.VergiNo = "123";
+            if (invalidField == "duplicate-tax") invalid.VergiNo = "100-000-0001";
+            check(await companyApi.Guncelle(invalid) is BadRequestObjectResult && !db.ChangeTracker.HasChanges()
+                && firm.FirmaAdi == "Trimmed service", "Name trimming preserves existing validation: " + invalidField);
+        }
+        var clear = Update();
+        clear.MarkaIds = [];
+        clear.KategoriIds = [];
+        check(await companyApi.Guncelle(clear) is OkObjectResult
+            && (await ReadBrands()).Count == renewedBrands.Count && (await ReadCategories()).Count == renewedCategories.Count
+            && (await ReadBrands()).All(x => x.SilindiMi) && (await ReadCategories()).All(x => x.SilindiMi),
+            "Empty selections revoke all grants without deleting history");
+
+        void VerifyGrants<T>(List<T> before, List<T> after, Func<T, int> key, Func<T, DateTime> expiry,
+            int[] ids, string label) where T : BaseEntity
+        {
+            var oldExpired = before.Single(x => key(x) == ids[0]);
+            var archived = after.Single(x => x.Id == oldExpired.Id);
+            check(archived.SilindiMi && archived.SilinmeTarihi >= started && archived.SilinmeTarihi <= finished
+                && archived.SilenKullanici == companyApi.User.Identity!.Name && SameHistory(oldExpired, archived)
+                && expiry(archived) == expiry(oldExpired), label + " expired selection is soft-deleted with its original history and expiry");
+            check(after.Count == before.Count + 3 && after.Count(x => !x.SilindiMi) == 5,
+                label + " reconciliation creates only renewed, reselected and new grants");
+            foreach (var i in new[] { 0, 4, 5 })
+            {
+                var created = after.Single(x => key(x) == ids[i] && !x.SilindiMi);
+                check(before.All(x => x.Id != created.Id) && created.OlusturmaTarihi >= started && created.OlusturmaTarihi <= finished
+                    && created.OlusturanKullanici == companyApi.User.Identity!.Name
+                    && expiry(created) == created.OlusturmaTarihi.AddYears(1),
+                    label + " replacement uses a new ID, current actor and the existing one-year duration: " + labels[i]);
+            }
+            foreach (var i in new[] { 1, 2, 4 })
+            {
+                var original = before.Single(x => key(x) == ids[i]);
+                check(SameGrant(original, after.Single(x => x.Id == original.Id)),
+                    label + " unchanged or previously revoked row keeps all audit fields and expiry: " + labels[i]);
+            }
+            var removed = after.Single(x => key(x) == ids[3]);
+            check(removed.SilindiMi && removed.SilinmeTarihi >= started && removed.SilinmeTarihi <= finished
+                && removed.SilenKullanici == companyApi.User.Identity!.Name
+                && SameHistory(before.Single(x => x.Id == removed.Id), removed),
+                label + " deselection still records a soft deletion");
+        }
+        bool SameGrant<T>(T before, T after) where T : BaseEntity
+            => db.Entry(before).CurrentValues.Properties.All(p =>
+                Equals(db.Entry(before).CurrentValues[p], db.Entry(after).CurrentValues[p]));
+        static bool SameHistory(BaseEntity before, BaseEntity after)
+            => before.OlusturmaTarihi == after.OlusturmaTarihi && before.OlusturanKullanici == after.OlusturanKullanici
+                && before.GuncellemeTarihi == after.GuncellemeTarihi && before.GuncelleyenKullanici == after.GuncelleyenKullanici;
     }
 
     private sealed class RoleProbeUsers(AppDbContext db) : UserManager<AppKullanici>(

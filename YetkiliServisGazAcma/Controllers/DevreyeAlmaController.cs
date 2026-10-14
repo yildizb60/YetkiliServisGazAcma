@@ -105,7 +105,7 @@ namespace YetkiliServisGazAcma.Controllers
         public IActionResult Detay(int id)
         {
             var gecmisUrl = Url.Action(nameof(Gecmis), "DevreyeAlma") ?? "/ys-devreyeal/gecmis";
-            return Redirect(id > 0 ? $"{gecmisUrl}#devreye-alma-detay-{id}" : gecmisUrl);
+            return Redirect(id > 0 ? $"{gecmisUrl}?kayitId={id}#devreye-alma-detay-{id}" : gecmisUrl);
         }
 
         [HttpGet]
@@ -188,15 +188,18 @@ namespace YetkiliServisGazAcma.Controllers
         [HttpGet]
         [Route("gecmis")]
         public async Task<IActionResult> Gecmis(string? marka, DateTime? bas, DateTime? bit, string? musteri, string? tesisat,
-            string? sozlesme = null, string? q = null, string? sirala = null, string? cihazTipi = null, string? durum = null)
+            string? sozlesme = null, string? q = null, string? sirala = null, string? cihazTipi = null, string? durum = null,
+            int sayfa = 1, int? kayitId = null)
         {
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
 
-            var sonuc = await _devreyeAlmaApiClient.GecmisAsync(kullanici, marka, bas, bit, musteri, durum, tesisat, sozlesme, q, sirala, cihazTipi)
+            var sonuc = await _devreyeAlmaApiClient.GecmisAsync(kullanici, marka, bas, bit, musteri, durum, tesisat, sozlesme, q, sirala, cihazTipi,
+                sayfa: sayfa, odakKayitId: kayitId)
                 ?? new YsDevreyeAlmaGecmisDto();
 
             ViewBag.Firma = sonuc.Firma;
+            ViewBag.Sayfalama = sonuc.Sayfalama;
             ViewBag.MarkaList = sonuc.MarkaList;
             ViewBag.CihazTipleri = sonuc.CihazTipleri;
             ViewBag.Kullanici = kullanici;

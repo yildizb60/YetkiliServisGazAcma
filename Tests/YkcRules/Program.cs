@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Hosting;
@@ -9,12 +10,25 @@ using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Business.Services.Online;
 using YetkiliServisGazAcma.Entities;
 
+var noEnvironmentFonts = args.Contains("--no-environment-fonts", StringComparer.Ordinal);
+args = args.Where(arg => arg != "--no-environment-fonts").ToArray();
+// Font discovery is process-wide: configure it before any PDF or font-manager call.
+QuestPDF.Settings.UseEnvironmentFonts = !noEnvironmentFonts;
+QuestPDF.Settings.CheckIfAllTextGlyphsAreAvailable = true;
+
 var passed = 0;
 void Check(bool condition, string name)
 {
     if (!condition) throw new InvalidOperationException("FAIL: " + name);
     Console.WriteLine("PASS: " + name);
     passed++;
+}
+
+if (noEnvironmentFonts)
+{
+    Check(!QuestPDF.Settings.UseEnvironmentFonts
+        && File.Exists(Path.Combine(AppContext.BaseDirectory, "LatoFont", "Lato-Regular.ttf")),
+        "Environment fonts disabled; QuestPDF's bundled Lato is deployed");
 }
 
 string ExcelParcasi(byte[] bytes, string path)
@@ -159,6 +173,28 @@ var configuredOnline = new OnlineCihazBilgileriClient(onlineHttp,
 await configuredOnline.YSCihazBilgileriGetirAsync("CORUMGAZ", 1000132, 432237);
 Check(onlineHandler.Calls == 1 && onlineHandler.LastUri?.AbsoluteUri == "https://example.invalid/Online.svc",
     "Configured online service uses its explicit endpoint");
+const string privateResponseMarker = "PRIVATE_SUBSCRIBER_FIRMA_RESPONSE_500";
+var failedOnlineHandler = new RecordingOnlineHandler
+{
+    StatusCode = System.Net.HttpStatusCode.InternalServerError,
+    ResponseXml = $"<fault><subscriber>{privateResponseMarker}</subscriber></fault>"
+};
+using (var failedOnlineHttp = new HttpClient(failedOnlineHandler))
+{
+    var logger = new RecordingOnlineLogger();
+    var failedOnline = new OnlineCihazBilgileriClient(failedOnlineHttp,
+        Options.Create(new OnlineServiceOptions { Enabled = true, Endpoint = "https://example.invalid/Online.svc" }), logger);
+    var result = await failedOnline.YSCihazBilgileriGetirAsync("CORUMGAZ", 1000132, 432237);
+    Check(!result.Basarili && failedOnlineHandler.Calls == 1
+        && logger.Entries.Any(entry => entry.Level == LogLevel.Warning && entry.Message.Contains("500")
+            && entry.State.Any(item => item.Key == "StatusCode" && Equals(item.Value, 500))),
+        "Online HTTP 500 logs the numeric status as structured warning data");
+    Check(logger.Entries.Count > 0 && logger.Entries.All(entry =>
+        !entry.Message.Contains(privateResponseMarker)
+        && entry.State.All(item => item.Value?.ToString()?.Contains(privateResponseMarker) != true)
+        && entry.Exception?.ToString().Contains(privateResponseMarker) != true),
+        "Online HTTP 500 never logs private response XML in messages, structured values or exceptions");
+}
 using (var cancelledOnline = new CancellationTokenSource())
 {
     await cancelledOnline.CancelAsync();
@@ -450,11 +486,12 @@ YkcFirmaSunumu.Hazirla(screen, resmiForm: false);
 Check(screen.EskiMarka == null && screen.EskiKapasite == null && screen.YeniMarka == "New brand" && screen.MusteriAdi == "Customer",
     "Firm screen hides source device without losing request data");
 Check(screen.ProjeNo == null, "Firm detail does not disclose the internal project number");
+const string turkishPdfSample = "Çç Ğğ İı Öö Şş Üü";
 var form = new YkcTalepDetayDto {
     Id = 42, TesisatNo = "1000132", MusteriAdi = "Test Abone",
     FirmaAdi = "Test Sertifikali Firma", FirmaYetkiliKisi = "Test Yetkili",
     TalepTarihi = new DateTime(2026, 9, 10), TuketimNoktasi = "Daire 4", BaglantiNesnesi = "Bina 12",
-    Adres = "Test Mahallesi, Test Sokak No: 4/2, Merkez",
+    Adres = $"Test Mahallesi, Test Sokak No: 4/2, Merkez {turkishPdfSample}",
     EskiCihazTipi = "Kombi", YeniCihazTipi = "Kombi", EskiMarka = "Proje markasi", YeniMarka = "Yeni marka",
     EskiKapasite = "20000", YeniKapasite = "20000", IkinciElCihazMi = false,
     Kontroller = new() { new YkcFr265KontrolDto {
@@ -501,6 +538,9 @@ var signedOptions = new YkcFr265BelgeSecenekleri
     }).ToList()
 };
 var signedCells = Fr265KontrolHucreleri(new YkcFr265FormService().WordOlustur(form, signedOptions).Bytes, 1);
+var signedPdf = YkcFr265PdfService.ImzaliNihaiOlustur(form, signedOptions);
+Check(System.Text.Encoding.ASCII.GetString(signedPdf.Bytes, 0, 5) == "%PDF-",
+    "Final FR265 PDF renders signer data and Turkish diacritics with strict glyph validation");
 Check(signedCells[1].SequenceEqual(["Adı Soyadı: Imzaci 2", "Adı Soyadı: Imzaci 3", "Firma / Yetkili: Imzaci 1"])
     && signedCells[2].SequenceEqual(["Tarih: 05.10.2026", "Tarih: 06.10.2026", "Tarih: 04.10.2026"])
     && signedCells[3].All(x => x.Contains("İmzalandı")),
@@ -545,7 +585,7 @@ var raporKaydi = new YkcRaporKayitDto
     TesisatNo = "1000132",
     SozlesmeNo = "432237",
     AboneNo = "34760217156",
-    MusteriAdi = "Berrin Yıldız",
+    MusteriAdi = $"Berrin Yıldız {turkishPdfSample}",
     FirmaAdi = "Demo Sertifikalı Firma",
     SirketAdi = "Çorumgaz Doğalgaz A.Ş.",
     EskiCihazTipi = "Kombi",
@@ -575,6 +615,9 @@ Check(!firmaExcelXml.Contains("Projedeki Marka") && !firmaExcelXml.Contains("Kay
     "Firm XLSX exposes the new chimney field without source-device data");
 var raporPdf = YkcRaporPdfService.Olustur(new[] { raporKaydi }, icOperasyon: true);
 Check(System.Text.Encoding.ASCII.GetString(raporPdf, 0, 5) == "%PDF-", "YKC report export is a PDF");
+var firmaRaporPdf = YkcRaporPdfService.Olustur(new[] { raporKaydi }, icOperasyon: false);
+Check(System.Text.Encoding.ASCII.GetString(firmaRaporPdf, 0, 5) == "%PDF-",
+    "Firm YKC report renders Turkish diacritics with strict glyph validation");
 
 var typedReport = new YkcRaporKayitDto
 {
@@ -642,7 +685,7 @@ var yetkiBelgesi = new Ys_YetkiBelgesi
     OnaylayanKullanici = "test.personel@demo.com",
     Firma = new Ys_Firma
     {
-        FirmaAdi = "Demo Yetkili Servis",
+        FirmaAdi = $"Demo Yetkili Servis {turkishPdfSample}",
         VergiNo = "1234567890",
         Sirket = new Dag_Sirket { SirketAdi = "Çorumgaz Doğalgaz A.Ş." }
     }
@@ -667,7 +710,7 @@ var servisDetayi = new AdminYetkiliServisDetaySonuc
     Servis = new Ys_Firma
     {
         FirmaAdi = "Demo Yetkili Servis",
-        YetkiliKisi = "Ayşe Yılmaz",
+        YetkiliKisi = $"Ayşe Yılmaz {turkishPdfSample}",
         FaaliyetIli = "Çorum",
         Telefon = "05550000000",
         Sirket = new Dag_Sirket { SirketAdi = "Çorumgaz Doğalgaz A.Ş." },
@@ -685,7 +728,7 @@ Check(System.Text.Encoding.ASCII.GetString(servisPdf, 0, 5) == "%PDF-", "Service
 var commissioningRecord = new Ys_DevreyeAlma
 {
     Id = 38, TesistatNo = "1311884", SozlesmeNo = "0000943", AboneNo = "0001234567890",
-    MusteriAdi = "Serhat Battal", CihazTipi = "Kombi", MusteriTelefon = "05550000000",
+    MusteriAdi = $"Serhat Battal {turkishPdfSample}", CihazTipi = "Kombi", MusteriTelefon = "05550000000",
     CihazMarka = "Vaillant", CihazModeli = "Vaillant eloBLOCK VE 9 kW elektrikli kombi ısıtma cihazı",
     SeriNo = "200202020", CihazKapasite = "7740", TeknisyenAdi = "Kenan Kılıç",
     Adres = "Bahçelievler Mahallesi, Bahçelievler 6. Sokak, M. Ali Yurdakul Apartmanı No: 17/13 Çorum Merkez",
@@ -722,7 +765,7 @@ var uzunNotluRapor = DevreyeAlmaRaporPdfService.YetkiliServisRaporuOlustur(new[]
     {
         TesistatNo = "1311884", MusteriAdi = "Serhat Battal", CihazTipi = "Ocak",
         DevreyeAlmaTarihi = new DateTime(2026, 9, 25), Durum = DevreyeAlmaDurumDegerleri.Tamamlandi,
-        Notlar = string.Join(" ", Enumerable.Repeat("Uzun servis işlem notu", 500))
+        Notlar = turkishPdfSample + " " + string.Join(" ", Enumerable.Repeat("Uzun servis işlem notu", 500))
     }
 }, new DateTime(2026, 9, 1), new DateTime(2026, 9, 30));
 Check(System.Text.Encoding.ASCII.GetString(uzunNotluRapor, 0, 5) == "%PDF-", "Long service notes continue across PDF pages");
@@ -730,7 +773,7 @@ var multiRecordPdf = DevreyeAlmaRaporPdfService.YetkiliServisRaporuOlustur(
     Enumerable.Range(1, 8).Select(index => new Ys_DevreyeAlma
     {
         Id = index, TesistatNo = $"000100{index:D3}", SozlesmeNo = $"000943{index:D2}",
-        MusteriAdi = index == 2 ? "Birlik Mantar Sanayi ve Ticaret Limited Şirketi" : $"Örnek Abone {index}",
+        MusteriAdi = index == 2 ? "Birlik Mantar Sanayi ve Ticaret Limited Şirketi" : $"Örnek Abone {index} {turkishPdfSample}",
         Firma = commissioningRecord.Firma, CihazTipi = index % 2 == 0 ? "Ocak" : "Kombi",
         CihazMarka = commissioningRecord.CihazMarka, CihazModeli = commissioningRecord.CihazModeli,
         SeriNo = $"000SERIAL{index}", CihazKapasite = "7740", TeknisyenAdi = "Kenan Kılıç",
@@ -746,10 +789,14 @@ if (args.Length == 2 && args[0] == "--form-output")
     File.WriteAllBytes(Path.Combine(args[1], "form-demo.pdf"), demoPdf.Bytes);
     File.WriteAllBytes(Path.Combine(args[1], "form-source.docx"), wordForm.Bytes);
     File.WriteAllBytes(Path.Combine(args[1], "form-five-controls.pdf"), allControlsPdf.Bytes);
+    File.WriteAllBytes(Path.Combine(args[1], "form-signed.pdf"), signedPdf.Bytes);
     File.WriteAllBytes(Path.Combine(args[1], "ykc-report.pdf"), raporPdf);
+    File.WriteAllBytes(Path.Combine(args[1], "ykc-firm-report.pdf"), firmaRaporPdf);
     File.WriteAllBytes(Path.Combine(args[1], "ykc-report.xlsx"), icOperasyonExcel);
     File.WriteAllBytes(Path.Combine(args[1], "ykc-typed-report.xlsx"), typedReportExcel);
     File.WriteAllBytes(Path.Combine(args[1], "certificate-report.xlsx"), belgeExcel);
+    File.WriteAllBytes(Path.Combine(args[1], "certificate-report.pdf"), belgePdf);
+    File.WriteAllBytes(Path.Combine(args[1], "service-record.pdf"), servisPdf);
     File.WriteAllBytes(Path.Combine(args[1], "commissioning-report.xlsx"), commissioningExcel);
     File.WriteAllBytes(Path.Combine(args[1], "commissioning-service.pdf"), devreyeAlmaRaporu);
     File.WriteAllBytes(Path.Combine(args[1], "commissioning-company.pdf"), adminCommissioningPdf);
@@ -847,6 +894,8 @@ Console.WriteLine($"{passed} checks passed. No application data changed.");
 sealed class RecordingOnlineHandler : HttpMessageHandler
 {
     public CancellationTokenSource? CancelDuringSend { get; set; }
+    public System.Net.HttpStatusCode StatusCode { get; set; } = System.Net.HttpStatusCode.ServiceUnavailable;
+    public string ResponseXml { get; set; } = "";
     public int Calls { get; private set; }
     public Uri? LastUri { get; private set; }
 
@@ -857,11 +906,22 @@ sealed class RecordingOnlineHandler : HttpMessageHandler
         CancelDuringSend?.Cancel();
         if (cancellationToken.IsCancellationRequested)
             return Task.FromCanceled<HttpResponseMessage>(cancellationToken);
-        return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.ServiceUnavailable)
+        return Task.FromResult(new HttpResponseMessage(StatusCode)
         {
-            Content = new StringContent("")
+            Content = new StringContent(ResponseXml)
         });
     }
+}
+
+sealed class RecordingOnlineLogger : ILogger<OnlineCihazBilgileriClient>
+{
+    public List<(LogLevel Level, string Message, KeyValuePair<string, object?>[] State, Exception? Exception)> Entries { get; } = [];
+    public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+    public bool IsEnabled(LogLevel logLevel) => true;
+    public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
+        Func<TState, Exception?, string> formatter)
+        => Entries.Add((logLevel, formatter(state, exception),
+            state is IEnumerable<KeyValuePair<string, object?>> values ? values.ToArray() : [], exception));
 }
 
 sealed class StorageTestEnvironment : IWebHostEnvironment

@@ -17,7 +17,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 {
                     page.Size(PageSizes.A4);
                     page.Margin(2, Unit.Centimetre);
-                    page.DefaultTextStyle(x => x.FontSize(11).FontFamily("Arial"));
+                    page.DefaultTextStyle(x => x.FontSize(11).FontFamily("Arial", Fonts.Lato));
 
                     page.Header().Element(Header);
                     page.Content().Element(c => Icerik(c, i));

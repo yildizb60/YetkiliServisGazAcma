@@ -17,6 +17,18 @@ using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
 
+if (args.Contains("--profile-reset-only", StringComparer.Ordinal))
+{
+    await AdminSecuritySqlScenario.RunProfileResetAsync();
+    return;
+}
+
+if (args.Contains("--commissioning-pagination-only", StringComparer.Ordinal))
+{
+    await CommissioningPaginationSqlScenario.RunAsync();
+    return;
+}
+
 if (args.Contains("--vkn-only", StringComparer.Ordinal))
 {
     await VknNormalizationRegression.RunAsync();
@@ -84,6 +96,7 @@ if (args.Contains("--integrity-only", StringComparer.Ordinal))
 }
 if (args.Contains("--commissioning-only", StringComparer.Ordinal))
 {
+    await CommissioningPaginationSqlScenario.RunAsync();
     await CommissioningSqlScenario.RunAsync();
     return;
 }
@@ -102,6 +115,7 @@ if (args.Contains("--service-scope-only", StringComparer.Ordinal))
     await ServiceScopeSqlScenario.RunAsync();
     return;
 }
+await AdminSecuritySqlScenario.RunProfileResetAsync();
 await CoreBoundarySqlScenario.RunAsync();
 try
 {
