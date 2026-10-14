@@ -55,7 +55,7 @@ internal static class DeviceTypePresentationRegression
 
         var fontDirectory = Path.Combine(webRoot, "lib", "bootstrap-icons", "font");
         var css = File.ReadAllText(Path.Combine(fontDirectory, "bootstrap-icons.min.css"));
-        Check(Regex.IsMatch(css, @"\.bi-thermometer-half::before\{content:""\\[0-9a-f]+""\}"),
+        Check(Regex.IsMatch(css, @"\.bi-thermometer-half::before\{content:""\\[0-9a-f]+""\}", RegexOptions.None, TimeSpan.FromSeconds(1)),
             "Bundled stylesheet retains the image-error fallback glyph");
         foreach (var extension in new[] { "woff2", "woff" })
         {

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.FileProviders;
 using System.Globalization;
 using System.Xml.Linq;
+using Tests.YkcRules;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Business.Services.Online;
 using YetkiliServisGazAcma.Entities;
@@ -785,24 +786,24 @@ Check(System.Text.Encoding.ASCII.GetString(multiRecordPdf, 0, 5) == "%PDF-",
 if (args.Length == 2 && args[0] == "--form-output")
 {
     Directory.CreateDirectory(args[1]);
-    File.WriteAllBytes(Path.Combine(args[1], "form-draft.pdf"), formPdf.Bytes);
-    File.WriteAllBytes(Path.Combine(args[1], "form-demo.pdf"), demoPdf.Bytes);
-    File.WriteAllBytes(Path.Combine(args[1], "form-source.docx"), wordForm.Bytes);
-    File.WriteAllBytes(Path.Combine(args[1], "form-five-controls.pdf"), allControlsPdf.Bytes);
-    File.WriteAllBytes(Path.Combine(args[1], "form-signed.pdf"), signedPdf.Bytes);
-    File.WriteAllBytes(Path.Combine(args[1], "ykc-report.pdf"), raporPdf);
-    File.WriteAllBytes(Path.Combine(args[1], "ykc-firm-report.pdf"), firmaRaporPdf);
-    File.WriteAllBytes(Path.Combine(args[1], "ykc-report.xlsx"), icOperasyonExcel);
-    File.WriteAllBytes(Path.Combine(args[1], "ykc-typed-report.xlsx"), typedReportExcel);
-    File.WriteAllBytes(Path.Combine(args[1], "certificate-report.xlsx"), belgeExcel);
-    File.WriteAllBytes(Path.Combine(args[1], "certificate-report.pdf"), belgePdf);
-    File.WriteAllBytes(Path.Combine(args[1], "service-record.pdf"), servisPdf);
-    File.WriteAllBytes(Path.Combine(args[1], "commissioning-report.xlsx"), commissioningExcel);
-    File.WriteAllBytes(Path.Combine(args[1], "commissioning-service.pdf"), devreyeAlmaRaporu);
-    File.WriteAllBytes(Path.Combine(args[1], "commissioning-company.pdf"), adminCommissioningPdf);
-    File.WriteAllBytes(Path.Combine(args[1], "commissioning-single.pdf"), singleCommissioningPdf);
-    File.WriteAllBytes(Path.Combine(args[1], "commissioning-multiple.pdf"), multiRecordPdf);
-    File.WriteAllBytes(Path.Combine(args[1], "commissioning-long-note.pdf"), uzunNotluRapor);
+    await File.WriteAllBytesAsync(Path.Combine(args[1], "form-draft.pdf"), formPdf.Bytes);
+    await File.WriteAllBytesAsync(Path.Combine(args[1], "form-demo.pdf"), demoPdf.Bytes);
+    await File.WriteAllBytesAsync(Path.Combine(args[1], "form-source.docx"), wordForm.Bytes);
+    await File.WriteAllBytesAsync(Path.Combine(args[1], "form-five-controls.pdf"), allControlsPdf.Bytes);
+    await File.WriteAllBytesAsync(Path.Combine(args[1], "form-signed.pdf"), signedPdf.Bytes);
+    await File.WriteAllBytesAsync(Path.Combine(args[1], "ykc-report.pdf"), raporPdf);
+    await File.WriteAllBytesAsync(Path.Combine(args[1], "ykc-firm-report.pdf"), firmaRaporPdf);
+    await File.WriteAllBytesAsync(Path.Combine(args[1], "ykc-report.xlsx"), icOperasyonExcel);
+    await File.WriteAllBytesAsync(Path.Combine(args[1], "ykc-typed-report.xlsx"), typedReportExcel);
+    await File.WriteAllBytesAsync(Path.Combine(args[1], "certificate-report.xlsx"), belgeExcel);
+    await File.WriteAllBytesAsync(Path.Combine(args[1], "certificate-report.pdf"), belgePdf);
+    await File.WriteAllBytesAsync(Path.Combine(args[1], "service-record.pdf"), servisPdf);
+    await File.WriteAllBytesAsync(Path.Combine(args[1], "commissioning-report.xlsx"), commissioningExcel);
+    await File.WriteAllBytesAsync(Path.Combine(args[1], "commissioning-service.pdf"), devreyeAlmaRaporu);
+    await File.WriteAllBytesAsync(Path.Combine(args[1], "commissioning-company.pdf"), adminCommissioningPdf);
+    await File.WriteAllBytesAsync(Path.Combine(args[1], "commissioning-single.pdf"), singleCommissioningPdf);
+    await File.WriteAllBytesAsync(Path.Combine(args[1], "commissioning-multiple.pdf"), multiRecordPdf);
+    await File.WriteAllBytesAsync(Path.Combine(args[1], "commissioning-long-note.pdf"), uzunNotluRapor);
 }
 var ekranSimdi = new DateTime(2026, 10, 7, 12, 0, 0);
 var ekranYetki = new YkcYetkiOzeti { TalepleriGorebilir = true, AtamaYapabilir = true, Fr265ImzaIslemiYapabilir = true };
@@ -913,15 +914,18 @@ sealed class RecordingOnlineHandler : HttpMessageHandler
     }
 }
 
-sealed class RecordingOnlineLogger : ILogger<OnlineCihazBilgileriClient>
+namespace Tests.YkcRules
 {
-    public List<(LogLevel Level, string Message, KeyValuePair<string, object?>[] State, Exception? Exception)> Entries { get; } = [];
-    public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
-    public bool IsEnabled(LogLevel logLevel) => true;
-    public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
-        Func<TState, Exception?, string> formatter)
-        => Entries.Add((logLevel, formatter(state, exception),
-            state is IEnumerable<KeyValuePair<string, object?>> values ? values.ToArray() : [], exception));
+    sealed class RecordingOnlineLogger : ILogger<OnlineCihazBilgileriClient>
+    {
+        public List<(LogLevel Level, string Message, KeyValuePair<string, object?>[] State, Exception? Exception)> Entries { get; } = [];
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel logLevel) => true;
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
+            Func<TState, Exception?, string> formatter)
+            => Entries.Add((logLevel, formatter(state, exception),
+                state is IEnumerable<KeyValuePair<string, object?>> values ? values.ToArray() : [], exception));
+    }
 }
 
 sealed class StorageTestEnvironment : IWebHostEnvironment
