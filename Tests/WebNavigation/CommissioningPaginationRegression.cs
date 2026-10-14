@@ -26,6 +26,8 @@ namespace Tests.WebNavigation;
 
 internal static class CommissioningPaginationRegression
 {
+    private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(1);
+
     public static async Task RunAsync()
     {
         // Fixtures only: no live API, database or application server.
@@ -36,7 +38,7 @@ internal static class CommissioningPaginationRegression
             Console.WriteLine("PASS: " + name);
             passed++;
         }
-        static string[] ExportIds(string html) => Regex.Match(html, "<template data-directory-export-ids>([^<]*)</template>")
+        static string[] ExportIds(string html) => Regex.Match(html, "<template data-directory-export-ids>([^<]*)</template>", RegexOptions.None, RegexTimeout)
             .Groups[1].Value.Split(',', StringSplitOptions.RemoveEmptyEntries);
 
         var handler = new PaginationHandler();
@@ -132,15 +134,15 @@ internal static class CommissioningPaginationRegression
                 return writer.ToString();
             }
             var html = await Render();
-            Check(Regex.Matches(html, "class=\"df-commissioning-pager\"").Count == 1 && html.Contains(">85 kay")
+            Check(Regex.Matches(html, "class=\"df-commissioning-pager\"", RegexOptions.None, RegexTimeout).Count == 1 && html.Contains(">85 kay")
                 && html.Contains("41-60 / 85") && html.Contains("aria-current=\"page\">3 / 5"),
                 panel + ": one common pager shows API totals and normalized page, not the query page or visible count");
-            Check(Regex.Matches(html, "data-commissioning-record data-export-id").Count == 20
-                && Regex.Matches(html, "class=\"df-commissioning-detail-row\"").Count == 20
+            Check(Regex.Matches(html, "data-commissioning-record data-export-id", RegexOptions.None, RegexTimeout).Count == 20
+                && Regex.Matches(html, "class=\"df-commissioning-detail-row\"", RegexOptions.None, RegexTimeout).Count == 20
                 && ExportIds(html).Length == 85 && !html.Contains("name=\"ids\""),
                 panel + ": only current-page records/details render while all filtered export IDs remain available");
-            var pager = Regex.Match(html, "<footer class=\"df-commissioning-pager\">[\\s\\S]*?</footer>").Value;
-            var links = Regex.Matches(pager, "href=\"([^\"]+)\"").Select(m => WebUtility.HtmlDecode(m.Groups[1].Value)).ToList();
+            var pager = Regex.Match(html, "<footer class=\"df-commissioning-pager\">[\\s\\S]*?</footer>", RegexOptions.None, RegexTimeout).Value;
+            var links = Regex.Matches(pager, "href=\"([^\"]+)\"", RegexOptions.None, RegexTimeout).Select(m => WebUtility.HtmlDecode(m.Groups[1].Value)).ToList();
             Check(links.Count == 4 && links.Select(link => QueryHelpers.ParseQuery(new Uri("https://fixture.invalid" + link).Query)["sayfa"].ToString())
                 .SequenceEqual(["1", "2", "4", "5"]), panel + ": first, previous, next and last links use normalized API page");
             var original = QueryHelpers.ParseQuery(query);
@@ -151,7 +153,7 @@ internal static class CommissioningPaginationRegression
                     .All(x => values.TryGetValue(x.Key, out var value) && value == x.Value),
                     panel + ": pager retains every filter, q, sort and company but clears focus");
             }
-            var form = Regex.Match(html, "<form id=\"commissioningFilters\"[\\s\\S]*?</form>").Value;
+            var form = Regex.Match(html, "<form id=\"commissioningFilters\"[\\s\\S]*?</form>", RegexOptions.None, RegexTimeout).Value;
             Check(!form.Contains("name=\"sayfa\"") && !form.Contains("name=\"kayitId\"")
                 && html.Contains("name=\"q\"") && html.Contains("name=\"sirala\"") && !html.Contains("<search>"),
                 panel + ": filter/search/sort submission resets page and focus and encodes query text");
@@ -163,8 +165,8 @@ internal static class CommissioningPaginationRegression
             }
             metadata.Sayfa = 1;
             html = await Render();
-            Check(Regex.Matches(Regex.Match(html, "<footer class=\"df-commissioning-pager\">[\\s\\S]*?</footer>").Value,
-                "aria-disabled=\"true\"").Count == 2, panel + ": first page disables backward navigation");
+            Check(Regex.Matches(Regex.Match(html, "<footer class=\"df-commissioning-pager\">[\\s\\S]*?</footer>", RegexOptions.None, RegexTimeout).Value,
+                "aria-disabled=\"true\"", RegexOptions.None, RegexTimeout).Count == 2, panel + ": first page disables backward navigation");
             metadata.Sayfa = 5;
             html = await Render();
             Check(html.Contains("81-85 / 85") && !html.Contains("rel=\"next\""), panel + ": last page ends at the total and has no next link");
