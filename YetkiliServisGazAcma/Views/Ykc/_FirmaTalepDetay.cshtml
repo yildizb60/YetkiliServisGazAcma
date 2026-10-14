@@ -46,7 +46,7 @@
 }
 <section class="ykc-firm-record" aria-labelledby="firm-customer">
     <header class="ykc-firm-record-head">
-        <div><span class="ykc-firm-record-number">Talep No: #@Model.Id</span><h1 id="firm-customer">@Deger(Model.MusteriAdi)</h1></div>
+        <div><span class="ykc-firm-record-number">Talep No: #@Model.Id</span><h1 id="firm-customer">@AboneAdiSunumu.Bicimlendir(Model.MusteriAdi)</h1></div>
         <div class="ykc-firm-record-actions">
             @if (Model.Durum != YkcDurumDegerleri.TalepAlindi)
             {

@@ -60,7 +60,7 @@ internal static class SmsCleanupSqlScenario
             "Zero retention still uses strict expiry before local now");
         using (var cancelled = new CancellationTokenSource())
         {
-            cancelled.Cancel();
+            await cancelled.CancelAsync();
             var before = probe.Commands.Count;
             try
             {

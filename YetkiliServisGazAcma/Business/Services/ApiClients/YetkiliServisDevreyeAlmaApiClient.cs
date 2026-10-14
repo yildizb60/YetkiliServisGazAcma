@@ -27,7 +27,10 @@ namespace YetkiliServisGazAcma.Business.Services
             string? sozlesmeNo = null,
             string? arama = null,
             string? siralama = null,
-            string? cihazTipi = null)
+            string? cihazTipi = null,
+            int sayfa = 1,
+            int sayfaBoyutu = 20,
+            int? odakKayitId = null)
         {
             return _api.PostAsync<YsDevreyeAlmaGecmisFiltreDto, YsDevreyeAlmaGecmisDto>(
                 kullanici,
@@ -43,7 +46,10 @@ namespace YetkiliServisGazAcma.Business.Services
                     Arama = arama,
                     Siralama = siralama,
                     CihazTipi = cihazTipi,
-                    Durum = durum
+                    Durum = durum,
+                    Sayfa = sayfa,
+                    SayfaBoyutu = sayfaBoyutu,
+                    OdakKayitId = odakKayitId
                 },
                 "Yetkili servis devreye alma gecmis");
         }

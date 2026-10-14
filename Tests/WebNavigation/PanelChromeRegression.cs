@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
@@ -16,6 +17,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
+using YetkiliServisGazAcma.Models;
 using YetkiliServisGazAcma.Models.ViewModels;
 using YetkiliServisGazAcma.ViewComponents;
 
@@ -23,6 +25,8 @@ namespace Tests.WebNavigation;
 
 internal static class PanelChromeRegression
 {
+    private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(1);
+
     public static async Task RunAsync()
     {
         var passed = 0;
@@ -33,26 +37,47 @@ internal static class PanelChromeRegression
             passed++;
         }
 
+        var originalCulture = CultureInfo.CurrentCulture;
+        try
+        {
+            foreach (var culture in new[] { "en-US", "tr-TR" })
+            {
+                CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(culture);
+                foreach (var (source, expected) in new (string? Source, string Expected)[]
+                {
+                    ("ALİ KOÇ", "Ali Koç"), ("IŞIL YILDIRIM", "Işıl Yıldırım"),
+                    ("iPEK ışIL", "İpek Işıl"), ("  AYŞE DEMİR  ", "Ayşe Demir"),
+                    ("MEHMET ALİ ÖZTÜRK", "Mehmet Ali Öztürk"), ("Ali Koç", "Ali Koç"),
+                    (null, "-"), ("  ", "-")
+                })
+                    Check(AboneAdiSunumu.Bicimlendir(source) == expected,
+                        culture + ": subscriber display uses Turkish title casing and preserves missing-name fallback: " + source);
+            }
+            Check(AboneAdiSunumu.Bicimlendir(null, "Abone adı kayıtlı değil") == "Abone adı kayıtlı değil",
+                "Subscriber display preserves the commissioning missing-name caption");
+        }
+        finally { CultureInfo.CurrentCulture = originalCulture; }
+
         static string Attribute(string tag, string name)
-            => WebUtility.HtmlDecode(Regex.Match(tag, $"(?:^|\\s){Regex.Escape(name)}=\"([^\"]*)\"").Groups[1].Value);
+            => WebUtility.HtmlDecode(Regex.Match(tag, $"(?:^|\\s){Regex.Escape(name)}=\"([^\"]*)\"", RegexOptions.None, RegexTimeout).Groups[1].Value);
 
         static bool HasAttribute(string tag, string name)
-            => Regex.IsMatch(tag, $"\\s{Regex.Escape(name)}(?=\\s|=|>)");
+            => Regex.IsMatch(tag, $"\\s{Regex.Escape(name)}(?=\\s|=|>)", RegexOptions.None, RegexTimeout);
 
         static bool HasClass(string tag, string cssClass)
             => Attribute(tag, "class")
                 .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Contains(cssClass);
 
         static string[] Tags(string html, string tag)
-            => Regex.Matches(html, $"<{Regex.Escape(tag)}\\b[^>]*>").Cast<Match>().Select(match => match.Value).ToArray();
+            => Regex.Matches(html, $"<{Regex.Escape(tag)}\\b[^>]*>", RegexOptions.None, RegexTimeout).Cast<Match>().Select(match => match.Value).ToArray();
 
         static string Table(string html, string cssClass)
-            => Regex.Matches(html, @"<table\b[^>]*>[\s\S]*?</table>").Cast<Match>()
+            => Regex.Matches(html, @"<table\b[^>]*>[\s\S]*?</table>", RegexOptions.None, RegexTimeout).Cast<Match>()
                 .Single(match => HasClass(Tags(match.Value, "table")[0], cssClass)).Value;
 
         void CheckDirectory(string html, string storageKey, string tableClass, int[] recordIds, string name)
         {
-            var tags = Regex.Matches(html, @"<[a-zA-Z][\w-]*\b[^>]*>").Cast<Match>().Select(match => match.Value).ToArray();
+            var tags = Regex.Matches(html, @"<[a-zA-Z][\w-]*\b[^>]*>", RegexOptions.None, RegexTimeout).Cast<Match>().Select(match => match.Value).ToArray();
             var roots = tags.Where(tag => HasAttribute(tag, "data-history-directory")).ToArray();
             Check(roots.Length == 1 && Attribute(roots[0], "data-storage-key") == storageKey
                 && HasClass(roots[0], "df-record-directory")
@@ -77,7 +102,7 @@ internal static class PanelChromeRegression
                 name + ": list/cards share one DOM row and export identity per scoped record");
             if (recordIds.Length == 0) return;
             var columnFields = Tags(html, "th").Where(tag => HasAttribute(tag, "data-directory-fields")).ToArray();
-            var form = Regex.Matches(html, @"<form\b[^>]*>[\s\S]*?</form>").Cast<Match>()
+            var form = Regex.Matches(html, @"<form\b[^>]*>[\s\S]*?</form>", RegexOptions.None, RegexTimeout).Cast<Match>()
                 .Single(match => Attribute(Tags(match.Value, "form")[0], "id") == "ykcFilters").Value;
             var controlNames = Tags(form, "input").Concat(Tags(form, "select"))
                 .Select(tag => Attribute(tag, "name")).Where(control => !string.IsNullOrWhiteSpace(control)).ToHashSet();
@@ -90,15 +115,15 @@ internal static class PanelChromeRegression
         void CheckSeparatedColumns(string html, string tableClass, string[] labels, int recordCount, string name)
         {
             var table = Table(html, tableClass);
-            var head = Regex.Match(table, @"<thead\b[^>]*>([\s\S]*?)</thead>").Groups[1].Value;
-            var headers = Regex.Matches(head, @"<th\b[^>]*>([\s\S]*?)</th>").Cast<Match>().ToArray();
+            var head = Regex.Match(table, @"<thead\b[^>]*>([\s\S]*?)</thead>", RegexOptions.None, RegexTimeout).Groups[1].Value;
+            var headers = Regex.Matches(head, @"<th\b[^>]*>([\s\S]*?)</th>", RegexOptions.None, RegexTimeout).Cast<Match>().ToArray();
             var separated = headers.Select((header, index) => (header, index))
                 .Where(item => HasClass(item.header.Value, "ykc-column-separated")).ToArray();
             var headingLabels = separated.Select(item => WebUtility.HtmlDecode(
-                Regex.Replace(item.header.Groups[1].Value, "<[^>]*>", "")).Trim()).ToArray();
+                Regex.Replace(item.header.Groups[1].Value, "<[^>]*>", "", RegexOptions.None, RegexTimeout)).Trim()).ToArray();
             Check(headingLabels.SequenceEqual(labels), name + ": separator hooks cover the intended column headings");
-            var body = Regex.Match(table, @"<tbody\b[^>]*>([\s\S]*?)</tbody>").Groups[1].Value;
-            var rows = Regex.Matches(body, @"<tr\b[^>]*>([\s\S]*?)</tr>").Cast<Match>().ToArray();
+            var body = Regex.Match(table, @"<tbody\b[^>]*>([\s\S]*?)</tbody>", RegexOptions.None, RegexTimeout).Groups[1].Value;
+            var rows = Regex.Matches(body, @"<tr\b[^>]*>([\s\S]*?)</tr>", RegexOptions.None, RegexTimeout).Cast<Match>().ToArray();
             Check(rows.Length == recordCount, name + ": column separation retains one row per record");
             foreach (var row in rows)
             {
@@ -275,6 +300,7 @@ internal static class PanelChromeRegression
         })
         {
             var context = Context(role, type, "", scope.ServiceProvider);
+            context.ViewData["Filtre"] = new YkcTalepListeFiltre { SirketId = 7, Q = "fixture" };
             var reportPermission = type is 2 or 3 or 4;
             context.ViewData["YkcYetkileri"] = new YkcYetkiOzeti { TalepleriGorebilir = true, RaporlariGorebilir = reportPermission };
             var requests = new YkcTalepListeSonuc
@@ -282,16 +308,39 @@ internal static class PanelChromeRegression
                 Toplam = 2, Sayfa = 1, SayfaBoyutu = 10,
                 Talepler = [new()
                 {
-                    Id = 75, MusteriAdi = "HALIME KALINSAZLIOGLU", FirmaAdi = "Fixture firm",
+                    Id = 75, MusteriAdi = "HALİME KALINSAZLIOĞLU", FirmaAdi = "Fixture firm",
                     TesisatNo = "1319851", SozlesmeNo = "000943", Durum = YkcDurumDegerleri.TalepAlindi,
                     ProjedekiCihazBilgisi = new() { Marka = "Private source brand", BacaTipi = "Bacali", Kapasite = "20000" },
                     YeniCihazBilgisi = new() { Tip = "Kombi", Marka = "Bosch", BacaTipi = "Hermetik", Kapasite = "18834" }
-                }, new() { Id = 76, TesisatNo = "<script>fixture</script>", SozlesmeNo = null }]
+                }, new()
+                {
+                    Id = 76, TesisatNo = "<script>fixture</script>", SozlesmeNo = null,
+                    RandevuTarihi = new DateTime(2026, 10, 7), RandevuSaati = "09:00"
+                }]
             };
             context.ViewData["Ozet"] = new YkcDashboardOzetDto { Toplam = requests.Toplam, Incelemede = 1 };
             var html = await RenderAsync(scope.ServiceProvider, context, "/Views/Ykc/Talepler.cshtml", requests);
             var decoded = WebUtility.HtmlDecode(html);
-            var requestHeaders = Regex.Matches(Table(html, "ykc-data-table"), @"<th\b[^>]*>([\s\S]*?)</th>").Cast<Match>().ToArray();
+            context.HttpContext.Items["fixture.url-values"] = true;
+            var clearHtml = await RenderAsync(scope.ServiceProvider, context, "/Views/Ykc/Talepler.cshtml", requests);
+            context.HttpContext.Items.Remove("fixture.url-values");
+            var clearLink = Tags(clearHtml, "a").Single(tag => Attribute(tag, "href").Contains("Talepler", StringComparison.OrdinalIgnoreCase)
+                && HasClass(tag, "df-btn-secondary"));
+            Check(Attribute(clearLink, "href").Contains("sirketId=7") && !Attribute(clearLink, "href").Contains("fixture"),
+                role + ": clearing request filters preserves the selected company without retaining text filters");
+            Check(decoded.Contains("title=\"Halime Kalınsazlıoğlu\">Halime Kalınsazlıoğlu</div>")
+                && requests.Talepler[0].MusteriAdi == "HALİME KALINSAZLIOĞLU",
+                role + ": request names and tooltips share Turkish display casing without changing API data");
+            var requestHeaders = Regex.Matches(Table(html, "ykc-data-table"), @"<th\b[^>]*>([\s\S]*?)</th>", RegexOptions.None, RegexTimeout).Cast<Match>().ToArray();
+            Check(Regex.Matches(decoded, "title=\"Randevu planlanacak\">Randevu planlanacak</div>", RegexOptions.None, RegexTimeout).Count == 1,
+                role + ": compact appointment styling preserves the full wording and tooltip");
+            Check(decoded.Contains("class=\"ykc-primary-cell ykc-scheduled-appointment\" title=\"07.10.2026 09:00\"")
+                && decoded.Contains("datetime=\"2026-10-07\"><i class=\"bi bi-calendar3\" aria-hidden=\"true\"></i>07.10.2026</time>")
+                && decoded.Contains("<i class=\"bi bi-clock\" aria-hidden=\"true\"></i>09:00</span>"),
+                role + ": scheduled appointments preserve date/time values with separate decorative calendar and clock icons");
+            Check(decoded.Contains(">Talep Alındı</span>") && decoded.Contains(">Bilinmiyor</span>")
+                && !decoded.Contains("ykc-next-action") && !decoded.Contains(">Detay</span>"),
+                role + ": process states are readable without a redundant detail button");
             Check(requestHeaders.Any(header => HasClass(Tags(header.Value, "th")[0], "ykc-list-installation-cell")
                     && WebUtility.HtmlDecode(header.Groups[1].Value).Trim() == "Tesisat No")
                 && requestHeaders.Any(header => HasClass(Tags(header.Value, "th")[0], "ykc-list-contract-cell")
@@ -303,7 +352,7 @@ internal static class PanelChromeRegression
                 && decoded.Contains("title=\"-\">-</div>") && !html.Contains("<script>fixture</script>"),
                 role + ": separate cells preserve identifiers, leading zeroes, missing values and HTML encoding");
             var deviceText = WebUtility.HtmlDecode(Regex.Replace(Table(html, "ykc-data-table"), "<[^>]*>", "",
-                RegexOptions.None, TimeSpan.FromSeconds(1)));
+                RegexOptions.None, RegexTimeout));
             Check(decoded.Contains("Private source brand") == (role != "SertifikaliFirma")
                 && decoded.Contains("20000 kcal/h") == (role != "SertifikaliFirma")
                 && deviceText.Contains("Baca: Bacali") == (role != "SertifikaliFirma")
@@ -325,7 +374,8 @@ internal static class PanelChromeRegression
             var requestExports = Tags(html, "button").Where(tag => HasAttribute(tag, "data-directory-export")).ToArray();
             Check(requestChecks.Select(tag => Attribute(tag, "value")).SequenceEqual(new[] { "75", "76" })
                 && Tags(html, "input").Any(tag => HasAttribute(tag, "data-directory-select-all"))
-                && Tags(html, "a").Count(tag => HasClass(tag, "ykc-next-action") && HasAttribute(tag, "data-directory-open")) == requests.Talepler.Count,
+                && Tags(html, "a").Count(tag => HasClass(tag, "ykc-code") && HasAttribute(tag, "data-directory-open")) == requests.Talepler.Count
+                && Tags(html, "tr").Count(tag => HasAttribute(tag, "data-directory-row-open")) == requests.Talepler.Count,
                 role + ": request rows retain scoped selection in both list and cards");
             Check(reportPermission
                 ? requestExports.Length == 2 && requestExports.All(tag => !HasAttribute(tag, "disabled"))
@@ -339,6 +389,26 @@ internal static class PanelChromeRegression
                 Directory.CreateDirectory(fixtureDirectory);
                 await File.WriteAllTextAsync(Path.Combine(fixtureDirectory, role + "-requests.html"), html);
             }
+            foreach (var (date, time, calendar, clock) in new (DateTime?, string?, bool, bool)[]
+            {
+                (new DateTime(2026, 10, 7), null, true, false),
+                (null, "09:00", false, true),
+                (null, " ", false, false)
+            })
+            {
+                requests.Talepler[1].RandevuTarihi = date;
+                requests.Talepler[1].RandevuSaati = time;
+                requests.Talepler[1].SiradakiKontrolNo = 2;
+                var appointmentHtml = WebUtility.HtmlDecode(await RenderAsync(scope.ServiceProvider, context, "/Views/Ykc/Talepler.cshtml", requests));
+                var appointmentTable = Table(appointmentHtml, "ykc-data-table");
+                Check(Tags(appointmentTable, "i").Count(tag => HasClass(tag, "bi-calendar3")) == (calendar ? 1 : 0)
+                    && Tags(appointmentTable, "i").Count(tag => HasClass(tag, "bi-clock")) == (clock ? 1 : 0)
+                    && appointmentTable.Contains(calendar || clock ? "2. kontrol</span>" : "2. kontrol randevusu planlanacak"),
+                    role + $": partial appointment calendar={calendar}/clock={clock} omits empty icons and preserves repeat-control context");
+            }
+            requests.Talepler[1].RandevuTarihi = new DateTime(2026, 10, 7);
+            requests.Talepler[1].RandevuSaati = "09:00";
+            requests.Talepler[1].SiradakiKontrolNo = null;
             html = await RenderAsync(scope.ServiceProvider, context, "/Views/Ykc/Talepler.cshtml", new YkcTalepListeSonuc());
             Check(html.Contains($"colspan=\"{requestColumnCount}\"")
                 && !Tags(html, "input").Any(tag => HasAttribute(tag, "data-directory-select"))
@@ -416,7 +486,7 @@ internal static class PanelChromeRegression
                 Toplam = 2, Sayfa = 1, SayfaBoyutu = 10,
                 Kayitlar = [new()
                 {
-                    Id = 75, MusteriAdi = "Fixture subscriber", FirmaAdi = "Fixture certified firm",
+                    Id = 75, MusteriAdi = "ALİ IŞIK", FirmaAdi = "Fixture certified firm",
                     TesisatNo = "1319851", SozlesmeNo = "000943", AboneNo = "fixture-subscriber-75",
                     FirmaVergiNo = "fixture-tax-75", FirmaFaaliyetIli = "Fixture city", SirketAdi = "Fixture company",
                     EskiCihazTipi = "Kombi", EskiMarka = "Private report source brand", EskiKapasite = "20000", EskiBacaTipi = "Bacali",
@@ -429,7 +499,22 @@ internal static class PanelChromeRegression
             };
             var html = await RenderAsync(scope.ServiceProvider, context, "/Views/Ykc/Raporlar.cshtml", reports);
             var decoded = WebUtility.HtmlDecode(html);
+            Check(decoded.Contains("title=\"Ali Işık\">Ali Işık</div>") && decoded.Contains("data-musteri=\"Ali Işık\"")
+                && reports.Kayitlar[0].MusteriAdi == "ALİ IŞIK"
+                && html.Contains("&lt;Script&gt;Fixture&lt;/Script&gt;"),
+                role + ": report cards and modal names use encoded Turkish display casing without changing export data");
             var firm = role == "SertifikaliFirma";
+            var reportFilterForm = Regex.Matches(html, @"<form\b[^>]*>[\s\S]*?</form>", RegexOptions.None, RegexTimeout)
+                .Cast<Match>().Single(match => Attribute(Tags(match.Value, "form")[0], "id") == "ykcFilters").Value;
+            var filterControls = Tags(reportFilterForm, "input").Concat(Tags(reportFilterForm, "select"))
+                .Where(tag => Attribute(tag, "type") != "hidden").ToArray();
+            var filterLabels = Tags(reportFilterForm, "label");
+            var controlIds = Tags(html, "input").Concat(Tags(html, "select")).Select(tag => Attribute(tag, "id")).ToArray();
+            Check(filterLabels.Length == (firm ? 12 : 14) && filterLabels.Length == filterControls.Length
+                && filterLabels.All(label => !string.IsNullOrWhiteSpace(Attribute(label, "for"))
+                    && controlIds.Count(id => id == Attribute(label, "for")) == 1)
+                && filterControls.All(control => filterLabels.Count(label => Attribute(label, "for") == Attribute(control, "id")) == 1),
+                role + ": every compiled report filter label resolves to exactly one control without JavaScript");
             CheckSeparatedColumns(html, "ykc-report-table", firm
                 ? ["Yakıcı Cihaz Tipi", "Yeni Kullanılan Cihaz", "Durum"]
                 : ["Firma", "Yakıcı Cihaz Tipi", "Projedeki Cihaz", "Yeni Kullanılan Cihaz", "Ekip", "Durum"],
@@ -446,7 +531,7 @@ internal static class PanelChromeRegression
                 && decoded.Contains($"data-eski-baca=\"{(firm ? "-" : "Bacali")}\""),
                 role + ": report table and modal retain role-specific source-device privacy");
             var deviceText = WebUtility.HtmlDecode(Regex.Replace(Table(html, "ykc-report-table"), "<[^>]*>", "",
-                RegexOptions.None, TimeSpan.FromSeconds(1)));
+                RegexOptions.None, RegexTimeout));
             Check(deviceText.Contains("Kapasite: 2750") && deviceText.Contains("Baca tipi: Hermetik")
                 && decoded.Contains("Fixture complete device model") && decoded.Contains("000943")
                 && decoded.Contains("data-yeni-kapasite=\"2750\"") && decoded.Contains("data-yeni-baca=\"Hermetik\"")
@@ -521,6 +606,13 @@ internal static class PanelChromeRegression
                 area + ": shared DTO table preserves the existing layout and detail column count");
             Check(html.Contains("<dt>Telefon:</dt><dd>05551112233</dd>") && Tags(html, "div").Any(tag => HasAttribute(tag, "title")),
                 area + ": compact cards preserve customer phone in details and full names in titles");
+            records[0].MusteriAdi = "İPEK IŞIL YILDIRIM";
+            var nameHtml = WebUtility.HtmlDecode(await RenderAsync(scope.ServiceProvider, context, "/Views/Shared/_DevreyeAlmaTable.cshtml", records));
+            Check(nameHtml.Contains("title=\"İpek Işıl Yıldırım\">İpek Işıl Yıldırım</div>")
+                && nameHtml.Contains("aria-label=\"İpek Işıl Yıldırım kaydını seç\"")
+                && nameHtml.Contains("aria-label=\"İpek Işıl Yıldırım işlem ayrıntılarını görüntüle\"")
+                && records[0].MusteriAdi == "İPEK IŞIL YILDIRIM",
+                area + ": shared commissioning names, tooltips and accessible labels use presentation-only title casing");
         }
         foreach (var (role, type, view) in new[]
         {
@@ -580,12 +672,23 @@ internal static class PanelChromeRegression
                     return kayit;
                 }).ToList();
                 object previewModel = type == 1 ? previewRecords.Cast<YsDevreyeAlmaDto>().ToList() : previewRecords.Cast<AdminDevreyeAlmaDto>().ToList();
+                context.ViewData["Sayfalama"] = new DevreyeAlmaSayfalamaDto
+                {
+                    Sayfa = 1, SayfaBoyutu = previewRecords.Count, ToplamKayit = 36,
+                    AktarimIdleri = Enumerable.Range(100, 36).ToList()
+                };
                 Directory.CreateDirectory(historyFixtureDirectory);
                 var dosya = type switch { 1 => "commissioning-history.html", 2 => "commissioning-personnel.html", 3 => "commissioning-company-admin.html", _ => "commissioning-admin.html" };
                 var previewHtml = await RenderAsync(scope.ServiceProvider, context, "/Views/" + view + ".cshtml", previewModel);
                 Check(previewHtml.Contains("data-commissioning-select") && previewHtml.Contains("data-record-id=\"100\"")
                     && previewHtml.Contains("df-commissioning-detail-panel") && previewHtml.Contains("name=\"q\""),
                     role + ": shared row selection, card identity, detail panel and API search remain available");
+                Check(WebUtility.HtmlDecode(previewHtml).Contains("title=\"Ahmet Yılmaz\">Ahmet Yılmaz</div>")
+                    && previewRecords[0].MusteriAdi == "AHMET YILMAZ",
+                    role + ": compiled commissioning page uses shared subscriber title casing");
+                Check(previewHtml.Contains("12 / 36") && previewHtml.Contains("aria-label=\"Sonraki sayfa\"")
+                    && previewHtml.Contains("data-history-paged=\"true\""),
+                    role + ": compiled preview uses shared API totals and server pagination");
                 await File.WriteAllTextAsync(Path.Combine(historyFixtureDirectory, dosya), previewHtml);
             }
         }
@@ -622,6 +725,32 @@ internal static class PanelChromeRegression
                 var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(new Uri("https://fixture.test" + Attribute(tag, "data-export-url")).Query);
                 return !query.ContainsKey("sirketId") && query["kaynak"] == "rapor" && query["sayfa"] == "2" && query["sayfaBoyutu"] == "25";
             }), "All-company report export preserves intentional empty scope and return-page size");
+
+            context.ViewData["TalepId"] = 75;
+            context.ViewData["Filtre"] = new YkcTalepListeFiltre
+            {
+                SirketId = 7, TesisatNo = "00123", SozlesmeNo = "000943", MusteriAdi = "A & B",
+                Firma = "Firma", Il = "City", Ilce = "District", Bolge = "Zone", Ekip = "Team",
+                Marka = "Brand", HedefUygulama = "Target", Durum = 1, Q = "<query>",
+                Sirala = "abone-artan", CihazTipi = "Kombi",
+                BaslangicTarihi = new(2026, 10, 1), BitisTarihi = new(2026, 10, 12),
+                RandevuBaslangicTarihi = new(2026, 10, 2), RandevuBitisTarihi = new(2026, 10, 13)
+            };
+            html = await RenderAsync(scope.ServiceProvider, context, "/Views/Ykc/Raporlar.cshtml",
+                new YkcRaporSonuc { Toplam = 80, Sayfa = 2, SayfaBoyutu = 25, Kayitlar = [new() { Id = 75 }] });
+            var reportPages = Tags(html, "a").Where(tag => Attribute(tag, "href").Contains("sayfa=", StringComparison.Ordinal))
+                .Select(tag => Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(
+                    new Uri("https://fixture.test" + Attribute(tag, "href")).Query)).ToArray();
+            Check(reportPages.Length > 0 && reportPages.All(query =>
+                query["sirketId"] == "7" && query["talepId"] == "75" && query["sayfaBoyutu"] == "25"
+                && query["tesisatNo"] == "00123" && query["sozlesmeNo"] == "000943" && query["musteriAdi"] == "A & B"
+                && query["firma"] == "Firma" && query["il"] == "City" && query["ilce"] == "District"
+                && query["bolge"] == "Zone" && query["ekip"] == "Team" && query["marka"] == "Brand"
+                && query["hedefUygulama"] == "Target" && query["durum"] == "1" && query["q"] == "<query>"
+                && query["sirala"] == "abone-artan" && query["cihazTipi"] == "Kombi"
+                && query["bas"] == "2026-10-01" && query["bit"] == "2026-10-12"
+                && query["randevuBas"] == "2026-10-02" && query["randevuBit"] == "2026-10-13"),
+                "Report page links preserve company scope and every filter without an intermediate dictionary");
 
             context.ViewData["DevreyeAlmaAlan"] = "/AdminPanel";
             context.ViewData["SeciliSirketId"] = 8;
@@ -733,6 +862,44 @@ internal static class PanelChromeRegression
                         && text.Contains("<strong>Tanımlı değil</strong>") && !text.Contains("is-valid"),
                     $"Certificate date, filter and remaining-days text handle absent/today/expired dates: {panel}/{days}");
             }
+        }
+
+        foreach (var days in new int?[] { null, -1, 0, 1 })
+        {
+            var expiry = days.HasValue ? DateTime.Today.AddDays(days.Value) : (DateTime?)null;
+            var certificate = new AdminYetkiBelgesiOnayDto
+            {
+                Id = 36, FirmaAdi = "Nullable expiry", YetkiBelgesiBitisTarihi = expiry,
+                Durum = YetkiBelgesiDurumDegerleri.Onaylandi, OlusturmaTarihi = DateTime.Today
+            };
+            var history = WebUtility.HtmlDecode(await RenderAsync(scope.ServiceProvider, personnel,
+                "/Views/PersonelPanel/OnayGecmisi.cshtml", new List<AdminYetkiBelgesiOnayDto> { certificate }));
+            Check(!history.Contains("01.01.0001") && !history.Contains("0001-01-01")
+                && (expiry.HasValue ? history.Contains($"datetime=\"{expiry:yyyy-MM-dd}\"") : history.Contains("Tanımlı değil")),
+                "Personnel certificate history distinguishes absent expiry from real dates: " + days);
+            var certificateContext = Context("YetkiliServis", 1, "YetkiliServis", scope.ServiceProvider);
+            var serviceCertificate = new YetkiBelgesiDto
+            {
+                Id = 36, YetkiBelgesiBitisTarihi = expiry, OlusturmaTarihi = DateTime.Today,
+                Durum = YetkiBelgesiDurumDegerleri.OnaydaBekliyor
+            };
+            var serviceHtml = WebUtility.HtmlDecode(await RenderAsync(scope.ServiceProvider, certificateContext,
+                "/Views/YetkiBelgesi/Index.cshtml", new List<YetkiBelgesiDto> { serviceCertificate }));
+            var row = Tags(serviceHtml, "tr").Single(tag => HasClass(tag, "sert-row"));
+            Check(Attribute(row, "data-durum") == (days < 0 ? "Süresi Doldu" : "Onay Bekliyor")
+                && !serviceHtml.Contains("01.01.0001") && (expiry.HasValue || serviceHtml.Contains("Tanımlı değil")),
+                "Service certificate list does not classify missing or today's expiry as expired: " + days);
+            var summaryButtons = Regex.Matches(serviceHtml, @"<button\b[^>]*data-belge-durum=""Süresi Doldu""[\s\S]*?</button>", RegexOptions.None, RegexTimeout);
+            Check(summaryButtons.Count == 1 && summaryButtons[0].Value.Contains($"<strong>{(days < 0 ? 1 : 0)}</strong>"),
+                "Service expired counter matches the nullable-date row state: " + days);
+            var warningContext = Context("GenelSistemAdmin", 4, "Admin", scope.ServiceProvider);
+            warningContext.ViewData["Yaklasan"] = new List<AdminYetkiBelgesiOnayDto> { certificate };
+            warningContext.ViewData["Gecmis"] = new List<AdminYetkiBelgesiOnayDto> { certificate };
+            var warnings = WebUtility.HtmlDecode(await RenderAsync(scope.ServiceProvider, warningContext,
+                "/Views/AdminPanel/YetkiBelgesiUyarilari.cshtml", new object()));
+            Check(!warnings.Contains("01.01.0001") && !warnings.Contains("0001-01-01")
+                && (expiry.HasValue || warnings.Contains("Tanımlı değil") && !warnings.Contains("df-warning-row-critical")),
+                "Admin warning rows never derive a date or critical countdown from null: " + days);
         }
 
         var managedFirm = new AdminYetkiliServisDto

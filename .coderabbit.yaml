@@ -8,3 +8,6 @@ reviews:
     - ".coderabbit.yaml"
     - "YetkiliServisGazAcma.API/**"
     - "YetkiliServisGazAcma.Core/**"
+    - "!YetkiliServisGazAcma.Core/Business/Services/Export/**"
+    - "!YetkiliServisGazAcma.Core/Entities/**"
+    - "!YetkiliServisGazAcma.Core/Models/**"

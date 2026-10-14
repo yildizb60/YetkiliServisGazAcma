@@ -4,6 +4,9 @@ namespace YetkiliServisGazAcma.Business.Services;
 
 public class YsDevreyeAlmaGecmisFiltreDto
 {
+    public int Sayfa { get; set; } = 1;
+    public int SayfaBoyutu { get; set; } = 20;
+    public int? OdakKayitId { get; set; }
     public string? Marka { get; set; }
     public DateTime? BaslangicTarihi { get; set; }
     public DateTime? BitisTarihi { get; set; }
@@ -99,6 +102,7 @@ public class YsDevreyeAlmaIslemSonucDto : ApiIslemSonuc
 
 public class YsDevreyeAlmaGecmisDto
 {
+    public DevreyeAlmaSayfalamaDto Sayfalama { get; set; } = new();
     public List<YsDevreyeAlmaDto> Islemler { get; set; } = new();
     public YsFirmaDto? Firma { get; set; }
     public List<string> MarkaList { get; set; } = new();
@@ -107,6 +111,15 @@ public class YsDevreyeAlmaGecmisDto
     public int Tamamlanan { get; set; }
     public int Bekleyen { get; set; }
     public int Iptal { get; set; }
+}
+
+public sealed class DevreyeAlmaSayfalamaDto
+{
+    public const int AktarimSiniri = 5000;
+    public int Sayfa { get; set; } = 1;
+    public int SayfaBoyutu { get; set; } = 20;
+    public int ToplamKayit { get; set; }
+    public List<int> AktarimIdleri { get; set; } = [];
 }
 
 public class YsFirmaDto

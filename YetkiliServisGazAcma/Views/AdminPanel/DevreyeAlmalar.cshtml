@@ -9,6 +9,7 @@
     var liste = new DevreyeAlmaListeViewModel
     {
         Kayitlar = Model, SirketId = sirketId,
+        Sayfalama = ViewBag.Sayfalama as DevreyeAlmaSayfalamaDto,
         ListeUrl = Url.Action("DevreyeAlmalar", "AdminPanel")!,
         TemizleUrl = Url.Action("DevreyeAlmalar", "AdminPanel", new { sirketId })!,
         PdfUrl = Url.Action("RaporlarPdf", "AdminPanel", new { sirketId })!,
