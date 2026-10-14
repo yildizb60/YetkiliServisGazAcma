@@ -6,6 +6,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Controllers;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
@@ -42,6 +45,64 @@ public static class ApiApplicationBoundaryRegression
         Check(YkcIslemSonuc.BasariliSonuc("Saved", 42) is { Basarili: true, Id: 42 }
             && YkcIslemSonuc.BasariliSonuc("Saved").GetType() == typeof(YkcIslemSonuc),
             "Shared result helpers preserve the specialized YKC contract and record id");
+
+        var responseServices = new ServiceCollection();
+        responseServices.AddLogging();
+        responseServices.AddControllers();
+        await using (var responseProvider = responseServices.BuildServiceProvider())
+        {
+            foreach (var (action, contentType) in new[]
+            {
+                (nameof(YkcApiController.FormPdf), "application/pdf"),
+                (nameof(YkcApiController.TaleplerRaporPdf), "application/pdf"),
+                (nameof(YkcApiController.TaleplerRaporExcel), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+                (nameof(YkcApiController.DosyaIndir), "application/octet-stream")
+            })
+            {
+                var method = typeof(YkcApiController).GetMethod(action)!;
+                var filters = typeof(YkcApiController).GetCustomAttributes<ProducesAttribute>()
+                    .Concat(method.GetCustomAttributes<ProducesAttribute>()).ToArray();
+                async Task<(int Status, string? ContentType, byte[] Body)> ExecuteAsync(IActionResult result, string accept)
+                {
+                    using var body = new MemoryStream();
+                    var http = new DefaultHttpContext { RequestServices = responseProvider };
+                    http.Request.Method = "POST";
+                    http.Request.Headers.Accept = accept;
+                    http.Response.Body = body;
+                    var context = new ActionContext(http, new RouteData(), new ControllerActionDescriptor
+                    {
+                        ControllerTypeInfo = typeof(YkcApiController).GetTypeInfo(), MethodInfo = method
+                    });
+                    var executing = new ResultExecutingContext(context, filters.Cast<IFilterMetadata>().ToList(),
+                        result, new object());
+                    foreach (var filter in filters) filter.OnResultExecuting(executing);
+                    await executing.Result.ExecuteResultAsync(context);
+                    return (http.Response.StatusCode, http.Response.ContentType, body.ToArray());
+                }
+
+                // Execute MVC formatting: inspecting ObjectResult alone misses the 403-to-406 regression.
+                foreach (var accept in new[] { "*/*", "application/json", contentType })
+                {
+                    const string message = "Form görüntüleme yetkiniz bulunmuyor.";
+                    var denied = await ExecuteAsync(new ObjectResult(YkcIslemSonuc.HataliSonuc(message))
+                    {
+                        StatusCode = StatusCodes.Status403Forbidden
+                    }, accept);
+                    Check(denied.Status == StatusCodes.Status403Forbidden
+                        && denied.ContentType?.StartsWith("application/json", StringComparison.Ordinal) == true,
+                        action + " preserves JSON HTTP 403 after MVC formatting; Accept=" + accept);
+                    var payload = System.Text.Json.JsonSerializer.Deserialize<YkcIslemSonuc>(denied.Body,
+                        new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+                    Check(payload is { Basarili: false } && payload.Mesaj == message,
+                        action + " preserves the authorization error payload; Accept=" + accept);
+                }
+
+                var bytes = new byte[] { 0, 37, 80, 68, 70, 255 };
+                var file = await ExecuteAsync(new FileContentResult(bytes, contentType), "*/*");
+                Check(file.Status == StatusCodes.Status200OK && file.ContentType == contentType
+                    && file.Body.SequenceEqual(bytes), action + " preserves successful binary bytes and media type");
+            }
+        }
 
         var today = new DateTime(2026, 10, 7);
         Ys_YetkiBelgesi Certificate(int id, DateTime? start, DateTime end, int status) => new()
@@ -191,7 +252,8 @@ public static class ApiApplicationBoundaryRegression
         Check(await auth.Profile(new("Name", "name@example.test", "05000000000")) is UnauthorizedResult,
             "Inactive profile edits retain empty HTTP 401");
         var forgot = (OturumSonucu)((OkObjectResult)await auth.Forgot(new("inactive@example.test"))).Value!;
-        Check(forgot.Basarili && forgot.Token == null && forgot.Dogrulama?.Length == 128,
+        Check(forgot.Basarili && forgot.Token == null && !string.IsNullOrEmpty(forgot.Dogrulama)
+            && await auth.Reset(new(forgot.Dogrulama, "123456", "secret123")) is ObjectResult { StatusCode: 400 },
             "Inactive forgot-password keeps an unusable opaque challenge and no token");
         var profileFailure = await flow.ProfileAsync(actor, new("Name", "name@example.test", "invalid"));
         Check(profileFailure.Hata == OturumAkisHatasi.GecersizIstek && actor.AdSoyad == null,

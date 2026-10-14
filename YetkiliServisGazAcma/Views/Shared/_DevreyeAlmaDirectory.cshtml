@@ -4,6 +4,17 @@
     string Deger(string ad) => sorgu[ad].ToString();
     var filtreAdlari = new[] { "tesisat", "sozlesme", "musteri", "marka", "cihazTipi", "durum", "servis", "il", "ilce", "bas", "bit" };
     var filtreAktif = filtreAdlari.Any(ad => !string.IsNullOrWhiteSpace(Deger(ad)));
+    var sayfalama = Model.Sayfalama;
+    var toplamKayit = sayfalama?.ToplamKayit ?? Model.Kayitlar.Count;
+    string SayfaUrl(int sayfa)
+    {
+        var degerler = sorgu.Where(x => !string.Equals(x.Key, "sayfa", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(x.Key, "kayitId", StringComparison.OrdinalIgnoreCase))
+            .ToDictionary(x => x.Key, x => x.Value, StringComparer.OrdinalIgnoreCase);
+        degerler["sayfa"] = sayfa.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        if (Model.SirketId.HasValue) degerler["sirketId"] = Model.SirketId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        return Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString(Model.ListeUrl, degerler);
+    }
     var durumlar = new[]
     {
         (Kod: Model.ServisPaneli ? "tamamlandi" : DevreyeAlmaDurumDegerleri.Tamamlandi.ToString(), Ad: "Tamamlandı"),
@@ -12,8 +23,12 @@
     };
 }
 
-<div class="df-admin-workspace df-operations-directory df-commissioning-directory" data-history-directory data-storage-key="commissioning-view">
-    <partial name="_KayitListeAracCubugu" model="@(new KayitListeAracCubuguViewModel { Baslik = "Devreye Alma Kayıtları", KayitSayisi = Model.Kayitlar.Count, KayitVar = Model.Kayitlar.Any(), PdfUrl = Model.PdfUrl, ExcelUrl = Model.ExcelUrl, YeniKayitUrl = Model.YeniKayitUrl })" />
+<div class="df-admin-workspace df-operations-directory df-commissioning-directory" data-history-directory data-history-paged="@(sayfalama != null ? "true" : null)" data-storage-key="commissioning-view">
+    <partial name="_KayitListeAracCubugu" model="@(new KayitListeAracCubuguViewModel { Baslik = "Devreye Alma Kayıtları", KayitSayisi = toplamKayit, KayitVar = toplamKayit > 0, TumFiltrelenenKayitlar = sayfalama != null, PdfUrl = Model.PdfUrl, ExcelUrl = Model.ExcelUrl, YeniKayitUrl = Model.YeniKayitUrl })" />
+    @if (sayfalama != null)
+    {
+        <template data-directory-export-ids>@string.Join(",", sayfalama.AktarimIdleri)</template>
+    }
 
     <section class="df-commissioning-surface">
         <details id="commissioningFiltersPanel" class="df-admin-filter df-commissioning-filter" open="@(filtreAktif ? "open" : null)">
@@ -48,6 +63,41 @@
         else
         {
             <partial name="_DevreyeAlmaTable" model="Model.Kayitlar" />
+        }
+        @if (sayfalama != null)
+        {
+            var toplamSayfa = Math.Max(1, (int)Math.Ceiling(toplamKayit / (double)Math.Max(1, sayfalama.SayfaBoyutu)));
+            var ilk = toplamKayit == 0 ? 0 : (sayfalama.Sayfa - 1L) * sayfalama.SayfaBoyutu + 1;
+            var son = Math.Min(sayfalama.Sayfa * (long)sayfalama.SayfaBoyutu, toplamKayit);
+            <footer class="df-commissioning-pager">
+                <span>@ilk-@son / @toplamKayit kayıt</span>
+                @if (toplamSayfa > 1)
+                {
+                    <nav aria-label="Devreye alma sayfaları">
+                        @if (sayfalama.Sayfa > 1)
+                        {
+                            <a href="@SayfaUrl(1)" title="İlk sayfa" aria-label="İlk sayfa"><i class="bi bi-chevron-double-left" aria-hidden="true"></i></a>
+                            <a href="@SayfaUrl(sayfalama.Sayfa - 1)" rel="prev" title="Önceki sayfa" aria-label="Önceki sayfa"><i class="bi bi-chevron-left" aria-hidden="true"></i></a>
+                        }
+                        else
+                        {
+                            <span aria-disabled="true" aria-label="İlk sayfa"><i class="bi bi-chevron-double-left" aria-hidden="true"></i></span>
+                            <span aria-disabled="true" aria-label="Önceki sayfa"><i class="bi bi-chevron-left" aria-hidden="true"></i></span>
+                        }
+                        <span class="df-commissioning-page-number" aria-current="page">@sayfalama.Sayfa / @toplamSayfa</span>
+                        @if (sayfalama.Sayfa < toplamSayfa)
+                        {
+                            <a href="@SayfaUrl(sayfalama.Sayfa + 1)" rel="next" title="Sonraki sayfa" aria-label="Sonraki sayfa"><i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+                            <a href="@SayfaUrl(toplamSayfa)" title="Son sayfa" aria-label="Son sayfa"><i class="bi bi-chevron-double-right" aria-hidden="true"></i></a>
+                        }
+                        else
+                        {
+                            <span aria-disabled="true" aria-label="Sonraki sayfa"><i class="bi bi-chevron-right" aria-hidden="true"></i></span>
+                            <span aria-disabled="true" aria-label="Son sayfa"><i class="bi bi-chevron-double-right" aria-hidden="true"></i></span>
+                        }
+                    </nav>
+                }
+            </footer>
         }
     </section>
     <partial name="_KayitSutunFiltresi" model='@("commissioningFilters")' />

@@ -2,6 +2,7 @@ using System.Globalization;
 using System.IO.Compression;
 using System.Xml.Linq;
 using QuestPDF.Fluent;
+using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 
 namespace YetkiliServisGazAcma.Business.Services;
@@ -55,7 +56,7 @@ public static class YkcFr265PdfService
                     page.Size(595.3f, 841.9f);
                     page.MarginHorizontal(21);
                     page.MarginVertical(28.35f);
-                    page.DefaultTextStyle(style => style.FontFamily("Calibri", "Carlito", "Arial")
+                    page.DefaultTextStyle(style => style.FontFamily("Calibri", "Carlito", "Arial", Fonts.Lato)
                         .FontSize(10.5f).LineHeight(1).FontColor("#000000"));
                     page.Header().PaddingBottom(15).Row(row =>
                     {
@@ -175,10 +176,25 @@ public static class YkcFr265PdfService
                 var value = string.Concat(run.Elements().Where(x => x.Name == W + "t" || x.Name == W + "br")
                     .Select(x => x.Name == W + "br" ? "\n" : x.Value));
                 var properties = run.Element(W + "rPr");
-                var span = text.Span(value).FontSize(Math.Clamp(Number(properties?.Element(W + "sz")?.Attribute(W + "val"), 21) / 2, 9, 12));
-                if (properties?.Element(W + "b") is { } bold && (string?)bold.Attribute(W + "val") != "0") span.Bold();
-                if (properties?.Element(W + "i") is { } italic && (string?)italic.Attribute(W + "val") != "0") span.Italic();
-                if (value.Contains('☒') || value.Contains('☐')) span.FontFamily("Segoe UI Symbol", "DejaVu Sans");
+                var fontSize = Math.Clamp(Number(properties?.Element(W + "sz")?.Attribute(W + "val"), 21) / 2, 9, 12);
+                var start = 0;
+                for (var index = 0; index <= value.Length; index++)
+                {
+                    if (index < value.Length && value[index] is not ('☐' or '☒')) continue;
+                    if (index > start)
+                    {
+                        var span = text.Span(value[start..index]).FontSize(fontSize);
+                        if (properties?.Element(W + "b") is { } bold && (string?)bold.Attribute(W + "val") != "0") span.Bold();
+                        if (properties?.Element(W + "i") is { } italic && (string?)italic.Attribute(W + "val") != "0") span.Italic();
+                    }
+                    if (index == value.Length) break;
+
+                    // Lato does not contain ballot-box glyphs; vectors preserve both form states without system fonts.
+                    var mark = value[index] == '☒' ? "<path d=\"M3 3l6 6M9 3L3 9\"/>" : "";
+                    text.Element(TextInjectedElementAlignment.Middle).Width(fontSize * .8f).Height(fontSize * .8f)
+                        .Svg($"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 12 12\"><g fill=\"none\" stroke=\"#000\" stroke-width=\"1\"><rect x=\"1\" y=\"1\" width=\"10\" height=\"10\"/>{mark}</g></svg>");
+                    start = index + 1;
+                }
             }
         });
     }

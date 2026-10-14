@@ -31,7 +31,10 @@ namespace YetkiliServisGazAcma.Business.Services
             string? sozlesmeNo = null,
             string? arama = null,
             string? siralama = null,
-            string? cihazTipi = null)
+            string? cihazTipi = null,
+            int sayfa = 1,
+            int sayfaBoyutu = 20,
+            int? odakKayitId = null)
         {
             return _api.PostAsync<AdminDevreyeAlmaListeFiltreDto, AdminDevreyeAlmaListeDto>(kullanici,
                 "api/admin-panel/devreye-almalar/liste", new AdminDevreyeAlmaListeFiltreDto
@@ -49,7 +52,10 @@ namespace YetkiliServisGazAcma.Business.Services
                 CihazTipi = cihazTipi,
                 Durum = int.TryParse(durum, out var durumNo) ? durumNo : null,
                 BaslangicTarihi = bas,
-                BitisTarihi = bit
+                BitisTarihi = bit,
+                Sayfa = sayfa,
+                SayfaBoyutu = sayfaBoyutu,
+                OdakKayitId = odakKayitId
             }, "Admin devreye alma liste");
         }
 

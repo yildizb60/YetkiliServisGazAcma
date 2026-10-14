@@ -62,7 +62,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 {
                     page.Size(PageSizes.A4.Landscape());
                     page.Margin(24);
-                    page.DefaultTextStyle(x => x.FontFamily("Arial").FontSize(8));
+                    page.DefaultTextStyle(x => x.FontFamily("Arial", Fonts.Lato).FontSize(8));
 
                     page.Header().PaddingBottom(12).Row(row =>
                     {

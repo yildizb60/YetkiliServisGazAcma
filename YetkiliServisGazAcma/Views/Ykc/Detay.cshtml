@@ -244,7 +244,7 @@
         <div class="ykc-staff-record-identity">
             <span class="ykc-firm-record-number">Cihaz Değişim Talebi #@Model.Id</span>
             <div class="ykc-staff-identity-fields">
-                <h1><span>Müşteri Adı:</span> @Deger(Model.MusteriAdi)</h1>
+                <h1><span>Müşteri Adı:</span> @AboneAdiSunumu.Bicimlendir(Model.MusteriAdi)</h1>
                 @if (Model.RandevuTarihi.HasValue)
                 {
                     <time class="ykc-appointment-focus" datetime="@Model.RandevuTarihi.Value.ToString("yyyy-MM-dd")" aria-label="Kontrol randevusu">

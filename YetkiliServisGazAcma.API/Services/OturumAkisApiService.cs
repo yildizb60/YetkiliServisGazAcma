@@ -17,7 +17,7 @@ public sealed class OturumAkisApiService(UserManager<AppKullanici> users, SignIn
 {
     private const string LoginError = "Kullanıcı adı veya şifre hatalı.";
     private readonly ITimeLimitedDataProtector _challengeProtector = protection.CreateProtector("API.Auth.Challenge.v1").ToTimeLimitedDataProtector();
-    private sealed record VerificationChallenge(string UserId, string Purpose, string SmsPurpose, string Stamp, string? ExternalReference);
+    private sealed record VerificationChallenge(string UserId, string Purpose, string SmsPurpose, string Stamp, string? ExternalReference, bool IsDecoy = false);
 
     public async Task<OturumAkisSonucu> TokenAsync(GirisIstegi dto, CancellationToken cancellationToken)
     {
@@ -57,7 +57,7 @@ public sealed class OturumAkisApiService(UserManager<AppKullanici> users, SignIn
                 if (CepTelefonuKurali.GecerliMi(firmPhone))
                     phone = firmPhone;
             }
-            return await ChallengeAsync(user, "GIRIS", identity?.DogrulamaReferansi, phone);
+            return await LoginChallengeAsync(user, identity?.DogrulamaReferansi, phone);
         }
         if (!string.IsNullOrWhiteSpace(identity?.DogrulamaReferansi))
         {
@@ -85,24 +85,44 @@ public sealed class OturumAkisApiService(UserManager<AppKullanici> users, SignIn
     public async Task<OturumAkisSonucu> ForgotAsync(SifreUnuttumIstegi dto)
     {
         var user = await FindAsync(dto.KullaniciAdi);
-        // Unknown accounts never receive a usable verification challenge.
-        if (user == null || !user.AktifMi || user.ArsivlemeTarihi != null)
-            return Sonuc(new OturumSonucu { Basarili = true, Dogrulama = Convert.ToHexString(RandomNumberGenerator.GetBytes(64)),
-                Mesaj = "Bilgileriniz kayıtlıysa telefonunuza doğrulama kodu gönderildi." });
-        return await ChallengeAsync(user, "SIFRE_SIFIRLA", null, null);
+        var smsPurpose = "S:" + Convert.ToHexString(RandomNumberGenerator.GetBytes(10));
+        var challenge = new VerificationChallenge(Guid.NewGuid().ToString(), "SIFRE_SIFIRLA", smsPurpose,
+            Guid.NewGuid().ToString("N"), null, IsDecoy: true);
+        var message = "Bilgileriniz kayıtlıysa telefonunuza doğrulama kodu gönderildi.";
+        if (smsOptions.Value.TestMode)
+        {
+            var digits = Math.Clamp(smsOptions.Value.CodeLength, 4, 8);
+            var code = RandomNumberGenerator.GetInt32((int)Math.Pow(10, digits - 1), (int)Math.Pow(10, digits));
+            message = $"Test SMS modu: doğrulama kodu {code}";
+        }
+        if (user != null && user.AktifMi && user.ArsivlemeTarihi == null && !await users.IsLockedOutAsync(user))
+        {
+            var result = await sms.KodGonderAsync(user, smsPurpose);
+            if (result.Basarili)
+            {
+                challenge = new VerificationChallenge(user.Id, "SIFRE_SIFIRLA", smsPurpose,
+                    await users.GetSecurityStampAsync(user), null);
+                if (smsOptions.Value.TestMode) message = result.Mesaj;
+            }
+        }
+        // Match the encrypted response shape, including length, without creating a usable decoy code.
+        var value = _challengeProtector.Protect(JsonSerializer.Serialize(challenge).PadRight(2048),
+            TimeSpan.FromMinutes(Math.Clamp(smsOptions.Value.CodeExpireMinutes, 1, 30)));
+        return Sonuc(new OturumSonucu { Basarili = true, Dogrulama = value, Mesaj = message });
     }
 
     public async Task<OturumAkisSonucu> ResetAsync(SifreYenileIstegi dto)
     {
         var (challenge, user) = await ReadChallengeAsync(dto.Dogrulama, "SIFRE_SIFIRLA");
-        if (challenge == null || user == null) return Error("Doğrulama süresi doldu. Yeniden kod isteyin.");
+        const string verificationError = "Doğrulama kodu geçersiz veya süresi dolmuş. Yeniden kod isteyin.";
         foreach (var validator in users.PasswordValidators)
         {
-            var validation = await validator.ValidateAsync(users, user, dto.YeniSifre);
+            var validation = await validator.ValidateAsync(users, user ?? new AppKullanici(), dto.YeniSifre);
             if (!validation.Succeeded) return IdentityError(validation);
         }
+        if (challenge == null || user == null) return Error(verificationError);
         var result = await sms.KodDogrulaAsync(user.Id, dto.Kod, challenge.SmsPurpose);
-        if (!result.Basarili) return Error(result.Mesaj);
+        if (!result.Basarili) return Error(verificationError);
         var reset = await users.ResetPasswordAsync(user, await users.GeneratePasswordResetTokenAsync(user), dto.YeniSifre);
         return reset.Succeeded ? Sonuc(new OturumSonucu { Basarili = true, Mesaj = "Şifreniz değiştirildi. Yeni şifrenizle giriş yapabilirsiniz." }) : IdentityError(reset);
     }
@@ -114,8 +134,9 @@ public sealed class OturumAkisApiService(UserManager<AppKullanici> users, SignIn
         user.AdSoyad = dto.AdSoyad.Trim();
         var emailChanged = !string.Equals(user.Email, dto.Email.Trim(), StringComparison.OrdinalIgnoreCase);
         var phoneChanged = user.PhoneNumber != dto.PhoneNumber?.Trim();
+        var emailUserName = string.Equals(user.UserName, user.Email, StringComparison.OrdinalIgnoreCase);
         user.Email = dto.Email.Trim();
-        user.UserName = user.Email;
+        if (emailUserName) user.UserName = user.Email;
         user.PhoneNumber = dto.PhoneNumber?.Trim();
         if (emailChanged) user.EmailConfirmed = false;
         if (phoneChanged) user.PhoneNumberConfirmed = false;
@@ -129,16 +150,14 @@ public sealed class OturumAkisApiService(UserManager<AppKullanici> users, SignIn
         return result.Succeeded ? Sonuc(await tokens.OlusturAsync(user)) : IdentityError(result);
     }
 
-    private async Task<OturumAkisSonucu> ChallengeAsync(AppKullanici user, string purpose, string? reference, string? phone)
+    private async Task<OturumAkisSonucu> LoginChallengeAsync(AppKullanici user, string? reference, string? phone)
     {
-        var smsPurpose = (purpose == "GIRIS" ? "G:" : "S:") + Convert.ToHexString(RandomNumberGenerator.GetBytes(10));
+        var smsPurpose = "G:" + Convert.ToHexString(RandomNumberGenerator.GetBytes(10));
         var result = await sms.KodGonderAsync(user, smsPurpose, phone);
         if (!result.Basarili) return Error(result.Mesaj, OturumAkisHatasi.ServisHazirDegil);
-        var challenge = new VerificationChallenge(user.Id, purpose, smsPurpose, await users.GetSecurityStampAsync(user), reference);
+        var challenge = new VerificationChallenge(user.Id, "GIRIS", smsPurpose, await users.GetSecurityStampAsync(user), reference);
         var protectedValue = _challengeProtector.Protect(JsonSerializer.Serialize(challenge), TimeSpan.FromMinutes(Math.Clamp(smsOptions.Value.CodeExpireMinutes, 1, 30)));
-        return Sonuc(new OturumSonucu { Basarili = true, Dogrulama = protectedValue,
-            Mesaj = purpose == "SIFRE_SIFIRLA" && !smsOptions.Value.TestMode
-                ? "Bilgileriniz kayıtlıysa telefonunuza doğrulama kodu gönderildi." : result.Mesaj });
+        return Sonuc(new OturumSonucu { Basarili = true, Dogrulama = protectedValue, Mesaj = result.Mesaj });
     }
 
     private async Task<(VerificationChallenge?, AppKullanici?)> ReadChallengeAsync(string value, string purpose)
@@ -146,7 +165,7 @@ public sealed class OturumAkisApiService(UserManager<AppKullanici> users, SignIn
         VerificationChallenge? challenge;
         try { challenge = JsonSerializer.Deserialize<VerificationChallenge>(_challengeProtector.Unprotect(value)); }
         catch (Exception ex) when (ex is CryptographicException or JsonException) { return (null, null); }
-        if (challenge?.Purpose != purpose) return (null, null);
+        if (challenge?.Purpose != purpose || challenge.IsDecoy) return (null, null);
         var user = await users.FindByIdAsync(challenge.UserId);
         if (user?.AktifMi != true || user.ArsivlemeTarihi != null || await users.IsLockedOutAsync(user) || await users.GetSecurityStampAsync(user) != challenge.Stamp)
             return (null, null);

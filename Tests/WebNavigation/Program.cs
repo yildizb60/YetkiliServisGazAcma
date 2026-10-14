@@ -30,6 +30,9 @@ void Check(bool condition, string name)
     passed++;
 }
 
+await CommissioningPaginationRegression.RunAsync();
+DeviceTypePresentationRegression.Run();
+
 if (args.Contains("--export-contract-only", StringComparer.Ordinal))
 {
     await ExportContractRegression.RunAsync();

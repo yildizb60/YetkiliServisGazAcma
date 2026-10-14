@@ -115,7 +115,7 @@ internal static class ExportApiContractRegression
         async Task<int[]> FilterIds(YkcTalepListeFiltre criteria, AppKullanici user, bool privileged, int? company = null)
         {
             var filtered = await (Task<IQueryable<Ykc_Talep>>)apply.Invoke(null, [records, criteria, user, privileged, company])!;
-            return filtered.Select(x => x.Id).ToArray();
+            return filtered.AsEnumerable().Select(x => x.Id).ToArray();
         }
         Check((await FilterIds(new() { SozlesmeNo = "000943" }, admin, true, 7)).SequenceEqual([42]),
             "Contract search preserves leading zeros and does not match the installation-number field");

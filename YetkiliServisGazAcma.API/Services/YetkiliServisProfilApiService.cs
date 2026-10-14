@@ -13,13 +13,24 @@ public sealed class YetkiliServisProfilApiService(AppDbContext context, UserMana
 
     public async Task<ApiIslemSonuc> GuncelleAsync(YsPanelProfilGuncelleDto? dto, AppKullanici kullanici)
     {
-        kullanici.AdSoyad = dto?.AdSoyad ?? kullanici.AdSoyad;
-        kullanici.PhoneNumber = dto?.Telefon ?? kullanici.PhoneNumber;
+        if (dto?.Telefon != null && !CepTelefonuKurali.GecerliMi(dto.Telefon))
+            return ApiIslemSonuc.Basarisiz("Telefon numarası 05XXXXXXXXX veya 90XXXXXXXXXX formatında olmalıdır.");
 
-        if (!string.IsNullOrWhiteSpace(dto?.Email) && dto.Email != kullanici.Email)
+        kullanici.AdSoyad = dto?.AdSoyad ?? kullanici.AdSoyad;
+        if (dto?.Telefon != null && kullanici.PhoneNumber != dto.Telefon.Trim())
         {
-            kullanici.Email = dto.Email;
-            kullanici.UserName = dto.Email;
+            kullanici.PhoneNumber = dto.Telefon.Trim();
+            kullanici.PhoneNumberConfirmed = false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(dto?.Email))
+        {
+            var email = dto.Email.Trim();
+            if (!string.Equals(kullanici.Email, email, StringComparison.OrdinalIgnoreCase))
+                kullanici.EmailConfirmed = false;
+            if (string.Equals(kullanici.UserName, kullanici.Email, StringComparison.OrdinalIgnoreCase))
+                kullanici.UserName = email;
+            kullanici.Email = email;
         }
 
         var sonuc = await _userManager.UpdateAsync(kullanici);

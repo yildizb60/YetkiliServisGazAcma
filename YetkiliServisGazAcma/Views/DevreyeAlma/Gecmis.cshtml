@@ -10,6 +10,7 @@
     var liste = new DevreyeAlmaListeViewModel
     {
         Kayitlar = Model, ServisPaneli = true,
+        Sayfalama = ViewBag.Sayfalama as DevreyeAlmaSayfalamaDto,
         ListeUrl = Url.Action("Gecmis", "DevreyeAlma")!,
         TemizleUrl = Url.Action("Gecmis", "DevreyeAlma")!,
         PdfUrl = Url.Action("RaporlarPdf", "YetkiliServisPanel")!,

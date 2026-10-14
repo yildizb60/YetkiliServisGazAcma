@@ -1,6 +1,17 @@
 (() => {
     const root = document.querySelector('[data-history-directory]');
     if (!root) return;
+    function resolveLinkedPage() {
+        if (root.dataset.historyPaged !== 'true') return;
+        const match = /^#devreye-alma-detay-([1-9]\d*)$/.exec(window.location.hash);
+        if (!match || document.getElementById(match[0].slice(1))) return;
+        const url = new URL(window.location.href);
+        if (url.searchParams.get('kayitId') === match[1]) return;
+        url.searchParams.set('kayitId', match[1]);
+        window.location.replace(url.toString());
+    }
+    resolveLinkedPage();
+    window.addEventListener('hashchange', resolveLinkedPage);
     root.querySelectorAll('.df-device-type-icon').forEach(icon => {
         const fallback = icon.nextElementSibling;
         const showFallback = () => {
@@ -198,11 +209,15 @@
     syncSelection();
     const exportForm = root.querySelector('[data-directory-export-form]');
     const exportFields = exportForm?.querySelector('[data-directory-export-fields]');
+    const exportTemplate = root.querySelector('template[data-directory-export-ids]');
     root.querySelectorAll('[data-commissioning-bulk-export],[data-directory-export]').forEach(button => button.addEventListener('click', () => {
         const selected = records.filter(row => row.querySelector('[data-commissioning-select],[data-directory-select]')?.checked);
         const exportRecords = selected.length ? selected : root.hasAttribute('data-directory-export-all') ? [] : records;
-        const ids = [...new Set(exportRecords.map(row => row.dataset.exportId).filter(Boolean))];
-        if (!records.length || !exportForm || !exportFields) return;
+        const exportIds = !selected.length && exportTemplate
+            ? exportTemplate.content.textContent.trim().split(',')
+            : exportRecords.map(row => row.dataset.exportId);
+        const ids = [...new Set(exportIds.filter(Boolean))];
+        if ((!records.length && !ids.length) || (exportTemplate && !ids.length) || !exportForm || !exportFields) return;
         const url = new URL(button.dataset.exportUrl, window.location.origin);
         url.searchParams.delete('ids');
         ids.forEach(id => url.searchParams.append('ids', id));
@@ -220,7 +235,9 @@
     }));
     records.filter(row => row.hasAttribute('data-directory-record')).forEach(row => {
         row.addEventListener('click', event => {
-            if (root.dataset.view !== 'cards' || event.target.closest('a,button,input,select,label')) return;
+            if (root.dataset.view !== 'cards' && !row.hasAttribute('data-directory-row-open')) return;
+            if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey
+                || event.target.closest('a,button,input,select,textarea,label') || window.getSelection()?.toString()) return;
             row.querySelector('[data-directory-open]')?.click();
         });
     });

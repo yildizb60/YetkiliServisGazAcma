@@ -9,14 +9,16 @@ namespace YetkiliServisGazAcma.Controllers
         [HttpGet("devreyealmalar")]
         public async Task<IActionResult> DevreyeAlmalar(string? marka, string? servis, string? il, DateTime? bas, DateTime? bit,
             int? sirketId = null, string? sozlesme = null, string? tesisat = null, string? musteri = null,
-            string? ilce = null, string? durum = null, string? q = null, string? sirala = null, string? cihazTipi = null)
+            string? ilce = null, string? durum = null, string? q = null, string? sirala = null, string? cihazTipi = null,
+            int sayfa = 1, int? kayitId = null)
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
 
             var aktifSirketId = await RaporKapsamSirketIdAsync(kullanici, sirketId);
             var sonuc = await _adminRaporApiClient.DevreyeAlmalarAsync(kullanici, aktifSirketId, marka, servis, il, durum, bas, bit,
-                tesisatNo: tesisat, ilce: ilce, musteri: musteri, sozlesmeNo: sozlesme, arama: q, siralama: sirala, cihazTipi: cihazTipi);
+                tesisatNo: tesisat, ilce: ilce, musteri: musteri, sozlesmeNo: sozlesme, arama: q, siralama: sirala, cihazTipi: cihazTipi,
+                sayfa: sayfa, odakKayitId: kayitId);
             if (sonuc == null)
             {
                 TempData["Hata"] = "Devreye alma listesi API uzerinden alinamadi.";
@@ -24,10 +26,10 @@ namespace YetkiliServisGazAcma.Controllers
             }
 
             ViewBag.Kullanici = kullanici;
+            ViewBag.Sayfalama = sonuc.Sayfalama;
             ViewBag.Markalar = sonuc.Markalar;
             ViewBag.CihazTipleri = sonuc.CihazTipleri;
             ViewBag.Sehirler = sonuc.Sehirler;
-            ViewBag.SeciliIl = il ?? "";
             ViewBag.SeciliSirketId = aktifSirketId;
             ViewBag.FirmaIlceleri = sonuc.FirmaIlceleri;
             return View("~/Views/AdminPanel/DevreyeAlmalar.cshtml", sonuc.Islemler);
@@ -47,7 +49,7 @@ namespace YetkiliServisGazAcma.Controllers
                 return Redirect("/AdminPanel/devreyealmalar");
             }
 
-            return Redirect($"/AdminPanel/devreyealmalar#devreye-alma-detay-{id}");
+            return Redirect($"/AdminPanel/devreyealmalar?kayitId={id}#devreye-alma-detay-{id}");
         }
 
         [HttpGet("devreyealmalar/pdf/{id:int}")]

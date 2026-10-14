@@ -162,7 +162,8 @@ namespace YetkiliServisGazAcma.Controllers
 
         [HttpGet("devreyealmalar")]
         public async Task<IActionResult> DevreyeAlmalar(string? tesisat, string? musteri, string? marka, string? servis, string? il, string? ilce, DateTime? bas, DateTime? bit,
-            string? sozlesme = null, string? durum = null, string? q = null, string? sirala = null, string? cihazTipi = null)
+            string? sozlesme = null, string? durum = null, string? q = null, string? sirala = null, string? cihazTipi = null,
+            int sayfa = 1, int? kayitId = null)
         {
             var yetkiResult = await YetkiKontrol(YetkiTipleri.RAPOR_GOR);
             if (yetkiResult != null) return yetkiResult;
@@ -189,7 +190,9 @@ namespace YetkiliServisGazAcma.Controllers
                         sozlesmeNo: sozlesme,
                         arama: q,
                         siralama: sirala,
-                        cihazTipi: cihazTipi)
+                        cihazTipi: cihazTipi,
+                        sayfa: sayfa,
+                        odakKayitId: kayitId)
                     ?? new AdminDevreyeAlmaListeDto();
             }
             catch (ApiIntegrationException ex)
@@ -199,9 +202,9 @@ namespace YetkiliServisGazAcma.Controllers
             }
 
             ViewBag.Markalar = sonuc.Markalar;
+            ViewBag.Sayfalama = sonuc.Sayfalama;
             ViewBag.CihazTipleri = sonuc.CihazTipleri;
             ViewBag.FirmaIlceleri = sonuc.FirmaIlceleri;
-            ViewBag.Musteri = musteri ?? "";
             ViewBag.Sehirler = sonuc.Sehirler;
             ViewBag.Kullanici = kullanici;
             return View("~/Views/PersonelPanel/DevreyeAlmalar.cshtml", sonuc.Islemler);
@@ -230,7 +233,7 @@ namespace YetkiliServisGazAcma.Controllers
 
             if (kayit == null) return RedirectToAction(nameof(DevreyeAlmalar));
 
-            var listeUrl = Url.Action(nameof(DevreyeAlmalar), "PersonelPanel", new { tesisat = kayit.TesistatNo });
+            var listeUrl = Url.Action(nameof(DevreyeAlmalar), "PersonelPanel", new { tesisat = kayit.TesistatNo, kayitId = id });
             return Redirect($"{listeUrl}#devreye-alma-detay-{id}");
         }
 

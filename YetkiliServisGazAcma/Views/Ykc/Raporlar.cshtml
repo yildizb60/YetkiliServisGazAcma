@@ -48,22 +48,6 @@
 
     string SayfaUrl(int sayfaNo)
     {
-        var degerler = new Dictionary<string, string?>
-        {
-            ["tesisatNo"] = filtre.TesisatNo,
-            ["firma"] = filtre.Firma,
-            ["il"] = filtre.Il,
-            ["ilce"] = filtre.Ilce,
-            ["bolge"] = filtre.Bolge,
-            ["ekip"] = filtre.Ekip,
-            ["marka"] = filtre.Marka,
-            ["hedefUygulama"] = filtre.HedefUygulama,
-            ["durum"] = filtre.Durum?.ToString(),
-            ["bas"] = filtre.BaslangicTarihi?.ToString("yyyy-MM-dd"),
-            ["bit"] = filtre.BitisTarihi?.ToString("yyyy-MM-dd"),
-            ["sayfa"] = sayfaNo.ToString(),
-            ["sayfaBoyutu"] = sayfaBoyutu.ToString()
-        };
         return Url.Action("Raporlar", "Ykc", new
         {
             sirketId = filtre.SirketId,
@@ -75,19 +59,19 @@
             sozlesmeNo = filtre.SozlesmeNo,
             randevuBas = filtre.RandevuBaslangicTarihi?.ToString("yyyy-MM-dd"),
             randevuBit = filtre.RandevuBitisTarihi?.ToString("yyyy-MM-dd"),
-            tesisatNo = degerler["tesisatNo"],
-            firma = degerler["firma"],
-            il = degerler["il"],
-            ilce = degerler["ilce"],
-            bolge = degerler["bolge"],
-            ekip = degerler["ekip"],
-            marka = degerler["marka"],
-            hedefUygulama = degerler["hedefUygulama"],
-            durum = degerler["durum"],
-            bas = degerler["bas"],
-            bit = degerler["bit"],
-            sayfa = degerler["sayfa"],
-            sayfaBoyutu = degerler["sayfaBoyutu"]
+            tesisatNo = filtre.TesisatNo,
+            firma = filtre.Firma,
+            il = filtre.Il,
+            ilce = filtre.Ilce,
+            bolge = filtre.Bolge,
+            ekip = filtre.Ekip,
+            marka = filtre.Marka,
+            hedefUygulama = filtre.HedefUygulama,
+            durum = filtre.Durum,
+            bas = filtre.BaslangicTarihi?.ToString("yyyy-MM-dd"),
+            bit = filtre.BitisTarihi?.ToString("yyyy-MM-dd"),
+            sayfa = sayfaNo,
+            sayfaBoyutu
         }) ?? "#";
     }
 
@@ -285,39 +269,39 @@
                 <div class="ykc-filter-field"><label for="ykcContract">Sözleşme No</label><input id="ykcContract" type="search" name="sozlesmeNo" value="@filtre.SozlesmeNo" /></div>
                 <div class="ykc-filter-field"><label for="ykcDeviceType">Yakıcı Cihaz Tipi</label><select id="ykcDeviceType" name="cihazTipi"><option value="">Tümü</option>@foreach (var tip in new[] { "Kombi", "Ocak", "Şofben", "Diğer" }) { <option value="@tip" selected="@Secili(filtre.CihazTipi == tip)">@tip</option> }</select></div>
                 <div class="ykc-filter-field">
-                    <label>Tesisat No</label>
-                    <input type="text" name="tesisatNo" value="@filtre.TesisatNo" placeholder="Tesisat no" />
+                    <label for="ykcInstallation">Tesisat No</label>
+                    <input id="ykcInstallation" type="text" name="tesisatNo" value="@filtre.TesisatNo" placeholder="Tesisat no" />
                 </div>
                 @if (icOperasyonGorsun)
                 {
                     <div class="ykc-filter-field">
-                        <label>Firma</label>
-                        <input type="text" name="firma" value="@filtre.Firma" placeholder="Firma adı" />
+                        <label for="ykcCompany">Firma</label>
+                        <input id="ykcCompany" type="text" name="firma" value="@filtre.Firma" placeholder="Firma adı" />
                     </div>
                     <div class="ykc-filter-field">
-                        <label>Ekip</label>
-                        <input type="text" name="ekip" value="@filtre.Ekip" placeholder="Ekip adı" />
+                        <label for="ykcTeam">Ekip</label>
+                        <input id="ykcTeam" type="text" name="ekip" value="@filtre.Ekip" placeholder="Ekip adı" />
                     </div>
                 }
                 <div class="ykc-filter-field">
-                    <label>Marka</label>
-                    <input type="text" name="marka" value="@filtre.Marka" placeholder="Marka" />
+                    <label for="ykcBrand">Marka</label>
+                    <input id="ykcBrand" type="text" name="marka" value="@filtre.Marka" placeholder="Marka" />
                 </div>
                 <div class="ykc-filter-field">
-                    <label>İl</label>
-                    <input type="text" name="il" value="@filtre.Il" placeholder="İl" />
+                    <label for="ykcCity">İl</label>
+                    <input id="ykcCity" type="text" name="il" value="@filtre.Il" placeholder="İl" />
                 </div>
                 <div class="ykc-filter-field">
-                    <label>İlçe</label>
-                    <input type="text" name="ilce" value="@filtre.Ilce" placeholder="İlçe" />
+                    <label for="ykcDistrict">İlçe</label>
+                    <input id="ykcDistrict" type="text" name="ilce" value="@filtre.Ilce" placeholder="İlçe" />
                 </div>
                 <div class="ykc-filter-field">
-                    <label>Bölge</label>
-                    <input type="text" name="bolge" value="@filtre.Bolge" placeholder="Bölge" />
+                    <label for="ykcRegion">Bölge</label>
+                    <input id="ykcRegion" type="text" name="bolge" value="@filtre.Bolge" placeholder="Bölge" />
                 </div>
                 <div class="ykc-filter-field">
-                    <label>Durum</label>
-                    <select name="durum">
+                    <label for="ykcStatus">Durum</label>
+                    <select id="ykcStatus" name="durum">
                         <option value="">Tümü</option>
                         @foreach (var item in new[] {
                             YkcDurumDegerleri.TalepAlindi,
@@ -334,12 +318,12 @@
                     </select>
                 </div>
                 <div class="ykc-filter-field">
-                    <label>Başlangıç</label>
-                    <input type="date" name="bas" value="@filtre.BaslangicTarihi?.ToString("yyyy-MM-dd")" />
+                    <label for="ykcStart">Başlangıç</label>
+                    <input id="ykcStart" type="date" name="bas" value="@filtre.BaslangicTarihi?.ToString("yyyy-MM-dd")" />
                 </div>
                 <div class="ykc-filter-field">
-                    <label>Bitiş</label>
-                    <input type="date" name="bit" value="@filtre.BitisTarihi?.ToString("yyyy-MM-dd")" />
+                    <label for="ykcEnd">Bitiş</label>
+                    <input id="ykcEnd" type="date" name="bit" value="@filtre.BitisTarihi?.ToString("yyyy-MM-dd")" />
                 </div>
             </div>
             <div class="ykc-filter-actions">
@@ -396,13 +380,14 @@
                     {
                         foreach (var kayit in Model.Kayitlar)
                         {
+                            var aboneAdi = AboneAdiSunumu.Bicimlendir(kayit.MusteriAdi);
                             var yeniModelVar = !string.IsNullOrWhiteSpace(kayit.YeniModel)
                                 && !string.Equals(kayit.YeniModel.Trim(), kayit.YeniMarka?.Trim(), StringComparison.OrdinalIgnoreCase)
                                 && !string.Equals(kayit.YeniModel.Trim(), kayit.YeniCihazTipi?.Trim(), StringComparison.OrdinalIgnoreCase);
                             <tr data-directory-record data-export-id="@kayit.Id">
                                 <td class="ykc-report-select-cell" data-label="Seç"><input class="ykc-report-row-check" data-directory-select type="checkbox" value="@kayit.Id" aria-label="#@kayit.Id numaralı rapor kaydını seç" /></td>
                                 <td class="ykc-report-record-cell" data-label="Talep No"><div class="ykc-cell-main"><span class="ykc-code">#@kayit.Id</span></div></td>
-                                <td class="ykc-report-customer-cell" data-label="Abone Adı Soyadı"><div class="ykc-cell-main ykc-report-customer" title="@kayit.MusteriAdi">@Deger(kayit.MusteriAdi)</div></td>
+                                <td class="ykc-report-customer-cell" data-label="Abone Adı Soyadı"><div class="ykc-cell-main ykc-report-customer" title="@aboneAdi">@aboneAdi</div></td>
                                 <td class="ykc-report-installation-cell" data-label="Tesisat No"><div class="ykc-cell-main ykc-code" title="@Deger(kayit.TesisatNo)">@Deger(kayit.TesisatNo)</div></td>
                                 <td class="ykc-report-contract-cell" data-label="Sözleşme No"><div class="ykc-cell-main ykc-code" title="@Deger(kayit.SozlesmeNo)">@Deger(kayit.SozlesmeNo)</div></td>
                                 @if (icOperasyonGorsun)
@@ -434,7 +419,7 @@
                                             data-firma-vkn="@Deger(kayit.FirmaVergiNo)"
                                             data-firma-il="@Deger(kayit.FirmaFaaliyetIli)"
                                             data-sirket="@Deger(kayit.SirketAdi)"
-                                            data-musteri="@Deger(kayit.MusteriAdi)"
+                                            data-musteri="@aboneAdi"
                                             data-abone-no="@Deger(kayit.AboneNo)"
                                             data-eski-cihaz="@(icOperasyonGorsun ? Deger(kayit.EskiCihazTipi) : "-")"
                                             data-yeni-cihaz="@Deger(kayit.YeniCihazTipi)"

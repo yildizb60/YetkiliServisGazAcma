@@ -9,3 +9,4 @@ reviews:
     - "YetkiliServisGazAcma/ViewComponents/**"
     - "YetkiliServisGazAcma/Views/**"
     - "YetkiliServisGazAcma/wwwroot/**"
+    - "YetkiliServisGazAcma.Core/Business/Services/Export/**"

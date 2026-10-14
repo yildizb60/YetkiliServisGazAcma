@@ -5,6 +5,7 @@ namespace YetkiliServisGazAcma.Models;
 public sealed class DevreyeAlmaListeViewModel
 {
     public IReadOnlyList<DevreyeAlmaKayitDto> Kayitlar { get; init; } = [];
+    public DevreyeAlmaSayfalamaDto? Sayfalama { get; init; }
     public string ListeUrl { get; init; } = "";
     public string TemizleUrl { get; init; } = "";
     public string PdfUrl { get; init; } = "";
