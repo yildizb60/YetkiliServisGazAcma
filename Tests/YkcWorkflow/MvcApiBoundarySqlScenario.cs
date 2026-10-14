@@ -488,7 +488,10 @@ internal static class MvcApiBoundarySqlScenario
         try
         {
             var partial = await service.DashboardAsync(firm.Id, filter);
-            check(!partial.TakvimVerisiTam && partial.Toplam == 33 && partial.TakvimIslemleri.Count == 3
+            // Latest commissioning dates contain one March row and these four February rows.
+            var expectedFallbackIds = new[] { records[30].Id, records[28].Id, records[27].Id, records[26].Id };
+            check(!partial.TakvimVerisiTam && partial.Toplam == 33
+                && partial.TakvimIslemleri.Select(x => x.Id).SequenceEqual(expectedFallbackIds)
                 && partial.TakvimIslemleri.Select(x => x.Id).SequenceEqual(screen.SonIslemler
                     .Where(x => x.DevreyeAlmaTarihi >= month && x.DevreyeAlmaTarihi < month.AddMonths(1)).Select(x => x.Id)),
                 "API handles calendar failure using only in-month recent records and marks the response incomplete");

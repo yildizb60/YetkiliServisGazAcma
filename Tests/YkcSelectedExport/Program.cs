@@ -6,6 +6,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using System.Xml.Linq;
+using Tests.YkcSelectedExport;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -137,7 +138,7 @@ try
             if (excel)
             {
                 using var archive = new ZipArchive(new MemoryStream(((FileContentResult)result).FileContents));
-                using var sheet = archive.GetEntry("xl/worksheets/sheet1.xml")!.Open();
+                await using var sheet = await archive.GetEntry("xl/worksheets/sheet1.xml")!.OpenAsync();
                 XNamespace ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
                 var rows = XDocument.Load(sheet).Descendants(ns + "row").Skip(1).ToList();
                 Check(rows.Count == (scenario == "single" ? 1 : 5000),
@@ -167,63 +168,66 @@ finally
     }
 }
 
-// Only HTTP hosting is replaced: export requests invoke the real API controller and SQL reader.
-sealed class ExportTransport(YkcApiController api, AppKullanici user) : HttpMessageHandler
+namespace Tests.YkcSelectedExport
 {
-    public int ExportCalls { get; private set; }
-    public YkcTalepListeFiltre? LastFilter { get; private set; }
-    public IActionResult? LastResult { get; private set; }
-
-    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    // Only HTTP hosting is replaced: export requests invoke the real API controller and SQL reader.
+    internal sealed class ExportTransport(YkcApiController api, AppKullanici user) : HttpMessageHandler
     {
-        if (request.Headers.Authorization?.Parameter != "fixture-token")
-            throw new InvalidOperationException("Missing authenticated API transport.");
-        if (request.RequestUri!.AbsolutePath == "/api/auth/me")
-            return new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = JsonContent.Create(new OturumSonucu
-                {
-                    Basarili = true, Kullanici = new OturumKullaniciDto(user.Id, user.UserName, user.Email,
-                        user.AdSoyad, user.PhoneNumber, user.KullaniciTipi, user.FirmaId, user.SirketId, ["GenelSistemAdmin"])
-                })
-            };
-        if (request.Method != HttpMethod.Post || request.RequestUri.AbsolutePath is not
-            ("/api/ykc/talepler/rapor/pdf" or "/api/ykc/talepler/rapor/excel"))
-            throw new InvalidOperationException("Unexpected API request: " + request.RequestUri);
-        ExportCalls++;
-        LastFilter = await request.Content!.ReadFromJsonAsync<YkcTalepListeFiltre>(cancellationToken);
-        LastResult = request.RequestUri.AbsolutePath.EndsWith("/excel", StringComparison.Ordinal)
-            ? await api.TaleplerRaporExcel(LastFilter) : await api.TaleplerRaporPdf(LastFilter);
-        if (LastResult is FileContentResult file)
+        public int ExportCalls { get; private set; }
+        public YkcTalepListeFiltre? LastFilter { get; private set; }
+        public IActionResult? LastResult { get; private set; }
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            var response = new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(file.FileContents) };
-            response.Content.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
-            response.Content.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment") { FileNameStar = file.FileDownloadName };
-            return response;
+            if (request.Headers.Authorization?.Parameter != "fixture-token")
+                throw new InvalidOperationException("Missing authenticated API transport.");
+            if (request.RequestUri!.AbsolutePath == "/api/auth/me")
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = JsonContent.Create(new OturumSonucu
+                    {
+                        Basarili = true, Kullanici = new OturumKullaniciDto(user.Id, user.UserName, user.Email,
+                            user.AdSoyad, user.PhoneNumber, user.KullaniciTipi, user.FirmaId, user.SirketId, ["GenelSistemAdmin"])
+                    })
+                };
+            if (request.Method != HttpMethod.Post || request.RequestUri.AbsolutePath is not
+                ("/api/ykc/talepler/rapor/pdf" or "/api/ykc/talepler/rapor/excel"))
+                throw new InvalidOperationException("Unexpected API request: " + request.RequestUri);
+            ExportCalls++;
+            LastFilter = await request.Content!.ReadFromJsonAsync<YkcTalepListeFiltre>(cancellationToken);
+            LastResult = request.RequestUri.AbsolutePath.EndsWith("/excel", StringComparison.Ordinal)
+                ? await api.TaleplerRaporExcel(LastFilter) : await api.TaleplerRaporPdf(LastFilter);
+            if (LastResult is FileContentResult file)
+            {
+                var response = new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(file.FileContents) };
+                response.Content.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+                response.Content.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment") { FileNameStar = file.FileDownloadName };
+                return response;
+            }
+            if (LastResult is ObjectResult error)
+                return new HttpResponseMessage((HttpStatusCode)(error.StatusCode ?? 200)) { Content = JsonContent.Create(error.Value) };
+            throw new InvalidOperationException("Unexpected API result: " + LastResult.GetType().Name);
         }
-        if (LastResult is ObjectResult error)
-            return new HttpResponseMessage((HttpStatusCode)(error.StatusCode ?? 200)) { Content = JsonContent.Create(error.Value) };
-        throw new InvalidOperationException("Unexpected API result: " + LastResult.GetType().Name);
     }
-}
 
-sealed class MemorySession : ISession
-{
-    private readonly Dictionary<string, byte[]> values = [];
-    public string Id { get; } = Guid.NewGuid().ToString("N");
-    public bool IsAvailable => true;
-    public IEnumerable<string> Keys => values.Keys;
-    public void Clear() => values.Clear();
-    public void Remove(string key) => values.Remove(key);
-    public void Set(string key, byte[] value) => values[key] = value;
-    public bool TryGetValue(string key, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out byte[]? value)
-        => values.TryGetValue(key, out value);
-    public Task LoadAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
-    public Task CommitAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
-}
+    internal sealed class MemorySession : ISession
+    {
+        private readonly Dictionary<string, byte[]> values = [];
+        public string Id { get; } = Guid.NewGuid().ToString("N");
+        public bool IsAvailable => true;
+        public IEnumerable<string> Keys => values.Keys;
+        public void Clear() => values.Clear();
+        public void Remove(string key) => values.Remove(key);
+        public void Set(string key, byte[] value) => values[key] = value;
+        public bool TryGetValue(string key, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out byte[]? value)
+            => values.TryGetValue(key, out value);
+        public Task LoadAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task CommitAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+    }
 
-sealed class MemoryTempData : ITempDataProvider
-{
-    public IDictionary<string, object> LoadTempData(HttpContext context) => new Dictionary<string, object>();
-    public void SaveTempData(HttpContext context, IDictionary<string, object> values) { }
+    internal sealed class MemoryTempData : ITempDataProvider
+    {
+        public IDictionary<string, object> LoadTempData(HttpContext context) => new Dictionary<string, object>();
+        public void SaveTempData(HttpContext context, IDictionary<string, object> values) { }
+    }
 }

@@ -44,6 +44,7 @@ public sealed class YkcTesisatApiService(AppDbContext context, UserManager<AppKu
             : firma?.Sirket;
 
         var roller = await _userManager.GetRolesAsync(kullanici);
+        var firmaGorunumu = roller.Contains("SertifikaliFirma") || YkcFirmaSunumu.FirmaKullanicisiMi(kullanici);
         var firmaKodu = OnlineFirmaKodu(firma, sirket);
         var firmaKoduAdaylari = FirmaKoduAdaylari(
             firmaKodu,
@@ -137,7 +138,7 @@ public sealed class YkcTesisatApiService(AppDbContext context, UserManager<AppKu
                 EskiKapasite = cihaz.CihazKapasite,
                 IzinliYeniCihazTipleri = new Dictionary<string, string?>(izinliYeniCihazTipleri, StringComparer.OrdinalIgnoreCase)
             }, cancellationToken);
-            if (roller.Contains("SertifikaliFirma"))
+            if (firmaGorunumu)
             {
                 cihaz.CihazMarka = null;
                 cihaz.CihazKapasite = null;

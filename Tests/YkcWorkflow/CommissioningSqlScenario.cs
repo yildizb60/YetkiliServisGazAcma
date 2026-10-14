@@ -49,6 +49,8 @@ internal static class CommissioningSqlScenario
             Check(rows.Sql.Contains(".[FirmaId] =") && rows.Parameters.Values.Contains(73)
                 && rows.Sql.Contains(".[SilindiMi] = CAST(0 AS bit)") && rows.Parameters.Values.Contains("Kombi"),
                 "History status fast path retains firm, deletion and device filters: " + status);
+            Check(rows.Sql.Contains("OFFSET") && rows.Sql.Contains("FETCH NEXT"),
+                "History loads only one bounded SQL page: " + status);
             Check(history.Toplam == 12 && history.Bekleyen == 3 && history.Tamamlanan == 4 && history.Iptal == 5,
                 "History retains pre-status counters: " + status);
         }
@@ -62,8 +64,13 @@ internal static class CommissioningSqlScenario
             var probe = new HistoryQueryProbe();
             await using var db = HistoryProbeContext(probe);
             await new DevreyeAlmaOkumaApiService(db, null!, null!).GecmisAsync(73, filter);
-            Check(!probe.Commands[0].Sql.Contains("GROUP BY") && !probe.Commands[0].Sql.Contains(".[Durum] ="),
-                "Enriched searches and unfiltered history retain the full pre-status record set");
+            Check(!string.IsNullOrWhiteSpace(filter.SozlesmeNo)
+                    ? probe.Commands[0].Sql.Contains("TOP(") && probe.Commands[0].Sql.Contains("CROSS APPLY OPENJSON")
+                        && !probe.Commands[0].Sql.Contains(".[Durum] =")
+                    : !string.IsNullOrWhiteSpace(filter.Arama)
+                        ? probe.Commands[0].Sql.Contains("FETCH NEXT") && !probe.Commands[0].Sql.Contains(".[Durum] =")
+                        : probe.Commands[0].Sql.Contains("GROUP BY"),
+                "Source searches probe bounded pre-status candidates; ordinary history counts in SQL");
         }
         Console.WriteLine($"{passed} no-database commissioning history checks passed.");
     }
@@ -191,6 +198,60 @@ internal static class CommissioningSqlScenario
                 Options.Create(new IdentityOptions()), new PasswordHasher<AppKullanici>(), [], [],
                 new UpperInvariantLookupNormalizer(), new IdentityErrorDescriber(), null!,
                 NullLogger<UserManager<AppKullanici>>.Instance);
+
+            db.Roles.Add(new IdentityRole("SertifikaliFirma") { NormalizedName = "SERTIFIKALIFIRMA" });
+            await db.SaveChangesAsync();
+            using (var snapshots = new YkcSorguKaydiService())
+            using (var privacyHttp = new HttpClient(new CommissioningSoapHandler()))
+            {
+                var privacyOnline = new OnlineCihazBilgileriClient(privacyHttp,
+                    Options.Create(new OnlineServiceOptions { Enabled = true, Endpoint = "https://online.test/soap" }),
+                    NullLogger<OnlineCihazBilgileriClient>.Instance);
+                var installations = new YkcTesisatApiService(db, manager, privacyOnline, codes, snapshots);
+                foreach (var (label, type, linkedFirm, certifiedRole, hidden) in new[]
+                {
+                    ("role-only", KullaniciTipiDegerleri.Personel, false, true, true),
+                    ("account-type-only", KullaniciTipiDegerleri.SertifikaliFirma, false, false, true),
+                    ("firm-link-only", KullaniciTipiDegerleri.Personel, true, false, true),
+                    ("certified-firm", KullaniciTipiDegerleri.SertifikaliFirma, true, true, true),
+                    ("personnel", KullaniciTipiDegerleri.Personel, false, false, false),
+                    ("company-admin", KullaniciTipiDegerleri.SirketAdmin, false, false, false)
+                })
+                {
+                    var actor = new AppKullanici
+                    {
+                        UserName = "source-privacy-" + label, KullaniciTipi = type,
+                        SirketId = firstFirm.SirketId, FirmaId = linkedFirm ? firstFirm.Id : null
+                    };
+                    db.Users.Add(actor);
+                    await db.SaveChangesAsync();
+                    if (certifiedRole)
+                        Check((await manager.AddToRoleAsync(actor, "SertifikaliFirma")).Succeeded,
+                            "Source privacy fixture assigns the certified role: " + label);
+                    var result = await installations.SorgulaAsync(new()
+                    {
+                        TesisatNo = "1000149", SozlesmeNo = "241584"
+                    }, actor, default);
+                    Check(result.Basarili && result.Cihazlar.Count > 0 && result.Cihazlar.All(device => hidden
+                            ? device.CihazMarka == null && device.CihazKapasite == null
+                                && device.ProjeNo == null && device.CihazTipKodu == null
+                            : !string.IsNullOrEmpty(device.CihazMarka) && !string.IsNullOrEmpty(device.CihazKapasite)
+                                && device.ProjeNo == "PROJECT-1" && !string.IsNullOrEmpty(device.CihazTipKodu)),
+                        "Installation source visibility uses role, account type and firm linkage: " + label);
+                    var selected = result.Cihazlar[0];
+                    var save = new YkcTalepKaydetDto
+                    {
+                        SorguReferansi = selected.SorguReferansi, TesisatNo = "1000149",
+                        SozlesmeNo = "241584", YeniCihazTipi = selected.CihazTipi
+                    };
+                    Check(await snapshots.UygulaAsync(actor.Id, save) && save.EskiMarka == "BAYMAK"
+                        && save.EskiKapasite == "20000" && save.ProjeNo == "PROJECT-1"
+                        && save.EskiCihazTipiKodu == "K" && save.FirmaId == actor.FirmaId,
+                        "Presentation masking preserves authoritative server-side source data: " + label);
+                    Check(!await snapshots.UygulaAsync(secondUser.Id, save),
+                        "Source references remain bound to their owner: " + label);
+                }
+            }
 
             YetkiliServisDevreyeAlmaApiController Controller(AppKullanici user)
             {

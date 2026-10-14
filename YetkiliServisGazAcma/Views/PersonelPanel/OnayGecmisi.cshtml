@@ -62,7 +62,16 @@
                     var onayli = belge.Durum == YetkiBelgesiDurumDegerleri.Onaylandi;
                     <tr>
                         <td><div class="df-cell-main">@(belge.FirmaAdi ?? "-")</div>@if (!string.IsNullOrWhiteSpace(belge.VergiNo)) { <div class="df-cell-sub">Vergi No: @belge.VergiNo</div> }</td>
-                        <td><time datetime="@belge.YetkiBelgesiBitisTarihi.GetValueOrDefault().ToString("yyyy-MM-dd")">@belge.YetkiBelgesiBitisTarihi.GetValueOrDefault().ToString("dd.MM.yyyy")</time></td>
+                        <td>
+                            @if (belge.YetkiBelgesiBitisTarihi.HasValue)
+                            {
+                                <time datetime="@belge.YetkiBelgesiBitisTarihi.Value.ToString("yyyy-MM-dd")">@belge.YetkiBelgesiBitisTarihi.Value.ToString("dd.MM.yyyy")</time>
+                            }
+                            else
+                            {
+                                <span>Tanımlı değil</span>
+                            }
+                        </td>
                         <td>@(string.IsNullOrWhiteSpace(belge.OnaylayanKullanici) ? "-" : belge.OnaylayanKullanici)</td>
                         <td><span class="df-certificate-status @(onayli ? "is-approved" : "is-rejected")"><i class="bi @(onayli ? "bi-check-circle" : "bi-x-circle")" aria-hidden="true"></i>@(onayli ? "Onaylandı" : "Reddedildi")</span></td>
                         <td>@(belge.OnayTarihi?.ToString("dd.MM.yyyy HH:mm") ?? "-")</td>

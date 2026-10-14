@@ -58,8 +58,10 @@ namespace YetkiliServisGazAcma.API.Services
             if (bitTarih.HasValue)
                 query = query.Where(x => x.DevreyeAlmaTarihi < bitTarih.Value.AddDays(1));
 
-            var islemler = await DevreyeAlmaKaynakBilgisi.ListeleAsync(_context,
-                DevreyeAlmaKaynakBilgisi.Sirala(query, dto?.Siralama), dto?.SozlesmeNo, dto?.Arama);
+            var sonuc = await DevreyeAlmaSayfalama.GetirAsync(_context, query, dto?.Siralama,
+                dto?.SozlesmeNo, dto?.Arama, dto?.Sayfa ?? 1, dto?.SayfaBoyutu ?? 20,
+                odakKayitId: dto?.OdakKayitId);
+            var islemler = sonuc.Kayitlar;
             var firmaIds = islemler.Select(x => x.FirmaId).Distinct().ToList();
             var subeler = await _context.Ys_Subeler
                 .Where(x => !x.SilindiMi && firmaIds.Contains(x.FirmaId))
@@ -86,6 +88,7 @@ namespace YetkiliServisGazAcma.API.Services
             return new AdminDevreyeAlmaListeDto
             {
                 Islemler = islemler.Select(AdminDevreyeAlmaDto.FromEntity).ToList(),
+                Sayfalama = sonuc.Sayfalama,
                 CihazTipleri = cihazTipleri,
                 Sehirler = _sehirFirmaKoduService?.Sehirler() ?? new List<string>(),
                 Markalar = markalar,

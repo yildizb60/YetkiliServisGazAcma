@@ -376,7 +376,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         }
 
         [HttpPost("talepler/form-pdf")]
-        [Produces("application/pdf")]
+        [Produces("application/pdf", "application/json")]
         public async Task<IActionResult> FormPdf([FromBody] YkcTalepGetirIstek? istek)
         {
             var kullanici = await AktifKullaniciAsync();
