@@ -7,6 +7,7 @@ reviews:
   path_filters:
     - ".coderabbit.yaml"
     - "YetkiliServisGazAcma.API/**"
+    - "!YetkiliServisGazAcma.API/Swagger/ApiSwaggerResponseOperationFilter.cs"
     - "YetkiliServisGazAcma.Core/**"
     - "!YetkiliServisGazAcma.Core/Business/Services/Export/**"
     - "!YetkiliServisGazAcma.Core/Entities/**"
