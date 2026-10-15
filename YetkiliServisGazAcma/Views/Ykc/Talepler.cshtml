@@ -17,7 +17,7 @@
     var ilkKayit = Model.Toplam == 0 ? 0 : ((aktifSayfa - 1) * Model.SayfaBoyutu) + 1;
     var sonKayit = Math.Min(aktifSayfa * Model.SayfaBoyutu, Model.Toplam);
     var kolonSayisi = icOperasyonGorsun ? 11 : 9;
-    var raporGorebilir = (ViewBag.YkcYetkileri as YkcYetkiOzeti)?.RaporlariGorebilir == true;
+    var disariAktarabilir = (ViewBag.YkcYetkileri as YkcYetkiOzeti)?.TalepleriDisariAktarabilir == true;
     var aktarim = SayfaDegerleri(filtre, aktifSayfa);
     aktarim["kaynak"] = "talepler";
     aktarim["sayfaBoyutu"] = Model.SayfaBoyutu;
@@ -137,7 +137,7 @@
 }
 
 <div class="ykc-workspace ykc-list-page df-record-directory" data-history-directory data-directory-form="#ykcFilters" data-directory-panel="#ykcFiltersPanel" data-directory-export-all data-storage-key="ykc-requests-view">
-    <partial name="_KayitListeAracCubugu" model="@(new KayitListeAracCubuguViewModel { Baslik = ViewData["Title"]?.ToString() ?? "Cihaz Değişim Talepleri", KayitSayisi = Model.Toplam, KayitVar = Model.Talepler.Any(), FormId = "ykcFilters", PanelId = "ykcFiltersPanel", TumFiltrelenenKayitlar = true, PdfUrl = raporGorebilir ? Url.Action("RaporPdf", "Ykc", aktarim) : null, ExcelUrl = raporGorebilir ? Url.Action("RaporExcel", "Ykc", aktarim) : null, YeniKayitUrl = sertifikaliFirmaMi ? Url.Action("Yeni", "Ykc") : null, YeniKayitEtiketi = "Yeni Talep" })" />
+    <partial name="_KayitListeAracCubugu" model="@(new KayitListeAracCubuguViewModel { Baslik = ViewData["Title"]?.ToString() ?? "Cihaz Değişim Talepleri", KayitSayisi = Model.Toplam, KayitVar = Model.Talepler.Any(), FormId = "ykcFilters", PanelId = "ykcFiltersPanel", TumFiltrelenenKayitlar = true, PdfUrl = disariAktarabilir ? Url.Action("RaporPdf", "Ykc", aktarim) : null, ExcelUrl = disariAktarabilir ? Url.Action("RaporExcel", "Ykc", aktarim) : null, YeniKayitUrl = sertifikaliFirmaMi ? Url.Action("Yeni", "Ykc") : null, YeniKayitEtiketi = "Yeni Talep" })" />
     <h1 class="ykc-list-accessible-title">@ViewData["Title"]</h1>
 
     <details id="ykcFiltersPanel" class="ykc-filter-panel" open="@(aktifFiltreler.Any() && string.IsNullOrEmpty(filtre.BekleyenIs) ? "open" : null)">
@@ -281,7 +281,7 @@
                         <th class="ykc-device-type-heading ykc-column-separated" data-directory-column="type" data-directory-fields="cihazTipi">Yakıcı Cihaz Tipi</th>
                         @if (icOperasyonGorsun)
                         {
-                            <th class="ykc-column-separated">Projedeki Cihaz</th>
+                            <th scope="col" class="ykc-column-separated"><div class="ys-history-column-heading"><span>Projedeki Cihaz</span></div></th>
                         }
                         <th class="ykc-column-separated" data-directory-column="device" data-directory-fields="marka">Yeni Kullanılan Cihaz</th>
                         <th class="ykc-column-separated" data-directory-column="date" data-directory-fields="randevuBas randevuBit">Kontrol Randevusu</th>
@@ -326,11 +326,11 @@
                                 @if (icOperasyonGorsun)
                                 {
                                     <td data-label="Projedeki Cihaz" class="ykc-project-device-cell ykc-column-separated">
-                                        <partial name="_YkcCihazDegisimBasligi" />
-                                        <div class="ykc-device-summary is-project"><strong title="Marka: @Deger(talep.ProjedekiCihazBilgisi?.Marka)">@Deger(talep.ProjedekiCihazBilgisi?.Marka)</strong><span title="Baca tipi"><i class="bi bi-wind" aria-hidden="true"></i><span class="ykc-device-fact-label">Baca:</span> @Deger(talep.ProjedekiCihazBilgisi?.BacaTipi)</span><span title="Kapasite"><i class="bi bi-speedometer2" aria-hidden="true"></i><span class="ykc-device-fact-label">Kapasite:</span> @Deger(talep.ProjedekiCihazBilgisi?.Kapasite) kcal/h</span></div>
+                                        <i class="bi bi-arrow-right-short ykc-device-change-arrow" aria-hidden="true"></i>
+                                        <div class="ykc-device-summary is-project"><strong title="Marka: @Deger(talep.ProjedekiCihazBilgisi?.Marka)">@Deger(talep.ProjedekiCihazBilgisi?.Marka)</strong><span title="Baca tipi"><i class="bi bi-wind" aria-hidden="true"></i><span class="ykc-device-fact-label">Baca tipi:</span> @Deger(talep.ProjedekiCihazBilgisi?.BacaTipi)</span><span title="Kapasite"><i class="bi bi-speedometer2" aria-hidden="true"></i><span class="ykc-device-fact-label">Kapasite:</span> @Deger(talep.ProjedekiCihazBilgisi?.Kapasite) kcal/h</span></div>
                                     </td>
                                 }
-                                <td class="ykc-column-separated" data-label="Yeni Kullanılan Cihaz"><div class="ykc-device-summary is-new"><strong title="Marka: @Deger(talep.YeniCihazBilgisi?.Marka)">@Deger(talep.YeniCihazBilgisi?.Marka)</strong><span title="Baca tipi"><i class="bi bi-wind" aria-hidden="true"></i><span class="ykc-device-fact-label">Baca:</span> @Deger(talep.YeniCihazBilgisi?.BacaTipi)</span><span title="Kapasite"><i class="bi bi-speedometer2" aria-hidden="true"></i><span class="ykc-device-fact-label">Kapasite:</span> @Deger(talep.YeniCihazBilgisi?.Kapasite) kcal/h</span></div></td>
+                                <td class="ykc-column-separated" data-label="Yeni Kullanılan Cihaz"><div class="ykc-device-summary is-new"><strong title="Marka: @Deger(talep.YeniCihazBilgisi?.Marka)">@Deger(talep.YeniCihazBilgisi?.Marka)</strong><span title="Baca tipi"><i class="bi bi-wind" aria-hidden="true"></i><span class="ykc-device-fact-label">Baca tipi:</span> @Deger(talep.YeniCihazBilgisi?.BacaTipi)</span><span title="Kapasite"><i class="bi bi-speedometer2" aria-hidden="true"></i><span class="ykc-device-fact-label">Kapasite:</span> @Deger(talep.YeniCihazBilgisi?.Kapasite) kcal/h</span></div></td>
                                 <td class="ykc-column-separated" data-label="Kontrol Randevusu">
                                     @if (randevuPlanli)
                                     {

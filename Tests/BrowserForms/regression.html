@@ -446,7 +446,7 @@
         assert(ykcDirectories.length === 8, 'Run WebNavigation and this server with the same YSGA_RAZOR_FIXTURE_DIR first');
     });
     for (const fixture of ykcDirectories) {
-        for (const width of [2560, 1920, 1440, 1280, 1260, 1024, 768, 520, 390, 320]) {
+        for (const width of [2560, 1920, 1800, 1480, 1440, 1280, 1260, 1024, 768, 520, 390, 320]) {
             await test(`YKC directory ${fixture.role} ${fixture.page} preserves filters, selection and grid at ${width}px`, async (doc, win, load) => {
                 win.frameElement.style.width = `${width}px`;
                 win.frameElement.style.height = '850px';
@@ -464,13 +464,18 @@
                 const parsed = new win.DOMParser().parseFromString(fixture.html, 'text/html');
                 const markup = parsed.querySelector('[data-history-directory]');
                 assert(markup?.classList.contains('df-record-directory'), 'Compiled role does not use the shared directory');
-                doc.body.innerHTML = markup.outerHTML + (parsed.querySelector('#ykcReportDetailModal')?.outerHTML || '');
+                doc.body.innerHTML = `<main class="content">${markup.outerHTML}</main>` + (parsed.querySelector('#ykcReportDetailModal')?.outerHTML || '');
                 const root = doc.querySelector('[data-history-directory]');
-                root.style.marginLeft = width > 1000 ? '230px' : '12px';
-                root.style.marginRight = '24px';
-                root.style.width = `${width - (width > 1000 ? 254 : 36)}px`;
-                assert(Math.abs(root.getBoundingClientRect().width - Number.parseFloat(root.style.width)) <= 1,
-                    'List directories must fill the available workspace instead of staying narrow and centered');
+                const content = doc.querySelector('.content');
+                content.style.marginLeft = width > 1000 ? '230px' : '0';
+                const assertWorkspaceWidth = message => {
+                    const style = win.getComputedStyle(content);
+                    const available = content.getBoundingClientRect().width - Number.parseFloat(style.paddingLeft) - Number.parseFloat(style.paddingRight);
+                    assert(Math.abs(root.getBoundingClientRect().width - available) <= 1, message);
+                    assert(doc.documentElement.scrollWidth <= doc.documentElement.clientWidth + 1,
+                        'The directory creates horizontal page overflow');
+                };
+                assertWorkspaceWidth('List directories must fill the available workspace instead of staying narrow and centered');
                 assert(root.querySelector('.ys-history-heading h2').getBoundingClientRect().width <= 1,
                     'Toolbar repeats the page title already present in the breadcrumb');
                 const key = `${root.dataset.storageKey}:view`;
@@ -481,6 +486,66 @@
                 load('history');
                 if (fixture.page === 'reports') load('report');
                 await doc.fonts.ready;
+                // Finish the fixture resize before testing menus that close on resize.
+                await new Promise(resolve => win.requestAnimationFrame(() => win.requestAnimationFrame(resolve)));
+                assert(Number.parseFloat(win.getComputedStyle(root.parentElement).paddingTop) === 12,
+                    'Directory toolbar must not inherit excessive page-top padding');
+                if (root.querySelector('.ykc-table-scroll').clientWidth >= 980) {
+                    const typeHeading = root.querySelector('th[data-directory-column="type"] .ys-history-column-heading');
+                    const deviceColumn = typeHeading.closest('th').nextElementSibling;
+                    const deviceHeading = deviceColumn.querySelector('.ys-history-column-heading') || deviceColumn;
+                    const typeEnd = typeHeading.lastElementChild.getBoundingClientRect().right;
+                    const deviceStart = deviceHeading.getBoundingClientRect().left
+                        + (deviceHeading === deviceColumn ? Number.parseFloat(win.getComputedStyle(deviceColumn).paddingLeft) : 0);
+                    assert(deviceStart - typeEnd >= (fixture.role === 'SertifikaliFirma' ? 20 : 12),
+                        'Device type and the adjacent device heading need a clear horizontal separation');
+                    const deviceCell = root.querySelector(fixture.role === 'SertifikaliFirma'
+                        ? 'td[data-label="Yeni Kullanılan Cihaz"]' : 'td[data-label="Projedeki Cihaz"]');
+                    assert(win.getComputedStyle(deviceCell).paddingLeft === win.getComputedStyle(deviceHeading.closest('th')).paddingLeft,
+                        'Device heading and rows must use matching insets');
+                }
+                if (fixture.page === 'reports') {
+                    const insights = root.querySelector('.ykc-report-insights');
+                    const breakdowns = [...insights.querySelectorAll('.ykc-report-breakdown')];
+                    const toolbar = root.querySelector('.ykc-report-toolbar');
+                    const results = root.querySelector('.ykc-results');
+                    const resultsTop = results.getBoundingClientRect().top;
+                    assert(breakdowns.length === 1 && !breakdowns[0].open && breakdowns[0].classList.contains('ys-history-menu'),
+                        'Report distributions must share one initially closed toolbar menu');
+                    assert(win.getComputedStyle(insights).display === 'contents' && insights.getBoundingClientRect().height === 0,
+                        'Report summary must not reserve a separate vertical band');
+                    if (root.clientWidth >= 980) {
+                        const metrics = insights.querySelector('.ykc-report-metrics').getBoundingClientRect();
+                        const heading = root.querySelector('.ys-history-heading').getBoundingClientRect();
+                        assert(toolbar.getBoundingClientRect().height <= 40 && Math.abs(metrics.top - heading.top) <= 5,
+                            'Wide report toolbar must keep count, metrics and controls on one compact row');
+                    }
+                    for (const item of breakdowns) {
+                        item.querySelector('summary').click();
+                        await new Promise(resolve => win.requestAnimationFrame(() => win.requestAnimationFrame(resolve)));
+                        assert(item.open && item.querySelectorAll('.ykc-report-distribution-group').length === 2,
+                            `One menu must expose both team and role-appropriate distribution groups (open=${item.open})`);
+                        const panel = item.querySelector('.ykc-report-distribution');
+                        const bounds = panel.getBoundingClientRect();
+                        assert(bounds.width > 0 && bounds.height > 0 && bounds.left >= 11 && bounds.right <= doc.documentElement.clientWidth - 11,
+                            'Report distribution must fit inside the viewport');
+                        assert(panel.scrollWidth <= panel.clientWidth + 1, 'Long distribution names must wrap without horizontal overflow');
+                        assert(Math.abs(results.getBoundingClientRect().top - resultsTop) <= 1, 'Opening a distribution pushes records down');
+                    }
+                    doc.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+                    assert(!breakdowns[0].open && doc.activeElement === breakdowns[0].querySelector('summary'),
+                        'Escape must close the distribution and return keyboard focus');
+                    breakdowns[0].querySelector('summary').click();
+                    root.querySelector('.ykc-report-metrics').click();
+                    assert(!breakdowns[0].open, 'Clicking outside must close the distribution');
+                    breakdowns[0].querySelector('summary').click();
+                    await new Promise(resolve => win.requestAnimationFrame(resolve));
+                    const orderMenu = [...root.querySelectorAll('.ys-history-menu')].find(menu => menu.querySelector('#historyOrder'));
+                    orderMenu.querySelector('summary').click();
+                    await new Promise(resolve => win.requestAnimationFrame(() => win.requestAnimationFrame(resolve)));
+                    assert(orderMenu.open && !breakdowns[0].open, 'Distribution and sort must use the same mutually exclusive menu behavior');
+                    doc.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+                }
                 const form = root.querySelector('#ykcFilters');
                 let submitted;
                 form.addEventListener('submit', event => { event.preventDefault(); submitted = new win.FormData(form); });
@@ -501,6 +566,23 @@
                 assert(submitted.get('q') === '000943' && submitted.get('sirala') === 'abone-artan', 'Search or sort does not reach the API-bound form');
                 assert([...form.querySelectorAll('input,select')].every(control => submitted.getAll(control.name).length === 1), 'Column filters duplicate submitted fields');
                 const records = [...root.querySelectorAll('[data-directory-record]')];
+                const assertDeviceArrowCenter = () => {
+                    for (const record of records) {
+                        const arrow = record.querySelector('.ykc-device-change-arrow');
+                        if (fixture.role === 'SertifikaliFirma') {
+                            assert(!arrow, 'Firm records must not reveal a project-device comparison');
+                            continue;
+                        }
+                        const source = record.querySelector('.is-project').getBoundingClientRect();
+                        const target = record.querySelector('.is-new').getBoundingClientRect();
+                        const bounds = arrow.getBoundingClientRect();
+                        assert(Math.abs((bounds.left + bounds.right) / 2 - (source.right + target.left) / 2) <= 1,
+                            'Device arrow must be centered between the two content blocks');
+                        assert(bounds.left >= source.right + 4 && bounds.right <= target.left - 4,
+                            'Device arrow must leave visible space on both sides');
+                    }
+                };
+                assertDeviceArrowCenter();
                 assertRecordActionScale(root, win);
                 const assertSubscriberTypography = () => assert([...root.querySelectorAll('.ykc-directory-customer .ykc-primary-cell,.ykc-report-customer-cell .ykc-cell-main')].every(name => {
                     const style = win.getComputedStyle(name);
@@ -528,6 +610,11 @@
                         && values[1].textContent.trim() === '09:00', 'Date and time must stay intact');
                     assert(values[0].querySelector('.bi-calendar3[aria-hidden="true"]')
                         && values[1].querySelector('.bi-clock[aria-hidden="true"]'), 'Date and time need their own decorative icons');
+                    assert(Math.abs(values[0].getBoundingClientRect().top - values[1].getBoundingClientRect().top) <= 1,
+                        'Scheduled date and time must share one line, including repeat controls');
+                    const number = scheduled.querySelector('.ykc-appointment-number');
+                    if (number) assert(number.getBoundingClientRect().bottom <= values[0].getBoundingClientRect().top,
+                        'Repeat-control number must occupy its own line above the date and time');
                     const bounds = scheduled.closest('td').getBoundingClientRect();
                     assert(values.every(value => {
                         const style = win.getComputedStyle(value);
@@ -539,6 +626,12 @@
                     }), 'Scheduled date/time must remain legible, complete and inside their column');
                 };
                 assertScheduledTypography();
+                if (fixture.page === 'requests') {
+                    const scheduled = root.querySelector('.ykc-scheduled-appointment');
+                    scheduled.insertAdjacentHTML('afterbegin', '<span class="ykc-appointment-number">2. kontrol</span>');
+                    assertScheduledTypography();
+                    scheduled.querySelector('.ykc-appointment-number').remove();
+                }
                 if (fixture.page === 'requests') {
                     assert([...root.querySelectorAll('.is-pending-appointment')].every(appointment =>
                         appointment.textContent.trim() === 'Randevu planlanacak' && appointment.title === 'Randevu planlanacak'),
@@ -639,6 +732,38 @@
                 master.click();
                 assert(checks.every(input => input.checked) && master.checked, 'Shared select-all cannot select the current page');
                 const listContainer = root.querySelector('.ykc-table-scroll');
+                if (fixture.page === 'requests') {
+                    const summaries = [...records[0].querySelectorAll('.ykc-device-summary')];
+                    assert(summaries.every(summary => win.getComputedStyle(summary.querySelector('strong'), '::before').content.includes('Marka:')),
+                        'Both request device brands need an explicit label in list view');
+                    if (listContainer.clientWidth >= 980 && fixture.role !== 'SertifikaliFirma') {
+                        const company = records[0].querySelector('.ykc-list-company-cell .ykc-primary-cell');
+                        const installation = records[0].querySelector('.ykc-list-installation-cell .ykc-primary-cell');
+                        assert(installation.getBoundingClientRect().left - company.getBoundingClientRect().right >= 23,
+                            'Company and installation content need a visible column gutter');
+                        const projectHeading = [...root.querySelectorAll('thead .ys-history-column-heading > span')].find(caption => caption.textContent === 'Projedeki Cihaz');
+                        const newHeading = root.querySelector('th[data-directory-column="device"] .ys-history-column-heading > span');
+                        assert(projectHeading && newHeading && ['fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'color'].every(property =>
+                            win.getComputedStyle(projectHeading)[property] === win.getComputedStyle(newHeading)[property])
+                            && Math.abs(projectHeading.getBoundingClientRect().top - newHeading.getBoundingClientRect().top) <= 1,
+                            'Project and replacement headings must use the same typography and baseline');
+                    }
+                    if (listContainer.clientWidth > 1180) {
+                        for (const summary of summaries) {
+                            for (const fact of summary.querySelectorAll(':scope > span')) {
+                                const label = fact.querySelector('.ykc-device-fact-label');
+                                assert(label && ['Baca tipi:', 'Kapasite:'].includes(label.textContent.trim()),
+                                    'Device facts must identify the flue type and capacity');
+                                const range = doc.createRange();
+                                range.selectNodeContents(fact);
+                                const lines = [...range.getClientRects()].filter(rect => rect.width > 0 && rect.height > 0);
+                                assert(lines.length > 0 && Math.max(...lines.map(rect => rect.top)) - Math.min(...lines.map(rect => rect.top)) < 3
+                                    && fact.scrollWidth <= fact.clientWidth + 1,
+                                    'Device label, capacity and unit must fit on one readable line without clipping');
+                            }
+                        }
+                    }
+                }
                 if (listContainer.clientWidth > 1180) {
                     for (const [first, second] of [['Tesisat No', 'Sözleşme No'], ['Projedeki Cihaz', 'Yeni Kullanılan Cihaz']]) {
                         const left = records[0].querySelector(`[data-label="${first}"]`);
@@ -657,9 +782,21 @@
                     const numberCell = records[0].querySelector('[data-label="Talep No"]');
                     const customerCell = records[0].querySelector('[data-label="Abone Adı Soyadı"]');
                     const customer = customerCell.querySelector('.ykc-primary-cell,.ykc-cell-main');
-                    assert(numberCell.getBoundingClientRect().width <= 65 &&
+                    assert(numberCell.getBoundingClientRect().width <= 61 &&
                         customerCell.getBoundingClientRect().width >= (fixture.page === 'requests' ? 104 : 120),
                         'Request number takes space reserved for the customer name');
+                    const number = numberCell.querySelector('.ykc-code');
+                    const originalNumber = number.textContent;
+                    number.textContent = '#123456';
+                    const numberRange = doc.createRange();
+                    numberRange.selectNodeContents(number);
+                    const numberBounds = numberRange.getBoundingClientRect();
+                    assert(numberRange.getClientRects().length === 1 &&
+                        numberBounds.left >= numberCell.getBoundingClientRect().left &&
+                        numberBounds.right <= numberCell.getBoundingClientRect().right &&
+                        number.parentElement.scrollWidth <= number.parentElement.clientWidth + 1,
+                        'A six-digit request number must remain readable in the compact column');
+                    number.textContent = originalNumber;
                     assert(customerCell.getBoundingClientRect().width <= Math.max(200, listContainer.clientWidth * .19),
                         'Subscriber column takes excessive width from device information');
                     const customerText = customer.textContent;
@@ -683,7 +820,12 @@
                         range.selectNodeContents(caption);
                         return range.getClientRects().length === 1 && caption.scrollWidth <= caption.clientWidth + 1;
                     }), 'Desktop directory headings wrap onto another line');
-                    assert(records.every(row => [...row.querySelectorAll('td')].every(cell => cell.scrollWidth <= cell.clientWidth + 1)),
+                    assert(records.every(row => [...row.querySelectorAll('td')].every(cell => {
+                        // The comparison arrow may straddle the boundary inside the shared device gutter.
+                        const arrow = cell.querySelector('.ykc-device-change-arrow');
+                        const gutter = arrow ? Math.max(0, arrow.getBoundingClientRect().right - cell.getBoundingClientRect().right) : 0;
+                        return cell.scrollWidth <= cell.clientWidth + Math.ceil(gutter) + 1;
+                    })),
                         'Desktop record facts overflow into the next column');
                     assert([...root.querySelectorAll('.is-pending-appointment')].every(appointment => {
                         const range = doc.createRange();
@@ -698,7 +840,7 @@
                 // The toggle is synchronous; geometry reads below flush the grid layout even in a background tab.
                 await doc.fonts.ready;
                 assert(root.dataset.view === 'cards' && win.getComputedStyle(root.querySelector('tbody')).display === 'grid', 'Grid mode does not make cards');
-                assert(Math.abs(root.getBoundingClientRect().width - Number.parseFloat(root.style.width)) <= 1,
+                assertWorkspaceWidth(
                     'Grid directories must fill the workspace instead of centering a narrow block');
                 assertRecordActionScale(root, win);
                 assertPendingTypography();
@@ -748,18 +890,35 @@
                     const badge = record.querySelector('.df-device-type-tag');
                     const nameBounds = customer.getBoundingClientRect();
                     const badgeBounds = badge.getBoundingClientRect();
+                    const subscriberLabel = win.getComputedStyle(customer, '::before');
+                    assert(subscriberLabel.content.replaceAll('"', '').trim() === 'Abone:'
+                        && contrastRatio(subscriberLabel.color, cardColor) >= 4.5,
+                        'Every YKC card must identify the name as Abone with a readable label');
                     const action = record.querySelector('.ykc-detail-action');
                     if (action) {
                         const actionBounds = action.getBoundingClientRect();
-                        assert(action.title && actionBounds.left >= badgeBounds.right + 4
-                            && actionBounds.bottom <= nameBounds.top,
-                            'Report eye target must clear the badge and customer name and retain its tooltip');
+                        const recordNumber = record.querySelector('.ykc-code').getBoundingClientRect();
+                        assert(action.title && actionBounds.left >= recordNumber.right + 4
+                            && actionBounds.bottom <= nameBounds.top && actionBounds.width <= 26,
+                            'Report eye target must stay compact, clear the record number and subscriber, and retain its tooltip');
                     }
                     const idBounds = record.querySelector('.ykc-directory-record-id,.ykc-report-record-cell').getBoundingClientRect();
-                    assert(Math.abs(idBounds.top - badgeBounds.top) <= 1 && idBounds.right < badgeBounds.left,
-                        'Record ID and device badge must share the utility row in every role');
-                    assert(badgeBounds.bottom <= nameBounds.top && nameBounds.width >= record.clientWidth - 30,
-                        'Device type belongs in the utility row so the customer has the full card width');
+                    {
+                        const identifiers = record.querySelector('.ykc-list-installation-cell,.ykc-report-installation-cell').getBoundingClientRect();
+                        const type = record.querySelector('[data-label="Yakıcı Cihaz Tipi"]');
+                        assert(idBounds.bottom <= nameBounds.top && identifiers.top > nameBounds.bottom
+                            && badgeBounds.top >= identifiers.bottom && win.getComputedStyle(type, '::before').display !== 'none',
+                            'YKC cards must follow record, subscriber, identifiers, labelled device type order');
+                        const identityEnd = record.querySelector('.ykc-list-company-cell,.ykc-report-company-cell') || record.querySelector('.ykc-directory-customer,.ykc-report-customer-cell');
+                        assert(Number.parseFloat(win.getComputedStyle(identityEnd).borderBottomWidth) >= .7
+                            && win.getComputedStyle(record.querySelector('.ykc-action-cell,.ykc-report-status-cell'), '::before').content.includes('Durum:'),
+                            'YKC cards need a separated identity header and labelled status footer');
+                        const recordLabel = record.querySelector('.ykc-directory-record-id,.ykc-report-record-cell');
+                        assert(Math.abs(nameBounds.left - recordLabel.getBoundingClientRect().left - 23) <= 1
+                            && win.getComputedStyle(recordLabel, '::before').content.includes('Talep'),
+                            'Request number and Abone must share the same indented identity alignment');
+                    }
+                    assert(nameBounds.width >= record.clientWidth - 54, 'Subscriber name must retain available width after the selection inset');
                     assert(Number.parseFloat(win.getComputedStyle(record).rowGap) >= 3,
                         'Card rows need consistent breathing room');
                     const company = record.querySelector('.ykc-list-company-cell,.ykc-report-company-cell');
@@ -767,21 +926,44 @@
                         'Company metadata must sit below the customer instead of crowding the utility row');
                 }
                 assert([...root.querySelectorAll('.df-device-type-tag')].every(badge => badge.getBoundingClientRect().height <= 19), 'Device badges are oversized for a grid card');
-                assert([...root.querySelectorAll('.ykc-device-summary,.ykc-device-column')].every(device => device.getBoundingClientRect().height <= 82), 'Device comparison unnecessarily extends the card');
+                assertDeviceArrowCenter();
+                assert([...root.querySelectorAll('.ykc-device-summary,.ykc-device-column')].every(device => device.getBoundingClientRect().height <= (device.querySelector('.ykc-device-model-name') ? 64 : 53)), 'Device comparison unnecessarily extends the card');
                 if (fixture.role !== 'SertifikaliFirma') {
-                    const heading = records[0].querySelector('.ykc-device-change-heading');
-                    assert(heading && win.getComputedStyle(heading).display === 'flex', 'Shared device comparison heading is missing');
-                    const captions = [...heading.querySelectorAll('span')];
-                    assert(captions.map(caption => caption.textContent.trim()).join('|') === 'Projedeki Cihaz|Yeni Kullanılan Cihaz', 'Device comparison captions are abbreviated');
+                    assert(!records[0].querySelector('.ykc-device-change-heading'), 'Cards must not duplicate their individual device captions');
                     const arrow = records[0].querySelector('.ykc-device-change-arrow');
                     assert(arrow && win.getComputedStyle(arrow, '::before').content !== 'none', 'Comparison arrow is missing');
-                    assert(captions[0].getBoundingClientRect().right < captions[1].getBoundingClientRect().left
-                        && heading.scrollWidth <= heading.clientWidth + 1, 'Full comparison captions overlap or overflow');
                     const source = records[0].querySelector('.is-project');
                     const target = records[0].querySelector('.is-new');
+                    {
+                        assert(Math.abs(source.getBoundingClientRect().width - target.getBoundingClientRect().width) <= 1,
+                            'Project and replacement device facts must use equal widths');
+                        for (const [index, label] of ['Marka:', 'Baca tipi:', 'Kapasite:'].entries()) {
+                            const left = source.children[index], right = target.children[index];
+                            const caption = index === 0 ? win.getComputedStyle(left, '::before').content : left.querySelector('.ykc-device-fact-label').textContent;
+                            assert(caption.includes(label) && Math.abs(left.getBoundingClientRect().top - right.getBoundingClientRect().top) <= 1
+                                && Math.abs(left.getBoundingClientRect().height - right.getBoundingClientRect().height) <= 1,
+                                `${label} must be explicit and aligned in both device columns`);
+                            assert(left.getBoundingClientRect().height <= 17 && right.getBoundingClientRect().height <= 17,
+                                `${label} must remain a single comparison row, not a label above a value`);
+                            const labelStyle = index === 0 ? win.getComputedStyle(left, '::before') : win.getComputedStyle(left.querySelector('.ykc-device-fact-label'));
+                            const duplicateStyle = index === 0 ? win.getComputedStyle(right, '::before') : win.getComputedStyle(right.querySelector('.ykc-device-fact-label'));
+                            assert(labelStyle.clipPath === 'none' && Number.parseFloat(labelStyle.left) === -50
+                                && duplicateStyle.clipPath !== 'none',
+                                'Device comparison must show one shared label beside both values');
+                            if (index === 2) assert([left, right].every(value => value.scrollWidth <= value.clientWidth + 1
+                                && value.scrollHeight <= value.clientHeight + 1),
+                                'Capacity and kcal/h must remain visible together on one line');
+                        }
+                        for (const [device, title] of [[source, 'Projedeki'], [target, 'Yeni cihaz']]) {
+                            const cell = device.parentElement;
+                            const caption = win.getComputedStyle(cell, '::before');
+                            assert(caption.display === 'block' && caption.content.includes(title) && caption.whiteSpace === 'nowrap'
+                                && Math.abs(cell.getBoundingClientRect().left - device.getBoundingClientRect().left) <= 1,
+                                'Each device caption must align with its own facts');
+                        }
+                    }
                     const arrowBox = arrow.getBoundingClientRect();
-                    assert(arrowBox.top >= heading.getBoundingClientRect().bottom + 4
-                        && arrowBox.top >= source.getBoundingClientRect().top && arrowBox.bottom <= target.getBoundingClientRect().bottom + 1
+                    assert(arrowBox.top >= source.getBoundingClientRect().top && arrowBox.bottom <= target.getBoundingClientRect().bottom + 1
                         && arrowBox.left >= source.getBoundingClientRect().right - 2 && arrowBox.right <= target.getBoundingClientRect().left + 2,
                         'Comparison arrow must sit between product facts below their captions');
                 } else {
@@ -790,20 +972,13 @@
                 }
                 for (const record of records) {
                     const bounds = record.getBoundingClientRect();
-                    if (singleColumn) {
-                        assert(win.getComputedStyle(record).aspectRatio === 'auto' && bounds.height < 270,
-                            'Single-column YKC cards must fit their contents without square-card whitespace');
+                    {
+                        assert(win.getComputedStyle(record).aspectRatio === 'auto' && bounds.height < (fixture.role !== 'SertifikaliFirma' ? 285 : 255),
+                            'YKC cards must remain compact, including optional model and signature rows');
                         const devices = [...record.querySelectorAll('[data-label="Projedeki Cihaz"],[data-label="Yeni Kullanılan Cihaz"]')];
                         const next = record.querySelector('[data-label="Kontrol Randevusu"],.ykc-report-team-cell,.ykc-report-status-cell');
                         assert(next.getBoundingClientRect().top - Math.max(...devices.map(cell => cell.getBoundingClientRect().bottom)) <= 14,
-                            'Single-column cards leave excessive space after the device comparison');
-                    } else {
-                        assert(Math.abs(bounds.width - bounds.height) <= 2, 'Multi-column YKC grid cards must be square');
-                        assert(bounds.width <= 300, 'Wide displays must not produce oversized empty square cards');
-                        const devices = [...record.querySelectorAll('[data-label="Projedeki Cihaz"],[data-label="Yeni Kullanılan Cihaz"]')];
-                        const next = record.querySelector('[data-label="Kontrol Randevusu"],.ykc-report-team-cell,.ykc-report-status-cell');
-                        assert(next.getBoundingClientRect().top - Math.max(...devices.map(cell => cell.getBoundingClientRect().bottom)) <= 32,
-                            'Card spacing must be distributed instead of accumulating below the device facts');
+                            'Cards leave excessive space after the device comparison');
                     }
                     assert([...record.querySelectorAll('td[data-label]')].every(cell => cell.getBoundingClientRect().bottom <= bounds.bottom - 5), 'YKC card clips its facts');
                     const footer = record.querySelector('.ykc-action-cell,.ykc-report-status-cell');
@@ -902,7 +1077,34 @@
                     assert(appointment.querySelector('.ykc-cell-meta').scrollHeight <= appointment.querySelector('.ykc-cell-meta').clientHeight + 1, 'Assigned team unnecessarily wraps in a card');
                 }
                 const fieldLabel = root.querySelector('.ykc-device-fact-label');
-                assert(fieldLabel && win.getComputedStyle(fieldLabel).position === 'absolute', 'Grid repeats full device field labels instead of compact icons');
+                const firmRequest = fixture.role === 'SertifikaliFirma' && fixture.page === 'requests';
+                assert(fieldLabel && win.getComputedStyle(fieldLabel).clipPath === 'none'
+                    && fieldLabel.getBoundingClientRect().width > 20,
+                    'All YKC cards must explain their device facts with visible labels');
+                assert([...root.querySelectorAll('.ykc-device-fact-label,.ykc-device-capacity-unit')].every(field => {
+                    const style = win.getComputedStyle(field);
+                    return style.fontSize === '10px' && style.fontWeight === '400' && contrastRatio(style.color, cardColor) >= 4.5;
+                }), 'Request and report device labels and units must share readable, regular typography');
+                if (fixture.page === 'reports') {
+                    assert([...root.querySelectorAll('[data-device-field="capacity"]')].every(field => field.textContent.includes('kcal/h')),
+                        'Report capacity values must carry their unit');
+                    for (const model of root.querySelectorAll('.ykc-device-model-name')) {
+                        const capacity = model.parentElement.querySelector('[data-device-field="capacity"]');
+                        const following = model.closest('tr').querySelector('.ykc-report-team-cell,.ykc-report-status-cell');
+                        assert(model.getBoundingClientRect().top >= capacity.getBoundingClientRect().bottom
+                            && model.getBoundingClientRect().bottom <= following.getBoundingClientRect().top
+                            && model.title && win.getComputedStyle(model).textOverflow === 'ellipsis',
+                            'Optional model must keep its own row and full tooltip without crowding team or status');
+                        if (fixture.role !== 'SertifikaliFirma') {
+                            const card = model.closest('tr').getBoundingClientRect();
+                            assert(model.getBoundingClientRect().width >= card.width - 28
+                                && model.getBoundingClientRect().left >= card.left + 10
+                                && model.getBoundingClientRect().right <= card.right - 10,
+                                'Optional replacement model must use a full-width row within the card');
+                        }
+                    }
+                }
+                if (firmRequest) assert(fieldLabel.textContent.trim() === 'Baca tipi:', 'Firm device label must explain the flue type');
                 const numbers = fixture.page === 'reports'
                     ? [...records[0].querySelectorAll('.ykc-report-installation-cell,.ykc-report-contract-cell')]
                     : [...records[0].querySelectorAll('.ykc-list-installation-cell,.ykc-list-contract-cell')];
@@ -918,15 +1120,17 @@
                 }
                 root.querySelector('[data-history-view="list"]').click();
                 assert(root.dataset.view === 'list' && requests === 0, 'Restoring list view fetches records or fails');
-                assert(Math.abs(root.getBoundingClientRect().width - Number.parseFloat(root.style.width)) <= 1,
+                assertWorkspaceWidth(
                     'Switching back to the list must restore the full workspace width');
-                if (fixture.role !== 'SertifikaliFirma') assert(win.getComputedStyle(records[0].querySelector('.ykc-device-change-heading')).display === 'none', 'Grid comparison heading leaks into the list');
+                assert(!root.querySelector('.ykc-device-change-heading'), 'Removed comparison heading must not return in the list');
                 const compactList = root.querySelector('.ykc-table-scroll').clientWidth <= 1180;
-                if (compactList) assert(win.getComputedStyle(fieldLabel).position === 'absolute'
+                if (compactList && !firmRequest) assert(win.getComputedStyle(fieldLabel).position === 'absolute'
                     && root.querySelector('.ykc-device-summary i,.ykc-device-column small > i').getBoundingClientRect().width >= 9,
                     'Compact list hides device captions without their explanatory icons');
                 else assert(win.getComputedStyle(fieldLabel).position !== 'absolute' && win.getComputedStyle(fieldLabel).clipPath === 'none'
                     && fieldLabel.getBoundingClientRect().width > 20 && fieldLabel.getBoundingClientRect().height > 10, 'Wide or stacked list no longer shows device field labels');
+                const listCustomer = records[0].querySelector('.ykc-directory-customer .ykc-primary-cell,.ykc-report-customer-cell .ykc-cell-main');
+                assert(!win.getComputedStyle(listCustomer, '::before').content.includes('Abone:'), 'Subscriber card label must not repeat the list column header');
             });
         }
     }
@@ -987,6 +1191,10 @@
                 const background = win.getComputedStyle(row).backgroundColor;
                 assertRecordActionScale(root, win);
                 assert(background !== win.getComputedStyle(root.querySelector('.df-commissioning-surface')).backgroundColor, 'Card blends into the work surface');
+                const subscriberLabel = win.getComputedStyle(row.querySelector('.df-cell-main'), '::before');
+                assert(subscriberLabel.content.replaceAll('"', '').trim() === 'Abone:'
+                    && contrastRatio(subscriberLabel.color, background) >= 4.5,
+                    'Every commissioning card must identify the name as Abone');
                 assert(row.querySelector('.df-cell-main').getBoundingClientRect().left - row.querySelector('[data-commissioning-select]').getBoundingClientRect().right >= 6,
                     'Selection checkbox touches the record heading');
                 const installation = row.querySelector('.df-commissioning-col-installation');
