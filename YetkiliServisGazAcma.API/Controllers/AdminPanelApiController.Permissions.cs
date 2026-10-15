@@ -23,7 +23,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             return Ok(await _adminPersonelYetkiApiService.ListeleAsync(
                 kullanici,
                 kapsam.sirketId,
-                GenelSistemAdminMi(kullanici)));
+                GenelSistemAdminMi(kullanici), dto));
         }
 
         [HttpPost("yetkiler/getir")]

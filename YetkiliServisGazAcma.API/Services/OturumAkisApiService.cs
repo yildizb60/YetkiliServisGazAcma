@@ -1,0 +1,268 @@
+using System.Security.Cryptography;
+using System.Text.Json;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using YetkiliServisGazAcma.Business.Services;
+using YetkiliServisGazAcma.Entities;
+using YetkiliServisGazAcma.Models;
+
+namespace YetkiliServisGazAcma.API.Services;
+
+public sealed class OturumAkisApiService(UserManager<AppKullanici> users, SignInManager<AppKullanici> signIn,
+    SmsDogrulamaService sms, ISertifikaliFirmaKimlikProvider external,
+    IOptions<SertifikaliFirmaKimlikOptions> externalOptions, IOptions<SmsOptions> smsOptions,
+    IDataProtectionProvider protection, OturumTokenService tokens, AppDbContext context)
+{
+    private const string LoginError = "Kullanıcı adı veya şifre hatalı.";
+    private readonly ITimeLimitedDataProtector _challengeProtector = protection.CreateProtector("API.Auth.Challenge.v1").ToTimeLimitedDataProtector();
+    private sealed record VerificationChallenge(string UserId, string Purpose, string SmsPurpose, string Stamp, string? ExternalReference, bool IsDecoy = false);
+
+    public async Task<OturumAkisSonucu> TokenAsync(GirisIstegi dto, CancellationToken cancellationToken)
+    {
+        var user = await FindAsync(dto.Email);
+        SertifikaliFirmaKimlikSonucu? identity = null;
+        if (externalOptions.Value.Enabled && (user == null || user.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma))
+        {
+            if (!external.KullanilabilirMi) return Error("Firma giriş servisi henüz yapılandırılmadı.", OturumAkisHatasi.ServisHazirDegil);
+            identity = await external.KimlikDogrulaAsync(dto.Email.Trim(), dto.Sifre, cancellationToken);
+            if (!identity.Basarili) return Error(LoginError, OturumAkisHatasi.GirisReddedildi);
+            user = await FindAsync(string.IsNullOrWhiteSpace(identity.YerelKullaniciAdi) ? dto.Email : identity.YerelKullaniciAdi);
+            if (user?.KullaniciTipi != KullaniciTipiDegerleri.SertifikaliFirma) return Error(LoginError, OturumAkisHatasi.GirisReddedildi);
+        }
+        if (user == null || !user.AktifMi || user.ArsivlemeTarihi != null || await users.IsLockedOutAsync(user)) return Error(LoginError, OturumAkisHatasi.GirisReddedildi);
+        if (identity == null)
+        {
+            var result = await signIn.CheckPasswordSignInAsync(user, dto.Sifre, lockoutOnFailure: true);
+            if (!result.Succeeded) return Error(result.IsLockedOut
+                ? "Çok fazla hatalı giriş denemesi. Lütfen 15 dakika sonra tekrar deneyin." : LoginError, OturumAkisHatasi.GirisReddedildi);
+        }
+        if (!KullaniciRolTutarlilikKurali.FirmaRolleriUyumlu(
+                user.KullaniciTipi, await users.GetRolesAsync(user), user.SirketId))
+            return Error("Hesap yetkileriniz tutarsız. Sistem yöneticinizle iletişime geçin.", OturumAkisHatasi.YetkiTutarsiz);
+        if (sms.SmsGirisAktifMi || identity?.TelefonDogrulamasiGerekliMi == true)
+        {
+            if (!sms.SmsGirisAktifMi) return Error("Telefon doğrulaması için SMS servisi yapılandırılmalıdır.", OturumAkisHatasi.ServisHazirDegil);
+            if (identity != null && string.IsNullOrWhiteSpace(identity.DogrulamaReferansi))
+                return Error("Kimlik servisi doğrulama işlem referansı döndürmedi.", OturumAkisHatasi.ServisHazirDegil);
+            var phone = identity?.Telefon;
+            if (identity == null && user.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis
+                && string.IsNullOrWhiteSpace(user.PhoneNumber) && user.FirmaId.HasValue)
+            {
+                var firmPhone = await context.Ys_Firmalar.AsNoTracking()
+                    .Where(f => f.Id == user.FirmaId.Value && !f.SilindiMi)
+                    .Select(f => f.Telefon)
+                    .FirstOrDefaultAsync(cancellationToken);
+                if (CepTelefonuKurali.GecerliMi(firmPhone))
+                    phone = firmPhone;
+            }
+            return await LoginChallengeAsync(user, identity?.DogrulamaReferansi, phone);
+        }
+        if (!string.IsNullOrWhiteSpace(identity?.DogrulamaReferansi))
+        {
+            var completion = await external.DogrulamayiTamamlaAsync(identity.DogrulamaReferansi, cancellationToken);
+            if (!completion.Basarili) return Error("Firma giriş işlemi tamamlanamadı.", OturumAkisHatasi.ServisHazirDegil);
+        }
+        return await CompleteLoginAsync(user);
+    }
+
+    public async Task<OturumAkisSonucu> VerifyAsync(SmsDogrulamaIstegi dto, CancellationToken cancellationToken)
+    {
+        var (challenge, user) = await ReadChallengeAsync(dto.Dogrulama, "GIRIS");
+        if (challenge == null || user == null) return Error("Doğrulama süresi doldu. Yeniden giriş yapın.");
+        var result = await sms.KodDogrulaAsync(user.Id, dto.Kod, challenge.SmsPurpose);
+        if (!result.Basarili) return Error(result.Mesaj);
+        if (!string.IsNullOrWhiteSpace(challenge.ExternalReference))
+        {
+            if (!external.KullanilabilirMi) return Error("Firma doğrulama servisine ulaşılamadı. Yeniden giriş yapın.", OturumAkisHatasi.ServisHazirDegil);
+            var completion = await external.DogrulamayiTamamlaAsync(challenge.ExternalReference, cancellationToken);
+            if (!completion.Basarili) return Error("Firma doğrulaması tamamlanamadı. Yeniden giriş yapın.", OturumAkisHatasi.ServisHazirDegil);
+        }
+        return await CompleteLoginAsync(user);
+    }
+
+    public async Task<OturumAkisSonucu> ForgotAsync(SifreUnuttumIstegi dto)
+    {
+        var user = await FindAsync(dto.KullaniciAdi);
+        var smsPurpose = "S:" + Convert.ToHexString(RandomNumberGenerator.GetBytes(10));
+        var challenge = new VerificationChallenge(Guid.NewGuid().ToString(), "SIFRE_SIFIRLA", smsPurpose,
+            Guid.NewGuid().ToString("N"), null, IsDecoy: true);
+        var message = "Bilgileriniz kayıtlıysa telefonunuza doğrulama kodu gönderildi.";
+        if (smsOptions.Value.TestMode)
+        {
+            var digits = Math.Clamp(smsOptions.Value.CodeLength, 4, 8);
+            var code = RandomNumberGenerator.GetInt32((int)Math.Pow(10, digits - 1), (int)Math.Pow(10, digits));
+            message = $"Test SMS modu: doğrulama kodu {code}";
+        }
+        if (user != null && user.AktifMi && user.ArsivlemeTarihi == null && !await users.IsLockedOutAsync(user))
+        {
+            var result = await sms.KodGonderAsync(user, smsPurpose);
+            if (result.Basarili)
+            {
+                challenge = new VerificationChallenge(user.Id, "SIFRE_SIFIRLA", smsPurpose,
+                    await users.GetSecurityStampAsync(user), null);
+                if (smsOptions.Value.TestMode) message = result.Mesaj;
+            }
+        }
+        // Match the encrypted response shape, including length, without creating a usable decoy code.
+        var value = _challengeProtector.Protect(JsonSerializer.Serialize(challenge).PadRight(2048),
+            TimeSpan.FromMinutes(Math.Clamp(smsOptions.Value.CodeExpireMinutes, 1, 30)));
+        return Sonuc(new OturumSonucu { Basarili = true, Dogrulama = value, Mesaj = message });
+    }
+
+    public async Task<OturumAkisSonucu> ResetAsync(SifreYenileIstegi dto)
+    {
+        var (challenge, user) = await ReadChallengeAsync(dto.Dogrulama, "SIFRE_SIFIRLA");
+        const string verificationError = "Doğrulama kodu geçersiz veya süresi dolmuş. Yeniden kod isteyin.";
+        foreach (var validator in users.PasswordValidators)
+        {
+            var validation = await validator.ValidateAsync(users, user ?? new AppKullanici(), dto.YeniSifre);
+            if (!validation.Succeeded) return IdentityError(validation);
+        }
+        if (challenge == null || user == null) return Error(verificationError);
+        var result = await sms.KodDogrulaAsync(user.Id, dto.Kod, challenge.SmsPurpose);
+        if (!result.Basarili) return Error(verificationError);
+        var reset = await users.ResetPasswordAsync(user, await users.GeneratePasswordResetTokenAsync(user), dto.YeniSifre);
+        return reset.Succeeded ? Sonuc(new OturumSonucu { Basarili = true, Mesaj = "Şifreniz değiştirildi. Yeni şifrenizle giriş yapabilirsiniz." }) : IdentityError(reset);
+    }
+
+    public async Task<OturumAkisSonucu> ProfileAsync(AppKullanici user, ProfilGuncelleIstegi dto)
+    {
+        if (!CepTelefonuKurali.GecerliMi(dto.PhoneNumber))
+            return Error("Telefon numarası 05XXXXXXXXX veya 90XXXXXXXXXX formatında olmalıdır.");
+        user.AdSoyad = dto.AdSoyad.Trim();
+        var emailChanged = !string.Equals(user.Email, dto.Email.Trim(), StringComparison.OrdinalIgnoreCase);
+        var phoneChanged = user.PhoneNumber != dto.PhoneNumber?.Trim();
+        var emailUserName = string.Equals(user.UserName, user.Email, StringComparison.OrdinalIgnoreCase);
+        user.Email = dto.Email.Trim();
+        if (emailUserName) user.UserName = user.Email;
+        user.PhoneNumber = dto.PhoneNumber?.Trim();
+        if (emailChanged) user.EmailConfirmed = false;
+        if (phoneChanged) user.PhoneNumberConfirmed = false;
+        var result = await users.UpdateAsync(user);
+        return result.Succeeded ? Sonuc(await tokens.OlusturAsync(user)) : IdentityError(result);
+    }
+
+    public async Task<OturumAkisSonucu> PasswordAsync(AppKullanici user, SifreDegistirIstegi dto)
+    {
+        var result = await users.ChangePasswordAsync(user, dto.MevcutSifre, dto.YeniSifre);
+        return result.Succeeded ? Sonuc(await tokens.OlusturAsync(user)) : IdentityError(result);
+    }
+
+    private async Task<OturumAkisSonucu> LoginChallengeAsync(AppKullanici user, string? reference, string? phone)
+    {
+        var smsPurpose = "G:" + Convert.ToHexString(RandomNumberGenerator.GetBytes(10));
+        var result = await sms.KodGonderAsync(user, smsPurpose, phone);
+        if (!result.Basarili) return Error(result.Mesaj, OturumAkisHatasi.ServisHazirDegil);
+        var challenge = new VerificationChallenge(user.Id, "GIRIS", smsPurpose, await users.GetSecurityStampAsync(user), reference);
+        var protectedValue = _challengeProtector.Protect(JsonSerializer.Serialize(challenge), TimeSpan.FromMinutes(Math.Clamp(smsOptions.Value.CodeExpireMinutes, 1, 30)));
+        return Sonuc(new OturumSonucu { Basarili = true, Dogrulama = protectedValue, Mesaj = result.Mesaj });
+    }
+
+    private async Task<(VerificationChallenge?, AppKullanici?)> ReadChallengeAsync(string value, string purpose)
+    {
+        VerificationChallenge? challenge;
+        try { challenge = JsonSerializer.Deserialize<VerificationChallenge>(_challengeProtector.Unprotect(value)); }
+        catch (Exception ex) when (ex is CryptographicException or JsonException) { return (null, null); }
+        if (challenge?.Purpose != purpose || challenge.IsDecoy) return (null, null);
+        var user = await users.FindByIdAsync(challenge.UserId);
+        if (user?.AktifMi != true || user.ArsivlemeTarihi != null || await users.IsLockedOutAsync(user) || await users.GetSecurityStampAsync(user) != challenge.Stamp)
+            return (null, null);
+        return (challenge, user);
+    }
+
+    public async Task<AppKullanici?> FindAsync(string login)
+    {
+        var value = login.Trim();
+        var user = await users.FindByEmailAsync(value);
+        if (user != null)
+            return user;
+
+        user = await users.FindByNameAsync(value);
+        // Exact email/usernames win; only formatted numeric identifiers get a VKN fallback.
+        if (user == null && value.All(ch => char.IsAsciiDigit(ch) || char.IsWhiteSpace(ch)
+            || ch is '-' or '.' or '/' or '(' or ')'))
+        {
+            var vergiNo = VergiNoKurali.Normalize(value);
+            if (vergiNo.Length is 10 or 11 && vergiNo != value)
+            {
+                value = vergiNo;
+                user = await users.FindByNameAsync(value);
+            }
+        }
+
+        int firmId;
+        // Arsivde kalan VKN kullanici adi, ayni firmanin yeni hesabini engellememeli.
+        if (user?.ArsivlemeTarihi != null && user.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis
+            && user.FirmaId.HasValue && await context.Ys_Firmalar.AnyAsync(f =>
+                f.Id == user.FirmaId.Value && !f.SilindiMi && f.AktifMi && f.VergiNo == value))
+        {
+            firmId = user.FirmaId.Value;
+        }
+        else
+        {
+            if (user != null || value.Length != 11 || !value.All(char.IsAsciiDigit))
+                return user;
+
+            var firmIds = await context.Ys_Firmalar.AsNoTracking()
+                .Where(f => !f.SilindiMi && f.TcKimlikNo == value)
+                .Select(f => f.Id)
+                .Take(2)
+                .ToListAsync();
+            if (firmIds.Count != 1)
+                return null;
+            firmId = firmIds[0];
+        }
+
+        var serviceUsers = await users.Users
+            .Where(u => u.FirmaId == firmId && u.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis && u.AktifMi && u.ArsivlemeTarihi == null)
+            .Take(2)
+            .ToListAsync();
+        return serviceUsers.Count == 1 ? serviceUsers[0] : null;
+    }
+    private static OturumAkisSonucu Error(string message, OturumAkisHatasi hata = OturumAkisHatasi.GecersizIstek)
+        => new(new OturumSonucu { Mesaj = message }, hata);
+    private static OturumAkisSonucu Sonuc(OturumSonucu sonuc) => new(sonuc);
+    private OturumAkisSonucu IdentityError(IdentityResult result) => Error(string.Join(" ", result.Errors.Select(x => x.Description)));
+
+    private async Task<OturumAkisSonucu> CompleteLoginAsync(AppKullanici user)
+    {
+        if (!KullaniciRolTutarlilikKurali.FirmaRolleriUyumlu(
+                user.KullaniciTipi, await users.GetRolesAsync(user), user.SirketId))
+            return Error("Hesap yetkileriniz tutarsız. Sistem yöneticinizle iletişime geçin.", OturumAkisHatasi.YetkiTutarsiz);
+
+        var systemAdmin = user.KullaniciTipi == KullaniciTipiDegerleri.GenelSistemAdmin
+            || (user.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin && !user.SirketId.HasValue);
+        var role = user.KullaniciTipi switch
+        {
+            KullaniciTipiDegerleri.YetkiliServis => KullaniciRolAdlari.YetkiliServis,
+            KullaniciTipiDegerleri.SertifikaliFirma => KullaniciRolAdlari.SertifikaliFirma,
+            KullaniciTipiDegerleri.Personel => KullaniciRolAdlari.Personel,
+            KullaniciTipiDegerleri.SirketAdmin => systemAdmin ? KullaniciRolAdlari.GenelSistemAdmin : KullaniciRolAdlari.SirketAdmin,
+            KullaniciTipiDegerleri.GenelSistemAdmin => KullaniciRolAdlari.GenelSistemAdmin,
+            _ => null
+        };
+        if (role == null) return Error(LoginError, OturumAkisHatasi.GirisReddedildi);
+        if (!await users.IsInRoleAsync(user, role))
+        {
+            var result = await users.AddToRoleAsync(user, role);
+            if (!result.Succeeded) return IdentityError(result);
+        }
+        if (systemAdmin && !await users.IsInRoleAsync(user, KullaniciRolAdlari.EskiSuperAdmin))
+        {
+            var result = await users.AddToRoleAsync(user, KullaniciRolAdlari.EskiSuperAdmin);
+            if (!result.Succeeded) return IdentityError(result);
+        }
+        if (!systemAdmin && user.KullaniciTipi == KullaniciTipiDegerleri.SirketAdmin && await users.IsInRoleAsync(user, KullaniciRolAdlari.EskiSuperAdmin))
+        {
+            var result = await users.RemoveFromRoleAsync(user, KullaniciRolAdlari.EskiSuperAdmin);
+            if (!result.Succeeded) return IdentityError(result);
+        }
+        return Sonuc(await tokens.OlusturAsync(user));
+    }
+}
+
+public enum OturumAkisHatasi { Yok, GecersizIstek, GirisReddedildi, YetkiTutarsiz, ServisHazirDegil }
+
+public sealed record OturumAkisSonucu(OturumSonucu Sonuc, OturumAkisHatasi Hata = OturumAkisHatasi.Yok);

@@ -1,3 +1,4 @@
+@model PersonelRaporDto
 @{
     ViewData["Title"] = "Raporlar";
     ViewData["PanelTitle"] = ViewData["Title"];
@@ -6,49 +7,34 @@
     ViewData["PanelArea"] = "Personel";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
-    var listeTipi = ViewBag.ListeTipi as string ?? "devreye";
-    var raporTipi = ViewBag.RaporTipi as string ?? "devreye";
-    var belgeRaporu = listeTipi == "yetkiBelgesi";
-    var ykcRaporu = listeTipi == "ykc";
+    var raporTipi = Model.RaporTipi;
+    var belgeRaporu = raporTipi is "onayli" or "bekleyen" or "reddedilen";
+    var ykcRaporu = raporTipi == "ykc";
     var devreyeRaporu = !belgeRaporu && !ykcRaporu;
-    var genelRaporYetkisi = ViewBag.YetkiRapor == true;
-    var belgeYetkisi = ViewBag.YetkiBelgesi == true;
-    var ykcRaporYetkisi = ViewBag.YetkiYkcRapor == true;
-    DateTime basTarih = ViewBag.BasTarih ?? DateTime.Now.Date.AddDays(-30);
-    DateTime bitTarih = ViewBag.BitTarih ?? DateTime.Now.Date;
+    var genelRaporYetkisi = Model.IzinliRaporTipleri.Contains("devreye");
+    var belgeYetkisi = Model.IzinliRaporTipleri.Contains("onayli");
+    var ykcRaporYetkisi = Model.IzinliRaporTipleri.Contains("ykc");
+    var basTarih = Model.BasTarih;
+    var bitTarih = Model.BitTarih;
 
-    var raporAylar = (ViewBag.RaporAylar as IEnumerable<string>)?.ToList() ?? new List<string>();
-    var raporAylik = (ViewBag.RaporAylik as IEnumerable<int>)?.ToList() ?? new List<int>();
-    var durumSayilari = (ViewBag.RaporDurum as IEnumerable<int>)?.ToList() ?? new List<int>();
-    var markaEtiketleri = (ViewBag.RaporMarka as IEnumerable<string>)?.ToList() ?? new List<string>();
-    var markaSayilari = (ViewBag.RaporMarkaSayi as IEnumerable<int>)?.ToList() ?? new List<int>();
+    var raporAylar = Model.DonemEtiketleri;
+    var raporAylik = Model.DonemSayilari;
+    var durumSayilari = Model.DurumSayilari;
+    var markaEtiketleri = Model.KirilimEtiketleri;
+    var markaSayilari = Model.KirilimSayilari;
     var markaSayisi = Math.Min(5, Math.Min(markaEtiketleri.Count, markaSayilari.Count));
     var markaMax = Math.Max(1, markaSayilari.Take(markaSayisi).DefaultIfEmpty(0).Max());
-    var ozelDurumEtiketleri = ViewBag.RaporDurumEtiketleri as IEnumerable<string>;
-    var durumEtiketleri = ozelDurumEtiketleri?.ToList()
-        ?? (belgeRaporu
-            ? new List<string> { "Onaylanan", "Onay Bekleyen", "Reddedilen" }
-            : new List<string> { "Tamamlanan", "Bekleyen", "İptal" });
+    var durumEtiketleri = Model.DurumEtiketleri;
     var durumToplam = durumSayilari.Sum();
     var chartLength = Math.Min(raporAylar.Count, raporAylik.Count);
-    var chartIndices = Enumerable.Range(0, chartLength)
-        .Where(index => ykcRaporu
-            || !DateTime.TryParseExact(raporAylar[index], "MM.yyyy", System.Globalization.CultureInfo.InvariantCulture,
-                System.Globalization.DateTimeStyles.None, out var ay)
-            || (ay <= bitTarih && ay.AddMonths(1) > basTarih))
-        .TakeLast(6)
-        .ToList();
+    var chartIndices = Enumerable.Range(0, chartLength).ToList();
     var chartCount = chartIndices.Count;
     var chartMax = Math.Max(1, chartIndices.Select(index => raporAylik[index]).DefaultIfEmpty(0).Max());
     var ilkDurumEtiketi = durumEtiketleri.FirstOrDefault() ?? "İşlem";
     var ilkDurumOrani = durumToplam == 0 ? 0 : Math.Round(durumSayilari.FirstOrDefault() * 100d / durumToplam, 1);
     string CssYuzde(double value) => Math.Clamp(value, 0, 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
 
-    var seciliBelgeToplam = raporTipi == "onayli" ? Convert.ToInt32(ViewBag.YetkiBelgesiOnayli)
-        : raporTipi == "bekleyen" ? Convert.ToInt32(ViewBag.YetkiBelgesiBekleyen)
-        : raporTipi == "reddedilen" ? Convert.ToInt32(ViewBag.YetkiBelgesiReddedilen)
-        : 0;
-    var raporToplam = belgeRaporu ? seciliBelgeToplam : Convert.ToInt32(ViewBag.RaporToplam ?? 0);
+    var raporToplam = Model.Toplam;
     var disAktarilabilir = raporToplam > 0;
     var raporTipiAdi = raporTipi switch
     {
@@ -119,7 +105,7 @@
     <section class="df-ops-kpis" aria-label="@raporTipiAdi göstergeleri">
         @if (devreyeRaporu)
         {
-            <article class="df-ops-kpi is-duration"><span class="df-ops-kpi-icon"><i class="bi bi-check2-circle" aria-hidden="true"></i></span><div><span>Devreye alınan cihaz</span><strong>@Convert.ToInt32(ViewBag.RaporTamam ?? 0)</strong></div></article>
+            <article class="df-ops-kpi is-duration"><span class="df-ops-kpi-icon"><i class="bi bi-check2-circle" aria-hidden="true"></i></span><div><span>Devreye alınan cihaz</span><strong>@Model.Tamamlanan</strong></div></article>
             <article class="df-ops-kpi is-volume is-brand-leader"><span class="df-ops-kpi-icon"><i class="bi bi-tags" aria-hidden="true"></i></span><div><span>En çok işlem yapılan marka</span><strong>@(markaEtiketleri.FirstOrDefault() ?? "-")</strong><small>@markaSayilari.FirstOrDefault() işlem</small></div></article>
         }
         else if (belgeRaporu)

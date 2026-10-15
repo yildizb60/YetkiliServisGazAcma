@@ -8,6 +8,45 @@ namespace YetkiliServisGazAcma.API.Services;
 
 public static class DevreyeAlmaKaynakBilgisi
 {
+    public static IQueryable<Ys_DevreyeAlma> SozlesmeAdaylari(AppDbContext context,
+        IQueryable<Ys_DevreyeAlma> query, string aranan)
+    {
+        // This is only a prefilter. TamamlaAsync still validates every source and rejects
+        // ambiguous contracts. OPENJSON preserves escaped strings and duplicate properties.
+        if (aranan.Length > 4000 || aranan.Contains('\0')) return query;
+        var kaynakIdleri = context.Database.SqlQuery<int>($$"""
+            SELECT s.DevreyeAlmaId AS [Value]
+            FROM dbo.Ys_DevreyeAlmaSorguKayitlari AS s
+            CROSS APPLY OPENJSON(CASE WHEN ISJSON(s.KaynakJson) = 1 THEN s.KaynakJson ELSE N'{}' END) AS j
+            WHERE s.DevreyeAlmaId IS NOT NULL
+                AND j.[key] COLLATE Latin1_General_100_BIN2 = N'SozlesmeNo'
+                AND j.[type] = 1
+                AND CHARINDEX({{aranan}} COLLATE Latin1_General_100_BIN2, j.[value] COLLATE Latin1_General_100_BIN2) > 0
+            """);
+        return query.Where(kayit => kaynakIdleri.Contains(kayit.Id)
+            || (kayit.KaynakCihazAnahtari == null && kayit.Firma != null
+                && kayit.TesistatNo != null && kayit.TesistatNo.Trim() != ""
+                && kayit.AboneNo != null && kayit.AboneNo.Trim() != ""
+                && !context.Ys_DevreyeAlmaSorguKayitlari.Any(x => x.DevreyeAlmaId == kayit.Id)
+                && context.Ykc_Talepler.Any(talep => !talep.SilindiMi && talep.KaynakTipi == "OnlineServis"
+                    && talep.SirketId == kayit.Firma.SirketId
+                    && talep.TesisatNo != null && talep.TesisatNo.Trim() == kayit.TesistatNo.Trim()
+                    && talep.AboneNo != null && talep.AboneNo.Trim() == kayit.AboneNo.Trim()
+                    && talep.SozlesmeNo != null
+                    && EF.Functions.Collate(talep.SozlesmeNo, "Latin1_General_100_BIN2").Contains(aranan))));
+    }
+
+    public static IOrderedQueryable<Ys_DevreyeAlma> Sirala(IQueryable<Ys_DevreyeAlma> query, string? siralama)
+    {
+        return siralama switch
+        {
+            "tarih-artan" => query.OrderBy(x => x.DevreyeAlmaTarihi).ThenBy(x => x.Id),
+            "abone-artan" => query.OrderBy(x => EF.Functions.Collate(x.MusteriAdi ?? "", "Turkish_CI_AS")).ThenBy(x => x.Id),
+            "abone-azalan" => query.OrderByDescending(x => EF.Functions.Collate(x.MusteriAdi ?? "", "Turkish_CI_AS")).ThenBy(x => x.Id),
+            _ => query.OrderByDescending(x => x.DevreyeAlmaTarihi).ThenByDescending(x => x.Id)
+        };
+    }
+
     public static async Task TamamlaAsync(AppDbContext context, IReadOnlyCollection<Ys_DevreyeAlma> kayitlar)
     {
         if (kayitlar.Count == 0) return;

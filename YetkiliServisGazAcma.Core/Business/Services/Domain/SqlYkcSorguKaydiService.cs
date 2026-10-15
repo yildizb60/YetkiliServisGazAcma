@@ -14,12 +14,12 @@ public sealed class SqlYkcSorguKaydiService(AppDbContext context) : IYkcSorguKay
         YkcTalepKaydetDto Cihaz,
         Dictionary<string, string?> IzinliYeniCihazTipleri);
 
-    public async Task<string> EkleAsync(string kullaniciId, YkcTalepKaydetDto kaynak)
+    public async Task<string> EkleAsync(string kullaniciId, YkcTalepKaydetDto kaynak, CancellationToken cancellationToken = default)
     {
         if (!_expiredRecordsCleaned)
         {
             await context.Database.ExecuteSqlRawAsync(
-                "DELETE TOP (200) FROM dbo.Ykc_SorguKayitlari WHERE GecerlilikTarihi <= SYSUTCDATETIME()");
+                "DELETE TOP (200) FROM dbo.Ykc_SorguKayitlari WHERE GecerlilikTarihi <= SYSUTCDATETIME()", cancellationToken);
             _expiredRecordsCleaned = true;
         }
         var referans = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
@@ -32,11 +32,11 @@ public sealed class SqlYkcSorguKaydiService(AppDbContext context) : IYkcSorguKay
         };
 
         context.Ykc_SorguKayitlari.Add(kayit);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(cancellationToken);
         return referans;
     }
 
-    public async Task<bool> UygulaAsync(string kullaniciId, YkcTalepKaydetDto hedef)
+    public async Task<bool> UygulaAsync(string kullaniciId, YkcTalepKaydetDto hedef, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(hedef.SorguReferansi)) return false;
 
@@ -45,7 +45,7 @@ public sealed class SqlYkcSorguKaydiService(AppDbContext context) : IYkcSorguKay
                 && x.KullaniciId == kullaniciId
                 && x.GecerlilikTarihi > DateTime.UtcNow)
             .Select(x => x.KaynakJson)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
         if (kayit is null) return false;
 
         var kaynak = JsonSerializer.Deserialize<KaynakKaydi>(kayit);

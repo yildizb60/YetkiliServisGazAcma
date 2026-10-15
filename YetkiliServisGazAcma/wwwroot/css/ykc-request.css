@@ -102,8 +102,9 @@
 .ys-commissioning-device-option.is-completed { border-color:#b8dfd1; background:#f3fbf7; }
 .ys-commissioning-device-option.is-completed:disabled { cursor:default; }
 .ys-commissioning-device-option.is-completed:disabled:hover { border-color:#b8dfd1; background:#f3fbf7; }
-.ys-commissioning-device-option.is-unavailable { border-color:#d8a453; background:#fffaf1; box-shadow:inset 3px 0 #b9852e; }
-.ys-commissioning-device-option.is-unavailable > i { color:#a46c1d; }
+.ys-commissioning-device-option.is-unavailable,
+.ys-commissioning-device-option.is-unavailable:hover { border-color:#d3dee8; background:#fff; box-shadow:none; }
+.ys-commissioning-device-option.is-unavailable > i { color:#687d8e; }
 .ys-device-entry-pending { min-height:210px; display:flex; align-items:center; justify-content:center; gap:11px; color:#60798f; }
 .ys-device-entry-pending > i { width:38px; height:38px; display:grid; place-items:center; border-radius:6px; background:#e6edfc; color:#315ac3; font-size:18px; }
 .ys-device-entry-pending span { display:grid; gap:2px; }

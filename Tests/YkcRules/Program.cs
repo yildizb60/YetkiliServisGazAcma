@@ -1,13 +1,21 @@
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.FileProviders;
 using System.Globalization;
 using System.Xml.Linq;
+using Tests.YkcRules;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Business.Services.Online;
 using YetkiliServisGazAcma.Entities;
+
+var noEnvironmentFonts = args.Contains("--no-environment-fonts", StringComparer.Ordinal);
+args = args.Where(arg => arg != "--no-environment-fonts").ToArray();
+// Font discovery is process-wide: configure it before any PDF or font-manager call.
+QuestPDF.Settings.UseEnvironmentFonts = !noEnvironmentFonts;
+QuestPDF.Settings.CheckIfAllTextGlyphsAreAvailable = true;
 
 var passed = 0;
 void Check(bool condition, string name)
@@ -17,6 +25,13 @@ void Check(bool condition, string name)
     passed++;
 }
 
+if (noEnvironmentFonts)
+{
+    Check(!QuestPDF.Settings.UseEnvironmentFonts
+        && File.Exists(Path.Combine(AppContext.BaseDirectory, "LatoFont", "Lato-Regular.ttf")),
+        "Environment fonts disabled; QuestPDF's bundled Lato is deployed");
+}
+
 string ExcelParcasi(byte[] bytes, string path)
 {
     using var archive = new System.IO.Compression.ZipArchive(new MemoryStream(bytes));
@@ -24,6 +39,30 @@ string ExcelParcasi(byte[] bytes, string path)
         ?? throw new InvalidOperationException($"Excel parçası bulunamadı: {path}"));
     return reader.ReadToEnd();
 }
+
+foreach (var (name, expected) in new[]
+{
+    ("Çorumgaz Doğalgaz A.Ş.", "CORUMGAZ"), (" corum ", "CORUMGAZ"),
+    ("Kargaz", "KARGAZ"), ("Kastamonu", "KARGAZ"), ("Karabük", "KARGAZ"),
+    ("SürmeliGAZ", "SURMELIGAZ"), ("Yozgat", "SURMELIGAZ"),
+    ("MarmaraGaz Yalova", "MARMARAGAZ_YALOVA"),
+    ("MarmaraGaz Çorlu", "MARMARAGAZ_CORLU"), ("Tekirdağ", "MARMARAGAZ_CORLU")
+})
+{
+    foreach (var mode in Enum.GetValues<FirmaKoduNormalizasyonu>())
+        Check(SehirFirmaKodlari.SirketAdindanFirmaKodu(name, mode) == expected,
+            $"Shared company code retains its existing alias: {name}, {mode}");
+}
+foreach (var mode in Enum.GetValues<FirmaKoduNormalizasyonu>())
+    Check(SehirFirmaKodlari.SirketAdindanFirmaKodu(null, mode) == null
+        && SehirFirmaKodlari.SirketAdindanFirmaKodu(" \t ", mode) == null,
+        $"Missing company name cannot invent a company code: {mode}");
+Check(SehirFirmaKodlari.SirketAdindanFirmaKodu("Özel Gaz A.Ş.") == "OZELGAZA.S."
+    && SehirFirmaKodlari.SirketAdindanFirmaKodu("Özel Gaz A.Ş.", FirmaKoduNormalizasyonu.AyiraclariAltCizgiYap)
+        == "OZEL_GAZ_A_S", "Unknown company codes retain the distinct YKC and commissioning formats");
+Check(SehirFirmaKodlari.SirketAdindanFirmaKodu("Özel\tGaz") == "OZEL\tGAZ"
+    && SehirFirmaKodlari.SirketAdindanFirmaKodu("Özel\tGaz", FirmaKoduNormalizasyonu.AyiraclariAltCizgiYap)
+        == "OZEL_GAZ", "Shared normalization preserves module-specific separator handling");
 
 XElement ExcelHucresi(byte[] bytes, string baslik, int satir = 2)
 {
@@ -56,6 +95,15 @@ string[][] Fr265KontrolHucreleri(byte[] bytes, int kontrolNo)
 }
 
 // No database or external providers: checks cannot alter application records.
+Check(typeof(Ykc_Talep).GetProperty("Vkn") is null
+    && typeof(YkcTalepKaydetDto).GetProperty("Vkn") is null
+    && typeof(YkcTalepDetayDto).GetProperty("Vkn") is null,
+    "YKC requests and API contracts do not duplicate the firm's tax number");
+var legacySource = System.Text.Json.JsonSerializer.Deserialize<YkcTalepKaydetDto>(
+    """{"FirmaId":7,"SirketId":3,"Vkn":"1234567890","TesisatNo":"1000149"}""")!;
+Check(legacySource.FirmaId == 7 && legacySource.SirketId == 3 && legacySource.TesisatNo == "1000149"
+    && !System.Text.Json.JsonSerializer.Serialize(legacySource).Contains("\"Vkn\"", StringComparison.Ordinal),
+    "Legacy source JSON remains readable without retaining its redundant VKN");
 var commissioningSource = new YsDevreyeAlmaKaynak
 {
     TesisatNo = "1000149",
@@ -126,6 +174,45 @@ var configuredOnline = new OnlineCihazBilgileriClient(onlineHttp,
 await configuredOnline.YSCihazBilgileriGetirAsync("CORUMGAZ", 1000132, 432237);
 Check(onlineHandler.Calls == 1 && onlineHandler.LastUri?.AbsoluteUri == "https://example.invalid/Online.svc",
     "Configured online service uses its explicit endpoint");
+const string privateResponseMarker = "PRIVATE_SUBSCRIBER_FIRMA_RESPONSE_500";
+var failedOnlineHandler = new RecordingOnlineHandler
+{
+    StatusCode = System.Net.HttpStatusCode.InternalServerError,
+    ResponseXml = $"<fault><subscriber>{privateResponseMarker}</subscriber></fault>"
+};
+using (var failedOnlineHttp = new HttpClient(failedOnlineHandler))
+{
+    var logger = new RecordingOnlineLogger();
+    var failedOnline = new OnlineCihazBilgileriClient(failedOnlineHttp,
+        Options.Create(new OnlineServiceOptions { Enabled = true, Endpoint = "https://example.invalid/Online.svc" }), logger);
+    var result = await failedOnline.YSCihazBilgileriGetirAsync("CORUMGAZ", 1000132, 432237);
+    Check(!result.Basarili && failedOnlineHandler.Calls == 1
+        && logger.Entries.Any(entry => entry.Level == LogLevel.Warning && entry.Message.Contains("500")
+            && entry.State.Any(item => item.Key == "StatusCode" && Equals(item.Value, 500))),
+        "Online HTTP 500 logs the numeric status as structured warning data");
+    Check(logger.Entries.Count > 0 && logger.Entries.All(entry =>
+        !entry.Message.Contains(privateResponseMarker)
+        && entry.State.All(item => item.Value?.ToString()?.Contains(privateResponseMarker) != true)
+        && entry.Exception?.ToString().Contains(privateResponseMarker) != true),
+        "Online HTTP 500 never logs private response XML in messages, structured values or exceptions");
+}
+using (var cancelledOnline = new CancellationTokenSource())
+{
+    await cancelledOnline.CancelAsync();
+    var cancelled = false;
+    try { await configuredOnline.YSCihazBilgileriGetirAsync("CORUMGAZ", 1000132, 432237, cancelledOnline.Token); }
+    catch (OperationCanceledException) { cancelled = true; }
+    Check(cancelled, "Caller cancellation is propagated instead of reported as an online connection failure");
+}
+using (var interruptedOnline = new CancellationTokenSource())
+{
+    onlineHandler.CancelDuringSend = interruptedOnline;
+    var cancelled = false;
+    try { await configuredOnline.YSCihazBilgileriGetirAsync("CORUMGAZ", 1000132, 432237, interruptedOnline.Token); }
+    catch (OperationCanceledException) { cancelled = true; }
+    Check(cancelled, "Cancellation while sending SOAP is not converted to a connection error");
+    onlineHandler.CancelDuringSend = null;
+}
 
 var adminSetup = YetkiliServisIlkKurulumService.Degerlendir(
     YetkiliServisOlusturmaTipleri.Admin, true, true, true, true);
@@ -381,6 +468,7 @@ Check(YkcCihazUyumKurali.TalepOncesiUyarilar(previewDevice).Count == 0,
     "Incomplete numeric input does not produce a capacity comparison");
 
 YkcTalepDetayDto Detail() => new() {
+    ProjeNo = "Internal project",
     EskiMarka = "Source brand", EskiKapasite = "20000", YeniMarka = "New brand", MusteriAdi = "Customer",
     AtananEkip = "Internal team", HedefUygulama = "Internal target",
     Atamalar = new() { new YkcAtamaDto() },
@@ -389,6 +477,7 @@ YkcTalepDetayDto Detail() => new() {
 var official = Detail();
 YkcFirmaSunumu.Hazirla(official, resmiForm: true);
 Check(official.EskiMarka == "Source brand" && official.EskiKapasite == "20000", "Official form retains source device fields");
+Check(official.ProjeNo == "Internal project", "Official form project contract remains unchanged");
 Check(official.Atamalar.Count == 0 && official.AtananEkip == null && official.HedefUygulama == null,
     "Official form response does not expose internal routing");
 Check(official.Gecmis[0].Aciklama == null && official.Gecmis[0].KullaniciAdi == null,
@@ -397,11 +486,13 @@ var screen = Detail();
 YkcFirmaSunumu.Hazirla(screen, resmiForm: false);
 Check(screen.EskiMarka == null && screen.EskiKapasite == null && screen.YeniMarka == "New brand" && screen.MusteriAdi == "Customer",
     "Firm screen hides source device without losing request data");
+Check(screen.ProjeNo == null, "Firm detail does not disclose the internal project number");
+const string turkishPdfSample = "Çç Ğğ İı Öö Şş Üü";
 var form = new YkcTalepDetayDto {
     Id = 42, TesisatNo = "1000132", MusteriAdi = "Test Abone",
     FirmaAdi = "Test Sertifikali Firma", FirmaYetkiliKisi = "Test Yetkili",
     TalepTarihi = new DateTime(2026, 9, 10), TuketimNoktasi = "Daire 4", BaglantiNesnesi = "Bina 12",
-    Adres = "Test Mahallesi, Test Sokak No: 4/2, Merkez",
+    Adres = $"Test Mahallesi, Test Sokak No: 4/2, Merkez {turkishPdfSample}",
     EskiCihazTipi = "Kombi", YeniCihazTipi = "Kombi", EskiMarka = "Proje markasi", YeniMarka = "Yeni marka",
     EskiKapasite = "20000", YeniKapasite = "20000", IkinciElCihazMi = false,
     Kontroller = new() { new YkcFr265KontrolDto {
@@ -448,6 +539,9 @@ var signedOptions = new YkcFr265BelgeSecenekleri
     }).ToList()
 };
 var signedCells = Fr265KontrolHucreleri(new YkcFr265FormService().WordOlustur(form, signedOptions).Bytes, 1);
+var signedPdf = YkcFr265PdfService.ImzaliNihaiOlustur(form, signedOptions);
+Check(System.Text.Encoding.ASCII.GetString(signedPdf.Bytes, 0, 5) == "%PDF-",
+    "Final FR265 PDF renders signer data and Turkish diacritics with strict glyph validation");
 Check(signedCells[1].SequenceEqual(["Adı Soyadı: Imzaci 2", "Adı Soyadı: Imzaci 3", "Firma / Yetkili: Imzaci 1"])
     && signedCells[2].SequenceEqual(["Tarih: 05.10.2026", "Tarih: 06.10.2026", "Tarih: 04.10.2026"])
     && signedCells[3].All(x => x.Contains("İmzalandı")),
@@ -492,7 +586,7 @@ var raporKaydi = new YkcRaporKayitDto
     TesisatNo = "1000132",
     SozlesmeNo = "432237",
     AboneNo = "34760217156",
-    MusteriAdi = "Berrin Yıldız",
+    MusteriAdi = $"Berrin Yıldız {turkishPdfSample}",
     FirmaAdi = "Demo Sertifikalı Firma",
     SirketAdi = "Çorumgaz Doğalgaz A.Ş.",
     EskiCihazTipi = "Kombi",
@@ -522,6 +616,9 @@ Check(!firmaExcelXml.Contains("Projedeki Marka") && !firmaExcelXml.Contains("Kay
     "Firm XLSX exposes the new chimney field without source-device data");
 var raporPdf = YkcRaporPdfService.Olustur(new[] { raporKaydi }, icOperasyon: true);
 Check(System.Text.Encoding.ASCII.GetString(raporPdf, 0, 5) == "%PDF-", "YKC report export is a PDF");
+var firmaRaporPdf = YkcRaporPdfService.Olustur(new[] { raporKaydi }, icOperasyon: false);
+Check(System.Text.Encoding.ASCII.GetString(firmaRaporPdf, 0, 5) == "%PDF-",
+    "Firm YKC report renders Turkish diacritics with strict glyph validation");
 
 var typedReport = new YkcRaporKayitDto
 {
@@ -589,7 +686,7 @@ var yetkiBelgesi = new Ys_YetkiBelgesi
     OnaylayanKullanici = "test.personel@demo.com",
     Firma = new Ys_Firma
     {
-        FirmaAdi = "Demo Yetkili Servis",
+        FirmaAdi = $"Demo Yetkili Servis {turkishPdfSample}",
         VergiNo = "1234567890",
         Sirket = new Dag_Sirket { SirketAdi = "Çorumgaz Doğalgaz A.Ş." }
     }
@@ -614,7 +711,7 @@ var servisDetayi = new AdminYetkiliServisDetaySonuc
     Servis = new Ys_Firma
     {
         FirmaAdi = "Demo Yetkili Servis",
-        YetkiliKisi = "Ayşe Yılmaz",
+        YetkiliKisi = $"Ayşe Yılmaz {turkishPdfSample}",
         FaaliyetIli = "Çorum",
         Telefon = "05550000000",
         Sirket = new Dag_Sirket { SirketAdi = "Çorumgaz Doğalgaz A.Ş." },
@@ -632,7 +729,7 @@ Check(System.Text.Encoding.ASCII.GetString(servisPdf, 0, 5) == "%PDF-", "Service
 var commissioningRecord = new Ys_DevreyeAlma
 {
     Id = 38, TesistatNo = "1311884", SozlesmeNo = "0000943", AboneNo = "0001234567890",
-    MusteriAdi = "Serhat Battal", CihazTipi = "Kombi", MusteriTelefon = "05550000000",
+    MusteriAdi = $"Serhat Battal {turkishPdfSample}", CihazTipi = "Kombi", MusteriTelefon = "05550000000",
     CihazMarka = "Vaillant", CihazModeli = "Vaillant eloBLOCK VE 9 kW elektrikli kombi ısıtma cihazı",
     SeriNo = "200202020", CihazKapasite = "7740", TeknisyenAdi = "Kenan Kılıç",
     Adres = "Bahçelievler Mahallesi, Bahçelievler 6. Sokak, M. Ali Yurdakul Apartmanı No: 17/13 Çorum Merkez",
@@ -669,7 +766,7 @@ var uzunNotluRapor = DevreyeAlmaRaporPdfService.YetkiliServisRaporuOlustur(new[]
     {
         TesistatNo = "1311884", MusteriAdi = "Serhat Battal", CihazTipi = "Ocak",
         DevreyeAlmaTarihi = new DateTime(2026, 9, 25), Durum = DevreyeAlmaDurumDegerleri.Tamamlandi,
-        Notlar = string.Join(" ", Enumerable.Repeat("Uzun servis işlem notu", 500))
+        Notlar = turkishPdfSample + " " + string.Join(" ", Enumerable.Repeat("Uzun servis işlem notu", 500))
     }
 }, new DateTime(2026, 9, 1), new DateTime(2026, 9, 30));
 Check(System.Text.Encoding.ASCII.GetString(uzunNotluRapor, 0, 5) == "%PDF-", "Long service notes continue across PDF pages");
@@ -677,7 +774,7 @@ var multiRecordPdf = DevreyeAlmaRaporPdfService.YetkiliServisRaporuOlustur(
     Enumerable.Range(1, 8).Select(index => new Ys_DevreyeAlma
     {
         Id = index, TesistatNo = $"000100{index:D3}", SozlesmeNo = $"000943{index:D2}",
-        MusteriAdi = index == 2 ? "Birlik Mantar Sanayi ve Ticaret Limited Şirketi" : $"Örnek Abone {index}",
+        MusteriAdi = index == 2 ? "Birlik Mantar Sanayi ve Ticaret Limited Şirketi" : $"Örnek Abone {index} {turkishPdfSample}",
         Firma = commissioningRecord.Firma, CihazTipi = index % 2 == 0 ? "Ocak" : "Kombi",
         CihazMarka = commissioningRecord.CihazMarka, CihazModeli = commissioningRecord.CihazModeli,
         SeriNo = $"000SERIAL{index}", CihazKapasite = "7740", TeknisyenAdi = "Kenan Kılıç",
@@ -689,25 +786,117 @@ Check(System.Text.Encoding.ASCII.GetString(multiRecordPdf, 0, 5) == "%PDF-",
 if (args.Length == 2 && args[0] == "--form-output")
 {
     Directory.CreateDirectory(args[1]);
-    File.WriteAllBytes(Path.Combine(args[1], "form-draft.pdf"), formPdf.Bytes);
-    File.WriteAllBytes(Path.Combine(args[1], "form-demo.pdf"), demoPdf.Bytes);
-    File.WriteAllBytes(Path.Combine(args[1], "form-source.docx"), wordForm.Bytes);
-    File.WriteAllBytes(Path.Combine(args[1], "form-five-controls.pdf"), allControlsPdf.Bytes);
-    File.WriteAllBytes(Path.Combine(args[1], "ykc-report.pdf"), raporPdf);
-    File.WriteAllBytes(Path.Combine(args[1], "ykc-report.xlsx"), icOperasyonExcel);
-    File.WriteAllBytes(Path.Combine(args[1], "ykc-typed-report.xlsx"), typedReportExcel);
-    File.WriteAllBytes(Path.Combine(args[1], "certificate-report.xlsx"), belgeExcel);
-    File.WriteAllBytes(Path.Combine(args[1], "commissioning-report.xlsx"), commissioningExcel);
-    File.WriteAllBytes(Path.Combine(args[1], "commissioning-service.pdf"), devreyeAlmaRaporu);
-    File.WriteAllBytes(Path.Combine(args[1], "commissioning-company.pdf"), adminCommissioningPdf);
-    File.WriteAllBytes(Path.Combine(args[1], "commissioning-single.pdf"), singleCommissioningPdf);
-    File.WriteAllBytes(Path.Combine(args[1], "commissioning-multiple.pdf"), multiRecordPdf);
-    File.WriteAllBytes(Path.Combine(args[1], "commissioning-long-note.pdf"), uzunNotluRapor);
+    await File.WriteAllBytesAsync(Path.Combine(args[1], "form-draft.pdf"), formPdf.Bytes);
+    await File.WriteAllBytesAsync(Path.Combine(args[1], "form-demo.pdf"), demoPdf.Bytes);
+    await File.WriteAllBytesAsync(Path.Combine(args[1], "form-source.docx"), wordForm.Bytes);
+    await File.WriteAllBytesAsync(Path.Combine(args[1], "form-five-controls.pdf"), allControlsPdf.Bytes);
+    await File.WriteAllBytesAsync(Path.Combine(args[1], "form-signed.pdf"), signedPdf.Bytes);
+    await File.WriteAllBytesAsync(Path.Combine(args[1], "ykc-report.pdf"), raporPdf);
+    await File.WriteAllBytesAsync(Path.Combine(args[1], "ykc-firm-report.pdf"), firmaRaporPdf);
+    await File.WriteAllBytesAsync(Path.Combine(args[1], "ykc-report.xlsx"), icOperasyonExcel);
+    await File.WriteAllBytesAsync(Path.Combine(args[1], "ykc-typed-report.xlsx"), typedReportExcel);
+    await File.WriteAllBytesAsync(Path.Combine(args[1], "certificate-report.xlsx"), belgeExcel);
+    await File.WriteAllBytesAsync(Path.Combine(args[1], "certificate-report.pdf"), belgePdf);
+    await File.WriteAllBytesAsync(Path.Combine(args[1], "service-record.pdf"), servisPdf);
+    await File.WriteAllBytesAsync(Path.Combine(args[1], "commissioning-report.xlsx"), commissioningExcel);
+    await File.WriteAllBytesAsync(Path.Combine(args[1], "commissioning-service.pdf"), devreyeAlmaRaporu);
+    await File.WriteAllBytesAsync(Path.Combine(args[1], "commissioning-company.pdf"), adminCommissioningPdf);
+    await File.WriteAllBytesAsync(Path.Combine(args[1], "commissioning-single.pdf"), singleCommissioningPdf);
+    await File.WriteAllBytesAsync(Path.Combine(args[1], "commissioning-multiple.pdf"), multiRecordPdf);
+    await File.WriteAllBytesAsync(Path.Combine(args[1], "commissioning-long-note.pdf"), uzunNotluRapor);
+}
+var ekranSimdi = new DateTime(2026, 10, 7, 12, 0, 0);
+var ekranYetki = new YkcYetkiOzeti { TalepleriGorebilir = true, AtamaYapabilir = true, Fr265ImzaIslemiYapabilir = true };
+var ekranImza = new YkcImzaEntegrasyonDto { KullanilabilirMi = true };
+var ekranTalep = new YkcTalepDetayDto
+{
+    Durum = YkcDurumDegerleri.Atandi, RandevuTarihi = ekranSimdi.Date, RandevuSaati = "12:30",
+    EskiCihazTipi = "Kombi", YeniCihazTipi = "Kombi", EskiKapasite = "20000", YeniKapasite = "20000",
+    Atamalar = [new() { Id = 10, RandevuTarihi = ekranSimdi.Date, RandevuSaati = "12:30" }]
+};
+YkcTalepEkranDto Ekran() => YkcTalepIslemKurali.EkranHazirla(ekranTalep, ekranYetki, true, ekranImza, [], ekranSimdi);
+Check(Ekran().KontroleGecisGorsun && !Ekran().RandevuZamaniGeldi && Ekran().AtamaYapilabilir,
+    "API screen keeps appointment transition disabled until the appointment time");
+Check(Ekran().CihazUyarilari.Count == 0, "API screen accepts missing chimney data and equal capacity");
+ekranTalep.Durum = YkcDurumDegerleri.SahaIsleminde;
+Check(!Ekran().KontrolBolumuAktif, "A stale field-control state cannot enable entry before the appointment");
+ekranTalep.YeniKapasite = "21000";
+Check(Ekran().CihazUyarilari.Count == 1, "API screen compares device capacity on the server");
+ekranTalep.RandevuSaati = "11:30";
+ekranTalep.Atamalar[0].RandevuSaati = "11:30";
+ekranTalep.Durum = YkcDurumDegerleri.SahaIsleminde;
+Check(Ekran().RandevuZamaniGeldi && Ekran().KontrolBolumuAktif && Ekran().AktifKontrolNo == 1,
+    "API screen exposes the first technical control after the appointment");
+ekranTalep.Kontroller = [new() { KontrolNo = 1, AtamaId = 10, Sonuc = YkcFr265KontrolSonucDegerleri.Uygun }];
+Check(Ekran().ImzayaGonderebilir && !Ekran().KontrolBolumuAktif
+    && YkcTalepIslemKurali.ImzaGonderimineHazirMi(ekranTalep, ekranSimdi, out _),
+    "Screen and signature command share the same current-appointment readiness rule");
+ekranTalep.Kontroller[0].AtamaId = 9;
+Check(!Ekran().ImzayaGonderebilir && !YkcTalepIslemKurali.ImzaGonderimineHazirMi(ekranTalep, ekranSimdi, out _),
+    "An old appointment's suitable control cannot enable signature sending");
+ekranTalep.Kontroller[0].AtamaId = 10;
+ekranTalep.ImzaSureci = new() { Durum = YkcImzaDurumDegerleri.ImzayaGonderildi, GonderimTarihi = ekranSimdi.AddMinutes(-5) };
+Check(!Ekran().ImzayaGonderebilir && !Ekran().AtamaYapilabilir,
+    "The five-minute signature lock boundary matches the command and locks assignment");
+ekranTalep.ImzaSureci.GonderimTarihi = ekranSimdi.AddMinutes(-5).AddSeconds(-1);
+Check(Ekran().ImzayaGonderebilir, "An expired signature submission lock permits retry");
+ekranTalep.ImzaSureci.ProviderDocumentId = "provider-1";
+Check(!Ekran().ImzayaGonderebilir && Ekran().ImzaDurumuSorgulanabilir,
+    "An existing provider document permits polling but never another submission");
+ekranTalep.ImzaSureci.Durum = YkcImzaDurumDegerleri.Tamamlandi;
+ekranTalep.ImzaSureci.NihaiDosyaId = 12;
+Check(!Ekran().TamamlamayaHazir, "A completed provider state without the stored final PDF cannot complete the request");
+ekranTalep.Dosyalar = [new() { Id = 12, DosyaTuru = YkcFormDosyaTuruDegerleri.Fr265ImzaliNihai }];
+Check(Ekran().TamamlamayaHazir && Ekran().IndirilebilirDosyalar.Count == 1,
+    "The verified final PDF enables completion and authorized download");
+var readOnlyScreen = YkcTalepIslemKurali.EkranHazirla(ekranTalep, new() { TalepleriGorebilir = true }, true, ekranImza, [], ekranSimdi);
+Check(!readOnlyScreen.TamamlamayaHazir && !readOnlyScreen.AtamaYapilabilir && !readOnlyScreen.RedIptalYapabilir
+    && !readOnlyScreen.ImzayaGonderebilir, "Read-only access never enables write actions");
+var firmScreen = YkcTalepIslemKurali.EkranHazirla(ekranTalep, new() { TalepleriGorebilir = true }, false, ekranImza,
+    [new() { Id = "private-team", Secili = true }], ekranSimdi);
+Check(!firmScreen.IcOperasyonGorsun && firmScreen.Ekipler.Count == 0 && firmScreen.SeciliEkipId == null && firmScreen.CihazUyarilari.Count == 0
+    && !firmScreen.TamamlamayaHazir, "Certified firm screen receives neither internal comparisons nor assignment choices");
+ekranImza.DemoModuMu = true;
+ekranTalep.ImzaSureci.ProviderDocumentId = "DEMO-YKC-fixture";
+Check(Ekran().ImzaliBelgeDemoMu && Ekran().DemoPdfGuncellenebilir,
+    "API enables legacy demo PDF refresh for authorized internal operators");
+Check(!YkcTalepIslemKurali.EkranHazirla(ekranTalep, ekranYetki, false, ekranImza, [], ekranSimdi).DemoPdfGuncellenebilir,
+    "Firm views cannot refresh demo PDFs even with stale internal permission flags");
+ekranTalep.Dosyalar[0].DosyaAdi = $"Form_Demo_Nihai_{YkcFr265PdfService.TasarimSurumu}_1.pdf";
+Check(!Ekran().DemoPdfGuncellenebilir, "Current demo PDF version needs no refresh");
+ekranTalep.ImzaSureci.ProviderDocumentId = "real-provider-fixture";
+ekranTalep.Dosyalar[0].DosyaAdi = "old.pdf";
+Check(!Ekran().ImzaliBelgeDemoMu && !Ekran().DemoPdfGuncellenebilir,
+    "Real provider documents are never treated as demo refresh candidates");
+ekranImza.DemoModuMu = false;
+ekranTalep.ImzaSureci = null;
+ekranTalep.Dosyalar.Clear();
+ekranTalep.Durum = YkcDurumDegerleri.AtamaBekliyor;
+ekranTalep.Kontroller = Enumerable.Range(1, 5).Select(no => new YkcFr265KontrolDto
+    { KontrolNo = no, AtamaId = 10, Sonuc = YkcFr265KontrolSonucDegerleri.UygunDegil }).ToList();
+Check(Ekran().KontrolAlaniDoldu && Ekran().AtamaYapilabilir && !Ekran().ImzayaGonderebilir
+    && Ekran().AktifKontrolNo == null, "Five unsuitable controls close the current period and retain appointment planning");
+ekranTalep.Kontroller.AddRange(Enumerable.Range(6, 5).Select(no => new YkcFr265KontrolDto { KontrolNo = no }));
+Check(Ekran().KontrolDonemi == 2 && Ekran().AktifKontrolNo == 1 && Ekran().TumSonucluKontroller.Count == 5
+    && Ekran().SonUygunsuzKontrol?.KontrolNo == 5,
+    "A new five-control period preserves past results and the last unsuitable reason");
+var ekranJson = System.Text.Json.JsonSerializer.Serialize(Ekran());
+var ekranRoundTrip = System.Text.Json.JsonSerializer.Deserialize<YkcTalepEkranDto>(ekranJson)!;
+Check(ekranRoundTrip.KontrolDonemi == 2 && ekranRoundTrip.AktifKontrolNo == 1
+    && ekranRoundTrip.TumSonucluKontroller.Count == 5, "API screen state survives JSON without client-side rule execution");
+foreach (var terminal in new[] { YkcDurumDegerleri.Tamamlandi, YkcDurumDegerleri.Reddedildi, YkcDurumDegerleri.Iptal })
+{
+    ekranTalep.Durum = terminal;
+    Check(Ekran().TerminalDurum && !Ekran().AtamaYapilabilir && !Ekran().RedIptalYapabilir && !Ekran().KontrolBolumuAktif,
+        "Terminal state disables operational actions: " + terminal);
 }
 Console.WriteLine($"{passed} checks passed. No application data changed.");
 
 sealed class RecordingOnlineHandler : HttpMessageHandler
 {
+    public CancellationTokenSource? CancelDuringSend { get; set; }
+    public System.Net.HttpStatusCode StatusCode { get; set; } = System.Net.HttpStatusCode.ServiceUnavailable;
+    public string ResponseXml { get; set; } = "";
     public int Calls { get; private set; }
     public Uri? LastUri { get; private set; }
 
@@ -715,10 +904,27 @@ sealed class RecordingOnlineHandler : HttpMessageHandler
     {
         Calls++;
         LastUri = request.RequestUri;
-        return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.ServiceUnavailable)
+        CancelDuringSend?.Cancel();
+        if (cancellationToken.IsCancellationRequested)
+            return Task.FromCanceled<HttpResponseMessage>(cancellationToken);
+        return Task.FromResult(new HttpResponseMessage(StatusCode)
         {
-            Content = new StringContent("")
+            Content = new StringContent(ResponseXml)
         });
+    }
+}
+
+namespace Tests.YkcRules
+{
+    sealed class RecordingOnlineLogger : ILogger<OnlineCihazBilgileriClient>
+    {
+        public List<(LogLevel Level, string Message, KeyValuePair<string, object?>[] State, Exception? Exception)> Entries { get; } = [];
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel logLevel) => true;
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
+            Func<TState, Exception?, string> formatter)
+            => Entries.Add((logLevel, formatter(state, exception),
+                state is IEnumerable<KeyValuePair<string, object?>> values ? values.ToArray() : [], exception));
     }
 }
 

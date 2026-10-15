@@ -5,8 +5,8 @@
     ViewData["ActiveMenu"] = "Yetkiler";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
-    var personel = ViewBag.Personel as YetkiliServisGazAcma.Entities.AppKullanici;
-    var sirketler = ViewBag.Sirketler as List<YetkiliServisGazAcma.Entities.Dag_Sirket> ?? new();
+    var personel = ViewBag.Personel as AdminKullaniciListeDto;
+    var sirketler = ViewBag.Sirketler as List<AdminSirketSecenekDto> ?? new();
     var seciliSirketIds = ViewBag.SeciliSirketIds as List<int> ?? new();
     var yetkiSirketMap = ViewBag.YetkiSirketMap as Dictionary<int, List<string>> ?? new();
     var yetkiGruplari = new[]

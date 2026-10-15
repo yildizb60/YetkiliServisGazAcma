@@ -1,4 +1,4 @@
-@model YetkiliServisGazAcma.Entities.Ys_Firma
+@model AdminYetkiliServisDto
 @{
     ViewData["Title"] = "Yetkili Servis Düzenle";
     ViewData["ActiveMenu"] = "YetkiliServisler";
@@ -6,5 +6,5 @@
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 }
 @section PageStyles { <link rel="stylesheet" href="~/css/service-editor.css" asp-append-version="true" /> }
-@await Html.PartialAsync("_YetkiliServisEditor", Model ?? new YetkiliServisGazAcma.Entities.Ys_Firma())
+@await Html.PartialAsync("_YetkiliServisEditor", Model ?? new AdminYetkiliServisDto())
 @section Scripts { <script src="~/js/service-editor.js" asp-append-version="true"></script> }

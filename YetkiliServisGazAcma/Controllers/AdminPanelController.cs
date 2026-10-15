@@ -1,14 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Filters;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
-using QuestPDF.Fluent;
-using QuestPDF.Helpers;
-using QuestPDF.Infrastructure;
-using System.Globalization;
-using System.Linq;
 
 namespace YetkiliServisGazAcma.Controllers
 {
@@ -18,7 +11,6 @@ namespace YetkiliServisGazAcma.Controllers
     public partial class AdminPanelController : Controller
     {
         private readonly ApiKullaniciOturumu _kullaniciOturumu;
-        private readonly SehirFirmaKodlari _sehirFirmaKoduService;
         private readonly AktifSirketService _aktifSirketService;
         private readonly AdminDashboardApiClient _adminDashboardApiClient;
         private readonly AdminKullaniciApiClient _adminKullaniciApiClient;
@@ -27,12 +19,9 @@ namespace YetkiliServisGazAcma.Controllers
         private readonly AdminSubeApiClient _adminSubeApiClient;
         private readonly AdminRaporApiClient _adminRaporApiClient;
         private readonly YkcApiClient _ykcApiClient;
-        private readonly MarkaApiClient _markaApiClient;
-        private readonly UrunKategoriApiClient _urunKategoriApiClient;
 
         public AdminPanelController(
             ApiKullaniciOturumu kullaniciOturumu,
-            SehirFirmaKodlari sehirFirmaKoduService,
             AktifSirketService aktifSirketService,
             AdminDashboardApiClient adminDashboardApiClient,
             AdminKullaniciApiClient adminKullaniciApiClient,
@@ -40,12 +29,9 @@ namespace YetkiliServisGazAcma.Controllers
             AdminYetkiBelgesiOnayApiClient adminYetkiBelgesiOnayApiClient,
             AdminSubeApiClient adminSubeApiClient,
             AdminRaporApiClient adminRaporApiClient,
-            YkcApiClient ykcApiClient,
-            MarkaApiClient markaApiClient,
-            UrunKategoriApiClient urunKategoriApiClient)
+            YkcApiClient ykcApiClient)
         {
             _kullaniciOturumu = kullaniciOturumu;
-            _sehirFirmaKoduService = sehirFirmaKoduService;
             _aktifSirketService = aktifSirketService;
             _adminDashboardApiClient = adminDashboardApiClient;
             _adminKullaniciApiClient = adminKullaniciApiClient;
@@ -54,16 +40,6 @@ namespace YetkiliServisGazAcma.Controllers
             _adminSubeApiClient = adminSubeApiClient;
             _adminRaporApiClient = adminRaporApiClient;
             _ykcApiClient = ykcApiClient;
-            _markaApiClient = markaApiClient;
-            _urunKategoriApiClient = urunKategoriApiClient;
-        }
-
-        private async Task<List<UrunKategori>> KullanilanKategorileriGetir()
-        {
-            return (await _urunKategoriApiClient.ListeAsync() ?? new List<UrunKategori>())
-                .OrderBy(x => x.SiraNo)
-                .ThenBy(x => x.Ad)
-                .ToList();
         }
 
         private async Task<AppKullanici?> GetCurrentUser()
@@ -71,22 +47,9 @@ namespace YetkiliServisGazAcma.Controllers
             return await _kullaniciOturumu.GetUserAsync(User);
         }
 
-        private async Task<int> GetOnayBekleyenCount()
+        private async Task<AdminDashboardApiDto?> GetAdminDashboardOzetAsync(AppKullanici kullanici, int? sirketId)
         {
-            var kullanici = await GetCurrentUser();
-            var sirketId = kullanici == null ? null : await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            var dashboard = kullanici == null ? null : await GetAdminDashboardOzetAsync(kullanici, sirketId);
-
-            return dashboard?.OnayBekleyen ?? 0;
-        }
-
-        private async Task<AdminDashboardOzet?> GetAdminDashboardOzetAsync(AppKullanici kullanici, int? sirketId)
-        {
-            var cacheKey = $"AdminDashboardOzet:{sirketId?.ToString(CultureInfo.InvariantCulture) ?? "tum"}";
-            if (HttpContext.Items.TryGetValue(cacheKey, out var cached))
-                return cached as AdminDashboardOzet;
-
-            AdminDashboardOzet? dashboard;
+            AdminDashboardApiDto? dashboard = null;
             try
             {
                 dashboard = await _adminDashboardApiClient.GetirAsync(kullanici, sirketId);
@@ -94,29 +57,10 @@ namespace YetkiliServisGazAcma.Controllers
             catch (ApiIntegrationException ex)
             {
                 TempData["Hata"] = ex.Message;
-                return null;
             }
-
-            if (dashboard != null)
-                HttpContext.Items[cacheKey] = dashboard;
 
             return dashboard;
         }
 
-        public override async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
-        {
-            var kullanici = await GetCurrentUser();
-            var sirketId = kullanici == null ? null : await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            var dashboard = kullanici == null ? null : await GetAdminDashboardOzetAsync(kullanici, sirketId);
-
-            ViewBag.OnayBekleyen = dashboard?.OnayBekleyen ?? 0;
-            ViewBag.SuresiBitecek = dashboard?.SuresiBitecek ?? 0;
-            ViewBag.GenelSistemAdminMi = kullanici != null && await _aktifSirketService.GenelSistemAdminMi(kullanici);
-            await next();
-        }
-
-
     }
 }
-
-

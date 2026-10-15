@@ -62,9 +62,9 @@
         }
     </div>
     <div class="layout">
-        @await Html.PartialAsync("_PanelSidebar")
+        @await Component.InvokeAsync("Sidebar")
         <main class="main">
-            @await Html.PartialAsync("_PanelTopbar")
+            @await Component.InvokeAsync("Navbar")
             <div class="content @contentClasses">
                 @RenderBody()
             </div>

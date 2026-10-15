@@ -1,73 +1,22 @@
-@model List<YetkiliServisGazAcma.Entities.Ys_YetkiBelgesi>
-@using YetkiliServisGazAcma.Entities
+@model List<YetkiBelgesiDto>
 @{
     ViewData["Title"] = "Yetki Belgesi İşlemleri";
-    ViewData["PanelTitle"] = "Yetki Belgesi İşlemleri";
+    ViewData["PanelTitle"] = ViewData["Title"];
     ViewData["PanelSubtitle"] = "Yetki Belgesi";
     ViewData["ActiveMenu"] = "OnayBekleyenler";
     ViewData["PanelArea"] = User.IsInRole("Personel") ? "Personel" : "Admin";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
-
-    var bekleyenler = Model ?? new List<Ys_YetkiBelgesi>();
-    var onaylananlar = ViewBag.Onaylananlar as List<Ys_YetkiBelgesi> ?? new List<Ys_YetkiBelgesi>();
-    var reddedilenler = ViewBag.Reddedilenler as List<Ys_YetkiBelgesi> ?? new List<Ys_YetkiBelgesi>();
-    var suresiDolanlar = ViewBag.SuresiDolanlar as List<Ys_YetkiBelgesi> ?? new List<Ys_YetkiBelgesi>();
-    var listelenenBelgeSayisi = bekleyenler.Concat(onaylananlar).Concat(reddedilenler).Concat(suresiDolanlar)
-        .Select(x => x.Id).Distinct().Count();
+    var bekleyenler = Model ?? new List<YetkiBelgesiDto>();
+    var onaylananlar = ViewBag.Onaylananlar as List<YetkiBelgesiDto> ?? new List<YetkiBelgesiDto>();
+    var reddedilenler = ViewBag.Reddedilenler as List<YetkiBelgesiDto> ?? new List<YetkiBelgesiDto>();
+    var suresiDolanlar = ViewBag.SuresiDolanlar as List<YetkiBelgesiDto> ?? new List<YetkiBelgesiDto>();
+    var kayitlar = bekleyenler.Concat(onaylananlar).Concat(reddedilenler).Concat(suresiDolanlar).Cast<YetkiBelgesiKayitDto>().ToList();
+    var sayfalama = ViewBag.Sayfalama as YetkiBelgesiOnaySayfalamaDto ?? new();
 }
-
 @section PageStyles {
     <link rel="stylesheet" href="~/css/operations-directory.css" asp-append-version="true" />
 }
-
-<div class="approval-board df-approval-workspace">
-    <section class="df-page-panel approval-panels is-admin-approval">
-        <div class="df-approval-list-total"><span>Listelenen yetki belgesi</span><strong>@listelenenBelgeSayisi</strong></div>
-        <div class="df-approval-status-bar" role="tablist" data-approval-tabs aria-label="Yetki belgesi durumu">
-            <button type="button" role="tab" id="legacy-approval-waiting-tab" aria-controls="legacy-approval-waiting" aria-selected="true" class="approval-tab approval-metric is-waiting active" data-target="bekleyen"><i class="bi bi-hourglass-split" aria-hidden="true"></i><span>Onay Bekleyen</span><strong>@bekleyenler.Count</strong></button>
-            <button type="button" role="tab" id="legacy-approval-approved-tab" aria-controls="legacy-approval-approved" aria-selected="false" class="approval-tab approval-metric is-approved" data-target="onaylanan"><i class="bi bi-check-circle" aria-hidden="true"></i><span>Onaylanan</span><strong>@onaylananlar.Count</strong></button>
-            <button type="button" role="tab" id="legacy-approval-rejected-tab" aria-controls="legacy-approval-rejected" aria-selected="false" class="approval-tab approval-metric is-rejected" data-target="reddedilen"><i class="bi bi-x-circle" aria-hidden="true"></i><span>Reddedilen</span><strong>@reddedilenler.Count</strong></button>
-            <button type="button" role="tab" id="legacy-approval-expired-tab" aria-controls="legacy-approval-expired" aria-selected="false" class="approval-tab approval-metric is-expired" data-target="suresi-dolan"><i class="bi bi-calendar-x" aria-hidden="true"></i><span>Süresi Dolan</span><strong>@suresiDolanlar.Count</strong></button>
-        </div>
-
-        <div data-panel="bekleyen" class="active" id="legacy-approval-waiting" role="tabpanel" aria-labelledby="legacy-approval-waiting-tab">
-            @await Html.PartialAsync("~/Views/Shared/_YetkiBelgesiOnayTable.cshtml", new Tuple<List<Ys_YetkiBelgesi>, string, string>(bekleyenler, "bekleyen", "admin"))
-        </div>
-        <div data-panel="onaylanan" id="legacy-approval-approved" role="tabpanel" aria-labelledby="legacy-approval-approved-tab">
-            @await Html.PartialAsync("~/Views/Shared/_YetkiBelgesiOnayTable.cshtml", new Tuple<List<Ys_YetkiBelgesi>, string, string>(onaylananlar, "onaylanan", "admin"))
-        </div>
-        <div data-panel="reddedilen" id="legacy-approval-rejected" role="tabpanel" aria-labelledby="legacy-approval-rejected-tab">
-            @await Html.PartialAsync("~/Views/Shared/_YetkiBelgesiOnayTable.cshtml", new Tuple<List<Ys_YetkiBelgesi>, string, string>(reddedilenler, "reddedilen", "admin"))
-        </div>
-        <div data-panel="suresi-dolan" id="legacy-approval-expired" role="tabpanel" aria-labelledby="legacy-approval-expired-tab">
-            @await Html.PartialAsync("~/Views/Shared/_YetkiBelgesiOnayTable.cshtml", new Tuple<List<Ys_YetkiBelgesi>, string, string>(suresiDolanlar, "suresi-dolan", "admin"))
-        </div>
-    </section>
-</div>
-
+@await Html.PartialAsync("_YetkiBelgesiOnayWorkspace", new Tuple<IReadOnlyList<YetkiBelgesiKayitDto>, YetkiBelgesiOnaySayfalamaDto, string>(kayitlar, sayfalama, "admin"))
 @section Scripts {
-<script src="~/js/approval-row-details.js" asp-append-version="true"></script>
-<script>
-(function () {
-    var tabs = document.querySelector('[data-approval-tabs]');
-    if (!tabs) return;
-
-    tabs.addEventListener('click', function (event) {
-        var btn = event.target.closest('[data-target]');
-        if (!btn) return;
-        var target = btn.getAttribute('data-target');
-
-        tabs.querySelectorAll('[data-target]').forEach(function (item) {
-            var selected = item === btn;
-            item.classList.toggle('active', selected);
-            item.setAttribute('aria-selected', selected ? 'true' : 'false');
-            item.tabIndex = selected ? 0 : -1;
-        });
-
-        document.querySelectorAll('.approval-panels [data-panel]').forEach(function (panel) {
-            panel.classList.toggle('active', panel.getAttribute('data-panel') === target);
-        });
-    });
-})();
-</script>
+    <script src="~/js/approval-row-details.js" asp-append-version="true"></script>
 }

@@ -2,12 +2,12 @@
 @using YetkiliServisGazAcma.Models.ViewModels
 @{
     Layout = null;
-    var sube = ViewBag.Sube as Ys_Sube ?? new();
+    var sube = ViewBag.Sube as AdminSubeDto ?? new();
 }
 @await Html.PartialAsync("_BranchEditor", new BranchEditorViewModel
 {
     Branch = sube,
     CanSelectFirm = true,
-    Firms = ViewBag.Firmalar as List<Ys_Firma> ?? new(),
+    Firms = ViewBag.Firmalar as List<AdminSubeFirmaDto> ?? new(),
     PostUrl = Url.Action("SubeDuzenle", "AdminPanel", new { id = sube.Id })!
 })
