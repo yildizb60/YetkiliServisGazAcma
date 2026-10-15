@@ -1,5 +1,3 @@
-using System.Net.Http.Headers;
-
 namespace YetkiliServisGazAcma.Business.Services
 {
     public class ApiDosyaSonuc

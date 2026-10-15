@@ -1,0 +1,29 @@
+@model YetkiliServisGazAcma.Models.ViewModels.BranchEditorViewModel
+<form class="ys-branch-editor" method="post" action="@Model.PostUrl">
+    @Html.AntiForgeryToken()
+    <div class="ys-branch-editor-fields">
+        @if (Model.CanSelectFirm)
+        {
+            <div class="ys-field is-wide">
+                <label for="branchFirm">Bağlı Firma *</label>
+                <select id="branchFirm" name="firmaId" required>
+                    <option value="">Firma seçin</option>
+                    @foreach (var firm in Model.Firms)
+                    {
+                        <option value="@firm.Id" selected="@(Model.Branch.FirmaId == firm.Id)">@firm.FirmaAdi</option>
+                    }
+                </select>
+            </div>
+        }
+        <div class="ys-field is-wide"><label for="branchName">Şube Adı *</label><input id="branchName" name="subeAdi" value="@Model.Branch.SubeAdi" required maxlength="200" /></div>
+        <div class="ys-field"><label for="branchCity">İl</label><input id="branchCity" name="il" value="@Model.Branch.Il" maxlength="80" /></div>
+        <div class="ys-field"><label for="branchDistrict">İlçe</label><input id="branchDistrict" name="ilce" value="@Model.Branch.Ilce" maxlength="80" /></div>
+        <div class="ys-field"><label for="branchPhone">Telefon</label><input type="tel" id="branchPhone" name="telefon" value="@Model.Branch.Telefon" maxlength="30" autocomplete="tel" /></div>
+        <label class="ys-branch-active"><input type="checkbox" name="aktifMi" value="true" checked="@Model.Branch.AktifMi" /><span>Aktif şube</span></label>
+        <div class="ys-field is-wide"><label for="branchAddress">Adres</label><textarea id="branchAddress" name="adres" rows="3" maxlength="300">@Model.Branch.Adres</textarea></div>
+    </div>
+    <div class="ys-branch-editor-actions">
+        <button type="button" class="df-btn df-btn-secondary" data-branch-sheet-cancel><i class="bi bi-x-lg" aria-hidden="true"></i> Vazgeç</button>
+        <button type="submit" class="df-btn df-btn-primary"><i class="bi bi-check2" aria-hidden="true"></i> @(Model.Branch.Id > 0 ? "Değişiklikleri Kaydet" : "Şubeyi Kaydet")</button>
+    </div>
+</form>

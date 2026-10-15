@@ -2,6 +2,8 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using YetkiliServisGazAcma.API.Infrastructure;
+using YetkiliServisGazAcma.API.Services;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
 using YetkiliServisGazAcma.Models;
@@ -14,17 +16,26 @@ namespace YetkiliServisGazAcma.API.Controllers
     public class YetkiBelgesiApiController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly YetkiBelgesiOkumaApiService _okuma;
+        private readonly YetkiBelgesiSilmeApiService _silme;
         private readonly YetkiBelgesiService _service;
         private readonly ILogger<YetkiBelgesiApiController> _logger;
+        private readonly IWebHostEnvironment _environment;
 
         public YetkiBelgesiApiController(
             AppDbContext context,
             YetkiBelgesiService service,
-            ILogger<YetkiBelgesiApiController> logger)
+            ILogger<YetkiBelgesiApiController> logger,
+            IWebHostEnvironment environment,
+            YetkiBelgesiOkumaApiService okuma,
+            YetkiBelgesiSilmeApiService silme)
         {
             _context = context;
+            _okuma = okuma;
+            _silme = silme;
             _service = service;
             _logger = logger;
+            _environment = environment;
         }
 
         [HttpPost("firma-liste")]
@@ -33,21 +44,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (!await FirmaGoruntulemeYetkisiVarMi(dto.Id))
                 return Forbid();
 
-            var belgeler = await _service.FirmaninYetkiBelgeleri(dto.Id);
-
-            return Ok(belgeler.Select(x => new YetkiBelgesiDto
-            {
-                Id = x.Id,
-                FirmaId = x.FirmaId,
-                DosyaYolu = string.IsNullOrWhiteSpace(x.DosyaYolu) ? null : YetkiBelgesiService.GuvenliDosyaLinki(x.Id),
-                Durum = x.Durum,
-                OlusturmaTarihi = x.OlusturmaTarihi,
-                YetkiBelgesiBaslangicTarihi = x.YetkiBelgesiBaslangicTarihi,
-                YetkiBelgesiBitisTarihi = x.YetkiBelgesiBitisTarihi,
-                OnayTarihi = x.OnayTarihi,
-                OnaylayanKullanici = x.OnaylayanKullanici,
-                RedGerekce = x.RedGerekce
-            }));
+            return Ok(await _okuma.FirmaListeAsync(dto.Id));
         }
 
         [HttpPost("firma-ekrani")]
@@ -57,29 +54,10 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (!await FirmaGoruntulemeYetkisiVarMi(firmaId))
                 return Forbid();
 
-            var firma = await _context.Ys_Firmalar
-                .Include(x => x.YetkiBelgeleri)
-                .FirstOrDefaultAsync(x => x.Id == firmaId && !x.SilindiMi);
-
-            if (firma == null)
-                return NotFound(new { basarili = false, mesaj = "Yetkili servis bulunamadi" });
-
-            var belgeler = await _service.FirmaninYetkiBelgeleri(firmaId);
-            var bildirimler = await FirmaBildirimleriAsync(firmaId, firma);
-
-            return Ok(new YetkiBelgesiFirmaEkraniDto
-            {
-                Firma = new YetkiBelgesiFirmaDto
-                {
-                    Id = firma.Id,
-                    FirmaAdi = firma.FirmaAdi,
-                    YetkiliKisi = firma.YetkiliKisi,
-                    VergiNo = firma.VergiNo,
-                    FaaliyetIli = firma.FaaliyetIli
-                },
-                Belgeler = belgeler.Select(MapYetkiBelgesi).ToList(),
-                Bildirimler = bildirimler
-            });
+            var sonuc = await _okuma.FirmaEkraniAsync(firmaId);
+            return sonuc == null
+                ? NotFound(new { basarili = false, mesaj = "Yetkili servis bulunamadi" })
+                : Ok(sonuc);
         }
 
         [HttpPost("yukle")]
@@ -92,7 +70,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (dto.Dosya == null || dto.Dosya.Length == 0)
                 return BadRequest(new { basarili = false, mesaj = "Lütfen bir dosya seçiniz." });
 
-            if (!await FirmaGoruntulemeYetkisiVarMi(dto.FirmaId))
+            if (!await FirmaBelgesiYonetebilirMi(dto.FirmaId))
                 return Forbid();
 
             var publicBaseUrl = $"{Request.Scheme}://{Request.Host}";
@@ -117,9 +95,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (sirketId.gecersiz)
                 return Forbid();
 
-            var yetkiBelgeleri = await _service.OnayBekleyenler(sirketId.sirketId);
-
-            return Ok(yetkiBelgeleri.Select(MapYetkiBelgesi));
+            return Ok(await _okuma.OnayBekleyenlerAsync(sirketId.sirketId));
         }
 
         [HttpPost("onay-ekrani")]
@@ -129,67 +105,26 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (sirketId.gecersiz)
                 return Forbid();
 
-            var sorgu = _context.Ys_YetkiBelgeleri
-                .Include(x => x.Firma)
-                    .ThenInclude(x => x!.Sirket)
-                .Where(x => !x.SilindiMi
-                    && x.Firma != null
-                    && !x.Firma.SilindiMi
-                    && (sirketId.sirketId == null || x.Firma.SirketId == sirketId.sirketId));
-
-            var bugun = DateTime.Today;
-            var bekleyenler = await sorgu
-                .Where(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
-                    && x.YetkiBelgesiBitisTarihi >= bugun)
-                .OrderByDescending(x => x.OlusturmaTarihi)
-                .ToListAsync();
-
-            var suresiDolanlar = await sorgu
-                .Where(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
-                    && x.YetkiBelgesiBitisTarihi < bugun)
-                .OrderByDescending(x => x.YetkiBelgesiBitisTarihi)
-                .ToListAsync();
-
-            var onaylananlar = await sorgu
-                .Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi)
-                .OrderByDescending(x => x.OnayTarihi ?? x.OlusturmaTarihi)
-                .Take(100)
-                .ToListAsync();
-
-            var reddedilenler = await sorgu
-                .Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Reddedildi)
-                .OrderByDescending(x => x.OnayTarihi ?? x.OlusturmaTarihi)
-                .Take(100)
-                .ToListAsync();
-
-            return Ok(new YetkiBelgesiOnayEkraniDto
-            {
-                Bekleyenler = bekleyenler.Select(MapYetkiBelgesi).ToList(),
-                SuresiDolanlar = suresiDolanlar.Select(MapYetkiBelgesi).ToList(),
-                Onaylananlar = onaylananlar.Select(MapYetkiBelgesi).ToList(),
-                Reddedilenler = reddedilenler.Select(MapYetkiBelgesi).ToList()
-            });
+            return Ok(await _okuma.OnayEkraniAsync(sirketId.sirketId, dto, HttpContext.RequestAborted));
         }
 
         [HttpPost("sil")]
         public async Task<IActionResult> Sil([FromBody] IdDto dto)
         {
             var yetkiBelgesi = await _context.Ys_YetkiBelgeleri
-                .Include(x => x.Firma)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Id == dto.Id && !x.SilindiMi);
 
             if (yetkiBelgesi == null)
                 return NotFound(new { basarili = false, mesaj = "Yetki belgesi bulunamadi" });
 
-            if (!await FirmaGoruntulemeYetkisiVarMi(yetkiBelgesi.FirmaId))
+            if (!await FirmaBelgesiYonetebilirMi(yetkiBelgesi.FirmaId))
                 return Forbid();
 
-            yetkiBelgesi.SilindiMi = true;
-            yetkiBelgesi.SilinmeTarihi = DateTime.Now;
-            yetkiBelgesi.SilenKullanici = User.Identity?.Name ?? "sistem";
-            await _context.SaveChangesAsync();
-
-            return Ok(new { basarili = true, mesaj = "Yetki belgesi silindi" });
+            var hata = await _silme.SilAsync(yetkiBelgesi, User.Identity?.Name);
+            return hata != null
+                ? Conflict(new { basarili = false, mesaj = hata })
+                : Ok(new { basarili = true, mesaj = "Yetki belgesi silindi" });
         }
 
         [HttpPost("dosya-indir")]
@@ -205,69 +140,26 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (!await FirmaGoruntulemeYetkisiVarMi(yetkiBelgesi.FirmaId))
                 return Forbid();
 
+            // Demo content is development-only and follows the same authorization as uploaded documents.
+            if (_environment.IsDevelopment()
+                && string.Equals(yetkiBelgesi.DosyaYolu, TestDataSeed.DemoYetkiBelgesiDosyaYolu, StringComparison.Ordinal))
+            {
+                using var resource = typeof(TestDataSeed).Assembly.GetManifestResourceStream("YetkiliServisGazAcma.API.DemoYetkiBelgesi.html");
+                if (resource != null)
+                {
+                    using var content = new MemoryStream();
+                    await resource.CopyToAsync(content);
+                    Response.Headers.CacheControl = "private, no-store";
+                    return File(content.ToArray(), "text/html; charset=utf-8", "Demo_Yetki_Belgesi.html");
+                }
+            }
+
             var dosya = _service.DosyaGetir(yetkiBelgesi);
             if (dosya == null)
                 return NotFound(new { basarili = false, mesaj = "Yetki belgesi dosyasi bulunamadi" });
 
             Response.Headers.CacheControl = "private, no-store";
             return PhysicalFile(dosya.FizikselYol, dosya.ContentType, dosya.DosyaAdi);
-        }
-
-        private static YetkiBelgesiDto MapYetkiBelgesi(Ys_YetkiBelgesi x)
-        {
-            return new YetkiBelgesiDto
-            {
-                Id = x.Id,
-                FirmaId = x.FirmaId,
-                FirmaAdi = x.Firma?.FirmaAdi,
-                SirketId = x.Firma?.SirketId,
-                SirketAdi = x.Firma?.Sirket?.SirketAdi,
-                DosyaYolu = string.IsNullOrWhiteSpace(x.DosyaYolu) ? null : YetkiBelgesiService.GuvenliDosyaLinki(x.Id),
-                Durum = x.Durum,
-                OlusturmaTarihi = x.OlusturmaTarihi,
-                YetkiBelgesiBaslangicTarihi = x.YetkiBelgesiBaslangicTarihi,
-                YetkiBelgesiBitisTarihi = x.YetkiBelgesiBitisTarihi,
-                OnayTarihi = x.OnayTarihi,
-                OnaylayanKullanici = x.OnaylayanKullanici,
-                RedGerekce = x.RedGerekce
-            };
-        }
-
-        private async Task<List<string>> FirmaBildirimleriAsync(int firmaId, Ys_Firma firma)
-        {
-            var bildirimler = new List<string>();
-            var onayli = firma.YetkiBelgeleri?
-                .Where(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi && !x.SilindiMi)
-                .OrderByDescending(x => x.OlusturmaTarihi)
-                .FirstOrDefault();
-
-            var bekleyenVar = firma.YetkiBelgeleri?.Any(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
-                && x.YetkiBelgesiBitisTarihi.Date >= DateTime.Today && !x.SilindiMi) ?? false;
-            if (onayli != null)
-            {
-                bildirimler.Add("Yetki belgeniz onaylandı. Cihaz devreye alabilirsiniz.");
-                var kalan = (onayli.YetkiBelgesiBitisTarihi.Date - DateTime.Now.Date).Days;
-                if (kalan <= 30)
-                    bildirimler.Add($"Yetki belgenizin bitmesine {kalan} gün kaldı. Lütfen yenileyin.");
-            }
-
-            if (bekleyenVar)
-                bildirimler.Add("Yetki belgeniz onay bekliyor. Yetkili onayladıktan sonra işlem yapabilirsiniz.");
-
-            var son7Gun = DateTime.Now.AddDays(-7);
-            var sonDevreye = await _context.Ys_DevreyeAlmalar
-                .Where(x => x.FirmaId == firmaId && !x.SilindiMi && x.OlusturmaTarihi >= son7Gun)
-                .CountAsync();
-            if (sonDevreye > 0)
-                bildirimler.Add($"Son 7 günde {sonDevreye} cihaz devreye alındı.");
-
-            var sonSube = await _context.Ys_Subeler
-                .Where(x => x.FirmaId == firmaId && !x.SilindiMi && x.OlusturmaTarihi >= son7Gun)
-                .CountAsync();
-            if (sonSube > 0)
-                bildirimler.Add($"Son 7 günde {sonSube} şube kaydı eklendi.");
-
-            return bildirimler;
         }
 
         [HttpPost("onayla")]
@@ -373,6 +265,18 @@ namespace YetkiliServisGazAcma.API.Controllers
                 (x.YetkiTipi == YetkiTipleri.TAM_YETKI || x.YetkiTipi == YetkiTipleri.YETKI_BELGESI_ONAY));
         }
 
+        private async Task<bool> FirmaBelgesiYonetebilirMi(int firmaId)
+        {
+            if (!User.IsInRole("YetkiliServis"))
+                return false;
+
+            var kullaniciId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            return await _context.Users.AnyAsync(x => x.Id == kullaniciId
+                && x.AktifMi
+                && x.KullaniciTipi == KullaniciTipiDegerleri.YetkiliServis
+                && x.FirmaId == firmaId);
+        }
+
         private async Task<bool> FirmaGoruntulemeYetkisiVarMi(int firmaId)
         {
             if (User.IsInRole("GenelSistemAdmin") || User.IsInRole("SuperAdmin"))
@@ -406,16 +310,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         }
     }
 
-    public class YetkiBelgesiFiltreDto
-    {
-        public int? SirketId { get; set; }
-    }
 
-    public class YetkiBelgesiRedDto
-    {
-        public int Id { get; set; }
-        public string? Gerekce { get; set; }
-    }
 
     public class YetkiBelgesiYukleDto
     {
@@ -425,44 +320,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         public DateTime? BaslangicTarihi { get; set; }
     }
 
-    public class YetkiBelgesiDto
-    {
-        public int Id { get; set; }
-        public int FirmaId { get; set; }
-        public string? FirmaAdi { get; set; }
-        public int? SirketId { get; set; }
-        public string? SirketAdi { get; set; }
-        public string? DosyaYolu { get; set; }
-        public int Durum { get; set; }
-        public DateTime OlusturmaTarihi { get; set; }
-        public DateTime? YetkiBelgesiBaslangicTarihi { get; set; }
-        public DateTime? YetkiBelgesiBitisTarihi { get; set; }
-        public DateTime? OnayTarihi { get; set; }
-        public string? OnaylayanKullanici { get; set; }
-        public string? RedGerekce { get; set; }
-    }
 
-    public class YetkiBelgesiFirmaEkraniDto
-    {
-        public YetkiBelgesiFirmaDto? Firma { get; set; }
-        public List<YetkiBelgesiDto> Belgeler { get; set; } = new();
-        public List<string> Bildirimler { get; set; } = new();
-    }
 
-    public class YetkiBelgesiFirmaDto
-    {
-        public int Id { get; set; }
-        public string? FirmaAdi { get; set; }
-        public string? YetkiliKisi { get; set; }
-        public string? VergiNo { get; set; }
-        public string? FaaliyetIli { get; set; }
-    }
 
-    public class YetkiBelgesiOnayEkraniDto
-    {
-        public List<YetkiBelgesiDto> Bekleyenler { get; set; } = new();
-        public List<YetkiBelgesiDto> SuresiDolanlar { get; set; } = new();
-        public List<YetkiBelgesiDto> Onaylananlar { get; set; } = new();
-        public List<YetkiBelgesiDto> Reddedilenler { get; set; } = new();
-    }
 }

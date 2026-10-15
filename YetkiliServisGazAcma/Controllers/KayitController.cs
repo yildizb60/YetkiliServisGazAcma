@@ -1,7 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using YetkiliServisGazAcma.Business.Services;
-using YetkiliServisGazAcma.Entities;
-using YetkiliServisGazAcma.Models;
 
 namespace YetkiliServisGazAcma.Controllers
 {
@@ -9,42 +7,32 @@ namespace YetkiliServisGazAcma.Controllers
     public class KayitController : Controller
     {
         private readonly YetkiliServisApiClient _yetkiliServisApiClient;
-        private readonly MarkaApiClient _markaApiClient;
-        private readonly UrunKategoriApiClient _urunKategoriApiClient;
-        private readonly SehirFirmaKodlari _sehirFirmaKoduService;
 
-        public KayitController(
-            YetkiliServisApiClient yetkiliServisApiClient,
-            MarkaApiClient markaApiClient,
-            UrunKategoriApiClient urunKategoriApiClient,
-            SehirFirmaKodlari sehirFirmaKoduService)
+        public KayitController(YetkiliServisApiClient yetkiliServisApiClient)
         {
             _yetkiliServisApiClient = yetkiliServisApiClient;
-            _markaApiClient = markaApiClient;
-            _urunKategoriApiClient = urunKategoriApiClient;
-            _sehirFirmaKoduService = sehirFirmaKoduService;
         }
 
         private async Task BasvuruListeleriniYukle()
         {
-            ViewBag.Sehirler = _sehirFirmaKoduService.Sehirler();
-            ViewBag.SehirFirmaKodlari = _sehirFirmaKoduService.TumKodlar();
-
-            var markalar = await _markaApiClient.TumunuGetirAsync();
-            ViewBag.Markalar = markalar == null
-                ? new List<Ys_Marka>()
-                : markalar
-                    .Where(x => x.AktifMi)
-                    .OrderBy(x => x.MarkaAdi)
-                    .ToList();
-
-            ViewBag.Kategoriler = await _urunKategoriApiClient.ListeAsync()
-                ?? new List<UrunKategori>();
-
-            if (markalar == null || !((List<UrunKategori>)ViewBag.Kategoriler).Any())
+            YetkiliServisBasvuruSecenekleriDto? secenekler = null;
+            try
             {
-                ViewBag.ApiUyari = "Başvuru listeleri API üzerinden alınamadı. Lütfen API uygulamasının çalıştığını kontrol edin.";
+                secenekler = await _yetkiliServisApiClient.BasvuruSecenekleriAsync();
             }
+            catch (ApiIntegrationException ex)
+            {
+                ViewBag.ApiUyari = ex.Message;
+            }
+
+            if (secenekler == null || secenekler.Kategoriler.Count == 0)
+                ViewBag.ApiUyari ??= "Başvuru listeleri API üzerinden alınamadı. Lütfen API uygulamasının çalıştığını kontrol edin.";
+
+            secenekler ??= new();
+            ViewBag.Sehirler = secenekler.Sehirler;
+            ViewBag.SehirFirmaKodlari = secenekler.SehirFirmaKodlari;
+            ViewBag.Markalar = secenekler.Markalar;
+            ViewBag.Kategoriler = secenekler.Kategoriler;
         }
 
         [HttpGet]
@@ -58,53 +46,39 @@ namespace YetkiliServisGazAcma.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Route("kayit/yetkili-servis")]
-        public async Task<IActionResult> YetkiliServis(
-            Ys_Firma firma,
-            string sifre,
-            string sifreTekrar,
-            List<int> markaIdleri,
-            List<int> kategoriIdleri)
+        public async Task<IActionResult> YetkiliServis(YetkiliServisBasvuruDto firma, string sifreTekrar)
         {
-            // Şifre kontrolü
-            if (sifre != sifreTekrar)
+            ViewBag.SeciliIlce = firma.Ilce;
+            ViewBag.SeciliMarkaIdleri = firma.MarkaIdleri;
+            ViewBag.SeciliKategoriIdleri = firma.KategoriIdleri;
+
+            if (firma.Sifre != sifreTekrar)
             {
                 ViewBag.Hata = "Şifreler eşleşmiyor.";
                 await BasvuruListeleriniYukle();
                 return View(firma);
             }
 
-            var apiSonuc = await _yetkiliServisApiClient.KayitAsync(new YetkiliServisApiClient.YetkiliServisKayitIstek
+            YetkiliServisKayitSonuc? apiSonuc = null;
+            try
             {
-                FirmaAdi = firma.FirmaAdi,
-                YetkiliKisi = firma.YetkiliKisi,
-                Telefon = firma.Telefon,
-                Email = firma.Email,
-                Adres = firma.Adres,
-                FaaliyetIli = firma.FaaliyetIli,
-                VergiNo = firma.VergiNo,
-                VergiDairesi = firma.VergiDairesi,
-                TcKimlikNo = firma.TcKimlikNo,
-                Sifre = sifre,
-                MarkaIdleri = markaIdleri ?? new List<int>(),
-                KategoriIdleri = kategoriIdleri ?? new List<int>()
-            });
-
-            var basarili = apiSonuc?.Basarili;
-            var mesaj = apiSonuc?.Mesaj;
-
-            if (apiSonuc == null)
+                firma.Ilce = firma.Ilce?.Trim();
+                apiSonuc = await _yetkiliServisApiClient.KayitAsync(firma);
+            }
+            catch (ApiIntegrationException ex)
             {
-                ViewBag.Hata = "Kayıt işlemi API üzerinden gönderilemedi. Lütfen API uygulamasının çalıştığını kontrol edin.";
-                await BasvuruListeleriniYukle();
-                return View(firma);
+                ViewBag.Hata = ex.Message;
             }
 
-            if (basarili != true)
+            if (apiSonuc?.Basarili != true)
             {
+                var mesaj = apiSonuc?.Mesaj;
                 if (!string.IsNullOrEmpty(mesaj) && mesaj.ToLower().Contains("email") && mesaj.ToLower().Contains("already"))
                     mesaj = "E-posta adresi zaten kayitli.";
 
-                ViewBag.Hata = mesaj ?? "Kayıt işlemi başarısız oldu.";
+                ViewBag.Hata ??= apiSonuc == null
+                    ? "Kayıt işlemi API üzerinden gönderilemedi. Lütfen API uygulamasının çalıştığını kontrol edin."
+                    : mesaj ?? "Kayıt işlemi başarısız oldu.";
                 await BasvuruListeleriniYukle();
                 return View(firma);
             }

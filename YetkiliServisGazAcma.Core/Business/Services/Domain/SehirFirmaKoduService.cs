@@ -8,6 +8,27 @@ namespace YetkiliServisGazAcma.Business.Services
     public class SehirFirmaKoduService(IConfiguration configuration, AppDbContext context) : SehirFirmaKodlari(configuration)
     {
         private readonly AppDbContext _context = context;
+
+        public async Task<int?> AktifSirketIdBulAsync(string? sehir)
+        {
+            var firmaKodu = FirmaKodu(sehir);
+            if (firmaKodu == null)
+                return null;
+
+            var sirketIlleri = TumKodlar()
+                .Where(x => string.Equals(x.Value, firmaKodu, StringComparison.OrdinalIgnoreCase))
+                .Select(x => x.Key)
+                .ToList();
+            var sirketIds = await _context.Dag_Sirketler.AsNoTracking()
+                .Where(x => !x.SilindiMi && x.AktifMi
+                    && (x.SirketAdi == firmaKodu || (x.Il != null && sirketIlleri.Contains(x.Il))))
+                .Select(x => x.Id)
+                .Take(2)
+                .ToListAsync();
+
+            return sirketIds.Count == 1 ? sirketIds[0] : null;
+        }
+
         public async Task<int> SirketIdBulVeyaOlustur(string? sehir, string? kullanici)
         {
             var temizSehir = string.IsNullOrWhiteSpace(sehir) ? "Genel" : sehir.Trim();

@@ -126,7 +126,10 @@ Durumlar `YkcDurumDegerleri` ile tutulur:
 - `Reddedildi`: Zorunlu aciklama ile reddedildi.
 - `Iptal`: Zorunlu aciklama ile iptal edildi.
 
-`IptalTarihi`, `IptalEdenKullaniciId`, `IptalAciklama` ve SAP/WM entegrasyonuna hazir `Aufnr` alani simdiden tutulur.
+`IptalTarihi`, `IptalEdenKullaniciId` ve `IptalAciklama` iptal gecmisini tutar.
+Kullanilmayan `Aufnr`, `IsEmriNo`, `RandevuId` ve `CallCenterTetiklendiMi` alanlari kaldirilmistir.
+Randevu gecmisi `Ykc_Atamalar` tablosundadir. Dis is emri alanlari ancak gercek entegrasyon sozlesmesi
+ve kullanim akisi belirlendiginde eklenmelidir.
 
 ## Atama mantigi
 

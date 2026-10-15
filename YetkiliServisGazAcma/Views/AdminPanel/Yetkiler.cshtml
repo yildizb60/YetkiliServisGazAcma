@@ -1,3 +1,5 @@
+@using YetkiliServisGazAcma.Business.Services
+@using YetkiliServisGazAcma.Entities
 @{
     ViewData["Title"] = "Yetkiler";
     ViewData["PanelTitle"] = ViewData["Title"];
@@ -5,284 +7,90 @@
     ViewData["ActiveMenu"] = "Yetkiler";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
-    var personeller = ViewBag.Personeller as List<YetkiliServisGazAcma.Entities.AppKullanici>;
-    var yetkiIsimler = ViewBag.YetkiIsimler as Dictionary<string, string> ?? new();
-    var yetkiMap = ViewBag.YetkiMap as Dictionary<string, List<string>> ?? new();
-    var yetkiSirketAdlariMap = ViewBag.YetkiSirketAdlariMap as Dictionary<string, List<string>> ?? new();
-}
-
-@section Styles {
-    <style>
-        .tablo-head,
-        .tablo-row {
-            grid-template-columns: 1.2fr 1.4fr 1.2fr 1.6fr .8fr;
-        }
-
-        .yetki-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .yetki-badge {
-            background: var(--df-primary-soft);
-            color: var(--df-primary);
-            padding: 5px 8px;
-            border-radius: 6px;
-            font-size: 11px;
-            font-weight: 700;
-        }
-
-        .legend {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 8px;
-        }
-
-        .legend-wrap {
-            padding: 12px 20px 18px;
-        }
-
-        .matrix-card {
-            background: #fff;
-            border-radius: 8px;
-            border: 1px solid var(--df-border);
-            border-top: 3px solid var(--df-primary);
-            margin-bottom: 12px;
-            overflow: hidden;
-            box-shadow: 0 1px 2px rgba(16, 24, 40, .04);
-        }
-
-        .matrix-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            min-height: 62px;
-            padding: 10px 14px;
-            border-bottom: 1px solid transparent;
-            color: var(--df-text);
-            background: #f8fbff;
-            cursor: pointer;
-            list-style: none;
-        }
-
-        .matrix-card[open] .matrix-head {
-            border-bottom-color: var(--df-border);
-        }
-
-        .matrix-heading {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .matrix-heading > i {
-            width: 32px;
-            height: 32px;
-            border-radius: 7px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--df-primary);
-            background: var(--df-primary-soft);
-        }
-
-        .matrix-heading strong,
-        .matrix-heading small {
-            display: block;
-        }
-
-        .matrix-heading strong {
-            font-size: 14px;
-            font-weight: 700;
-        }
-
-        .matrix-heading small {
-            margin-top: 2px;
-            color: var(--df-muted);
-            font-size: 10px;
-            font-weight: 400;
-            line-height: 1.45;
-        }
-
-        .matrix-toggle {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            color: var(--df-primary);
-            font-size: 11px;
-            font-weight: 600;
-        }
-
-        .matrix-toggle .when-open,
-        .matrix-card[open] .matrix-toggle .when-closed {
-            display: none;
-        }
-
-        .matrix-card[open] .matrix-toggle .when-open {
-            display: inline;
-        }
-
-        .matrix-card[open] .matrix-toggle i {
-            transform: rotate(180deg);
-        }
-
-        .matrix-scroll {
-            overflow-x: auto;
-        }
-
-        .matrix-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 6px 0 10px;
-        }
-
-        .matrix-table th {
-            text-align: left;
-            padding: 9px 16px;
-            font-size: 10px;
-            font-weight: 600 !important;
-            color: #5f7388;
-            background: #f6fbff;
-            border-bottom: 1px solid #e2ecf6;
-            text-transform: uppercase;
-            letter-spacing: .04em;
-        }
-
-        .matrix-table td {
-            padding: 9px 16px;
-            border-bottom: 1px solid #edf3fa;
-            font-size: 12px;
-            font-weight: 400;
-            line-height: 1.5;
-            color: #2e3c49;
-            vertical-align: top;
-        }
-
-        .matrix-table tr:last-child td {
-            border-bottom: none;
-        }
-
-        .matrix-table tbody tr:hover {
-            background: #f8fcff;
-        }
-
-        .role-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 5px 10px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 600;
-            border: 1px solid #d5e7f7;
-            background: #eef7ff;
-            color: #14558f;
-        }
-
-        .ok {
-            color: #0b6e4f;
-            font-weight: 500;
-        }
-
-        .no {
-            color: #8b2f2f;
-            font-weight: 500;
-        }
-
-        @@media (max-width: 960px) {
-            .tablo-head,
-            .tablo-row {
-                grid-template-columns: 1fr;
-                gap: 8px;
-            }
-        }
-    </style>
+    var personeller = ViewBag.Personeller as List<AdminKullaniciListeDto>;
+    var sirketYetkileri = ViewBag.SirketYetkileri as Dictionary<string, List<AdminSirketYetkiOzetDto>> ?? new();
+    var toplamPersonel = (int?)ViewBag.ToplamPersonel ?? 0;
+    var eslesenPersonel = (int?)ViewBag.EslesenPersonel ?? 0;
+    var arama = ViewBag.Arama as string;
+    var sayfa = (int?)ViewBag.Sayfa ?? 1;
+    var toplamSayfa = (int?)ViewBag.ToplamSayfa ?? 1;
+    var sayfaBoyutu = (int?)ViewBag.SayfaBoyutu ?? 10;
+    var ilkKayit = eslesenPersonel == 0 ? 0 : (sayfa - 1) * sayfaBoyutu + 1;
+    var sonKayit = Math.Min(sayfa * sayfaBoyutu, eslesenPersonel);
+    string SayfaLink(int hedef) => Url.Action("Yetkiler", "AdminPanel", new { q = arama, sayfa = hedef })!;
+    var ozet = ViewBag.YetkiListeOzeti as PersonelYetkiListeOzeti ?? new();
+    var yetkiTanimliPersonel = ozet.YetkiliPersonel;
+    var tamYetkiliKapsam = ozet.TamYetkiAtamalari;
+    var sirketKapsami = ozet.Sirketler.Count;
+    var tabloSirketleri = ozet.Sirketler;
+    var yetkiIsimleri = ViewBag.YetkiIsimler as Dictionary<string, string> ?? new();
 }
 
 <div class="df-admin-workspace df-permission-workspace">
+<section class="df-permission-overview" aria-label="Yetki özeti">
+    <div class="df-permission-stat is-blue">
+        <span class="df-permission-stat-icon"><i class="bi bi-people" aria-hidden="true"></i></span>
+        <span><small>Kayıtlı Personel</small><strong>@toplamPersonel</strong></span>
+    </div>
+    <div class="df-permission-stat is-green">
+        <span class="df-permission-stat-icon"><i class="bi bi-person-check" aria-hidden="true"></i></span>
+        <span title="En az bir şirket için işlem yetkisi tanımlanan personel sayısı."><small>Yetkili Personel</small><strong>@yetkiTanimliPersonel</strong></span>
+    </div>
+    <div class="df-permission-stat is-amber">
+        <span class="df-permission-stat-icon"><i class="bi bi-shield-check" aria-hidden="true"></i></span>
+        <span title="Tüm işlem yetkilerinin açıldığı personel ve şirket eşleşmesi sayısı."><small>Tam Yetki Atamaları</small><strong>@tamYetkiliKapsam</strong></span>
+    </div>
+    <div class="df-permission-stat is-cyan">
+        <span class="df-permission-stat-icon"><i class="bi bi-buildings" aria-hidden="true"></i></span>
+        <span title="Personel yetki kapsamlarında yer alan farklı şirketlerin sayısı."><small>Şirket Sayısı</small><strong>@sirketKapsami</strong></span>
+    </div>
+</section>
+
 <details class="matrix-card">
     <summary class="matrix-head">
-        <span class="matrix-heading"><i class="bi bi-grid-3x3-gap"></i><span><strong>Rol - Yetki Matrisi</strong></span></span>
-        <span class="matrix-toggle"><span class="when-closed">Matrisi Aç</span><span class="when-open">Matrisi Kapat</span><i class="bi bi-chevron-down"></i></span>
+        <span class="matrix-heading"><i class="bi bi-grid-3x3-gap" aria-hidden="true"></i><span><strong>Rol ve Erişim Yetkileri</strong></span></span>
+        <span class="matrix-toggle"><span class="when-closed">Tabloyu Aç</span><span class="when-open">Tabloyu Kapat</span><i class="bi bi-chevron-down" aria-hidden="true"></i></span>
     </summary>
     <div class="matrix-scroll">
     <table class="matrix-table">
         <thead>
             <tr>
                 <th>Rol</th>
-                <th>Menü Görünürlüğü</th>
-                <th>Sayfa Erişimi</th>
-                <th>Yönetim İşlemleri</th>
+                <th>Görünen Menüler</th>
+                <th>Erişilebilir Veriler</th>
+                <th>İzin Verilen İşlemler</th>
             </tr>
         </thead>
         <tbody>
             <tr>
-                <td><span class="role-badge">Süper Admin</span></td>
-                <td class="ok">Tüm menüler görünür</td>
-                <td class="ok">Tüm sayfalar</td>
-                <td class="ok">Ekle / Düzenle / Sil / Onay + Kullanıcı yönetimi</td>
+                <td><span class="df-role-cell"><i class="bi bi-shield-fill-check" aria-hidden="true"></i>Genel Sistem Admini</span></td>
+                <td class="ok">Tüm yönetim menüleri</td>
+                <td class="ok">Tüm şirketlerin kayıtları</td>
+                <td class="ok">Kayıt, belge, kullanıcı ve yetki yönetimi</td>
             </tr>
             <tr>
-                <td><span class="role-badge">Şirket Admini</span></td>
+                <td><span class="df-role-cell is-company"><i class="bi bi-building-gear" aria-hidden="true"></i>Şirket Admini</span></td>
                 <td class="ok">Kendi şirketinin yönetim menüleri</td>
-                <td class="ok">Kendi şirket verileri</td>
-                <td class="ok">Personel, servis ve yetki yönetimi</td>
+                <td class="ok">Yönetimindeki şirketin kayıtları</td>
+                <td class="ok">Personel, yetkili servis ve işlem yetkisi yönetimi</td>
             </tr>
             <tr>
-                <td><span class="role-badge">Personel (Tam Yetki)</span></td>
-                <td class="ok">Yetki verilen şirketteki tüm menüler</td>
-                <td class="ok">Yetkili olduğu şirket sayfaları</td>
-                <td class="ok">Ekle / Düzenle / Sil / Onay</td>
+                <td><span class="df-role-cell is-personnel"><i class="bi bi-person-badge" aria-hidden="true"></i>Personel</span></td>
+                <td class="ok">Tanımlanan işlem yetkilerine ait menüler</td>
+                <td class="ok">Yetkili olduğu şirketlerin ilgili kayıtları</td>
+                <td class="ok">Yetkisine göre inceleme, kontrol, randevu ve raporlama</td>
             </tr>
             <tr>
-                <td><span class="role-badge">Personel (Yetki Belgesi Onay)</span></td>
-                <td class="ok">Yetki Belgesi Onayı + Belge Geçmişi</td>
-                <td class="ok">Onay ekranlarına erişim</td>
-                <td class="ok">Onay / Red işlemleri yapılır</td>
+                <td><span class="df-role-cell is-service"><i class="bi bi-tools" aria-hidden="true"></i>Yetkili Servis</span></td>
+                <td class="ok">Cihaz devreye alma ve yetki belgesi menüleri</td>
+                <td class="ok">Kendi yetkili servis firmasının kayıtları</td>
+                <td class="ok">Devreye alma, yetki belgesi yükleme ve raporlama</td>
             </tr>
             <tr>
-                <td><span class="role-badge">Personel (Rapor Gör)</span></td>
-                <td class="ok">Raporlar menüsü görünür</td>
-                <td class="ok">Rapor ekranı erişilebilir</td>
-                <td class="no">Yönetim işlemi yok, sadece görüntüleme</td>
-            </tr>
-            <tr>
-                <td><span class="role-badge">Personel (Marka Yönet)</span></td>
-                <td class="ok">Markalar menüsü görünür</td>
-                <td class="ok">Marka sayfalarına erişim</td>
-                <td class="ok">Ekle / Düzenle / Sil</td>
-            </tr>
-            <tr>
-                <td><span class="role-badge">Personel (YKC Talepleri Gör)</span></td>
-                <td class="ok">Cihaz Değişim Talepleri menüsü görünür</td>
-                <td class="ok">YKC talep listesi ve detay kayıtları</td>
-                <td class="no">Atama, kontrol ve imza işlemi yapamaz</td>
-            </tr>
-            <tr>
-                <td><span class="role-badge">Personel (YKC Atama ve Randevu)</span></td>
-                <td class="ok">Cihaz Değişim Talepleri menüsü görünür</td>
-                <td class="ok">YKC talep detayında yönlendirme/randevu alanı</td>
-                <td class="ok">187 Acil veya mühendis yönlendirmesi ve randevu kaydı</td>
-            </tr>
-            <tr>
-                <td><span class="role-badge">Personel (YKC FR265 ve İmza)</span></td>
-                <td class="ok">Cihaz Değişim Talepleri menüsü görünür</td>
-                <td class="ok">FR265 kontrol, önizleme ve imza akışı</td>
-                <td class="ok">Kontrol sonucu, imzaya gönderme, imza durum sorgulama ve tamamlama</td>
-            </tr>
-            <tr>
-                <td><span class="role-badge">Personel (YKC Raporları Gör)</span></td>
-                <td class="ok">Cihaz Değişim Raporları menüsü görünür</td>
-                <td class="ok">YKC rapor ekranı ve dışa aktarım</td>
-                <td class="no">Operasyon kararı değiştirmez</td>
-            </tr>
-            <tr>
-                <td><span class="role-badge">Personel (Yetkisiz)</span></td>
-                <td class="ok">Ana Sayfa + Profilim daima görünür</td>
-                <td class="ok">Marka / Şirket / Yetkili Servis listeleri görüntülenir</td>
-                <td class="no">Ekle / Düzenle / Sil / Onay kapalı</td>
+                <td><span class="df-role-cell is-certified"><i class="bi bi-building-check" aria-hidden="true"></i>Sertifikalı Firma</span></td>
+                <td class="ok">Yakıcı cihaz değişim menüleri</td>
+                <td class="ok">Kendi sertifikalı firmasının talepleri</td>
+                <td class="ok">Talep oluşturma, randevu takibi ve raporlama</td>
             </tr>
         </tbody>
     </table>
@@ -291,72 +99,122 @@
 
 <section class="df-admin-list-card df-permission-list">
     <div class="df-service-list-head">
-        <div><h3><i class="bi bi-person-lock"></i> Personel Yetkileri</h3></div>
-    </div>
-    <div class="legend-wrap">
-        <div class="legend">
-            <span class="yetki-badge"><i class="bi bi-check2-circle"></i> Yetki Belgesi Onay</span>
-            <span class="yetki-badge"><i class="bi bi-bar-chart-line"></i> Rapor Gör</span>
-            <span class="yetki-badge"><i class="bi bi-person-gear"></i> Kullanıcı Yönet</span>
-            <span class="yetki-badge"><i class="bi bi-building-check"></i> Marka Yönet</span>
-            <span class="yetki-badge"><i class="bi bi-fire"></i> YKC Talep</span>
-            <span class="yetki-badge"><i class="bi bi-calendar2-check"></i> YKC Atama</span>
-            <span class="yetki-badge"><i class="bi bi-file-earmark-lock"></i> YKC FR265 / İmza</span>
-            <span class="yetki-badge"><i class="bi bi-shield-lock"></i> Tam Yetki</span>
+        <div>
+            <h3><i class="bi bi-person-lock"></i> Personel Yetkileri</h3>
         </div>
-    </div>
-    <div class="tablo-head">
-        <div>Ad Soyad</div><div>E-Posta</div><div>Şirket</div><div>Mevcut Yetkiler</div><div>İşlem</div>
+        <form method="get" action="@Url.Action("Yetkiler", "AdminPanel")" class="df-permission-search" role="search" aria-label="Personel yetkilerinde ara">
+            <input type="search" name="q" value="@arama" maxlength="120" placeholder="Personel, e-posta veya şirket" aria-label="Personel, e-posta veya şirket ara" />
+            @if (!string.IsNullOrEmpty(arama))
+            {
+                <a class="df-permission-search-clear" href="@Url.Action("Yetkiler", "AdminPanel")" title="Aramayı temizle" aria-label="Aramayı temizle"><i class="bi bi-x-lg" aria-hidden="true"></i></a>
+            }
+            <button type="submit" title="Ara" aria-label="Ara"><i class="bi bi-search" aria-hidden="true"></i></button>
+        </form>
     </div>
     @if (personeller == null || personeller.Count == 0)
     {
-        <div class="empty">Personel kaydı yok</div>
+        <div class="empty">@(string.IsNullOrEmpty(arama) ? "Personel kaydı yok." : "Aramanızla eşleşen personel bulunamadı.")</div>
     }
     else
     {
-        foreach (var p in personeller)
+        <table class="df-permission-table" aria-label="Personellerin şirket bazında işlem yetkileri">
+            <colgroup><col class="df-permission-person-column" />
+                @for (var i = 0; i < Math.Max(1, tabloSirketleri.Count); i++) { <col /> }
+                <col class="df-permission-action-column" />
+            </colgroup>
+            <thead><tr>
+                <th scope="col">Personel</th>
+                @foreach (var sirket in tabloSirketleri)
+                {
+                    <th scope="col">@(sirket.SirketAdi ?? "Şirket bilgisi yok")</th>
+                }
+                @if (tabloSirketleri.Count == 0) { <th scope="col">Şirket Yetkileri</th> }
+                <th scope="col" class="df-permission-action-heading">İşlem</th>
+            </tr></thead>
+            <tbody>
+        @foreach (var p in personeller)
         {
-            var yetkiler = yetkiMap.ContainsKey(p.Id) ? yetkiMap[p.Id] : new List<string>();
-            var sirketAdlari = yetkiSirketAdlariMap.ContainsKey(p.Id) ? yetkiSirketAdlariMap[p.Id] : new List<string>();
+            var personelKapsamlari = sirketYetkileri.TryGetValue(p.Id, out var sirketler)
+                ? sirketler : new List<AdminSirketYetkiOzetDto>();
 
-            <div class="tablo-row">
-                <div>@(p.AdSoyad ?? "-")</div>
-                <div>@(p.Email ?? "-")</div>
-                <div>
-                    @if (sirketAdlari.Count == 0)
-                    {
-                        <span style="color:#bbb;">-</span>
-                    }
-                    else
-                    {
-                        <div class="yetki-list">
-                            @foreach (var sirketAdi in sirketAdlari)
-                            {
-                                <span class="yetki-badge">@sirketAdi</span>
-                            }
-                        </div>
-                    }
+            <tr>
+                <th scope="row" class="df-permission-person-cell">
+                <div class="df-permission-person" data-label="Personel">
+                    <span class="df-permission-person-icon"><i class="bi bi-person" aria-hidden="true"></i></span>
+                    <span><strong title="@p.AdSoyad">@(p.AdSoyad ?? "Ad soyad bilgisi yok")</strong><span class="df-permission-email" title="@p.Email">@(p.Email ?? "E-posta bilgisi yok")</span></span>
                 </div>
-                <div>
-                    @if (yetkiler.Count == 0)
-                    {
-                        <span style="color:#bbb;">-</span>
-                    }
-                    else
-                    {
-                        <div class="yetki-list">
-                            @foreach (var y in yetkiler)
-                            {
-                                <span class="yetki-badge">@(yetkiIsimler.ContainsKey(y) ? yetkiIsimler[y] : y)</span>
-                            }
-                        </div>
-                    }
+                </th>
+                @foreach (var sirket in tabloSirketleri)
+                {
+                    var kapsam = personelKapsamlari.FirstOrDefault(x => x.SirketId == sirket.SirketId);
+                    var yetkiler = kapsam?.Yetkiler.Distinct(StringComparer.OrdinalIgnoreCase).ToList() ?? new();
+                    var tamYetkili = yetkiler.Contains(YetkiTipleri.TAM_YETKI, StringComparer.OrdinalIgnoreCase);
+                    var aciklama = tamYetkili ? "Bu şirkette tüm işlem yetkileri açık."
+                        : yetkiler.Count > 0 ? string.Join("; ", yetkiler.Select(x => yetkiIsimleri.GetValueOrDefault(x, "Diğer işlem yetkisi")))
+                        : "Bu şirket için işlem yetkisi tanımlanmamış.";
+                    <td class="df-permission-company-cell" data-label="@(sirket.SirketAdi ?? "Şirket bilgisi yok")">
+                        <span class="df-permission-level @(tamYetkili ? "is-full" : yetkiler.Count > 0 ? "is-limited" : "is-none")" title="@aciklama">
+                        @if (tamYetkili)
+                        {
+                            <i class="bi bi-check-circle" aria-hidden="true"></i><span>Tüm işlemler</span>
+                        }
+                        else if (yetkiler.Count > 0)
+                        {
+                            <i class="bi bi-list-check" aria-hidden="true"></i><span>@yetkiler.Count işlem yetkisi</span>
+                        }
+                        else { <span>Yetki yok</span> }
+                        </span>
+                    </td>
+                }
+                @if (tabloSirketleri.Count == 0)
+                {
+                    <td class="df-permission-company-cell" data-label="Şirket Yetkileri"><span class="df-permission-level is-none">Şirket atanmamış</span></td>
+                }
+                <td class="df-permission-action-cell">
+                <div class="df-permission-row-action" data-label="İşlem">
+                    <a class="df-permission-edit js-admin-form-sheet-trigger"
+                       href="@Url.Action("YetkiDuzenle", "AdminPanel", new { id = p.Id, q = arama, sayfa })"
+                       data-sheet-url="@Url.Action("YetkiDuzenle", "AdminPanel", new { id = p.Id, q = arama, sayfa })"
+                       data-sheet-title="Yetkileri Düzenle"
+                       aria-haspopup="dialog" aria-label="@p.AdSoyad için yetkileri düzenle"
+                       data-sheet-variant="permission"><i class="bi bi-sliders2" aria-hidden="true"></i> Düzenle</a>
                 </div>
-                <div>
-                    <a class="btn-link" href="@Url.Action("YetkiDuzenle", "AdminPanel", new { id = p.Id })">Yetki Düzenle</a>
-                </div>
-            </div>
+                </td>
+            </tr>
         }
+            </tbody>
+        </table>
     }
+    <footer class="df-permission-pager">
+        <span>@ilkKayit–@sonKayit / @eslesenPersonel personel</span>
+        @if (toplamSayfa > 1)
+        {
+            <nav aria-label="Personel yetkileri sayfaları">
+                @if (sayfa > 1)
+                {
+                    <a href="@SayfaLink(sayfa - 1)" title="Önceki sayfa" aria-label="Önceki sayfa"><i class="bi bi-chevron-left" aria-hidden="true"></i></a>
+                }
+                else
+                {
+                    <span class="is-disabled" aria-disabled="true" aria-label="Önceki sayfa"><i class="bi bi-chevron-left" aria-hidden="true"></i></span>
+                }
+                <span class="df-permission-page-number">Sayfa @sayfa / @toplamSayfa</span>
+                @if (sayfa < toplamSayfa)
+                {
+                    <a href="@SayfaLink(sayfa + 1)" title="Sonraki sayfa" aria-label="Sonraki sayfa"><i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+                }
+                else
+                {
+                    <span class="is-disabled" aria-disabled="true" aria-label="Sonraki sayfa"><i class="bi bi-chevron-right" aria-hidden="true"></i></span>
+                }
+            </nav>
+        }
+    </footer>
 </section>
 </div>
+
+@await Html.PartialAsync("_AdminFormDrawer")
+
+@section Scripts {
+    <script src="~/js/admin-form-drawer.js" asp-append-version="true"></script>
+}

@@ -1,0 +1,35 @@
+@model KayitListeAracCubuguViewModel
+@{
+    var sirala = Context.Request.Query["sirala"].ToString();
+    var aktarimAciklamasi = Model.TumFiltrelenenKayitlar ? "Seçili kayıtları; seçim yoksa filtrelenen tüm kayıtları" : "Seçili kayıtları; seçim yoksa listedeki kayıtları";
+}
+<div class="ys-history-toolbar">
+    <div class="ys-history-heading"><h2>@Model.Baslik</h2><span>@Model.KayitSayisi kayıt</span><span data-directory-selection-count hidden></span></div>
+    <div class="ys-history-tools">
+        <div class="ys-history-search"><input type="search" name="q" value="@Context.Request.Query["q"]" form="@Model.FormId" placeholder="Kayıtlarda ara" aria-label="Abone, tesisat veya sözleşme numarası ara" /><button type="submit" form="@Model.FormId" title="Ara" aria-label="Ara"><i class="bi bi-search" aria-hidden="true"></i></button></div>
+        <button class="ys-history-tool" type="button" data-history-filter-toggle aria-controls="@Model.PanelId" aria-expanded="false" hidden><i class="bi bi-sliders2" aria-hidden="true"></i>Filtrele<span data-history-filter-count hidden></span></button>
+        <details class="ys-history-menu">
+            <summary class="ys-history-tool"><i class="bi bi-sort-down" aria-hidden="true"></i>Sırala<i class="bi bi-chevron-down" aria-hidden="true"></i></summary>
+            <div class="ys-history-menu-body"><label for="historyOrder">Sıralama</label><select id="historyOrder" name="sirala" form="@Model.FormId"><option value="" selected="@(sirala == "" ? "selected" : null)">En yeni kayıtlar</option><option value="tarih-artan" selected="@(sirala == "tarih-artan" ? "selected" : null)">En eski kayıtlar</option><option value="abone-artan" selected="@(sirala == "abone-artan" ? "selected" : null)">Abone adı: A-Z</option><option value="abone-azalan" selected="@(sirala == "abone-azalan" ? "selected" : null)">Abone adı: Z-A</option></select><button class="ys-history-apply" type="submit" form="@Model.FormId"><i class="bi bi-check2" aria-hidden="true"></i>Uygula</button></div>
+        </details>
+        <div class="ys-history-density" role="group" aria-label="Kayıt görünümü" data-history-view-group hidden><button type="button" data-history-view="list" aria-label="Liste görünümü" title="Liste görünümü" aria-pressed="true"><i class="bi bi-list" aria-hidden="true"></i></button><button type="button" data-history-view="cards" aria-label="Izgara görünümü" title="Izgara görünümü" aria-pressed="false"><i class="bi bi-grid" aria-hidden="true"></i></button></div>
+        @if (!string.IsNullOrWhiteSpace(Model.PdfUrl) || !string.IsNullOrWhiteSpace(Model.ExcelUrl))
+        {
+            <details class="ys-history-menu">
+                <summary class="ys-history-tool"><i class="bi bi-download" aria-hidden="true"></i>Dışa Aktar<i class="bi bi-chevron-down" aria-hidden="true"></i></summary>
+                <div class="ys-history-menu-body ys-history-export" aria-label="Dışa aktarma işlemleri">
+                    @if (!string.IsNullOrWhiteSpace(Model.PdfUrl)) { <button type="button" class="df-btn df-btn-danger df-btn-sm" data-directory-export data-export-url="@Model.PdfUrl" disabled="@(!Model.KayitVar)" title="@aktarimAciklamasi PDF olarak indir"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i>PDF İndir</button> }
+                    @if (!string.IsNullOrWhiteSpace(Model.ExcelUrl)) { <button type="button" class="df-btn df-btn-success df-btn-sm" data-directory-export data-export-url="@Model.ExcelUrl" disabled="@(!Model.KayitVar)" title="@aktarimAciklamasi Excel olarak indir"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i>Excel İndir</button> }
+                </div>
+            </details>
+        }
+        @if (!string.IsNullOrWhiteSpace(Model.YeniKayitUrl)) { <a class="ys-history-new" href="@Model.YeniKayitUrl"><i class="bi bi-plus-lg" aria-hidden="true"></i>@Model.YeniKayitEtiketi</a> }
+    </div>
+</div>
+@if (!string.IsNullOrWhiteSpace(Model.PdfUrl) || !string.IsNullOrWhiteSpace(Model.ExcelUrl))
+{
+    <form method="post" data-directory-export-form hidden>
+        @Html.AntiForgeryToken()
+        <div data-directory-export-fields></div>
+    </form>
+}

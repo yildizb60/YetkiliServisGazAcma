@@ -4,17 +4,7 @@ namespace YetkiliServisGazAcma.Models;
 
 public static class YkcDurumSunumu
 {
-    public static string Etiket(int durum) => durum switch
-    {
-        YkcDurumDegerleri.TalepAlindi => "Talep Alındı",
-        YkcDurumDegerleri.AtamaBekliyor => "İnceleniyor",
-        YkcDurumDegerleri.Atandi => "Randevu Oluşturuldu",
-        YkcDurumDegerleri.SahaIsleminde => "İşlem Devam Ediyor",
-        YkcDurumDegerleri.Reddedildi => "Reddedildi",
-        YkcDurumDegerleri.Tamamlandi => "Tamamlandı",
-        YkcDurumDegerleri.Iptal => "İptal",
-        _ => "Bilinmiyor"
-    };
+    public static string Etiket(int durum) => YkcDurumDegerleri.Etiket(durum);
 
     public static string CssSinifi(int durum) => durum switch
     {

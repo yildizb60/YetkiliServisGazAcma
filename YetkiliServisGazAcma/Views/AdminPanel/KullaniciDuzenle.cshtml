@@ -1,8 +1,8 @@
 @using YetkiliServisGazAcma.Entities
 @{
-    var hedef = ViewBag.Hedef as AppKullanici;
-    var sirketler = ViewBag.Sirketler as List<Dag_Sirket> ?? new();
-    var firmalar = ViewBag.Firmalar as List<Ys_Firma> ?? new();
+    var hedef = ViewBag.Hedef as AdminKullaniciListeDto;
+    var sirketler = ViewBag.Sirketler as List<AdminSirketSecenekDto> ?? new();
+    var firmalar = ViewBag.Firmalar as List<AdminFirmaSecenekDto> ?? new();
     var returnUrl = ViewBag.ReturnUrl as string ?? "/AdminPanel/kullanicilar";
     var hedefTip = hedef?.KullaniciTipi ?? 0;
     var sirketAlaniGoster = hedefTip == KullaniciTipiDegerleri.SirketAdmin || hedefTip == KullaniciTipiDegerleri.Personel;
@@ -30,9 +30,9 @@
                         ? "Sistem Yöneticisi Düzenle"
                         : "Kullanıcı Düzenle";
     var baglantiMetni = firmaAlaniGoster
-        ? hedef?.Firma?.FirmaAdi
+        ? hedef?.FirmaAdi
         : sirketAlaniGoster
-            ? hedef?.Sirket?.SirketAdi
+            ? hedef?.SirketAdi
             : "Sistem geneli";
 
     ViewData["Title"] = sayfaBasligi;
@@ -51,7 +51,7 @@
                 <div class="df-alert df-alert-danger">@ViewBag.Hata</div>
             }
 
-            <form method="post">
+            <form method="post" class="df-account-editor-form is-user-edit">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="returnUrl" value="@returnUrl" />
 
@@ -72,23 +72,15 @@
                             <input type="email" name="email" value="@(hedef?.Email ?? "")" autocomplete="email" required />
                         </div>
                         <div class="df-admin-field is-half">
-                            <label>Telefon</label>
-                            <input name="telefon" value="@(hedef?.PhoneNumber ?? "")" autocomplete="tel" />
+                            <label>Telefon *</label>
+                            <input name="telefon" type="tel" value="@(hedef?.PhoneNumber ?? "")" autocomplete="tel" required />
                         </div>
                         <div class="df-admin-field is-half">
                             <label>Hesap Durumu</label>
-                            <select name="aktifMi">
-                                @if (hedef?.AktifMi == true)
-                                {
-                                    <option value="true" selected="selected">Aktif</option>
-                                    <option value="false">Pasif</option>
-                                }
-                                else
-                                {
-                                    <option value="true">Aktif</option>
-                                    <option value="false" selected="selected">Pasif</option>
-                                }
-                            </select>
+                            <div class="df-account-state-control" role="radiogroup" aria-label="Hesap durumu">
+                                <label><input type="radio" name="aktifMi" value="true" checked="@(hedef?.AktifMi == true ? "checked" : null)" /><span><i class="bi bi-check-circle-fill" aria-hidden="true"></i>Aktif</span></label>
+                                <label><input type="radio" name="aktifMi" value="false" checked="@(hedef?.AktifMi != true ? "checked" : null)" /><span><i class="bi bi-pause-circle-fill" aria-hidden="true"></i>Pasif</span></label>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -136,7 +128,7 @@
                                     <option value="">Seçiniz</option>
                                     @foreach (var firma in firmalar)
                                     {
-                                        var firmaEtiketi = firma.Sirket != null ? $"{firma.FirmaAdi} ({firma.Sirket.SirketAdi})" : firma.FirmaAdi;
+                                        var firmaEtiketi = !string.IsNullOrEmpty(firma.SirketAdi) ? $"{firma.FirmaAdi} ({firma.SirketAdi})" : firma.FirmaAdi;
                                         if (hedef?.FirmaId == firma.Id)
                                         {
                                             <option value="@firma.Id" selected="selected">@firmaEtiketi</option>

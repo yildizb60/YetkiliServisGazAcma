@@ -232,6 +232,15 @@
             && (!sidebar.contains(event.target) || event.target.closest("a[href]"))) sidebar.classList.remove("open");
     });
 
+    document.addEventListener("keydown", function (event) {
+        if (event.key !== "Escape") return;
+        var menu = document.querySelector(".df-dropdown-menu.open, .js-notif-panel.open");
+        if (!menu) return;
+        var toggle = menu.parentElement?.querySelector("[data-dropdown-toggle], .js-notif-btn");
+        closeAll();
+        toggle?.focus();
+    });
+
     if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", initAll);
     } else {

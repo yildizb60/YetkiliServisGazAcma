@@ -17,7 +17,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 {
                     page.Size(PageSizes.A4);
                     page.Margin(2, Unit.Centimetre);
-                    page.DefaultTextStyle(x => x.FontSize(11).FontFamily("Arial"));
+                    page.DefaultTextStyle(x => x.FontSize(11).FontFamily("Arial", Fonts.Lato));
 
                     page.Header().Element(Header);
                     page.Content().Element(c => Icerik(c, i));
@@ -66,6 +66,7 @@ namespace YetkiliServisGazAcma.Business.Services
                     });
                     Satir(t, "Tesisat No", i.TesistatNo);
                     Satir(t, "Abone No", i.AboneNo);
+                    SatirGenis(t, "Sözleşme No", i.SozlesmeNo);
                     Satir(t, "Uygunluk Belge No", i.UygunlukBelgeNo);
                     Satir(t, "Uygunluk Tarihi", i.UygunlukTarihi?.ToString("dd.MM.yyyy"));
                 });
@@ -80,7 +81,7 @@ namespace YetkiliServisGazAcma.Business.Services
                     });
                     Satir(t, "M\u00fc\u015fteri Ad\u0131", i.MusteriAdi);
                     Satir(t, "TC Kimlik No", i.MusteriTcNo);
-                    Satir(t, "Telefon", i.MusteriTelefon);
+                    SatirGenis(t, "Telefon", i.MusteriTelefon);
                     SatirGenis(t, "Adres", i.Adres);
                 });
 

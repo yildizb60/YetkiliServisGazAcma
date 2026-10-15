@@ -6,14 +6,18 @@
     ViewData["ActiveMenu"] = "Subeler";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
-    var subeler = ViewBag.Subeler as List<Ys_Sube> ?? new List<Ys_Sube>();
-    var firmalar = ViewBag.Firmalar as List<Ys_Firma> ?? new List<Ys_Firma>();
+    var subeler = ViewBag.Subeler as List<AdminSubeDto> ?? new List<AdminSubeDto>();
+    var firmalar = ViewBag.Firmalar as List<AdminSubeFirmaDto> ?? new List<AdminSubeFirmaDto>();
     var seciliFirmaId = ViewBag.SeciliFirmaId is int fid ? fid : 0;
     var seciliQ = ViewBag.SeciliQ as string ?? "";
     var aktifSayisi = subeler.Count(x => x.AktifMi);
     var pasifSayisi = subeler.Count - aktifSayisi;
     var firmaSayisi = firmalar.Count;
     var filtreAktif = seciliFirmaId > 0 || !string.IsNullOrWhiteSpace(seciliQ);
+}
+
+@section PageStyles {
+    <link rel="stylesheet" href="~/css/branch-editor.css" asp-append-version="true" />
 }
 
 <div class="df-admin-workspace df-branch-workspace">
@@ -23,7 +27,7 @@
                 <div class="df-panel-title"><i class="bi bi-building-gear" aria-hidden="true"></i> Şube özeti</div>
             </div>
             <div class="df-actions">
-                <button type="button" class="df-btn df-btn-primary df-btn-sm" id="subeCreateToggle" aria-expanded="false" aria-controls="subeCreatePanel">
+                <button type="button" class="df-btn df-btn-primary df-btn-sm" data-branch-add aria-haspopup="dialog">
                     <i class="bi bi-plus-lg"></i>
                     Yeni Şube
                 </button>
@@ -95,52 +99,6 @@
         </div>
     </details>
 
-    <section class="df-admin-form-card df-admin-create-card df-branch-create-card" id="subeCreatePanel" hidden>
-        <div class="df-branch-create-head">
-            <span><i class="bi bi-diagram-3"></i></span>
-            <div><h3>Yeni Şube</h3></div>
-        </div>
-        <form method="post" action="@Url.Action("SubeEkle", "AdminPanel")">
-            @Html.AntiForgeryToken()
-            <div class="df-branch-form-grid">
-                <div class="df-admin-field is-half">
-                    <label>Bağlı Firma *</label>
-                    <select name="firmaId" required>
-                        <option value="">Firma seçin</option>
-                        @foreach (var firma in firmalar)
-                        {
-                            <option value="@firma.Id">@firma.FirmaAdi</option>
-                        }
-                    </select>
-                </div>
-                <div class="df-admin-field is-half">
-                    <label>Şube Adı *</label>
-                    <input name="subeAdi" required maxlength="150" placeholder="Ör. Merkez Şube" />
-                </div>
-                <div class="df-admin-field"><label>İl</label><input name="il" maxlength="80" /></div>
-                <div class="df-admin-field"><label>İlçe</label><input name="ilce" maxlength="80" /></div>
-                <div class="df-admin-field"><label>Telefon</label><input name="telefon" maxlength="30" autocomplete="tel" /></div>
-                <div class="df-admin-field"><label>Adres</label><input name="adres" maxlength="300" /></div>
-            </div>
-            <div class="df-branch-create-footer">
-                <label class="df-branch-status-switch">
-                    <input type="checkbox" name="aktifMi" value="true" checked />
-                    <span class="df-branch-switch-track" aria-hidden="true"></span>
-                    <span><strong>Aktif şube</strong></span>
-                </label>
-                <div class="df-admin-form-actions">
-                    <button type="button" class="df-btn df-btn-secondary df-btn-sm" id="subeCreateCancel">
-                        <i class="bi bi-x-lg"></i>
-                        Kapat
-                    </button>
-                    <button type="submit" class="df-btn df-btn-primary df-btn-sm">
-                        <i class="bi bi-check2"></i>
-                        Şubeyi Kaydet
-                    </button>
-                </div>
-            </div>
-        </form>
-    </section>
 
     <section class="df-admin-list-card">
         <div class="df-service-list-head">
@@ -184,8 +142,8 @@
                                     <div class="df-cell-sub">@(string.IsNullOrWhiteSpace(sube.Adres) ? "-" : sube.Adres)</div>
                                 </td>
                                 <td>
-                                    <div class="df-cell-main">@(sube.Firma?.FirmaAdi ?? "-")</div>
-                                    <div class="df-cell-sub">@(sube.Firma?.Email ?? "")</div>
+                                    <div class="df-cell-main">@(sube.FirmaAdi ?? "-")</div>
+                                    <div class="df-cell-sub">@(sube.FirmaEmail ?? "")</div>
                                 </td>
                                 <td>@(string.IsNullOrWhiteSpace($"{sube.Il} {sube.Ilce}".Trim()) ? "-" : $"{sube.Il} {sube.Ilce}".Trim())</td>
                                 <td>@(string.IsNullOrWhiteSpace(sube.Telefon) ? "-" : sube.Telefon)</td>
@@ -196,7 +154,7 @@
                                 </td>
                                 <td>
                                     <div class="df-user-actions df-branch-actions">
-                                        <a class="df-icon-action" href="@Url.Action("SubeDuzenle", "AdminPanel", new { id = sube.Id })" title="Şubeyi düzenle" aria-label="@sube.SubeAdi şubesini düzenle">
+                                        <a class="df-icon-action js-branch-sheet-trigger" href="@Url.Action("SubeDuzenle", "AdminPanel", new { id = sube.Id })" data-branch-id="@sube.Id" aria-haspopup="dialog" title="Şubeyi düzenle" aria-label="@sube.SubeAdi şubesini düzenle">
                                             <i class="bi bi-pencil" aria-hidden="true"></i>
                                         </a>
                                         <form method="post" action="@Url.Action("SubeDurum", "AdminPanel")">
@@ -206,7 +164,7 @@
                                                 <i class="bi @(sube.AktifMi ? "bi-pause-circle" : "bi-play-circle")" aria-hidden="true"></i>
                                             </button>
                                         </form>
-                                        <form method="post" action="@Url.Action("SubeSil", "AdminPanel")" onsubmit="return confirm('Şube kaydı silinsin mi?');">
+                                        <form method="post" action="@Url.Action("SubeSil", "AdminPanel")" data-toast-confirm data-confirm-title="Şubeyi sil" data-confirm-message="@sube.SubeAdi şubesi silinecek. Bu işlem geri alınamaz." data-confirm-action="Şubeyi Sil">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="id" value="@sube.Id" />
                                             <button type="submit" class="df-icon-action is-danger" title="Şubeyi sil" aria-label="@sube.SubeAdi şubesini sil">
@@ -224,7 +182,16 @@
     </section>
 </div>
 
+@await Html.PartialAsync("_BranchSheet", new YetkiliServisGazAcma.Models.ViewModels.BranchEditorViewModel
+{
+    CanSelectFirm = true,
+    Firms = firmalar,
+    Branch = new AdminSubeDto { FirmaId = seciliFirmaId, AktifMi = true },
+    PostUrl = Url.Action("SubeEkle", "AdminPanel")!
+})
+
 @section Scripts {
+<script src="~/js/branch-sheet.js" asp-append-version="true"></script>
 <script>
 (function () {
     var tabs = document.getElementById('subeStatusTabs');
@@ -244,33 +211,6 @@
         });
     }
 
-    var createToggle = document.getElementById('subeCreateToggle');
-    var createPanel = document.getElementById('subeCreatePanel');
-    var createCancel = document.getElementById('subeCreateCancel');
-
-    function setCreateOpen(open) {
-        if (!createToggle || !createPanel) return;
-        createPanel.hidden = !open;
-        createToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-        createToggle.classList.toggle('df-btn-secondary', open);
-        createToggle.classList.toggle('df-btn-primary', !open);
-        if (open) {
-            var first = createPanel.querySelector('select, input');
-            if (first) first.focus();
-        }
-    }
-
-    if (createToggle && createPanel) {
-        createToggle.addEventListener('click', function () {
-            setCreateOpen(createPanel.hidden);
-        });
-    }
-
-    if (createCancel) {
-        createCancel.addEventListener('click', function () {
-            setCreateOpen(false);
-        });
-    }
 })();
 </script>
 }

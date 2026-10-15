@@ -1,15 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Filters;
 using YetkiliServisGazAcma.Business.Services;
 using YetkiliServisGazAcma.Entities;
-using QuestPDF.Fluent;
-using QuestPDF.Helpers;
-using QuestPDF.Infrastructure;
-using System.Globalization;
-using System.Linq;
-using System.Text;
 
 namespace YetkiliServisGazAcma.Controllers
 {
@@ -19,7 +11,6 @@ namespace YetkiliServisGazAcma.Controllers
     public partial class AdminPanelController : Controller
     {
         private readonly ApiKullaniciOturumu _kullaniciOturumu;
-        private readonly SehirFirmaKodlari _sehirFirmaKoduService;
         private readonly AktifSirketService _aktifSirketService;
         private readonly AdminDashboardApiClient _adminDashboardApiClient;
         private readonly AdminKullaniciApiClient _adminKullaniciApiClient;
@@ -27,12 +18,10 @@ namespace YetkiliServisGazAcma.Controllers
         private readonly AdminYetkiBelgesiOnayApiClient _adminYetkiBelgesiOnayApiClient;
         private readonly AdminSubeApiClient _adminSubeApiClient;
         private readonly AdminRaporApiClient _adminRaporApiClient;
-        private readonly MarkaApiClient _markaApiClient;
-        private readonly UrunKategoriApiClient _urunKategoriApiClient;
+        private readonly YkcApiClient _ykcApiClient;
 
         public AdminPanelController(
             ApiKullaniciOturumu kullaniciOturumu,
-            SehirFirmaKodlari sehirFirmaKoduService,
             AktifSirketService aktifSirketService,
             AdminDashboardApiClient adminDashboardApiClient,
             AdminKullaniciApiClient adminKullaniciApiClient,
@@ -40,11 +29,9 @@ namespace YetkiliServisGazAcma.Controllers
             AdminYetkiBelgesiOnayApiClient adminYetkiBelgesiOnayApiClient,
             AdminSubeApiClient adminSubeApiClient,
             AdminRaporApiClient adminRaporApiClient,
-            MarkaApiClient markaApiClient,
-            UrunKategoriApiClient urunKategoriApiClient)
+            YkcApiClient ykcApiClient)
         {
             _kullaniciOturumu = kullaniciOturumu;
-            _sehirFirmaKoduService = sehirFirmaKoduService;
             _aktifSirketService = aktifSirketService;
             _adminDashboardApiClient = adminDashboardApiClient;
             _adminKullaniciApiClient = adminKullaniciApiClient;
@@ -52,53 +39,7 @@ namespace YetkiliServisGazAcma.Controllers
             _adminYetkiBelgesiOnayApiClient = adminYetkiBelgesiOnayApiClient;
             _adminSubeApiClient = adminSubeApiClient;
             _adminRaporApiClient = adminRaporApiClient;
-            _markaApiClient = markaApiClient;
-            _urunKategoriApiClient = urunKategoriApiClient;
-        }
-
-        private static bool KullanilanKategoriMi(string? ad)
-        {
-            var key = NormalizeKategori(ad);
-
-            return key == "kombi"
-                || key.Contains("merkezikazan")
-                || key.Contains("sofben")
-                || key.Contains("sohben");
-        }
-
-        private static string NormalizeKategori(string? ad)
-        {
-            if (string.IsNullOrWhiteSpace(ad))
-                return string.Empty;
-
-            var normalized = ad.Trim().ToLower(new CultureInfo("tr-TR")).Normalize(NormalizationForm.FormD);
-            var chars = normalized
-                .Where(ch => CharUnicodeInfo.GetUnicodeCategory(ch) != UnicodeCategory.NonSpacingMark && char.IsLetterOrDigit(ch))
-                .ToArray();
-
-            return new string(chars)
-                .Replace("ı", "i")
-                .Replace("ş", "s")
-                .Replace("ğ", "g")
-                .Replace("ü", "u")
-                .Replace("ö", "o")
-                .Replace("ç", "c");
-        }
-
-        private async Task<List<UrunKategori>> KullanilanKategorileriGetir()
-        {
-            return (await _urunKategoriApiClient.ListeAsync() ?? new List<UrunKategori>())
-                .Where(x => KullanilanKategoriMi(x.Ad))
-                .GroupBy(x => NormalizeKategori(x.Ad))
-                .Select(g => g
-                    .OrderByDescending(x => x.AktifMi)
-                    .ThenBy(x => string.IsNullOrWhiteSpace(x.IconUrl) ? 1 : 0)
-                    .ThenBy(x => x.SiraNo)
-                    .ThenBy(x => x.Ad)
-                    .First())
-                .OrderBy(x => x.SiraNo)
-                .ThenBy(x => x.Ad)
-                .ToList();
+            _ykcApiClient = ykcApiClient;
         }
 
         private async Task<AppKullanici?> GetCurrentUser()
@@ -106,22 +47,9 @@ namespace YetkiliServisGazAcma.Controllers
             return await _kullaniciOturumu.GetUserAsync(User);
         }
 
-        private async Task<int> GetOnayBekleyenCount()
+        private async Task<AdminDashboardApiDto?> GetAdminDashboardOzetAsync(AppKullanici kullanici, int? sirketId)
         {
-            var kullanici = await GetCurrentUser();
-            var sirketId = kullanici == null ? null : await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            var dashboard = kullanici == null ? null : await GetAdminDashboardOzetAsync(kullanici, sirketId);
-
-            return dashboard?.OnayBekleyen ?? 0;
-        }
-
-        private async Task<AdminDashboardOzet?> GetAdminDashboardOzetAsync(AppKullanici kullanici, int? sirketId)
-        {
-            var cacheKey = $"AdminDashboardOzet:{sirketId?.ToString(CultureInfo.InvariantCulture) ?? "tum"}";
-            if (HttpContext.Items.TryGetValue(cacheKey, out var cached))
-                return cached as AdminDashboardOzet;
-
-            AdminDashboardOzet? dashboard;
+            AdminDashboardApiDto? dashboard = null;
             try
             {
                 dashboard = await _adminDashboardApiClient.GetirAsync(kullanici, sirketId);
@@ -129,29 +57,10 @@ namespace YetkiliServisGazAcma.Controllers
             catch (ApiIntegrationException ex)
             {
                 TempData["Hata"] = ex.Message;
-                return null;
             }
-
-            if (dashboard != null)
-                HttpContext.Items[cacheKey] = dashboard;
 
             return dashboard;
         }
 
-        public override async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
-        {
-            var kullanici = await GetCurrentUser();
-            var sirketId = kullanici == null ? null : await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            var dashboard = kullanici == null ? null : await GetAdminDashboardOzetAsync(kullanici, sirketId);
-
-            ViewBag.OnayBekleyen = dashboard?.OnayBekleyen ?? 0;
-            ViewBag.SuresiBitecek = dashboard?.SuresiBitecek ?? 0;
-            ViewBag.GenelSistemAdminMi = kullanici != null && await _aktifSirketService.GenelSistemAdminMi(kullanici);
-            await next();
-        }
-
-
     }
 }
-
-

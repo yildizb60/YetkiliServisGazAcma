@@ -8,8 +8,9 @@
     <link rel="stylesheet" href="~/lib/bootstrap-icons/font/bootstrap-icons.min.css" asp-append-version="true" />
 }
 
-<main class="login-shell">
-    <div class="login-visual" aria-hidden="true"></div>
+<partial name="_LoginHeader" />
+<main class="login-shell login-shell--panel">
+    <partial name="_LoginShowcase" />
     <section class="login-side" aria-label="SMS doğrulama">
         <div class="login-card">
             <a class="login-brand" href="/giris" aria-label="Giriş sayfası">
@@ -34,3 +35,7 @@
         </div>
     </section>
 </main>
+
+@section Scripts {
+    <script src="~/js/login-flow.js" asp-append-version="true"></script>
+}

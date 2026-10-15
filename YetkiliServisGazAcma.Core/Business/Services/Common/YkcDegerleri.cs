@@ -23,6 +23,33 @@ namespace YetkiliServisGazAcma.Business.Services
 
         public const int Onaylandi = SahaIsleminde;
         public const int SahadaTamamlandi = Tamamlandi;
+
+        public static string Etiket(int durum) => durum switch
+        {
+            TalepAlindi => "Talep Alındı",
+            AtamaBekliyor => "İnceleniyor",
+            Atandi => "Randevu Oluşturuldu",
+            SahaIsleminde => "İşlem Devam Ediyor",
+            Reddedildi => "Reddedildi",
+            Tamamlandi => "Tamamlandı",
+            Iptal => "İptal",
+            _ => "Bilinmiyor"
+        };
+    }
+
+    public static class YkcBekleyenIsDegerleri
+    {
+        public const string Inceleme = "inceleme";
+        public const string Randevu = "randevu";
+        public const string Tamamlama = "tamamlama";
+
+        public static string? Etiket(string? deger) => deger switch
+        {
+            Inceleme => "İnceleme bekleyen talepler",
+            Randevu => "Randevu planlanacak talepler",
+            Tamamlama => "Tamamlama bekleyen talepler",
+            _ => null
+        };
     }
 
     public static class YkcHedefUygulamaDegerleri
@@ -30,6 +57,15 @@ namespace YetkiliServisGazAcma.Business.Services
         public const string YonetimPaneli = "YONETIM_PANELI";
         public const string DogalgazMobileApp = "DOGALGAZ_MOBILE_APP";
         public const string Crm187 = "CRM187";
+
+        public static string Etiket(string? deger) => deger?.Trim().ToUpperInvariant() switch
+        {
+            YonetimPaneli => "Yönetim Paneli",
+            DogalgazMobileApp => "Doğalgaz Mobil Uygulaması",
+            Crm187 => "187 Acil",
+            null or "" => "Henüz yönlendirilmedi",
+            _ => "Diğer"
+        };
     }
 
     public static class YkcFormDosyaTuruDegerleri

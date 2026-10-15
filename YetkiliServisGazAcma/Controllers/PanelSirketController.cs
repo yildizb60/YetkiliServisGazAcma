@@ -54,7 +54,7 @@ namespace YetkiliServisGazAcma.Controllers
                 return RedirectToAction(nameof(SirketSec), new { returnUrl });
             }
 
-            return Redirect(GuvenliReturnUrl(returnUrl, VarsayilanUrl(kullanici)));
+            return Redirect(VarsayilanUrl(kullanici));
         }
 
         private string GuvenliReturnUrl(string? returnUrl, string varsayilanUrl)

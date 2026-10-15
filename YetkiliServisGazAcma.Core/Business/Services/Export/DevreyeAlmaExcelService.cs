@@ -8,13 +8,14 @@ namespace YetkiliServisGazAcma.Business.Services
         {
             var basliklar = new[]
             {
-                "Tesisat No", "Yetkili Servis", "Dağıtım Şirketi", "Müşteri", "Telefon", "T.C. Kimlik No",
+                "Tesisat No", "Sözleşme No", "Yetkili Servis", "Dağıtım Şirketi", "Müşteri", "Telefon", "T.C. Kimlik No",
                 "Adres", "Cihaz Tipi", "Marka", "Model", "Seri No", "Kapasite", "Teknisyen",
                 "Teknisyen Yetki Belgesi No", "Durum", "Devreye Alma Tarihi", "Notlar"
             };
-            var satirlar = islemler.Select(i => (IReadOnlyList<string?>)new string?[]
+            var satirlar = islemler.Select(i => (IReadOnlyList<object?>)new object?[]
             {
                 i.TesistatNo,
+                i.SozlesmeNo,
                 i.Firma?.FirmaAdi,
                 i.Firma?.Sirket?.SirketAdi,
                 i.MusteriAdi,
@@ -25,11 +26,11 @@ namespace YetkiliServisGazAcma.Business.Services
                 i.Marka?.MarkaAdi ?? i.CihazMarka,
                 i.CihazModeli,
                 i.SeriNo,
-                i.CihazKapasite,
+                ExcelWorkbookService.KapasiteDegeri(i.CihazKapasite),
                 i.TeknisyenAdi,
                 i.TeknisyenYetkiBelgesiNo,
                 DurumText(i.Durum),
-                i.DevreyeAlmaTarihi.ToString("dd.MM.yyyy HH:mm"),
+                i.DevreyeAlmaTarihi,
                 i.Notlar
             });
 

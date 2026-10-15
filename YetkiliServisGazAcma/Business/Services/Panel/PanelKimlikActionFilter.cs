@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using YetkiliServisGazAcma.Entities;
@@ -11,17 +10,20 @@ namespace YetkiliServisGazAcma.Business.Services
         private readonly PanelKimlikService _panelKimlikService;
         private readonly AktifSirketService _aktifSirketService;
         private readonly PanelKapsamApiClient _panelKapsamApiClient;
+        private readonly PanelGorunumService _panelGorunum;
 
         public PanelKimlikActionFilter(
             ApiKullaniciOturumu kullaniciOturumu,
             PanelKimlikService panelKimlikService,
             AktifSirketService aktifSirketService,
-            PanelKapsamApiClient panelKapsamApiClient)
+            PanelKapsamApiClient panelKapsamApiClient,
+            PanelGorunumService panelGorunum)
         {
             _kullaniciOturumu = kullaniciOturumu;
             _panelKimlikService = panelKimlikService;
             _aktifSirketService = aktifSirketService;
             _panelKapsamApiClient = panelKapsamApiClient;
+            _panelGorunum = panelGorunum;
         }
 
         public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
@@ -53,7 +55,18 @@ namespace YetkiliServisGazAcma.Business.Services
                 }
             }
 
-            await next();
+            var executed = await next();
+            if (executed.Exception == null && executed.Result is ViewResult
+                && context.Controller is Controller panel
+                && context.HttpContext.User.Identity?.IsAuthenticated == true)
+            {
+                var user = await _kullaniciOturumu.GetUserAsync(context.HttpContext.User);
+                if (user != null)
+                {
+                    await _panelGorunum.HazirlaAsync(user, panel.ViewData);
+                    if (_panelGorunum.HataMesaji != null) panel.TempData["Hata"] = _panelGorunum.HataMesaji;
+                }
+            }
         }
     }
 }

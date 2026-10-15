@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 
+using YetkiliServisGazAcma.Business.Services;
+
 namespace YetkiliServisGazAcma.API.Controllers
 {
     public partial class AdminPanelApiController
@@ -15,13 +17,13 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (kapsam.gecersiz)
                 return Forbid();
 
-            if (!await KullaniciYonetebilirMi(kullanici, kapsam.sirketId))
+            if (!PersonelYetkiYonetimKurali.YonetebilirMi(kullanici, kapsam.sirketId))
                 return Forbid();
 
             return Ok(await _adminPersonelYetkiApiService.ListeleAsync(
                 kullanici,
                 kapsam.sirketId,
-                GenelSistemAdminMi(kullanici)));
+                GenelSistemAdminMi(kullanici), dto));
         }
 
         [HttpPost("yetkiler/getir")]
@@ -35,7 +37,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (kapsam.gecersiz)
                 return Forbid();
 
-            if (!await KullaniciYonetebilirMi(kullanici, kapsam.sirketId))
+            if (!PersonelYetkiYonetimKurali.YonetebilirMi(kullanici, kapsam.sirketId))
                 return Forbid();
 
             return Ok(await _adminPersonelYetkiApiService.GetirAsync(
@@ -56,7 +58,7 @@ namespace YetkiliServisGazAcma.API.Controllers
             if (kapsam.gecersiz)
                 return Forbid();
 
-            if (!await KullaniciYonetebilirMi(kullanici, kapsam.sirketId))
+            if (!PersonelYetkiYonetimKurali.YonetebilirMi(kullanici, kapsam.sirketId))
                 return Forbid();
 
             return Ok(await _adminPersonelYetkiApiService.GuncelleAsync(

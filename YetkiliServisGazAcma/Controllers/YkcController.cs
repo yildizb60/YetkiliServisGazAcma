@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using YetkiliServisGazAcma.Business.Services;
@@ -14,6 +15,7 @@ namespace YetkiliServisGazAcma.Controllers
         private readonly ApiKullaniciOturumu _kullaniciOturumu;
         private readonly YkcApiClient _ykcApiClient;
         private readonly ILogger<YkcController> _logger;
+        private readonly IWebHostEnvironment _hostEnvironment;
 
         private static string? GecerliKaynak(string? kaynak) => kaynak?.ToLowerInvariant() switch
         {
@@ -32,11 +34,13 @@ namespace YetkiliServisGazAcma.Controllers
         public YkcController(
             ApiKullaniciOturumu kullaniciOturumu,
             YkcApiClient ykcApiClient,
-            ILogger<YkcController> logger)
+            ILogger<YkcController> logger,
+            IWebHostEnvironment hostEnvironment)
         {
             _kullaniciOturumu = kullaniciOturumu;
             _ykcApiClient = ykcApiClient;
             _logger = logger;
+            _hostEnvironment = hostEnvironment;
         }
 
         [HttpGet("")]
@@ -133,7 +137,16 @@ namespace YetkiliServisGazAcma.Controllers
             int? kontrolNo,
             DateTime? bas,
             DateTime? bit,
-            int sayfa = 1)
+            int sayfa = 1,
+            string? bekleyenIs = null,
+            string? q = null,
+            string? sirala = null,
+            string? cihazTipi = null,
+            int? talepId = null,
+            DateTime? randevuBas = null,
+            DateTime? randevuBit = null,
+            int? sirketId = null,
+            string? marka = null)
         {
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null)
@@ -146,6 +159,15 @@ namespace YetkiliServisGazAcma.Controllers
 
             var filtre = new YkcTalepListeFiltre
             {
+                Q = q,
+                Sirala = sirala,
+                CihazTipi = cihazTipi,
+                TalepId = talepId,
+                SirketId = sirketId,
+                Marka = marka,
+                RandevuBaslangicTarihi = randevuBas,
+                RandevuBitisTarihi = randevuBit,
+                BekleyenIs = bekleyenIs,
                 TesisatNo = tesisatNo,
                 MusteriAdi = musteriAdi,
                 SozlesmeNo = sozlesmeNo,
@@ -166,7 +188,11 @@ namespace YetkiliServisGazAcma.Controllers
             YkcTalepListeSonuc sonuc;
             try
             {
-                sonuc = await _ykcApiClient.TaleplerAsync(kullanici, filtre) ?? new YkcTalepListeSonuc();
+                sonuc = await _ykcApiClient.TaleplerAsync(kullanici, filtre) ?? new YkcTalepListeSonuc
+                {
+                    Sayfa = filtre.Sayfa,
+                    SayfaBoyutu = filtre.SayfaBoyutu
+                };
             }
             catch (ApiIntegrationException ex)
             {
@@ -179,7 +205,6 @@ namespace YetkiliServisGazAcma.Controllers
                 };
             }
             ViewBag.Filtre = filtre;
-            ViewBag.Ozet = await DashboardOzetGuvenliAsync(kullanici);
             return View("~/Views/Ykc/Talepler.cshtml", sonuc);
         }
 
@@ -197,7 +222,18 @@ namespace YetkiliServisGazAcma.Controllers
             DateTime? bas,
             DateTime? bit,
             int sayfa = 1,
-            int sayfaBoyutu = 10)
+            int sayfaBoyutu = 10,
+            int? talepId = null,
+            bool detayAc = false,
+            int? detayTalepId = null,
+            int? sirketId = null,
+            string? q = null,
+            string? sirala = null,
+            string? musteriAdi = null,
+            string? sozlesmeNo = null,
+            string? cihazTipi = null,
+            DateTime? randevuBas = null,
+            DateTime? randevuBit = null)
         {
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null)
@@ -208,54 +244,103 @@ namespace YetkiliServisGazAcma.Controllers
 
             PanelViewBag(kullanici, "YkcRaporlar", "Cihaz Değişim Raporları", "Firma, ekip, tesisat ve tarih aralığına göre cihaz değişim süreci");
 
+            var eskiDetayBaglantisi = detayAc && talepId is > 0;
+            var raporTalepId = eskiDetayBaglantisi ? null : talepId;
+            var acilacakTalepId = detayTalepId ?? (eskiDetayBaglantisi ? talepId : null);
             var filtre = RaporFiltresi(
                 tesisatNo, firma, il, ilce, bolge, ekip, marka, hedefUygulama,
-                durum, bas, bit, sayfa, sayfaBoyutu);
+                durum, bas, bit, sayfa, sayfaBoyutu, talepId: raporTalepId, sirketId: sirketId,
+                q: q, sirala: sirala, musteriAdi: musteriAdi, sozlesmeNo: sozlesmeNo, cihazTipi: cihazTipi,
+                randevuBas: randevuBas, randevuBit: randevuBit);
+            filtre.DetayTalepId = acilacakTalepId is > 0 ? acilacakTalepId : null;
 
             YkcRaporSonuc sonuc;
             try
             {
-                sonuc = await _ykcApiClient.RaporAsync(kullanici, filtre) ?? new YkcRaporSonuc();
+                sonuc = await _ykcApiClient.RaporAsync(kullanici, filtre) ?? new YkcRaporSonuc
+                {
+                    Sayfa = filtre.Sayfa,
+                    SayfaBoyutu = filtre.SayfaBoyutu,
+                    KayitLimiti = filtre.SayfaBoyutu
+                };
             }
             catch (ApiIntegrationException ex)
             {
                 _logger.LogWarning(ex, "YKC raporu alınamadı.");
                 TempData["Hata"] = "Rapor verileri şu anda alınamadı. Veri bağlantısı yeniden kurulurken kısa bir süre sonra tekrar deneyin.";
-                sonuc = new YkcRaporSonuc();
+                sonuc = new YkcRaporSonuc
+                {
+                    Sayfa = filtre.Sayfa,
+                    SayfaBoyutu = filtre.SayfaBoyutu,
+                    KayitLimiti = filtre.SayfaBoyutu
+                };
             }
             ViewBag.Filtre = filtre;
+            ViewBag.TalepId = raporTalepId;
+            ViewBag.OtomatikDetayTalepId = acilacakTalepId is > 0 && sonuc.Kayitlar.Any(x => x.Id == acilacakTalepId.Value)
+                ? acilacakTalepId : null;
             return View("~/Views/Ykc/Raporlar.cshtml", sonuc);
         }
 
         [HttpGet("raporlar/pdf")]
+        [HttpPost("raporlar/pdf")]
+        [AutoValidateAntiforgeryToken]
+        [RequestFormLimits(ValueCountLimit = 6000)]
         public async Task<IActionResult> RaporPdf(
             string? tesisatNo, string? firma, string? il, string? ilce, string? bolge,
             string? ekip, string? marka, string? hedefUygulama, int? durum,
-            DateTime? bas, DateTime? bit)
+            DateTime? bas, DateTime? bit, List<int>? ids, int? talepId = null, int? sirketId = null,
+            string? q = null, string? sirala = null, string? musteriAdi = null, string? sozlesmeNo = null,
+            string? cihazTipi = null, int sayfa = 1, int sayfaBoyutu = 10, string? kaynak = null,
+            string? aboneNo = null, int? kontrolNo = null, string? bekleyenIs = null,
+            DateTime? randevuBas = null, DateTime? randevuBit = null)
         {
             return await RaporDosyasi(
-                RaporFiltresi(tesisatNo, firma, il, ilce, bolge, ekip, marka, hedefUygulama, durum, bas, bit),
-                excelMi: false);
+                RaporFiltresi(tesisatNo, firma, il, ilce, bolge, ekip, marka, hedefUygulama, durum, bas, bit,
+                    sayfa, sayfaBoyutu, kayitIdleri: AktarimSecimi(ids),
+                    talepId: talepId, sirketId: sirketId, q: q, sirala: sirala, musteriAdi: musteriAdi,
+                    sozlesmeNo: sozlesmeNo, cihazTipi: cihazTipi, aboneNo: aboneNo, kontrolNo: kontrolNo, bekleyenIs: bekleyenIs,
+                    randevuBas: randevuBas, randevuBit: randevuBit),
+                excelMi: false, kaynak: kaynak);
         }
 
         [HttpGet("raporlar/excel")]
+        [HttpPost("raporlar/excel")]
+        [AutoValidateAntiforgeryToken]
+        [RequestFormLimits(ValueCountLimit = 6000)]
         public async Task<IActionResult> RaporExcel(
             string? tesisatNo, string? firma, string? il, string? ilce, string? bolge,
             string? ekip, string? marka, string? hedefUygulama, int? durum,
-            DateTime? bas, DateTime? bit)
+            DateTime? bas, DateTime? bit, List<int>? ids, int? talepId = null, int? sirketId = null,
+            string? q = null, string? sirala = null, string? musteriAdi = null, string? sozlesmeNo = null,
+            string? cihazTipi = null, int sayfa = 1, int sayfaBoyutu = 10, string? kaynak = null,
+            string? aboneNo = null, int? kontrolNo = null, string? bekleyenIs = null,
+            DateTime? randevuBas = null, DateTime? randevuBit = null)
         {
             return await RaporDosyasi(
-                RaporFiltresi(tesisatNo, firma, il, ilce, bolge, ekip, marka, hedefUygulama, durum, bas, bit),
-                excelMi: true);
+                RaporFiltresi(tesisatNo, firma, il, ilce, bolge, ekip, marka, hedefUygulama, durum, bas, bit,
+                    sayfa, sayfaBoyutu, kayitIdleri: AktarimSecimi(ids),
+                    talepId: talepId, sirketId: sirketId, q: q, sirala: sirala, musteriAdi: musteriAdi,
+                    sozlesmeNo: sozlesmeNo, cihazTipi: cihazTipi, aboneNo: aboneNo, kontrolNo: kontrolNo, bekleyenIs: bekleyenIs,
+                    randevuBas: randevuBas, randevuBit: randevuBit),
+                excelMi: true, kaynak: kaynak);
         }
 
-        private async Task<IActionResult> RaporDosyasi(YkcTalepListeFiltre filtre, bool excelMi)
+        private List<int>? AktarimSecimi(List<int>? ids)
+        {
+            // An explicit empty selection must not turn into an unselected, filtered-all export.
+            var secimGonderildi = ids is { Count: > 0 } || Request.Query.ContainsKey("ids")
+                || (Request.HasFormContentType && Request.Form.ContainsKey("ids"));
+            return secimGonderildi ? ids ?? new List<int>() : null;
+        }
+
+        private async Task<IActionResult> RaporDosyasi(YkcTalepListeFiltre filtre, bool excelMi, string? kaynak = null)
         {
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null)
                 return Redirect("/giris");
 
-            if (!YkcYetkileri().RaporlariGorebilir)
+            if (!YkcYetkileri().TalepleriDisariAktarabilir)
                 return Redirect("/yetkisiz-erisim");
 
             try
@@ -275,7 +360,19 @@ namespace YetkiliServisGazAcma.Controllers
                 TempData["Hata"] = ex.Message;
             }
 
-            return RedirectToAction(nameof(Raporlar));
+            return RedirectToAction(string.Equals(kaynak, "talepler", StringComparison.OrdinalIgnoreCase) ? nameof(Talepler) : nameof(Raporlar), new
+            {
+                q = filtre.Q, sirala = filtre.Sirala, musteriAdi = filtre.MusteriAdi,
+                sozlesmeNo = filtre.SozlesmeNo, cihazTipi = filtre.CihazTipi, talepId = filtre.TalepId,
+                aboneNo = filtre.AboneNo, kontrolNo = filtre.KontrolNo, bekleyenIs = filtre.BekleyenIs,
+                sayfa = filtre.Sayfa, sayfaBoyutu = filtre.SayfaBoyutu,
+                sirketId = filtre.SirketId, tesisatNo = filtre.TesisatNo, firma = filtre.Firma,
+                il = filtre.Il, ilce = filtre.Ilce, bolge = filtre.Bolge, ekip = filtre.Ekip,
+                marka = filtre.Marka, hedefUygulama = filtre.HedefUygulama, durum = filtre.Durum,
+                randevuBas = filtre.RandevuBaslangicTarihi?.ToString("yyyy-MM-dd"),
+                randevuBit = filtre.RandevuBitisTarihi?.ToString("yyyy-MM-dd"),
+                bas = filtre.BaslangicTarihi?.ToString("yyyy-MM-dd"), bit = filtre.BitisTarihi?.ToString("yyyy-MM-dd")
+            });
         }
 
         [HttpGet("yeni")]
@@ -363,6 +460,28 @@ namespace YetkiliServisGazAcma.Controllers
             }
         }
 
+        [HttpPost("cihaz-karsilastir")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CihazKarsilastir([FromForm] YkcCihazKarsilastirmaIstek model)
+        {
+            var kullanici = await _kullaniciOturumu.GetUserAsync(User);
+            if (kullanici == null) return Unauthorized();
+            if (!YkcYetkileri().TalepOlusturabilir)
+                return StatusCode(StatusCodes.Status403Forbidden);
+            if (!ModelState.IsValid) return BadRequest();
+            try
+            {
+                return Json(await _ykcApiClient.CihazKarsilastirAsync(kullanici, model)
+                    ?? new YkcCihazKarsilastirmaSonuc { Mesaj = "Cihaz karşılaştırması alınamadı." });
+            }
+            catch (ApiIntegrationException ex)
+            {
+                _logger.LogWarning(ex, "Yeni cihaz bilgileri karşılaştırılamadı.");
+                return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                    new YkcCihazKarsilastirmaSonuc { Mesaj = "Cihaz karşılaştırması şu anda yapılamıyor." });
+            }
+        }
+
         [HttpGet("detay/{id:int}")]
         public async Task<IActionResult> Detay(int id, string? kaynak = null)
         {
@@ -384,7 +503,7 @@ namespace YetkiliServisGazAcma.Controllers
             catch (ApiIntegrationException ex)
             {
                 _logger.LogWarning(ex, "YKC talep detayı alınamadı. TalepId: {TalepId}", id);
-                TempData["Hata"] = "Talep detayı şu anda alınamadı. Yerel API bağlantısı yeniden kuruluyor; lütfen kısa bir süre sonra tekrar deneyin.";
+                TempData["Hata"] = ex.Message;
                 return KaynakListesineDon(kaynak);
             }
 
@@ -394,11 +513,6 @@ namespace YetkiliServisGazAcma.Controllers
                 return KaynakListesineDon(kaynak);
             }
 
-            ViewBag.ImzaEntegrasyonu = await ImzaEntegrasyonGuvenliAsync(kullanici);
-
-            ViewBag.Ekipler = YkcYetkileri().AtamaYapabilir
-                ? await EkipleriGuvenliGetirAsync(kullanici, id)
-                : new List<YkcEkipSecenegi>();
             return View("~/Views/Ykc/Detay.cshtml", detay);
         }
 
@@ -417,12 +531,12 @@ namespace YetkiliServisGazAcma.Controllers
             YkcTalepDetayDto? detay;
             try
             {
-                detay = await _ykcApiClient.DetayAsync(kullanici, id, formVerisi: true);
+                detay = await _ykcApiClient.DetayAsync(kullanici, id);
             }
             catch (ApiIntegrationException ex)
             {
                 _logger.LogWarning(ex, "YKC form önizleme verisi alınamadı. TalepId: {TalepId}", id);
-                TempData["Hata"] = "Form önizlemesi şu anda açılamadı. Veri bağlantısı yeniden kurulurken kısa bir süre sonra tekrar deneyin.";
+                TempData["Hata"] = ex.Message;
                 return RedirectToAction(nameof(Talepler));
             }
             if (detay == null)
@@ -430,8 +544,6 @@ namespace YetkiliServisGazAcma.Controllers
                 TempData["Hata"] = "Cihaz değişim talebi bulunamadı.";
                 return RedirectToAction(nameof(Talepler));
             }
-
-            ViewBag.ImzaEntegrasyonu = await ImzaEntegrasyonGuvenliAsync(kullanici);
 
             return View("~/Views/Ykc/Fr265Onizle.cshtml", detay);
         }
@@ -464,7 +576,10 @@ namespace YetkiliServisGazAcma.Controllers
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null) return Redirect("/giris");
             if (!YkcYetkileri().TalepleriGorebilir) return Redirect("/yetkisiz-erisim");
-            PanelViewBag(kullanici, "YkcTakvim", "Cihaz Değişim Randevuları", "");
+            PanelViewBag(kullanici, "YkcTakvim", "Yakıcı Cihaz Değişim Randevuları", "");
+            filtre.GorunumKayitlariniGetir = YkcTakvimGorunumKurali.DoneminTumKayitlariGerekli(
+                filtre.Baslangic,
+                filtre.Bitis);
             try
             {
                 var sonuc = await _ykcApiClient.TakvimAsync(kullanici, filtre);
@@ -482,7 +597,7 @@ namespace YetkiliServisGazAcma.Controllers
         [HttpPost("imzaya-gonder")]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel")]
-        public async Task<IActionResult> ImzayaGonder(int talepId, string? kaynak = null)
+        public async Task<IActionResult> ImzayaGonder(int talepId, string? kaynak = null, string? geri = null)
         {
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null)
@@ -494,13 +609,13 @@ namespace YetkiliServisGazAcma.Controllers
             var sonuc = await _ykcApiClient.ImzayaGonderAsync(kullanici, talepId);
             TempData[sonuc?.Basarili == true ? "Basarili" : "Hata"] = sonuc?.Mesaj
                 ?? "Form dijital imza uygulamasına gönderilemedi.";
-            return RedirectToAction(nameof(Detay), new { id = talepId, kaynak = GecerliKaynak(kaynak) });
+            return RedirectToAction(nameof(Detay), new { id = talepId, kaynak = GecerliKaynak(kaynak), geri });
         }
 
         [HttpPost("imza-durum-sorgula")]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel")]
-        public async Task<IActionResult> ImzaDurumSorgula(int talepId, string? kaynak = null)
+        public async Task<IActionResult> ImzaDurumSorgula(int talepId, string? kaynak = null, string? geri = null)
         {
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null)
@@ -512,7 +627,7 @@ namespace YetkiliServisGazAcma.Controllers
             var sonuc = await _ykcApiClient.ImzaDurumSorgulaAsync(kullanici, talepId);
             TempData[sonuc?.Basarili == true ? "Basarili" : "Hata"] = sonuc?.Mesaj
                 ?? "Formun dijital imza durumu alınamadı.";
-            return RedirectToAction(nameof(Detay), new { id = talepId, kaynak = GecerliKaynak(kaynak) });
+            return RedirectToAction(nameof(Detay), new { id = talepId, kaynak = GecerliKaynak(kaynak), geri });
         }
 
         [HttpGet("dosya/{id:int}")]
@@ -538,7 +653,7 @@ namespace YetkiliServisGazAcma.Controllers
         [HttpPost("atama-yap")]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel")]
-        public async Task<IActionResult> AtamaYap(YkcAtamaKaydetDto model, string? kaynak = null)
+        public async Task<IActionResult> AtamaYap(YkcAtamaKaydetDto model, string? kaynak = null, string? geri = null)
         {
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null)
@@ -549,13 +664,15 @@ namespace YetkiliServisGazAcma.Controllers
 
             var sonuc = await _ykcApiClient.AtamaYapAsync(kullanici, model);
             TempData[sonuc?.Basarili == true ? "Basarili" : "Hata"] = sonuc?.Mesaj ?? "Cihaz değişim talebi ataması kaydedilemedi.";
-            return RedirectToAction(nameof(Detay), new { id = model.TalepId, kaynak = GecerliKaynak(kaynak) });
+            if (sonuc?.Basarili == true && _hostEnvironment.IsDevelopment() && User.IsInRole(KullaniciRolAdlari.Personel))
+                TempData["DemoSms"] = "Randevu SMS'i yalnızca simüle edildi; müşteriye gerçek mesaj gönderilmedi.";
+            return RedirectToAction(nameof(Detay), new { id = model.TalepId, kaynak = GecerliKaynak(kaynak), geri });
         }
 
         [HttpPost("durum-guncelle")]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel")]
-        public async Task<IActionResult> DurumGuncelle(YkcDurumGuncelleDto model, string? kaynak = null)
+        public async Task<IActionResult> DurumGuncelle(YkcDurumGuncelleDto model, string? kaynak = null, string? geri = null)
         {
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null)
@@ -572,13 +689,16 @@ namespace YetkiliServisGazAcma.Controllers
 
             var sonuc = await _ykcApiClient.DurumGuncelleAsync(kullanici, model);
             TempData[sonuc?.Basarili == true ? "Basarili" : "Hata"] = sonuc?.Mesaj ?? "Cihaz değişim talebi durumu güncellenemedi.";
-            return RedirectToAction(nameof(Detay), new { id = model.TalepId, kaynak = GecerliKaynak(kaynak) });
+            if (sonuc?.Basarili == true && model.Durum == YkcDurumDegerleri.Tamamlandi && ykcYetkileri.RaporlariGorebilir)
+                return RedirectToAction(nameof(Raporlar), new { detayTalepId = model.TalepId });
+
+            return RedirectToAction(nameof(Detay), new { id = model.TalepId, kaynak = GecerliKaynak(kaynak), geri });
         }
 
         [HttpPost("kontroller-kaydet")]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "GenelSistemAdmin,SuperAdmin,SirketAdmin,Personel")]
-        public async Task<IActionResult> KontrollerKaydet(YkcKontrolKaydetDto model, string? kaynak = null)
+        public async Task<IActionResult> KontrollerKaydet(YkcKontrolKaydetDto model, string? kaynak = null, string? geri = null)
         {
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null)
@@ -589,12 +709,12 @@ namespace YetkiliServisGazAcma.Controllers
 
             var sonuc = await _ykcApiClient.KontrollerKaydetAsync(kullanici, model);
             TempData[sonuc?.Basarili == true ? "Basarili" : "Hata"] = sonuc?.Mesaj ?? "Kontrol sonucu kaydedilemedi.";
-            return RedirectToAction(nameof(Detay), new { id = model.TalepId, kaynak = GecerliKaynak(kaynak) });
+            return RedirectToAction(nameof(Detay), new { id = model.TalepId, kaynak = GecerliKaynak(kaynak), geri });
         }
 
         [HttpPost("form-yukle")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> FormYukle(int talepId, IFormFile? formDosyasi, string? dosyaTuru, string? kaynak = null)
+        public async Task<IActionResult> FormYukle(int talepId, IFormFile? formDosyasi, string? dosyaTuru, string? kaynak = null, string? geri = null)
         {
             var kullanici = await _kullaniciOturumu.GetUserAsync(User);
             if (kullanici == null)
@@ -612,7 +732,7 @@ namespace YetkiliServisGazAcma.Controllers
             if (formDosyasi == null || formDosyasi.Length == 0)
             {
                 TempData["Hata"] = "Yüklenecek form dosyası seçilmelidir.";
-                return RedirectToAction(nameof(Detay), new { id = talepId, kaynak = GecerliKaynak(kaynak) });
+                return RedirectToAction(nameof(Detay), new { id = talepId, kaynak = GecerliKaynak(kaynak), geri });
             }
 
             var sonuc = await _ykcApiClient.FormYukleAsync(
@@ -622,7 +742,7 @@ namespace YetkiliServisGazAcma.Controllers
                 string.IsNullOrWhiteSpace(dosyaTuru) ? YkcFormDosyaTuruDegerleri.TeknikEk : dosyaTuru);
 
             TempData[sonuc?.Basarili == true ? "Basarili" : "Hata"] = sonuc?.Mesaj ?? "Cihaz değişim form dosyası yüklenemedi.";
-            return RedirectToAction(nameof(Detay), new { id = talepId, kaynak = GecerliKaynak(kaynak) });
+            return RedirectToAction(nameof(Detay), new { id = talepId, kaynak = GecerliKaynak(kaynak), geri });
         }
 
         private static YkcTalepListeFiltre RaporFiltresi(
@@ -638,10 +758,35 @@ namespace YetkiliServisGazAcma.Controllers
             DateTime? bas,
             DateTime? bit,
             int sayfa = 1,
-            int sayfaBoyutu = 10)
+            int sayfaBoyutu = 10,
+            IEnumerable<int>? kayitIdleri = null,
+            int? talepId = null,
+            int? sirketId = null,
+            string? q = null,
+            string? sirala = null,
+            string? musteriAdi = null,
+            string? sozlesmeNo = null,
+            string? cihazTipi = null,
+            string? aboneNo = null,
+            int? kontrolNo = null,
+            string? bekleyenIs = null,
+            DateTime? randevuBas = null,
+            DateTime? randevuBit = null)
         {
             return new YkcTalepListeFiltre
             {
+                Q = q,
+                Sirala = sirala,
+                MusteriAdi = musteriAdi,
+                SozlesmeNo = sozlesmeNo,
+                CihazTipi = cihazTipi,
+                TalepId = talepId,
+                AboneNo = aboneNo,
+                KontrolNo = kontrolNo,
+                BekleyenIs = bekleyenIs,
+                RandevuBaslangicTarihi = randevuBas,
+                RandevuBitisTarihi = randevuBit,
+                SirketId = sirketId,
                 TesisatNo = tesisatNo,
                 Firma = firma,
                 Il = il,
@@ -651,6 +796,9 @@ namespace YetkiliServisGazAcma.Controllers
                 Marka = marka,
                 HedefUygulama = hedefUygulama,
                 Durum = durum,
+                KayitIdleri = talepId.HasValue
+                    ? new[] { talepId.Value }.Where(x => x > 0 && (kayitIdleri == null || kayitIdleri.Contains(x))).ToList()
+                    : kayitIdleri?.Where(x => x > 0).Distinct().ToList(),
                 BaslangicTarihi = bas,
                 BitisTarihi = bit,
                 Sayfa = Math.Max(sayfa, 1),
@@ -688,20 +836,6 @@ namespace YetkiliServisGazAcma.Controllers
                 TempData["Hata"] ??= "Dijital imza entegrasyon bilgisi şu an alınamadı; ekran mevcut kayıtlarla açıldı.";
                 _logger.LogWarning(ex, "YKC imza entegrasyon bilgisi alınamadı.");
                 return new YkcImzaEntegrasyonDto();
-            }
-        }
-
-        private async Task<List<YkcEkipSecenegi>> EkipleriGuvenliGetirAsync(AppKullanici kullanici, int talepId)
-        {
-            try
-            {
-                return await _ykcApiClient.EkiplerAsync(kullanici, talepId) ?? new List<YkcEkipSecenegi>();
-            }
-            catch (ApiIntegrationException ex)
-            {
-                _logger.LogWarning(ex, "YKC ekip listesi alınamadı. TalepId: {TalepId}", talepId);
-                TempData["Hata"] ??= "Bölge ekipleri şu anda alınamadı. Randevu kaydetmeden önce kısa bir süre sonra yeniden deneyin.";
-                return new List<YkcEkipSecenegi>();
             }
         }
 

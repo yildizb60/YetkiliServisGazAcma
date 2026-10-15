@@ -1,0 +1,104 @@
+@model DevreyeAlmaListeViewModel
+@{
+    var sorgu = Context.Request.Query;
+    string Deger(string ad) => sorgu[ad].ToString();
+    var filtreAdlari = new[] { "tesisat", "sozlesme", "musteri", "marka", "cihazTipi", "durum", "servis", "il", "ilce", "bas", "bit" };
+    var filtreAktif = filtreAdlari.Any(ad => !string.IsNullOrWhiteSpace(Deger(ad)));
+    var sayfalama = Model.Sayfalama;
+    var toplamKayit = sayfalama?.ToplamKayit ?? Model.Kayitlar.Count;
+    string SayfaUrl(int sayfa)
+    {
+        var degerler = sorgu.Where(x => !string.Equals(x.Key, "sayfa", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(x.Key, "kayitId", StringComparison.OrdinalIgnoreCase))
+            .ToDictionary(x => x.Key, x => x.Value, StringComparer.OrdinalIgnoreCase);
+        degerler["sayfa"] = sayfa.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        if (Model.SirketId.HasValue) degerler["sirketId"] = Model.SirketId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        return Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString(Model.ListeUrl, degerler);
+    }
+    var durumlar = new[]
+    {
+        (Kod: Model.ServisPaneli ? "tamamlandi" : DevreyeAlmaDurumDegerleri.Tamamlandi.ToString(), Ad: "Tamamlandı"),
+        (Kod: Model.ServisPaneli ? "bekliyor" : DevreyeAlmaDurumDegerleri.Bekliyor.ToString(), Ad: "Bekliyor"),
+        (Kod: Model.ServisPaneli ? "iptal" : DevreyeAlmaDurumDegerleri.Iptal.ToString(), Ad: "İptal")
+    };
+}
+
+<div class="df-admin-workspace df-operations-directory df-commissioning-directory" data-history-directory data-history-paged="@(sayfalama != null ? "true" : null)" data-storage-key="commissioning-view">
+    <partial name="_KayitListeAracCubugu" model="@(new KayitListeAracCubuguViewModel { Baslik = "Devreye Alma Kayıtları", KayitSayisi = toplamKayit, KayitVar = toplamKayit > 0, TumFiltrelenenKayitlar = sayfalama != null, PdfUrl = Model.PdfUrl, ExcelUrl = Model.ExcelUrl, YeniKayitUrl = Model.YeniKayitUrl })" />
+    @if (sayfalama != null)
+    {
+        <template data-directory-export-ids>@string.Join(",", sayfalama.AktarimIdleri)</template>
+    }
+
+    <section class="df-commissioning-surface">
+        <details id="commissioningFiltersPanel" class="df-admin-filter df-commissioning-filter" open="@(filtreAktif ? "open" : null)">
+            <summary><span><i class="bi bi-funnel" aria-hidden="true"></i><strong>Kayıtları Filtrele</strong></span><span>@(filtreAktif ? "Filtre uygulandı" : "Filtreleri aç") <i class="bi bi-chevron-down" aria-hidden="true"></i></span></summary>
+            <div class="df-admin-filter-body">
+                <form id="commissioningFilters" method="get" action="@Model.ListeUrl">
+                    @if (Model.SirketId.HasValue) { <input type="hidden" name="sirketId" value="@Model.SirketId" /> }
+                    <div class="df-admin-filter-grid">
+                        <div class="df-admin-field"><label for="tesisat">Tesisat No</label><input id="tesisat" type="search" name="tesisat" value="@Deger("tesisat")" placeholder="Tesisat no" /></div>
+                        <div class="df-admin-field"><label for="sozlesme">Sözleşme No</label><input id="sozlesme" type="search" name="sozlesme" value="@Deger("sozlesme")" placeholder="Sözleşme no" /></div>
+                        <div class="df-admin-field"><label for="musteri">Abone Adı Soyadı</label><input id="musteri" type="search" name="musteri" value="@Deger("musteri")" placeholder="Ad, abone no veya telefon" /></div>
+                        <div class="df-admin-field"><label for="marka">Marka</label><select id="marka" name="marka"><option value="">Tümü</option>@foreach (var marka in Model.Markalar) { <option value="@marka" selected="@(Deger("marka") == marka ? "selected" : null)">@marka</option> }</select></div>
+                        <div class="df-admin-field"><label for="cihazTipi">Yakıcı Cihaz Tipi</label><select id="cihazTipi" name="cihazTipi"><option value="">Tümü</option>@foreach (var tip in Model.CihazTipleri) { <option value="@tip" selected="@(Deger("cihazTipi") == tip ? "selected" : null)">@DevreyeAlmaCihazTipiSunumu.Etiket(tip)</option> }</select></div>
+                        <div class="df-admin-field"><label for="durum">Durum</label><select id="durum" name="durum"><option value="">Tümü</option>@foreach (var durum in durumlar) { <option value="@durum.Kod" selected="@(Deger("durum") == durum.Kod ? "selected" : null)">@durum.Ad</option> }</select></div>
+                        @if (!Model.ServisPaneli)
+                        {
+                            <div class="df-admin-field"><label for="servis">Yetkili Servis</label><input id="servis" type="search" name="servis" value="@Deger("servis")" placeholder="Servis adı" /></div>
+                            <div class="df-admin-field"><label for="il">İl</label><select id="il" name="il"><option value="">Tümü</option>@foreach (var sehir in Model.Sehirler) { <option value="@sehir" selected="@(Deger("il") == sehir ? "selected" : null)">@sehir</option> }</select></div>
+                            <div class="df-admin-field"><label for="ilce">İlçe</label><input id="ilce" type="search" name="ilce" value="@Deger("ilce")" placeholder="İlçe" /></div>
+                        }
+                        <div class="df-admin-field"><label for="bas">Başlangıç Tarihi</label><input id="bas" type="date" name="bas" value="@Deger("bas")" /></div>
+                        <div class="df-admin-field"><label for="bit">Bitiş Tarihi</label><input id="bit" type="date" name="bit" value="@Deger("bit")" /></div>
+                    </div>
+                    <div class="df-admin-filter-actions"><a class="df-btn df-btn-secondary df-btn-sm" href="@Model.TemizleUrl"><i class="bi bi-x-lg" aria-hidden="true"></i>Temizle</a><button class="df-btn df-btn-primary df-btn-sm" type="submit"><i class="bi bi-search" aria-hidden="true"></i>Sonuçları Göster</button></div>
+                </form>
+            </div>
+        </details>
+        @if (!Model.Kayitlar.Any())
+        {
+            <div class="df-admin-empty"><i class="bi bi-inbox" aria-hidden="true"></i>Filtrelere uygun kayıt bulunamadı.</div>
+        }
+        else
+        {
+            <partial name="_DevreyeAlmaTable" model="Model.Kayitlar" />
+        }
+        @if (sayfalama != null)
+        {
+            var toplamSayfa = Math.Max(1, (int)Math.Ceiling(toplamKayit / (double)Math.Max(1, sayfalama.SayfaBoyutu)));
+            var ilk = toplamKayit == 0 ? 0 : (sayfalama.Sayfa - 1L) * sayfalama.SayfaBoyutu + 1;
+            var son = Math.Min(sayfalama.Sayfa * (long)sayfalama.SayfaBoyutu, toplamKayit);
+            <footer class="df-commissioning-pager">
+                <span>@ilk-@son / @toplamKayit kayıt</span>
+                @if (toplamSayfa > 1)
+                {
+                    <nav aria-label="Devreye alma sayfaları">
+                        @if (sayfalama.Sayfa > 1)
+                        {
+                            <a href="@SayfaUrl(1)" title="İlk sayfa" aria-label="İlk sayfa"><i class="bi bi-chevron-double-left" aria-hidden="true"></i></a>
+                            <a href="@SayfaUrl(sayfalama.Sayfa - 1)" rel="prev" title="Önceki sayfa" aria-label="Önceki sayfa"><i class="bi bi-chevron-left" aria-hidden="true"></i></a>
+                        }
+                        else
+                        {
+                            <span aria-disabled="true" aria-label="İlk sayfa"><i class="bi bi-chevron-double-left" aria-hidden="true"></i></span>
+                            <span aria-disabled="true" aria-label="Önceki sayfa"><i class="bi bi-chevron-left" aria-hidden="true"></i></span>
+                        }
+                        <span class="df-commissioning-page-number" aria-current="page">@sayfalama.Sayfa / @toplamSayfa</span>
+                        @if (sayfalama.Sayfa < toplamSayfa)
+                        {
+                            <a href="@SayfaUrl(sayfalama.Sayfa + 1)" rel="next" title="Sonraki sayfa" aria-label="Sonraki sayfa"><i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+                            <a href="@SayfaUrl(toplamSayfa)" title="Son sayfa" aria-label="Son sayfa"><i class="bi bi-chevron-double-right" aria-hidden="true"></i></a>
+                        }
+                        else
+                        {
+                            <span aria-disabled="true" aria-label="Sonraki sayfa"><i class="bi bi-chevron-right" aria-hidden="true"></i></span>
+                            <span aria-disabled="true" aria-label="Son sayfa"><i class="bi bi-chevron-double-right" aria-hidden="true"></i></span>
+                        }
+                    </nav>
+                }
+            </footer>
+        }
+    </section>
+    <partial name="_KayitSutunFiltresi" model='@("commissioningFilters")' />
+</div>

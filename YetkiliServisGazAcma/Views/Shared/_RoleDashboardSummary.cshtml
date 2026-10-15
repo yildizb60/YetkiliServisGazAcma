@@ -1,0 +1,62 @@
+@model YetkiliServisGazAcma.Models.ViewModels.RoleDashboardSidePanelViewModel
+@{
+    var metrics = Model.Metrics.Take(4).ToList();
+    var items = Model.Items
+        .GroupBy(item => $"{item.Url}|{item.Title}", StringComparer.OrdinalIgnoreCase)
+        .Select(group => group.First())
+        .Take(metrics.Count == 0 ? 6 : 3)
+        .ToList();
+}
+
+<article class="role-dashboard-summary @(metrics.Count == 0 ? "has-no-metrics" : items.Count == 0 ? "is-metrics-only" : null)">
+    <header class="role-dashboard-summary__head">
+        <h2><i class="@Model.Icon" aria-hidden="true"></i>@Model.Title</h2>
+        @if (!string.IsNullOrWhiteSpace(Model.ActionUrl) && !string.IsNullOrWhiteSpace(Model.ActionText))
+        {
+            <a href="@Model.ActionUrl">@Model.ActionText<i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+        }
+    </header>
+
+    @if (metrics.Count > 0)
+    {
+        <div class="role-dashboard-summary__metrics">
+            @foreach (var metric in metrics)
+            {
+                @if (!string.IsNullOrWhiteSpace(metric.Url))
+                {
+                    <a class="is-@metric.Tone" href="@metric.Url">
+                        <span><i class="@metric.Icon" aria-hidden="true"></i>@metric.Label</span>
+                        <strong>@metric.Value</strong>
+                    </a>
+                }
+                else
+                {
+                    <div class="is-@metric.Tone">
+                        <span><i class="@metric.Icon" aria-hidden="true"></i>@metric.Label</span>
+                        <strong>@metric.Value</strong>
+                    </div>
+                }
+            }
+        </div>
+    }
+
+    @if (items.Count > 0)
+    {
+        <section class="role-dashboard-summary__items" aria-labelledby="role-dashboard-summary-items-title">
+            <header>
+                <h3 id="role-dashboard-summary-items-title">@Model.ItemsTitle</h3>
+            </header>
+            <div>
+                @foreach (var item in items)
+                {
+                    <a href="@item.Url">
+                        <span class="role-dashboard-summary__item-icon is-@item.Tone"><i class="@item.Icon" aria-hidden="true"></i></span>
+                        <span><strong>@item.Title</strong><small>@item.Subtitle</small></span>
+                        <b>@item.MetricValue</b>
+                        <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                    </a>
+                }
+            </div>
+        </section>
+    }
+</article>

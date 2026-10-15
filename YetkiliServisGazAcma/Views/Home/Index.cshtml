@@ -7,7 +7,7 @@
     var servisCount = (long)(ViewBag.ServisCount ?? 0L);
     var devreyeCount = (long)(ViewBag.DevreyeCount ?? 0L);
     var yetkiBelgesiCount = (long)(ViewBag.YetkiBelgesiCount ?? 0L);
-    var zamaninda = (double)(ViewBag.ZamanindaOran ?? 0d);
+    var tamamlanmaOrani = (double)(ViewBag.TamamlanmaOrani ?? 0d);
 }
 @section Styles {
     <style>
@@ -695,8 +695,8 @@
             </div>
             <div class="stat-card">
                 <div class="stat-icon">&#9989;</div>
-                <div class="stat-value">%@zamaninda.ToString("N1", tr)</div>
-                <div class="stat-label">Zamanında İşlem</div>
+                <div class="stat-value">%@tamamlanmaOrani.ToString("N1", tr)</div>
+                <div class="stat-label">Tamamlanma Oranı</div>
             </div>
         </div>
     </section>

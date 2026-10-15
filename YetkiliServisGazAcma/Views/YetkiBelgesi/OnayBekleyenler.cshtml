@@ -1,70 +1,22 @@
-@model List<YetkiliServisGazAcma.Entities.Ys_YetkiBelgesi>
-@using YetkiliServisGazAcma.Entities
+@model List<YetkiBelgesiDto>
 @{
-    ViewData["Title"] = "Yetki Belgesi Onayları";
-    ViewData["PanelTitle"] = "Yetki Belgesi Onayları";
+    ViewData["Title"] = "Yetki Belgesi İşlemleri";
+    ViewData["PanelTitle"] = ViewData["Title"];
     ViewData["PanelSubtitle"] = "Yetki Belgesi";
     ViewData["ActiveMenu"] = "OnayBekleyenler";
+    ViewData["PanelArea"] = User.IsInRole("Personel") ? "Personel" : "Admin";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
-
-    var bekleyenler = Model ?? new List<Ys_YetkiBelgesi>();
-    var onaylananlar = ViewBag.Onaylananlar as List<Ys_YetkiBelgesi> ?? new List<Ys_YetkiBelgesi>();
-    var reddedilenler = ViewBag.Reddedilenler as List<Ys_YetkiBelgesi> ?? new List<Ys_YetkiBelgesi>();
-    var suresiDolanlar = ViewBag.SuresiDolanlar as List<Ys_YetkiBelgesi> ?? new List<Ys_YetkiBelgesi>();
+    var bekleyenler = Model ?? new List<YetkiBelgesiDto>();
+    var onaylananlar = ViewBag.Onaylananlar as List<YetkiBelgesiDto> ?? new List<YetkiBelgesiDto>();
+    var reddedilenler = ViewBag.Reddedilenler as List<YetkiBelgesiDto> ?? new List<YetkiBelgesiDto>();
+    var suresiDolanlar = ViewBag.SuresiDolanlar as List<YetkiBelgesiDto> ?? new List<YetkiBelgesiDto>();
+    var kayitlar = bekleyenler.Concat(onaylananlar).Concat(reddedilenler).Concat(suresiDolanlar).Cast<YetkiBelgesiKayitDto>().ToList();
+    var sayfalama = ViewBag.Sayfalama as YetkiBelgesiOnaySayfalamaDto ?? new();
 }
-
-<div class="section-label">
-    <i class="bi bi-journal-text"></i>
-    Yetki belgesi değerlendirme
-</div>
-
-<div class="df-page-panel approval-panels">
-    <div class="df-panel-head">
-        <div>
-            <div class="df-panel-title">Yetki Belgesi Onay Listesi</div>
-            <div class="df-panel-subtitle">Onayda bekleyenler, onaylananlar ve reddedilenler</div>
-        </div>
-        <div class="df-status-tabs" data-approval-tabs>
-            <button type="button" class="df-tab active" data-target="bekleyen">Onayda Bekleyenler (@bekleyenler.Count)</button>
-            <button type="button" class="df-tab" data-target="onaylanan">Onaylananlar (@onaylananlar.Count)</button>
-            <button type="button" class="df-tab" data-target="reddedilen">Reddedilenler (@reddedilenler.Count)</button>
-            <button type="button" class="df-tab" data-target="suresi-dolan">Süresi Doldu (@suresiDolanlar.Count)</button>
-        </div>
-    </div>
-
-    <div data-panel="bekleyen" class="active">
-        @await Html.PartialAsync("~/Views/Shared/_YetkiBelgesiOnayTable.cshtml", new Tuple<List<Ys_YetkiBelgesi>, string, string>(bekleyenler, "bekleyen", "admin"))
-    </div>
-    <div data-panel="onaylanan">
-        @await Html.PartialAsync("~/Views/Shared/_YetkiBelgesiOnayTable.cshtml", new Tuple<List<Ys_YetkiBelgesi>, string, string>(onaylananlar, "onaylanan", "admin"))
-    </div>
-    <div data-panel="reddedilen">
-        @await Html.PartialAsync("~/Views/Shared/_YetkiBelgesiOnayTable.cshtml", new Tuple<List<Ys_YetkiBelgesi>, string, string>(reddedilenler, "reddedilen", "admin"))
-    </div>
-    <div data-panel="suresi-dolan">
-        @await Html.PartialAsync("~/Views/Shared/_YetkiBelgesiOnayTable.cshtml", new Tuple<List<Ys_YetkiBelgesi>, string, string>(suresiDolanlar, "suresi-dolan", "admin"))
-    </div>
-</div>
-
+@section PageStyles {
+    <link rel="stylesheet" href="~/css/operations-directory.css" asp-append-version="true" />
+}
+@await Html.PartialAsync("_YetkiBelgesiOnayWorkspace", new Tuple<IReadOnlyList<YetkiBelgesiKayitDto>, YetkiBelgesiOnaySayfalamaDto, string>(kayitlar, sayfalama, "admin"))
 @section Scripts {
-<script>
-(function () {
-    var tabs = document.querySelector('[data-approval-tabs]');
-    if (!tabs) return;
-
-    tabs.addEventListener('click', function (event) {
-        var btn = event.target.closest('[data-target]');
-        if (!btn) return;
-        var target = btn.getAttribute('data-target');
-
-        tabs.querySelectorAll('[data-target]').forEach(function (item) {
-            item.classList.toggle('active', item === btn);
-        });
-
-        document.querySelectorAll('.approval-panels [data-panel]').forEach(function (panel) {
-            panel.classList.toggle('active', panel.getAttribute('data-panel') === target);
-        });
-    });
-})();
-</script>
+    <script src="~/js/approval-row-details.js" asp-append-version="true"></script>
 }

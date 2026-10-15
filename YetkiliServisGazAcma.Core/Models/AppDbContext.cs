@@ -18,6 +18,7 @@ namespace YetkiliServisGazAcma.Models
         public DbSet<Ys_FirmaKategori> Ys_FirmaKategoriler { get; set; }
         public DbSet<Ys_YetkiBelgesi> Ys_YetkiBelgeleri { get; set; }
         public DbSet<Ys_DevreyeAlma> Ys_DevreyeAlmalar { get; set; }
+        public DbSet<Ys_DevreyeAlmaSorguKaydi> Ys_DevreyeAlmaSorguKayitlari { get; set; }
         public DbSet<Dag_PersonelYetki> Dag_PersonelYetkiler { get; set; }
         public DbSet<Ys_Sube> Ys_Subeler { get; set; }
         public DbSet<SmsDogrulamaKodu> SmsDogrulamaKodlari { get; set; }
@@ -29,6 +30,7 @@ namespace YetkiliServisGazAcma.Models
         public DbSet<Ykc_Fr265Kontrol> Ykc_Fr265Kontroller { get; set; }
         public DbSet<Ykc_ImzaSureci> Ykc_ImzaSurecleri { get; set; }
         public DbSet<Ykc_Imzaci> Ykc_Imzacilar { get; set; }
+        public DbSet<Ykc_SorguKaydi> Ykc_SorguKayitlari { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -52,6 +54,26 @@ namespace YetkiliServisGazAcma.Models
             modelBuilder.Entity<Ys_FirmaKategori>().ToTable("Ys_FirmaKategoriler");
             modelBuilder.Entity<Ys_YetkiBelgesi>().ToTable("Ys_YetkiBelgeleri");
             modelBuilder.Entity<Ys_DevreyeAlma>().ToTable("Ys_DevreyeAlmalar");
+            modelBuilder.Entity<Ys_DevreyeAlma>(entity =>
+            {
+                entity.Property(x => x.KaynakCihazAnahtari).HasMaxLength(64).IsUnicode(false);
+                entity.Property(x => x.SeriAnahtari).HasMaxLength(64).IsUnicode(false);
+                entity.HasIndex(x => x.KaynakCihazAnahtari)
+                    .IsUnique().HasFilter("[KaynakCihazAnahtari] IS NOT NULL AND [SilindiMi] = 0");
+                entity.HasIndex(x => x.SeriAnahtari)
+                    .IsUnique().HasFilter("[SeriAnahtari] IS NOT NULL AND [SilindiMi] = 0");
+            });
+            modelBuilder.Entity<Ys_DevreyeAlmaSorguKaydi>(entity =>
+            {
+                entity.ToTable("Ys_DevreyeAlmaSorguKayitlari");
+                entity.HasKey(x => x.Referans);
+                entity.Property(x => x.Referans).HasMaxLength(64).IsUnicode(false);
+                entity.Property(x => x.KullaniciId).HasMaxLength(450);
+                entity.Property(x => x.KaynakJson).HasColumnType("nvarchar(max)");
+                entity.Property(x => x.KaynakCihazAnahtari).HasMaxLength(64).IsUnicode(false);
+                entity.Property(x => x.GecerlilikTarihi).HasColumnType("datetime2");
+                entity.HasIndex(x => x.GecerlilikTarihi);
+            });
             modelBuilder.Entity<Ys_Sube>().ToTable("Ys_Subeler");
             modelBuilder.Entity<SmsDogrulamaKodu>().ToTable("Ys_SmsDogrulamaKodlari");
             modelBuilder.Entity<SmsGonderimLog>().ToTable("Ys_SmsGonderimLoglari");
@@ -62,9 +84,28 @@ namespace YetkiliServisGazAcma.Models
             modelBuilder.Entity<Ykc_Fr265Kontrol>().ToTable("Ykc_Fr265Kontroller");
             modelBuilder.Entity<Ykc_ImzaSureci>().ToTable("Ykc_ImzaSurecleri");
             modelBuilder.Entity<Ykc_Imzaci>().ToTable("Ykc_Imzacilar");
+            modelBuilder.Entity<Ykc_SorguKaydi>(entity =>
+            {
+                entity.ToTable("Ykc_SorguKayitlari");
+                entity.HasKey(x => x.Referans);
+                entity.Property(x => x.Referans).HasMaxLength(64).IsUnicode(false);
+                entity.Property(x => x.KullaniciId).HasMaxLength(450);
+                entity.Property(x => x.KaynakJson).HasColumnType("nvarchar(max)");
+                entity.Property(x => x.GecerlilikTarihi).HasColumnType("datetime2");
+                entity.HasIndex(x => x.GecerlilikTarihi);
+            });
 
             modelBuilder.Entity<AppKullanici>()
                 .HasIndex(x => new { x.KullaniciTipi, x.AktifMi, x.FirmaId });
+
+            modelBuilder.Entity<AppKullanici>()
+                .Property(x => x.ArsivleyenKullaniciId).HasMaxLength(450);
+            modelBuilder.Entity<AppKullanici>()
+                .ToTable(t => t.HasCheckConstraint("CK_Ys_AspNetUsers_ArsivPasif",
+                    "[ArsivlemeTarihi] IS NULL OR [AktifMi] = 0"));
+            modelBuilder.Entity<Dag_PersonelYetki>()
+                .HasOne(x => x.Kullanici).WithMany().HasForeignKey(x => x.KullaniciId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<AppKullanici>()
                 .HasIndex(x => new { x.KullaniciTipi, x.AktifMi, x.SirketId });
@@ -115,6 +156,12 @@ namespace YetkiliServisGazAcma.Models
 
             modelBuilder.Entity<Ykc_Talep>()
                 .HasIndex(x => new { x.TesisatNo, x.SilindiMi });
+
+            modelBuilder.Entity<Ykc_Talep>()
+                .Property(x => x.SorguReferansi).HasMaxLength(64).IsUnicode(false);
+            modelBuilder.Entity<Ykc_Talep>()
+                .HasIndex(x => x.SorguReferansi).IsUnique()
+                .HasFilter("[SorguReferansi] IS NOT NULL");
 
             modelBuilder.Entity<Ykc_Talep>()
                 .HasIndex(x => new { x.RandevuTarihi, x.SilindiMi });
@@ -172,6 +219,10 @@ namespace YetkiliServisGazAcma.Models
 
             modelBuilder.Entity<Ykc_Fr265Kontrol>()
                 .HasIndex(x => new { x.TalepId, x.KontrolNo, x.SilindiMi });
+
+            modelBuilder.Entity<Ykc_Fr265Kontrol>()
+                .HasOne(x => x.Atama).WithMany().HasForeignKey(x => x.AtamaId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Ykc_Fr265Kontrol>()
                 .HasOne(x => x.Talep)
