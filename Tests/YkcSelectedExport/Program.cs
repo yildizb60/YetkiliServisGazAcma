@@ -151,6 +151,35 @@ try
             }
         }
     }
+    await manager.RemoveFromRoleAsync(user, role.Name!);
+    user.KullaniciTipi = KullaniciTipiDegerleri.SertifikaliFirma;
+    user.FirmaId = firm.Id;
+    user.SirketId = company.Id;
+    await db.SaveChangesAsync();
+    api.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity([
+        new Claim(ClaimTypes.NameIdentifier, user.Id), new Claim(ClaimTypes.Role, "SertifikaliFirma")], "Fixture"));
+    var firmPermissions = await new YkcYetkiService(db, manager).OzetAsync(user);
+    Check(firmPermissions.TalepleriDisariAktarabilir && !firmPermissions.RaporlariGorebilir,
+        "Firm export permission does not grant the reports screen");
+    var otherFirm = new Ys_Firma { FirmaAdi = "Other export firm", SirketId = company.Id };
+    db.Add(otherFirm);
+    await db.SaveChangesAsync();
+    var otherRecord = new Ykc_Talep { FirmaId = otherFirm.Id, SirketId = company.Id, MusteriAdi = "PRIVATE OTHER FIRM", TalepTarihi = DateTime.Now };
+    db.Add(otherRecord);
+    await db.SaveChangesAsync();
+    foreach (var excel in new[] { false, true })
+    {
+        var ownFilter = new YkcTalepListeFiltre { KayitIdleri = [records[0].Id], SirketId = company.Id };
+        var ownResult = excel ? await api.TaleplerRaporExcel(ownFilter) : await api.TaleplerRaporPdf(ownFilter);
+        Check(ownResult is FileContentResult, $"Firm can download its selected request, Excel={excel}");
+        var foreignFilter = new YkcTalepListeFiltre { KayitIdleri = [otherRecord.Id], SirketId = company.Id };
+        var foreignResult = excel ? await api.TaleplerRaporExcel(foreignFilter) : await api.TaleplerRaporPdf(foreignFilter);
+        Check(foreignResult is BadRequestObjectResult, $"Other firm selected ID cannot be exported, Excel={excel}");
+    }
+    user.FirmaId = null;
+    await db.SaveChangesAsync();
+    Check(!(await new YkcYetkiService(db, manager).OzetAsync(user)).TalepleriDisariAktarabilir,
+        "Unlinked firm cannot export");
     Console.WriteLine($"{passed} full-path YKC selected-export checks passed. Application records were not used.");
 }
 catch (Exception exception)

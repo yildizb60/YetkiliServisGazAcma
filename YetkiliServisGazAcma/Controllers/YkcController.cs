@@ -297,8 +297,7 @@ namespace YetkiliServisGazAcma.Controllers
         {
             return await RaporDosyasi(
                 RaporFiltresi(tesisatNo, firma, il, ilce, bolge, ekip, marka, hedefUygulama, durum, bas, bit,
-                    sayfa, sayfaBoyutu, kayitIdleri: ids is { Count: > 0 } || Request.Query.ContainsKey("ids")
-                        || (Request.HasFormContentType && Request.Form.ContainsKey("ids")) ? ids ?? new List<int>() : null,
+                    sayfa, sayfaBoyutu, kayitIdleri: AktarimSecimi(ids),
                     talepId: talepId, sirketId: sirketId, q: q, sirala: sirala, musteriAdi: musteriAdi,
                     sozlesmeNo: sozlesmeNo, cihazTipi: cihazTipi, aboneNo: aboneNo, kontrolNo: kontrolNo, bekleyenIs: bekleyenIs,
                     randevuBas: randevuBas, randevuBit: randevuBit),
@@ -320,12 +319,19 @@ namespace YetkiliServisGazAcma.Controllers
         {
             return await RaporDosyasi(
                 RaporFiltresi(tesisatNo, firma, il, ilce, bolge, ekip, marka, hedefUygulama, durum, bas, bit,
-                    sayfa, sayfaBoyutu, kayitIdleri: ids is { Count: > 0 } || Request.Query.ContainsKey("ids")
-                        || (Request.HasFormContentType && Request.Form.ContainsKey("ids")) ? ids ?? new List<int>() : null,
+                    sayfa, sayfaBoyutu, kayitIdleri: AktarimSecimi(ids),
                     talepId: talepId, sirketId: sirketId, q: q, sirala: sirala, musteriAdi: musteriAdi,
                     sozlesmeNo: sozlesmeNo, cihazTipi: cihazTipi, aboneNo: aboneNo, kontrolNo: kontrolNo, bekleyenIs: bekleyenIs,
                     randevuBas: randevuBas, randevuBit: randevuBit),
                 excelMi: true, kaynak: kaynak);
+        }
+
+        private List<int>? AktarimSecimi(List<int>? ids)
+        {
+            // An explicit empty selection must not turn into an unselected, filtered-all export.
+            var secimGonderildi = ids is { Count: > 0 } || Request.Query.ContainsKey("ids")
+                || (Request.HasFormContentType && Request.Form.ContainsKey("ids"));
+            return secimGonderildi ? ids ?? new List<int>() : null;
         }
 
         private async Task<IActionResult> RaporDosyasi(YkcTalepListeFiltre filtre, bool excelMi, string? kaynak = null)
@@ -334,7 +340,7 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null)
                 return Redirect("/giris");
 
-            if (!YkcYetkileri().RaporlariGorebilir)
+            if (!YkcYetkileri().TalepleriDisariAktarabilir)
                 return Redirect("/yetkisiz-erisim");
 
             try
