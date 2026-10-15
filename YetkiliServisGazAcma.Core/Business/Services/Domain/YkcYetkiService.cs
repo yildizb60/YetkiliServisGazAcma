@@ -12,6 +12,8 @@ namespace YetkiliServisGazAcma.Business.Services
         public bool AtamaYapabilir { get; init; }
         public bool Fr265ImzaIslemiYapabilir { get; init; }
         public bool RaporlariGorebilir { get; init; }
+        public bool KendiTalepleriniIndirebilir { get; init; }
+        public bool TalepleriDisariAktarabilir => RaporlariGorebilir || KendiTalepleriniIndirebilir;
 
         public bool YetkiliMi(string yetkiTipi)
         {
@@ -55,7 +57,7 @@ namespace YetkiliServisGazAcma.Business.Services
             if (sertifikaliFirma)
             {
                 return kullanici.FirmaId.HasValue
-                    ? new YkcYetkiOzeti { TalepleriGorebilir = true, TalepOlusturabilir = true }
+                    ? new YkcYetkiOzeti { TalepleriGorebilir = true, TalepOlusturabilir = true, KendiTalepleriniIndirebilir = true }
                     : new YkcYetkiOzeti();
             }
 

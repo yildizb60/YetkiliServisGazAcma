@@ -302,7 +302,7 @@ internal static class PanelChromeRegression
             var context = Context(role, type, "", scope.ServiceProvider);
             context.ViewData["Filtre"] = new YkcTalepListeFiltre { SirketId = 7, Q = "fixture" };
             var reportPermission = type is 2 or 3 or 4;
-            context.ViewData["YkcYetkileri"] = new YkcYetkiOzeti { TalepleriGorebilir = true, RaporlariGorebilir = reportPermission };
+            context.ViewData["YkcYetkileri"] = new YkcYetkiOzeti { TalepleriGorebilir = true, RaporlariGorebilir = reportPermission, KendiTalepleriniIndirebilir = type == 5 };
             var requests = new YkcTalepListeSonuc
             {
                 Toplam = 2, Sayfa = 1, SayfaBoyutu = 10,
@@ -355,8 +355,8 @@ internal static class PanelChromeRegression
                 RegexOptions.None, RegexTimeout));
             Check(decoded.Contains("Private source brand") == (role != "SertifikaliFirma")
                 && decoded.Contains("20000 kcal/h") == (role != "SertifikaliFirma")
-                && deviceText.Contains("Baca: Bacali") == (role != "SertifikaliFirma")
-                && decoded.Contains("18834 kcal/h") && deviceText.Contains("Baca: Hermetik"),
+                && deviceText.Contains("Baca tipi: Bacali") == (role != "SertifikaliFirma")
+                && decoded.Contains("18834 kcal/h") && deviceText.Contains("Baca tipi: Hermetik"),
                 role + ": device facts and existing source-data visibility are unchanged");
             CheckSeparatedColumns(html, "ykc-data-table", role == "SertifikaliFirma"
                 ? ["Yakıcı Cihaz Tipi", "Yeni Kullanılan Cihaz", "Kontrol Randevusu", "Süreç"]
@@ -377,7 +377,7 @@ internal static class PanelChromeRegression
                 && Tags(html, "a").Count(tag => HasClass(tag, "ykc-code") && HasAttribute(tag, "data-directory-open")) == requests.Talepler.Count
                 && Tags(html, "tr").Count(tag => HasAttribute(tag, "data-directory-row-open")) == requests.Talepler.Count,
                 role + ": request rows retain scoped selection in both list and cards");
-            Check(reportPermission
+            Check(reportPermission || type == 5
                 ? requestExports.Length == 2 && requestExports.All(tag => !HasAttribute(tag, "disabled"))
                     && requestExports.Any(tag => Attribute(tag, "data-export-url") == "/Ykc/RaporPdf")
                     && requestExports.Any(tag => Attribute(tag, "data-export-url") == "/Ykc/RaporExcel")
@@ -413,7 +413,7 @@ internal static class PanelChromeRegression
             Check(html.Contains($"colspan=\"{requestColumnCount}\"")
                 && !Tags(html, "input").Any(tag => HasAttribute(tag, "data-directory-select"))
                 && Tags(html, "input").Count(tag => HasAttribute(tag, "data-directory-select-all") && HasAttribute(tag, "disabled")) == 1
-                && Tags(html, "button").Count(tag => HasAttribute(tag, "data-directory-export")) == (reportPermission ? 2 : 0)
+                && Tags(html, "button").Count(tag => HasAttribute(tag, "data-directory-export")) == (reportPermission || type == 5 ? 2 : 0)
                 && Tags(html, "button").Where(tag => HasAttribute(tag, "data-directory-export")).All(tag => HasAttribute(tag, "disabled")),
                 role + ": empty requests span the updated columns and disable selection/export");
             CheckDirectory(html, "ykc-requests-view", "ykc-data-table", [], role + " empty requests");
@@ -484,6 +484,9 @@ internal static class PanelChromeRegression
             var reports = new YkcRaporSonuc
             {
                 Toplam = 2, Sayfa = 1, SayfaBoyutu = 10,
+                DurumOzetleri = [new() { Durum = YkcDurumDegerleri.TalepAlindi, Sayi = 1 }, new() { Durum = YkcDurumDegerleri.Tamamlandi, Sayi = 1 }],
+                EkipOzetleri = [new() { Ad = "Fixture long inspection team name <script>team</script>", Sayi = 1 }],
+                FirmaOzetleri = [new() { Ad = "Private distribution company", Sayi = 2 }],
                 Kayitlar = [new()
                 {
                     Id = 75, MusteriAdi = "ALİ IŞIK", FirmaAdi = "Fixture certified firm",
@@ -504,6 +507,20 @@ internal static class PanelChromeRegression
                 && html.Contains("&lt;Script&gt;Fixture&lt;/Script&gt;"),
                 role + ": report cards and modal names use encoded Turkish display casing without changing export data");
             var firm = role == "SertifikaliFirma";
+            var insights = Regex.Match(html, @"<section class=""ykc-report-insights""[^>]*>[\s\S]*?</section>", RegexOptions.None, RegexTimeout).Value;
+            var decodedInsights = WebUtility.HtmlDecode(insights);
+            Check(Tags(insights, "details").Length == 1 && Tags(insights, "details").All(tag => !HasAttribute(tag, "open"))
+                && decodedInsights.Contains("ys-history-menu ykc-report-breakdown")
+                && decodedInsights.Contains("ys-history-menu-body ykc-report-distribution")
+                && !html.Contains("const breakdowns =")
+                && !decodedInsights.Contains("Filtrelenen kayıt")
+                && decodedInsights.Contains("<dt>Kontrol sürecinde</dt><dd>0</dd>")
+                && decodedInsights.Contains("<dt>Tamamlanan</dt><dd>1</dd>"),
+                role + ": toolbar summary keeps API totals and one shared distribution menu without duplicate handlers or record counts");
+            Check(decodedInsights.Contains("Private distribution company") == !firm
+                && decodedInsights.Contains(firm ? "Süreç dağılımı" : "Firma dağılımı")
+                && insights.Contains("&lt;script&gt;team&lt;/script&gt;") && !insights.Contains("<script>team</script>"),
+                role + ": distribution names stay encoded and company summaries remain hidden from certified firms");
             var reportFilterForm = Regex.Matches(html, @"<form\b[^>]*>[\s\S]*?</form>", RegexOptions.None, RegexTimeout)
                 .Cast<Match>().Single(match => Attribute(Tags(match.Value, "form")[0], "id") == "ykcFilters").Value;
             var filterControls = Tags(reportFilterForm, "input").Concat(Tags(reportFilterForm, "select"))
@@ -568,6 +585,10 @@ internal static class PanelChromeRegression
             }
             context.ViewData["OtomatikDetayTalepId"] = null;
             html = await RenderAsync(scope.ServiceProvider, context, "/Views/Ykc/Raporlar.cshtml", new YkcRaporSonuc());
+            var emptyReport = WebUtility.HtmlDecode(html);
+            Check(emptyReport.Contains("Atanmış ekip bulunmuyor.") && emptyReport.Contains("Dağılım verisi bulunmuyor.")
+                && emptyReport.Contains("<dt>Tamamlanan</dt><dd>0</dd>"),
+                role + ": empty report distributions keep explicit empty states and zero totals");
             Check(html.Contains($"colspan=\"{reportColumnCount}\"")
                 && !Tags(html, "input").Any(tag => HasClass(tag, "ykc-report-row-check"))
                 && Tags(html, "input").Where(tag => HasAttribute(tag, "data-directory-select-all")).All(tag => HasAttribute(tag, "disabled"))
@@ -750,7 +771,16 @@ internal static class PanelChromeRegression
                 && query["sirala"] == "abone-artan" && query["cihazTipi"] == "Kombi"
                 && query["bas"] == "2026-10-01" && query["bit"] == "2026-10-12"
                 && query["randevuBas"] == "2026-10-02" && query["randevuBit"] == "2026-10-13"),
-                "Report page links preserve company scope and every filter without an intermediate dictionary");
+                "Report page links preserve company scope and every filter");
+            var reportExports = Tags(html, "button").Where(tag => HasAttribute(tag, "data-directory-export"))
+                .Select(tag => Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(
+                    new Uri("https://fixture.test" + Attribute(tag, "data-export-url")).Query)).ToArray();
+            Check(reportExports.Length == 2 && reportExports.All(query =>
+                query["kaynak"] == "rapor" && query["sayfa"] == "2"
+                && query.Count == reportPages[0].Count + 1
+                && reportPages[0].Where(pair => pair.Key != "sayfa").All(pair => query[pair.Key] == pair.Value))
+                && reportPages.All(query => !query.ContainsKey("kaynak")),
+                "Report paging, PDF and Excel share all filter values without leaking the export source into page links");
 
             context.ViewData["DevreyeAlmaAlan"] = "/AdminPanel";
             context.ViewData["SeciliSirketId"] = 8;
