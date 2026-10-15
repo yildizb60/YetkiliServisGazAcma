@@ -5,8 +5,10 @@
     ViewData["ActiveMenu"] = "YetkiBelgesiUyarilari";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
-    var yaklasan = ViewBag.Yaklasan as List<YetkiliServisGazAcma.Entities.Ys_YetkiBelgesi> ?? new();
-    var gecmis = ViewBag.Gecmis as List<YetkiliServisGazAcma.Entities.Ys_YetkiBelgesi> ?? new();
+    var yaklasan = ViewBag.Yaklasan as List<AdminYetkiBelgesiOnayDto> ?? new();
+    var gecmis = ViewBag.Gecmis as List<AdminYetkiBelgesiOnayDto> ?? new();
+    var yaklasanSayisi = yaklasan.Count(x => x.YetkiBelgesiBitisTarihi.HasValue);
+    var gecmisSayisi = gecmis.Count(x => x.YetkiBelgesiBitisTarihi.HasValue);
 }
 
 <div class="df-admin-workspace df-warning-workspace">
@@ -19,12 +21,12 @@
                 <div class="df-warning-metric is-soon">
                     <i class="bi bi-hourglass-split"></i>
                     <span>30 gün içinde</span>
-                    <strong>@yaklasan.Count</strong>
+                    <strong>@yaklasanSayisi</strong>
                 </div>
                 <div class="df-warning-metric is-expired">
                     <i class="bi bi-exclamation-octagon"></i>
                     <span>Süresi dolan</span>
-                    <strong>@gecmis.Count</strong>
+                    <strong>@gecmisSayisi</strong>
                 </div>
             </div>
         </div>
@@ -34,7 +36,7 @@
         <div class="df-service-list-head">
             <div>
                 <h3><i class="bi bi-clock-history"></i> 30 Gün İçinde Bitenler</h3>
-                <span>Öncelikli yenileme gerektiren @yaklasan.Count belge</span>
+                <span>Öncelikli yenileme gerektiren @yaklasanSayisi belge</span>
             </div>
             <span class="df-pill df-pill-warning">Yaklaşan</span>
         </div>
@@ -51,12 +53,22 @@
                     <tbody>
                     @foreach (var s in yaklasan)
                     {
-                        var kalanGun = (s.YetkiBelgesiBitisTarihi.Date - DateTime.Now.Date).Days;
+                        int? kalanGun = s.YetkiBelgesiBitisTarihi.HasValue
+                            ? (s.YetkiBelgesiBitisTarihi.Value.Date - DateTime.Today).Days : null;
                         <tr class="@(kalanGun <= 7 ? "df-warning-row-critical" : "")">
-                            <td><div class="df-cell-main">@(s.Firma?.FirmaAdi ?? "-")</div></td>
-                            <td><div class="df-cell-sub">@(s.Firma?.Sirket?.SirketAdi ?? "-")</div></td>
-                            <td>@s.YetkiBelgesiBitisTarihi.ToString("dd.MM.yyyy")</td>
-                            <td><span class="df-pill df-pill-warning">@kalanGun gün</span></td>
+                            <td><div class="df-cell-main">@(s.FirmaAdi ?? "-")</div></td>
+                            <td><div class="df-cell-sub">@(s.SirketAdi ?? "-")</div></td>
+                            <td>@(s.YetkiBelgesiBitisTarihi?.ToString("dd.MM.yyyy") ?? "Tanımlı değil")</td>
+                            <td>
+                                @if (kalanGun.HasValue)
+                                {
+                                    <span class="df-pill df-pill-warning">@kalanGun gün</span>
+                                }
+                                else
+                                {
+                                    <span class="df-cell-sub">Tanımlı değil</span>
+                                }
+                            </td>
                         </tr>
                     }
                     </tbody>
@@ -69,7 +81,7 @@
         <div class="df-service-list-head">
             <div>
                 <h3><i class="bi bi-calendar-x"></i> Süresi Dolanlar</h3>
-                <span>Yenilenmesi gereken @gecmis.Count belge</span>
+                <span>Yenilenmesi gereken @gecmisSayisi belge</span>
             </div>
             <span class="df-pill df-pill-danger">Süresi Doldu</span>
         </div>
@@ -87,10 +99,19 @@
                     @foreach (var s in gecmis)
                     {
                         <tr>
-                            <td><div class="df-cell-main">@(s.Firma?.FirmaAdi ?? "-")</div></td>
-                            <td><div class="df-cell-sub">@(s.Firma?.Sirket?.SirketAdi ?? "-")</div></td>
-                            <td>@s.YetkiBelgesiBitisTarihi.ToString("dd.MM.yyyy")</td>
-                            <td><span class="df-pill df-pill-danger">Süresi Doldu</span></td>
+                            <td><div class="df-cell-main">@(s.FirmaAdi ?? "-")</div></td>
+                            <td><div class="df-cell-sub">@(s.SirketAdi ?? "-")</div></td>
+                            <td>@(s.YetkiBelgesiBitisTarihi?.ToString("dd.MM.yyyy") ?? "Tanımlı değil")</td>
+                            <td>
+                                @if (s.YetkiBelgesiBitisTarihi.HasValue)
+                                {
+                                    <span class="df-pill df-pill-danger">Süresi Doldu</span>
+                                }
+                                else
+                                {
+                                    <span class="df-cell-sub">Tanımlı değil</span>
+                                }
+                            </td>
                         </tr>
                     }
                     </tbody>

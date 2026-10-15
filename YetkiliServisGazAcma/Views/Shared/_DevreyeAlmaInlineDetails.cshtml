@@ -1,30 +1,32 @@
-@model YetkiliServisGazAcma.Entities.Ys_DevreyeAlma
+@model DevreyeAlmaKayitDto
 @{
     var alan = ViewData["DevreyeAlmaAlan"] as string ?? "/personel-panel";
     var colspan = ViewData["DevreyeAlmaColspan"] is int sutunSayisi ? sutunSayisi : 8;
     var servisPaneli = alan == "/ys-devreyeal";
     var adminPaneli = alan == "/AdminPanel";
+    var sirketId = ViewData["SeciliSirketId"] as int?;
     var pdf = servisPaneli
         ? Url.Action("PdfIndir", "DevreyeAlma", new { id = Model.Id })
         : adminPaneli
-            ? Url.Action("DevreyeAlmaPdf", "AdminPanel", new { id = Model.Id })
+            ? Url.Action("DevreyeAlmaPdf", "AdminPanel", new { id = Model.Id, sirketId })
             : Url.Action("DevreyeAlmaPdf", "PersonelPanel", new { id = Model.Id });
     var excel = servisPaneli
         ? Url.Action("ExcelIndir", "DevreyeAlma", new { id = Model.Id })
         : adminPaneli
-            ? Url.Action("DevreyeAlmaExcel", "AdminPanel", new { id = Model.Id })
+            ? Url.Action("DevreyeAlmaExcel", "AdminPanel", new { id = Model.Id, sirketId })
             : Url.Action("DevreyeAlmaExcel", "PersonelPanel", new { id = Model.Id });
     var adresVar = !string.IsNullOrWhiteSpace(Model.Adres);
     var firmaIlceleri = ViewData["FirmaIlceleri"] as IReadOnlyDictionary<int, string>;
     var ilce = firmaIlceleri != null && firmaIlceleri.TryGetValue(Model.FirmaId, out var firmaIlce) ? firmaIlce : null;
-    var servisKonumu = string.Join(" / ", new[] { Model.Firma?.FaaliyetIli, ilce }
+    var servisKonumu = string.Join(" / ", new[] { Model.FirmaFaaliyetIli, ilce }
         .Where(x => !string.IsNullOrWhiteSpace(x) && x.Trim() != "-")
         .Select(x => x!.Trim()));
     var konumVar = !string.IsNullOrWhiteSpace(servisKonumu);
     var teknisyenVar = !string.IsNullOrWhiteSpace(Model.TeknisyenAdi);
     var tcVar = !string.IsNullOrWhiteSpace(Model.MusteriTcNo)
         && !string.Equals(Model.MusteriTcNo.Trim(), Model.AboneNo?.Trim(), StringComparison.Ordinal);
-    var cihazMarka = Model.CihazMarka ?? Model.Marka?.MarkaAdi;
+    var telefonVar = !string.IsNullOrWhiteSpace(Model.MusteriTelefon);
+    var cihazMarka = Model.CihazMarka ?? Model.MarkaAdi;
     var cihazModeli = string.Equals(Model.CihazModeli?.Trim(), cihazMarka?.Trim(), StringComparison.OrdinalIgnoreCase)
         || string.Equals(Model.CihazModeli?.Trim(), Model.CihazTipi?.Trim(), StringComparison.OrdinalIgnoreCase)
             ? null
@@ -40,7 +42,7 @@
 <tr id="devreye-alma-detay-@Model.Id" class="df-commissioning-detail-row" hidden>
     <td colspan="@colspan">
         <div class="df-commissioning-detail-panel">
-            @if (adresVar || konumVar || teknisyenVar || tcVar || cihazDetayVar || belgeVar || notVar)
+            @if (adresVar || konumVar || teknisyenVar || tcVar || telefonVar || cihazDetayVar || belgeVar || notVar)
             {
                 <div class="df-commissioning-detail-grid">
                     @if (adresVar)
@@ -66,11 +68,14 @@
                             </dl>
                         </section>
                     }
-                    @if (tcVar)
+                    @if (tcVar || telefonVar)
                     {
                         <section>
                             <span><i class="bi bi-person-vcard" aria-hidden="true"></i> Abone Bilgileri</span>
-                            <dl class="df-commissioning-extra-facts"><div><dt>TC Kimlik No:</dt><dd>@Model.MusteriTcNo</dd></div></dl>
+                            <dl class="df-commissioning-extra-facts">
+                                @if (tcVar) { <div><dt>TC Kimlik No:</dt><dd>@Model.MusteriTcNo</dd></div> }
+                                @if (telefonVar) { <div><dt>Telefon:</dt><dd>@Model.MusteriTelefon</dd></div> }
+                            </dl>
                         </section>
                     }
                     @if (cihazDetayVar)

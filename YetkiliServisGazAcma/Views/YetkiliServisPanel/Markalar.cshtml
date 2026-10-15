@@ -5,12 +5,11 @@
     ViewData["PanelSubtitle"] = "Yetkili Servis";
     ViewData["ActiveMenu"] = "Markalar";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
-    var firma = ViewBag.Firma as YetkiliServisGazAcma.Entities.Ys_Firma;
-    var tumMarkalar = ViewBag.TumMarkalar as List<YetkiliServisGazAcma.Entities.Ys_Marka>
-        ?? new List<YetkiliServisGazAcma.Entities.Ys_Marka>();
+    var tumMarkalar = ViewBag.TumMarkalar as List<YsPanelMarkaDto>
+        ?? new List<YsPanelMarkaDto>();
     var seciliIds = ViewBag.SeciliMarkaIds as List<int> ?? new List<int>();
-    var firmaMarkalar = ViewBag.FirmaMarkalar as List<YetkiliServisGazAcma.Entities.Ys_FirmaMarka>
-        ?? new List<YetkiliServisGazAcma.Entities.Ys_FirmaMarka>();
+    var firmaMarkalar = ViewBag.FirmaMarkalar as List<YsPanelFirmaMarkaDto>
+        ?? new List<YsPanelFirmaMarkaDto>();
 }
 
 @section PageStyles {
@@ -51,38 +50,10 @@
             </div>
         </details>
 
-        <details class="ys-panel is-blue ys-brand-disclosure ys-brand-disclosure--create">
-            <summary class="ys-panel-head">
-                <div class="ys-panel-heading">
-                    <span class="ys-section-icon"><i class="bi bi-plus-circle" aria-hidden="true"></i></span>
-                    <div><h2 class="ys-panel-title">Yeni Marka</h2></div>
-                </div>
-                <i class="bi bi-chevron-down ys-brand-chevron" aria-hidden="true"></i>
-            </summary>
-            <div class="ys-panel-body">
-                <form method="post" action="@Url.Action("MarkaEkle", "YetkiliServisPanel")">
-                    @Html.AntiForgeryToken()
-                    <div class="ys-form-grid ys-brand-create-fields">
-                        <div class="ys-field">
-                            <label for="yeniMarkaAdi">Marka Adı *</label>
-                            <input type="text" id="yeniMarkaAdi" name="markaAdi" placeholder="Örn. Baymak" required />
-                        </div>
-                        <div class="ys-field">
-                            <label for="yeniMarkaAciklama">Açıklama</label>
-                            <textarea id="yeniMarkaAciklama" name="aciklama" placeholder="Gerekliyse kısa açıklama"></textarea>
-                        </div>
-                    </div>
-                    <div class="ys-actions">
-                        <button class="df-btn df-btn-primary" type="submit"><i class="bi bi-plus-lg" aria-hidden="true"></i> Marka Ekle</button>
-                    </div>
-                </form>
-            </div>
-        </details>
-
     <section class="ys-panel is-cyan ys-brand-table-panel">
         <div class="ys-panel-head">
             <div class="ys-panel-heading">
-                <span class="ys-section-icon"><i class="bi bi-pencil-square" aria-hidden="true"></i></span>
+                <span class="ys-section-icon"><i class="bi bi-tags" aria-hidden="true"></i></span>
                     <div><h2 class="ys-panel-title">Hizmet Verdiğim Markalar</h2></div>
                 </div>
                 <span class="df-pill df-pill-info">@firmaMarkalar.Count kayıt</span>
@@ -105,28 +76,15 @@
                     {
                         @foreach (var fm in firmaMarkalar)
                         {
-                            var formId = $"marka-edit-{fm.MarkaId}";
-                            <tr data-row="@formId">
+                            <tr>
                                 <td>
                                     <span class="ys-brand-value ys-brand-name" data-brand-value>@(fm.Marka?.MarkaAdi ?? "-")</span>
-                                    <input class="ys-inline-input" type="text" name="markaAdi" form="@formId" value="@(fm.Marka?.MarkaAdi ?? "-")" aria-label="Marka adı" readonly hidden />
                                 </td>
                                 <td>
                                     <span class="ys-brand-value" data-brand-value>@(string.IsNullOrWhiteSpace(fm.Marka?.Aciklama) ? "-" : fm.Marka.Aciklama)</span>
-                                    <input class="ys-inline-input" type="text" name="aciklama" form="@formId" value="@(fm.Marka?.Aciklama ?? "")" aria-label="Marka açıklaması" readonly hidden />
                                 </td>
                                 <td>
                                     <div class="ys-table-actions">
-                                        <form id="@formId" method="post" action="@Url.Action("MarkaDuzenle", "YetkiliServisPanel")">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="id" value="@fm.MarkaId" />
-                                            <button type="button" class="df-icon-action ys-brand-row-action" onclick="toggleRowEdit('@formId')" title="Markayı düzenle" aria-label="Markayı düzenle" data-edit-toggle>
-                                                <i class="bi bi-pencil" aria-hidden="true" data-edit-icon></i>
-                                            </button>
-                                            <button type="submit" class="df-icon-action ys-brand-row-action is-save" title="Değişiklikleri kaydet" aria-label="Değişiklikleri kaydet" hidden data-save="@formId">
-                                                <i class="bi bi-check2" aria-hidden="true"></i>
-                                            </button>
-                                        </form>
                                         <form method="post" action="@Url.Action("MarkaSil", "YetkiliServisPanel")" data-toast-confirm data-confirm-title="Marka yetkisini kaldır" data-confirm-message="Bu markanın yetkisi kaldırılacak." data-confirm-action="Yetkiyi Kaldır">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="id" value="@fm.MarkaId" />
@@ -143,36 +101,3 @@
     </section>
     </div>
 </div>
-
-@section Scripts {
-<script>
-    function toggleRowEdit(formId) {
-        const form = document.getElementById(formId);
-        const row = document.querySelector(`tr[data-row="${formId}"]`);
-        if (!form || !row) return;
-
-        const inputs = row.querySelectorAll(`input.ys-inline-input[form="${formId}"]`);
-        const saveBtn = form.querySelector(`[data-save="${formId}"]`);
-        const editBtn = form.querySelector("[data-edit-toggle]");
-        const editIcon = form.querySelector("[data-edit-icon]");
-        const editing = row.classList.contains("ys-editing-row");
-
-        row.classList.toggle("ys-editing-row", !editing);
-        row.querySelectorAll("[data-brand-value]").forEach(value => { value.hidden = !editing; });
-        inputs.forEach(input => {
-            input.hidden = editing;
-            input.readOnly = editing;
-            if (editing) input.value = input.defaultValue;
-        });
-        if (saveBtn) saveBtn.hidden = editing;
-        if (editIcon) editIcon.className = editing ? "bi bi-pencil" : "bi bi-x-lg";
-        if (editBtn) {
-            const label = editing ? "Markayı düzenle" : "Düzenlemeden vazgeç";
-            editBtn.title = label;
-            editBtn.setAttribute("aria-label", label);
-        }
-        if (!editing) inputs[0]?.focus();
-        else editBtn?.focus();
-    }
-</script>
-}

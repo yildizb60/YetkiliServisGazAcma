@@ -17,19 +17,18 @@ namespace YetkiliServisGazAcma.Controllers
             var apiSonuc = await _adminYetkiliServisApiClient.ListeleAsync(kullanici, aktifSirketId, q, il, durum, devreyeSiralama);
             ViewBag.AdminYetkiliServisVeriKaynagi = "API";
 
-            var servisler = apiSonuc?.Servisler ?? new List<Ys_Firma>();
+            var servisler = apiSonuc?.Servisler ?? new List<AdminYetkiliServisDto>();
             var devreyeSayilari = apiSonuc?.DevreyeSayilari ?? new Dictionary<int, int>();
 
             if (apiSonuc == null)
                 TempData["Hata"] = "Yetkili servis listesi API uzerinden alinamadi.";
 
             ViewBag.Kullanici = kullanici;
-            ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
             ViewBag.YetkiliServisler = servisler;
             ViewBag.SeciliQ = q ?? "";
             ViewBag.SeciliIl = il ?? "";
             ViewBag.SeciliDurum = durum;
-            ViewBag.Sehirler = _sehirFirmaKoduService.Sehirler();
+            ViewBag.Sehirler = apiSonuc?.Sehirler ?? new List<string>();
             ViewBag.DevreyeSayilari = devreyeSayilari;
             ViewBag.Ilceler = apiSonuc?.Ilceler ?? new Dictionary<int, string>();
             ViewBag.SeciliDevreyeSiralama = devreyeSiralama ?? "";
@@ -43,12 +42,14 @@ namespace YetkiliServisGazAcma.Controllers
             if (kullanici == null) return Redirect("/giris");
             if (!await KullaniciYonetebilirMi(kullanici)) return Redirect("/AdminPanel");
 
+            var editor = await _adminYetkiliServisApiClient.EditorAsync(kullanici, 0,
+                await _aktifSirketService.AktifSirketIdAsync(kullanici));
+            if (editor == null) return RedirectToAction(nameof(YetkiliServisler));
             ViewBag.Kullanici = kullanici;
-            ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
-            ViewBag.Sehirler = _sehirFirmaKoduService.Sehirler();
-            ViewBag.SehirFirmaKodlari = _sehirFirmaKoduService.TumKodlar();
-            ViewBag.Kategoriler = await KullanilanKategorileriGetir();
-            ViewBag.Markalar = await _markaApiClient.AktifleriGetirAsync() ?? new List<Ys_Marka>();
+            ViewBag.Sehirler = editor.Sehirler;
+            ViewBag.SehirFirmaKodlari = editor.SehirFirmaKodlari;
+            ViewBag.Kategoriler = editor.Kategoriler;
+            ViewBag.Markalar = editor.Markalar;
             return View("~/Views/AdminPanel/YetkiliServisEkle.cshtml");
         }
 
@@ -77,14 +78,6 @@ namespace YetkiliServisGazAcma.Controllers
             }
 
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            var kullanilanKategoriIds = (await KullanilanKategorileriGetir())
-                .Select(x => x.Id)
-                .ToHashSet();
-            kategoriIds = kategoriIds?
-                .Where(kullanilanKategoriIds.Contains)
-                .Distinct()
-                .ToList() ?? new List<int>();
-
             var sonuc = await _adminYetkiliServisApiClient.EkleAsync(
                 kullanici,
                 aktifSirketId,
@@ -136,17 +129,9 @@ namespace YetkiliServisGazAcma.Controllers
             if (!await KullaniciYonetebilirMi(kullanici)) return Forbid();
 
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            var detay = await _adminYetkiliServisApiClient.DetayAsync(kullanici, id, aktifSirketId);
-            if (detay?.Servis == null) return NotFound();
-
-            var icerik = pdf
-                ? YetkiliServisKayitDosyasi.PdfOlustur(detay)
-                : YetkiliServisKayitDosyasi.ExcelOlustur(detay);
-            var uzanti = pdf ? "pdf" : "xlsx";
-            var icerikTuru = pdf
-                ? "application/pdf"
-                : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-            return this.HassasDosya(icerik, icerikTuru, $"Yetkili_Servis_{id}.{uzanti}");
+            var dosya = await _adminYetkiliServisApiClient.DosyaAsync(kullanici, id, aktifSirketId, pdf);
+            if (dosya == null) return NotFound();
+            return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
         }
 
         [HttpGet("yetkiliservis-duzenle/{id}")]
@@ -158,7 +143,7 @@ namespace YetkiliServisGazAcma.Controllers
             if (!await KullaniciYonetebilirMi(kullanici)) return Redirect("/AdminPanel");
 
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            var sonuc = await _adminYetkiliServisApiClient.DetayAsync(kullanici, id, aktifSirketId);
+            var sonuc = await _adminYetkiliServisApiClient.EditorAsync(kullanici, id, aktifSirketId);
             if (sonuc?.Servis == null)
             {
                 TempData["Hata"] = "Yetkili servis detayi API uzerinden alinamadi.";
@@ -166,16 +151,11 @@ namespace YetkiliServisGazAcma.Controllers
             }
 
             ViewBag.Kullanici = kullanici;
-            ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
             ViewBag.Servis = sonuc.Servis;
-            ViewBag.Sehirler = _sehirFirmaKoduService.Sehirler();
-            ViewBag.SehirFirmaKodlari = _sehirFirmaKoduService.TumKodlar();
-            ViewBag.Kategoriler = await KullanilanKategorileriGetir();
-            ViewBag.SeciliKategoriler = sonuc.Servis.FirmaKategoriler?
-                .Where(x => !x.SilindiMi)
-                .Select(x => x.KategoriId)
-                .Distinct()
-                .ToList() ?? new List<int>();
+            ViewBag.Sehirler = sonuc.Sehirler;
+            ViewBag.SehirFirmaKodlari = sonuc.SehirFirmaKodlari;
+            ViewBag.Kategoriler = sonuc.Kategoriler;
+            ViewBag.SeciliKategoriler = sonuc.SeciliKategoriIds;
             return View("~/Views/AdminPanel/YetkiliServisDuzenle.cshtml", sonuc.Servis);
         }
 
@@ -232,7 +212,7 @@ namespace YetkiliServisGazAcma.Controllers
             return Redirect("/AdminPanel/yetkiliservisler");
         }
 
-        private void SetYetkiliServisIslemMesaji(AdminYetkiliServisIslemSonuc? sonuc, string varsayilanBasari)
+        private void SetYetkiliServisIslemMesaji(ApiIslemSonuc? sonuc, string varsayilanBasari)
         {
             if (sonuc?.Basarili == true)
             {

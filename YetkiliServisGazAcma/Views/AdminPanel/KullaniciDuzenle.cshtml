@@ -1,8 +1,8 @@
 @using YetkiliServisGazAcma.Entities
 @{
-    var hedef = ViewBag.Hedef as AppKullanici;
-    var sirketler = ViewBag.Sirketler as List<Dag_Sirket> ?? new();
-    var firmalar = ViewBag.Firmalar as List<Ys_Firma> ?? new();
+    var hedef = ViewBag.Hedef as AdminKullaniciListeDto;
+    var sirketler = ViewBag.Sirketler as List<AdminSirketSecenekDto> ?? new();
+    var firmalar = ViewBag.Firmalar as List<AdminFirmaSecenekDto> ?? new();
     var returnUrl = ViewBag.ReturnUrl as string ?? "/AdminPanel/kullanicilar";
     var hedefTip = hedef?.KullaniciTipi ?? 0;
     var sirketAlaniGoster = hedefTip == KullaniciTipiDegerleri.SirketAdmin || hedefTip == KullaniciTipiDegerleri.Personel;
@@ -30,9 +30,9 @@
                         ? "Sistem Yöneticisi Düzenle"
                         : "Kullanıcı Düzenle";
     var baglantiMetni = firmaAlaniGoster
-        ? hedef?.Firma?.FirmaAdi
+        ? hedef?.FirmaAdi
         : sirketAlaniGoster
-            ? hedef?.Sirket?.SirketAdi
+            ? hedef?.SirketAdi
             : "Sistem geneli";
 
     ViewData["Title"] = sayfaBasligi;
@@ -128,7 +128,7 @@
                                     <option value="">Seçiniz</option>
                                     @foreach (var firma in firmalar)
                                     {
-                                        var firmaEtiketi = firma.Sirket != null ? $"{firma.FirmaAdi} ({firma.Sirket.SirketAdi})" : firma.FirmaAdi;
+                                        var firmaEtiketi = !string.IsNullOrEmpty(firma.SirketAdi) ? $"{firma.FirmaAdi} ({firma.SirketAdi})" : firma.FirmaAdi;
                                         if (hedef?.FirmaId == firma.Id)
                                         {
                                             <option value="@firma.Id" selected="selected">@firmaEtiketi</option>

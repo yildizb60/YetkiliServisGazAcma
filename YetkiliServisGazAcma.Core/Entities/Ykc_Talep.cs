@@ -8,9 +8,9 @@ namespace YetkiliServisGazAcma.Entities
         public int? FirmaId { get; set; }
         public int? SirketId { get; set; }
 
-        public string? Vkn { get; set; }
         public string? FirmaKodu { get; set; }
         public string? KaynakTipi { get; set; } = "Manuel";
+        public string? SorguReferansi { get; set; }
 
         public string? TesisatNo { get; set; }
         public string? SozlesmeNo { get; set; }
@@ -60,11 +60,7 @@ namespace YetkiliServisGazAcma.Entities
         public string? HedefUygulama { get; set; }
         public DateTime? RandevuTarihi { get; set; }
         public string? RandevuSaati { get; set; }
-        public string? RandevuId { get; set; }
-        public string? IsEmriNo { get; set; }
-        public string? Aufnr { get; set; }
         public bool CallCenterTetiklenecekMi { get; set; }
-        public bool CallCenterTetiklendiMi { get; set; }
 
         public Ys_Firma? Firma { get; set; }
         public Dag_Sirket? Sirket { get; set; }

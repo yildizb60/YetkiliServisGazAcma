@@ -1,0 +1,6 @@
+@model string
+<span class="df-device-type-tag @DevreyeAlmaCihazTipiSunumu.RenkSinifi(Model)" title="@DevreyeAlmaCihazTipiSunumu.Etiket(Model)">
+    @if (DevreyeAlmaCihazTipiSunumu.IkonUrl(Model) is { } ikonUrl) { <img class="df-device-type-icon" src="@ikonUrl" alt="" aria-hidden="true" /> }
+    <i class="bi @DevreyeAlmaCihazTipiSunumu.IkonSinifi(Model) df-device-type-fallback" aria-hidden="true" hidden="@(DevreyeAlmaCihazTipiSunumu.IkonUrl(Model) != null)"></i>
+    <span class="df-device-type-label">@DevreyeAlmaCihazTipiSunumu.Etiket(Model)</span>
+</span>

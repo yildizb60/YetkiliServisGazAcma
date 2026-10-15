@@ -25,7 +25,7 @@ namespace YetkiliServisGazAcma.Business.Services
                 {
                     page.Size(PageSizes.A4);
                     page.Margin(28);
-                    page.DefaultTextStyle(style => style.FontFamily("Arial").FontSize(10));
+                    page.DefaultTextStyle(style => style.FontFamily("Arial", Fonts.Lato).FontSize(10));
                     page.Header().PaddingBottom(14)
                         .Text("Yetkili Servis Kaydı").FontSize(18).SemiBold().FontColor("#17324D");
 

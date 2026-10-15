@@ -70,29 +70,11 @@
         start();
     }
 
-    function selectMode(mode, fillDemo) {
-        const tabs = Array.from(shell.querySelectorAll('[data-login-mode]'));
-        const tab = tabs.find(item => item.dataset.loginMode === mode);
-        if (!tab) return;
-        tabs.forEach(item => { item.setAttribute('aria-selected', String(item === tab)); item.tabIndex = item === tab ? 0 : -1; });
-        shell.querySelector('#login-panel').setAttribute('aria-labelledby', tab.id);
-        const personel = mode === 'personel';
-        shell.querySelector('label[for="kullanici-adi"]').textContent = personel ? 'E-posta Adresi' : mode === 'servis' ? 'VKN, T.C. Kimlik No veya E-posta' : 'VKN veya E-posta';
-        shell.querySelector('#kullanici-adi').placeholder = personel ? 'E-posta adresiniz' : mode === 'servis' ? 'Kayıtlı giriş bilginiz' : 'VKN veya e-posta adresiniz';
-        shell.querySelector('.login-registration').hidden = mode !== 'servis';
-        if (fillDemo && tab.dataset.demoUser) {
-            shell.querySelector('#kullanici-adi').value = tab.dataset.demoUser;
-            shell.querySelector('#sifre').value = tab.dataset.demoPassword || '';
-        }
-    }
     shell.addEventListener('click', event => {
-        const tab = event.target.closest('[data-login-mode]');
-        if (tab) selectMode(tab.dataset.loginMode, true);
         const demo = event.target.closest('.demo-login-btn');
         if (demo) {
             event.preventDefault();
             const email = demo.dataset.demoUser || '';
-            selectMode(email.includes('sertifikalifirma') ? 'firma' : email.includes('test.servis') ? 'servis' : 'personel', false);
             const userInput = shell.querySelector('#kullanici-adi');
             const passwordInput = shell.querySelector('#sifre');
             if (userInput) {
@@ -119,17 +101,6 @@
         details.removeAttribute('open');
         details.querySelector('summary')?.focus({ preventScroll: true });
     });
-    shell.addEventListener('keydown', event => {
-        const tab = event.target.closest('[data-login-mode]');
-        if (!tab) return;
-        const tabs = Array.from(shell.querySelectorAll('[data-login-mode]'));
-        const index = tabs.indexOf(tab);
-        const next = { ArrowRight: (index + 1) % tabs.length, ArrowLeft: (index + tabs.length - 1) % tabs.length, Home: 0, End: tabs.length - 1 }[event.key];
-        if (next === undefined) return;
-        event.preventDefault();
-        tabs[next].focus();
-        selectMode(tabs[next].dataset.loginMode, true);
-    });
     shell.addEventListener('change', event => {
         if (!event.target.matches('[name="sirketId"]')) return;
         shell.querySelectorAll('.company-select-option').forEach(option => option.classList.toggle('is-selected', option.querySelector('input').checked));
@@ -148,7 +119,6 @@
         form.setAttribute('aria-busy', 'true');
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 60000);
-        const mode = shell.querySelector('[data-login-mode][aria-selected="true"]')?.dataset.loginMode;
         try {
             const response = await fetch(action, { method: 'POST', body: new FormData(form), signal: controller.signal, credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
             if (!response.ok) throw new Error('İşlem tamamlanamadı. Lütfen sayfayı yenileyip yeniden deneyin.');
@@ -166,7 +136,6 @@
                 shell.querySelector('.login-card').replaceWith(document.importNode(nextCard, true));
             }
             // Scripts in returned HTML are deliberately not executed.
-            selectMode(mode || 'firma', false);
             const heading = shell.querySelector('.login-card h1');
             if (heading) {
                 heading.tabIndex = -1;
@@ -191,5 +160,4 @@
         }
     });
     initShowcase();
-    selectMode('firma', true);
 })();

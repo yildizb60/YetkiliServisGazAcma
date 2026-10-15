@@ -9,22 +9,38 @@ namespace YetkiliServisGazAcma.API.Services
     public class AdminRaporApiService
     {
         private readonly AppDbContext _context;
+        private readonly SehirFirmaKoduService? _sehirFirmaKoduService;
 
-        public AdminRaporApiService(AppDbContext context)
+        public AdminRaporApiService(AppDbContext context, SehirFirmaKoduService? sehirFirmaKoduService = null)
         {
             _context = context;
+            _sehirFirmaKoduService = sehirFirmaKoduService;
         }
 
         public async Task<AdminDevreyeAlmaListeDto> DevreyeAlmalarAsync(AdminDevreyeAlmaListeFiltreDto? dto, int? sirketId)
         {
-            var query = DevreyeAlmaTemelQuery(sirketId);
+            var kapsamQuery = DevreyeAlmaTemelQuery(sirketId);
+            var query = kapsamQuery;
 
             if (!string.IsNullOrWhiteSpace(dto?.TesisatNo))
                 query = query.Where(x => x.TesistatNo != null && x.TesistatNo.Contains(dto.TesisatNo));
+            if (!string.IsNullOrWhiteSpace(dto?.Musteri))
+            {
+                var musteri = dto.Musteri.Trim();
+                query = query.Where(x =>
+                    (x.MusteriAdi != null && EF.Functions.Collate(x.MusteriAdi, "Turkish_CI_AS").Contains(musteri)) ||
+                    (x.AboneNo != null && x.AboneNo.Contains(musteri)) ||
+                    (x.MusteriTelefon != null && x.MusteriTelefon.Contains(musteri)));
+            }
             if (!string.IsNullOrWhiteSpace(dto?.Marka))
                 query = query.Where(x =>
                     (x.CihazMarka != null && x.CihazMarka.Contains(dto.Marka)) ||
                     (x.Marka != null && x.Marka.MarkaAdi != null && x.Marka.MarkaAdi.Contains(dto.Marka)));
+            if (!string.IsNullOrWhiteSpace(dto?.CihazTipi))
+            {
+                var cihazTipi = dto.CihazTipi.Trim();
+                query = query.Where(x => x.CihazTipi == cihazTipi);
+            }
             if (!string.IsNullOrWhiteSpace(dto?.Servis))
                 query = query.Where(x => x.Firma != null && x.Firma.FirmaAdi != null && x.Firma.FirmaAdi.Contains(dto.Servis));
             if (!string.IsNullOrWhiteSpace(dto?.Il))
@@ -42,8 +58,10 @@ namespace YetkiliServisGazAcma.API.Services
             if (bitTarih.HasValue)
                 query = query.Where(x => x.DevreyeAlmaTarihi < bitTarih.Value.AddDays(1));
 
-            var islemler = await query.OrderByDescending(x => x.DevreyeAlmaTarihi).ThenByDescending(x => x.Id).ToListAsync();
-            await DevreyeAlmaKaynakBilgisi.TamamlaAsync(_context, islemler);
+            var sonuc = await DevreyeAlmaSayfalama.GetirAsync(_context, query, dto?.Siralama,
+                dto?.SozlesmeNo, dto?.Arama, dto?.Sayfa ?? 1, dto?.SayfaBoyutu ?? 20,
+                odakKayitId: dto?.OdakKayitId);
+            var islemler = sonuc.Kayitlar;
             var firmaIds = islemler.Select(x => x.FirmaId).Distinct().ToList();
             var subeler = await _context.Ys_Subeler
                 .Where(x => !x.SilindiMi && firmaIds.Contains(x.FirmaId))
@@ -60,9 +78,19 @@ namespace YetkiliServisGazAcma.API.Services
                 })
                 .ToListAsync();
 
+            var cihazTipleri = await kapsamQuery
+                .Where(x => x.CihazTipi != null && x.CihazTipi.Trim() != "")
+                .Select(x => x.CihazTipi!)
+                .Distinct()
+                .OrderBy(x => x)
+                .ToListAsync();
+
             return new AdminDevreyeAlmaListeDto
             {
                 Islemler = islemler.Select(AdminDevreyeAlmaDto.FromEntity).ToList(),
+                Sayfalama = sonuc.Sayfalama,
+                CihazTipleri = cihazTipleri,
+                Sehirler = _sehirFirmaKoduService?.Sehirler() ?? new List<string>(),
                 Markalar = markalar,
                 FirmaIlceleri = subeler
                     .GroupBy(x => x.FirmaId)

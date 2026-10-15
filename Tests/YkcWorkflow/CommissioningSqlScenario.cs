@@ -1,4 +1,6 @@
 using System.Net;
+using System.Data;
+using System.Data.Common;
 using System.Security.Claims;
 using System.Text.Json;
 using System.Xml.Linq;
@@ -8,6 +10,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -20,8 +23,97 @@ using YetkiliServisGazAcma.Models;
 
 internal static class CommissioningSqlScenario
 {
+    public static async Task RunNoDatabaseAsync()
+    {
+        var passed = 0;
+        void Check(bool condition, string label)
+        {
+            if (!condition) throw new InvalidOperationException("FAIL: " + label);
+            Console.WriteLine("PASS: " + label);
+            passed++;
+        }
+
+        foreach (var (status, expected) in new[] { ("bekliyor", 0), ("0", 0), ("tamamlandi", 1),
+            ("1", 1), ("iptal", 2), ("2", 2), (" TAMAMLANDI ", 1) })
+        {
+            var probe = new HistoryQueryProbe();
+            await using var db = HistoryProbeContext(probe);
+            var history = await new DevreyeAlmaOkumaApiService(db, null!, null!).GecmisAsync(73,
+                new() { Durum = status, SozlesmeNo = " ", Arama = "\t", CihazTipi = "Kombi" });
+            var summary = probe.Commands[0];
+            var rows = probe.Commands[1];
+            Check(summary.Sql.Contains("GROUP BY") && summary.Sql.Contains("COUNT(*)")
+                && !summary.Sql.Contains(".[Durum] ="), "History counts all statuses in SQL: " + status);
+            Check(rows.Sql.Contains(".[Durum] =") && rows.Parameters.Any(x => x.Key.Contains("seciliDurum")
+                && Equals(x.Value, expected)), "History filters status before loading and source enrichment: " + status);
+            Check(rows.Sql.Contains(".[FirmaId] =") && rows.Parameters.Values.Contains(73)
+                && rows.Sql.Contains(".[SilindiMi] = CAST(0 AS bit)") && rows.Parameters.Values.Contains("Kombi"),
+                "History status fast path retains firm, deletion and device filters: " + status);
+            Check(rows.Sql.Contains("OFFSET") && rows.Sql.Contains("FETCH NEXT"),
+                "History loads only one bounded SQL page: " + status);
+            Check(history.Toplam == 12 && history.Bekleyen == 3 && history.Tamamlanan == 4 && history.Iptal == 5,
+                "History retains pre-status counters: " + status);
+        }
+
+        foreach (var filter in new YsDevreyeAlmaGecmisFiltreDto[]
+        {
+            new() { Durum = "1", SozlesmeNo = "123" }, new() { Durum = "1", Arama = "123" },
+            new() { Durum = "unknown" }, new()
+        })
+        {
+            var probe = new HistoryQueryProbe();
+            await using var db = HistoryProbeContext(probe);
+            await new DevreyeAlmaOkumaApiService(db, null!, null!).GecmisAsync(73, filter);
+            Check(!string.IsNullOrWhiteSpace(filter.SozlesmeNo)
+                    ? probe.Commands[0].Sql.Contains("TOP(") && probe.Commands[0].Sql.Contains("CROSS APPLY OPENJSON")
+                        && !probe.Commands[0].Sql.Contains(".[Durum] =")
+                    : !string.IsNullOrWhiteSpace(filter.Arama)
+                        ? probe.Commands[0].Sql.Contains("FETCH NEXT") && !probe.Commands[0].Sql.Contains(".[Durum] =")
+                        : probe.Commands[0].Sql.Contains("GROUP BY"),
+                "Source searches probe bounded pre-status candidates; ordinary history counts in SQL");
+        }
+        Console.WriteLine($"{passed} no-database commissioning history checks passed.");
+    }
+
+    private static AppDbContext HistoryProbeContext(HistoryQueryProbe probe) => new(
+        new DbContextOptionsBuilder<AppDbContext>()
+            .UseSqlServer("Server=unused;Database=HistoryProbe;Integrated Security=true;TrustServerCertificate=true")
+            .AddInterceptors(probe, new HistoryConnectionSuppression()).Options);
+
+    // Suppress every connection and reader; only provider translation and service control flow execute.
+    private sealed class HistoryConnectionSuppression : DbConnectionInterceptor
+    {
+        public override InterceptionResult ConnectionOpening(DbConnection connection, ConnectionEventData eventData,
+            InterceptionResult result) => InterceptionResult.Suppress();
+        public override ValueTask<InterceptionResult> ConnectionOpeningAsync(DbConnection connection, ConnectionEventData eventData,
+            InterceptionResult result, CancellationToken cancellationToken = default) => new(InterceptionResult.Suppress());
+    }
+
+    private sealed class HistoryQueryProbe : DbCommandInterceptor
+    {
+        public List<(string Sql, Dictionary<string, object?> Parameters)> Commands { get; } = [];
+
+        public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(DbCommand command,
+            CommandEventData eventData, InterceptionResult<DbDataReader> result, CancellationToken cancellationToken = default)
+        {
+            Commands.Add((command.CommandText, command.Parameters.Cast<DbParameter>()
+                .ToDictionary(x => x.ParameterName, x => (object?)x.Value)));
+            var table = new DataTable();
+            if (command.CommandText.Contains("GROUP BY"))
+            {
+                table.Columns.Add("Durum", typeof(int));
+                table.Columns.Add("Sayi", typeof(int));
+                table.Rows.Add(0, 3);
+                table.Rows.Add(1, 4);
+                table.Rows.Add(2, 5);
+            }
+            return new(InterceptionResult<DbDataReader>.SuppressWithResult(table.CreateDataReader()));
+        }
+    }
+
     public static async Task RunAsync()
     {
+        await RunNoDatabaseAsync();
         var databaseName = "YsCommissioningSqlTest_" + Guid.NewGuid().ToString("N");
         var connection = $@"Server=(localdb)\MSSQLLocalDB;Database={databaseName};Integrated Security=true;TrustServerCertificate=true";
         var options = new DbContextOptionsBuilder<AppDbContext>().UseSqlServer(connection).Options;
@@ -107,12 +199,70 @@ internal static class CommissioningSqlScenario
                 new UpperInvariantLookupNormalizer(), new IdentityErrorDescriber(), null!,
                 NullLogger<UserManager<AppKullanici>>.Instance);
 
+            db.Roles.Add(new IdentityRole("SertifikaliFirma") { NormalizedName = "SERTIFIKALIFIRMA" });
+            await db.SaveChangesAsync();
+            using (var snapshots = new YkcSorguKaydiService())
+            using (var privacyHttp = new HttpClient(new CommissioningSoapHandler()))
+            {
+                var privacyOnline = new OnlineCihazBilgileriClient(privacyHttp,
+                    Options.Create(new OnlineServiceOptions { Enabled = true, Endpoint = "https://online.test/soap" }),
+                    NullLogger<OnlineCihazBilgileriClient>.Instance);
+                var installations = new YkcTesisatApiService(db, manager, privacyOnline, codes, snapshots);
+                foreach (var (label, type, linkedFirm, certifiedRole, hidden) in new[]
+                {
+                    ("role-only", KullaniciTipiDegerleri.Personel, false, true, true),
+                    ("account-type-only", KullaniciTipiDegerleri.SertifikaliFirma, false, false, true),
+                    ("firm-link-only", KullaniciTipiDegerleri.Personel, true, false, true),
+                    ("certified-firm", KullaniciTipiDegerleri.SertifikaliFirma, true, true, true),
+                    ("personnel", KullaniciTipiDegerleri.Personel, false, false, false),
+                    ("company-admin", KullaniciTipiDegerleri.SirketAdmin, false, false, false)
+                })
+                {
+                    var actor = new AppKullanici
+                    {
+                        UserName = "source-privacy-" + label, KullaniciTipi = type,
+                        SirketId = firstFirm.SirketId, FirmaId = linkedFirm ? firstFirm.Id : null
+                    };
+                    db.Users.Add(actor);
+                    await db.SaveChangesAsync();
+                    if (certifiedRole)
+                        Check((await manager.AddToRoleAsync(actor, "SertifikaliFirma")).Succeeded,
+                            "Source privacy fixture assigns the certified role: " + label);
+                    var result = await installations.SorgulaAsync(new()
+                    {
+                        TesisatNo = "1000149", SozlesmeNo = "241584"
+                    }, actor, default);
+                    Check(result.Basarili && result.Cihazlar.Count > 0 && result.Cihazlar.All(device => hidden
+                            ? device.CihazMarka == null && device.CihazKapasite == null
+                                && device.ProjeNo == null && device.CihazTipKodu == null
+                            : !string.IsNullOrEmpty(device.CihazMarka) && !string.IsNullOrEmpty(device.CihazKapasite)
+                                && device.ProjeNo == "PROJECT-1" && !string.IsNullOrEmpty(device.CihazTipKodu)),
+                        "Installation source visibility uses role, account type and firm linkage: " + label);
+                    var selected = result.Cihazlar[0];
+                    var save = new YkcTalepKaydetDto
+                    {
+                        SorguReferansi = selected.SorguReferansi, TesisatNo = "1000149",
+                        SozlesmeNo = "241584", YeniCihazTipi = selected.CihazTipi
+                    };
+                    Check(await snapshots.UygulaAsync(actor.Id, save) && save.EskiMarka == "BAYMAK"
+                        && save.EskiKapasite == "20000" && save.ProjeNo == "PROJECT-1"
+                        && save.EskiCihazTipiKodu == "K" && save.FirmaId == actor.FirmaId,
+                        "Presentation masking preserves authoritative server-side source data: " + label);
+                    Check(!await snapshots.UygulaAsync(secondUser.Id, save),
+                        "Source references remain bound to their owner: " + label);
+                }
+            }
+
             YetkiliServisDevreyeAlmaApiController Controller(AppKullanici user)
             {
                 var principal = new ClaimsPrincipal(new ClaimsIdentity(
                     [new Claim(ClaimTypes.NameIdentifier, user.Id)], "test"));
-                return new YetkiliServisDevreyeAlmaApiController(db, manager, online, codes,
-                    new DevreyeAlmaExportApiService(db), new YetkiliServisIlkKurulumService(db))
+                var setup = new YetkiliServisIlkKurulumService(db);
+                var authorization = new DevreyeAlmaYetkiDogrulamaService(db);
+                return new YetkiliServisDevreyeAlmaApiController(manager,
+                    new DevreyeAlmaKayitApiService(db, setup, authorization), new DevreyeAlmaExportApiService(db),
+                    new DevreyeAlmaOkumaApiService(db, setup, authorization),
+                    new DevreyeAlmaSorguApiService(db, online, codes, setup, authorization))
                 {
                     ControllerContext = new ControllerContext
                     {
@@ -139,11 +289,53 @@ internal static class CommissioningSqlScenario
 
             var firstController = Controller(firstUser);
             var queryRequest = new YsTesisatSorguDto { TesistatNo = "1000149", SozlesmeNo = "241584" };
+            var certificate = await db.Ys_YetkiBelgeleri.SingleAsync(x => x.FirmaId == firstFirm.Id);
+            var certificates = new YetkiBelgesiOkumaApiService(db, new YetkiBelgesiService(db, null!));
+            foreach (var state in new[] { "expired", "future", "pending", "rejected", "deleted" })
+            {
+                certificate.Durum = state == "pending" ? YetkiBelgesiDurumDegerleri.OnaydaBekliyor
+                    : state == "rejected" ? YetkiBelgesiDurumDegerleri.Reddedildi : YetkiBelgesiDurumDegerleri.Onaylandi;
+                certificate.SilindiMi = state == "deleted";
+                certificate.YetkiBelgesiBaslangicTarihi = DateTime.Today.AddDays(state == "future" ? 1 : -2);
+                certificate.YetkiBelgesiBitisTarihi = DateTime.Today.AddDays(state == "expired" ? -1 : 30);
+                await db.SaveChangesAsync();
+                var rejectedQuery = Body<YsTesisatSorguSonucDto>(await firstController.TesisatSorgula(queryRequest));
+                Check(!rejectedQuery.Basarili && string.IsNullOrEmpty(rejectedQuery.MusteriAdi)
+                    && soap.RequestCount == 0 && !await db.Ys_DevreyeAlmaSorguKayitlari.AnyAsync(),
+                    "Invalid certificate blocks external I/O and source references: " + state);
+                var screen = (await certificates.FirmaEkraniAsync(firstFirm.Id))!;
+                Check(screen.Bildirimler.All(x => !x.Contains("Cihaz devreye alabilirsiniz") && !x.Contains("-1 gün")),
+                    "Invalid certificate does not advertise commissioning: " + state);
+            }
+            certificate.Durum = YetkiBelgesiDurumDegerleri.Onaylandi;
+            certificate.SilindiMi = false;
+            certificate.YetkiBelgesiBaslangicTarihi = DateTime.Today.AddDays(-1);
+            certificate.YetkiBelgesiBitisTarihi = DateTime.Today;
+            await db.SaveChangesAsync();
+            Check((await certificates.FirmaEkraniAsync(firstFirm.Id))!.Bildirimler.Any(x => x.Contains("Cihaz devreye alabilirsiniz")),
+                "The expiry day remains valid in certificate notifications");
             var firstQuery = Body<YsTesisatSorguSonucDto>(await firstController.TesisatSorgula(queryRequest));
             Check(firstQuery.Basarili && firstQuery.Cihazlar.Count == 3
                 && firstQuery.Cihazlar.Select(x => x.SorguReferansi).Distinct().Count() == 3
                 && soap.RequestCount == 1,
                 "SOAP query persists a separate SQL reference for each source device");
+            certificate.YetkiBelgesiBitisTarihi = DateTime.Today.AddDays(30);
+            var renewal = new Ys_YetkiBelgesi
+            {
+                FirmaId = firstFirm.Id, Durum = YetkiBelgesiDurumDegerleri.Onaylandi,
+                YetkiBelgesiBaslangicTarihi = DateTime.Today.AddDays(31),
+                YetkiBelgesiBitisTarihi = DateTime.Today.AddYears(1), OlusturmaTarihi = DateTime.Now.AddSeconds(1)
+            };
+            db.Ys_YetkiBelgeleri.Add(renewal);
+            await db.SaveChangesAsync();
+            Check((await certificates.FirmaEkraniAsync(firstFirm.Id))!.Bildirimler.Any(x => x.Contains("Cihaz devreye alabilirsiniz")),
+                "Future renewal does not hide an older currently valid certificate");
+            renewal.Durum = YetkiBelgesiDurumDegerleri.OnaydaBekliyor;
+            await db.SaveChangesAsync();
+            Check((await certificates.FirmaEkraniAsync(firstFirm.Id))!.Bildirimler.Any(x => x.Contains("Mevcut geçerli belgenizle")),
+                "Pending renewal does not falsely block the existing valid certificate");
+            renewal.SilindiMi = true;
+            await db.SaveChangesAsync();
 
             async Task<YsMarkaKontrolSonucDto> CheckDevice(string? reference, AppKullanici? user = null)
             {
@@ -252,6 +444,33 @@ internal static class CommissioningSqlScenario
             Check(adminList.Islemler.Single().SozlesmeNo == "241584"
                 && serviceList.Islemler.Single().SozlesmeNo == "241584",
                 "Both commissioning list endpoints populate the contract number");
+            foreach (var contract in new[] { "241584", " 1584 " })
+            {
+                adminList = await new AdminRaporApiService(db).DevreyeAlmalarAsync(new() { SozlesmeNo = contract }, company.Id);
+                serviceList = Body<YsDevreyeAlmaGecmisDto>(await firstController.Gecmis(new() { SozlesmeNo = contract }));
+                Check(adminList.Islemler.Single().Id == firstRecord.Id && serviceList.Islemler.Single().Id == firstRecord.Id
+                    && serviceList.Toplam == 1 && serviceList.Tamamlanan == 1,
+                    "Contract search uses the validated source and matching counters: " + contract);
+            }
+            Check(Body<YsDevreyeAlmaGecmisDto>(await Controller(secondUser).Gecmis(new() { SozlesmeNo = "241584" })).Islemler.Count == 0,
+                "Contract search cannot cross the authorized-service firm scope");
+            Check((await new AdminRaporApiService(db).DevreyeAlmalarAsync(new() { SozlesmeNo = "241584", TesisatNo = "other-installation" }, company.Id)).Islemler.Count == 0,
+                "Contract and installation filters are combined instead of widening the result");
+            serviceList = Body<YsDevreyeAlmaGecmisDto>(await firstController.Gecmis(new() { SozlesmeNo = "missing-contract" }));
+            Check(serviceList.Islemler.Count == 0 && serviceList.Toplam == 0 && serviceList.Tamamlanan == 0,
+                "An unmatched contract returns an empty list and zero counters");
+            foreach (var search in new[] { "source CUSTOMER", "1000149", "241584", " 1584 " })
+            {
+                adminList = await new AdminRaporApiService(db).DevreyeAlmalarAsync(new() { Arama = search }, company.Id);
+                Check(adminList.Islemler.Single().Id == firstRecord.Id
+                    && Body<YsDevreyeAlmaGecmisDto>(await firstController.Gecmis(new() { Arama = search })).Islemler.Single().Id == firstRecord.Id,
+                    "Admin and service toolbar search use API-resolved customer, installation and contract fields: " + search);
+            }
+            Check(Body<YsDevreyeAlmaGecmisDto>(await firstController.Gecmis(new() { Arama = "not-found" })).Toplam == 0,
+                "Toolbar search returns zero matches without retaining an unrelated record");
+            Check(Body<YsDevreyeAlmaGecmisDto>(await firstController.Gecmis(new() { CihazTipi = "Ocak" })).Islemler.Count == 0
+                && Body<YsDevreyeAlmaGecmisDto>(await firstController.Gecmis(new() { CihazTipi = "Kombi" })).Islemler.Single().Id == firstRecord.Id,
+                "Column device-type filtering runs in the scoped API query");
             var legacyRecord = new Ys_DevreyeAlma { Id = -1, FirmaId = firstFirm.Id, AboneNo = "subscriber-only" };
             await DevreyeAlmaKaynakBilgisi.TamamlaAsync(db, new[] { legacyRecord });
             Check(legacyRecord.SozlesmeNo == null, "Legacy records do not relabel a subscriber number as a contract number");
@@ -275,10 +494,14 @@ internal static class CommissioningSqlScenario
             await db.SaveChangesAsync();
             await DevreyeAlmaKaynakBilgisi.TamamlaAsync(db, new[] { firstRecord });
             Check(firstRecord.SozlesmeNo == "241584", "Wrong firm, wrong distributor and malformed sources cannot replace the contract number");
+            Check((await new AdminRaporApiService(db).DevreyeAlmalarAsync(new() { Arama = "other-contract" }, company.Id)).Islemler.Count == 0,
+                "Admin toolbar search cannot match contracts from invalid or cross-firm source records");
             invalidSources[0].FirmaId = firstFirm.Id;
             await db.SaveChangesAsync();
             await DevreyeAlmaKaynakBilgisi.TamamlaAsync(db, new[] { firstRecord });
             Check(firstRecord.SozlesmeNo == null, "Conflicting contract numbers are not silently resolved to an arbitrary source");
+            Check((await new AdminRaporApiService(db).DevreyeAlmalarAsync(new() { Arama = "241584" }, company.Id)).Islemler.Count == 0,
+                "Admin toolbar search cannot select an ambiguous linked source contract");
             source.TesisatNo = "different-installation";
             invalidSources[0].KaynakJson = JsonSerializer.Serialize(source);
             await db.SaveChangesAsync();
@@ -357,7 +580,67 @@ internal static class CommissioningSqlScenario
 
             Check(await db.Ys_DevreyeAlmalar.CountAsync() == 3,
                 "Failed duplicate attempts leave committed records unchanged");
+
+            var originalSerialKey = firstRecord.SeriAnahtari;
+            await db.Database.ExecuteSqlRawAsync("ALTER TABLE dbo.Ys_DevreyeAlmalar ADD PdfYolu nvarchar(max) NULL;");
+            await db.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE dbo.Ys_DevreyeAlmalar SET PdfYolu = {"legacy-fixture.pdf"} WHERE Id = {firstRecord.Id}");
+            var removePdfPath = await File.ReadAllTextAsync(Path.Combine(Directory.GetCurrentDirectory(),
+                "DatabaseScripts", "2026-10-08_ys_devreye_alma_pdf_yolu_kaldir.sql"));
+            try
+            {
+                await db.Database.ExecuteSqlRawAsync(removePdfPath);
+                throw new InvalidOperationException("PDF path migration discarded an existing path.");
+            }
+            catch (SqlException ex) when (ex.Number == 51010)
+            {
+                Check(true, "PDF path migration refuses to discard nonempty legacy paths");
+            }
+            await db.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE dbo.Ys_DevreyeAlmalar SET PdfYolu = NULL WHERE Id = {firstRecord.Id}");
+            await db.Database.ExecuteSqlRawAsync(removePdfPath);
+            await db.Database.ExecuteSqlRawAsync(removePdfPath);
+            db.ChangeTracker.Clear();
+            Check(await db.Database.SqlQueryRaw<int>("""
+                SELECT COUNT(*) AS [Value] FROM sys.columns
+                WHERE object_id = OBJECT_ID(N'dbo.Ys_DevreyeAlmalar') AND name = N'PdfYolu'
+                """).SingleAsync() == 0
+                && await db.Ys_DevreyeAlmalar.CountAsync() == 3
+                && await db.Ys_DevreyeAlmalar.AnyAsync(x => x.Id == firstRecord.Id
+                    && x.FirmaId == firstFirm.Id && x.SeriAnahtari == originalSerialKey),
+                "Repeatable PDF path migration preserves commissioning records and serial keys");
+            Check(typeof(Ys_DevreyeAlma).GetProperty("PdfYolu") is null
+                && typeof(DevreyeAlmaKayitDto).GetProperty("PdfYolu") is null,
+                "Commissioning entity and shared API contract no longer expose an unused PDF path");
+            var exports = new DevreyeAlmaExportApiService(db);
+            var servicePdf = await exports.YetkiliServisPdfAsync(firstRecord.Id, firstFirm.Id);
+            var adminPdf = await exports.AdminPdfAsync(firstRecord.Id, company.Id);
+            Check(servicePdf is not null && adminPdf is not null
+                && System.Text.Encoding.ASCII.GetString(servicePdf.Bytes, 0, 5) == "%PDF-"
+                && System.Text.Encoding.ASCII.GetString(adminPdf.Bytes, 0, 5) == "%PDF-",
+                "Service and admin PDFs are generated successfully without a stored PDF path");
+            Check(await exports.YetkiliServisPdfAsync(firstRecord.Id, secondFirm.Id) is null,
+                "Removing PDF path does not bypass file access scope");
+            await using (var duplicateSerialDb = new AppDbContext(options))
+            {
+                duplicateSerialDb.Ys_DevreyeAlmalar.Add(new Ys_DevreyeAlma
+                {
+                    FirmaId = secondFirm.Id, SeriAnahtari = originalSerialKey,
+                    DevreyeAlmaTarihi = DateTime.Now
+                });
+                try
+                {
+                    await duplicateSerialDb.SaveChangesAsync();
+                    throw new InvalidOperationException("SQL unique index accepted a duplicate serial key.");
+                }
+                catch (DbUpdateException ex) when (ex.GetBaseException() is SqlException sql
+                    && sql.Number is 2601 or 2627)
+                {
+                    Check(true, "Serial unique index still rejects duplicates after PDF path removal");
+                }
+            }
             await VerifyLegacyContractsAsync(db, firstFirm, firstRecord, firstController, Check);
+            await VerifyDirectoryFiltersAsync(db, firstFirm, secondFirm, firstController, Check);
             Console.WriteLine($"{passed} commissioning SQL checks passed. Isolated database: {databaseName}.");
         }
         finally
@@ -419,6 +702,10 @@ internal static class CommissioningSqlScenario
         await db.SaveChangesAsync();
         await DevreyeAlmaKaynakBilgisi.TamamlaAsync(db, new[] { legacy });
         check(legacy.SozlesmeNo == null, "Conflicting legacy contracts remain unresolved instead of choosing the newest");
+        check((await new AdminRaporApiService(db).DevreyeAlmalarAsync(new() { SozlesmeNo = "123456" }, firm.SirketId)).Islemler.Count == 0,
+            "Contract search cannot select an ambiguous legacy source");
+        check((await new AdminRaporApiService(db).DevreyeAlmalarAsync(new() { Arama = "123456" }, firm.SirketId)).Islemler.Count == 0,
+            "Admin toolbar search cannot select an ambiguous legacy source");
         db.Remove(conflict);
         await db.SaveChangesAsync();
 
@@ -445,6 +732,179 @@ internal static class CommissioningSqlScenario
         var history = (YsDevreyeAlmaGecmisDto)((OkObjectResult)await serviceController.Gecmis(null)).Value!;
         check(history.Islemler.Single(x => x.Id == legacy.Id).SozlesmeNo == "123456",
             "The actual authorized-service history endpoint includes the recovered legacy contract");
+        list = await new AdminRaporApiService(db).DevreyeAlmalarAsync(new() { SozlesmeNo = " 3456 " }, firm.SirketId);
+        history = (YsDevreyeAlmaGecmisDto)((OkObjectResult)await serviceController.Gecmis(new() { SozlesmeNo = " 3456 " })).Value!;
+        check(list.Islemler.Single().Id == legacy.Id && history.Islemler.Single().Id == legacy.Id && history.Toplam == 1,
+            "Contract filtering includes unambiguous legacy records without inventing a database column");
+        history = (YsDevreyeAlmaGecmisDto)((OkObjectResult)await serviceController.Gecmis(new()
+        {
+            SozlesmeNo = "123456", TesisatNo = "1000200", Durum = "tamamlandi"
+        })).Value!;
+        check(history.Toplam == 1 && history.Bekleyen == 1 && history.Islemler.Count == 0,
+            "Contract-filtered summary retains the existing before-status counter scope");
+        history = (YsDevreyeAlmaGecmisDto)((OkObjectResult)await serviceController.Gecmis(new() { Siralama = "tarih-artan" })).Value!;
+        check(history.Islemler.Select(x => x.DevreyeAlmaTarihi).SequenceEqual(history.Islemler.Select(x => x.DevreyeAlmaTarihi).OrderBy(x => x)),
+            "Toolbar date sorting is performed by the API and preserves chronological order");
+        var unknownSort = (YsDevreyeAlmaGecmisDto)((OkObjectResult)await serviceController.Gecmis(new() { Siralama = "unsupported-sort" })).Value!;
+        var defaultSort = (YsDevreyeAlmaGecmisDto)((OkObjectResult)await serviceController.Gecmis(null)).Value!;
+        check(unknownSort.Islemler.Select(x => x.Id).SequenceEqual(defaultSort.Islemler.Select(x => x.Id)),
+            "Unknown toolbar sort values retain the safe default order");
+    }
+
+    private static async Task VerifyDirectoryFiltersAsync(AppDbContext db, Ys_Firma firm, Ys_Firma siblingFirm,
+        YetkiliServisDevreyeAlmaApiController serviceController, Action<bool, string> check)
+    {
+        const string prefix = "directory-fixture-";
+        const string rawType = "legacy/type-42";
+        var date = new DateTime(2026, 1, 10);
+        var otherCompany = new Dag_Sirket { SirketAdi = "Directory other distributor" };
+        var archivedFirm = new Ys_Firma { FirmaAdi = "Directory archived service", SirketId = firm.SirketId, SilindiMi = true };
+        db.AddRange(otherCompany, archivedFirm);
+        await db.SaveChangesAsync();
+        var foreignFirm = new Ys_Firma { FirmaAdi = "Directory foreign service", SirketId = otherCompany.Id };
+        db.Add(foreignFirm);
+        await db.SaveChangesAsync();
+
+        Ys_DevreyeAlma Record(int firmId, string? customer, string? type, int day) => new()
+        {
+            FirmaId = firmId, MusteriAdi = customer, CihazTipi = type,
+            TesistatNo = prefix + Guid.NewGuid().ToString("N"), AboneNo = "subscriber-not-contract",
+            MusteriTelefon = "phone-only", DevreyeAlmaTarihi = date.AddDays(day)
+        };
+        var blank = Record(firm.Id, null, rawType, 2);
+        var hale = Record(firm.Id, "Hale", rawType, 0);
+        var isik = Record(firm.Id, "I\u015f\u0131k", rawType, 1);
+        var isikAgain = Record(firm.Id, "I\u015f\u0131k", rawType, 1);
+        var ipek = Record(firm.Id, "ipek", "directory-stove", 1);
+        var zeki = Record(firm.Id, "Zeki", rawType, 2);
+        var ownRecords = new[] { blank, hale, isik, isikAgain, ipek, zeki };
+        var sibling = Record(siblingFirm.Id, "Aylin", "sibling-only-type", 2);
+        var foreign = Record(foreignFirm.Id, isik.MusteriAdi, rawType, 3);
+        var foreignCatalog = Record(foreignFirm.Id, "Foreign customer", "foreign-only-type", 3);
+        var deleted = Record(firm.Id, "Deleted customer", "deleted-only-type", 3);
+        deleted.SilindiMi = true;
+        var archived = Record(archivedFirm.Id, "Archived firm customer", "archived-firm-only-type", 3);
+        var whitespaceType = Record(firm.Id, "Catalog fixture", "   ", 0);
+        whitespaceType.TesistatNo = "catalog-empty-type";
+        db.AddRange(ownRecords);
+        db.AddRange(sibling, foreign, foreignCatalog, deleted, archived, whitespaceType);
+        var admin = new AppKullanici
+        {
+            UserName = "directory-company-admin", KullaniciTipi = KullaniciTipiDegerleri.SirketAdmin,
+            SirketId = firm.SirketId
+        };
+        var personnel = new AppKullanici
+        {
+            UserName = "directory-personnel", KullaniciTipi = KullaniciTipiDegerleri.Personel,
+            SirketId = otherCompany.Id
+        };
+        db.Users.AddRange(admin, personnel);
+        db.Dag_PersonelYetkiler.Add(new()
+        {
+            KullaniciId = personnel.Id, SirketId = firm.SirketId, YetkiTipi = YetkiTipleri.RAPOR_GOR
+        });
+        await db.SaveChangesAsync();
+
+        var reports = new AdminRaporApiService(db);
+        AdminPanelApiController Controller(AppKullanici user) => new(db, null!, null!, null!, null!, reports,
+            null!, null!, null!, null!, null!)
+        {
+            ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, user.Id)], "test"))
+                }
+            }
+        };
+        static async Task<AdminDevreyeAlmaListeDto> List(AdminPanelApiController controller, AdminDevreyeAlmaListeFiltreDto dto)
+            => ((OkObjectResult)await controller.DevreyeAlmalar(dto)).Value as AdminDevreyeAlmaListeDto
+                ?? throw new InvalidOperationException("Unexpected commissioning directory response.");
+
+        var companyRecords = ownRecords.Append(sibling).ToArray();
+        var nameTies = new[] { isik, isikAgain }.OrderBy(x => x.Id).ToArray();
+        var namesAscending = new[] { blank, sibling, hale }.Concat(nameTies).Concat([ipek, zeki]);
+        var namesDescending = new[] { zeki, ipek }.Concat(nameTies).Concat([hale, sibling, blank]);
+        foreach (var sort in new string?[] { null, "", "tarih-artan", "abone-artan", "abone-azalan", "unsupported-sort" })
+        {
+            IEnumerable<Ys_DevreyeAlma> expected = sort switch
+            {
+                "tarih-artan" => companyRecords.OrderBy(x => x.DevreyeAlmaTarihi).ThenBy(x => x.Id),
+                "abone-artan" => namesAscending,
+                "abone-azalan" => namesDescending,
+                _ => companyRecords.OrderByDescending(x => x.DevreyeAlmaTarihi).ThenByDescending(x => x.Id)
+            };
+            foreach (var user in new[] { admin, personnel })
+            {
+                var list = await List(Controller(user), new() { Arama = prefix, Siralama = sort });
+                check(list.Islemler.Select(x => x.Id).SequenceEqual(expected.Select(x => x.Id))
+                    && list.Islemler.All(x => x.FirmaSirketId == firm.SirketId),
+                    "Admin/personnel toolbar sort preserves Turkish name order, ID ties and company scope: " + user.UserName + "/" + sort);
+            }
+            var history = (YsDevreyeAlmaGecmisDto)((OkObjectResult)await serviceController.Gecmis(new()
+            {
+                Arama = prefix, Siralama = sort
+            })).Value!;
+            check(history.Islemler.Select(x => x.Id).SequenceEqual(expected.Where(x => x.FirmaId == firm.Id).Select(x => x.Id)),
+                "Shared service toolbar sort retains the narrower firm scope: " + sort);
+        }
+
+        foreach (var user in new[] { admin, personnel })
+        {
+            var controller = Controller(user);
+            var list = await List(controller, new() { Arama = " \u0131\u015f\u0131k ", CihazTipi = rawType });
+            check(list.Islemler.Select(x => x.Id).OrderBy(x => x).SequenceEqual(nameTies.Select(x => x.Id)),
+                "Admin/personnel customer search is Turkish case-insensitive and cannot include another company: " + user.UserName);
+            list = await List(controller, new()
+            {
+                Arama = prefix, CihazTipi = " " + rawType + " ", Siralama = "tarih-artan",
+                TesisatNo = hale.TesistatNo, Musteri = "HALE", Durum = DevreyeAlmaDurumDegerleri.Bekliyor,
+                BaslangicTarihi = date, BitisTarihi = date
+            });
+            check(list.Islemler.Single().Id == hale.Id,
+                "Toolbar and raw device-type filters combine with existing customer, installation, status and date filters: " + user.UserName);
+            list = await List(controller, new() { Arama = prefix, CihazTipi = rawType });
+            check(list.Islemler.Select(x => x.Id).OrderBy(x => x).SequenceEqual(
+                    ownRecords.Where(x => x.CihazTipi == rawType).Select(x => x.Id).OrderBy(x => x)),
+                "Raw legacy device types match without category normalization or company-scope widening: " + user.UserName);
+            foreach (var noMatch in new[] { "not-found-directory", "subscriber-not-contract", "phone-only" })
+            {
+                list = await List(controller, new() { Arama = noMatch, CihazTipi = rawType });
+                check(list.Islemler.Count == 0 && list.CihazTipleri.Contains(rawType)
+                    && list.CihazTipleri.Contains("sibling-only-type") && list.CihazTipleri.Contains("directory-stove")
+                    && list.CihazTipleri.All(x => !string.IsNullOrWhiteSpace(x))
+                    && !list.CihazTipleri.Contains("foreign-only-type") && !list.CihazTipleri.Contains("deleted-only-type")
+                    && !list.CihazTipleri.Contains("archived-firm-only-type")
+                    && list.CihazTipleri.Distinct().Count() == list.CihazTipleri.Count,
+                    "Empty toolbar results retain only distinct accessible company device-type options: " + user.UserName + "/" + noMatch);
+            }
+            check(await controller.DevreyeAlmalar(new()
+            {
+                SirketId = otherCompany.Id, Arama = prefix, CihazTipi = rawType, Siralama = "abone-artan"
+            }) is ForbidResult, "Toolbar filters cannot authorize a different requested company: " + user.UserName);
+        }
+
+        var scopedList = await reports.DevreyeAlmalarAsync(new()
+        {
+            SirketId = otherCompany.Id, Arama = prefix, Siralama = "tarih-artan"
+        }, firm.SirketId);
+        check(scopedList.Islemler.Count == companyRecords.Length && scopedList.Islemler.All(x => x.FirmaSirketId == firm.SirketId),
+            "The report service uses the authoritative resolved company scope, never the filter DTO company");
+        var serviceList = (YsDevreyeAlmaGecmisDto)((OkObjectResult)await serviceController.Gecmis(new()
+        {
+            Arama = "Aylin", CihazTipi = "sibling-only-type", Siralama = "abone-artan"
+        })).Value!;
+        check(serviceList.Islemler.Count == 0 && serviceList.Toplam == 0 && serviceList.CihazTipleri.Contains(rawType)
+            && !serviceList.CihazTipleri.Contains("sibling-only-type") && !serviceList.CihazTipleri.Contains("foreign-only-type")
+            && !serviceList.CihazTipleri.Contains("deleted-only-type"),
+            "Service toolbar filters and option catalogs cannot expose even a sibling firm under the same company");
+        var serviceTypeList = (YsDevreyeAlmaGecmisDto)((OkObjectResult)await serviceController.Gecmis(new()
+        {
+            Arama = prefix, CihazTipi = rawType
+        })).Value!;
+        check(serviceTypeList.Islemler.Count == ownRecords.Count(x => x.CihazTipi == rawType)
+            && serviceTypeList.Toplam == serviceTypeList.Islemler.Count,
+            "Raw device-type filtering shares the authorized-service firm scope and summary counters");
     }
 
     private sealed class CommissioningSoapHandler : HttpMessageHandler

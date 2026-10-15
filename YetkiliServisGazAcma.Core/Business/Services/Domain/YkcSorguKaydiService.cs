@@ -6,8 +6,8 @@ namespace YetkiliServisGazAcma.Business.Services;
 
 public interface IYkcSorguKaydiService
 {
-    Task<string> EkleAsync(string kullaniciId, YkcTalepKaydetDto kaynak);
-    Task<bool> UygulaAsync(string kullaniciId, YkcTalepKaydetDto hedef);
+    Task<string> EkleAsync(string kullaniciId, YkcTalepKaydetDto kaynak, CancellationToken cancellationToken = default);
+    Task<bool> UygulaAsync(string kullaniciId, YkcTalepKaydetDto hedef, CancellationToken cancellationToken = default);
 }
 
 internal static class YkcSorguKaydiAyarlari
@@ -28,8 +28,11 @@ public sealed class YkcSorguKaydiService : IYkcSorguKaydiService, IDisposable
         return referans;
     }
 
-    public Task<string> EkleAsync(string kullaniciId, YkcTalepKaydetDto kaynak)
-        => Task.FromResult(Ekle(kullaniciId, kaynak));
+    public Task<string> EkleAsync(string kullaniciId, YkcTalepKaydetDto kaynak, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(Ekle(kullaniciId, kaynak));
+    }
 
     public bool Uygula(string kullaniciId, YkcTalepKaydetDto hedef)
     {
@@ -39,8 +42,11 @@ public sealed class YkcSorguKaydiService : IYkcSorguKaydiService, IDisposable
             && YkcSorguKaydiDogrulama.Uygula(kayit.Kaynak, hedef);
     }
 
-    public Task<bool> UygulaAsync(string kullaniciId, YkcTalepKaydetDto hedef)
-        => Task.FromResult(Uygula(kullaniciId, hedef));
+    public Task<bool> UygulaAsync(string kullaniciId, YkcTalepKaydetDto hedef, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(Uygula(kullaniciId, hedef));
+    }
 
     public void Dispose() => _cache.Dispose();
 }
@@ -59,7 +65,6 @@ internal static class YkcSorguKaydiDogrulama
         hedef.SozlesmeNo = kaynak.SozlesmeNo;
         hedef.FirmaId = kaynak.FirmaId;
         hedef.SirketId = kaynak.SirketId;
-        hedef.Vkn = kaynak.Vkn;
         hedef.FirmaKodu = kaynak.FirmaKodu;
         hedef.KaynakTipi = "OnlineServis";
         hedef.AboneNo = kaynak.AboneNo;
@@ -81,7 +86,6 @@ internal static class YkcSorguKaydiDogrulama
         hedef.YeniCihazTipi = kaynak.IzinliYeniCihazTipleri.Keys.First(x =>
             string.Equals(x, hedef.YeniCihazTipi.Trim(), StringComparison.OrdinalIgnoreCase));
         hedef.YeniCihazTipiKodu = yeniCihazTipiKodu;
-        hedef.Aufnr = kaynak.Aufnr;
         return true;
     }
 
