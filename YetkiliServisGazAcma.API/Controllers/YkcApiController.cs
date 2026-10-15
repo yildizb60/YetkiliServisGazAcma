@@ -157,7 +157,7 @@ namespace YetkiliServisGazAcma.API.Controllers
                 return Unauthorized(new { basarili = false, mesaj = "Oturum bulunamadı." });
 
             filtre ??= new YkcTalepListeFiltre();
-            if (!await OkumaSirketineYetkiliMiAsync(kullanici, filtre.SirketId, YetkiTipleri.YKC_RAPOR_GOR))
+            if (!await OkumaSirketineYetkiliMiAsync(kullanici, filtre.SirketId, YetkiTipleri.YKC_RAPOR_GOR, disariAktarim: true))
                 return YkcYetkisiz("YKC raporlarını dışa aktarma yetkiniz bulunmuyor.");
 
             var kayitlar = await _okuma.RaporKayitlariAsync(
@@ -544,7 +544,7 @@ namespace YetkiliServisGazAcma.API.Controllers
         }
 
         private async Task<bool> OkumaSirketineYetkiliMiAsync(
-            AppKullanici kullanici, int? sirketId, string yetkiTipi = YetkiTipleri.YKC_TALEP_GOR)
+            AppKullanici kullanici, int? sirketId, string yetkiTipi = YetkiTipleri.YKC_TALEP_GOR, bool disariAktarim = false)
         {
             if ((User.IsInRole("SertifikaliFirma")
                     || kullanici.KullaniciTipi == KullaniciTipiDegerleri.SertifikaliFirma)
@@ -571,8 +571,9 @@ namespace YetkiliServisGazAcma.API.Controllers
                         return false;
                 }
             }
-            return await _ykcYetkiService.YetkiliMiAsync(kullanici, yetkiTipi,
+            var yetkiler = await _ykcYetkiService.OzetAsync(kullanici,
                 sirketId ?? kullanici.SirketId, HttpContext.RequestAborted);
+            return disariAktarim ? yetkiler.TalepleriDisariAktarabilir : yetkiler.YetkiliMi(yetkiTipi);
         }
 
         private Task<int?> TalepSirketIdAsync(int talepId)
