@@ -1,4 +1,4 @@
-@model YetkiliServisGazAcma.Entities.Ys_Firma
+@model YetkiliServisGazAcma.Business.Services.YetkiliServisBasvuruDto
 @{
     ViewData["Title"] = "Yetkili Servis Kaydı";
     ViewData["LoginHeaderMode"] = "registration";
@@ -6,7 +6,7 @@
 
     var sehirler = ViewBag.Sehirler as List<string> ?? new();
     var sehirFirmaKodlari = ViewBag.SehirFirmaKodlari as Dictionary<string, string> ?? new();
-    var tumKategoriler = ViewBag.Kategoriler as List<YetkiliServisGazAcma.Entities.UrunKategori> ?? new();
+    var kategoriler = ViewBag.Kategoriler as List<YetkiliServisGazAcma.Business.Services.UrunKategoriApiDto> ?? new();
     var seciliMarkalar = new HashSet<int>(ViewBag.SeciliMarkaIdleri as IEnumerable<int> ?? Array.Empty<int>());
     var seciliKategoriler = new HashSet<int>(ViewBag.SeciliKategoriIdleri as IEnumerable<int> ?? Array.Empty<int>());
     var seciliIlce = ViewBag.SeciliIlce as string;
@@ -38,11 +38,6 @@
         return "bi-fire";
     }
 
-    var kategoriler = tumKategoriler
-        .Where(x => !x.SilindiMi && x.AktifMi)
-        .OrderBy(x => x.SiraNo)
-        .ThenBy(x => x.Ad)
-        .ToList();
 }
 
 @section Styles {

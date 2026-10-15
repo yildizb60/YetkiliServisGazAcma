@@ -1,0 +1,67 @@
+@model YetkiliServisGazAcma.Models.ViewModels.NavbarViewModel
+<header class="df-navbar">
+    <div class="df-nb-left">
+        <button class="df-nb-btn mob-burger" type="button" aria-label="Menü">
+            <i class="bi bi-list"></i>
+        </button>
+        <nav class="df-breadcrumb" id="site-form-path" aria-label="Sayfa yolu">
+            <a href="@Model.HomeUrl" aria-label="Ana Sayfa" title="Ana Sayfa"><i class="bi bi-house" aria-hidden="true"></i></a>
+            @if (!string.IsNullOrWhiteSpace(Model.Module))
+            {
+                <span aria-hidden="true">/</span>
+                <span class="df-breadcrumb-module">@Model.Module</span>
+            }
+            <span aria-hidden="true">/</span>
+            <span aria-current="page" role="heading" aria-level="1">@Model.Title</span>
+        </nav>
+    </div>
+
+    <div class="df-nb-right">
+        <a class="df-nb-btn" href="@Model.ProfileUrl" title="Profil ve ayarlar" aria-label="Profil ve ayarlar">
+            <i class="bi bi-gear"></i>
+        </a>
+
+        @await Html.PartialAsync("~/Views/Shared/Components/Navbar/_Notifications.cshtml", Model.Notifications)
+
+        <div class="df-nb-sep"></div>
+
+        <div class="df-dropdown">
+            <button class="df-nb-profile-btn" id="profileBtn" type="button" data-dropdown-toggle="" aria-controls="profileMenu" aria-expanded="false">
+                <div class="df-avatar-wrap">
+                    <div class="df-avatar df-avatar-primary df-avatar-sm">@Model.Initial</div>
+                    <span class="df-avatar-status online"></span>
+                </div>
+                <div class="df-nb-profile-info">
+                    <div class="df-nb-profile-name">@Model.Name</div>
+                    <div class="df-nb-profile-company">@Model.CompanyName</div>
+                </div>
+                <i class="bi bi-chevron-down df-nb-profile-chevron"></i>
+            </button>
+
+            <div class="df-dropdown-menu df-nb-dropdown right" id="profileMenu">
+                <div class="df-nb-profile-card">
+                    <div class="df-avatar df-avatar-primary df-avatar-sm">@Model.Initial</div>
+                    <div class="df-nb-profile-card-info">
+                        <div class="df-nb-profile-card-name">@Model.Name</div>
+                        <div class="df-nb-profile-card-company">@Model.CompanyName</div>
+                        <span class="df-nb-profile-card-role">@Model.Role</span>
+                    </div>
+                </div>
+
+                <div class="df-dropdown-divider"></div>
+                @if (!string.IsNullOrWhiteSpace(Model.ProfileUrl))
+                {
+                    <a href="@Model.ProfileUrl" class="df-dropdown-item">
+                        <i class="bi bi-person"></i>
+                        Profil ve Ayarlar
+                    </a>
+                    <div class="df-dropdown-divider"></div>
+                }
+                <a href="@Model.LogoutUrl" class="df-dropdown-item danger">
+                    <i class="bi bi-box-arrow-right"></i>
+                    Çıkış Yap
+                </a>
+            </div>
+        </div>
+    </div>
+</header>

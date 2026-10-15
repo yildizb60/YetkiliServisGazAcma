@@ -190,29 +190,6 @@ body { background: #eef3f6; color: var(--login-ink); font: 14px/1.5 "Segoe UI", 
 .login-card-head { margin-bottom: 18px; }
 .login-card h1 { margin: 0; color: var(--login-ink); font-size: 25px; line-height: 1.2; font-weight: 650; }
 .login-card-head p { margin: 6px 0 0; color: var(--login-muted); font-size: 13px; }
-.login-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0 0 18px; border-bottom: 1px solid var(--login-line); }
-.login-tabs button {
-    min-width: 0;
-    min-height: 46px;
-    padding: 7px 5px;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    gap: 7px;
-    border: 0;
-    border-bottom: 3px solid transparent;
-    background: transparent;
-    color: var(--login-muted);
-    font: inherit;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-}
-.login-tabs i { font-size: 18px; }
-.login-tabs button[aria-selected="true"] { color: var(--login-blue); border-bottom-color: var(--login-blue); background: var(--login-blue-soft); }
-.login-tabs button:hover { color: var(--login-blue); }
-.login-tabs button:focus-visible { outline: 2px solid #8fc5e5; outline-offset: -3px; }
 .login-registration[hidden] { display: none; }
 .login-registration { margin-top: 12px; }
 .login-field { margin-bottom: 13px; }
@@ -355,7 +332,6 @@ body { background: #eef3f6; color: var(--login-ink); font: 14px/1.5 "Segoe UI", 
     .login-brand { margin-bottom: 17px; }
     .login-brand img { width: 235px; height: 45px; }
     .login-card h1 { font-size: 21px; }
-    .login-tabs button { font-size: 11px; flex-direction: column; gap: 3px; }
     .demo-logins-body { grid-template-columns: 1fr; }
     .company-select-actions { flex-direction: column-reverse; }
     .company-select-actions .login-submit, .company-select-actions .login-secondary { width: 100%; }

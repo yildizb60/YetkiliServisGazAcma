@@ -18,7 +18,7 @@
             ? "Doğrulama kodunuzla yeni şifrenizi belirleyin."
             : sifreUnuttum
                 ? "Kayıtlı hesabınızı yazarak SMS doğrulaması başlatın."
-                : "VKN veya e-posta adresinizle giriş yapın.";
+                : null;
 }
 
 @inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment HostEnvironment
@@ -34,7 +34,10 @@
         <div class="login-card">
             <header class="login-card-head">
                 <h1>@baslik</h1>
-                <p>@altBaslik</p>
+                @if (!string.IsNullOrEmpty(altBaslik))
+                {
+                    <p>@altBaslik</p>
+                }
             </header>
 
             @if (ViewBag.Hata != null)
@@ -80,20 +83,13 @@
             }
             else
             {
-                <div class="nav nav-underline nav-justified login-tabs" role="tablist" aria-label="Giriş türü">
-                    <button type="button" id="login-firma" role="tab" aria-selected="true" aria-controls="login-panel" data-login-mode="firma" data-demo-user="@(HostEnvironment.EnvironmentName == "Development" ? "test.sertifikalifirma@demo.com" : "")" data-demo-password="@(HostEnvironment.EnvironmentName == "Development" ? "Demo123!" : "")"><i class="bi bi-building-check" aria-hidden="true"></i><span>Sertifikalı Firma</span></button>
-                    <button type="button" id="login-servis" role="tab" aria-selected="false" aria-controls="login-panel" tabindex="-1" data-login-mode="servis" data-demo-user="@(HostEnvironment.EnvironmentName == "Development" ? "test.servis@demo.com" : "")" data-demo-password="@(HostEnvironment.EnvironmentName == "Development" ? "Demo123!" : "")"><i class="bi bi-tools" aria-hidden="true"></i><span>Yetkili Servis</span></button>
-                    <button type="button" id="login-personel" role="tab" aria-selected="false" aria-controls="login-panel" tabindex="-1" data-login-mode="personel" data-demo-user="@(HostEnvironment.EnvironmentName == "Development" ? "test.personel@demo.com" : "")" data-demo-password="@(HostEnvironment.EnvironmentName == "Development" ? "Demo123!" : "")"><i class="bi bi-person-badge" aria-hidden="true"></i><span>Personel</span></button>
-                </div>
-                <div id="login-panel" role="tabpanel" aria-labelledby="login-firma">
                 <form method="post" action="/giris" id="login-form">
                     @Html.AntiForgeryToken()
-                    <div class="login-field"><label for="kullanici-adi">VKN veya E-posta</label><input id="kullanici-adi" type="text" name="kullaniciAdi" placeholder="VKN veya e-posta adresiniz" autocomplete="username" required /></div>
+                    <div class="login-field"><label for="kullanici-adi">VKN, T.C. Kimlik No veya E-posta</label><input id="kullanici-adi" type="text" name="kullaniciAdi" placeholder="Kayıtlı giriş bilginiz" autocomplete="username" required /></div>
                     <div class="login-field"><label for="sifre">Şifre</label><input id="sifre" type="password" name="sifre" placeholder="Şifreniz" autocomplete="current-password" required /></div>
                     <button type="submit" class="login-submit">Giriş Yap</button>
                 </form>
                 <a class="login-link" href="/giris/sifre-unuttum">Şifremi unuttum</a>
-                </div>
 
                 @if (HostEnvironment.EnvironmentName == "Development")
                 {
@@ -119,7 +115,7 @@
                 }
             }
 
-            <div class="login-registration" hidden="@(!smsBekleniyor && !sifreUnuttum && !sifreSifirlaKodBekleniyor)">
+            <div class="login-registration">
                 <a class="login-register" href="/kayit/yetkili-servis">Yetkili Servis Kaydı</a>
             </div>
         </div>

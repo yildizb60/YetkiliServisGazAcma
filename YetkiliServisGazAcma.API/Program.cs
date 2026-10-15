@@ -101,10 +101,21 @@ builder.Services.AddIdentity<AppKullanici, IdentityRole>(options =>
     .AddDefaultTokenProviders();
 
 builder.Services.AddScoped<MarkaService>();
+builder.Services.AddScoped<MarkaKatalogApiService>();
+builder.Services.AddScoped<DagitimSirketApiService>();
+builder.Services.AddScoped<PanelKapsamApiService>();
+builder.Services.AddScoped<UrunKategoriKatalogApiService>();
 builder.Services.AddScoped<YetkiliServisService>();
+builder.Services.AddScoped<YetkiliServisRehberApiService>();
+builder.Services.AddScoped<YetkiliServisKayitYonetimApiService>();
+builder.Services.AddScoped<YetkiliServisBasvuruApiService>();
 builder.Services.AddScoped<YetkiliServisIlkKurulumService>();
 builder.Services.AddScoped<YetkiBelgesiService>();
+builder.Services.AddScoped<YetkiBelgesiOkumaApiService>();
+builder.Services.AddScoped<YetkiBelgesiSilmeApiService>();
 builder.Services.AddScoped<YkcTalepService>();
+builder.Services.AddScoped<YkcTalepOkumaService>();
+builder.Services.AddScoped<YkcPlanlamaOkumaService>();
 if (builder.Environment.IsDevelopment())
     builder.Services.AddSingleton<IYkcSorguKaydiService, YkcSorguKaydiService>();
 else
@@ -120,6 +131,9 @@ builder.Services.AddOptions<YkcPlanlamaOptions>()
         "YkcPlanlama:Ekipler şirket/il/bölge, benzersiz kimlik ve geçerli yönlendirme içermelidir.")
     .ValidateOnStart();
 builder.Services.AddScoped<AdminDashboardService>();
+builder.Services.AddScoped<PersonelDashboardApiService>();
+builder.Services.AddScoped<PersonelRaporApiService>();
+builder.Services.AddScoped<HomeOzetApiService>();
 builder.Services.AddScoped<AdminYetkiliServisListeService>();
 builder.Services.AddScoped<SehirFirmaKoduService>();
 builder.Services.AddScoped<AdminYetkiliServisYonetimApiService>();
@@ -127,11 +141,23 @@ builder.Services.AddScoped<AdminSubeApiService>();
 builder.Services.AddScoped<AdminRaporApiService>();
 builder.Services.AddScoped<AdminYetkiBelgesiOnayApiService>();
 builder.Services.AddScoped<AdminPersonelYetkiApiService>();
+builder.Services.AddScoped<AdminKullaniciOkumaApiService>();
+builder.Services.AddScoped<AdminKullaniciYonetimApiService>();
 builder.Services.AddScoped<YetkiliServisPanelYonetimApiService>();
+builder.Services.AddScoped<YetkiliServisRaporApiService>();
 builder.Services.AddScoped<DevreyeAlmaExportApiService>();
+builder.Services.AddScoped<DevreyeAlmaKayitApiService>();
+builder.Services.AddScoped<DevreyeAlmaOkumaApiService>();
+builder.Services.AddScoped<DevreyeAlmaSorguApiService>();
+builder.Services.AddScoped<YetkiliServisPanelOkumaApiService>();
+builder.Services.AddScoped<YetkiliServisProfilApiService>();
+builder.Services.AddScoped<IcTesisatDevreyeAlmaApiService>();
+builder.Services.AddScoped<DevreyeAlmaYetkiDogrulamaService>();
 builder.Services.AddScoped<YkcFr265FormService>();
 builder.Services.AddScoped<YkcYetkiService>();
 builder.Services.AddScoped<YkcImzaAkisService>();
+builder.Services.AddScoped<YkcTesisatApiService>();
+builder.Services.AddScoped<YkcBelgeYuklemeApiService>();
 var ykcImzaProvider = builder.Configuration["YkcImza:Provider"];
 builder.Services.Configure<MobilImzaOptions>(builder.Configuration.GetSection("YkcImza:Mobil"));
 if (string.Equals(ykcImzaProvider, "Mobil", StringComparison.OrdinalIgnoreCase))
@@ -148,12 +174,19 @@ else
     builder.Services.AddSingleton<IYkcImzaProvider, YapilandirilmamisYkcImzaProvider>();
 }
 builder.Services.AddSmsServices(builder.Configuration);
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddHostedService<SmsDogrulamaTemizlikService>();
 builder.Services.AddSertifikaliFirmaKimlikServices(builder.Configuration);
 builder.Services.AddDataProtection();
 builder.Services.AddScoped<OturumTokenService>();
+builder.Services.AddScoped<OturumAkisApiService>();
 builder.Services.AddOptions<SmsOptions>()
     .Validate(options => builder.Environment.IsDevelopment() || !options.TestMode,
         "SMS TestMode yalnızca Development ortamında kullanılabilir.")
+    .Validate(options => options.ExpiredCodeRetentionDays is >= 0 and <= 3650,
+        "Sms:ExpiredCodeRetentionDays 0-3650 araliginda olmalidir.")
+    .Validate(options => options.CodeCleanupIntervalHours is >= 1 and <= 168,
+        "Sms:CodeCleanupIntervalHours 1-168 araliginda olmalidir.")
     .ValidateOnStart();
 builder.Services.Configure<OnlineServiceOptions>(builder.Configuration.GetSection("OnlineService"));
 builder.Services.AddHttpClient<OnlineCihazBilgileriClient>((serviceProvider, client) =>

@@ -1,0 +1,418 @@
+.df-commissioning-directory { gap:10px; }
+:is(.df-commissioning-directory,.df-record-directory) { width:100%; max-width:none; min-width:0; box-sizing:border-box; margin-inline:auto; }
+.df-commissioning-directory [hidden] { display:none !important; }
+.ys-history-toolbar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+.ys-history-heading { display:flex; align-items:baseline; gap:9px; }
+.ys-history-heading h2 { position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+.ys-history-heading > span { color:#738194; font-size:11px; white-space:nowrap; }
+.ys-history-tools { display:flex; align-items:center; flex-wrap:wrap; gap:7px; }
+.ys-history-search { display:flex; align-items:center; width:190px; min-width:0; height:34px; border:1px solid #e1e6ee; border-radius:18px; background:#fff; }
+.ys-history-search input { width:100%; min-width:0; height:32px; padding:0 8px; border:0; outline:0; background:transparent; color:#30465b; font-family:inherit; font-size:11px; }
+.ys-history-search:focus-within { border-color:#315fca; box-shadow:0 0 0 2px #e5edfd; }
+.ys-history-search button { flex:0 0 30px; height:30px; border:0; background:transparent; color:#68798c; cursor:pointer; }
+.ys-history-tool,
+.ys-history-new { min-height:34px; display:inline-flex; align-items:center; justify-content:center; gap:7px; box-sizing:border-box; padding:6px 10px; border:1px solid #e1e6ee; border-radius:18px; background:#fff; color:#47596d; font-family:inherit; font-size:11px; font-weight:500; line-height:1.3; text-decoration:none; white-space:nowrap; cursor:pointer; }
+.ys-history-tool > i { font-size:13px; color:#728296; }
+.ys-history-tool > .bi-chevron-down { font-size:9px; }
+.ys-history-tool:hover { background:#f7f9fd; border-color:#bdcde9; }
+.ys-history-tool[aria-expanded="true"] { color:#315fca; border-color:#c6d6f4; background:#eef4ff; }
+.ys-history-tool [data-history-filter-count] { min-width:14px; padding:1px 3px; border-radius:3px; background:#315fca; color:#fff; font-size:9px; }
+.ys-history-new { background:#315fca; border-color:#315fca; color:#fff; }
+.ys-history-new:hover { background:#284fa9; color:#fff; }
+.ys-history-density { display:flex; align-items:center; gap:2px; height:34px; padding:2px; box-sizing:border-box; border:1px solid #e1e6ee; border-radius:18px; background:#fff; }
+.ys-history-density button { width:29px; height:28px; padding:0; display:grid; place-items:center; border:0; border-radius:50%; background:transparent; color:#7b899a; font-size:15px; cursor:pointer; }
+.ys-history-density button[aria-pressed="true"] { background:#315fca; color:#fff; }
+.ys-history-menu { position:relative; }
+.ys-history-menu > summary { list-style:none; }
+.ys-history-menu > summary::-webkit-details-marker { display:none; }
+.ys-history-menu-body { position:absolute; top:40px; right:0; z-index:30; min-width:210px; display:grid; gap:9px; padding:12px; border:1px solid #dce5f0; border-radius:6px; background:#fff; box-shadow:0 8px 22px rgba(37,57,85,.12); }
+.ys-history-menu-body label { color:#50647a; font-size:11px; font-weight:500; }
+.ys-history-menu-body select { width:100%; min-height:34px; padding:6px 8px; border:1px solid #d8e2ee; border-radius:4px; background:#fff; color:#30465b; font-family:inherit; font-size:12px; }
+.ys-history-export { min-width:155px; gap:5px; padding:6px; }
+.ys-history-export .df-btn { justify-content:flex-start; border:0; background:#fff; box-shadow:none; }
+.ys-history-export .df-btn:hover { background:#f4f7fc; }
+.df-commissioning-directory > .df-commissioning-surface { padding:4px 10px; border:1px solid #e5eaf2; border-radius:8px; box-shadow:none; background:#fff; }
+.df-commissioning-directory.is-enhanced #commissioningFiltersPanel > summary { display:none; }
+.df-commissioning-directory #commissioningFiltersPanel { margin:0; border:0; border-radius:0; background:#fff; box-shadow:none; }
+.df-commissioning-directory #commissioningFiltersPanel .df-admin-filter-grid { grid-template-columns:repeat(4,minmax(0,1fr)); }
+.df-commissioning-directory .df-commissioning-table { --df-table-base:960px; --df-customer-width:120px; --df-installation-width:82px; --df-contract-width:93px; --df-device-width:142px; --df-type-width:116px; --df-date-width:150px; --df-commissioning-extra-width:max(0px,calc(100cqw - var(--df-table-base))); min-width:var(--df-table-base); border-collapse:separate; border-spacing:0 5px; }
+.df-commissioning-directory .df-commissioning-table.is-firm-history { --df-table-base:920px; --df-customer-width:128px; --df-installation-width:80px; --df-contract-width:102px; --df-device-width:172px; --df-type-width:120px; }
+.df-commissioning-directory .df-table.df-commissioning-table .df-commissioning-col-select { width:28px; }
+.df-commissioning-directory .df-table.df-commissioning-table .df-commissioning-col-customer { width:calc(var(--df-customer-width) + var(--df-commissioning-extra-width) * .12); }
+.df-commissioning-directory .df-table.df-commissioning-table .df-commissioning-col-installation { width:calc(var(--df-installation-width) + var(--df-commissioning-extra-width) * .12); }
+.df-commissioning-directory .df-table.df-commissioning-table .df-commissioning-col-contract { width:calc(var(--df-contract-width) + var(--df-commissioning-extra-width) * .12); }
+.df-commissioning-directory .df-table.df-commissioning-table .df-commissioning-col-company { width:calc(89px + var(--df-commissioning-extra-width) * .1); }
+.df-commissioning-directory .df-table.df-commissioning-table .df-commissioning-col-type { width:calc(var(--df-type-width) + var(--df-commissioning-extra-width) * .1); }
+.df-commissioning-directory .df-table.df-commissioning-table .df-commissioning-col-device { width:calc(var(--df-device-width) + var(--df-commissioning-extra-width) * .28); padding-left:5px; border-left:0; }
+.df-commissioning-directory .df-table.df-commissioning-table .df-commissioning-col-date { width:calc(var(--df-date-width) + var(--df-commissioning-extra-width) * .1); padding-left:5px; border-left:0; }
+.df-commissioning-directory .df-table.df-commissioning-table .df-commissioning-col-status { width:98px; text-align:left; }
+.df-commissioning-directory .df-table.df-commissioning-table .df-commissioning-col-action { width:42px; }
+.df-commissioning-directory .df-table.df-commissioning-table th { padding:5px; border:0; background:#fff; color:#748294; font-size:10px !important; font-weight:500 !important; }
+.ys-history-column-heading { display:flex; align-items:center; gap:2px; min-width:0; }
+.ys-history-column-trigger { width:16px; height:22px; padding:0; flex:0 0 16px; display:grid; place-items:center; border:0; border-radius:3px; background:transparent; color:#9ba7b6; font-size:10px; cursor:pointer; }
+.ys-history-column-trigger:hover,
+.ys-history-column-trigger.is-filtered { background:#eaf1ff; color:#315fca; }
+.ys-history-column-trigger[aria-expanded="true"] { background:#315fca; color:#fff; }
+.df-commissioning-directory .df-commissioning-record-row > td { padding:6px 5px; border:0; background:#f4f6fa; }
+.df-commissioning-directory:not([data-view="cards"]) .df-table.df-commissioning-table :is(th,td):is(.df-commissioning-col-type,.df-commissioning-col-device,.df-commissioning-col-date,.df-commissioning-col-status) { padding-left:12px; }
+.df-commissioning-directory:not([data-view="cards"]) .df-table.df-commissioning-table :is(th,td).df-commissioning-col-date { padding-left:20px; }
+.df-commissioning-directory:not([data-view="cards"]) .df-table.df-commissioning-table th.df-commissioning-col-date { white-space:nowrap; }
+.df-commissioning-directory:not([data-view="cards"]) .df-commissioning-record-row > :is(.df-commissioning-col-type,.df-commissioning-col-device,.df-commissioning-col-date,.df-commissioning-col-status) { box-shadow:inset 1px 0 #e0e6ef; }
+.df-commissioning-directory .df-commissioning-record-row > td:first-child { border-radius:6px 0 0 6px; }
+.df-commissioning-directory .df-commissioning-record-row > td:last-child { border-radius:0 6px 6px 0; }
+.df-commissioning-directory .df-commissioning-record-row:nth-of-type(4n+1) > td { background:#f0f3f8; }
+.df-commissioning-directory .df-commissioning-record-row:hover > td,
+.df-commissioning-directory .df-commissioning-record-row.is-expanded > td { background:#eaf1fc; }
+.df-commissioning-directory .df-commissioning-record-row.is-expanded > td:first-child { box-shadow:inset 3px 0 #315fca; }
+.df-commissioning-directory .df-commissioning-record-row.is-expanded :is(.df-cell-main,.df-cell-value,.df-cell-sub,.df-device-facts dt,.df-device-facts dd) { color:#40566a; }
+.df-commissioning-directory .df-commissioning-record-row.is-expanded .df-device-facts dt { color:#748294; }
+.df-commissioning-directory .df-device-facts { gap:2px; }
+:is(.df-commissioning-directory,.df-record-directory) .df-device-type-tag { width:auto; min-width:48px; min-height:20px; padding:2px 6px; border:0; background:var(--device-type-background,#e9eef7); color:var(--device-type-color,#536888); font-size:10px; font-weight:500; }
+.df-commissioning-directory .df-commissioning-table .df-pill { width:auto; min-height:20px; height:20px; gap:3px; padding:2px 4px; border:0; background:#e8f5ef; color:#3a8569; font-size:10px; font-weight:500; }
+.df-commissioning-directory .df-commissioning-table .df-pill::before { content:""; width:4px; height:4px; flex:0 0 4px; border-radius:50%; background:currentColor; }
+.df-commissioning-directory .df-commissioning-table .df-pill-danger { background:#fceef0; color:#b66672; }
+.df-commissioning-directory .df-commissioning-table .df-pill-warning { background:#fff4e1; color:#a48038; }
+.df-commissioning-directory .df-commissioning-table .commissioning-row-action,
+.df-record-directory .df-record-table .ykc-detail-action { display:grid; place-items:center; flex:none; box-sizing:border-box; width:24px; height:24px; min-width:24px; min-height:24px; margin-inline:auto; padding:0; border:0; border-radius:4px; background:transparent; color:#52677c; box-shadow:none; font-size:12px; font-weight:400; line-height:1; cursor:pointer; }
+.df-commissioning-directory .commissioning-row-action > .bi,
+.df-record-directory .ykc-detail-action > .bi { display:block; font-size:12px; line-height:1; }
+.df-commissioning-directory .commissioning-row-action > .bi::before,
+.df-record-directory .ykc-detail-action > .bi::before { vertical-align:0; }
+.df-commissioning-directory .df-commissioning-table .commissioning-row-action:is(:hover,:focus-visible,[aria-expanded="true"]),
+.df-record-directory .df-record-table .ykc-detail-action:is(:hover,:focus-visible) { background:#e8effb; color:#315fca; }
+.df-commissioning-directory .commissioning-row-action:focus-visible,
+.df-record-directory .ykc-detail-action:focus-visible { outline:2px solid #315fca; outline-offset:2px; }
+.ys-history-column-popover { position:fixed; z-index:100; width:280px; max-width:calc(100vw - 24px); max-height:calc(100dvh - 24px); box-sizing:border-box; overflow:auto; padding:12px; border:1px solid #d6e1f1; border-radius:6px; background:#fff; box-shadow:0 10px 28px rgba(37,57,85,.16); }
+.ys-history-column-popover > header { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
+.ys-history-column-popover > header strong { color:#30465b; font-size:12px; font-weight:600; }
+.ys-history-column-popover > header button { width:24px; height:24px; padding:0; border:0; border-radius:4px; background:#f5f7fb; color:#718298; cursor:pointer; }
+.ys-history-column-popover [data-history-column-body] { display:grid; gap:8px; }
+.ys-history-column-popover .df-admin-field { display:grid; gap:4px; margin:0; }
+.ys-history-column-popover label { color:#64778c; font-size:11px; font-weight:500; }
+.ys-history-column-popover :is(input,select) { width:100%; min-width:0; box-sizing:border-box; min-height:34px; padding:6px 8px; border:1px solid #d8e2ee; border-radius:4px; background:#fff; color:#30465b; font-family:inherit; font-size:12px; }
+.ys-history-column-popover > footer { display:flex; justify-content:space-between; gap:8px; margin-top:12px; }
+.ys-history-column-popover > footer button,
+.ys-history-apply { min-height:30px; display:inline-flex; align-items:center; justify-content:center; gap:5px; padding:5px 9px; border:1px solid #dce5f0; border-radius:4px; background:#fff; color:#63768c; font-family:inherit; font-size:11px; cursor:pointer; }
+.ys-history-column-popover > footer .ys-history-apply,
+.ys-history-apply { border-color:#315fca; background:#315fca; color:#fff; }
+.df-commissioning-directory :is(button,summary,a,select):focus-visible { outline:2px solid #315fca; outline-offset:2px; }
+.df-commissioning-directory input[type="checkbox"] { width:14px; height:14px; margin:0; accent-color:#315fca; cursor:pointer; }
+[data-directory-selection-count] { color:#315fca !important; }
+.df-record-directory [hidden] { display:none !important; }
+.content:has(> .df-record-directory) { padding-top:12px; }
+.df-record-directory.is-enhanced #ykcFiltersPanel > summary { display:none; }
+.df-record-directory.is-enhanced #ykcFiltersPanel:not([open]) { display:none; }
+.df-record-directory .ykc-list-header { grid-template-columns:minmax(0,1fr); }
+.df-record-directory .ykc-data-panel { padding:4px 10px; border:1px solid #e5eaf2; border-radius:8px; box-shadow:none; }
+.df-record-directory .ykc-table-scroll { container-name:ykc-request-table ykc-report-table record-directory; container-type:inline-size; overflow:visible; }
+.df-record-directory .df-record-table { border-collapse:separate; border-spacing:0 5px; }
+.df-record-directory .df-record-table th { padding:5px 7px; border:0; background:#fff; color:#748294; font-size:10px !important; font-weight:500 !important; text-transform:none; white-space:nowrap; vertical-align:middle; line-height:22px; }
+.df-record-directory:not([data-view="cards"]) .df-record-table { width:100%; min-width:0; border:0; table-layout:fixed; }
+.df-record-directory .ys-history-column-heading > span { min-width:0; overflow-wrap:normal; }
+.df-record-directory .df-record-table tbody td { padding:6px 7px; border-bottom:0; background:#f4f6fa; }
+.df-record-directory .df-record-table tbody tr:nth-child(odd) td { background:#f0f3f8; }
+.df-record-directory .df-record-table tbody tr:hover td { background:#eaf1fc; }
+.df-record-directory [data-directory-row-open] { cursor:pointer; }
+.df-record-directory .ykc-code[data-directory-open] { text-decoration:none; }
+.df-record-directory .ykc-code[data-directory-open]:focus-visible { outline:2px solid #315fca; outline-offset:2px; }
+.df-record-directory .df-record-table tbody td:first-child { border-radius:6px 0 0 6px; }
+.df-record-directory .df-record-table tbody td:last-child { border-radius:0 6px 6px 0; }
+.df-record-directory .df-record-table :is(.ykc-primary-cell,.ykc-cell-main) { font-size:11.5px; font-weight:500; }
+.df-record-directory .df-record-table .ykc-report-process { display:grid; gap:2px; align-content:center; }
+.df-record-directory .df-record-table .ykc-report-state { gap:4px; font-size:10.5px; font-weight:500; line-height:14px; }
+.df-record-directory .df-record-table .ykc-report-state > i { flex:none; font-size:6px; }
+.df-record-directory .df-record-table .ykc-report-form-state { gap:4px; font-size:10px; font-weight:500; line-height:13px; }
+.df-record-directory .df-record-table .ykc-report-form-state > i { flex:none; font-size:11px; }
+.df-record-directory input[type="checkbox"] { width:14px; height:14px; margin:0; accent-color:#315fca; cursor:pointer; }
+.df-record-directory .ykc-directory-select { width:28px; padding-inline:7px !important; text-align:center; }
+.df-record-directory .ykc-device-type { min-height:20px; padding:2px 6px; font-size:10px; border-radius:5px; }
+.df-record-directory:not([data-view="cards"]) :is(.ykc-device-summary,.ykc-device-column) .ykc-device-fact-label { display:inline; margin:0; color:inherit; font-size:inherit; font-weight:inherit; }
+.df-record-directory:not([data-view="cards"]) .ykc-device-column small > i { display:none; }
+.df-record-directory:not([data-view="cards"]) .ykc-device-summary strong::before { content:"Marka: "; color:#526b7d; font-size:10.75px; font-weight:400; }
+.df-record-directory:not([data-view="cards"]) .ykc-device-summary > span { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:14px; }
+/* Allocate readable column widths, then share surplus space without widening the table. */
+@container record-directory (min-width:980px) {
+    .df-record-directory:not([data-view="cards"]) .ykc-data-table { --ykc-extra:max(0px,calc(100cqw - 980px)); }
+    .df-record-directory:not([data-view="cards"]) .ykc-data-table.is-firm { --ykc-extra:max(0px,calc(100cqw - 852px)); }
+    .df-record-directory .ykc-col-select { width:24px; }
+    .df-record-directory .ykc-col-record { width:60px; }
+    .df-record-directory .ykc-col-customer { width:calc(110px + var(--ykc-extra) * .18); }
+    .df-record-directory .ykc-col-company { width:calc(62px + var(--ykc-extra) * .14); }
+    .df-record-directory .ykc-col-installation { width:calc(82px + var(--ykc-extra) * .07); }
+    .df-record-directory .ykc-col-contract { width:calc(87px + var(--ykc-extra) * .07); }
+    .df-record-directory .ykc-col-type { width:106px; }
+    .df-record-directory .df-record-table.is-firm .ykc-col-type { width:126px; }
+    .df-record-directory .ykc-col-project { width:calc(108px + var(--ykc-extra) * .14); }
+    .df-record-directory .ykc-col-new { width:calc(126px + var(--ykc-extra) * .14); }
+    .df-record-directory .ykc-col-date { width:calc(138px + var(--ykc-extra) * .12); }
+    .df-record-directory .ykc-col-status { width:calc(73px + var(--ykc-extra) * .14); }
+    .df-record-directory .ykc-data-table.is-firm .ykc-col-customer { width:calc(114px + var(--ykc-extra) * .20); }
+    .df-record-directory .ykc-data-table.is-firm .ykc-col-installation { width:calc(76px + var(--ykc-extra) * .15); }
+    .df-record-directory .ykc-data-table.is-firm .ykc-col-contract { width:calc(90px + var(--ykc-extra) * .15); }
+    .df-record-directory .ykc-data-table.is-firm .ykc-col-new { width:calc(130px + var(--ykc-extra) * .20); }
+    .df-record-directory .ykc-data-table.is-firm .ykc-col-date { width:calc(138px + var(--ykc-extra) * .16); }
+    .df-record-directory .ykc-data-table.is-firm .ykc-col-status { width:calc(90px + var(--ykc-extra) * .14); }
+    .df-record-directory:not([data-view="cards"]) .ykc-report-table { --ykc-extra:max(0px,calc(100cqw - 980px)); }
+    .df-record-directory:not([data-view="cards"]) .ykc-report-table.is-firm { --ykc-extra:max(0px,calc(100cqw - 772px)); }
+    .df-record-directory .ykc-report-table .ykc-col-customer { width:calc(120px + var(--ykc-extra) * .12); }
+    .df-record-directory .ykc-report-table .ykc-col-installation { width:calc(82px + var(--ykc-extra) * .075); }
+    .df-record-directory .ykc-report-table .ykc-col-contract { width:calc(96px + var(--ykc-extra) * .075); }
+    .df-record-directory .ykc-report-table .ykc-col-company { width:calc(64px + var(--ykc-extra) * .15); }
+    .df-record-directory .ykc-report-table .ykc-col-project { width:calc(106px + var(--ykc-extra) * .17); }
+    .df-record-directory .ykc-report-table .ykc-col-new { width:calc(130px + var(--ykc-extra) * .18); }
+    .df-record-directory .ykc-report-table .ykc-col-team { width:calc(58px + var(--ykc-extra) * .10); }
+    .df-record-directory .ykc-report-table .ykc-col-status { width:calc(96px + var(--ykc-extra) * .13); }
+    .df-record-directory .ykc-report-table .ykc-col-detail { width:34px; }
+    .df-record-directory .ykc-report-table.is-firm .ykc-col-customer { width:calc(120px + var(--ykc-extra) * .18); }
+    .df-record-directory .ykc-report-table.is-firm .ykc-col-installation { width:calc(82px + var(--ykc-extra) * .14); }
+    .df-record-directory .ykc-report-table.is-firm .ykc-col-contract { width:calc(96px + var(--ykc-extra) * .14); }
+    .df-record-directory .ykc-report-table.is-firm .ykc-col-new { width:calc(130px + var(--ykc-extra) * .32); }
+    .df-record-directory .ykc-report-table.is-firm .ykc-col-status { width:calc(96px + var(--ykc-extra) * .22); }
+    .df-record-directory:not([data-view="cards"]) .df-record-table :is(th,td) { padding-inline:4px; }
+    .df-record-directory:not([data-view="cards"]) .ykc-data-table :is(th,td).ykc-list-company-cell { padding-right:14px; }
+    .df-record-directory:not([data-view="cards"]) .ykc-data-table :is(th,td).ykc-list-installation-cell { padding-left:10px; }
+    .df-record-directory:not([data-view="cards"]) .df-record-table th.ykc-device-type-heading + th,
+    .df-record-directory:not([data-view="cards"]) .df-record-table :is(.ykc-project-device-cell,.ykc-report-project-cell) { padding-left:12px; }
+    .df-record-directory:not([data-view="cards"]) .df-record-table.is-firm :is(th[data-directory-column="device"],td[data-label="Yeni Kullanılan Cihaz"]) { padding-left:12px; }
+    .df-record-directory:not([data-view="cards"]) .ys-history-column-trigger { width:14px; flex-basis:14px; }
+    .df-record-directory:not([data-view="cards"]) .df-record-table th[data-directory-column="record"] { padding-inline:0; }
+    .df-record-directory:not([data-view="cards"]) th[data-directory-column="record"] .ys-history-column-heading { gap:0; }
+    .df-record-directory:not([data-view="cards"]) .ykc-directory-select { padding-inline:4px !important; }
+    .df-record-directory:not([data-view="cards"]) .df-record-table tbody td { padding-top:4px; padding-bottom:4px; }
+    .df-record-directory:not([data-view="cards"]) .ykc-device-summary { gap:2px; }
+    .df-record-directory:not([data-view="cards"]) .ykc-device-summary > span { flex-wrap:nowrap; gap:2px 4px; overflow-wrap:normal; }
+    .df-record-directory:not([data-view="cards"]) .ykc-device-summary .ykc-device-fact-label { flex:none; white-space:nowrap; }
+    .df-record-directory:not([data-view="cards"]) .ykc-device-column { min-width:0; padding:0 0 0 7px; border-left-width:2px; background:transparent; }
+    .df-record-directory:not([data-view="cards"]) .ykc-device-column strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11.5px; font-weight:500; line-height:14px; }
+    .df-record-directory:not([data-view="cards"]) .ykc-device-column small { display:flex; flex-wrap:wrap; gap:2px 4px; margin-top:0; overflow-wrap:normal; word-break:normal; font-size:10.5px; line-height:12.5px; }
+    .df-record-directory:not([data-view="cards"]) .ykc-device-column .ykc-device-fact-label { flex:none; white-space:nowrap; }
+    .df-record-directory:not([data-view="cards"]) .ykc-device-column .ykc-device-model-name { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .df-record-directory:not([data-view="cards"]) :is(.ykc-primary-cell,.ykc-cell-main,.ykc-report-firm,.ykc-report-team) { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .df-record-directory:not([data-view="cards"]) .ykc-report-team { overflow:visible; text-overflow:clip; white-space:normal; overflow-wrap:normal; font-size:10.5px; line-height:14px; }
+    .df-record-directory:not([data-view="cards"]) .ykc-primary-cell.is-pending-appointment { display:block; overflow-wrap:normal; word-break:normal; }
+    .df-record-directory:not([data-view="cards"]) .ykc-list-process { display:grid; align-items:start; gap:2px; }
+    .df-record-directory:not([data-view="cards"]) .ykc-process-state { max-width:100%; white-space:normal; overflow-wrap:normal; }
+    .df-record-directory:not([data-view="cards"]) :is(.ykc-project-device-cell,.ykc-report-project-cell) { padding-right:28px !important; }
+}
+@container record-directory (max-width:1180px) {
+    .df-record-directory:not([data-view="cards"]) :is(.ykc-device-summary,.ykc-device-column) .ykc-device-fact-label { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+    .df-record-directory:not([data-view="cards"]) .ykc-device-column small > i { display:inline; flex:none; font-size:10px; color:#718397; }
+}
+@container record-directory (width > 1180px) {
+    .df-record-directory:not([data-view="cards"]) .ykc-data-table.is-internal { --ykc-extra:max(0px,calc(100cqw - 1018px)); }
+    .df-record-directory .ykc-data-table :is(.ykc-col-installation,.ykc-col-contract) { width:calc(83px + var(--ykc-extra) * .07); }
+    .df-record-directory .ykc-data-table.is-firm :is(.ykc-col-installation,.ykc-col-contract) { width:calc(83px + var(--ykc-extra) * .15); }
+    .df-record-directory .ykc-data-table.is-internal .ykc-col-customer { width:calc(94px + var(--ykc-extra) * .18); }
+    .df-record-directory .ykc-data-table.is-internal :is(.ykc-col-project,.ykc-col-new) { width:calc(140px + var(--ykc-extra) * .14); }
+    .df-record-directory:not([data-view="cards"]) .ykc-data-table .ykc-device-summary > span > i { display:none; }
+    .df-record-directory:not([data-view="cards"]) .ykc-data-table.is-internal .ykc-project-device-cell { padding-right:16px !important; }
+    .df-record-directory:not([data-view="cards"]) .ykc-data-table.is-internal :is(th[data-directory-column="device"],td[data-label="Yeni Kullanılan Cihaz"]) { padding-left:16px; }
+    .df-record-directory:not([data-view="cards"]) .ykc-data-table .ykc-device-change-arrow { left:100%; }
+    .df-record-directory .ykc-report-table :is(.ykc-col-installation,.ykc-col-contract) { width:calc(89px + var(--ykc-extra) * .075); }
+    .df-record-directory .ykc-report-table.is-firm :is(.ykc-col-installation,.ykc-col-contract) { width:calc(89px + var(--ykc-extra) * .14); }
+    .df-record-directory .ykc-report-table.is-internal :is(.ykc-col-project,.ykc-col-new) { width:calc(118px + var(--ykc-extra) * .175); }
+}
+.df-record-directory :is(.ykc-project-device-cell,.ykc-report-project-cell) { position:relative; }
+/* Center the arrow in the reserved space between the device content blocks. */
+.df-record-directory .ykc-device-change-arrow { position:absolute; left:calc(100% - 12px); top:50%; z-index:1; display:grid; place-items:center; width:12px; height:12px; border-radius:50%; background:#e5ecfb; color:#315fca; font-size:12px; line-height:1; transform:translate(-50%,-50%); pointer-events:none; }
+.df-record-directory .ykc-device-change-arrow::before { display:block; }
+/* Narrow lists reflow into labelled fields; no columns are clipped or scroll-only. */
+@container record-directory (width < 980px) {
+    .df-record-directory:not([data-view="cards"]) .df-record-table { display:block; }
+    .df-record-directory:not([data-view="cards"]) :is(colgroup,thead th:not(:first-child)) { position:absolute; width:1px; height:1px; padding:0; overflow:hidden; clip-path:inset(50%); }
+    .df-record-directory:not([data-view="cards"]) .df-record-table :is(thead,thead tr) { display:block; }
+    .df-record-directory:not([data-view="cards"]) .df-record-table thead th:first-child { width:auto; display:flex; align-items:center; gap:6px; padding:5px 12px !important; }
+    .df-record-directory:not([data-view="cards"]) .df-record-table thead th:first-child::after { content:"Sayfadakileri seç"; color:#485f77; font-size:10.5px; font-weight:500; }
+    .df-record-directory:not([data-view="cards"]) .df-record-table tbody { display:grid; gap:8px; }
+    .df-record-directory:not([data-view="cards"]) .df-record-table tbody tr { position:relative; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px 16px; padding:12px; border-bottom:1px solid #dce3ed; background:#f0f3f8; }
+    .df-record-directory:not([data-view="cards"]) .df-record-table tbody td { display:block; grid-column:auto; grid-row:auto; width:auto; min-width:0; padding:0 !important; border:0; border-radius:0; background:transparent; box-shadow:none; }
+    .df-record-directory:not([data-view="cards"]) td[data-label]::before { content:attr(data-label) ":"; display:block; margin-bottom:2px; color:#485f77; font-size:10.5px; font-weight:500; line-height:15px; }
+    .df-record-directory:not([data-view="cards"]) .df-record-table :is(td.ykc-directory-select,td.ykc-report-select-cell) { position:absolute; top:13px; left:12px; }
+    .df-record-directory:not([data-view="cards"]) .df-record-table :is(.ykc-directory-record-id,.ykc-report-record-cell) { grid-column:1 / -1; display:flex; align-items:baseline; gap:6px; padding:0 30px 0 24px !important; }
+    .df-record-directory:not([data-view="cards"]) .df-record-table .ykc-report-detail-cell { position:absolute; top:8px; right:12px; }
+    .df-record-directory:not([data-view="cards"]) .df-record-table :is(.ykc-directory-select,.ykc-report-select-cell,.ykc-report-detail-cell)::before { display:none; }
+    .df-record-directory:not([data-view="cards"]) .df-record-table :is(.ykc-directory-customer,.ykc-report-customer-cell,.ykc-list-company-cell,.ykc-report-company-cell,[data-label="Yakıcı Cihaz Tipi"],[data-label="Kontrol Randevusu"],.ykc-action-cell,td[colspan]) { grid-column:1 / -1; }
+    .df-record-directory:not([data-view="cards"]) .ykc-device-change-arrow { left:calc(100% - 4px); top:calc(50% + 8px); width:16px; height:16px; font-size:14px; }
+    .df-record-directory:not([data-view="cards"]) .df-record-table.is-internal td[data-label="Projedeki Cihaz"] { padding-right:24px !important; }
+    .df-record-directory:not([data-view="cards"]) .df-record-table.is-internal td[data-label="Yeni Kullanılan Cihaz"] { padding-left:0 !important; }
+    .df-record-directory:not([data-view="cards"]) .is-firm td[data-label="Yeni Kullanılan Cihaz"] { grid-column:1 / -1; }
+    .df-record-directory:not([data-view="cards"]) :is(.ykc-device-summary,.ykc-device-column) { min-width:0; padding:0; border:0; background:transparent; }
+    .df-record-directory:not([data-view="cards"]) :is(.ykc-device-summary strong,.ykc-device-column strong,.ykc-device-model-name) { display:block; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .df-record-directory:not([data-view="cards"]) .ykc-device-column small { display:flex; flex-wrap:wrap; gap:3px; margin:0; line-height:14px; }
+    .df-record-directory:not([data-view="cards"]) .ykc-report-team { overflow-wrap:normal; }
+    .df-record-directory:not([data-view="cards"]) .ykc-list-process { display:flex; align-items:center; justify-content:space-between; gap:6px; }
+}
+.df-record-directory:not([data-view="cards"]) .df-record-table :is(.ykc-directory-customer,.ykc-report-customer-cell) :is(.ykc-primary-cell,.ykc-cell-main) { overflow:visible; text-overflow:clip; white-space:normal; overflow-wrap:anywhere; line-height:15px; }
+.df-record-directory .df-record-table td[data-label="Kontrol Randevusu"] .ykc-primary-cell.ykc-scheduled-appointment { display:grid; grid-template-columns:max-content max-content; justify-content:start; align-items:center; gap:2px 8px; min-width:0; overflow:visible; text-overflow:clip; white-space:normal; }
+:is(.df-record-directory,.df-commissioning-directory) .df-schedule-value { display:inline-flex; align-items:center; flex:none; gap:5px; color:#283e54; font-size:11px; font-weight:600; line-height:14px; font-variant-numeric:tabular-nums; white-space:nowrap; }
+:is(.df-record-directory,.df-commissioning-directory) .df-schedule-value > i { flex:none; color:#48678b; font-size:11px; line-height:1; }
+.df-record-directory .ykc-appointment-number { grid-column:1 / -1; color:#52677c; font-size:10px; font-weight:500; line-height:14px; white-space:nowrap; }
+.df-record-directory:not([data-view="cards"]) .df-record-table td[data-label="Kontrol Randevusu"] .ykc-cell-meta { font-size:10px; font-weight:400; line-height:14px; }
+:is(.df-commissioning-directory,.df-record-directory)[data-view="cards"] { --directory-card-background:#f2f5f9; --directory-card-border:#dce3ed; --directory-card-label:#52677c; --directory-card-ink:#283e54; --directory-card-label-size:10px; --directory-card-value-size:11px; --directory-card-line:14px; --directory-card-inset:14px; }
+:is(.df-commissioning-directory,.df-record-directory)[data-view="cards"] .df-device-type-icon { width:10px; height:10px; flex-basis:10px; }
+:is(.df-commissioning-directory,.df-record-directory)[data-view="cards"] .df-device-type-fallback { font-size:10px; }
+.df-record-directory[data-view="cards"] .ykc-data-panel { padding:12px; border:0; border-radius:0; background:#fff; }
+.df-record-directory[data-view="cards"] .ykc-table-scroll { overflow:visible; }
+.df-record-directory[data-view="cards"] .df-record-table { display:block; min-width:0; width:100%; }
+.df-record-directory[data-view="cards"] :is(colgroup,thead) { position:absolute; width:1px; height:1px; padding:0; overflow:hidden; clip-path:inset(50%); }
+.df-record-directory[data-view="cards"] tbody { display:grid; grid-template-columns:repeat(auto-fill,minmax(236px,1fr)); grid-auto-rows:1fr; align-items:stretch; gap:12px; }
+.df-record-directory[data-view="cards"] { --directory-card-inset:12px; }
+.df-record-directory[data-view="cards"] tr[data-directory-record] { --card-context-height:28px; --card-footer-height:22px; position:relative; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); grid-template-rows:14px 16px 18px 30px 18px minmax(66px,1fr) minmax(var(--card-context-height),auto) var(--card-footer-height); align-content:start; gap:4px 26px; min-height:0; aspect-ratio:auto; box-sizing:border-box; padding:var(--directory-card-inset); border:1px solid var(--directory-card-border); border-top:2px solid #315fca; border-radius:8px; background:var(--directory-card-background); cursor:pointer; }
+.df-record-directory[data-view="cards"] .ykc-report-table tr[data-directory-record] { --card-context-height:14px; --card-footer-height:32px; }
+.df-record-directory[data-view="cards"] .df-record-table.is-firm tr[data-directory-record] { grid-template-rows:14px 22px 30px 18px minmax(57px,1fr) minmax(var(--card-context-height),auto) var(--card-footer-height); column-gap:16px; }
+.df-record-directory[data-view="cards"] .ykc-report-table.is-firm tr[data-directory-record] { grid-template-rows:14px 22px 30px 18px minmax(57px,1fr) var(--card-footer-height); }
+.df-record-directory[data-view="cards"] tr[data-directory-record]:hover { border-color:#9db6e9; background:#edf3ff; }
+:is(.df-commissioning-directory,.df-record-directory)[data-view="cards"] :is(.df-commissioning-record-row,tr[data-directory-record]) { border-top-color:#315fca !important; }
+.df-record-directory[data-view="cards"] .df-record-table tbody td { display:block; grid-column:auto; grid-row:auto; width:auto; min-width:0; padding:0 !important; border:0; border-radius:0; background:transparent !important; box-shadow:none; text-align:left; }
+.df-record-directory[data-view="cards"] td[data-label]::before { display:block; margin-bottom:1px; color:var(--directory-card-label); font-size:var(--directory-card-label-size); font-weight:400; line-height:var(--directory-card-line); content:attr(data-label) ":"; }
+.df-record-directory[data-view="cards"] .df-record-table :is(.ykc-directory-record-id,.ykc-report-record-cell) { grid-column:1 / -1; grid-row:1; display:flex !important; align-items:baseline; gap:4px; padding-left:23px !important; }
+.df-record-directory[data-view="cards"] .df-record-table :is(.ykc-directory-record-id,.ykc-report-record-cell)::before { display:block; content:"Talep"; margin:0; color:#315fca; }
+.df-record-directory[data-view="cards"] .df-record-table :is(.ykc-directory-customer,.ykc-report-customer-cell) { grid-column:1 / -1; }
+.df-record-directory[data-view="cards"] .df-record-table :is(.ykc-directory-customer,.ykc-report-customer-cell,.ykc-list-company-cell,.ykc-report-company-cell) { padding-left:23px !important; }
+.df-record-directory[data-view="cards"] .df-record-table.is-firm :is(.ykc-directory-customer,.ykc-report-customer-cell) { padding-bottom:6px !important; border-bottom:1px solid var(--directory-card-border); }
+.df-record-directory[data-view="cards"] td[data-label]:is(.ykc-directory-customer,.ykc-report-customer-cell)::before { display:none; }
+.df-record-directory[data-view="cards"] .df-record-table :is(.ykc-primary-cell,.ykc-cell-main,.ykc-code) { color:var(--directory-card-ink); font-size:var(--directory-card-value-size); font-weight:500; line-height:var(--directory-card-line); overflow-wrap:normal; }
+.df-record-directory[data-view="cards"] .df-record-table :is(.ykc-code,.ykc-list-installation-cell .ykc-primary-cell,.ykc-list-contract-cell .ykc-primary-cell,.ykc-id-list dd) { color:#315fca; }
+.df-record-directory[data-view="cards"] .df-record-table :is(.ykc-directory-customer,.ykc-report-customer-cell) :is(.ykc-primary-cell,.ykc-cell-main) { margin:0; font-size:var(--directory-card-value-size); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+:is(.df-record-directory,.df-commissioning-directory)[data-view="cards"] :is(.ykc-directory-customer .ykc-primary-cell,.ykc-report-customer-cell .ykc-cell-main,.df-commissioning-col-customer .df-cell-main)::before { content:"Abone: "; color:var(--directory-card-label); font-size:var(--directory-card-label-size); font-weight:400; }
+.df-record-directory[data-view="cards"] .df-record-table td:is(.ykc-list-company-cell,.ykc-report-company-cell,.ykc-list-installation-cell,.ykc-list-contract-cell,.ykc-report-type-cell,.ykc-report-team-cell,[data-label="Yakıcı Cihaz Tipi"]) { display:grid; grid-column:1 / -1; grid-template-columns:max-content minmax(0,1fr); gap:6px; align-items:baseline; }
+.df-record-directory[data-view="cards"] .df-record-table td:is(.ykc-list-company-cell,.ykc-report-company-cell,.ykc-list-installation-cell,.ykc-list-contract-cell,.ykc-report-type-cell,.ykc-report-team-cell,[data-label="Yakıcı Cihaz Tipi"])::before { margin:0; line-height:var(--directory-card-line); white-space:nowrap; }
+.df-record-directory[data-view="cards"] .df-record-table td:is(.ykc-list-installation-cell,.ykc-list-contract-cell) { display:block; grid-column:auto; }
+.df-record-directory[data-view="cards"] .df-record-table td:is(.ykc-list-installation-cell,.ykc-list-contract-cell)::before { margin-bottom:1px; line-height:var(--directory-card-line); }
+.df-record-directory[data-view="cards"] .df-device-type-tag { justify-self:start; width:max-content; min-width:0; min-height:16px; height:16px; gap:3px; padding:0 4px; border:1px solid var(--device-type-border,#bdcff4); background:var(--device-type-background,#eef4ff); font-size:10px; line-height:14px; white-space:nowrap; overflow-wrap:normal; }
+.df-record-directory[data-view="cards"] .ykc-report-type-cell .ykc-muted { display:none; }
+.df-record-directory[data-view="cards"] :is(.ykc-directory-select,.ykc-report-select-cell) { position:absolute; top:14px; left:var(--directory-card-inset); }
+.df-record-directory[data-view="cards"] .df-record-table :is(.ykc-report-select-cell,.ykc-report-detail-cell)::before { display:none; }
+.df-record-directory[data-view="cards"] .ykc-report-detail-cell { position:absolute; top:6px; right:var(--directory-card-inset); }
+.df-record-directory[data-view="cards"] .df-record-table :is(.ykc-list-company-cell,.ykc-action-cell,.ykc-report-type-cell) { grid-column:1 / -1; }
+.df-record-directory[data-view="cards"] .df-record-table.is-internal :is(.ykc-list-company-cell,.ykc-report-company-cell) { display:block; grid-column:1 / -1; grid-row:3; padding-bottom:3px !important; border-bottom:1px solid var(--directory-card-border); }
+.df-record-directory[data-view="cards"] .df-record-table.is-internal :is(.ykc-list-company-cell,.ykc-report-company-cell)::before { display:none; }
+.df-record-directory[data-view="cards"] :is(.ykc-list-company-cell,.ykc-report-company-cell) :is(.ykc-primary-cell,.ykc-cell-main) { margin:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--directory-card-label); font-size:10px; font-weight:400; line-height:12px; }
+.df-record-directory[data-view="cards"] .df-record-table :is(.ykc-directory-customer,.ykc-report-customer-cell) { grid-row:2; }
+.df-record-directory[data-view="cards"] .df-record-table td:is([data-label="Yakıcı Cihaz Tipi"],[data-label="Kontrol Randevusu"]) { grid-column:1 / -1; }
+.df-record-directory[data-view="cards"] .df-record-table td[data-label="Yakıcı Cihaz Tipi"] { display:grid; grid-column:1 / -1; grid-row:5; justify-self:stretch; align-items:baseline; max-width:none; }
+.df-record-directory[data-view="cards"] .df-record-table.is-firm td[data-label="Yakıcı Cihaz Tipi"] { grid-row:4; }
+.df-record-directory[data-view="cards"] td[data-label="Yakıcı Cihaz Tipi"] .df-device-type-tag { max-width:100%; overflow:hidden; }
+.df-record-directory[data-view="cards"] .df-record-table :is(.ykc-list-installation-cell,.ykc-list-contract-cell,.ykc-report-installation-cell,.ykc-report-contract-cell) { grid-column:auto; grid-row:4; }
+.df-record-directory[data-view="cards"] .df-record-table.is-firm :is(.ykc-list-installation-cell,.ykc-list-contract-cell,.ykc-report-installation-cell,.ykc-report-contract-cell) { grid-row:3; }
+.df-record-directory[data-view="cards"] .df-record-table :is(.ykc-list-installation-cell,.ykc-list-contract-cell,.ykc-report-installation-cell,.ykc-report-contract-cell,.ykc-report-team-cell) :is(.ykc-primary-cell,.ykc-cell-main) { min-width:0; margin:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:14px; }
+.df-record-directory[data-view="cards"] .df-record-table.is-firm td[data-label="Yeni Kullanılan Cihaz"] { grid-column:1 / -1; }
+.df-record-directory[data-view="cards"] .ykc-list-process { display:flex; align-items:center; justify-content:space-between; gap:6px; }
+.df-record-directory[data-view="cards"] .df-record-table :is(.ykc-device-summary,.ykc-device-column) { display:grid; gap:0; padding:0; border:0; background:transparent; color:var(--directory-card-ink); }
+.df-record-directory[data-view="cards"] .df-record-table :is(.ykc-device-summary,.ykc-device-column) strong { color:var(--directory-card-ink); font-size:var(--directory-card-value-size); font-weight:500; line-height:var(--directory-card-line); }
+.df-record-directory[data-view="cards"] .df-record-table :is(.ykc-device-summary,.ykc-device-column) strong::before { content:"Marka: "; color:var(--directory-card-label); font-size:var(--directory-card-label-size); font-weight:400; }
+.df-record-directory[data-view="cards"] .df-record-table :is(.ykc-device-summary span,.ykc-device-column small) { color:var(--directory-card-label); font-size:10px; font-weight:400; line-height:13px; }
+.df-record-directory .ykc-device-capacity-unit { display:none; }
+.df-record-directory[data-view="cards"] .ykc-device-capacity-unit { display:inline; margin:0; color:inherit; font:inherit; }
+.df-record-directory[data-view="cards"] .ykc-device-summary span { gap:3px; }
+.df-record-directory[data-view="cards"] .ykc-device-column small { display:flex; align-items:baseline; gap:3px; margin:0; }
+.df-record-directory[data-view="cards"] .ykc-device-column { min-height:53px; align-content:start; }
+.df-record-directory[data-view="cards"] .ykc-device-column small > i { flex:none; font-size:10px; color:#718397; }
+.df-record-directory[data-view="cards"] .ykc-device-column :is(strong,.ykc-device-model-name) { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.df-record-directory[data-view="cards"] .ykc-device-fact-label { position:static; width:auto; height:auto; margin:0; padding:0; overflow:visible; clip-path:none; color:inherit; font:inherit; white-space:nowrap; }
+.df-record-directory .df-record-table.is-firm .ykc-device-summary .ykc-device-fact-label { position:static; display:inline; width:auto; height:auto; overflow:visible; clip-path:none; white-space:normal; }
+.df-record-directory[data-view="cards"] .df-record-table td:is([data-label="Projedeki Cihaz"],[data-label="Yeni Kullanılan Cihaz"]) { grid-row:5; align-self:stretch; }
+.df-record-directory[data-view="cards"] .df-record-table.is-internal td:is([data-label="Projedeki Cihaz"],[data-label="Yeni Kullanılan Cihaz"]) { position:relative; grid-column:1 / -1; grid-row:6; width:calc((100% - 76px) / 2); padding:0 !important; }
+.df-record-directory[data-view="cards"] .df-record-table.is-internal td[data-label="Projedeki Cihaz"] { margin-left:50px; }
+.df-record-directory[data-view="cards"] .df-record-table.is-internal td[data-label="Yeni Kullanılan Cihaz"] { justify-self:end; }
+.df-record-directory[data-view="cards"] .df-record-table.is-internal td:is([data-label="Projedeki Cihaz"],[data-label="Yeni Kullanılan Cihaz"])::before { display:block; height:18px; margin:0; line-height:14px; white-space:nowrap; }
+.df-record-directory[data-view="cards"] .df-record-table.is-internal td[data-label="Projedeki Cihaz"]::before { content:"Projedeki"; }
+.df-record-directory[data-view="cards"] .df-record-table.is-internal td[data-label="Yeni Kullanılan Cihaz"]::before { content:"Yeni cihaz"; }
+.df-record-directory[data-view="cards"] .ykc-device-change-arrow { left:calc(100% + 13px); top:42px; width:16px; height:16px; font-size:14px; }
+.df-record-directory[data-view="cards"] .df-record-table.is-internal :is(.ykc-device-summary,.ykc-device-column) { grid-template-rows:repeat(3,16px); min-height:48px; }
+.df-record-directory[data-view="cards"] .df-record-table.is-internal :is(.ykc-device-summary,.ykc-device-column) > :is(strong,span,small) { display:block; min-width:0; margin:0; line-height:16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.df-record-directory[data-view="cards"] .df-record-table.is-internal :is(.ykc-device-summary,.ykc-device-column) > :is(span,small) > i { display:none; }
+.df-record-directory[data-view="cards"] .df-record-table.is-internal :is(.ykc-device-summary,.ykc-device-column) .ykc-device-fact-label,
+.df-record-directory[data-view="cards"] .df-record-table.is-internal :is(.ykc-device-summary,.ykc-device-column) strong::before { position:absolute; display:block; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+/* One row label describes both device values, keeping the comparison compact. */
+.df-record-directory[data-view="cards"] .df-record-table.is-internal :is(.ykc-device-summary,.ykc-device-column).is-project .ykc-device-fact-label,
+.df-record-directory[data-view="cards"] .df-record-table.is-internal :is(.ykc-device-summary,.ykc-device-column).is-project strong::before { left:-50px; width:48px; height:16px; overflow:visible; clip-path:none; line-height:16px; white-space:nowrap; }
+.df-record-directory[data-view="cards"] .df-record-table.is-internal .ykc-device-column .ykc-device-model-name { width:calc(200% + 76px); margin-left:calc(-100% - 76px); }
+.df-record-directory[data-view="cards"] td[data-label="Kontrol Randevusu"]::before { content:"Randevu:"; }
+.df-record-directory[data-view="cards"] .df-record-table td[data-label="Kontrol Randevusu"] { position:relative; display:grid; grid-row:6; grid-template-columns:max-content minmax(0,1fr); align-items:baseline; align-content:start; gap:0 6px; }
+.df-record-directory[data-view="cards"] .df-record-table.is-internal td[data-label="Kontrol Randevusu"],
+.df-record-directory[data-view="cards"] .df-record-table .ykc-report-team-cell { grid-row:7; }
+.df-record-directory[data-view="cards"] td[data-label="Kontrol Randevusu"]::before { margin:0; }
+.df-record-directory[data-view="cards"] td[data-label="Kontrol Randevusu"]:has(.ykc-scheduled-appointment)::before { display:none; }
+.df-record-directory[data-view="cards"] .ykc-scheduled-appointment { grid-column:1 / -1; }
+.df-record-directory[data-view="cards"] td[data-label="Kontrol Randevusu"] .ykc-primary-cell { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.df-record-directory[data-view="cards"] .df-record-table .is-pending-appointment { display:block; justify-self:stretch; max-width:100%; padding:0; border:0; background:transparent; }
+.df-record-directory .df-record-table .ykc-primary-cell.is-pending-appointment { color:#52677c; font-family:inherit; font-size:10px; font-weight:400; line-height:14px; }
+.df-record-directory[data-view="cards"] td[data-label="Kontrol Randevusu"] .ykc-cell-meta { grid-column:1 / -1; margin:0; line-height:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.df-record-directory[data-view="cards"] .ykc-control-limit-note { position:absolute; top:1px; right:0; margin:0; line-height:14px; }
+.df-record-directory[data-view="cards"] .ykc-control-limit-note > span { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+.df-record-directory[data-view="cards"] td[data-label="Kontrol Randevusu"]:has(.ykc-control-limit-note) > .ykc-primary-cell { margin-right:16px; }
+.df-record-directory[data-view="cards"] .ykc-cell-meta { color:var(--directory-card-label); font-size:10.5px; }
+.df-record-directory[data-view="cards"] .df-record-table :is(.ykc-action-cell,.ykc-report-status-cell) { position:static; display:grid; grid-column:1 / -1; grid-row:8; grid-template-columns:max-content minmax(0,1fr); align-items:baseline; gap:6px; margin-top:0; padding-top:3px !important; border-top:1px solid var(--directory-card-border); }
+.df-record-directory[data-view="cards"] .df-record-table :is(.ykc-action-cell,.ykc-report-status-cell)::before { display:block; content:"Durum:"; margin:0; }
+.df-record-directory[data-view="cards"] .df-record-table.is-firm .ykc-action-cell { grid-row:7; }
+.df-record-directory[data-view="cards"] .ykc-report-table.is-firm .ykc-report-status-cell { grid-row:6; }
+.df-record-directory[data-view="cards"] .ykc-report-process { min-width:0; display:grid; gap:0; }
+.df-record-directory[data-view="cards"] :is(.ykc-report-state,.ykc-report-form-state) { display:block; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:10px; line-height:14px; }
+.df-record-directory[data-view="cards"] :is(.ykc-report-state,.ykc-report-form-state) > i { margin-right:4px; }
+@container record-directory (max-width:980px) { .df-record-directory[data-view="cards"] tbody { grid-template-columns:repeat(3,minmax(0,288px)); } }
+@container record-directory (max-width:760px) { .df-record-directory[data-view="cards"] tbody { grid-template-columns:repeat(2,minmax(0,288px)); } }
+@container record-directory (max-width:520px) {
+    .df-record-directory[data-view="cards"] tbody { grid-template-columns:minmax(0,1fr); grid-auto-rows:auto; }
+}
+.df-commissioning-directory .df-commissioning-col-select { padding-inline:7px !important; }
+.df-commissioning-directory[data-view="cards"] > .df-commissioning-surface { padding:12px; border:0; border-radius:0; background:#fff; }
+.df-commissioning-directory[data-view="cards"] .df-admin-table-scroll { overflow:visible; }
+.df-commissioning-directory[data-view="cards"] .df-commissioning-table { display:block; min-width:0; width:100%; }
+.df-commissioning-directory[data-view="cards"] thead { position:absolute; width:1px; height:1px; padding:0; overflow:hidden; clip-path:inset(50%); }
+.df-commissioning-directory[data-view="cards"] tbody { display:grid; grid-template-columns:repeat(auto-fill,minmax(228px,1fr)); grid-auto-flow:row dense; align-items:stretch; gap:12px; }
+.df-commissioning-directory[data-view="cards"] .df-commissioning-record-row { position:relative; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-content:space-between; gap:5px 12px; min-height:0; aspect-ratio:1; box-sizing:border-box; padding:var(--directory-card-inset); border:1px solid var(--directory-card-border); border-top:2px solid #315fca; border-radius:8px; background:var(--directory-card-background); cursor:pointer; }
+.df-commissioning-directory[data-view="cards"] .df-commissioning-record-row:hover,
+.df-commissioning-directory[data-view="cards"] .df-commissioning-record-row.is-expanded { border-color:#9db6e9; background:#edf3ff; }
+.df-commissioning-directory[data-view="cards"] .df-table.df-commissioning-table .df-commissioning-record-row > td { display:block; width:auto; min-width:0; padding:0; border:0; border-radius:0; background:transparent; text-align:left; box-shadow:none; transition:none; }
+.df-commissioning-directory[data-view="cards"] .df-table.df-commissioning-table td[data-label]:not(.df-commissioning-col-customer) { display:grid; grid-column:1 / -1; grid-template-columns:max-content minmax(0,1fr); align-items:baseline; gap:6px; }
+.df-commissioning-directory[data-view="cards"] td[data-label]::before { display:block; color:var(--directory-card-label); font-size:var(--directory-card-label-size); font-weight:400; line-height:var(--directory-card-line); white-space:nowrap; content:attr(data-label) ":"; }
+.df-commissioning-directory[data-view="cards"] .df-commissioning-col-customer { grid-column:1 / -1; padding:0 24px 6px 28px !important; border-bottom:1px solid var(--directory-card-border) !important; }
+.df-commissioning-directory[data-view="cards"] td.df-commissioning-col-customer::before { margin-bottom:2px; color:#315fca; font-size:10px; line-height:14px; content:"Kayıt #" attr(data-record-id); }
+.df-commissioning-directory[data-view="cards"] :is(.df-cell-main,.df-cell-value,.df-device-facts dd) { min-width:0; color:var(--directory-card-ink); font-size:var(--directory-card-value-size); font-weight:500; line-height:var(--directory-card-line); }
+.df-commissioning-directory[data-view="cards"] .df-cell-value.df-schedule-value { font-weight:600; }
+.df-commissioning-directory[data-view="cards"] :is(.df-commissioning-col-customer .df-cell-main,.df-commissioning-col-company .df-cell-value) { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.df-commissioning-directory[data-view="cards"] .df-commissioning-col-customer .df-cell-sub { display:none; }
+.df-commissioning-directory[data-view="cards"] :is(.df-commissioning-col-installation,.df-commissioning-col-contract) .df-cell-value { color:#315fca; white-space:nowrap; }
+.df-commissioning-directory[data-view="cards"] .df-table.df-commissioning-table td[data-label]:is(.df-commissioning-col-installation,.df-commissioning-col-contract) { display:block; grid-column:auto; }
+.df-commissioning-directory[data-view="cards"] td[data-label]:is(.df-commissioning-col-installation,.df-commissioning-col-contract)::before { margin-bottom:2px; line-height:var(--directory-card-line); }
+.df-commissioning-directory[data-view="cards"] .df-table.df-commissioning-table td[data-label].df-commissioning-col-device { display:block; }
+.df-commissioning-directory[data-view="cards"] td[data-label].df-commissioning-col-device::before { display:none; }
+.df-commissioning-directory[data-view="cards"] .df-device-facts { gap:5px; }
+.df-commissioning-directory[data-view="cards"] .df-device-facts > div { grid-template-columns:36px minmax(0,1fr); gap:6px; align-items:baseline; }
+.df-commissioning-directory[data-view="cards"] .df-device-facts dt { color:var(--directory-card-label); font-size:var(--directory-card-label-size); font-weight:500; line-height:var(--directory-card-line); }
+.df-commissioning-directory[data-view="cards"] .df-device-facts dd { font-weight:500; }
+.df-commissioning-directory[data-view="cards"] .df-device-facts .df-device-model dd { line-height:var(--directory-card-line); }
+.df-commissioning-directory[data-view="cards"] :is(.df-device-type-tag,.df-commissioning-table .df-pill) { justify-self:start; width:max-content; min-width:0; max-width:100%; min-height:16px; height:16px; gap:3px; padding:0 4px; border:1px solid; background:#fff; font-size:10px; font-weight:400; line-height:14px; }
+.df-commissioning-directory[data-view="cards"] .df-device-type-tag { border-color:var(--device-type-border,#bdcff4); color:var(--device-type-color,#315fca); white-space:nowrap; overflow-wrap:normal; }
+.df-commissioning-directory[data-view="cards"] .df-commissioning-table .df-device-type-tag { background:var(--device-type-background,#eef4ff); }
+.df-commissioning-directory[data-view="cards"] .df-commissioning-table .df-pill { padding-inline:5px; border-color:#c1dfd0; background:#e1f3ea; color:#287456; }
+.df-commissioning-directory[data-view="cards"] .df-commissioning-table .df-pill-danger { border-color:#efcdd2; background:#fceef0; color:#a63c51; }
+.df-commissioning-directory[data-view="cards"] .df-commissioning-table .df-pill-warning { border-color:#e7d6ac; background:#fff4e1; color:#815e19; }
+.df-commissioning-directory[data-view="cards"] .df-table.df-commissioning-table td.df-commissioning-col-status { padding-top:5px; border-top:1px solid var(--directory-card-border); }
+.df-commissioning-directory[data-view="cards"] .df-commissioning-col-select { position:absolute; top:16px; left:var(--directory-card-inset); }
+.df-commissioning-directory[data-view="cards"] .df-commissioning-col-action { position:absolute; top:11px; right:var(--directory-card-inset); }
+.df-commissioning-directory[data-view="cards"] .df-commissioning-detail-row { grid-column:1 / -1; display:block; min-width:0; }
+.df-commissioning-directory[data-view="cards"] .df-commissioning-detail-row > td { display:block; padding:0; border:0; }
+.df-commissioning-directory[data-view="cards"] .df-commissioning-detail-panel { position:static; width:100%; margin:0; }
+.df-commissioning-directory[data-view="cards"] .df-commissioning-extra-facts dt { color:#485f77; font-size:11px; font-weight:500; }
+.df-commissioning-directory[data-view="cards"] .df-commissioning-extra-facts dd { color:#283e54; font-weight:550; }
+.df-commissioning-directory[data-view="cards"] #commissioningFiltersPanel { padding:0 10px; margin-bottom:12px; }
+@container commissioning-table (max-width:940px) { .df-commissioning-directory[data-view="cards"] tbody { grid-template-columns:repeat(3,minmax(0,288px)); } }
+@container commissioning-table (max-width:700px) { .df-commissioning-directory[data-view="cards"] tbody { grid-template-columns:repeat(2,minmax(0,288px)); } }
+@container commissioning-table (max-width:520px) {
+    .df-commissioning-directory[data-view="cards"] tbody { grid-template-columns:minmax(0,1fr); }
+    .df-commissioning-directory[data-view="cards"] .df-commissioning-record-row { aspect-ratio:auto; align-content:start; row-gap:6px; }
+}
+.df-commissioning-directory .df-commissioning-pager { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px 16px; padding:12px 14px; border-top:1px solid #dce3ed; color:#52677c; font-size:12px; }
+.df-commissioning-pager nav { display:flex; flex-wrap:wrap; align-items:center; gap:4px; }
+.df-commissioning-pager nav > :is(a,span) { display:inline-flex; align-items:center; justify-content:center; flex:none; width:30px; height:30px; border:1px solid #dce3ed; border-radius:5px; background:#fff; color:#315fca; text-decoration:none; }
+.df-commissioning-pager nav > a:hover { background:#eaf1fc; }
+.df-commissioning-pager nav > a:focus-visible { outline:2px solid #315fca; outline-offset:2px; }
+.df-commissioning-pager nav > [aria-disabled="true"] { color:#748296; opacity:.5; }
+.df-commissioning-pager nav > .df-commissioning-page-number { width:auto; min-width:64px; padding:0 6px; border-color:transparent; background:transparent; color:#283e54; font-variant-numeric:tabular-nums; }
+.df-commissioning-directory[data-history-directory] .df-commissioning-col-customer .df-cell-main,
+.df-record-directory[data-history-directory] .df-record-table :is(.ykc-directory-customer,.ykc-report-customer-cell) :is(.ykc-primary-cell,.ykc-cell-main) { font-size:11px; font-weight:500; line-height:15px; letter-spacing:0; text-transform:none; }
+@media(max-width:1100px) { .ys-history-toolbar { align-items:flex-start; } .ys-history-tools { width:100%; } }
+@media(max-width:760px) { .df-commissioning-directory #commissioningFiltersPanel .df-admin-filter-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:480px) { .ys-history-search { width:100%; } .ys-history-tools { gap:6px; } .df-commissioning-directory #commissioningFiltersPanel .df-admin-filter-grid { grid-template-columns:minmax(0,1fr); } }

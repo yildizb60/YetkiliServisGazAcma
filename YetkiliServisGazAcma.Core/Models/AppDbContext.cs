@@ -158,6 +158,12 @@ namespace YetkiliServisGazAcma.Models
                 .HasIndex(x => new { x.TesisatNo, x.SilindiMi });
 
             modelBuilder.Entity<Ykc_Talep>()
+                .Property(x => x.SorguReferansi).HasMaxLength(64).IsUnicode(false);
+            modelBuilder.Entity<Ykc_Talep>()
+                .HasIndex(x => x.SorguReferansi).IsUnique()
+                .HasFilter("[SorguReferansi] IS NOT NULL");
+
+            modelBuilder.Entity<Ykc_Talep>()
                 .HasIndex(x => new { x.RandevuTarihi, x.SilindiMi });
 
             modelBuilder.Entity<Ykc_Talep>()

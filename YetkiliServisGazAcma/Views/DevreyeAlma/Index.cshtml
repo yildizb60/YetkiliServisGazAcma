@@ -141,7 +141,11 @@
         pending.querySelector("i").className = "bi bi-hand-index-thumb";
         pending.querySelector("strong").textContent = "Projedeki cihazı seçin";
         pending.querySelector("small").textContent = "Seçimin ardından kayıt alanları burada açılır.";
-        document.querySelectorAll(".ys-commissioning-device-option.is-unavailable").forEach(button => button.classList.remove("is-unavailable"));
+        document.querySelectorAll(".ys-commissioning-device-option.is-unavailable").forEach(button => {
+            button.classList.remove("is-unavailable");
+            button.removeAttribute("title");
+            button.querySelector("i").className = "bi bi-chevron-right";
+        });
     }
 
     function cihazUyarisiGoster(index, mesaj) {
@@ -154,7 +158,14 @@
         } else {
             window.operationToast?.error(mesaj, 6000);
         }
-        document.querySelectorAll(".ys-commissioning-device-option")[index]?.classList.add("is-unavailable");
+        const button = document.querySelectorAll(".ys-commissioning-device-option")[index];
+        if (button) {
+            button.classList.remove("is-selected", "is-active");
+            button.classList.add("is-unavailable");
+            button.setAttribute("aria-pressed", "false");
+            button.title = mesaj;
+            button.querySelector("i").className = "bi bi-lock";
+        }
     }
 
     function aktifTaslagiSakla() {

@@ -1,5 +1,3 @@
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
 using Microsoft.Extensions.Options;
 using YetkiliServisGazAcma.Entities;
 
@@ -7,10 +5,7 @@ namespace YetkiliServisGazAcma.Business.Services
 {
     public class AdminYetkiBelgesiOnayApiClient
     {
-        private readonly HttpClient _httpClient;
-        private readonly ApiIntegrationOptions _options;
-        private readonly ApiJwtTokenService _tokenService;
-        private readonly ILogger<AdminYetkiBelgesiOnayApiClient> _logger;
+        private readonly ApiHttpClient _api;
 
         public AdminYetkiBelgesiOnayApiClient(
             HttpClient httpClient,
@@ -18,53 +13,18 @@ namespace YetkiliServisGazAcma.Business.Services
             ApiJwtTokenService tokenService,
             ILogger<AdminYetkiBelgesiOnayApiClient> logger)
         {
-            _httpClient = httpClient;
-            _options = options.Value;
-            _tokenService = tokenService;
-            _logger = logger;
+            _api = new ApiHttpClient(httpClient, options.Value, tokenService, logger);
         }
 
-        public async Task<AdminYetkiBelgesiOnaySonuc?> ListeleAsync(AppKullanici kullanici, int? sirketId)
+        public Task<AdminYetkiBelgesiOnayListeDto?> ListeleAsync(AppKullanici kullanici, int? sirketId, YetkiBelgesiOnayFiltreDto? filtre = null)
         {
-            if (!_options.Enabled)
-            {
-                ApiClientFallback.EnsureAllowed(_options, "Admin yetki belgesi onay listesi");
-                return null;
-            }
-
-            try
-            {
-                var token = await _tokenService.OlusturAsync(kullanici);
-                if (string.IsNullOrWhiteSpace(token))
-                {
-                    ApiClientFallback.EnsureAllowed(_options, "Admin yetki belgesi onay listesi token");
-                    return null;
-                }
-
-                using var request = new HttpRequestMessage(HttpMethod.Post, "api/admin-panel/yetki-belgeleri/onay-listesi");
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-                request.Content = JsonContent.Create(new AdminYetkiBelgesiOnayFiltreIstek { SirketId = sirketId });
-
-                using var response = await _httpClient.SendAsync(request);
-                if (!response.IsSuccessStatusCode)
-                {
-                    _logger.LogWarning("Admin yetki belgesi onay listesi API cagrisinda basarisiz yanit dondu. StatusCode: {StatusCode}", response.StatusCode);
-                    ApiClientFallback.EnsureAllowed(_options, "Admin yetki belgesi onay listesi");
-                    return null;
-                }
-
-                var sonuc = await response.Content.ReadFromJsonAsync<AdminYetkiBelgesiOnayListeCevap>();
-                return sonuc?.ToSonuc();
-            }
-            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
-            {
-                _logger.LogWarning(ex, "Admin yetki belgesi onay listesi API cagrisina ulasilamadi.");
-                ApiClientFallback.EnsureAllowed(_options, "Admin yetki belgesi onay listesi");
-                return null;
-            }
+            filtre ??= new();
+            filtre.SirketId = sirketId;
+            return _api.PostAsync<object, AdminYetkiBelgesiOnayListeDto>(kullanici,
+                "api/admin-panel/yetki-belgeleri/onay-listesi", filtre, "Admin yetki belgesi onay listesi");
         }
 
-        public async Task<List<Ys_YetkiBelgesi>?> OnayGecmisiAsync(
+        public async Task<List<AdminYetkiBelgesiOnayDto>?> OnayGecmisiAsync(
             AppKullanici kullanici,
             int? sirketId,
             DateTime? bas,
@@ -72,148 +32,23 @@ namespace YetkiliServisGazAcma.Business.Services
             string? q,
             string? durum)
         {
-            if (!_options.Enabled)
+            var sonuc = await _api.PostAsync<object, AdminYetkiBelgesiOnayGecmisiListeDto>(kullanici,
+                "api/admin-panel/yetki-belgeleri/onay-gecmisi", new AdminYetkiBelgesiOnayGecmisiFiltreDto
             {
-                ApiClientFallback.EnsureAllowed(_options, "Admin yetki belgesi onay gecmisi");
-                return null;
-            }
-
-            try
-            {
-                var token = await _tokenService.OlusturAsync(kullanici);
-                if (string.IsNullOrWhiteSpace(token))
-                {
-                    ApiClientFallback.EnsureAllowed(_options, "Admin yetki belgesi onay gecmisi token");
-                    return null;
-                }
-
-                using var request = new HttpRequestMessage(HttpMethod.Post, "api/admin-panel/yetki-belgeleri/onay-gecmisi");
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-                request.Content = JsonContent.Create(new AdminYetkiBelgesiOnayGecmisiFiltreIstek
-                {
-                    SirketId = sirketId,
-                    BaslangicTarihi = bas,
-                    BitisTarihi = bit,
-                    Q = q,
-                    Durum = int.TryParse(durum, out var durumNo) ? durumNo : null
-                });
-
-                using var response = await _httpClient.SendAsync(request);
-                if (!response.IsSuccessStatusCode)
-                {
-                    _logger.LogWarning("Admin yetki belgesi onay gecmisi API cagrisinda basarisiz yanit dondu. StatusCode: {StatusCode}", response.StatusCode);
-                    ApiClientFallback.EnsureAllowed(_options, "Admin yetki belgesi onay gecmisi");
-                    return null;
-                }
-
-                var sonuc = await response.Content.ReadFromJsonAsync<AdminYetkiBelgesiOnayGecmisiListeCevap>();
-                return sonuc?.Islemler.Select(x => x.ToEntity()).ToList() ?? new List<Ys_YetkiBelgesi>();
-            }
-            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
-            {
-                _logger.LogWarning(ex, "Admin yetki belgesi onay gecmisi API cagrisina ulasilamadi.");
-                ApiClientFallback.EnsureAllowed(_options, "Admin yetki belgesi onay gecmisi");
-                return null;
-            }
+                SirketId = sirketId,
+                BaslangicTarihi = bas,
+                BitisTarihi = bit,
+                Q = q,
+                Durum = int.TryParse(durum, out var durumNo) ? durumNo : null
+            }, "Admin yetki belgesi onay gecmisi");
+            return sonuc?.Islemler ?? new List<AdminYetkiBelgesiOnayDto>();
         }
 
-        private class AdminYetkiBelgesiOnayFiltreIstek
-        {
-            public int? SirketId { get; set; }
-        }
+        public Task<ApiDosyaSonuc?> RaporAsync(AppKullanici kullanici, YetkiBelgesiRaporFiltre filtre, bool excelMi)
+            => _api.PostFileAsync(kullanici,
+                excelMi ? "api/admin-panel/yetki-belgeleri/rapor/excel" : "api/admin-panel/yetki-belgeleri/rapor/pdf",
+                filtre, excelMi ? "yetki-belgesi-raporu.xlsx" : "yetki-belgesi-raporu.pdf", "Yetki belgesi raporu");
 
-        private class AdminYetkiBelgesiOnayGecmisiFiltreIstek
-        {
-            public int? SirketId { get; set; }
-            public DateTime? BaslangicTarihi { get; set; }
-            public DateTime? BitisTarihi { get; set; }
-            public string? Q { get; set; }
-            public int? Durum { get; set; }
-        }
-
-        private class AdminYetkiBelgesiOnayGecmisiListeCevap
-        {
-            public List<AdminYetkiBelgesiOnayCevap> Islemler { get; set; } = new();
-        }
-
-        private class AdminYetkiBelgesiOnayListeCevap
-        {
-            public List<AdminYetkiBelgesiOnayCevap> Bekleyenler { get; set; } = new();
-            public List<AdminYetkiBelgesiOnayCevap> SuresiDolanlar { get; set; } = new();
-            public List<AdminYetkiBelgesiOnayCevap> Onaylananlar { get; set; } = new();
-            public List<AdminYetkiBelgesiOnayCevap> Reddedilenler { get; set; } = new();
-
-            public AdminYetkiBelgesiOnaySonuc ToSonuc()
-            {
-                var bugun = DateTime.Today;
-                var bekleyenler = Bekleyenler.Select(x => x.ToEntity()).ToList();
-                var suresiDolanlar = SuresiDolanlar.Select(x => x.ToEntity()).ToList();
-                suresiDolanlar.AddRange(bekleyenler.Where(x => x.YetkiBelgesiBitisTarihi.Date < bugun));
-                return new AdminYetkiBelgesiOnaySonuc
-                {
-                    Bekleyenler = bekleyenler.Where(x => x.YetkiBelgesiBitisTarihi.Date >= bugun).ToList(),
-                    SuresiDolanlar = suresiDolanlar.GroupBy(x => x.Id).Select(x => x.First()).ToList(),
-                    Onaylananlar = Onaylananlar.Select(x => x.ToEntity()).ToList(),
-                    Reddedilenler = Reddedilenler.Select(x => x.ToEntity()).ToList()
-                };
-            }
-        }
-
-        private class AdminYetkiBelgesiOnayCevap
-        {
-            public int Id { get; set; }
-            public int FirmaId { get; set; }
-            public string? FirmaAdi { get; set; }
-            public string? VergiNo { get; set; }
-            public string? FirmaYetkiliKisi { get; set; }
-            public string? FirmaTelefon { get; set; }
-            public string? FirmaAdres { get; set; }
-            public string? FirmaFaaliyetIli { get; set; }
-            public string? SirketAdi { get; set; }
-            public int Durum { get; set; }
-            public DateTime OlusturmaTarihi { get; set; }
-            public DateTime? YetkiBelgesiBaslangicTarihi { get; set; }
-            public DateTime YetkiBelgesiBitisTarihi { get; set; }
-            public string? DosyaYolu { get; set; }
-            public string? OnaylayanKullanici { get; set; }
-            public DateTime? OnayTarihi { get; set; }
-            public string? RedGerekce { get; set; }
-
-            public Ys_YetkiBelgesi ToEntity()
-            {
-                return new Ys_YetkiBelgesi
-                {
-                    Id = Id,
-                    FirmaId = FirmaId,
-                    Durum = Durum,
-                    OlusturmaTarihi = OlusturmaTarihi,
-                    YetkiBelgesiBaslangicTarihi = YetkiBelgesiBaslangicTarihi,
-                    YetkiBelgesiBitisTarihi = YetkiBelgesiBitisTarihi,
-                    DosyaYolu = DosyaYolu,
-                    OnaylayanKullanici = OnaylayanKullanici,
-                    OnayTarihi = OnayTarihi,
-                    RedGerekce = RedGerekce,
-                    Firma = new Ys_Firma
-                    {
-                        Id = FirmaId,
-                        FirmaAdi = FirmaAdi,
-                        VergiNo = VergiNo,
-                        YetkiliKisi = FirmaYetkiliKisi,
-                        Telefon = FirmaTelefon,
-                        Adres = FirmaAdres,
-                        FaaliyetIli = FirmaFaaliyetIli,
-                        Sirket = new Dag_Sirket { SirketAdi = SirketAdi }
-                    }
-                };
-            }
-        }
     }
 
-    public class AdminYetkiBelgesiOnaySonuc
-    {
-        public List<Ys_YetkiBelgesi> Bekleyenler { get; set; } = new();
-        public List<Ys_YetkiBelgesi> SuresiDolanlar { get; set; } = new();
-        public List<Ys_YetkiBelgesi> Onaylananlar { get; set; } = new();
-        public List<Ys_YetkiBelgesi> Reddedilenler { get; set; } = new();
-    }
 }

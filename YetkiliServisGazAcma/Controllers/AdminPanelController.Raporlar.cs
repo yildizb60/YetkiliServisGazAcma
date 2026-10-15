@@ -7,24 +7,30 @@ namespace YetkiliServisGazAcma.Controllers
     public partial class AdminPanelController
     {
         [HttpGet("devreyealmalar")]
-        public async Task<IActionResult> DevreyeAlmalar(string? marka, string? servis, string? il, DateTime? bas, DateTime? bit)
+        public async Task<IActionResult> DevreyeAlmalar(string? marka, string? servis, string? il, DateTime? bas, DateTime? bit,
+            int? sirketId = null, string? sozlesme = null, string? tesisat = null, string? musteri = null,
+            string? ilce = null, string? durum = null, string? q = null, string? sirala = null, string? cihazTipi = null,
+            int sayfa = 1, int? kayitId = null)
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
 
-            var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            var sonuc = await _adminRaporApiClient.DevreyeAlmalarAsync(kullanici, aktifSirketId, marka, servis, il, null, bas, bit);
+            var aktifSirketId = await RaporKapsamSirketIdAsync(kullanici, sirketId);
+            var sonuc = await _adminRaporApiClient.DevreyeAlmalarAsync(kullanici, aktifSirketId, marka, servis, il, durum, bas, bit,
+                tesisatNo: tesisat, ilce: ilce, musteri: musteri, sozlesmeNo: sozlesme, arama: q, siralama: sirala, cihazTipi: cihazTipi,
+                sayfa: sayfa, odakKayitId: kayitId);
             if (sonuc == null)
             {
                 TempData["Hata"] = "Devreye alma listesi API uzerinden alinamadi.";
-                sonuc = new AdminDevreyeAlmaListeSonuc();
+                sonuc = new AdminDevreyeAlmaListeDto();
             }
 
             ViewBag.Kullanici = kullanici;
-            ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
+            ViewBag.Sayfalama = sonuc.Sayfalama;
             ViewBag.Markalar = sonuc.Markalar;
-            ViewBag.Sehirler = _sehirFirmaKoduService.Sehirler();
-            ViewBag.SeciliIl = il ?? "";
+            ViewBag.CihazTipleri = sonuc.CihazTipleri;
+            ViewBag.Sehirler = sonuc.Sehirler;
+            ViewBag.SeciliSirketId = aktifSirketId;
             ViewBag.FirmaIlceleri = sonuc.FirmaIlceleri;
             return View("~/Views/AdminPanel/DevreyeAlmalar.cshtml", sonuc.Islemler);
         }
@@ -43,16 +49,16 @@ namespace YetkiliServisGazAcma.Controllers
                 return Redirect("/AdminPanel/devreyealmalar");
             }
 
-            return Redirect($"/AdminPanel/devreyealmalar#devreye-alma-detay-{id}");
+            return Redirect($"/AdminPanel/devreyealmalar?kayitId={id}#devreye-alma-detay-{id}");
         }
 
         [HttpGet("devreyealmalar/pdf/{id:int}")]
-        public async Task<IActionResult> DevreyeAlmaPdf(int id)
+        public async Task<IActionResult> DevreyeAlmaPdf(int id, int? sirketId = null)
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
 
-            var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
+            var aktifSirketId = await RaporKapsamSirketIdAsync(kullanici, sirketId);
             var dosya = await _adminRaporApiClient.DevreyeAlmaPdfAsync(kullanici, id, aktifSirketId);
             if (dosya == null) return NotFound();
 
@@ -60,12 +66,12 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpGet("devreyealmalar/excel/{id:int}")]
-        public async Task<IActionResult> DevreyeAlmaExcel(int id)
+        public async Task<IActionResult> DevreyeAlmaExcel(int id, int? sirketId = null)
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
 
-            var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
+            var aktifSirketId = await RaporKapsamSirketIdAsync(kullanici, sirketId);
             var dosya = await _adminRaporApiClient.DevreyeAlmaExcelAsync(kullanici, id, aktifSirketId);
             if (dosya == null) return NotFound();
 
@@ -83,7 +89,7 @@ namespace YetkiliServisGazAcma.Controllers
             if (sonuc == null)
             {
                 TempData["Hata"] = "Rapor ozeti API uzerinden alinamadi.";
-                sonuc = new AdminRaporOzetSonuc
+                sonuc = new AdminRaporOzetDto
                 {
                     BasTarih = bas?.Date ?? new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1),
                     BitTarih = bit?.Date ?? DateTime.Now.Date,
@@ -93,7 +99,6 @@ namespace YetkiliServisGazAcma.Controllers
             }
 
             ViewBag.Kullanici = kullanici;
-            ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
             var genelSistemAdminMi = await _aktifSirketService.GenelSistemAdminMi(kullanici);
             ViewBag.GenelSistemAdminMi = genelSistemAdminMi;
             ViewBag.AktifSirketAdi = genelSistemAdminMi && !kapsamSirketId.HasValue
@@ -145,6 +150,9 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpGet("raporlar/pdf")]
+        [HttpPost("raporlar/pdf")]
+        [AutoValidateAntiforgeryToken]
+        [RequestFormLimits(ValueCountLimit = 6000)]
         public Task<IActionResult> RaporlarPdf(DateTime? bas, DateTime? bit, List<int>? ids, int? sirketId)
             => DevreyeAlmaRaporDosyasi(bas, bit, ids, sirketId, excelMi: false);
 
@@ -157,6 +165,9 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpGet("raporlar/excel")]
+        [HttpPost("raporlar/excel")]
+        [AutoValidateAntiforgeryToken]
+        [RequestFormLimits(ValueCountLimit = 6000)]
         public Task<IActionResult> RaporlarExcel(DateTime? bas, DateTime? bit, List<int>? ids, int? sirketId)
             => DevreyeAlmaRaporDosyasi(bas, bit, ids, sirketId, excelMi: true);
 
@@ -222,9 +233,10 @@ namespace YetkiliServisGazAcma.Controllers
                 if (dosya != null)
                     return this.HassasDosya(dosya.Bytes, dosya.ContentType, dosya.DosyaAdi);
             }
-            catch (ApiIntegrationException)
+            catch (ApiIntegrationException ex)
             {
-                // The user-facing message below is intentionally stable across API failure modes.
+                TempData["Hata"] = ex.Message;
+                return RedirectToAction(nameof(Raporlar), new { bas, bit, sirketId = kapsamSirketId });
             }
 
             TempData["Hata"] = "Operasyon raporu dosyasi su anda olusturulamadi.";
@@ -243,23 +255,24 @@ namespace YetkiliServisGazAcma.Controllers
         }
 
         [HttpGet("onay-bekleyenler")]
-        public async Task<IActionResult> OnayBekleyenler()
+        public async Task<IActionResult> OnayBekleyenler([FromQuery] YetkiBelgesiOnayFiltreDto? filtre = null)
         {
             var kullanici = await GetCurrentUser();
             if (kullanici == null) return Redirect("/giris");
 
             var aktifSirketId = await _aktifSirketService.AktifSirketIdAsync(kullanici);
-            var onayListesi = await _adminYetkiBelgesiOnayApiClient.ListeleAsync(kullanici, aktifSirketId);
+            var onayListesi = await _adminYetkiBelgesiOnayApiClient.ListeleAsync(kullanici, aktifSirketId, filtre);
             ViewBag.AdminYetkiBelgesiOnayVeriKaynagi = "API";
 
             if (onayListesi == null)
             {
                 TempData["Hata"] = "Yetki belgesi onay listesi API uzerinden alinamadi.";
-                onayListesi = new AdminYetkiBelgesiOnaySonuc();
+                onayListesi = new AdminYetkiBelgesiOnayListeDto();
             }
 
             ViewBag.Kullanici = kullanici;
-            ViewBag.OnayBekleyen = onayListesi.Bekleyenler.Count;
+            ViewBag.OnayBekleyen = onayListesi.Sayfalama.Bekleyen;
+            ViewBag.Sayfalama = onayListesi.Sayfalama;
             ViewBag.Bekleyenler = onayListesi.Bekleyenler;
             ViewBag.SuresiDolanlar = onayListesi.SuresiDolanlar;
             ViewBag.Onaylananlar = onayListesi.Onaylananlar;
@@ -278,11 +291,10 @@ namespace YetkiliServisGazAcma.Controllers
             if (sonuc == null)
             {
                 TempData["Hata"] = "Yetki belgesi uyarilari API uzerinden alinamadi.";
-                sonuc = new AdminYetkiBelgesiUyariSonuc();
+                sonuc = new AdminYetkiBelgesiUyariListeDto();
             }
 
             ViewBag.Kullanici = kullanici;
-            ViewBag.OnayBekleyen = await GetOnayBekleyenCount();
             ViewBag.Yaklasan = sonuc.Yaklasan;
             ViewBag.Gecmis = sonuc.Gecmis;
             return View("~/Views/AdminPanel/YetkiBelgesiUyarilari.cshtml");

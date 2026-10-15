@@ -1,9 +1,9 @@
-@model YetkiliServisGazAcma.Entities.Ys_Firma
+@model AdminYetkiliServisDto
 @{
     var edit = ViewData["ServisDuzenleme"] as bool? ?? false;
     var sehirler = ViewBag.Sehirler as List<string> ?? new();
-    var kategoriler = ViewBag.Kategoriler as List<YetkiliServisGazAcma.Entities.UrunKategori> ?? new();
-    var markalar = ViewBag.Markalar as List<YetkiliServisGazAcma.Entities.Ys_Marka> ?? new();
+    var kategoriler = ViewBag.Kategoriler as List<AdminYetkiliServisKategoriDto> ?? new();
+    var markalar = ViewBag.Markalar as List<MarkaApiDto> ?? new();
     var seciliKategoriler = ViewBag.SeciliKategoriler as List<int> ?? new();
     var seciliMarkalar = ViewBag.SeciliMarkalar as List<int> ?? new();
 }

@@ -8,8 +8,8 @@
     ViewData["ContentClass"] = "personnel-home-content role-dashboard-content";
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
-    var firma = ViewBag.Firma as Ys_Firma;
-    var sonIslemler = ViewBag.SonIslemler as List<Ys_DevreyeAlma> ?? new List<Ys_DevreyeAlma>();
+    var firma = ViewBag.Firma as YsPanelFirmaDto;
+    var sonIslemler = ViewBag.SonIslemler as List<YsPanelDevreyeAlmaDto> ?? new List<YsPanelDevreyeAlmaDto>();
     var buAy = Sayi(ViewBag.BuAy);
     var toplam = Sayi(ViewBag.Toplam);
     var tamamlananIslem = Sayi(ViewBag.TamamlananIslem);
@@ -18,23 +18,17 @@
     var bugun = DateTime.Today;
     var takvimTarih = ViewBag.TakvimTarih is DateTime tarih ? tarih.Date : bugun;
     var takvimGorunum = ViewBag.TakvimGorunum as string ?? "ay";
-    var takvimIslemleri = ViewBag.TakvimIslemleri as List<Ys_DevreyeAlma> ?? new List<Ys_DevreyeAlma>();
+    var takvimIslemleri = ViewBag.TakvimIslemleri as IReadOnlyList<DevreyeAlmaKayitDto> ?? Array.Empty<DevreyeAlmaKayitDto>();
     var firmaAdi = string.IsNullOrWhiteSpace(firma?.FirmaAdi) ? "Yetkili Servis" : firma.FirmaAdi;
     var ilkKurulumZorunlu = ViewBag.IlkKurulumZorunlu as bool? ?? false;
     var ilkKurulumTamamlandi = ViewBag.IlkKurulumTamamlandi as bool? ?? true;
     var ilkKurulumEksikler = ViewBag.IlkKurulumEksikler as List<string> ?? new List<string>();
     var kurulumKilitli = ilkKurulumZorunlu && !ilkKurulumTamamlandi;
 
-    var tumBelgeler = firma?.YetkiBelgeleri?.Where(x => !x.SilindiMi).ToList() ?? new List<Ys_YetkiBelgesi>();
-    var gecerliBelgeler = tumBelgeler.Count(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi
-        && (!x.YetkiBelgesiBaslangicTarihi.HasValue || x.YetkiBelgesiBaslangicTarihi.Value.Date <= bugun)
-        && x.YetkiBelgesiBitisTarihi.Date >= bugun);
-    var belgeDikkat = tumBelgeler.Count(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor);
-    var aktifMarkaSayisi = firma?.FirmaMarkalar?.Count(x => !x.SilindiMi
-        && x.YetkiBitisTarihi.Date >= bugun
-        && x.Marka?.AktifMi == true
-        && !x.Marka.SilindiMi) ?? 0;
-    var aktifSubeSayisi = firma?.Subeler?.Count(x => !x.SilindiMi && x.AktifMi) ?? 0;
+    var gecerliBelgeler = Sayi(ViewBag.GecerliBelgeSayisi);
+    var belgeDikkat = Sayi(ViewBag.BekleyenBelgeSayisi);
+    var aktifMarkaSayisi = Sayi(ViewBag.AktifMarkaSayisi);
+    var aktifSubeSayisi = Sayi(ViewBag.AktifSubeSayisi);
     var birincilIslemUrl = kurulumKilitli
         ? Url.Action("IlkKurulum", "YetkiliServisPanel")!
         : Url.Action("Index", "DevreyeAlma")!;

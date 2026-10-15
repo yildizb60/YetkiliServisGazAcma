@@ -1,6 +1,6 @@
 @{
     var kullanici = ViewBag.Kullanici as YetkiliServisGazAcma.Entities.AppKullanici;
-    var firma = ViewBag.Firma as YetkiliServisGazAcma.Entities.Ys_Firma;
+    var firma = ViewBag.Firma as YsPanelFirmaDto;
     ViewData["Title"] = "Firma Profilim";
     ViewData["PanelTitle"] = ViewData["Title"];
     ViewData["PanelSubtitle"] = "Yetkili Servis";
@@ -8,20 +8,16 @@
     Layout = "~/Views/Shared/_PanelLayout.cshtml";
 
     var markalar = firma?.FirmaMarkalar?.Where(x => !x.SilindiMi && x.Marka != null).Select(x => x.Marka!).Distinct().ToList()
-        ?? new List<YetkiliServisGazAcma.Entities.Ys_Marka>();
+        ?? new List<YsPanelMarkaDto>();
     var yetkiBelgeleri = firma?.YetkiBelgeleri?.Where(x => !x.SilindiMi).OrderByDescending(x => x.OlusturmaTarihi).ToList()
-        ?? new List<YetkiliServisGazAcma.Entities.Ys_YetkiBelgesi>();
-    var gecerli = yetkiBelgeleri.FirstOrDefault(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi && x.YetkiBelgesiBitisTarihi > DateTime.Now);
-    var onayli = yetkiBelgeleri.FirstOrDefault(x => x.Durum == YetkiBelgesiDurumDegerleri.Onaylandi);
-    var bekleyenBelge = yetkiBelgeleri.FirstOrDefault(x => x.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor
-        && x.YetkiBelgesiBitisTarihi.Date >= DateTime.Today);
-    var yetkiBelgesi = gecerli ?? bekleyenBelge ?? onayli ?? yetkiBelgeleri.FirstOrDefault();
+        ?? new List<YsPanelYetkiBelgesiDto>();
+    var yetkiBelgesi = yetkiBelgeleri.FirstOrDefault(x => x.Id == firma?.GosterilenYetkiBelgesiId);
     var adSoyad = kullanici?.AdSoyad ?? firma?.YetkiliKisi ?? "Yetkili Servis";
     var firmaAdi = firma?.FirmaAdi ?? "Firma";
     var basHarf = firmaAdi.Length > 0 ? firmaAdi[..1].ToUpper(System.Globalization.CultureInfo.GetCultureInfo("tr-TR")) : "F";
-    var bekleyenBelgeVar = bekleyenBelge != null;
-    var belgeDurumu = gecerli != null ? "Geçerli" : bekleyenBelgeVar ? "Onay Bekliyor" : yetkiBelgesi?.Durum == YetkiBelgesiDurumDegerleri.OnaydaBekliyor && yetkiBelgesi.YetkiBelgesiBitisTarihi.Date < DateTime.Today ? "Süresi Doldu" : "Geçerli Belge Yok";
-    var belgeClass = gecerli != null ? "df-pill-success" : bekleyenBelgeVar ? "df-pill-warning" : "df-pill-danger";
+    var belgeDurumu = firma?.YetkiBelgesiDurumu ?? "Geçerli Belge Yok";
+    var belgeClass = firma?.GecerliYetkiBelgesiVar == true ? "df-pill-success"
+        : firma?.BekleyenYetkiBelgesiVar == true ? "df-pill-warning" : "df-pill-danger";
     var sifreAcik = TempData.ContainsKey("SifreHata") || TempData.ContainsKey("SifreBasarili");
 }
 
